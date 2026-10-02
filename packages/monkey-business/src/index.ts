@@ -343,8 +343,6 @@ export class Run {
   private outcome: JevRequestOutcome | undefined;
   private outcomeWeights: OutcomeWeights;
   private environment: EnvironmentProfile;
-  private adviceCredentials = new Map<number, number>();
-  private requestCredentials = new Map<number, number>();
   private outputProfile: OutputProfile;
   private fileTrees: FileTreeProfile;
   private graphLimits: GraphLimits;
@@ -491,11 +489,7 @@ export class Run {
       const target = value.target;
       const targeted = (item: Scheduled): boolean => {
         if (!item.generated || item.input.kind !== "canonical") return false;
-        const event = item.input.event;
-        return ["jevRequestStarted", "jevRequestInterrupted", "jevRequestSettled"].includes(event.kind)
-          && "request" in event && "operation" in event && "partition" in event && "lifetime" in event && "round" in event
-          && event.partition === target.partition && event.lifetime === target.lifetime && event.round === target.round
-          && event.operation === target.operation && event.request === target.request;
+        return this.core.callbackMatches(item.input.event, target);
       };
       const callbacks = this.queue.filter(targeted);
       const due = callbacks.filter(item => item.input.kind === "canonical" && item.input.event.kind === "jevRequestSettled")[0]?.at ?? this.clock;
@@ -553,6 +547,13 @@ export class Run {
     this.controls.push(record);
     return copy(record);
   }
+  private credentialGenerationMatches(operation: number): boolean {
+    // Explicit raw review fixtures have no simulated backend issuance. Preserve
+    // their documented initial-generation assumption without claiming capture.
+    return this.core.capturedCredential(operation) === undefined
+      ? (this.environment.credentialGeneration ?? 1) === 1
+      : this.core.credentialMatches(operation);
+  }
   private revalidateEnvironment() {
       const context = this.driverContext({ kind: "finalCandidateCheck", ownerCurrent: true, credentialGeneration: true,
         credentialAuthorized: this.environment.credentialReady, expired: false, workCurrent: this.environment.currentWork, hasFindings: true },
@@ -578,7 +579,7 @@ export class Run {
     return { $: "Driver.Context", partition: binding.partition, lifetime: binding.lifetime, round: binding.round,
       bytes: job?.bytes ?? 0, job: !!job, jev_delay: this.jevDelay, outcome: encodeDriverOutcome(outcome),
       current_work: this.environment.currentWork, credential_ready: this.environment.credentialReady,
-      credential_generation: (this.adviceCredentials.get(c?.advice ?? ("advice" in event ? event.advice : 0)) ?? 1) === (this.environment.credentialGeneration ?? 1),
+      credential_generation: this.credentialGenerationMatches(c?.advice ?? ("advice" in event ? event.advice : 0)),
       source_readable: this.environment.sourceReadable ?? true, advice_lifetime: this.config.adviceLifetime ?? 600000,
       candidate: c ? { $: "Some", value: { $: "Driver.Candidate", partition: c.partition, advice: c.advice, round: c.round,
         token: c.token, surface: { $: `Handoff.${c.surface[0]!.toUpperCase()}${c.surface.slice(1)}` }, selection: c.selection ?? false } } : { $: "None" },
@@ -947,7 +948,6 @@ export class Run {
           break;
         case "jevRequestIssued": {
           this.issuedRequests.set(command.request, command);
-          this.requestCredentials.set(command.operation, this.environment.credentialGeneration ?? 1);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
           const selectedOutcome = driver.outcome ?? job?.outcome ?? this.outcome ?? this.core.sample(this.outcomeWeights);
@@ -989,7 +989,6 @@ export class Run {
           const advice = event.operation;
           const work = this.projection.work.find((entry) => entry.operation === advice);
           if (!work || work.parent === 0) throw new Error("retained finding lacks its edit observation");
-          this.adviceCredentials.set(advice, this.requestCredentials.get(advice) ?? this.environment.credentialGeneration ?? 1);
           effects.push({ kind: "advice", phase: "supplied", advice });
           if (!driven) throw new Error("unhandled shared finding retention");
           break;
@@ -1112,7 +1111,6 @@ export class Run {
           if (driven && item.candidate) {
             this.queue = this.queue.filter(queued => queued.expiryAdvice !== item.candidate!.advice);
             this.jobs.delete(item.candidate.advice);
-            this.adviceCredentials.delete(item.candidate.advice);
           } else if (item.candidate) this.retireAdvice(partition, item.candidate.advice);
         case "releaseCandidate":
         case "ignoreCandidate":
@@ -1341,7 +1339,6 @@ export class Run {
       this.operationRevisions.delete(event.operation);
       this.staleOperations.delete(event.operation);
       this.issuedRequests.delete(event.request);
-      this.requestCredentials.delete(event.operation);
       if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
         this.jobs.delete(event.operation);
       if (this.config.lifecycles?.cancellation === "suppressed" && event.outcome === "interrupted") effects.push({ kind: "cancellation", phase: "supplied", operation: event.operation });
@@ -1428,7 +1425,7 @@ export class Run {
   }
   private validateAdvice(partition: number, advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
     this.candidateEvent({ kind: "finalCandidateCheck", ownerCurrent: true,
-      credentialGeneration: (this.adviceCredentials.get(advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
+      credentialGeneration: this.credentialGenerationMatches(advice),
       credentialAuthorized: this.environment.credentialReady, expired: false,
       workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { partition: this.projection.work.find(work => work.operation === advice)?.partition ?? partition, advice, round, token, surface, selection });
   }
@@ -1442,7 +1439,6 @@ export class Run {
       partition: retained.partition, lifetime: retained.lifetime,
       round: retained.round, operation: advice });
     this.jobs.delete(advice);
-    this.adviceCredentials.delete(advice);
   }
   private pollFinish(partition: number, delay = 0) {
     const f = this.finishes.get(partition);

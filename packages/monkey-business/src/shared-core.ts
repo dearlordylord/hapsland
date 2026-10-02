@@ -8,7 +8,7 @@ import { issueSharedPre, capturedSharedPermit, configureSharedSeed, sharedClock,
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
-import { issueSharedActions, declareSharedAdvicee, sharedEventScope, sharedCommandScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
+import { sharedCapturedCredential, sharedCredentialMatches, sharedCallbackMatches, issueSharedActions, declareSharedAdvicee, sharedEventScope, sharedCommandScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
 import { readRecord } from "../../../src/canonical/boundary-schema.ts";
 import type { PreparationEvent, PreparationFrame } from "./preparation.ts";
 
@@ -27,6 +27,9 @@ export class SharedCore {
   commandScope(index: number, provided?: number) { return sharedCommandScope(this.state, index, provided); }
   eventScope(event: CanonicalEvent, provided?: number) { return sharedEventScope(this.state, event, provided); }
   configureCredentials(available: boolean, generation: number) { this.state = configureSharedCredentials(this.state, available, generation); }
+  capturedCredential(operation: number) { return sharedCapturedCredential(this.state, operation); }
+  credentialMatches(operation: number) { return sharedCredentialMatches(this.state, operation); }
+  callbackMatches(event: CanonicalEvent, target: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }) { return sharedCallbackMatches(event, target); }
   credentials(action: "unavailable" | "restore" | "rotate") {
     this.state = actSharedCredentials(this.state, action);
     return sharedCredentialFacts(this.state);

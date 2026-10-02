@@ -196,14 +196,14 @@ export const capturedSharedPermit = (state: EngineState, capture: unknown): unkn
   return decodeSharedValue(SharedEngine.permit_actions(state, encodeSharedValue(capture)));
 };
 
-const credentialFacts = decoder(Schema.Struct({ $: Schema.Literal("CredentialFacts.State"), available: Schema.Boolean, generation: Nat }));
+const credentialFacts = decoder(Schema.Struct({ $: Schema.Literal("CredentialFacts.State"), available: Schema.Boolean, generation: Nat, issued: Schema.Unknown }));
 export const sharedCredentialFacts = (state: EngineState) => {
   sharedCheck(state);
   return credentialFacts(decodeSharedValue(SharedEngine.credentials(state)));
 };
 export const configureSharedCredentials = (state: EngineState, available: boolean, generation: number): EngineState => {
   sharedCheck(state);
-  const checked = credentialFacts({ $: "CredentialFacts.State", available, generation });
+  const checked = credentialFacts({ $: "CredentialFacts.State", available, generation, issued: { $: "Nil" } });
   return retain(state, SharedEngine.configure_credentials(state, checked.available, BigInt(checked.generation)));
 };
 export const actSharedCredentials = (state: EngineState, action: "unavailable" | "restore" | "rotate"): EngineState => {
@@ -251,3 +251,15 @@ export const issueSharedActions = (state: EngineState, actions: unknown) => {
   const transition = SharedEngine.issue_actions(state, encodeSharedValue(actions));
   return { state: retain(state, transition.state), actions: decodeSharedValue(transition.actions) };
 };
+
+export const sharedCapturedCredential = (state: EngineState, operation: number): number | undefined => {
+  sharedCheck(state);
+  const value = scopeOption(decodeSharedValue(SharedEngine.credential_captured(state, BigInt(readNat(operation)))));
+  return value.$ === "Some" ? value.value : undefined;
+};
+export const sharedCredentialMatches = (state: EngineState, operation: number): boolean => {
+  sharedCheck(state);
+  return SharedEngine.credential_matches(state, BigInt(readNat(operation)));
+};
+export const sharedCallbackMatches = (event: CanonicalEvent, target: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }): boolean =>
+  SharedEngine.callback_matches(encodeSharedValue(encodeCanonicalEvent(event)), encodeSharedValue({ $: "FaultTargets.Target", ...target }));

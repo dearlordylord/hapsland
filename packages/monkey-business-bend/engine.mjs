@@ -15660,25 +15660,118 @@ function $FaultTargets$request$(_state_0, _target_0) {
   return $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _id_0);
 }
 
+function $FaultTargets$identity$(_p_0, _l_0, _r_0, _o_0, _id_0, _target_0) {
+  const _tp_0 = _target_0["partition"];
+  const _tl_0 = _target_0["lifetime"];
+  const _tr_0 = _target_0["round"];
+  const _to_0 = _target_0["operation"];
+  const _tid_0 = _target_0["request"];
+  return $$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "started": false, "interrupted": false}, _tp_0, _tl_0, _tr_0, _to_0, _tid_0);
+}
+
+function $FaultTargets$callback$(_event_0, _target_0) {
+  if (_event_0.$ === "Canonical.JevRequestStarted") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    const _id_0 = _event_0["request"];
+    return $FaultTargets$identity$(_p_0, _l_0, _r_0, _o_0, _id_0, _target_0);
+  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    const _id_1 = _event_0["request"];
+    return $FaultTargets$identity$(_p_1, _l_1, _r_1, _o_1, _id_1, _target_0);
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_2 = _event_0["partition"];
+    const _l_2 = _event_0["lifetime"];
+    const _r_2 = _event_0["round"];
+    const _o_2 = _event_0["operation"];
+    const _id_2 = _event_0["request"];
+    return $FaultTargets$identity$(_p_2, _l_2, _r_2, _o_2, _id_2, _target_0);
+  } else {
+    return false;
+  }
+}
+
 function $CredentialFacts$initial$() {
-  return {$: "CredentialFacts.State", "available": true, "generation": 1};
+  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
 }
 
 function $CredentialFacts$availability$(_state_0, _available_0) {
   const _generation_0 = _state_0["generation"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0};
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
 }
 
 function $CredentialFacts$rotate$(_state_0) {
   const _available_0 = _state_0["available"];
   const _generation_0 = _state_0["generation"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1)};
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
 }
 
 function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
   const _available_0 = _state_0["available"];
   const _generation_0 = _state_0["generation"];
   return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
+}
+
+function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$lookup$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["operation"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _items_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
+  }
+}
+
+function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
+  if (_found_0.$ === "None") {
+    const _available_0 = _state_0["available"];
+    const _generation_0 = _state_0["generation"];
+    const _issued_0 = _state_0["issued"];
+    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
+  } else {
+    return _state_0;
+  }
+}
+
+function $CredentialFacts$capture$(_state_0, _operation_0) {
+  const __0 = _state_0["available"];
+  const __1 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
+}
+
+function $CredentialFacts$captured$(_state_0, _operation_0) {
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$lookup$(_issued_0, _operation_0);
+}
+
+function $CredentialFacts$generation_found$(_current_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _generation_0 = _found_0["value"];
+    return $Nat$is_eq$(_current_0, _generation_0);
+  }
+}
+
+function $CredentialFacts$matches$(_state_0, _operation_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
 }
 
 function $Scheduler$precedes$(_a_0, _b_0) {
@@ -16345,11 +16438,37 @@ function $initial$(_limits_0) {
   return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}, "retiring": {$: "Nil"}};
 }
 
-function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
+function $captured_commands$($0, $1) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      const _credentials_0 = $1;
+      if (_commands_0.$ === "Nil") {
+        return _credentials_0;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.JevRequestIssued") {
+          const _operation_0 = _t_0["operation"];
+          const _tail_0 = _commands_0["tail"];
+          $0 = _tail_0;
+          $1 = ($CredentialFacts$capture$(_credentials_0, _operation_0));
+          continue;
+        } else {
+          const _tail_1 = _commands_0["tail"];
+          $0 = _tail_1;
+          $1 = _credentials_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($captured_commands$(_commands_0, _credentials_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($PendingEffects$consumed$(_retiring_0, _event_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -16367,7 +16486,7 @@ function $step$(_state_0, _event_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, ($AdmissionAttempts$consumed$(_opening_0, _event_0)), ($PendingEffects$consumed$(_retiring_0, _event_0)));
+  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _event_0);
 }
 
 function $canonical$(_state_0) {
@@ -16692,9 +16811,10 @@ function $configure_credentials$(_state_0, _available_0, _generation_0) {
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
   const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0}, "opening": _opening_0, "retiring": _retiring_0};
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($CredentialFacts$configure$(_credentials_0, _available_0, _generation_0)), "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $changed_credentials$(_credentials_0, _available_0, _rotation_0) {
@@ -16770,6 +16890,18 @@ function $issue_actions$(_state_0, _actions_0) {
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
   return $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, ($PendingEffects$issue$(_retiring_0, _actions_0)));
+}
+
+function $credential_captured$(_state_0, _operation_0) {
+  return $CredentialFacts$captured$(($credentials$(_state_0)), _operation_0);
+}
+
+function $credential_matches$(_state_0, _operation_0) {
+  return $CredentialFacts$matches$(($credentials$(_state_0)), _operation_0);
+}
+
+function $callback_matches$(_event_0, _target_0) {
+  return $FaultTargets$callback$(_event_0, _target_0);
 }
 
 function $Nat$is_eq$(_a_0, _b_0) {
@@ -16924,8 +17056,8 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:fe387547ad16d1d8c2118fd02649932877d393c6622aed0dc7fb8c7dadcaf49e";
-export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:fc81ee6d1b3e536a954faf66f528cbccc232d9513e4d129263b61eed9f5298ff";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:546b7f8b30d99822c3c69dce754397addbca669c0f8a23fbd7cfcca046ec9acb";
+export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
 
 const facts = value => {
   if (typeof value === "bigint") {
@@ -16940,6 +17072,9 @@ const facts = value => {
   return value;
 };
 export default {
+ credential_captured: (state, operation) => run_loop($credential_captured$(state, facts(operation))),
+ credential_matches: (state, operation) => run_loop($credential_matches$(state, facts(operation))),
+ callback_matches: (event, target) => run_loop($callback_matches$(facts(event), facts(target))),
  issue_actions: (state, actions) => run_loop($issue_actions$(state, facts(actions))),
  edit_attempt: (state, partition, lifetime) => run_loop($edit_attempt$(state, facts(partition), facts(lifetime))),
  scope_event: (before, after, event, provided) => run_loop($scope_event$(before, after, facts(event), facts(provided))),

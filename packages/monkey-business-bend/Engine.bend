@@ -27,9 +27,16 @@ type Transition is Data:
 def initial(limits: Ledger.Limits) -> Types.State:
   Types.State{Canonical.initial(limits), Nil{}, Scheduler.initial(), Nil{}, Random.streams(1n), Advicees.initial(), CredentialFacts.initial(), Nil{}, Nil{}}
 
+def captured_commands(commands: List<&2, Canonical.Command>, credentials: CredentialFacts.State) -> CredentialFacts.State:
+  match commands:
+    case Nil{}: credentials
+    case Canonical.JevRequestIssued{_, _, _, operation, _} <> tail:
+      captured_commands(tail, CredentialFacts.capture(credentials, operation))
+    case _ <> tail: captured_commands(tail, credentials)
+
 def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, captured_commands(commands, credentials), AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, Canonical.Rejected{state, reason}}
 
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
@@ -236,8 +243,8 @@ def credentials(state: Types.State) -> CredentialFacts.State:
 
 def configure_credentials(state: Types.State, available: Bool, generation: Nat) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, _, opening, retiring}:
-      Types.State{canonical, graphs, scheduler, workloads, random, advicees, CredentialFacts.State{available, generation}, opening, retiring}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}:
+      Types.State{canonical, graphs, scheduler, workloads, random, advicees, CredentialFacts.configure(credentials, available, generation), opening, retiring}
 
 def changed_credentials(credentials: CredentialFacts.State, available: Bool, rotation: Bool) -> CredentialFacts.State:
   match rotation:
@@ -286,3 +293,12 @@ def issue_actions(state: Types.State, actions: List<&2, Driver.Action>) -> Issue
   match state:
     case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}:
       issued_effects(canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, PendingEffects.issue(retiring, actions))
+
+def credential_captured(state: Types.State, operation: Nat) -> Maybe<&2, Nat>:
+  CredentialFacts.captured(credentials(state), operation)
+
+def credential_matches(state: Types.State, operation: Nat) -> Bool:
+  CredentialFacts.matches(credentials(state), operation)
+
+def callback_matches(event: Canonical.CanonicalEvent, target: FaultTargets.Target) -> Bool:
+  FaultTargets.callback(event, target)
