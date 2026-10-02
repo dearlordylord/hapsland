@@ -110,6 +110,29 @@ def event_code(event: Canonical.CanonicalEvent) -> Nat:
     case Canonical.CollectionReleaseLease{_, _}: 20n
     case _: 99n
 
+def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
+  match event:
+    case Canonical.OpenRound{p, l}: [p, l, 0n, 0n, 0n, 0n, 0n]
+    case Canonical.AdmitObservation{p, l, r}: [p, l, r, 0n, 0n, 0n, 0n]
+    case Canonical.QueueDispatch{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.StartObservation{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.BeginObservedPreparation{p, l, r, o, _}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.PreparationCompleted{p, l, r, o, _}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.CompleteObservation{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.DispatchSettled{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.StartReview{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.JevRequestReady{p, l, r, o, _, _, _, _, _, _}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.JevRequestStarted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
+    case Canonical.JevRequestSettled{p, l, r, o, req, _, _}: [p, l, r, o, req, 0n, 0n]
+    case Canonical.CollectionReady{a, p, l, r, _, _}: [p, l, r, 0n, 0n, a, 0n]
+    case Canonical.SubmissionSuppressCheck{a, t, r, _}: [0n, 0n, r, 0n, 0n, a, t]
+    case Canonical.CollectionReserveLease{a, t}: [0n, 0n, 0n, 0n, 0n, a, t]
+    case Canonical.SubmissionBegin{a, p, r, t, _, _, _, _}: [p, 0n, r, 0n, 0n, a, t]
+    case Canonical.SubmissionTerminal{a, t, _}: [0n, 0n, 0n, 0n, 0n, a, t]
+    case Canonical.CollectionLeaseCheck{a, t, _, _, _, _}: [0n, 0n, 0n, 0n, 0n, a, t]
+    case Canonical.CollectionReleaseLease{a, t}: [0n, 0n, 0n, 0n, 0n, a, t]
+    case _: [0n, 0n, 0n, 0n, 0n, 0n, 0n]
+
 def command_code(command: Canonical.Command) -> Nat:
   match command:
     case Canonical.RoundStarted{_}: 1n
@@ -184,7 +207,7 @@ def canonical_result(transition: Engine.Transition, +before: Types.State,
     case Engine.Transition{+state, Canonical.Advanced{_, +list}} Driver.Action{+event, delay, candidate, job, expiry}:
       +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, outcome))
       +q = enqueue(Engine.after(before, state, event), q, now)
-      (event_code(event) <> now <> command_codes(list)) <> ih((state, q))
+      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), command_codes(list))) <> ih((state, q))
     case _ _: [ [98n, now] ]
 
 def input(input: Input, +state: Types.State, queue: Queue, now: Nat,

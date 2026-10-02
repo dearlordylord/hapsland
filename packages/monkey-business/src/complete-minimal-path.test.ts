@@ -171,7 +171,7 @@ it("runs original source-free minimal scenarios through the native shared driver
         const { command, after } = frame.preparation;
         return [21, frame.time, graphCodes[command.kind] ?? 99, after.files, after.readBytes, after.treeBytes];
       }
-      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
+      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? (frame.event as unknown as Record<string, unknown>).observation : undefined) ?? 0)), ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
     });
   });
   expect(nativeTraces).toEqual(traces);
