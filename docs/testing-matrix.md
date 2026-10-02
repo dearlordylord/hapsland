@@ -27,9 +27,22 @@ The selected adoption observations include six controlled offline passes and six
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. It installs the frozen Bun lockfile, then runs documentation links,
+`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.34
+and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
+tooling step, then runs documentation links,
 typecheck, `npm test`, and build. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
+
+The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
+first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
+progress proof with Bend’s bundled kernel before the bounded harness starts.
+Bend 2.0.34 is pinned to upstream source commit
+`7d8a3eb036042c6549461054d25a10f26d361c5c`; its kernel requires Lean 4.34.0.
+Run the installer once and add its printed bin directories to `PATH` for local
+`npm test`. The explicit `--github-actions` mode in `docs:install` installs this
+proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation
+installs do not download Bend or Lean. Updating either pin requires proof
+validation and digest review.
 
 The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
 (`DEPEND ON`), selected because it checks Markdown and raw HTML links and images
