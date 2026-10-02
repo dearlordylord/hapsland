@@ -1,3 +1,5 @@
+import { jevFaultAction, jevFaultControls } from "./jev-fault-controls";
+import { graphLimitControls, graphLimitDrafts, graphLimitsFromDrafts, type GraphLimitDrafts } from "./graph-limit-controls";
 import { demoResourceLimits } from "../../monkey-business/src/index";
 import { stageResourceDetails } from "./resource-details";
 import { preparationDetails } from "./preparation-details";
@@ -51,6 +53,20 @@ export const SimulationModel = Schema.Struct({
   weightInterrupted: Schema.String,
 
   bytes: Schema.String,
+  graphSourceBytes: Schema.String,
+  graphTreeBytes: Schema.String,
+  graphFiles: Schema.String,
+  graphReadBytes: Schema.String,
+  graphOutgoingEdges: Schema.String,
+  graphDepth: Schema.String,
+  graphWork: Schema.String,
+  treeMissingPercent: Schema.String,
+  treeUnsupportedPercent: Schema.String,
+  treeUnreadablePercent: Schema.String,
+  treeRepeatedPercent: Schema.String,
+  treeCyclicPercent: Schema.String,
+  treeDeadlineStep: Schema.String,
+  treeLocalWork: Schema.String,
   treeMinFiles: Schema.String,
   treeMaxFiles: Schema.String,
   treeMaxImports: Schema.String,
@@ -98,6 +114,21 @@ export const initialSimulation: SimulationModel = {
   adviceResponse: "ignore",
   repairDelay: "300",
   draftEpoch: 0,
+  graphSourceBytes: String(graphLimitDrafts().sourceBytes),
+  graphTreeBytes: String(graphLimitDrafts().treeBytes),
+  graphFiles: String(graphLimitDrafts().files),
+  graphReadBytes: String(graphLimitDrafts().readBytes),
+  graphOutgoingEdges: String(graphLimitDrafts().outgoingEdges),
+  graphDepth: String(graphLimitDrafts().depth),
+  graphWork: String(graphLimitDrafts().work),
+  treeMissingPercent: "0",
+  treeUnsupportedPercent: "0",
+  treeUnreadablePercent: "0",
+  treeRepeatedPercent: "0",
+  treeCyclicPercent: "0",
+  treeDeadlineStep: "0",
+  treeLocalWork: "0",
+
   burst: "5",
   delay: "50",
   weightNeverSent: String(DEFAULT_OUTCOME_WEIGHTS.neverSent),
@@ -155,7 +186,17 @@ const completeReplay = () => {
   return false;
 };
 class InputError extends Error {}
+const graphFields = {"sourceBytes": "graphSourceBytes", "treeBytes": "graphTreeBytes", "files": "graphFiles", "readBytes": "graphReadBytes", "outgoingEdges": "graphOutgoingEdges", "depth": "graphDepth", "work": "graphWork"} as const;
+const graphDrafts = (model: SimulationModel): GraphLimitDrafts => Object.fromEntries(Object.entries(graphFields).map(([key, field]) => [key, model[field]])) as GraphLimitDrafts;
 const treeFields = {
+  missingPercent: "treeMissingPercent",
+  unsupportedPercent: "treeUnsupportedPercent",
+  unreadablePercent: "treeUnreadablePercent",
+  repeatedEdgePercent: "treeRepeatedPercent",
+  cyclicEdgePercent: "treeCyclicPercent",
+  deadlineStep: "treeDeadlineStep",
+  localWork: "treeLocalWork",
+
   minFiles: "treeMinFiles",
   maxFiles: "treeMaxFiles",
   maxImports: "treeMaxImports",
@@ -166,7 +207,7 @@ const treeFields = {
   minTreeBytes: "treeMinTreeBytes",
   maxTreeBytes: "treeMaxTreeBytes",
 } as const;
-const treeDrafts = (profile: FileTreeProfile) => Object.fromEntries(Object.entries(treeFields).map(([key, field]) => [field, String(profile[key as keyof FileTreeProfile])])) as Pick<SimulationModel, typeof treeFields[keyof typeof treeFields]>;
+const treeDrafts = (profile: FileTreeProfile) => Object.fromEntries(Object.entries(treeFields).map(([key, field]) => [field, String(profile[key as keyof FileTreeProfile] ?? 0)])) as Pick<SimulationModel, typeof treeFields[keyof typeof treeFields]>;
 const treeProfile = (model: SimulationModel): FileTreeProfile => {
   try {
     return validateFileTreeProfile(Object.fromEntries(Object.entries(treeFields).map(([key, field]) => [key, number(model[field], FILE_TREE_LABELS[key as keyof FileTreeProfile], 0, 1048576)])) as FileTreeProfile);
@@ -279,6 +320,20 @@ export const changeSimulation = (
       "weightTimeout",
       "weightInterrupted",
       "bytes",
+      "graphSourceBytes",
+      "graphTreeBytes",
+      "graphFiles",
+      "graphReadBytes",
+      "graphOutgoingEdges",
+      "graphDepth",
+      "graphWork",
+      "treeMissingPercent",
+      "treeUnsupportedPercent",
+      "treeUnreadablePercent",
+      "treeRepeatedPercent",
+      "treeCyclicPercent",
+      "treeDeadlineStep",
+      "treeLocalWork",
       "treeMinFiles",
       "treeMaxFiles",
       "treeMaxImports",
@@ -371,8 +426,15 @@ export const actSimulation = (
       picker.click();
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
     }
-    if (replaySource && ["pace", "editDuration", "burst", "suspend", "sizes", "environment", "output", "fileTrees"].includes(action)) {
+    if (replaySource && ["pace", "editDuration", "burst", "suspend", "sizes", "environment", "output", "fileTrees", "graphLimits"].includes(action) || replaySource && (action.startsWith("credentials:") || action.startsWith("jev-request:"))) {
       return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
+    }
+    const intervention = jevFaultAction(action);
+    if (intervention) {
+      if (!run) return { ...model, feedback: "Start a resident run before applying an intervention." };
+      run.applyControl(intervention);
+      const report = run.interventions.at(-1);
+      return { ...model, selected: -1, revision: model.revision + 1, feedback: `Intervention ${report?.result ?? "unavailable"} at ${run.now} virtual ms.` };
     }
     if (action.startsWith("preset:")) {
       const presets: Record<string, Partial<SimulationModel> & { outcome: keyof OutcomeWeights }> = {
@@ -416,6 +478,7 @@ export const actSimulation = (
         jevDelay: number(model.delay, "Jev delay", 0, 1_000_000),
         outcomeWeights: draftWeights(model),
         fileTrees: treeProfile(model),
+        graphLimits: graphLimitsFromDrafts(graphDrafts(model)),
         sessions: Array.from({ length: number(model.agentCount, "Agent count", 1, 6) }, (_, index) => ({
           agent: `agent-${index + 1}`,
           seed: (number(model.seed, "Seed", 0, 2 ** 48 - 1) + Math.imul(index, 2654435761)) >>> 0,
@@ -566,6 +629,10 @@ export const actSimulation = (
           feedback = suspended
             ? "Future edits suspended. Existing synthetic work continues; playback will wait when settled."
             : "Future edit generation resumed.";
+          break;
+        case "graphLimits":
+          run.applyControl({ kind: "graphLimits", limits: graphLimitsFromDrafts(graphDrafts(model)) });
+          feedback = "Production graph limits applied to new units; in-flight units retain captured configuration.";
           break;
         case "fileTrees":
           run.applyControl({ kind: "fileTrees", profile: treeProfile(model) });
@@ -783,6 +850,8 @@ export const simulationView = <Message>(
           ...(run && !run.agentScopes.length ? [] : [controlForm("sizes", [input("bytes", "Reservation bytes per edit", model.bytes), submit("Apply reservation size")])]),
         ],
       ),
+      ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
+      controlForm("graphLimits", [graphLimitControls(h, graphDrafts(model), (field, value) => changed(graphFields[field], value)), submit("Apply graph limits")]),
       h.details([h.Class("simulation-file-trees")], [
         h.summary([], ["Generated import trees"]),
         h.p([], ["File counts include the allowed root. Import depth starts at 0. Permissions are sampled per imported file; the seed reproduces each artifact's tree."]),
@@ -792,6 +861,14 @@ export const simulationView = <Message>(
             treeInput("treeMinFiles", "Generated files per artifact · minimum", 1, 64, "Minimum"), treeInput("treeMaxFiles", "Generated files per artifact · maximum", 1, 64, "Maximum")]),
           treeInput("treeMaxImports", "Maximum imports per file", 0, 16), treeInput("treeMaxDepth", "Maximum import depth", 0, 12),
           treeInput("treeDeniedPercent", "Denied import targets (%)", 0, 100),
+          treeInput("treeMissingPercent", FILE_TREE_LABELS.missingPercent, 0, 100),
+          treeInput("treeUnsupportedPercent", FILE_TREE_LABELS.unsupportedPercent, 0, 100),
+          treeInput("treeUnreadablePercent", FILE_TREE_LABELS.unreadablePercent, 0, 100),
+          treeInput("treeRepeatedPercent", FILE_TREE_LABELS.repeatedEdgePercent, 0, 100),
+          treeInput("treeCyclicPercent", FILE_TREE_LABELS.cyclicEdgePercent, 0, 100),
+          treeInput("treeDeadlineStep", FILE_TREE_LABELS.deadlineStep, 0, 511),
+          treeInput("treeLocalWork", FILE_TREE_LABELS.localWork, 0, 1048576),
+
           h.fieldset([h.Class("simulation-tree-range")], [h.legend([], ["Source bytes per file"]),
             treeInput("treeMinSourceBytes", "Source bytes per file · minimum", 1, 1048576, "Minimum"), treeInput("treeMaxSourceBytes", "Source bytes per file · maximum", 1, 1048576, "Maximum")]),
           h.fieldset([h.Class("simulation-tree-range")], [h.legend([], ["Evidence-tree bytes per file"]),
@@ -800,7 +877,7 @@ export const simulationView = <Message>(
         ]),
         h.p([h.Class("simulation-tree-draft")], [treeDraftStatus]),
         h.p([h.Class("simulation-tree-active")], [activeTrees ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.` : "Start / reset applies the draft generation settings."]),
-        h.p([], ["Changes apply when a preparation starts. In-flight trees stay fixed. Checked graph budgets remain 8 files read, depth 4 and 20 KiB of accepted evidence. Generation may exceed those budgets. Reservation bytes are a separate review admission fact."]),
+        h.p([], ["Changes apply when a preparation starts. In-flight trees stay fixed. Graph limits above use production validation. Generated facts may exceed the captured limits. Reservation bytes are a separate review admission fact."]),
       ]),
       h.div([h.Class("simulation-resource-scenario")], [select("resourceScenario", "Optional resource exercise · applies on Start resident", model.resourceScenario, ["none", "notices", "fit", "oversized"]), h.p([], ["Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."])]),
       h.details([h.Class("simulation-outcome-mix")], [
