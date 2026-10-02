@@ -46,7 +46,7 @@ try {
   const deadline = enteredAt + Number(process.env.HAPSLAND_BACKGROUND_WAIT_MS ?? '10000');
   await sleep(Number(process.env.HAPSLAND_BACKGROUND_INITIAL_MS ?? '0'));
   while (performance.now() < deadline) {
-    const advice = await runClient(collectReady(root, advicee, dispatch, residentPaths(), 'ordinary')).catch(() => undefined);
+    const advice = await runClient(collectReady(root, advicee, dispatch, undefined, 'ordinary')).catch(() => undefined);
     if (advice !== undefined) {
       log('background-collected', { findingCount: advice.findingCount });
       await writeOutput(advice.output);

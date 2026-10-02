@@ -54,7 +54,7 @@ import {
 } from "../test-support/controlled-decision-model.ts";
 import {
   prepareResidentDirectory,
-  residentPaths,
+  resolveResidentPaths,
   verifyRemovableSocket,
   type ResidentPaths,
 } from "./paths.ts";
@@ -465,10 +465,11 @@ export interface ResidentRuntime {
 export class ResidentRuntimeService extends Context.Service<ResidentRuntimeService, ResidentRuntimeOperations>()("@hapsland/ResidentRuntime") {}
 
 export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
-  paths: ResidentPaths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   now: () => number = monotonicNow,
   options: ResidentRuntimeOptions = {},
 ) {
+  paths ??= yield* resolveResidentPaths();
   const runtimeConfiguration = yield* makeResidentRuntimeConfiguration().pipe(
     Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" })),
   );

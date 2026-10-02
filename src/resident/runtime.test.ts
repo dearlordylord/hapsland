@@ -1,11 +1,11 @@
 import { expect, it } from "@effect/vitest";
-import { Effect, Exit, Scope } from "effect";
+import { Effect, Exit, Layer, Scope } from "effect";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { makeResidentRuntime, residentRuntimeLayer, ResidentRuntimeService } from "./server.ts";
-import { residentPaths } from "./paths.ts";
+import { residentPaths, resolveResidentPaths } from "./paths.ts";
 
 it.effect("separate acquisitions own separate resident lifetimes", () => Effect.scoped(Effect.gen(function* () {
   const first = yield* makeResidentRuntime();
@@ -23,7 +23,7 @@ it.effect("a provided layer shares one runtime within its scope", () => Effect.s
     expect(hello).toMatchObject({ status: "ready", lifetime: first.lifetime });
     expect((yield* first.stats()).running).toBe(0);
     yield* first.whenIdle();
-  }).pipe(Effect.provide(residentRuntimeLayer(residentPaths()))),
+  }).pipe(Effect.provide(Layer.unwrap(resolveResidentPaths().pipe(Effect.map(residentRuntimeLayer))))),
 ));
 
 it.effect("scope closure removes owned endpoints and fences the retired lifetime", () => Effect.gen(function* () {

@@ -1,5 +1,5 @@
 import { lstat, mkdir } from "node:fs/promises";
-import { Effect, Schema } from "effect";
+import { Config, ConfigProvider, Context, Effect, Option, Schema } from "effect";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -13,19 +13,32 @@ export type ResidentPaths = {
 // The default directory is per OS user, not per repository: commands from different
 // worktrees or agent runtimes can reach the same resident. It holds connection and
 // ownership files, not source or ledger data.
-export const residentPaths = (override = process.env.REVIEW_RESIDENT_DIR): ResidentPaths => {
+export const residentPaths = (directory: string): ResidentPaths => ({
+  directory,
+  socket: join(directory, "resident.sock"),
+  lock: join(directory, "owner.lock"),
+  owner: join(directory, "owner.json"),
+});
+
+export const resolveResidentPaths = Effect.fn("ResidentEndpoint.resolvePaths")(function* () {
+  // Preserve native empty-string semantics without overriding an explicitly
+  // supplied provider. The environment source is selected only at execution.
+  const context = yield* Effect.context();
+  const provider = Context.getOrUndefined(context, ConfigProvider.ConfigProvider)
+    ?? ConfigProvider.fromEnv({ preserveEmptyStrings: true });
+  const configuration = yield* Config.all({
+    override: Config.option(Config.String("REVIEW_RESIDENT_DIR")),
+    runtime: Config.option(Config.String("XDG_RUNTIME_DIR")),
+  }).parse(provider).pipe(Effect.mapError(() => new ResidentEndpointError({
+    operation: "resolveConfiguration", message: "resident endpoint configuration unavailable",
+  })));
   const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
-  const trustedRuntime = process.env.XDG_RUNTIME_DIR;
-  const directory = override ?? (trustedRuntime === undefined
-    ? join(tmpdir(), `realtime-review-tool-${uid}`)
-    : join(trustedRuntime, "realtime-review-tool"));
-  return {
-    directory,
-    socket: join(directory, "resident.sock"),
-    lock: join(directory, "owner.lock"),
-    owner: join(directory, "owner.json"),
-  };
-};
+  const directory = Option.getOrElse(configuration.override, () => Option.match(configuration.runtime, {
+    onNone: () => join(tmpdir(), `realtime-review-tool-${uid}`),
+    onSome: (runtime) => join(runtime, "realtime-review-tool"),
+  }));
+  return residentPaths(directory);
+});
 
 type EndpointKind = "directory" | "socket" | "regular";
 export type EndpointMetadata = {
@@ -51,7 +64,7 @@ export const validateEndpointMetadata = (
       ? metadata.isSocket
       : metadata.isFile);
 
-const EndpointOperation = Schema.Literals(["createDirectory", "inspectEndpoint", "verifyDirectory", "verifySocket", "verifyRemovableSocket"]);
+const EndpointOperation = Schema.Literals(["resolveConfiguration", "createDirectory", "inspectEndpoint", "verifyDirectory", "verifySocket", "verifyRemovableSocket"]);
 type EndpointOperation = typeof EndpointOperation.Type;
 
 export class ResidentEndpointError extends Schema.TaggedError<ResidentEndpointError>()(

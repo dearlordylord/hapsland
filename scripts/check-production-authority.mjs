@@ -25,6 +25,8 @@ assert.doesNotMatch(read("src/resident/client.ts"),
 assert.doesNotMatch(read("src/resident/client.ts"),
   /Effect\.runPromise|Effect\.runSync|ManagedRuntime|processClientRuntime|process\.once\("beforeExit"/,
   "resident client workflows must compose Effects; their process callers own execution and disposal");
+assert.doesNotMatch(read("src/resident/paths.ts"), /process\.env/,
+  "resident endpoint configuration must use Config at Effect execution time");
 const obsoleteImports = [];
 const scan = (directory) => {
   for (const entry of readdirSync(resolve(root, directory), { withFileTypes: true })) {

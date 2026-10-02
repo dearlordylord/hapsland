@@ -23,7 +23,7 @@ import {
   releaseComposedSubmissionEffect,
   releaseComposedBackgroundEffect,
 } from "./client.ts";
-import { residentPaths } from "./paths.ts";
+import { resolveResidentPaths } from "./paths.ts";
 import { composedClaudeHostOutput } from "./collection.ts";
 
 type BoundClient<F> = F extends (...args: infer Args) => Effect.Effect<infer A, infer E, unknown>
@@ -127,7 +127,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   ).pipe(Effect.catch(() => Effect.succeed(undefined)));
   if (identity === undefined) return yield* quiet();
   const { root, advicee } = identity;
-  const paths = residentPaths();
+  const paths = yield* resolveResidentPaths();
 
   if (input.kind === "before-edit") {
     yield* registerComposedEditEffect(root, advicee, hookProcessStartedAt, paths, input.activityPath,

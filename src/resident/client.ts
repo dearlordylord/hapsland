@@ -14,7 +14,7 @@ import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentia
 import type { ClaudeHostOutput, CollectionMode } from "./collection.ts";
 import {
   prepareResidentDirectory,
-  residentPaths,
+  resolveResidentPaths,
   verifyResidentSocket,
   type ResidentPaths,
 } from "./paths.ts";
@@ -175,9 +175,10 @@ export const makeResidentStartup = Effect.gen(function* () {
 export const residentStartupLayer = Layer.effect(ResidentStartup, makeResidentStartup).pipe(Layer.provide(residentLauncherLayer));
 
 export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(function* (
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   readinessMs = STARTUP_READINESS_DEADLINE_MS,
 ) {
+  paths ??= yield* resolveResidentPaths();
   const dependencies = yield* ResidentStartup;
   const ready = (response: Extract<ResidentResponse, { status: "ready" }>) =>
     dependencies.clearDiagnostic(paths).pipe(Effect.as(response));
@@ -212,8 +213,9 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
 
 /** Read-only bounded probe. Unlike ensureResident, this never launches or repairs a resident. */
 export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")(function* (
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
 ): Effect.fn.Return<{ readonly available: boolean; readonly lifetime?: string; readonly pid?: number }, Error> {
+  paths ??= yield* resolveResidentPaths();
   const response = yield* residentRequestEffect(
     paths,
     { requestRoute: "shared", operation: "hello" },
@@ -297,9 +299,10 @@ export const admitObservationEffect = Effect.fn("ResidentClient.admitObservation
   observation: DirectObservation,
   controlledWriter: boolean,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   composed = true,
 ) {
+  paths ??= yield* resolveResidentPaths();
   if (!composed) return { status: "unsupported" } as const;
   const owner = yield* ensureResidentEffect(paths);
   if (!controlledWriter) return { status: "empty" } as const;
@@ -332,9 +335,10 @@ export type TicketedAdmissionResult =
 export const admitTicketedObservationEffect = Effect.fn("ResidentClient.admitTicketedObservation")(function* (
   observation: DirectObservation,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   composed = true,
 ): Effect.fn.Return<TicketedAdmissionResult, Error, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
   if (!composed || observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = yield* ensureResidentEffect(paths);
   const response = yield* residentRequestEffect(paths, {
@@ -409,9 +413,10 @@ export const collectReadyEffect = Effect.fn("ResidentClient.collectReady")(funct
   root: string,
   advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary",
 ): Effect.fn.Return<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined, Error, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths);
   const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared",
@@ -446,11 +451,12 @@ export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdvi
   root: string,
   advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary",
   deadlineAt = Number.POSITIVE_INFINITY,
   finish?: { readonly token: string; readonly deadlineReached: boolean },
 ): Effect.fn.Return<AdviceeCollectionOutcome, Error> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
   const remaining = deadlineAt - performance.now() - 100;
@@ -486,10 +492,11 @@ export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markCompos
   root: string,
   advicee: DirectAdvicee,
   marker: string,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   promptDigest?: string,
   onlyIfMissing?: true,
 ): Effect.fn.Return<boolean, Error, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, 1_500);
   const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared", operation: "prompt-marker", lifetime: owner.lifetime,
@@ -502,8 +509,9 @@ export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markCompos
 
 export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
 ): Effect.fn.Return<boolean, Error, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, 1_500);
   const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared", operation: "claim-background", lifetime: owner.lifetime,
@@ -514,8 +522,9 @@ export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComp
 
 export const releaseComposedBackgroundEffect = Effect.fn("ResidentClient.releaseComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
 ): Effect.fn.Return<boolean, Error> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
   const response = yield* residentRequestEffect(paths, {
@@ -560,8 +569,9 @@ export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvi
 
 export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStopBoundary")(function* (
   operation: "begin-stop" | "finish-stop", root: string, advicee: DirectAdvicee,
-  token: string, close = false, paths = residentPaths(), reason: RoundCloseReason = "no-advice",
+  token: string, close = false, paths: ResidentPaths | undefined = undefined, reason: RoundCloseReason = "no-advice",
 ): Effect.fn.Return<boolean, Error> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
   const response = yield* residentRequestEffect(paths, { requestRoute: "shared", operation,
@@ -570,9 +580,10 @@ export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStop
 });
 
 export const registerComposedEditEffect = Effect.fn("ResidentClient.registerComposedEdit")(function* (
-  root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
+  root: string, advicee: DirectAdvicee, startedAt: number, paths: ResidentPaths | undefined = undefined, activityPath?: string,
   userConfigPath?: string,
 ): Effect.fn.Return<boolean, Error, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, 1_500);
   const response = yield* residentRequestEffect(paths, { requestRoute: "shared", operation: "register-edit",
     lifetime: owner.lifetime, root, advicee, startedAt,

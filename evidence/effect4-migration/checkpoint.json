@@ -192,7 +192,8 @@
     "Replaced the remaining six resident Promise coordination hooks with one scoped Effect review control service; Deferred fixtures prove cancellation, retained completed-finding preservation, pending-advice failure cleanup and revalidation workspace/lease cleanup. Root resident state and runtime expose Effects without runSync/runPromise or unsafe reads.",
     "Resident endpoint directory/socket preparation and verification compose as named Effects with typed source-free filesystem errors; ENOENT allowance, uid/mode/type/symlink checks and absolute client deadlines preserved.",
     "Native process ownership acquisition/release and recovery publication compose as named Effects with typed errors, scoped candidate cleanup, explicit Effect recovery controls and live epoch Clock; production root acquireRelease owns the lock through runtime teardown.",
-    "Deleted all seventeen resident client Promise facades and its hidden process ManagedRuntime; native fixtures and runners explicitly execute the sole Effect workflows at their process boundary"
+    "Deleted all seventeen resident client Promise facades and its hidden process ManagedRuntime; native fixtures and runners explicitly execute the sole Effect workflows at their process boundary",
+    "Resident path construction is pure and explicit; default endpoint paths resolve through Config at Effect execution time with injected provider isolation, exact precedence and preserved empty-string native semantics"
   ],
   "verification": [
     {
@@ -2412,19 +2413,72 @@
       "nativeRunnerSyntaxFilesPassed": 18,
       "scope": "Resident client exposes only Effect workflows and no execution/disposal bridges. Native fixture executor shares one startup service per process, preserving concurrent launch throttling. Tests and maintained native runners including embedded subprocess scripts explicitly execute Effects. Onboarding async consumers currently execute the read-only probe at their existing native boundary. Production guard rejects hidden client execution. Build contains only the production-imported controlled-decision-model test-support adapter; client-runtime is excluded.",
       "limitations": "Client configuration/path defaults and typed service errors remain to audit. Async onboarding workflow composition still requires assessment. Selected offline tests and syntax checks do not establish live host, package or final performance support; final full suite and declared gates remain pending."
+    },
+    {
+      "stage": "effect-endpoint-configuration",
+      "parentCommit": "7d02b95",
+      "sourceSha256": {
+        "evidence/advicing-linux/background-hook.mjs": "d03fc88c447a3c9577f9f7687206f59d23a49f0da890f90769fce06826c3f316",
+        "evidence/advicing-linux/run-linux.mjs": "392a15ac4891c266e1e21a33cd59b9d9409c8240f3b978c2020decfe6adba901",
+        "evidence/advicing-linux/run-matched-linux.mjs": "caffdb7a0c04c3739967e2b759e11d70bf5b415c787458b65f4e84d67764d29d",
+        "evidence/advicing-linux/run-native-background-timing-linux.mjs": "d82a242343295172fc3eec9b4668dc67595932215880debac9bcc5cbd60a416f",
+        "evidence/delivery-97/run-resident.mjs": "de678be8956ada594ff0844cb8146e05fa64ede79c62c4e2ae37b0a39f988ba7",
+        "scripts/check-production-authority.mjs": "9f1d60be46eabbc203c837e30210abe608056e900af796cde8cf3aafd15ec1c7",
+        "src/resident/client.ts": "10e3f3015678c23fe13fc6b369ec2eb6189737322eab2577c0e67b9b4dea205c",
+        "src/resident/composed-hook.ts": "0bbc95782d120848a5e52036df34be21fd4e10f1af1543619425a85226986742",
+        "src/resident/paths.test.ts": "6f9f43f62c703d88161824a8bbdafa42f14c9008d3ae1c674a44d6d4d9e3ff3c",
+        "src/resident/paths.ts": "e32101b2627f840b64bae2bcad74451ab2d47d690000081d1ac752fd8cf64c42",
+        "src/resident/runtime.test.ts": "7ff730ad3adea1b877b71d05c6742dbd62af9ad86e24c06cf2294aea48ba7c7a",
+        "src/resident/server.ts": "1f0e04a774e962f43ba4ea086da5a37b4a7899944f7e9e6ef3af24efc6368352"
+      },
+      "initialEffectTests": {
+        "filesPassed": 5,
+        "testsPassed": 35,
+        "durationSeconds": 2.81
+      },
+      "initialNativeTests": {
+        "filesPassed": 4,
+        "filesFailed": 1,
+        "testsPassed": 41,
+        "testsFailed": 1,
+        "durationSeconds": 131.51,
+        "failure": "Claude final-IPC opt-in revocation fixture did not reach its declared gate before unchanged wait limit",
+        "cause": "unproven"
+      },
+      "isolatedFailureAndConfigCases": {
+        "testsPassed": 7,
+        "filesPassed": 2,
+        "durationSeconds": 7.61,
+        "limitsChanged": false
+      },
+      "finalTests": {
+        "command": "npx vitest run src/resident/paths.test.ts src/resident/runtime.test.ts src/resident/client.test.ts src/resident/client-startup.test.ts src/resident/composed-hook.test.ts src/direct-event/claude-cli.test.ts --maxWorkers=1",
+        "testsPassed": 55,
+        "filesPassed": 6,
+        "durationSeconds": 70.5
+      },
+      "nativeDefaultProviderChecks": {
+        "casesPassed": 3,
+        "scope": "Actual Node process with default provider: empty override, empty runtime and explicit override precedence"
+      },
+      "typecheck": true,
+      "build": true,
+      "scope": "Deleted process.env defaults from pure residentPaths. Named resolveResidentPaths parses Config through an explicit provider when supplied; otherwise its native environment source preserves empty strings. All client default-path arguments resolve inside workflows; composed hook and runtime acquisition compose directly. Native evidence runners use client default resolution instead of an eager environment helper. Config failures map to source-free ResidentEndpointError. Production guard rejects direct env reads in endpoint module. Existing uid-scoped tmp path, XDG runtime fallback and explicit path authority are retained.",
+      "limitations": "One initial native fixture gate timeout remains unexplained; subsequent isolated case and full Claude CLI file passed with unchanged limits. Earlier initial malformed-object test incorrectly assumed Config.option rejects container nodes; corrected it to test actual provider source failure after checking installed ConfigProvider semantics. Final broader suite/package/live/performance gates still remain."
     }
   ],
   "next": [
-    "Audit client configuration/trust/credential/native path defaults and typed service errors; keep Effect execution at process and host boundaries",
+    "Audit remaining client typed service errors, trust/credential adapters and onboarding composition; keep Effect execution at process and host boundaries",
     "Finish any remaining fixture and service error/resource ownership gaps found by the full requirement audit",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Run final typecheck/test/direct-event/build/package/installed-release/applicable host validation and bounded authorized live Jev validation when credentials are available",
     "Rerun original and deterministic physical-retirement workloads against the final migrated implementation",
-    "Establish valid comparative physical-retirement timing evidence; preserve original declarations, formulas and all failure evidence"
+    "Establish valid comparative physical-retirement timing evidence; preserve original declarations, formulas and all failure evidence",
+    "Reconcile migration with current master changes, including latest response authority contract from #171, before final completion audit"
   ],
   "limitations": [
     "Native IPC fibers and resident coordination layers have scoped ownership; mutable per-job callback metadata remains an executor resource. Root resident state and runtime execution bridges and unsafe reads have been removed.",
-    "Client Promise facades and hidden runtime have been removed. Client/host configuration, trust, credential and native path defaults plus async onboarding composition still require their final audit.",
+    "Client Promise facades, hidden runtime and eager environment path defaults have been removed. Client typed service errors, trust/credential adapters and async onboarding composition still require their final audit.",
     "Latest full offline rerun passed1149 tests with two credential-gated live tests skipped but failed one native credential test at its unchanged5000ms timeout. Isolated case and full23-test credential file passed without changing limits; timeout cause remains unproven. Final full-suite/package/installed-release/applicable host/live gates remain pending.",
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
