@@ -285,6 +285,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    observation: Effect.fn("Capacity.observation")((...args: Arguments<typeof observation>) => commitAllEffect((draft, records) => [observation(draft, ...args), records])),
+    beginObservedPreparation: Effect.fn("Capacity.beginObservedPreparation")((...args: Arguments<typeof beginObservedPreparation>) => commitAllEffect((draft, records) => [beginObservedPreparation(draft, ...args), records])),
+    completePreparation: Effect.fn("Capacity.completePreparation")((...args: Arguments<typeof completePreparation>) => commitAllEffect((draft, records) => [completePreparation(draft, ...args), records])),
     admitObservation: Effect.fn("Capacity.admitObservation")((...args: Arguments<typeof admitObservation>) => commitAllEffect((draft, records) => [admitObservation(draft, ...args), records])),
     consumeEditPermit: Effect.fn("Capacity.consumeEditPermit")((...args: Arguments<typeof consumeEditPermit>) => commitAllEffect((draft, records) => [consumeEditPermit(draft, ...args), records])),
     acknowledgeStopRelease: Effect.fn("Capacity.acknowledgeStopRelease")((...args: Arguments<typeof acknowledgeStopRelease>) => commitAllEffect((draft, records) => [acknowledgeStopRelease(draft, ...args), records])),

@@ -678,7 +678,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     };
     if (!(yield* residentDispatcher.enqueue(partition, job))) {
       if (ticket !== undefined) yield* residentLedger.tickets.forget(ticket);
-      residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
+      (yield* residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound));
       residentLedger.release(reservation);
       yield* residentLedger.runtime.rejectCapacity();
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
@@ -1497,7 +1497,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentDiscardJob = Effect.fn("ResidentRuntime.discardJob")(function* (job: Job) {
     if (job.completed) return;
     if (job.kind === "ingress") {
-      residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
+      (yield* residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound));
     }
     if (job.kind === "unit") {
       if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
@@ -1587,7 +1587,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         residentLedger.release(job.reservation);
         return;
       }
-      if (!residentLedger.observation(job.partition, job.canonicalObservationId, "startObservation", job.canonicalRound)) {
+      if (!(yield* residentLedger.observation(job.partition, job.canonicalObservationId, "startObservation", job.canonicalRound))) {
         residentLedger.release(job.reservation);
         return;
       }
@@ -1627,8 +1627,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
         if (!(yield* residentJobActive(job))) return;
-        const preparation = residentLedger.beginObservedPreparation(
-          job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path), job.canonicalRound);
+        const preparation = (yield* residentLedger.beginObservedPreparation(
+          job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path), job.canonicalRound));
         if (preparation === undefined) {
           yield* residentLedger.runtime.rejectCapacity();
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
@@ -1710,12 +1710,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
-        const reservations = residentLedger.completePreparation(
+        const reservations = (yield* residentLedger.completePreparation(
           job.partition, preparation.operation, workspace,
           retained.map((item) =>
             residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
           job.canonicalRound,
-        );
+        ));
         activeWorkspaces.delete(workspace);
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
@@ -1873,7 +1873,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           !(yield* residentLedger.rounds.policyWork(job.round)).completeSource(job.workObservationId)) {
         throw new Error("Bend denied source completion");
       }
-      if (!residentLedger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)) {
+      if (!(yield* residentLedger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound))) {
         throw new Error("canonical observation completion refused");
       }
       job.completed = true;
@@ -1893,7 +1893,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         residentLedger.release(job.reservation);
         for (const workspace of activeWorkspaces) residentLedger.release(workspace);
         for (const key of unassignedClaims) yield* residentReleaseReuseClaim(key);
-        if (!job.completed) residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
+        if (!job.completed) (yield* residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound));
       })),
     );
   });

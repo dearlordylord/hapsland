@@ -14,9 +14,9 @@ describe("canonical work projection", () => {
     expect(view().admit(source)).toBe(source);
     expect(view().startSource(source)).toBe(true);
     expect(view().unfinished()).toBe(1);
-    expect(ledger.observation("agent", source, "startObservation", round)).toBe(true);
+    expect(Effect.runSync(ledger.observation("agent", source, "startObservation", round))).toBe(true);
     expect(view().completeSource(source)).toBe(true);
-    expect(ledger.observation("agent", source, "completeObservation", round)).toBe(true);
+    expect(Effect.runSync(ledger.observation("agent", source, "completeObservation", round))).toBe(true);
     expect(view().unfinished()).toBe(0);
     expect(view().pendingFindings()).toBe(0);
   });
@@ -33,10 +33,10 @@ describe("canonical work projection", () => {
     expect(oldView().unfinished()).toBe(0);
     expect(oldView().startSource(source)).toBe(false);
     expect(nextView().unfinished()).toBe(1);
-    ledger.observation("agent", source, "startObservation", nextRound);
-    const preparation = ledger.beginObservedPreparation("agent", source, 100, nextRound)!;
-    const unit = ledger.completePreparation("agent", preparation.operation,
-      preparation.reservation, [20], nextRound)[0]!;
+    Effect.runSync(ledger.observation("agent", source, "startObservation", nextRound));
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, nextRound))!;
+    const unit = Effect.runSync(ledger.completePreparation("agent", preparation.operation,
+      preparation.reservation, [20], nextRound))[0]!;
     ledger.completeReview("agent", unit.operation, unit.reservation, "finding", nextRound);
     expect(oldView().pendingFor(unit.operation)).toBe(0);
     expect(oldView().pendingFindings()).toBe(0);
@@ -48,9 +48,9 @@ describe("canonical work projection", () => {
     const round = Effect.runSync(ledger.roundId("agent"));
     const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
     const source = Effect.runSync(ledger.admitObservation("agent"));
-    ledger.observation("agent", source, "startObservation", round);
-    const preparation = ledger.beginObservedPreparation("agent", source, 100, round)!;
-    const unit = ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], round)[0]!;
+    Effect.runSync(ledger.observation("agent", source, "startObservation", round));
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, round))!;
+    const unit = Effect.runSync(ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], round))[0]!;
     expect(view().spawn(source, unit.operation)).toBe(unit.operation);
     expect(view().startUnit(unit.operation)).toBe(true);
     expect(ledger.startReview("agent", unit.operation, round)).toBe(true);

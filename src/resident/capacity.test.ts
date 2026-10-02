@@ -241,12 +241,17 @@ describe("resident logical capacity ledger", () => {
     const ledger = makeCapacityLedger();
     const round = Effect.runSync(ledger.roundId("agent"));
     const observation = Effect.runSync(ledger.admitObservation("agent"));
-    expect(ledger.observation("agent", observation, "startObservation", round)).toBe(true);
-    const preparation = ledger.beginObservedPreparation("agent", observation, 10, round);
+    expect(Effect.runSync(ledger.observation("agent", observation, "startObservation", round))).toBe(true);
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", observation, 10, round));
     expect(preparation).toBeDefined();
+    const completion = ledger.observation("agent", observation, "completeObservation", round);
+    const latePreparation = ledger.beginObservedPreparation("agent", observation, 10, round);
+    const split = preparation === undefined ? undefined : ledger.completePreparation(
+      "agent", preparation.operation, preparation.reservation, [5], round);
     Effect.runSync(ledger.retireRound("agent", round));
-    expect(ledger.observation("agent", observation, "completeObservation", round)).toBe(false);
-    expect(ledger.beginObservedPreparation("agent", observation, 10, round)).toBeUndefined();
+    expect(Effect.runSync(completion)).toBe(false);
+    expect(Effect.runSync(latePreparation)).toBeUndefined();
+    if (split !== undefined) expect(() => Effect.runSync(split)).toThrow("invalid canonical preparation completion");
     expect(ledger.canonicalProjection().rounds).toEqual([]);
     expect(ledger.canonicalProjection().work).toEqual([]);
     expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
@@ -261,15 +266,15 @@ describe("resident logical capacity ledger", () => {
     const source = Effect.runSync(ledger.admitObservation("agent", nextRound));
     Effect.runSync(ledger.retireRound("agent", oldRound));
     expect(Effect.runSync(ledger.roundId("agent"))).toBe(nextRound);
-    expect(ledger.observation("agent", oldSource, "startObservation", oldRound)).toBe(false);
-    expect(ledger.observation("agent", source, "startObservation", oldRound)).toBe(false);
-    expect(ledger.beginObservedPreparation("agent", source, 10, oldRound)).toBeUndefined();
-    expect(ledger.observation("agent", source, "startObservation", nextRound)).toBe(true);
-    const preparation = ledger.beginObservedPreparation("agent", source, 10, nextRound);
+    expect(Effect.runSync(ledger.observation("agent", oldSource, "startObservation", oldRound))).toBe(false);
+    expect(Effect.runSync(ledger.observation("agent", source, "startObservation", oldRound))).toBe(false);
+    expect(Effect.runSync(ledger.beginObservedPreparation("agent", source, 10, oldRound))).toBeUndefined();
+    expect(Effect.runSync(ledger.observation("agent", source, "startObservation", nextRound))).toBe(true);
+    const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 10, nextRound));
     expect(preparation).toBeDefined();
     if (preparation === undefined) throw new Error("preparation missing");
-    const [unit] = ledger.completePreparation("agent", preparation.operation,
-      preparation.reservation, [5], nextRound);
+    const [unit] = Effect.runSync(ledger.completePreparation("agent", preparation.operation,
+      preparation.reservation, [5], nextRound));
     if (unit === undefined) throw new Error("unit missing");
     expect(ledger.startReview("agent", unit.operation, oldRound)).toBe(false);
     expect(ledger.completeReview("agent", unit.operation, unit.reservation, "clear", oldRound)).toBe(false);

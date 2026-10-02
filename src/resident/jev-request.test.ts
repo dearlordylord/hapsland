@@ -465,12 +465,12 @@ describe("canonical Jev request boundary", () => {
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
     const reviewUnit = (owner = partition) => {
       const observation = Effect.runSync(ledger.admitObservation(owner));
-      expect(ledger.observation(owner, observation, "startObservation", Effect.runSync(ledger.roundId(owner)))).toBe(true);
-      const preparation = ledger.beginObservedPreparation(owner, observation, 100, Effect.runSync(ledger.roundId(owner)));
+      expect(Effect.runSync(ledger.observation(owner, observation, "startObservation", Effect.runSync(ledger.roundId(owner))))).toBe(true);
+      const preparation = Effect.runSync(ledger.beginObservedPreparation(owner, observation, 100, Effect.runSync(ledger.roundId(owner))));
       if (preparation === undefined) throw new Error("preparation refused");
-      expect(ledger.observation(owner, observation, "completeObservation", Effect.runSync(ledger.roundId(owner)))).toBe(true);
-      const unit = ledger.completePreparation(owner, preparation.operation,
-        preparation.reservation, [10], Effect.runSync(ledger.roundId(owner)))[0];
+      expect(Effect.runSync(ledger.observation(owner, observation, "completeObservation", Effect.runSync(ledger.roundId(owner))))).toBe(true);
+      const unit = Effect.runSync(ledger.completePreparation(owner, preparation.operation,
+        preparation.reservation, [10], Effect.runSync(ledger.roundId(owner))))[0];
       if (unit === undefined) throw new Error("unit refused");
       expect(ledger.startReview(owner, unit.operation, Effect.runSync(ledger.roundId(owner)))).toBe(true);
       return unit;
@@ -509,12 +509,12 @@ describe("canonical Jev request boundary", () => {
     const issue = (ledger: typeof first) => {
       const partition = "review-partition";
       const observation = Effect.runSync(ledger.admitObservation(partition));
-      expect(ledger.observation(partition, observation, "startObservation", Effect.runSync(ledger.roundId(partition)))).toBe(true);
-      const preparation = ledger.beginObservedPreparation(partition, observation, 100, Effect.runSync(ledger.roundId(partition)));
+      expect(Effect.runSync(ledger.observation(partition, observation, "startObservation", Effect.runSync(ledger.roundId(partition))))).toBe(true);
+      const preparation = Effect.runSync(ledger.beginObservedPreparation(partition, observation, 100, Effect.runSync(ledger.roundId(partition))));
       if (preparation === undefined) throw new Error("preparation refused");
-      expect(ledger.observation(partition, observation, "completeObservation", Effect.runSync(ledger.roundId(partition)))).toBe(true);
-      const unit = ledger.completePreparation(partition, preparation.operation,
-        preparation.reservation, [10], Effect.runSync(ledger.roundId(partition)))[0];
+      expect(Effect.runSync(ledger.observation(partition, observation, "completeObservation", Effect.runSync(ledger.roundId(partition))))).toBe(true);
+      const unit = Effect.runSync(ledger.completePreparation(partition, preparation.operation,
+        preparation.reservation, [10], Effect.runSync(ledger.roundId(partition))))[0];
       if (unit === undefined) throw new Error("unit refused");
       expect(ledger.startReview(partition, unit.operation, Effect.runSync(ledger.roundId(partition)))).toBe(true);
       const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition)));

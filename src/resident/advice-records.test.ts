@@ -25,13 +25,13 @@ const fixture = (existing?: Owner) => Effect.gen(function* () {
   if (generation === undefined) throw new Error("fixture edit refused");
   const round = (yield* owner.rounds.bind("agent", generation, { root: observation.root, advicee: observation.advicee, activityPath: undefined }, "cohort"));
   const admissionId = (yield* owner.admitObservation("agent"));
-  owner.observation("agent", admissionId, "startObservation", round.canonicalRound);
-  const preparation = owner.beginObservedPreparation("agent", admissionId, 100, round.canonicalRound);
+  (yield* owner.observation("agent", admissionId, "startObservation", round.canonicalRound));
+  const preparation = (yield* owner.beginObservedPreparation("agent", admissionId, 100, round.canonicalRound));
   if (preparation === undefined) throw new Error("fixture preparation refused");
-  const [unit] = owner.completePreparation("agent", preparation.operation, preparation.reservation, [100], round.canonicalRound);
+  const [unit] = (yield* owner.completePreparation("agent", preparation.operation, preparation.reservation, [100], round.canonicalRound));
   if (unit === undefined) throw new Error("fixture unit refused");
   expect(owner.observeReview("agent", unit.operation, unit.reservation, "finding", true, round.canonicalRound)).toBe("retainFinding");
-  owner.observation("agent", admissionId, "completeObservation", round.canonicalRound);
+  (yield* owner.observation("agent", admissionId, "completeObservation", round.canonicalRound));
   const revision = (yield* owner.revision.register("agent", prepared, true, "revision")).revision;
   const initial: AdviceInitial = {
     id: "advice", canonicalRound: round.canonicalRound, round, workUnitId: unit.operation, admissionId,
