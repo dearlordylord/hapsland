@@ -93,11 +93,22 @@ it("restores availability without changing issuance authority, and rotation reti
   run.applyControl({ kind: "credentials", action: "rotate" });
   run.advance({ untilTime: 20 });
   expect(run.projection.pendingFindings).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.dispatch.running).toEqual([]);
+  expect(run.projection.collection.leases).toEqual([]);
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "submissionRecorded")).toHaveLength(1);
   expect(run.interventions.map(report => report.result)).toEqual(["applied", "applied", "applied"]);
   run.schedule({ ...edit, at: 21 });
   run.advance({ untilTime: 30 });
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "submissionRecorded")).toHaveLength(2);
-  expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
+  // Readiness and explicit revalidation independently scheduled the old
+  // candidate. Its second retirement reaches the actual stale-operation fence;
+  // the refusal stays observable and cannot release its charge twice.
+  const refusals = run.observations.filter(frame => frame.rejection);
+  expect(refusals.map(frame => ({ time: frame.time, event: frame.event, rejection: frame.rejection }))).toEqual([
+    { time: 17, event: { kind: "retireReview", partition: 1, lifetime: 1, round: 1, operation: 7 }, rejection: "StaleOperation" },
+  ]);
+  for (const refusal of refusals) expect(refusal.after).toEqual(refusal.before);
   replayExact(run);
 });
