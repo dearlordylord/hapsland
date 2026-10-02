@@ -15,7 +15,7 @@ export class DirectHookSubmission extends Context.Service<DirectHookSubmission, 
 }>()("Hapsland/DirectHookSubmission") {}
 
 export const directHookSubmissionLayer = Layer.effect(DirectHookSubmission, Effect.gen(function* () {
-  const demoBudgetPath = yield* Config.option(Config.String("REVIEW_DEMO_BUDGET_PATH"));
+  const demoBudgetPath = yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"));
   return DirectHookSubmission.of({
     begin: beginComposedSubmissionEffect,
     release: releaseComposedSubmissionEffect,

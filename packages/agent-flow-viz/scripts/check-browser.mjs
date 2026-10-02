@@ -195,7 +195,8 @@ try {
   await waitForText(".canonical-progress", "Guided step 0 of 8");
   await advanceGuided(1, 7, 8);
   await waitForText(".canonical-progress", "Guided step 7 of 8");
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 1);
+  assert.equal(await page.locator(".topology-node").filter({ hasText: "CMD · retain finding for Review item" }).count(), 1);
+  assert.equal(await page.locator(".topology-node.active").filter({ hasText: "Pending advice" }).count(), 0);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "nonfinding review outcome recorded" }).count(), 0);
 
   await canonical.getByRole("button", { name: "Reset replay" }).click();

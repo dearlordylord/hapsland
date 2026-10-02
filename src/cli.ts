@@ -49,7 +49,7 @@ import {
   makeResidentDispatchContextEffect,
   type CollectedAdvice,
 } from "./resident/client.ts";
-import { hookOutputLayer } from "./resident/hook-output.ts";
+import { HookOutput, hookOutputLayer } from "./resident/hook-output.ts";
 import { composedHookRuntimeLayer, runComposedHookEffect, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
 import {
   installCodexIntegration,
@@ -399,7 +399,8 @@ const runDirectCodexHook = (
         ).pipe(Effect.catch(() => Effect.succeed(undefined)));
     const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion);
     if (observation !== undefined) {
-      recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.advicee, { kind: "edit" });
+      const demoBudgetPath = yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"));
+      recordDemoTrace(Option.getOrUndefined(demoBudgetPath), observation.root, observation.advicee, { kind: "edit" });
     }
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never create review work.
@@ -633,7 +634,7 @@ const program = Effect.gen(function* () {
     }
     return yield* runEvaluationCommand(evaluationInput, {
       allowLive: process.argv.includes("--evaluation-live"),
-      credentialEnvVar: process.env.EVALUATION_CREDENTIAL_ENV ?? "TYPESAFE_API_KEY",
+      credentialEnvVar: yield* Config.NonEmptyString("EVALUATION_CREDENTIAL_ENV").pipe(Config.withDefault("TYPESAFE_API_KEY")),
       ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {}),
     });
   }
@@ -647,8 +648,9 @@ const program = Effect.gen(function* () {
   }
   if (process.argv.includes("--demo") || inputRequestsFirstReviewDemo) {
     const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
-    const demoStatePath = process.env.REVIEW_DEMO_STATE_PATH ??
-      join(homedir(), ".local", "state", "realtime-review-tool", "demos");
+    const demoStatePath = yield* Config.NonEmptyString("REVIEW_DEMO_STATE_PATH").pipe(
+      Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "demos")),
+    );
     return yield* runFirstReviewDemo(operation, { statePath: demoStatePath });
   }
   if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
@@ -1345,6 +1347,10 @@ const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
   const output = yield* program;
   const writeResult = isDirectEventReady(output)
     ? yield* submitDirectHookOutput(output, { composed: isComposedEditHook, claude: isClaudeHook, deadlineAt: directHookDeadline })
+    : composedKind === undefined && (isClaudeHook || isCodexHook)
+      ? yield* (yield* HookOutput).writeEncoded(
+          typeof output === "string" ? output : `${JSON.stringify(output)}\n`, directHookDeadline,
+        )
     : undefined;
   const timedOut = writeResult === "timed-out";
   if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog);
@@ -1379,7 +1385,7 @@ if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHo
           : 0;
 }
 if (!isDirectEventReady(output)) {
-  if (isOpenCodeHook || composedKind !== undefined) {
+  if (isOpenCodeHook || isClaudeHook || isCodexHook || composedKind !== undefined) {
     // The plugin treats empty stdout as a quiet skip.
   } else
   if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {

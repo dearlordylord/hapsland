@@ -3951,5 +3951,49 @@
     },
     "nativeEvidence": "Linux descriptor count is positive during the source read and zero after interruption returns. Native binary stdout preserves invalid UTF-8 bytes and NUL before validation. Existing source cap, mutation/race, host adapter tests pass.",
     "limitations": "macOS helper process code path not executed on this Linux host; no macOS support acceptance inferred. Full suite/current conformance/live/performance/completion audit remain required."
+  },
+  "postNativeCaptureFullSuite": {
+    "subjectCommit": "b4fe94e",
+    "typecheck": "pass",
+    "build": "pass",
+    "npmTest": "failed",
+    "passedFiles": 124,
+    "failedFiles": 1,
+    "skippedFiles": 1,
+    "passedTests": 1283,
+    "failedTests": 1,
+    "skippedTests": 2,
+    "durationSeconds": 390.27,
+    "failure": "Claude closed-stdout lease case returned exit 1 instead of 0; not evidence of acknowledgement because assertion stopped before that check. Separate case and all 19 file cases subsequently passed with bounded stderr diagnostic."
+  },
+  "stableVisualizationCohort": {
+    "status": "pass",
+    "versions": {
+      "effect": "4.0.0",
+      "@effect/platform-browser": "4.0.0",
+      "foldkit": "0.165.0"
+    },
+    "checks": {
+      "build": "pass",
+      "browser": "pass with existing extracted Linux browser libraries"
+    },
+    "initialFailures": [
+      "projection tsconfig lacked allowImportingTsExtensions for current canonical .ts import; enabled same native ESM convention",
+      "browser startup lacked libatk; used existing /tmp/hapsland-browser-libs/root/usr/lib/aarch64-linux-gnu",
+      "browser expected superseded retain-finding route; aligned assertions with current command marker and asserted Pending advice remains inactive"
+    ],
+    "limitations": "No visual product change or new owner design acceptance, no deployment, no macOS browser evidence."
+  },
+  "quietHookScopedOutput": {
+    "status": "focused-pass",
+    "scope": "Direct Claude/Codex quiet JSON output now uses scoped HookOutput writer inside program instead of a raw stdout write after scope release. Same direct-hook deadlines; no finding acknowledgement for quiet output. Remaining CLI env configuration uses caller Config and NonEmptyString.",
+    "checks": {
+      "typecheck": "pass",
+      "claudeTests": 20,
+      "claudeDurationSeconds": 58.99,
+      "directSubmissionTests": 6,
+      "evaluationTests": 16
+    },
+    "limitations": "Full current suite and migration completion gates remain pending. The earlier full-suite failure itself did not retain enough diagnostic evidence to establish its exact path."
   }
 }

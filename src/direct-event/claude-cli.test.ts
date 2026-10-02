@@ -44,6 +44,21 @@ const waitForFile = async (path: string, timeoutMs = 3_000): Promise<void> => {
 };
 
 describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
+  it("exits quietly when unsupported hook input meets closed stdout", async () => {
+    const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"],
+    });
+    child.stderr.resume();
+    const completed = new Promise<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>((resolve, reject) => {
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("quiet hook did not exit")); }, 7_000);
+      child.once("error", (error) => { clearTimeout(timer); reject(error); });
+      child.once("close", (code, signal) => { clearTimeout(timer); resolve({ code, signal }); });
+    });
+    child.stdout.destroy();
+    child.stdin.end("{}");
+    expect(await completed).toEqual({ code: 0, signal: null });
+  });
+
   it("returns a current finding through the installed composed edit hooks", async () => {
     const root = await makeGitFixture();
     roots.push(root);
@@ -879,6 +894,8 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"], env,
     });
+    let writerStderr = "";
+    child.stderr.on("data", (chunk: Buffer) => { writerStderr = (writerStderr + chunk.toString("utf8")).slice(-1_024); });
     const completed = new Promise<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>((resolve, reject) => {
       const timer = setTimeout(() => {
         child.kill("SIGKILL");
@@ -904,7 +921,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
 
     const acknowledgeWasRequested = existsSync(ackEnteredPath);
     expect(result.signal).toBeNull();
-    expect(result.code).toBe(0);
+    expect(result.code, JSON.stringify({ stderrHasEPIPE: writerStderr.includes("EPIPE") })).toBe(0);
     expect(acknowledgeWasRequested).toBe(false);
     const paths = residentPaths(join(root, "runtime"));
     const owner = await runClient(ensureResident(paths));
