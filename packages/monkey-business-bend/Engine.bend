@@ -1,4 +1,7 @@
 import Base
+import ./JevEffects.bend as JevEffects
+import ./FaultTargets.bend as FaultTargets
+import ./CredentialFacts.bend as CredentialFacts
 import ./Types.bend as Types
 import ./Preparation.bend as Preparation
 import ./Driver.bend as Driver
@@ -179,3 +182,19 @@ def permit_actions(state: Types.State, capture: Workload.PermitCapture) -> Drive
 
 def session_delay(settings: Session.Config, random: U32) -> U32:
   Session.sample_delay(settings, random)
+
+# Explicit intervention changes future simulated callbacks, never product state.
+def intervene_request(state: Types.State, target: FaultTargets.Target, outcome: Canonical.RequestOutcome, delay: Nat) -> JevEffects.Intervention:
+  JevEffects.intervene(FaultTargets.request(canonical(state), target), outcome, delay)
+
+def credential_initial() -> CredentialFacts.State:
+  CredentialFacts.initial()
+
+def credential_availability(state: CredentialFacts.State, available: Bool) -> CredentialFacts.State:
+  CredentialFacts.availability(state, available)
+
+def credential_rotate(state: CredentialFacts.State) -> CredentialFacts.State:
+  CredentialFacts.rotate(state)
+
+def credential_authorized(state: CredentialFacts.State, issued_generation: Nat) -> Bool:
+  CredentialFacts.authorized(state, issued_generation)

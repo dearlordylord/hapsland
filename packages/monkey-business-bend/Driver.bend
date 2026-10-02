@@ -1,4 +1,5 @@
 import Base
+import ./JevEffects.bend as JevEffects
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/Handoff.bend as Handoff
 import ../agent-flow-bend/Dispatch.bend as Dispatch
@@ -48,14 +49,14 @@ def dispatch_work(found: Maybe<&2, Canonical.Work>, +context: Context) -> Handle
       Handled{True{}, [immediate(Canonical.StartReview{p, l, r, o}, False{}), immediate(Canonical.JevRequestReady{p, l, r, o, True{}, True{}, credential, True{}, current, True{}}, False{})]}
     case _ _: Handled{False{}, Nil{}}
 
-def issued_outcome(outcome: Canonical.RequestOutcome, +p: Nat, +l: Nat, +r: Nat, +o: Nat, +request: Nat, +delay: Nat) -> Handled:
-  match outcome:
-    case Canonical.NeverSent{}:
-      Handled{True{}, [Action{Canonical.JevRequestSettled{p, l, r, o, request, Canonical.NeverSent{}, True{}}, delay, None{}, False{}, None{}}]}
-    case Canonical.RequestInterrupted{}:
-      Handled{True{}, [immediate(Canonical.JevRequestStarted{p, l, r, o, request}, False{}), Action{Canonical.JevRequestInterrupted{p, l, r, o, request}, delay, None{}, False{}, None{}}, Action{Canonical.JevRequestSettled{p, l, r, o, request, Canonical.RequestInterrupted{}, True{}}, delay, None{}, False{}, None{}}]}
-    case outcome:
-      Handled{True{}, [immediate(Canonical.JevRequestStarted{p, l, r, o, request}, False{}), Action{Canonical.JevRequestSettled{p, l, r, o, request, outcome, True{}}, delay, None{}, False{}, None{}}]}
+def issued_actions(facts: List<&2, JevEffects.ScheduledFact>) -> List<&2, Action>:
+  match facts:
+    case Nil{}: Nil{}
+    case JevEffects.ScheduledFact{event, delay} <> tail:
+      Action{event, delay, None{}, False{}, None{}} <> issued_actions(tail)
+
+def issued_outcome(outcome: Canonical.RequestOutcome, p: Nat, l: Nat, r: Nat, o: Nat, request: Nat, delay: Nat) -> Handled:
+  Handled{True{}, issued_actions(JevEffects.issued(outcome, p, l, r, o, request, delay))}
 
 def candidate_check(+advice: Nat, +partition: Nat, +round: Nat, credential: Bool, generation: Bool, current: Bool, readable: Bool, surface: Handoff.Surface) -> Handled:
   +candidate = {Candidate{partition, advice, round, advice, surface, False{}} : Candidate}
