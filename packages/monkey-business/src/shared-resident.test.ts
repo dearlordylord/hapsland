@@ -130,11 +130,10 @@ function advanceResident(run: Run, untilTime: number, fuel: number, stage: strin
 
 it("compares original shared contention and recovery inputs with the compiled native resident", () => {
   residentCheckpoint("native start");
-  const [rows, canceled] = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)) as [number[][], number[][]];
-  residentCheckpoint(`native complete contention=${rows.length} cancellation=${canceled.length}`);
-  for (const trace of [rows.slice(3), canceled]) expect(trace.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  const rows = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)) as number[][];
+  residentCheckpoint(`native contention complete rows=${rows.length}`);
+  expect(rows.slice(3).some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
   expect(rows.length).toBeLessThan(250);
-  expect(canceled.length).toBeLessThan(80);
   expect(rows.slice(0, 3)).toEqual([[90, 4294967313, 1, 11], [90, 99, 2, 12], [91, 0, 4294967313, 1, 11]]);
   const native = rows.slice(3);
   const run = createRun(contentionConfig);
@@ -163,6 +162,10 @@ it("compares original shared contention and recovery inputs with the compiled na
   expect(graph).toHaveLength(22);
   for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20]);
 
+
+}, 30000);
+
+function originalCancellation(): Run {
   residentCheckpoint("cancellation create start");
   const cancellation = createRun({ ...contentionConfig, inputs: [
     { at: 0, kind: "edit", agent: opaqueAdvicees[0], revision: 1, generation: 0, recurring: false, bytes: 10, unitBytes: [5], outcome: "clear" },
@@ -188,7 +191,6 @@ it("compares original shared contention and recovery inputs with the compiled na
   advanceResident(cancellation, 40, 64, "cancellation settle");
   advanceResident(cancellationReplay, 40, 64, "cancellation restored settle");
   expect(cancellationReplay.observe()).toEqual(cancellation.observe());
-  expect(canceled).toEqual(cancellation.observations.map(residentRow));
   const ignored = cancellation.observations.filter(frame => frame.commands.some(command => command.kind === "jevObservationIgnored"));
   expect(ignored).toHaveLength(1);
   expect(ignored[0]!.event).toMatchObject({ kind: "jevRequestSettled", partition: 1, lifetime: 1, round: 1,
@@ -203,6 +205,20 @@ it("compares original shared contention and recovery inputs with the compiled na
   expect(cancellation.projection.dispatch.running).toEqual([]);
   expect(cancellation.projection.dispatch.requests).toEqual([]);
 
+  return cancellation;
+}
+
+it("cancels one original advicee request while the other delivers, including ordinary endpoint replay", () => {
+  originalCancellation();
+});
+
+it("compares original advicee cancellation with the compiled native shared driver", () => {
+  residentCheckpoint("native cancellation start");
+  const canceled = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident-cancellation.bend", import.meta.url)) as number[][];
+  residentCheckpoint(`native cancellation complete rows=${canceled.length}`);
+  expect(canceled.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  expect(canceled.length).toBeLessThan(80);
+  expect(canceled).toEqual(originalCancellation().observations.map(residentRow));
 }, 30000);
 
 const config = {

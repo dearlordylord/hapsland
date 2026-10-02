@@ -393,8 +393,8 @@ def cancellation() -> List<&2, List<&2, Nat>>:
         Job{1n, 10n, [5n], Canonical.RequestClear{}}}), [], 20n}, False{})
 
 def main() -> IO(Unit):
-  IO.print(Minimal.bracket(Minimal.show_traces([
+  IO.print(Minimal.bracket(Minimal.show_rows(
     List.append(&2, List<&2, Nat>, registry_rows(initial()), loop(250n, Runtime{initial(),
       append(append(originals(9n, Queue{[], 0n, 0n}, 0n),
         30n, Edit{Job{1n, 10n, [5n], Canonical.RequestClear{}}}),
-        30n, Edit{Job{2n, 20n, [7n], Canonical.RequestClear{}}}), [], 20n}, True{})), cancellation()])))
+        30n, Edit{Job{2n, 20n, [7n], Canonical.RequestClear{}}}), [], 20n}, True{})))))
