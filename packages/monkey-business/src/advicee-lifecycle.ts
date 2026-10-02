@@ -1,3 +1,6 @@
+import { Schema } from "effect";
+import { decoder, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
+
 export type AdviceeLifecycleAction = "disconnect" | "remove" | "resume";
 export type AdviceeLifecycleControl = {
   readonly kind: "adviceeLifecycle";
@@ -25,37 +28,32 @@ export function encodeAdviceeLifecycle(action: AdviceeLifecycleAction): { readon
   }
 }
 
-const record = (value: unknown): Record<string, unknown> => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid lifecycle constructor");
-  return value as Record<string, unknown>;
-};
-const identity = (value: unknown): number => {
-  if (typeof value === "bigint") {
-    if (value < 1n || value >= 2n ** 48n) throw new RangeError("lifecycle identity outside u48");
-    return Number(value);
-  }
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value >= 2 ** 48)
-    throw new RangeError("lifecycle identity outside u48");
-  return value;
-};
+const Identity = Schema.Union([
+  PositiveNat,
+  Schema.BigInt.check(Schema.makeFilter(value => value >= 1n && value < 2n ** 48n)),
+]);
+const Status = Schema.Union([
+  Schema.Struct({ $: Schema.Literal("AdviceeLifecycle.Active") }),
+  Schema.Struct({ $: Schema.Literal("AdviceeLifecycle.Disconnected") }),
+  Schema.Struct({ $: Schema.Literal("AdviceeLifecycle.Removed") }),
+]);
+const Entry = Schema.Struct({
+  $: Schema.Literal("AdviceeLifecycle.Entry"),
+  partition: Identity,
+  lifetime: Identity,
+  status: Status,
+});
+const readEntry = decoder(Entry);
+
 export function decodeAdviceeLifecycleEntry(value: unknown): AdviceeLifecycleEntry {
-  const entry = record(value);
-  if (entry.$ !== "AdviceeLifecycle.Entry") throw new TypeError("invalid lifecycle entry");
-  const tag = record(entry.status).$;
-  const status = tag === "AdviceeLifecycle.Active" ? "active" : tag === "AdviceeLifecycle.Disconnected" ? "departed"
-    : tag === "AdviceeLifecycle.Removed" ? "removed" : undefined;
-  if (status === undefined) throw new TypeError("invalid lifecycle status");
-  return Object.freeze({ partition: identity(entry.partition), lifetime: identity(entry.lifetime), status });
+  const entry = readEntry(value);
+  const status = entry.status.$ === "AdviceeLifecycle.Active" ? "active"
+    : entry.status.$ === "AdviceeLifecycle.Disconnected" ? "departed" : "removed";
+  return Object.freeze({ partition: Number(entry.partition), lifetime: Number(entry.lifetime), status });
 }
 
-/** Exact constructor projection; there is no lifecycle transition policy here. */
+/** Exact constructor projection; the existing core vector bound also bounds
+ * malformed cyclic tails. There is no lifecycle transition policy here. */
 export function decodeAdviceeLifecycles(value: unknown): readonly AdviceeLifecycleEntry[] {
-  const entries: AdviceeLifecycleEntry[] = [];
-  let cursor = record(value);
-  while (cursor.$ === "Con") {
-    entries.push(decodeAdviceeLifecycleEntry(cursor.head));
-    cursor = record(cursor.tail);
-  }
-  if (cursor.$ !== "Nil") throw new TypeError("invalid lifecycle list");
-  return Object.freeze(entries);
+  return Object.freeze(readBendList(value, decodeAdviceeLifecycleEntry, 2048));
 }
