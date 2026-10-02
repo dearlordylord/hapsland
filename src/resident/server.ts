@@ -1075,25 +1075,25 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const now = residentNow();
     yield* residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
-    const advice = residentAdvice().filter((item) => item.delivery?.token === token);
+    const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) => content.delivery?.token === token);
     const notices = residentNoticesForToken(token);
-    const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
+    const expired = advice.some(({ content }) => content.delivery === undefined || content.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
     const decision = residentLedger.transition({ kind: "deliveryAcknowledgeCheck",
       items: advice.length + notices.length, anyExpired: expired });
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical acknowledgement refused");
     if (decision.commands[0]?.kind === "deliveryAckEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryAckExpired") {
-      for (const item of advice) yield* residentReleaseAdviceLease(item);
+      for (const { capability: item, content } of advice) yield* residentReleaseAdviceLease(item);
       for (const item of notices) { residentNotices.release(item.id); }
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryAckReady") throw new Error("invalid canonical acknowledgement");
     if (!residentComposedDelivery.markSubmitted(token,
-      advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.canonicalOperationId)))) {
+      advice.flatMap(({ capability, content }) => (content.delivery?.findings ?? []).map(() => capability.canonicalOperationId)))) {
       return { status: "empty" };
     }
-    for (const item of advice) {
+    for (const { capability: item, content } of advice) {
       yield* residentLedger.advice.updateDelivery(item, token, { acknowledged: true });
     }
     for (const item of notices) residentNotices.acknowledge(item.id);
@@ -1104,26 +1104,26 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const now = residentNow();
     yield* residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
-    const advice = residentAdvice().filter((item) => item.delivery?.token === token);
+    const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) => content.delivery?.token === token);
     const notices = residentNoticesForToken(token);
-    const allAcknowledged = advice.every((item) => item.delivery?.acknowledged === true) &&
+    const allAcknowledged = advice.every(({ content }) => content.delivery?.acknowledged === true) &&
       notices.every((item) => item.delivery?.acknowledged === true);
-    const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
+    const expired = advice.some(({ content }) => content.delivery === undefined || content.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
     const decision = residentLedger.transition({ kind: "deliveryFinalizeCheck",
       items: advice.length + notices.length, allAcknowledged, anyExpired: expired });
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical finalization refused");
     if (decision.commands[0]?.kind === "deliveryFinalEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryFinalExpired") {
-      for (const item of advice) yield* residentReleaseAdviceLease(item);
+      for (const { capability: item, content } of advice) yield* residentReleaseAdviceLease(item);
       for (const item of notices) { residentNotices.release(item.id); }
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryFinalReady") throw new Error("invalid canonical finalization");
     const composed = residentComposedDelivery.hasToken(token);
-    for (const item of advice) {
-      const delivered = item.delivery?.findings ?? [];
-      const remaining = composed ? [] : withoutDeliveredFindings(item.findings, delivered);
+    for (const { capability: item, content } of advice) {
+      const delivered = content.delivery?.findings ?? [];
+      const remaining = composed ? [] : withoutDeliveredFindings(content.findings, delivered);
       const disposition = residentLedger.transition({ kind: "deliveryFindingDispositionCheck",
         composed, remaining: remaining.length });
       if (disposition.rejection !== undefined || disposition.commands.length !== 1) throw new Error("canonical finding disposition refused");
@@ -1137,7 +1137,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         continue;
       }
       if (disposition.commands[0]?.kind !== "deliveryKeepRemaining") throw new Error("invalid canonical delivery disposition");
-      yield* residentLedger.advice.revise(item, item.evaluations.map((evaluation) => ({
+      yield* residentLedger.advice.revise(item, content.evaluations.map((evaluation) => ({
         ...evaluation,
         findings: withoutDeliveredFindings(evaluation.findings, delivered),
       })).filter((evaluation) => evaluation.findings.length > 0), remaining);

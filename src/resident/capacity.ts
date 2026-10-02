@@ -464,6 +464,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         return [value, { ...records, advice }];
       };
       return {
+        snapshots: Effect.fn("AdviceRecords.snapshots")(() => Ref.get(state).pipe(Effect.map((snapshot) =>
+          Object.freeze([...snapshot.records.advice.entries.values()]
+            .map(({ capability, content }) => Object.freeze({ capability, content }))
+            .sort((left, right) => left.capability.sequence - right.capability.sequence))))),
         current: Effect.fn("AdviceRecords.current")((capability: Advice) => Ref.get(state).pipe(Effect.map((snapshot) => {
           const retained = snapshot.records.advice.entries.get(capability.id);
           return retained?.capability === capability ? retained.content : emptyAdviceContent;

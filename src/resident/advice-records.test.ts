@@ -295,3 +295,20 @@ it.effect("reads immutable advice snapshots at execution and fences copied capab
   expect((yield* read).findings).toEqual([]);
   expect(before.findings).toEqual(initial.findings);
 }));
+
+it.effect("keeps batch snapshots stable across advice updates and retirement", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const snapshots = owner.advice.snapshots();
+  expect(yield* snapshots).toEqual([]);
+  const advice = yield* owner.advice.insert(initial);
+  const before = yield* snapshots;
+  expect(Object.isFrozen(before)).toBe(true);
+  expect(Object.isFrozen(before[0])).toBe(true);
+  expect(before[0]?.capability).toBe(advice);
+  yield* owner.advice.eligible(advice, false);
+  expect(before[0]?.content.collectionEligible).toBe(false);
+  expect((yield* snapshots)[0]?.content.collectionEligible).toBe(true);
+  yield* owner.advice.remove(advice, "stale");
+  expect(yield* snapshots).toEqual([]);
+  expect(before[0]?.content.findings).toEqual(initial.findings);
+}));

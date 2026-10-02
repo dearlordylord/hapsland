@@ -152,3 +152,10 @@ if (revalidateAdvice.includes("advice.evaluations") || selectionFacts.includes("
     !selectionFacts.includes("yield* residentLedger.advice.current(advice)")) {
   throw new Error("advice revalidation and finding readiness must read explicit snapshots");
 }
+
+const deliverySettlement = server.slice(server.indexOf("  const acknowledge ="), server.indexOf("  function residentReleaseUnacknowledged"));
+if (!state.includes('snapshots: Effect.fn("AdviceRecords.snapshots")') ||
+    !deliverySettlement.includes("yield* residentLedger.advice.snapshots()") ||
+    /residentAdvice\(\)|item\.(evaluations|findings)/.test(deliverySettlement)) {
+  throw new Error("acknowledgement and finalization must inspect explicit advice batch snapshots");
+}
