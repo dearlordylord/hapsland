@@ -3115,5 +3115,30 @@
       "src/onboarding/demo-budget.test.ts": "ac6f5df0eb97ea70646e2a6be90aec77ba9b179a40cf2685004f4d31adb3123c"
     },
     "limitations": "No full resident/conformance/live suite for this change. Installation Config and interactive workflows remain to migrate."
+  },
+  "clientRequestClockPort": {
+    "status": "IPC request and acknowledge/finalize share caller Effect Clock",
+    "scope": "Internally created deadlines use Clock.currentTimeNanos; endpoint verification and connection retain one request budget; acknowledge and finalize retain one combined budget",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/resident/client.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 14
+      },
+      {
+        "command": "npx vitest run src/resident/subprocess.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 10,
+        "durationSeconds": 48.1
+      }
+    ],
+    "sourceSha256": {
+      "src/resident/client.ts": "c9d7b547bd7e6d319e43aa02e380c5ef2ad2238d27454005bb48163b44e72eb6"
+    },
+    "remaining": "ResidentStartup/ResidentLauncher injected synchronous time, readiness loop/Schedule, and externally supplied performance-based deadlines require coordinated migration. No full-suite or platform support claim."
   }
 }

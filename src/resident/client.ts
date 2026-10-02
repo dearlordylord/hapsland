@@ -2,7 +2,7 @@ import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
-import { Config, Context, Layer, Option, Redacted, Ref, Schema } from "effect";
+import { Clock, Config, Context, Layer, Option, Redacted, Ref, Schema } from "effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -31,6 +31,10 @@ import {
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
+
+const monotonicMillis = Clock.currentTimeNanos.pipe(
+  Effect.map((now) => Number(now / 1_000_000n)),
+);
 
 export class ResidentIpcError extends Schema.TaggedError<ResidentIpcError>()("ResidentIpcError", { message: Schema.String }) {}
 
@@ -85,12 +89,12 @@ const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* 
 export const residentRequestEffect = Effect.fn("ResidentClient.request")(function* (
   paths: ResidentPaths, request: ResidentRequest, timeoutMs = CLIENT_REQUEST_DEADLINE_MS,
 ) {
-  const deadline = performance.now() + timeoutMs;
+  const deadline = (yield* monotonicMillis) + timeoutMs;
   yield* verifyResidentSocket(paths).pipe(Effect.timeoutOrElse({
     duration: timeoutMs,
     orElse: () => Effect.fail(new ResidentIpcError({ message: "resident endpoint verification timed out" })),
   }));
-  const remaining = deadline - performance.now();
+  const remaining = deadline - (yield* monotonicMillis);
   if (remaining <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded" }));
   return yield* requestConnected(paths, request, remaining);
 });
@@ -501,12 +505,12 @@ export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.release
 });
 
 export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvice")(function* (advice: CollectedAdvice) {
-  const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
+  const deadline = (yield* monotonicMillis) + CLIENT_REQUEST_DEADLINE_MS;
   const acknowledged = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "acknowledge", lifetime: advice.lifetime, token: advice.token,
   }).pipe(Effect.catch(() => Effect.succeed(undefined)));
   if (acknowledged?.status !== "acknowledged") return false;
-  const remaining = deadline - performance.now();
+  const remaining = deadline - (yield* monotonicMillis);
   if (remaining <= 0) return false;
   const finalized = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "finalize", lifetime: advice.lifetime, token: advice.token,
