@@ -5,7 +5,7 @@ export type DriverCandidate = { partition: number; advice: number; round: number
 export type DriverAction = { event: CanonicalEvent; delay: number; candidate?: DriverCandidate; job: boolean; expiryAdvice?: number };
 const outcomeTags: Record<JevRequestOutcome, string> = { neverSent: "NeverSent", finding: "RequestFinding", clear: "RequestClear", backendFailure: "RequestBackendFailure", timeout: "RequestTimeout", interrupted: "RequestInterrupted" };
 export const encodeDriverOutcome = (outcome: JevRequestOutcome): unknown => ({ $: `Canonical.${outcomeTags[outcome]}` });
-const names: Record<string, string> = { current_work: "currentWork", root_valid: "rootValid", configuration_valid: "configurationValid", credential_ready: "credentialReady", physical_available: "physicalAvailable", credential_generation: "credentialGeneration", credential_authorized: "credentialAuthorized", work_current: "workCurrent", owner_current: "ownerCurrent", has_findings: "hasFindings", joined_pending: "joinedPending", authorize_now: "authorizeNow", any_expired: "anyExpired", stop_collector: "stopCollector", same_group: "sameGroup" };
+const names: Record<string, string> = { maximum_keys: "maximumKeys", max_count: "maxCount", authority_bound: "authorityBound", lease_expired: "leaseExpired", pending_expired: "pendingExpired", cooldown_expired: "cooldownExpired", current_work: "currentWork", root_valid: "rootValid", configuration_valid: "configurationValid", credential_ready: "credentialReady", physical_available: "physicalAvailable", credential_generation: "credentialGeneration", credential_authorized: "credentialAuthorized", work_current: "workCurrent", owner_current: "ownerCurrent", has_findings: "hasFindings", joined_pending: "joinedPending", authorize_now: "authorizeNow", any_expired: "anyExpired", stop_collector: "stopCollector", same_group: "sameGroup" };
 export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
   const event = readRecord(value);
   if (typeof event.$ !== "string" || !event.$.startsWith("Canonical.")) throw new TypeError("invalid driver event");
@@ -17,6 +17,14 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
       const entry = Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`);
       if (!entry) throw new TypeError("invalid driver outcome");
       result[key] = entry[0];
+    } else if (key === "remaining") {
+      const remaining = readRecord(item);
+      if (remaining.$ === "Some") result.remaining = readNat(remaining.value);
+      else if (remaining.$ !== "None") throw new TypeError("invalid notice remaining clock");
+    } else if (key === "purpose") {
+      const purpose = readRecord(item).$;
+      if (purpose !== "Ledger.OperationalNotice") throw new TypeError("invalid notice reservation purpose");
+      result.purpose = "operationalNotice";
     } else if (key === "facts") {
       const facts = readRecord(item);
       if (facts.$ !== "Admission.ProspectiveFacts") throw new TypeError("invalid driver permit facts");
@@ -26,7 +34,7 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
     } else if (key === "minimum_started") result.minimumStarted = readNat(item);
     else if (key === "deadline_reached") result.deadlineReached = readBool(item);
     else if (key === "surface") result[key] = surface(item);
-    else if (["fingerprints", "units", "unit_bytes", "operations"].includes(key)) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, 1024);
+    else if (["fingerprints", "units", "unit_bytes", "operations", "allowed"].includes(key)) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, 1024);
     else result[names[key] ?? key] = typeof item === "boolean" ? readBool(item) : readNat(item);
   }
   return result as CanonicalEvent;

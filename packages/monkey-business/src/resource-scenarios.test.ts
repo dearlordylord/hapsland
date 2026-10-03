@@ -1,21 +1,13 @@
 import { expect, it } from "vitest";
-import { initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent } from "../../../src/canonical/adapter.ts";
+import { createRun } from "./index.ts";
 import { ResourceScenarios, demoResourceLimits } from "./resource-scenarios.ts";
 
 const exercise = (config: ConstructorParameters<typeof ResourceScenarios>[0]) => {
-  const scenario = new ResourceScenarios(config);
-  let state = initialCanonical({globalItems:512,globalBytes:1048576,partitionItems:16,partitionBytes:65536});
-  const frames: { event: CanonicalEvent; commands: ReturnType<typeof stepCanonical>["commands"]; after: ReturnType<typeof projectCanonical> }[] = [];
-  const send = (event: CanonicalEvent): void => {
-    const before = projectCanonical(state);
-    const result = stepCanonical(state, event);
-    expect(result.rejection).toBeUndefined();
-    state = result.state;
-    frames.push({ event, commands: result.commands, after: projectCanonical(state) });
-    for (const follow of scenario.handle(event, result.commands, before)) send(follow);
-  };
-  for (const input of scenario.inputs()) send(input.event);
-  return frames;
+  const run = createRun({ inputs: [], resourceScenarios: config ?? {},
+    limits: { globalItems:512,globalBytes:1048576,partitionItems:16,partitionBytes:65536 } });
+  run.advance({ untilTime: 180010, maxEvents: 1000 });
+  expect(run.observations.flatMap(frame => frame.rejection ? [frame.rejection] : [])).toEqual([]);
+  return run.observations;
 };
 it("accumulates suppressed failures, preserves leased notice, bounds keys and frees storage for recovery", () => {
   const frames = exercise({ notices: true, noticeMaximumKeys: 1 });

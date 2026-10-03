@@ -534,12 +534,7 @@ def callback_work_owner(work: List<&2,Canonical.Work>, +advice: Nat) -> Maybe<&2
   match work:
     case Nil{}: None{}
     case Canonical.Work{p,l,r,+operation,_,_,_} <> tail:
-      callback_work_selected(Nat.is_eq(operation,advice), Callbacks.Owner{p,l,r,operation}, tail, advice)
-
-def callback_work_selected(hit: Bool, owner: Callbacks.Owner, tail: List<&2,Canonical.Work>, advice: Nat) -> Maybe<&2,Callbacks.Owner>:
-  match hit:
-    case True{}: Some{owner}
-    case False{}: callback_work_owner(tail,advice)
+      Bool.pick(Maybe<&2,Callbacks.Owner>,Nat.is_eq(operation,advice),Some{Callbacks.Owner{p,l,r,operation}},callback_work_owner(tail,advice))
 
 def callback_output_owner(canonical: Canonical.State, advice: Nat) -> Maybe<&2,Callbacks.Owner>:
   match canonical:
@@ -574,8 +569,8 @@ def notice_pruned(state: Types.State, key: Nat, commands: List<&2,Canonical.Comm
 
 # Called with this event's actual accepted commands and captured exercise scope.
 # The before state is required for releasing only a genuinely dropped key.
-def notice_after(before: Types.State, +state: Types.State, scope: NoticeScenario.Scope,
-    event: Canonical.CanonicalEvent, +commands: List<&2,Canonical.Command>, now: Nat) -> NoticeTransition:
+def notice_after(before: Types.State, +state: Types.State, +scope: NoticeScenario.Scope,
+    event: Canonical.CanonicalEvent, +commands: List<&2,Canonical.Command>, +now: Nat) -> NoticeTransition:
   match event:
     case Canonical.NoticeAdvance{+key,_,_,_,sequence,_}:
       notice_followed(notice_clocked(state,scope,key,now,commands),RuntimeScenarios.notice_requested(scenarios(state),scope,key,sequence,commands,now))
@@ -583,7 +578,7 @@ def notice_after(before: Types.State, +state: Types.State, scope: NoticeScenario
       notice_followed(state,RuntimeScenarios.notice_reserved(scenarios(state),partition,commands))
     case Canonical.NoticeCommit{key,_,_,reservation,_,_,_}:
       NoticeTransition{notice_clocked(state,scope,key,now,commands),NoticeScenario.commit_feedback(reservation,commands)}
-    case Canonical.NoticePrune{key,_,_,_,_}:
+    case Canonical.NoticePrune{+key,_,_,_,_}:
       NoticeTransition{notice_pruned(state,key,commands),NoticeScenario.prune_feedback(canonical(before),key,commands)}
     case _: NoticeTransition{state,Nil{}}
 

@@ -159,254 +159,6 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
-function $Advicees$initial$() {
-  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
-}
-
-function $Advicees$maximum$() {
-  const _x_0 = nat_chk(65536 * 4294967295);
-  return nat_chk(_x_0 + 65535);
-}
-
-function $Advicees$bounded$(_identity_0) {
-  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
-}
-
-function $Advicees$scope_identity$(_scope_0) {
-  const _identity_0 = _scope_0["identity"];
-  return _identity_0;
-}
-
-function $Advicees$scope_partition$(_scope_0) {
-  const _partition_0 = _scope_0["partition"];
-  return _partition_0;
-}
-
-function $Advicees$found$(_equal_0, _scope_0, _other_0) {
-  if (_equal_0) {
-    return {$: "Some", "value": _scope_0};
-  } else {
-    return _other_0;
-  }
-}
-
-function $Advicees$find_identity$(_scopes_0, _identity_0) {
-  if (_scopes_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _scopes_0["head"];
-    const _tail_0 = _scopes_0["tail"];
-    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
-  }
-}
-
-function $Advicees$find_partition$(_scopes_0, _partition_0) {
-  if (_scopes_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _scopes_0["head"];
-    const _tail_0 = _scopes_0["tail"];
-    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
-  }
-}
-
-function $Advicees$lookup_identity$(_registry_0, _identity_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$find_identity$(_scopes_0, _identity_0);
-}
-
-function $Advicees$lookup_partition$(_registry_0, _partition_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$find_partition$(_scopes_0, _partition_0);
-}
-
-function $Advicees$absent$(_scope_0) {
-  if (_scope_0.$ === "None") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
-  if (_valid_0) {
-    const _next_0 = _registry_0["next"];
-    const _scopes_0 = _registry_0["scopes"];
-    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
-    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
-  } else {
-    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
-  }
-}
-
-function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
-  const _next_0 = _registry_0["next"];
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
-}
-
-function $Advicees$targeted$(_scope_0) {
-  if (_scope_0.$ === "None") {
-    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
-  } else {
-    const _scope_1 = _scope_0["value"];
-    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
-  }
-}
-
-function $Advicees$targets$(_registry_0, _identity_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  if (_identity_0.$ === "None") {
-    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
-  } else {
-    const _identity_1 = _identity_0["value"];
-    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
-  }
-}
-
-function $AdviceeLifecycle$partition$(_entry_0) {
-  const _partition_0 = _entry_0["partition"];
-  return _partition_0;
-}
-
-function $AdviceeLifecycle$lifetime$(_entry_0) {
-  const _lifetime_0 = _entry_0["lifetime"];
-  return _lifetime_0;
-}
-
-function $AdviceeLifecycle$active$(_status_0) {
-  if (_status_0.$ === "AdviceeLifecycle.Active") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $AdviceeLifecycle$entry_active$(_entry_0) {
-  const _status_0 = _entry_0["status"];
-  return $AdviceeLifecycle$active$(_status_0);
-}
-
-function $AdviceeLifecycle$found$(_hit_0, _entry_0, _other_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _entry_0};
-  } else {
-    return _other_0;
-  }
-}
-
-function $AdviceeLifecycle$lookup$(_entries_0, _owner_0) {
-  if (_entries_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _entries_0["head"];
-    const _tail_0 = _entries_0["tail"];
-    return $AdviceeLifecycle$found$(($Nat$is_eq$(($AdviceeLifecycle$partition$(_head_0)), _owner_0)), _head_0, ($AdviceeLifecycle$lookup$(_tail_0, _owner_0)));
-  }
-}
-
-function $AdviceeLifecycle$absent$(_entry_0) {
-  if (_entry_0.$ === "None") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $AdviceeLifecycle$register_valid$(_valid_0, _entries_0, _owner_0) {
-  if (_valid_0) {
-    return $List$append$(_entries_0, {$: "Con", "head": {$: "AdviceeLifecycle.Entry", "partition": _owner_0, "lifetime": 1, "status": {$: "AdviceeLifecycle.Active"}}, "tail": {$: "Nil"}});
-  } else {
-    return _entries_0;
-  }
-}
-
-function $AdviceeLifecycle$register$(_entries_0, _owner_0) {
-  return $AdviceeLifecycle$register_valid$(($Bool$and$(($Advicees$bounded$(_owner_0)), ($AdviceeLifecycle$absent$(($AdviceeLifecycle$lookup$(_entries_0, _owner_0)))))), _entries_0, _owner_0);
-}
-
-function $AdviceeLifecycle$replacement$(_hit_0, _head_0, _updated_0) {
-  if (_hit_0) {
-    return _updated_0;
-  } else {
-    return _head_0;
-  }
-}
-
-function $AdviceeLifecycle$replace$(_entries_0, _updated_0) {
-  if (_entries_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _head_0 = _entries_0["head"];
-    const _tail_0 = _entries_0["tail"];
-    return {$: "Con", "head": ($AdviceeLifecycle$replacement$(($Nat$is_eq$(($AdviceeLifecycle$partition$(_head_0)), ($AdviceeLifecycle$partition$(_updated_0)))), _head_0, _updated_0)), "tail": ($AdviceeLifecycle$replace$(_tail_0, _updated_0))};
-  }
-}
-
-function $AdviceeLifecycle$accepted$(_entries_0, _previous_0, _current_0) {
-  return {$: "AdviceeLifecycle.Changed", "entries": ($AdviceeLifecycle$replace$(_entries_0, _current_0)), "previous": {$: "Some", "value": _previous_0}, "current": {$: "Some", "value": _current_0}, "valid": true};
-}
-
-function $AdviceeLifecycle$refused$(_entries_0, _entry_0) {
-  return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": {$: "Some", "value": _entry_0}, "current": {$: "Some", "value": _entry_0}, "valid": false};
-}
-
-function $AdviceeLifecycle$resumed$(_valid_0, _entries_0, _entry_0) {
-  if (_valid_0) {
-    const _x_0 = ($AdviceeLifecycle$lifetime$(_entry_0));
-    return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": nat_chk(_x_0 + 1), "status": {$: "AdviceeLifecycle.Active"}});
-  } else {
-    return $AdviceeLifecycle$refused$(_entries_0, _entry_0);
-  }
-}
-
-function $AdviceeLifecycle$disconnected_status$(_status_0) {
-  if (_status_0.$ === "AdviceeLifecycle.Removed") {
-    return {$: "AdviceeLifecycle.Removed"};
-  } else {
-    return {$: "AdviceeLifecycle.Disconnected"};
-  }
-}
-
-function $AdviceeLifecycle$disconnected_entry_status$(_entry_0) {
-  const _status_0 = _entry_0["status"];
-  return $AdviceeLifecycle$disconnected_status$(_status_0);
-}
-
-function $AdviceeLifecycle$known$(_entries_0, _found_0, _action_0) {
-  if (_found_0.$ === "None") {
-    return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": {$: "None"}, "current": {$: "None"}, "valid": false};
-  } else {
-    const _entry_0 = _found_0["value"];
-    if (_action_0.$ === "AdviceeLifecycle.Resume") {
-      const _x_0 = ($AdviceeLifecycle$lifetime$(_entry_0));
-      const _x_1 = ($Advicees$maximum$());
-      return $AdviceeLifecycle$resumed$(($Bool$and$(($Bool$and$(($Bool$not$(($AdviceeLifecycle$entry_active$(_entry_0)))), ($Advicees$bounded$(($AdviceeLifecycle$lifetime$(_entry_0)))))), (_x_0 < _x_1))), _entries_0, _entry_0);
-    } else if (_action_0.$ === "AdviceeLifecycle.Remove") {
-      return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": ($AdviceeLifecycle$lifetime$(_entry_0)), "status": {$: "AdviceeLifecycle.Removed"}});
-    } else {
-      return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": ($AdviceeLifecycle$lifetime$(_entry_0)), "status": ($AdviceeLifecycle$disconnected_entry_status$(_entry_0))});
-    }
-  }
-}
-
-function $AdviceeLifecycle$change$(_entries_0, _owner_0, _action_0) {
-  return $AdviceeLifecycle$known$(_entries_0, ($AdviceeLifecycle$lookup$(_entries_0, _owner_0)), _action_0);
-}
-
-function $AdviceeLifecycle$valid_entry$(_found_0, _generation_0) {
-  if (_found_0.$ === "Some") {
-    const _entry_0 = _found_0["value"];
-    return $Bool$and$(($AdviceeLifecycle$entry_active$(_entry_0)), ($Nat$is_eq$(($AdviceeLifecycle$lifetime$(_entry_0)), _generation_0)));
-  } else {
-    return false;
-  }
-}
-
-function $AdviceeLifecycle$permits_activity$(_entries_0, _owner_0, _generation_0) {
-  return $AdviceeLifecycle$valid_entry$(($AdviceeLifecycle$lookup$(_entries_0, _owner_0)), _generation_0);
-}
-
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
   if (_purpose_0.$ === "Ledger.ObservationDispatch") {
     return _limits_0;
@@ -12791,6 +12543,1094 @@ function $Driver$revalidate$(_state_0, _context_0) {
   return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
 }
 
+function $Callbacks$owner_equal$(_a_0, _b_0) {
+  const _p_0 = _a_0["partition"];
+  const _l_0 = _a_0["lifetime"];
+  const _r_0 = _a_0["round"];
+  const _o_0 = _a_0["operation"];
+  const _bp_0 = _b_0["partition"];
+  const _bl_0 = _b_0["lifetime"];
+  const _br_0 = _b_0["round"];
+  const _bo_0 = _b_0["operation"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _bp_0)), ($Nat$is_eq$(_l_0, _bl_0)))), ($Nat$is_eq$(_r_0, _br_0)))), ($Nat$is_eq$(_o_0, _bo_0)));
+}
+
+function $Callbacks$effect_equal$(_a_0, _b_0) {
+  if (_a_0.$ === "Callbacks.JevStarted") {
+    const _r_0 = _a_0["request"];
+    if (_b_0.$ === "Callbacks.JevStarted") {
+      const _other_0 = _b_0["request"];
+      return $Nat$is_eq$(_r_0, _other_0);
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Callbacks.JevInterrupted") {
+    const _r_1 = _a_0["request"];
+    if (_b_0.$ === "Callbacks.JevInterrupted") {
+      const _other_1 = _b_0["request"];
+      return $Nat$is_eq$(_r_1, _other_1);
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Callbacks.JevSettled") {
+    const _r_2 = _a_0["request"];
+    if (_b_0.$ === "Callbacks.JevSettled") {
+      const _other_2 = _b_0["request"];
+      return $Nat$is_eq$(_r_2, _other_2);
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Callbacks.PreparationCompleted") {
+    if (_b_0.$ === "Callbacks.PreparationCompleted") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    const _a_1 = _a_0["advice"];
+    const _t_0 = _a_0["token"];
+    if (_b_0.$ === "Callbacks.OutputTerminal") {
+      const _b_1 = _b_0["advice"];
+      const _u_0 = _b_0["token"];
+      return $Bool$and$(($Nat$is_eq$(_a_1, _b_1)), ($Nat$is_eq$(_t_0, _u_0)));
+    } else {
+      return false;
+    }
+  }
+}
+
+function $Callbacks$target_equal$(_a_0, _b_0) {
+  const _owner_0 = _a_0["owner"];
+  const _effect_0 = _a_0["effect"];
+  const _order_0 = _a_0["original_order"];
+  const _other_0 = _b_0["owner"];
+  const _other_effect_0 = _b_0["effect"];
+  const _other_order_0 = _b_0["original_order"];
+  return $Bool$and$(($Bool$and$(($Callbacks$owner_equal$(_owner_0, _other_0)), ($Callbacks$effect_equal$(_effect_0, _other_effect_0)))), ($Nat$is_eq$(_order_0, _other_order_0)));
+}
+
+function $Callbacks$target_of$(_original_0) {
+  const _t_0 = _original_0["fact"];
+  const _target_0 = _t_0["target"];
+  return _target_0;
+}
+
+function $Callbacks$fact_target$(_owner_0, _order_0, _event_0) {
+  if (_event_0.$ === "Canonical.JevRequestStarted") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    const _request_0 = _event_0["request"];
+    return $Bool$pick$(($Callbacks$owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "effect": {$: "Callbacks.JevStarted", "request": _request_0}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    const _request_1 = _event_0["request"];
+    return $Bool$pick$(($Callbacks$owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, "effect": {$: "Callbacks.JevInterrupted", "request": _request_1}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_2 = _event_0["partition"];
+    const _l_2 = _event_0["lifetime"];
+    const _r_2 = _event_0["round"];
+    const _o_2 = _event_0["operation"];
+    const _request_2 = _event_0["request"];
+    return $Bool$pick$(($Callbacks$owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2}, "effect": {$: "Callbacks.JevSettled", "request": _request_2}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _p_3 = _event_0["partition"];
+    const _l_3 = _event_0["lifetime"];
+    const _r_3 = _event_0["round"];
+    const _o_3 = _event_0["operation"];
+    return $Bool$pick$(($Callbacks$owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_3, "lifetime": _l_3, "round": _r_3, "operation": _o_3})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_3, "lifetime": _l_3, "round": _r_3, "operation": _o_3}, "effect": {$: "Callbacks.PreparationCompleted"}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    const _advice_0 = _event_0["advice"];
+    const _token_0 = _event_0["token"];
+    return {$: "Some", "value": {$: "Callbacks.Target", "owner": _owner_0, "effect": {$: "Callbacks.OutputTerminal", "advice": _advice_0, "token": _token_0}, "original_order": _order_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $Callbacks$order_of$(_target_0) {
+  const _order_0 = _target_0["original_order"];
+  return _order_0;
+}
+
+function $Callbacks$captured$(_target_0, _originals_0, _at_0, _action_0) {
+  if (_target_0.$ === "None") {
+    return {$: "Callbacks.State", "originals": _originals_0};
+  } else {
+    const _target_1 = _target_0["value"];
+    return {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_1, "at": _at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": ($Callbacks$order_of$(_target_1))}, "tail": _originals_0}};
+  }
+}
+
+function $Callbacks$event_of$(_action_0) {
+  const _event_0 = _action_0["event"];
+  return _event_0;
+}
+
+function $Callbacks$issue$(_state_0, _owner_0, _order_0, _at_0, _action_0) {
+  const _originals_0 = _state_0["originals"];
+  return $Callbacks$captured$(($Callbacks$fact_target$(_owner_0, _order_0, ($Callbacks$event_of$(_action_0)))), _originals_0, _at_0, _action_0);
+}
+
+function $Callbacks$initial$() {
+  return {$: "Callbacks.State", "originals": {$: "Nil"}};
+}
+
+function $Callbacks$update_one$(_original_0, _control_0, _at_0, _fresh_order_0) {
+  const _t_0 = _original_0["fact"];
+  const _target_0 = _t_0["target"];
+  const _original_at_0 = _t_0["at"];
+  const _action_0 = _t_0["action"];
+  const _t_1 = _original_0["status"];
+  if (_t_1.$ === "Callbacks.Queued") {
+    const _order_0 = _original_0["scheduled_order"];
+    if (_control_0.$ === "Callbacks.Hold") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Nil"}};
+    } else if (_control_0.$ === "Callbacks.Drop") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Nil"}};
+    } else if (_control_0.$ === "Callbacks.Duplicate") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Reorder") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    }
+  } else if (_t_1.$ === "Callbacks.Held") {
+    const _order_1 = _original_0["scheduled_order"];
+    if (_control_0.$ === "Callbacks.Release") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Duplicate") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    }
+  } else {
+    const _order_2 = _original_0["scheduled_order"];
+    if (_control_0.$ === "Callbacks.Duplicate") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Release") {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    } else {
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    }
+  }
+}
+
+function $Callbacks$prepend$(_head_0, _changed_0) {
+  const _t_0 = _changed_0["state"];
+  const _tail_0 = _t_0["originals"];
+  const _result_0 = _changed_0["result"];
+  const _cancel_0 = _changed_0["cancel"];
+  const _schedule_0 = _changed_0["schedule"];
+  return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": _head_0, "tail": _tail_0}}, "result": _result_0, "cancel": _cancel_0, "schedule": _schedule_0};
+}
+
+function $Callbacks$append_tail$(_changed_0, _tail_0) {
+  const _t_0 = _changed_0["state"];
+  const _head_0 = _t_0["originals"];
+  const _result_0 = _changed_0["result"];
+  const _cancel_0 = _changed_0["cancel"];
+  const _schedule_0 = _changed_0["schedule"];
+  return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": ($List$append$(_head_0, _tail_0))}, "result": _result_0, "cancel": _cancel_0, "schedule": _schedule_0};
+}
+
+function $Callbacks$selected$(_found_0, _head_0, _tail_0, _control_0, _at_0, _order_0, _rest_0) {
+  if (_found_0) {
+    return $Callbacks$append_tail$(($Callbacks$update_one$(_head_0, _control_0, _at_0, _order_0)), _tail_0);
+  } else {
+    return $Callbacks$prepend$(_head_0, _rest_0);
+  }
+}
+
+function $Callbacks$apply_list$(_originals_0, _target_0, _control_0, _at_0, _order_0) {
+  if (_originals_0.$ === "Nil") {
+    return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Nil"}}, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+  } else {
+    const _head_0 = _originals_0["head"];
+    const _tail_0 = _originals_0["tail"];
+    return $Callbacks$selected$(($Callbacks$target_equal$(($Callbacks$target_of$(_head_0)), _target_0)), _head_0, _tail_0, _control_0, _at_0, _order_0, ($Callbacks$apply_list$(_tail_0, _target_0, _control_0, _at_0, _order_0)));
+  }
+}
+
+function $Callbacks$apply$(_state_0, _target_0, _control_0, _at_0, _order_0) {
+  const _originals_0 = _state_0["originals"];
+  return $Callbacks$apply_list$(_originals_0, _target_0, _control_0, _at_0, _order_0);
+}
+
+function $Callbacks$delivery_keep$(_delivered_0, _original_0, _tail_0) {
+  if (_delivered_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _original_0, "tail": _tail_0};
+  }
+}
+
+function $Callbacks$delivery_order$(_original_0) {
+  const _order_0 = _original_0["scheduled_order"];
+  return _order_0;
+}
+
+function $Callbacks$delivered_list$(_originals_0, _order_0) {
+  if (_originals_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _originals_0["head"];
+    const _tail_0 = _originals_0["tail"];
+    return $Callbacks$delivery_keep$(($Nat$is_eq$(($Callbacks$delivery_order$(_head_0)), _order_0)), _head_0, ($Callbacks$delivered_list$(_tail_0, _order_0)));
+  }
+}
+
+function $Callbacks$delivered$(_state_0, _order_0) {
+  const _originals_0 = _state_0["originals"];
+  return {$: "Callbacks.State", "originals": ($Callbacks$delivered_list$(_originals_0, _order_0))};
+}
+
+function $Callbacks$receipt_schedule$(_matches_0, _state_0, _fact_0, _at_0, _order_0) {
+  if (_matches_0) {
+    const _action_0 = _fact_0["action"];
+    return {$: "Callbacks.Changed", "state": _state_0, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Callbacks.Changed", "state": _state_0, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+  }
+}
+
+function $Callbacks$receipt_duplicate$(_state_0, _target_0, _receipt_0, _at_0, _order_0) {
+  const _recorded_0 = _receipt_0["target"];
+  const _original_at_0 = _receipt_0["at"];
+  const _action_0 = _receipt_0["action"];
+  return $Callbacks$receipt_schedule$(($Callbacks$target_equal$(_target_0, _recorded_0)), _state_0, {$: "Callbacks.Fact", "target": _recorded_0, "at": _original_at_0, "action": _action_0}, _at_0, _order_0);
+}
+
+function $Callbacks$receipt_control$(_state_0, _target_0, _control_0, _receipt_0, _at_0, _order_0) {
+  if (_control_0.$ === "Callbacks.Duplicate") {
+    if (_receipt_0.$ === "Some") {
+      const _fact_0 = _receipt_0["value"];
+      return $Callbacks$receipt_duplicate$(_state_0, _target_0, _fact_0, _at_0, _order_0);
+    } else {
+      return {$: "Callbacks.Changed", "state": _state_0, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    }
+  } else {
+    return {$: "Callbacks.Changed", "state": _state_0, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+  }
+}
+
+function $Callbacks$receipt_if_missing$(_changed_0, _target_0, _control_0, _receipt_0, _at_0, _order_0) {
+  const _state_0 = _changed_0["state"];
+  const _t_0 = _changed_0["result"];
+  if (_t_0.$ === "Callbacks.Missing") {
+    return $Callbacks$receipt_control$(_state_0, _target_0, _control_0, _receipt_0, _at_0, _order_0);
+  } else {
+    const __2 = _changed_0["cancel"];
+    const __3 = _changed_0["schedule"];
+    return {$: "Callbacks.Changed", "state": _state_0, "result": _t_0, "cancel": __2, "schedule": __3};
+  }
+}
+
+function $Callbacks$apply_receipt$(_state_0, _target_0, _control_0, _receipt_0, _at_0, _order_0) {
+  return $Callbacks$receipt_if_missing$(($Callbacks$apply$(_state_0, _target_0, _control_0, _at_0, _order_0)), _target_0, _control_0, _receipt_0, _at_0, _order_0);
+}
+
+function $Callbacks$work_owned$(_found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $Callbacks$request_owned$(_found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $Callbacks$output_batch_owned$(_batch_0, _owner_0) {
+  if (_batch_0.$ === "Some") {
+    const _t_0 = _batch_0["value"];
+    const _group_0 = _t_0["group"];
+    const _round_0 = _t_0["round"];
+    const _p_0 = _owner_0["partition"];
+    const _r_0 = _owner_0["round"];
+    return $Bool$and$(($Nat$is_eq$(_group_0, _p_0)), ($Nat$is_eq$(_round_0, _r_0)));
+  } else {
+    return false;
+  }
+}
+
+function $Callbacks$output_batches$(_collection_0) {
+  const _t_0 = _collection_0["delivery"];
+  const _t_1 = _t_0["submissions"];
+  const _batches_0 = _t_1["batches"];
+  return _batches_0;
+}
+
+function $Callbacks$output_owned$(_collection_0, _owner_0, _advice_0, _token_0) {
+  const _x_0 = ($$$$047agent$045flow$045bend$047CollectionState$owns_lease$(_collection_0, _advice_0, _token_0));
+  const _x_1 = ($Callbacks$output_batch_owned$(($$$$047agent$045flow$045bend$047SubmissionState$find_batch$(_advice_0, _token_0, ($Callbacks$output_batches$(_collection_0)))), _owner_0));
+  return (_x_0 || _x_1);
+}
+
+function $Callbacks$physical_owned$(_effect_0, _owner_0, _dispatch_0, _collection_0) {
+  if (_effect_0.$ === "Callbacks.JevStarted") {
+    const _request_0 = _effect_0["request"];
+    const _p_0 = _owner_0["partition"];
+    const _l_0 = _owner_0["lifetime"];
+    const _r_0 = _owner_0["round"];
+    const _o_0 = _owner_0["operation"];
+    const _requests_0 = _dispatch_0["requests"];
+    return $Callbacks$request_owned$(($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _request_0)));
+  } else if (_effect_0.$ === "Callbacks.JevInterrupted") {
+    const _request_1 = _effect_0["request"];
+    const _p_1 = _owner_0["partition"];
+    const _l_1 = _owner_0["lifetime"];
+    const _r_1 = _owner_0["round"];
+    const _o_1 = _owner_0["operation"];
+    const _requests_1 = _dispatch_0["requests"];
+    return $Callbacks$request_owned$(($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_1, _p_1, _l_1, _r_1, _o_1, _request_1)));
+  } else if (_effect_0.$ === "Callbacks.JevSettled") {
+    const _request_2 = _effect_0["request"];
+    const _p_2 = _owner_0["partition"];
+    const _l_2 = _owner_0["lifetime"];
+    const _r_2 = _owner_0["round"];
+    const _o_2 = _owner_0["operation"];
+    const _requests_2 = _dispatch_0["requests"];
+    return $Callbacks$request_owned$(($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_2, _p_2, _l_2, _r_2, _o_2, _request_2)));
+  } else if (_effect_0.$ === "Callbacks.PreparationCompleted") {
+    const _p_3 = _owner_0["partition"];
+    const _l_3 = _owner_0["lifetime"];
+    const _r_3 = _owner_0["round"];
+    const _o_3 = _owner_0["operation"];
+    const _queued_0 = _dispatch_0["queued"];
+    const _running_0 = _dispatch_0["running"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _p_3, _l_3, _r_3, _o_3));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _p_3, _l_3, _r_3, _o_3));
+    return (_x_0 || _x_1);
+  } else {
+    const _advice_0 = _effect_0["advice"];
+    const _token_0 = _effect_0["token"];
+    return $Callbacks$output_owned$(_collection_0, _owner_0, _advice_0, _token_0);
+  }
+}
+
+function $Callbacks$authoritative_owner$(_canonical_0, _target_0) {
+  const _work_0 = _canonical_0["work"];
+  const _dispatch_0 = _canonical_0["dispatch"];
+  const _collection_0 = _canonical_0["collection"];
+  const _t_0 = _target_0["owner"];
+  const _p_0 = _t_0["partition"];
+  const _l_0 = _t_0["lifetime"];
+  const _r_0 = _t_0["round"];
+  const _o_0 = _t_0["operation"];
+  const _effect_0 = _target_0["effect"];
+  const _x_0 = ($Callbacks$work_owned$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, _l_0, _r_0, _o_0, _work_0))));
+  const _x_1 = ($Callbacks$physical_owned$(_effect_0, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, _dispatch_0, _collection_0));
+  return (_x_0 || _x_1);
+}
+
+function $Callbacks$retained_original$(_original_0, _canonical_0, _rest_0) {
+  const _t_0 = _original_0["fact"];
+  const _target_0 = _t_0["target"];
+  const _at_0 = _t_0["at"];
+  const _action_0 = _t_0["action"];
+  const _t_1 = _original_0["status"];
+  if (_t_1.$ === "Callbacks.Dropped") {
+    const _order_0 = _original_0["scheduled_order"];
+    return $Callbacks$delivery_keep$(($Bool$not$(($Callbacks$authoritative_owner$(_canonical_0, _target_0)))), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0}, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0}, _rest_0);
+  } else {
+    const _order_1 = _original_0["scheduled_order"];
+    return {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_1}, "tail": _rest_0};
+  }
+}
+
+function $Callbacks$retained_list$(_originals_0, _canonical_0) {
+  if (_originals_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _originals_0["head"];
+    const _tail_0 = _originals_0["tail"];
+    return $Callbacks$retained_original$(_head_0, _canonical_0, ($Callbacks$retained_list$(_tail_0, _canonical_0)));
+  }
+}
+
+function $Callbacks$retain$(_state_0, _canonical_0) {
+  const _originals_0 = _state_0["originals"];
+  return {$: "Callbacks.State", "originals": ($Callbacks$retained_list$(_originals_0, _canonical_0))};
+}
+
+function $Callbacks$hold_publishes_no_callback$(_target_0, _original_at_0, _action_0, _order_0, _at_0, _fresh_0) {
+  return null;
+}
+
+function $Callbacks$duplicate_keeps_original_fact$(_target_0, _original_at_0, _action_0, _status_0, _order_0, _at_0, _fresh_0) {
+  if (_status_0.$ === "Callbacks.Queued") {
+    return null;
+  } else if (_status_0.$ === "Callbacks.Held") {
+    return null;
+  } else {
+    return null;
+  }
+}
+
+function $Callbacks$drop_only_cancels_delivery$(_target_0, _original_at_0, _action_0, _order_0, _at_0, _fresh_0) {
+  return null;
+}
+
+function $NoticeScenario$initial$() {
+  return {$: "NoticeScenario.State", "pending": {$: "Nil"}};
+}
+
+function $NoticeScenario$failure$(_scope_0, _remaining_0, _key_0, _sequence_0) {
+  const _maximum_keys_0 = _scope_0["maximum_keys"];
+  const _maximum_count_0 = _scope_0["maximum_count"];
+  return {$: "Canonical.NoticeAdvance", "key": _key_0, "remaining": _remaining_0, "maximum_keys": _maximum_keys_0, "proposed": _key_0, "sequence": _sequence_0, "max_count": _maximum_count_0};
+}
+
+function $NoticeScenario$exercise$(_scope_0) {
+  const _partition_0 = _scope_0["partition"];
+  const _group_0 = _scope_0["group"];
+  const _key_0 = _scope_0["key"];
+  const __0 = _scope_0["maximum_keys"];
+  const __1 = _scope_0["reservation_bytes"];
+  const _cooldown_0 = _scope_0["cooldown"];
+  const __2 = _scope_0["maximum_count"];
+  const _x_0 = nat_chk(2 * _cooldown_0);
+  const _x_1 = nat_chk(2 * _cooldown_0);
+  const _x_2 = nat_chk(3 * _cooldown_0);
+  return {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": 0, "event": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _key_0, "maximum_keys": __0, "reservation_bytes": __1, "cooldown": _cooldown_0, "maximum_count": __2}, {$: "None"}, _key_0, _key_0))}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": 1, "event": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _key_0, "maximum_keys": __0, "reservation_bytes": __1, "cooldown": _cooldown_0, "maximum_count": __2}, {$: "Some", "value": _cooldown_0}, _key_0, _key_0))}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_cooldown_0 + 2), "event": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _key_0, "maximum_keys": __0, "reservation_bytes": __1, "cooldown": _cooldown_0, "maximum_count": __2}, {$: "Some", "value": 0}, _key_0, _key_0))}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_cooldown_0 + 3), "event": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _key_0, "maximum_keys": __0, "reservation_bytes": __1, "cooldown": _cooldown_0, "maximum_count": __2}, {$: "None"}, nat_chk(_key_0 + 1), nat_chk(_key_0 + 1)))}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_cooldown_0 + 4), "event": {$: "Canonical.NoticeSelect", "partition": _partition_0, "group": _group_0, "composed": false, "authority_bound": false, "allowed": {$: "Nil"}}}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_cooldown_0 + 5), "event": {$: "Canonical.NoticeLease", "key": _key_0, "leased": true}}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_cooldown_0 + 6), "event": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _key_0, "maximum_keys": __0, "reservation_bytes": __1, "cooldown": _cooldown_0, "maximum_count": __2}, {$: "Some", "value": 0}, _key_0, _key_0))}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_x_0 + 7), "event": {$: "Canonical.NoticePrune", "key": _key_0, "lease_expired": true, "pending_expired": true, "excepted": false, "cooldown_expired": true}}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_x_1 + 8), "event": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _key_0, "maximum_keys": __0, "reservation_bytes": __1, "cooldown": _cooldown_0, "maximum_count": __2}, {$: "None"}, nat_chk(_key_0 + 1), nat_chk(_key_0 + 1)))}, "tail": {$: "Con", "head": {$: "NoticeScenario.Scheduled", "offset": nat_chk(_x_2 + 9), "event": {$: "Canonical.NoticePrune", "key": nat_chk(_key_0 + 1), "lease_expired": true, "pending_expired": true, "excepted": false, "cooldown_expired": true}}, "tail": {$: "Nil"}}}}}}}}}}};
+}
+
+function $NoticeScenario$create_key$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticeCreateKey") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$granted$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return {$: "None"};
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CapacityGranted") {
+          const _id_0 = _t_0["id"];
+          return {$: "Some", "value": _id_0};
+        } else {
+          const __2 = _commands_0["tail"];
+          $0 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$requested$(_state_0, _scope_0, _key_0, _sequence_0, _accepted_0) {
+  const _pending_0 = _state_0["pending"];
+  const _partition_0 = _scope_0["partition"];
+  const _group_0 = _scope_0["group"];
+  const _base_0 = _scope_0["key"];
+  const _maximum_keys_0 = _scope_0["maximum_keys"];
+  const _bytes_0 = _scope_0["reservation_bytes"];
+  const _cooldown_0 = _scope_0["cooldown"];
+  const _maximum_count_0 = _scope_0["maximum_count"];
+  if (_accepted_0) {
+    return {$: "NoticeScenario.Followup", "state": {$: "NoticeScenario.State", "pending": ($List$append$(_pending_0, {$: "Con", "head": {$: "NoticeScenario.Pending", "scope": {$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _base_0, "maximum_keys": _maximum_keys_0, "reservation_bytes": _bytes_0, "cooldown": _cooldown_0, "maximum_count": _maximum_count_0}, "key": _key_0, "sequence": _sequence_0}, "tail": {$: "Nil"}}))}, "events": {$: "Con", "head": {$: "Canonical.ReserveCapacity", "partition": _partition_0, "bytes": _bytes_0, "purpose": {$: "Ledger.OperationalNotice"}}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "NoticeScenario.Followup", "state": {$: "NoticeScenario.State", "pending": _pending_0}, "events": {$: "Nil"}};
+  }
+}
+
+function $NoticeScenario$request$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0) {
+  return $NoticeScenario$requested$(_state_0, _scope_0, _key_0, _sequence_0, ($NoticeScenario$create_key$(_commands_0)));
+}
+
+function $NoticeScenario$committed$(_pending_0, _remaining_0, _reservation_0) {
+  const _t_0 = _pending_0["scope"];
+  const _partition_0 = _t_0["partition"];
+  const _group_0 = _t_0["group"];
+  const _maximum_keys_0 = _t_0["maximum_keys"];
+  const _key_0 = _pending_0["key"];
+  const _sequence_0 = _pending_0["sequence"];
+  if (_reservation_0.$ === "Some") {
+    const _id_0 = _reservation_0["value"];
+    return {$: "NoticeScenario.Followup", "state": {$: "NoticeScenario.State", "pending": _remaining_0}, "events": {$: "Con", "head": {$: "Canonical.NoticeCommit", "key": _key_0, "partition": _partition_0, "group": _group_0, "reservation": _id_0, "pending": _key_0, "sequence": _sequence_0, "maximum_keys": _maximum_keys_0}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "NoticeScenario.Followup", "state": {$: "NoticeScenario.State", "pending": _remaining_0}, "events": {$: "Nil"}};
+  }
+}
+
+function $NoticeScenario$prepend$(_pending_0, _result_0) {
+  const _t_0 = _result_0["state"];
+  const _tail_0 = _t_0["pending"];
+  const _events_0 = _result_0["events"];
+  return {$: "NoticeScenario.Followup", "state": {$: "NoticeScenario.State", "pending": {$: "Con", "head": _pending_0, "tail": _tail_0}}, "events": _events_0};
+}
+
+function $NoticeScenario$reserved_match$(_hit_0, _pending_0, _tail_0, _commands_0, _rest_0) {
+  if (_hit_0) {
+    return $NoticeScenario$committed$(_pending_0, _tail_0, ($NoticeScenario$granted$(_commands_0)));
+  } else {
+    return $NoticeScenario$prepend$(_pending_0, _rest_0);
+  }
+}
+
+function $NoticeScenario$owner$(_pending_0) {
+  const _t_0 = _pending_0["scope"];
+  const _partition_0 = _t_0["partition"];
+  return _partition_0;
+}
+
+function $NoticeScenario$reserved$(_pending_0, _partition_0, _commands_0) {
+  if (_pending_0.$ === "Nil") {
+    return {$: "NoticeScenario.Followup", "state": ($NoticeScenario$initial$()), "events": {$: "Nil"}};
+  } else {
+    const _head_0 = _pending_0["head"];
+    const _tail_0 = _pending_0["tail"];
+    return $NoticeScenario$reserved_match$(($Nat$is_eq$(($NoticeScenario$owner$(_head_0)), _partition_0)), _head_0, _tail_0, _commands_0, ($NoticeScenario$reserved$(_tail_0, _partition_0, _commands_0)));
+  }
+}
+
+function $NoticeScenario$refused$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticeRefused") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$release_commit$(_reservation_0, _declined_0) {
+  if (_declined_0) {
+    return {$: "Con", "head": {$: "Canonical.ReleaseCapacity", "reservation": _reservation_0}, "tail": {$: "Nil"}};
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $NoticeScenario$commit_feedback$(_reservation_0, _commands_0) {
+  return $NoticeScenario$release_commit$(_reservation_0, ($NoticeScenario$refused$(_commands_0)));
+}
+
+function $NoticeScenario$collect$(_partition_0, _group_0, _composed_0, _authority_bound_0, _allowed_0) {
+  return {$: "Canonical.NoticeSelect", "partition": _partition_0, "group": _group_0, "composed": _composed_0, "authority_bound": _authority_bound_0, "allowed": _allowed_0};
+}
+
+function $NoticeScenario$lease$(_key_0) {
+  return {$: "Canonical.NoticeLease", "key": _key_0, "leased": true};
+}
+
+function $NoticeScenario$acknowledge$(_key_0) {
+  return {$: "Canonical.NoticeClearPending", "key": _key_0};
+}
+
+function $NoticeScenario$remaining$(_found_0, _now_0) {
+  if (_found_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _next_allowed_0 = _t_0["next_allowed"];
+    return {$: "Some", "value": (_next_allowed_0 < _now_0 ? 0 : _next_allowed_0 - _now_0)};
+  }
+}
+
+function $NoticeScenario$clock_key$(_clock_0) {
+  const _key_0 = _clock_0["key"];
+  return _key_0;
+}
+
+function $NoticeScenario$clock_owned$(_clock_0, _partition_0, _group_0) {
+  const _owner_0 = _clock_0["partition"];
+  const _delivery_0 = _clock_0["group"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_delivery_0, _group_0)));
+}
+
+function $NoticeScenario$find_clock$(_clocks_0, _key_0) {
+  if (_clocks_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _clocks_0["head"];
+    const _tail_0 = _clocks_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(($NoticeScenario$clock_key$(_head_0)), _key_0)), {$: "Some", "value": _head_0}, ($NoticeScenario$find_clock$(_tail_0, _key_0)));
+  }
+}
+
+function $NoticeScenario$failure_owned$(_found_0, _partition_0, _group_0) {
+  if (_found_0.$ === "None") {
+    return true;
+  } else {
+    const _clock_0 = _found_0["value"];
+    return $NoticeScenario$clock_owned$(_clock_0, _partition_0, _group_0);
+  }
+}
+
+function $NoticeScenario$supplied_failure$(_scope_0, _clocks_0, _now_0, _key_0, _sequence_0) {
+  const _partition_0 = _scope_0["partition"];
+  const _group_0 = _scope_0["group"];
+  const _base_0 = _scope_0["key"];
+  const _maximum_keys_0 = _scope_0["maximum_keys"];
+  const _bytes_0 = _scope_0["reservation_bytes"];
+  const _cooldown_0 = _scope_0["cooldown"];
+  const _maximum_count_0 = _scope_0["maximum_count"];
+  return $Bool$pick$(($NoticeScenario$failure_owned$(($NoticeScenario$find_clock$(_clocks_0, _key_0)), _partition_0, _group_0)), {$: "Some", "value": ($NoticeScenario$failure$({$: "NoticeScenario.Scope", "partition": _partition_0, "group": _group_0, "key": _base_0, "maximum_keys": _maximum_keys_0, "reservation_bytes": _bytes_0, "cooldown": _cooldown_0, "maximum_count": _maximum_count_0}, ($NoticeScenario$remaining$(($NoticeScenario$find_clock$(_clocks_0, _key_0)), _now_0)), _key_0, _sequence_0))}, {$: "None"});
+}
+
+function $NoticeScenario$refresh_commands$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticeCommitted") {
+          return true;
+        } else if (_t_0.$ === "Canonical.NoticeCreatePending") {
+          return true;
+        } else if (_t_0.$ === "Canonical.NoticeMergePending") {
+          return true;
+        } else if (_t_0.$ === "Canonical.NoticeKeepLeased") {
+          return true;
+        } else {
+          const __6 = _commands_0["tail"];
+          $0 = __6;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$keep_clock$(_hit_0, _head_0, _tail_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _tail_0};
+  }
+}
+
+function $NoticeScenario$without_clock$(_clocks_0, _key_0) {
+  if (_clocks_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _clocks_0["head"];
+    const _tail_0 = _clocks_0["tail"];
+    return $NoticeScenario$keep_clock$(($Nat$is_eq$(($NoticeScenario$clock_key$(_head_0)), _key_0)), _head_0, ($NoticeScenario$without_clock$(_tail_0, _key_0)));
+  }
+}
+
+function $NoticeScenario$clock_refreshed$(_clocks_0, _scope_0, _key_0, _now_0, _refresh_0) {
+  const _partition_0 = _scope_0["partition"];
+  const _group_0 = _scope_0["group"];
+  const _cooldown_0 = _scope_0["cooldown"];
+  if (_refresh_0) {
+    return {$: "Con", "head": {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": nat_chk(_now_0 + _cooldown_0)}, "tail": ($NoticeScenario$without_clock$(_clocks_0, _key_0))};
+  } else {
+    return _clocks_0;
+  }
+}
+
+function $NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0) {
+  return $NoticeScenario$clock_refreshed$(_clocks_0, _scope_0, _key_0, _now_0, ($NoticeScenario$refresh_commands$(_commands_0)));
+}
+
+function $NoticeScenario$existing_owned$(_found_0, _partition_0, _group_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _clock_0 = _found_0["value"];
+    return $NoticeScenario$clock_owned$(_clock_0, _partition_0, _group_0);
+  }
+}
+
+function $NoticeScenario$owned_event$(_owned_0, _event_0) {
+  if (_owned_0) {
+    return {$: "Some", "value": _event_0};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $NoticeScenario$scoped_lease$(_clocks_0, _partition_0, _group_0, _key_0) {
+  return $NoticeScenario$owned_event$(($NoticeScenario$existing_owned$(($NoticeScenario$find_clock$(_clocks_0, _key_0)), _partition_0, _group_0)), ($NoticeScenario$lease$(_key_0)));
+}
+
+function $NoticeScenario$scoped_acknowledge$(_clocks_0, _partition_0, _group_0, _key_0) {
+  return $NoticeScenario$owned_event$(($NoticeScenario$existing_owned$(($NoticeScenario$find_clock$(_clocks_0, _key_0)), _partition_0, _group_0)), ($NoticeScenario$acknowledge$(_key_0)));
+}
+
+function $NoticeScenario$dropped_key$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticePruned") {
+          const _t_1 = _t_0["drop_key"];
+          if (_t_1) {
+            return true;
+          } else {
+            const __3 = _commands_0["tail"];
+            $0 = __3;
+            continue;
+          }
+        } else if (_t_0.$ === "Canonical.NoticeDropped") {
+          return true;
+        } else {
+          const __5 = _commands_0["tail"];
+          $0 = __5;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$release_record$(_found_0, _dropped_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _reservation_0 = _t_0["reservation"];
+    if (_dropped_0) {
+      return {$: "Con", "head": {$: "Canonical.ReleaseCapacity", "reservation": _reservation_0}, "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $NoticeScenario$prune_feedback$(_before_0, _key_0, _commands_0) {
+  return $NoticeScenario$release_record$(($$$$047agent$045flow$045bend$047NoticeState$find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$records_of$(($$$$047agent$045flow$045bend$047CollectionState$notice_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_before_0)))))))), ($NoticeScenario$dropped_key$(_commands_0)));
+}
+
+function $NoticeScenario$clocks_pruned$(_clocks_0, _key_0, _dropped_0) {
+  if (_dropped_0) {
+    return $NoticeScenario$without_clock$(_clocks_0, _key_0);
+  } else {
+    return _clocks_0;
+  }
+}
+
+function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
+  return $NoticeScenario$clocks_pruned$(_clocks_0, _key_0, ($NoticeScenario$dropped_key$(_commands_0)));
+}
+
+function $RuntimeScenarios$initial$() {
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}};
+}
+
+function $RuntimeScenarios$callbacks$(_state_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  return _callbacks_0;
+}
+
+function $RuntimeScenarios$with_callbacks$(_state_0, _callbacks_0) {
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0};
+}
+
+function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$retain$(_callbacks_0, _canonical_0)), "notices": _notices_0, "clocks": _clocks_0};
+}
+
+function $RuntimeScenarios$notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
+  const _notices_0 = _state_0["notices"];
+  return $NoticeScenario$request$(_notices_0, _scope_0, _key_0, _sequence_0, _commands_0);
+}
+
+function $RuntimeScenarios$notice_reserved$(_state_0, _partition_0, _commands_0) {
+  const _t_0 = _state_0["notices"];
+  const _pending_0 = _t_0["pending"];
+  return $NoticeScenario$reserved$(_pending_0, _partition_0, _commands_0);
+}
+
+function $Advicees$initial$() {
+  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
+}
+
+function $Advicees$maximum$() {
+  const _x_0 = nat_chk(65536 * 4294967295);
+  return nat_chk(_x_0 + 65535);
+}
+
+function $Advicees$bounded$(_identity_0) {
+  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
+}
+
+function $Advicees$scope_identity$(_scope_0) {
+  const _identity_0 = _scope_0["identity"];
+  return _identity_0;
+}
+
+function $Advicees$scope_partition$(_scope_0) {
+  const _partition_0 = _scope_0["partition"];
+  return _partition_0;
+}
+
+function $Advicees$found$(_equal_0, _scope_0, _other_0) {
+  if (_equal_0) {
+    return {$: "Some", "value": _scope_0};
+  } else {
+    return _other_0;
+  }
+}
+
+function $Advicees$find_identity$(_scopes_0, _identity_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
+  }
+}
+
+function $Advicees$find_partition$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
+  }
+}
+
+function $Advicees$lookup_identity$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_identity$(_scopes_0, _identity_0);
+}
+
+function $Advicees$lookup_partition$(_registry_0, _partition_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_partition$(_scopes_0, _partition_0);
+}
+
+function $Advicees$absent$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
+  if (_valid_0) {
+    const _next_0 = _registry_0["next"];
+    const _scopes_0 = _registry_0["scopes"];
+    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
+    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
+  } else {
+    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
+  }
+}
+
+function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
+  const _next_0 = _registry_0["next"];
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
+}
+
+function $Advicees$targeted$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
+  } else {
+    const _scope_1 = _scope_0["value"];
+    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
+  }
+}
+
+function $Advicees$targets$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  if (_identity_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
+  } else {
+    const _identity_1 = _identity_0["value"];
+    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
+  }
+}
+
+function $AdviceeLifecycle$partition$(_entry_0) {
+  const _partition_0 = _entry_0["partition"];
+  return _partition_0;
+}
+
+function $AdviceeLifecycle$lifetime$(_entry_0) {
+  const _lifetime_0 = _entry_0["lifetime"];
+  return _lifetime_0;
+}
+
+function $AdviceeLifecycle$active$(_status_0) {
+  if (_status_0.$ === "AdviceeLifecycle.Active") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycle$entry_active$(_entry_0) {
+  const _status_0 = _entry_0["status"];
+  return $AdviceeLifecycle$active$(_status_0);
+}
+
+function $AdviceeLifecycle$found$(_hit_0, _entry_0, _other_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _entry_0};
+  } else {
+    return _other_0;
+  }
+}
+
+function $AdviceeLifecycle$lookup$(_entries_0, _owner_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _entries_0["head"];
+    const _tail_0 = _entries_0["tail"];
+    return $AdviceeLifecycle$found$(($Nat$is_eq$(($AdviceeLifecycle$partition$(_head_0)), _owner_0)), _head_0, ($AdviceeLifecycle$lookup$(_tail_0, _owner_0)));
+  }
+}
+
+function $AdviceeLifecycle$absent$(_entry_0) {
+  if (_entry_0.$ === "None") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycle$register_valid$(_valid_0, _entries_0, _owner_0) {
+  if (_valid_0) {
+    return $List$append$(_entries_0, {$: "Con", "head": {$: "AdviceeLifecycle.Entry", "partition": _owner_0, "lifetime": 1, "status": {$: "AdviceeLifecycle.Active"}}, "tail": {$: "Nil"}});
+  } else {
+    return _entries_0;
+  }
+}
+
+function $AdviceeLifecycle$register$(_entries_0, _owner_0) {
+  return $AdviceeLifecycle$register_valid$(($Bool$and$(($Advicees$bounded$(_owner_0)), ($AdviceeLifecycle$absent$(($AdviceeLifecycle$lookup$(_entries_0, _owner_0)))))), _entries_0, _owner_0);
+}
+
+function $AdviceeLifecycle$replacement$(_hit_0, _head_0, _updated_0) {
+  if (_hit_0) {
+    return _updated_0;
+  } else {
+    return _head_0;
+  }
+}
+
+function $AdviceeLifecycle$replace$(_entries_0, _updated_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _entries_0["head"];
+    const _tail_0 = _entries_0["tail"];
+    return {$: "Con", "head": ($AdviceeLifecycle$replacement$(($Nat$is_eq$(($AdviceeLifecycle$partition$(_head_0)), ($AdviceeLifecycle$partition$(_updated_0)))), _head_0, _updated_0)), "tail": ($AdviceeLifecycle$replace$(_tail_0, _updated_0))};
+  }
+}
+
+function $AdviceeLifecycle$accepted$(_entries_0, _previous_0, _current_0) {
+  return {$: "AdviceeLifecycle.Changed", "entries": ($AdviceeLifecycle$replace$(_entries_0, _current_0)), "previous": {$: "Some", "value": _previous_0}, "current": {$: "Some", "value": _current_0}, "valid": true};
+}
+
+function $AdviceeLifecycle$refused$(_entries_0, _entry_0) {
+  return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": {$: "Some", "value": _entry_0}, "current": {$: "Some", "value": _entry_0}, "valid": false};
+}
+
+function $AdviceeLifecycle$resumed$(_valid_0, _entries_0, _entry_0) {
+  if (_valid_0) {
+    const _x_0 = ($AdviceeLifecycle$lifetime$(_entry_0));
+    return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": nat_chk(_x_0 + 1), "status": {$: "AdviceeLifecycle.Active"}});
+  } else {
+    return $AdviceeLifecycle$refused$(_entries_0, _entry_0);
+  }
+}
+
+function $AdviceeLifecycle$disconnected_status$(_status_0) {
+  if (_status_0.$ === "AdviceeLifecycle.Removed") {
+    return {$: "AdviceeLifecycle.Removed"};
+  } else {
+    return {$: "AdviceeLifecycle.Disconnected"};
+  }
+}
+
+function $AdviceeLifecycle$disconnected_entry_status$(_entry_0) {
+  const _status_0 = _entry_0["status"];
+  return $AdviceeLifecycle$disconnected_status$(_status_0);
+}
+
+function $AdviceeLifecycle$known$(_entries_0, _found_0, _action_0) {
+  if (_found_0.$ === "None") {
+    return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": {$: "None"}, "current": {$: "None"}, "valid": false};
+  } else {
+    const _entry_0 = _found_0["value"];
+    if (_action_0.$ === "AdviceeLifecycle.Resume") {
+      const _x_0 = ($AdviceeLifecycle$lifetime$(_entry_0));
+      const _x_1 = ($Advicees$maximum$());
+      return $AdviceeLifecycle$resumed$(($Bool$and$(($Bool$and$(($Bool$not$(($AdviceeLifecycle$entry_active$(_entry_0)))), ($Advicees$bounded$(($AdviceeLifecycle$lifetime$(_entry_0)))))), (_x_0 < _x_1))), _entries_0, _entry_0);
+    } else if (_action_0.$ === "AdviceeLifecycle.Remove") {
+      return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": ($AdviceeLifecycle$lifetime$(_entry_0)), "status": {$: "AdviceeLifecycle.Removed"}});
+    } else {
+      return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": ($AdviceeLifecycle$lifetime$(_entry_0)), "status": ($AdviceeLifecycle$disconnected_entry_status$(_entry_0))});
+    }
+  }
+}
+
+function $AdviceeLifecycle$change$(_entries_0, _owner_0, _action_0) {
+  return $AdviceeLifecycle$known$(_entries_0, ($AdviceeLifecycle$lookup$(_entries_0, _owner_0)), _action_0);
+}
+
+function $AdviceeLifecycle$valid_entry$(_found_0, _generation_0) {
+  if (_found_0.$ === "Some") {
+    const _entry_0 = _found_0["value"];
+    return $Bool$and$(($AdviceeLifecycle$entry_active$(_entry_0)), ($Nat$is_eq$(($AdviceeLifecycle$lifetime$(_entry_0)), _generation_0)));
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycle$permits_activity$(_entries_0, _owner_0, _generation_0) {
+  return $AdviceeLifecycle$valid_entry$(($AdviceeLifecycle$lookup$(_entries_0, _owner_0)), _generation_0);
+}
+
 function $AdviceeLifecycleCleanup$select_operation$(_owned_0, _id_0, _tail_0) {
   if (_owned_0) {
     return {$: "Con", "head": _id_0, "tail": _tail_0};
@@ -16913,7 +17753,8 @@ function $Preparation$settle$(_state_0, _key_0, _position_0, _before_0, _result_
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "before": _before_0, "result": _result_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "before": _before_0, "result": _result_0};
 }
 
 function $Preparation$expected$(_found_0) {
@@ -16947,8 +17788,9 @@ function $Preparation$step$(_state_0, _key_0, _position_0, _limits_0, _event_0) 
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _scenarios_0 = _state_0["scenarios"];
   const _found_0 = ($Preparation$find$(_graphs_0, _key_0));
-  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
+  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
 }
 
 function $Preparation$preparing$(_found_0) {
@@ -17119,7 +17961,7 @@ function $Postprocess$actions$(_before_0, _after_0, _event_0) {
 }
 
 function $initial$(_limits_0) {
-  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}, "retiring": {$: "Nil"}, "lifecycles": {$: "Nil"}, "preparations": {$: "Nil"}, "activity_scopes": {$: "Nil"}};
+  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}, "retiring": {$: "Nil"}, "lifecycles": {$: "Nil"}, "preparations": {$: "Nil"}, "activity_scopes": {$: "Nil"}, "scenarios": ($RuntimeScenarios$initial$())};
 }
 
 function $captured_commands$($0, $1) {
@@ -17242,15 +18084,15 @@ function $lifecycle_accepted$(_entries_0, _canonical_0, _event_0) {
   }
 }
 
-function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _event_0) {
+function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$retain$(_scenarios_0, _state_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
   }
 }
 
@@ -17277,7 +18119,8 @@ function $step$(_state_0, _event_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($prepared_remaining$(($AdviceeLifecycleCleanup$settle_preparations$(_preparations_0, _canonical_0, _event_0)))), _activity_scopes_0, _event_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($prepared_remaining$(($AdviceeLifecycleCleanup$settle_preparations$(_preparations_0, _canonical_0, _event_0)))), _activity_scopes_0, _scenarios_0, _event_0);
 }
 
 function $canonical$(_state_0) {
@@ -17325,13 +18168,14 @@ function $enqueue$(_state_0, _at_0, _order_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
 }
 
-function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
+function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0) {
   const _scheduler_0 = _taken_0["state"];
   const _entry_0 = _taken_0["entry"];
-  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "entry": _entry_0};
+  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "entry": _entry_0};
 }
 
 function $take$(_state_0) {
@@ -17347,7 +18191,8 @@ function $take$(_state_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
 function $queued$(_state_0) {
@@ -17368,7 +18213,8 @@ function $cancel$(_state_0, _order_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
 }
 
 function $fence$(_state_0, _event_0, _generated_0, _context_0) {
@@ -17400,7 +18246,8 @@ function $configure_seed$(_state_0, _seed_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
 }
 
 function $configure_workload$(_state_0, _partition_0, _profile_0) {
@@ -17416,14 +18263,15 @@ function $configure_workload$(_state_0, _partition_0, _profile_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
 }
 
-function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
+function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0) {
   const _workloads_0 = _changed_0["advicees"];
   const _events_0 = _changed_0["events"];
   const _valid_0 = _changed_0["valid"];
-  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "events": _events_0, "valid": _valid_0};
+  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "events": _events_0, "valid": _valid_0};
 }
 
 function $workload_action$(_state_0, _partition_0, _action_0) {
@@ -17439,7 +18287,8 @@ function $workload_action$(_state_0, _partition_0, _action_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
 function $workload_valid$(_state_0, _partition_0, _generation_0, _recurring_0) {
@@ -17452,10 +18301,10 @@ function $workload_duration$(_state_0, _partition_0, _fallback_0) {
   return $Workload$duration$(_workloads_0, _partition_0, _fallback_0);
 }
 
-function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
+function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0) {
   const _random_0 = _sample_0["random"];
   const _outcome_0 = _sample_0["outcome"];
-  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "outcome": _outcome_0};
+  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "outcome": _outcome_0};
 }
 
 function $sample_outcome$(_state_0, _weights_0) {
@@ -17471,7 +18320,8 @@ function $sample_outcome$(_state_0, _weights_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
 function $numeric_add$(_a_0, _b_0) {
@@ -17580,11 +18430,11 @@ function $declared_activity$(_scopes_0, _scope_0) {
   }
 }
 
-function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
+function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0) {
   const _advicees_0 = _declared_0["registry"];
   const _scope_0 = _declared_0["scope"];
   const _valid_0 = _declared_0["valid"];
-  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": ($declared_lifecycle$(_lifecycles_0, _scope_0)), "preparations": _preparations_0, "activity_scopes": ($declared_activity$(_activity_scopes_0, _scope_0))}, "scope": _scope_0, "valid": _valid_0};
+  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": ($declared_lifecycle$(_lifecycles_0, _scope_0)), "preparations": _preparations_0, "activity_scopes": ($declared_activity$(_activity_scopes_0, _scope_0)), "scenarios": _scenarios_0}, "scope": _scope_0, "valid": _valid_0};
 }
 
 function $declare_advicee$(_state_0, _identity_0, _seed_0) {
@@ -17600,7 +18450,8 @@ function $declare_advicee$(_state_0, _identity_0, _seed_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
 function $advicee_identity$(_state_0, _identity_0) {
@@ -17636,7 +18487,8 @@ function $configure_credentials$(_state_0, _available_0, _generation_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($CredentialFacts$configure$(_credentials_0, _available_0, _generation_0)), "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($CredentialFacts$configure$(_credentials_0, _available_0, _generation_0)), "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
 }
 
 function $changed_credentials$(_credentials_0, _available_0, _rotation_0) {
@@ -17660,7 +18512,8 @@ function $credential_action$(_state_0, _available_0, _rotation_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
 }
 
 function $generate_tree$(_seed_0, _operation_0, _unit_0, _profile_0, _limits_0) {
@@ -17679,10 +18532,10 @@ function $scope_select$(_bindings_0, _partition_0) {
   return $AdviceeScope$select$(_bindings_0, _partition_0);
 }
 
-function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
+function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0) {
   const _opening_0 = _attempt_0["pending"];
   const _plan_0 = _attempt_0["plan"];
-  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "plan": _plan_0};
+  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "plan": _plan_0};
 }
 
 function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
@@ -17698,13 +18551,14 @@ function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)), _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)), _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
-function $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, _issued_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
+function $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, _issued_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0) {
   const _retiring_0 = _issued_0["pending"];
   const _actions_0 = _issued_0["actions"];
-  return {$: "IssuedActions", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "actions": _actions_0};
+  return {$: "IssuedActions", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0}, "actions": _actions_0};
 }
 
 function $issue_actions$(_state_0, _actions_0) {
@@ -17720,7 +18574,8 @@ function $issue_actions$(_state_0, _actions_0) {
   const _lifecycles_0 = _state_0["lifecycles"];
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
-  return $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, ($PendingEffects$issue$(_retiring_0, _actions_0)), _lifecycles_0, _preparations_0, _activity_scopes_0);
+  const _scenarios_0 = _state_0["scenarios"];
+  return $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, ($PendingEffects$issue$(_retiring_0, _actions_0)), _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
 function $credential_captured$(_state_0, _operation_0) {
@@ -17881,6 +18736,7 @@ function $lifecycle_installed$(_transition_0, _changed_0, _cleanup_0, _partition
   const _retiring_0 = _t_0["retiring"];
   const _captures_0 = _t_0["preparations"];
   const _scopes_0 = _t_0["activity_scopes"];
+  const _scenarios_0 = _t_0["scenarios"];
   const _events_0 = _transition_0["events"];
   const _entries_0 = _changed_0["entries"];
   const _previous_0 = _changed_0["previous"];
@@ -17889,7 +18745,7 @@ function $lifecycle_installed$(_transition_0, _changed_0, _cleanup_0, _partition
   const _actions_0 = _cleanup_0["actions"];
   const _operations_0 = _cleanup_0["operations"];
   const _preparations_0 = _cleanup_0["preparations"];
-  return {$: "LifecycleTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": ($lifecycle_opening$(($lifecycle_changed_activity$(_valid_0, _previous_0, _current_0)), _opening_0, _partition_0)), "retiring": _retiring_0, "lifecycles": _entries_0, "preparations": ($List$append$(_captures_0, _preparations_0)), "activity_scopes": ($lifecycle_scopes$(($Bool$and$(_valid_0, ($lifecycle_resumed$(_previous_0, _current_0)))), _scopes_0, _partition_0))}, "changed": {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": _previous_0, "current": _current_0, "valid": _valid_0}, "cleanup": {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": _actions_0, "operations": _operations_0, "preparations": _preparations_0}, "events": _events_0};
+  return {$: "LifecycleTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": ($lifecycle_opening$(($lifecycle_changed_activity$(_valid_0, _previous_0, _current_0)), _opening_0, _partition_0)), "retiring": _retiring_0, "lifecycles": _entries_0, "preparations": ($List$append$(_captures_0, _preparations_0)), "activity_scopes": ($lifecycle_scopes$(($Bool$and$(_valid_0, ($lifecycle_resumed$(_previous_0, _current_0)))), _scopes_0, _partition_0)), "scenarios": _scenarios_0}, "changed": {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": _previous_0, "current": _current_0, "valid": _valid_0}, "cleanup": {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": _actions_0, "operations": _operations_0, "preparations": _preparations_0}, "events": _events_0};
 }
 
 function $lifecycle_changed$(_state_0, _partition_0, _changed_0) {
@@ -17932,24 +18788,236 @@ function $permit_consumed$(_state_0, _command_0, _partition_0, _lifetime_0) {
   return $PermitScenario$consumed$(($canonical$(_state_0)), _command_0, _partition_0, _lifetime_0);
 }
 
-function $Bool$and$(_a_0, _b_0) {
-  if (!_a_0) {
-    return false;
+function $scenarios$(_state_0) {
+  const _scenarios_0 = _state_0["scenarios"];
+  return _scenarios_0;
+}
+
+function $with_scenarios$(_state_0, _scenarios_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
+}
+
+function $callback_state$(_state_0) {
+  return $RuntimeScenarios$callbacks$(($scenarios$(_state_0)));
+}
+
+function $with_callbacks$(_state_0, _callbacks_0) {
+  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_callbacks$(($scenarios$(_state_0)), _callbacks_0)));
+}
+
+function $callback_issue$(_state_0, _owner_0, _order_0, _at_0, _action_0) {
+  return $with_callbacks$(_state_0, ($Callbacks$issue$(($callback_state$(_state_0)), _owner_0, _order_0, _at_0, _action_0)));
+}
+
+function $callback_delivered$(_state_0, _order_0) {
+  return $with_callbacks$(_state_0, ($Callbacks$delivered$(($callback_state$(_state_0)), _order_0)));
+}
+
+function $callback_originals$(_state_0) {
+  const _t_0 = _state_0["scenarios"];
+  const _t_1 = _t_0["callbacks"];
+  const _originals_0 = _t_1["originals"];
+  return _originals_0;
+}
+
+function $callback_changed$(_state_0, _changed_0) {
+  const _callbacks_0 = _changed_0["state"];
+  const _result_0 = _changed_0["result"];
+  const _cancel_0 = _changed_0["cancel"];
+  const _schedule_0 = _changed_0["schedule"];
+  return {$: "CallbackTransition", "state": ($with_callbacks$(_state_0, _callbacks_0)), "result": _result_0, "cancel": _cancel_0, "schedule": _schedule_0};
+}
+
+function $callback_action$(_state_0, _target_0, _control_0, _receipt_0, _at_0, _order_0) {
+  return $callback_changed$(_state_0, ($Callbacks$apply_receipt$(($callback_state$(_state_0)), _target_0, _control_0, _receipt_0, _at_0, _order_0)));
+}
+
+function $callback_work_owner$(_work_0, _advice_0) {
+  if (_work_0.$ === "Nil") {
+    return {$: "None"};
   } else {
+    const _t_0 = _work_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const _tail_0 = _work_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_operation_0, _advice_0)), {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0}}, ($callback_work_owner$(_tail_0, _advice_0)));
+  }
+}
+
+function $callback_output_owner$(_canonical_0, _advice_0) {
+  const _work_0 = _canonical_0["work"];
+  return $callback_work_owner$(_work_0, _advice_0);
+}
+
+function $callback_owner$(_state_0, _event_0) {
+  if (_event_0.$ === "Canonical.JevRequestStarted") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    return {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}};
+  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    return {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}};
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_2 = _event_0["partition"];
+    const _l_2 = _event_0["lifetime"];
+    const _r_2 = _event_0["round"];
+    const _o_2 = _event_0["operation"];
+    return {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2}};
+  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _p_3 = _event_0["partition"];
+    const _l_3 = _event_0["lifetime"];
+    const _r_3 = _event_0["round"];
+    const _o_3 = _event_0["operation"];
+    return {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_3, "lifetime": _l_3, "round": _r_3, "operation": _o_3}};
+  } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    const _advice_0 = _event_0["advice"];
+    return $callback_output_owner$(($canonical$(_state_0)), _advice_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $notice_followed$(_state_0, _followup_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _t_0 = _state_0["scenarios"];
+  const _callbacks_0 = _t_0["callbacks"];
+  const _clocks_0 = _t_0["clocks"];
+  const _notices_0 = _followup_0["state"];
+  const _events_0 = _followup_0["events"];
+  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0}}, "events": _events_0};
+}
+
+function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _t_0 = _state_0["scenarios"];
+  const _callbacks_0 = _t_0["callbacks"];
+  const _notices_0 = _t_0["notices"];
+  const _clocks_0 = _t_0["clocks"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0))}};
+}
+
+function $notice_pruned$(_state_0, _key_0, _commands_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _t_0 = _state_0["scenarios"];
+  const _callbacks_0 = _t_0["callbacks"];
+  const _notices_0 = _t_0["notices"];
+  const _clocks_0 = _t_0["clocks"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0))}};
+}
+
+function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
+  if (_event_0.$ === "Canonical.NoticeAdvance") {
+    const _key_0 = _event_0["key"];
+    const _sequence_0 = _event_0["sequence"];
+    return $notice_followed$(($notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0)), ($RuntimeScenarios$notice_requested$(($scenarios$(_state_0)), _scope_0, _key_0, _sequence_0, _commands_0, _now_0)));
+  } else if (_event_0.$ === "Canonical.ReserveCapacity") {
+    const _partition_0 = _event_0["partition"];
+    const _t_0 = _event_0["purpose"];
+    if (_t_0.$ === "Ledger.OperationalNotice") {
+      return $notice_followed$(_state_0, ($RuntimeScenarios$notice_reserved$(($scenarios$(_state_0)), _partition_0, _commands_0)));
+    } else {
+      return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
+    }
+  } else if (_event_0.$ === "Canonical.NoticeCommit") {
+    const _key_1 = _event_0["key"];
+    const _reservation_0 = _event_0["reservation"];
+    return {$: "NoticeTransition", "state": ($notice_clocked$(_state_0, _scope_0, _key_1, _now_0, _commands_0)), "events": ($NoticeScenario$commit_feedback$(_reservation_0, _commands_0))};
+  } else if (_event_0.$ === "Canonical.NoticePrune") {
+    const _key_2 = _event_0["key"];
+    return {$: "NoticeTransition", "state": ($notice_pruned$(_state_0, _key_2, _commands_0)), "events": ($NoticeScenario$prune_feedback$(($canonical$(_before_0)), _key_2, _commands_0))};
+  } else {
+    return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
+  }
+}
+
+function $notice_exercise$(_scope_0) {
+  return $NoticeScenario$exercise$(_scope_0);
+}
+
+function $notice_failure$(_state_0, _scope_0, _now_0, _key_0, _sequence_0) {
+  const _t_0 = _state_0["scenarios"];
+  const _clocks_0 = _t_0["clocks"];
+  return $NoticeScenario$supplied_failure$(_scope_0, _clocks_0, _now_0, _key_0, _sequence_0);
+}
+
+function $notice_lease$(_state_0, _partition_0, _group_0, _key_0) {
+  const _t_0 = _state_0["scenarios"];
+  const _clocks_0 = _t_0["clocks"];
+  return $NoticeScenario$scoped_lease$(_clocks_0, _partition_0, _group_0, _key_0);
+}
+
+function $notice_acknowledge$(_state_0, _partition_0, _group_0, _key_0) {
+  const _t_0 = _state_0["scenarios"];
+  const _clocks_0 = _t_0["clocks"];
+  return $NoticeScenario$scoped_acknowledge$(_clocks_0, _partition_0, _group_0, _key_0);
+}
+
+function $Nat$is_eq$(_a_0, _b_0) {
+  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
+}
+
+function $Bool$pick$(_c_0, _a_0, _b_0) {
+  if (!_c_0) {
     return _b_0;
+  } else {
+    return _a_0;
   }
 }
 
 function $Nat$is_gt$(_a_0, _b_0) {
   return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
-}
-
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
-}
-
-function $Nat$is_eq$(_a_0, _b_0) {
-  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
 
 function $List$append$(_xs_0, _ys_0) {
@@ -17962,20 +19030,8 @@ function $List$append$(_xs_0, _ys_0) {
   }
 }
 
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Bool$pick$(_c_0, _a_0, _b_0) {
-  if (!_c_0) {
-    return _b_0;
-  } else {
-    return _a_0;
-  }
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
 function $List$length$(_xs_0) {
@@ -17987,8 +19043,24 @@ function $List$length$(_xs_0) {
   }
 }
 
+function $Bool$and$(_a_0, _b_0) {
+  if (!_a_0) {
+    return false;
+  } else {
+    return _b_0;
+  }
+}
+
 function $Nat$is_ge$(_a_0, _b_0) {
   return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
+}
+
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 function $List$is_empty$(_xs_0) {
@@ -18023,6 +19095,14 @@ function $List$reverse$(_xs_0) {
   return $List$reverse$go$(_xs_0, {$: "Nil"});
 }
 
+function $Cmp$is_eq$(_c_0) {
+  if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 function $Cmp$is_gt$(_c_0) {
   if (_c_0.$ === "GT") {
     return true;
@@ -18036,14 +19116,6 @@ function $Cmp$is_le$(_c_0) {
     return false;
   } else {
     return true;
-  }
-}
-
-function $Cmp$is_eq$(_c_0) {
-  if (_c_0.$ === "EQ") {
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -18083,33 +19155,8 @@ function $List$reverse$go$($0, $1) {
   }
 }
 
-function $0m2(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Advicees.Scope": at = at[key] = {...v, "identity": BigInt(v["identity"]), "partition": BigInt(v["partition"])}; return top[0];
-      default: throw "bend: Advicees.Scope has no tag " + v?.$ + " (its tags: Advicees.Scope); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
 
-function $0m1(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m2(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:0322b2ec87a06d7cd292537ed4262eab082d46169a37f8d5baf3b2938741e89d";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:9318b989daa4d754738218cb70025693da95a2bf70a3731eccbbc08c158cd9d5";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -18125,6 +19172,16 @@ const facts = value => {
   return value;
 };
 export default {
+ notice_after: (before,state,scope,event,commands,now) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now))),
+ notice_exercise: (scope) => run_loop($notice_exercise$(facts(scope))),
+ notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),
+ notice_lease: (state,partition,group,key) => run_loop($notice_lease$(state,facts(partition),facts(group),facts(key))),
+ notice_acknowledge: (state,partition,group,key) => run_loop($notice_acknowledge$(state,facts(partition),facts(group),facts(key))),
+ callback_owner: (state,event) => run_loop($callback_owner$(state,facts(event))),
+ callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
+ callback_delivered: (state,order) => run_loop($callback_delivered$(state,facts(order))),
+ callback_originals: (state) => run_loop($callback_originals$(state)),
+ callback_action: (state,target,control,receipt,at,order) => run_loop($callback_action$(state,facts(target),facts(control),facts(receipt),facts(at),facts(order))),
  activity_event_valid: (state, event, partition, incarnation) => run_loop($activity_event_valid$(state, facts(event), facts(partition), facts(incarnation))),
  lifecycle_entries: (state) => run_loop($lifecycle_entries$(state)),
  lifecycle_entry: (state, partition) => run_loop($lifecycle_entry$(state, facts(partition))),

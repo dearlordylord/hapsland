@@ -539,7 +539,7 @@ export class Run {
     scheduled.partition = partition;
     const rawReceipt = this.core.issueCallback(event, scheduled.order, scheduled.at);
     if (rawReceipt) {
-      const receipt = freezeCanonicalData({ target: decodeCallbackTarget(decodeSharedValue(rawReceipt).target) });
+      const receipt = freezeCanonicalData({ target: decodeCallbackTarget(readRecord(decodeSharedValue(rawReceipt)).target) });
       const payload = { ...scheduled, callbackReceipt: receipt } as Scheduled;
       scheduled.callbackReceipt = receipt;
       this.callbackFacts.set(receipt, rawReceipt);

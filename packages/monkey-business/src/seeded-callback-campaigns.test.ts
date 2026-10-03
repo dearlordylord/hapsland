@@ -1,21 +1,13 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run } from "./index.ts";
 
-// Source-only TDD against #182's proposed public seam until central wiring lands.
-// This structural view makes no private queue/state mutation and may be replaced
-// by the exported CallbackTarget type at the integrator's clean checkpoint.
-type Target = { readonly owner: { readonly partition: number; readonly lifetime: number;
-  readonly round: number; readonly operation: number };
-  readonly effect: { readonly kind: "jevSettled"; readonly request: number };
-  readonly originalOrder: number };
+import type { CallbackTarget } from "./callback-controls.ts";
+type Target = CallbackTarget & { readonly effect: Extract<CallbackTarget["effect"], { readonly kind: "jevSettled" }> };
 function target(run: Run): Target | undefined {
-  const view = run.observe() as ReturnType<Run["observe"]> & {
-    readonly callbackTargets: readonly Target[];
-  };
-  return view.callbackTargets.find(value => value.owner.partition === 1 && value.effect.kind === "jevSettled");
+  return run.observe().callbackTargets.find((value): value is Target => value.owner.partition === 1 && value.effect.kind === "jevSettled");
 }
 function apply(run: Run, original: Target, action: "hold" | "release" | "duplicate") {
-  run.applyControl({ kind: "callback", target: original, action } as never);
+  run.applyControl({ kind: "callback", target: original, action });
 }
 function advance(run: Run, untilTime: number, maxEvents: number) {
   expect(run.advance({ untilTime, maxEvents }).reason).not.toBe("eventLimit");
