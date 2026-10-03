@@ -241,7 +241,21 @@ it("a superseded joined member cannot retain the current owner's finding", () =>
  { at: 3, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: ["changed"], revisionSubject: "member-root", revisionInput: "new" },
  ];
  const run = complete({ inputs, outcome: "finding", lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } } });
- expect(run.observations.some(o => o.commands.some(c => c.kind === "revisionStale"))).toBe(true);
+ // The old joined member belongs to member-root; its replacement registers a
+ // new input at 3, before the original owner settles at preparation 2 + Jev 5.
+ const registrations = run.observations.filter(o => o.event.kind === "revisionRegister");
+ expect(registrations.map(o => o.event)).toEqual([
+  { kind: "revisionRegister", subject: 1, input: 2, addMember: true },
+  { kind: "revisionRegister", subject: 2, input: 4, addMember: true },
+  { kind: "revisionRegister", subject: 2, input: 6, addMember: true },
+ ]);
+ const staleMember = run.observations.filter(o => o.event.kind === "reuseMemberCheck" && o.event.staleUnavailable);
+ expect(staleMember).toHaveLength(1);
+ expect(staleMember[0]).toMatchObject({ partition: 1, agent: "agent-1", time: 2 + 5,
+  event: { kind: "reuseMemberCheck", state: "finding", staleUnavailable: true, hasRevision: true, hasAdviceId: true },
+  commands: [{ kind: "reuseKeepMember" }], commandScopes: [1] });
+ expect(staleMember[0]!.before.revision.entries).toContainEqual({ subject: 2, input: 6, generation: 3, members: 1 });
+ expect(staleMember[0]!.commands.some(c => c.kind === "reuseSetMemberFinding")).toBe(false);
  expect(run.observations.filter(o => o.commands.some(c => c.kind === "retainFinding"))).toHaveLength(2);
  expect(run.observations.filter(o => o.commands.some(c => c.kind === "jevRequestIssued"))).toHaveLength(2);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
@@ -286,11 +300,20 @@ it("checked cache clear releases every cached ledger charge and permits fresh ev
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
 it("concurrent cache commits release a reservation refused by the shared one-entry ceiling", () => {
- const run = complete({ inputs: ["a", "b"].map(identity => ({ at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: [identity] })), outcome: "clear", lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } } });
+ const run = complete({ inputs: ["a", "b"].map(identity => ({ at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: [identity], revisionSubject: `prepared-${identity}` })), outcome: "clear", lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } } });
  expect(run.observations.filter(o => o.commands.some(c => c.kind === "jevRequestIssued"))).toHaveLength(2);
  const refused = run.observations.find(o => o.event.kind === "cacheCommit" && o.commands.some(c => c.kind === "reuseRefused"));
  expect(refused).toBeDefined();
+ expect(refused?.event).toEqual({ kind: "cacheCommit", id: 2, partition: 1, bytes: 5, reservation: 6, entryLimit: 1, byteLimit: 20 });
+ const release = run.observations.find(o => o.event.kind === "releaseCapacity" && o.event.reservation === 6);
+ expect(release?.commands).toContainEqual({ kind: "reservationReleased", id: 6 });
+ expect(release?.before.charges.map(charge => charge.id)).toEqual([5, 6]);
+ expect(release?.after.charges.map(charge => charge.id)).toEqual([5]);
+ const firstCommit = run.observations.findIndex(o => o.event.kind === "cacheCommit");
+ expect(run.observations.slice(0, firstCommit).filter(o => o.event.kind === "cachePrepare")).toHaveLength(2);
  expect(run.projection.reuse.cache).toHaveLength(1);
+ expect(run.projection.reuse.cache[0]).toMatchObject({ id: 1, reservation: 5 });
+ expect(run.projection.charges.some(charge => charge.id === 6)).toBe(false);
  const retained = run.projection.charges.filter(charge => charge.purpose === "storedResult");
  expect(retained.map(charge => charge.id)).toEqual(run.projection.reuse.cache.map(entry => entry.reservation));
  expect(retained.reduce((bytes, charge) => bytes + charge.bytes, 0)).toBe(run.projection.reuse.cache.reduce((bytes, entry) => bytes + entry.bytes, 0));
