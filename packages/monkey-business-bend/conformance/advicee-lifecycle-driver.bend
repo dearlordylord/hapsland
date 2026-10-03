@@ -40,6 +40,16 @@ type Stage is Data:
 type Runtime is Data:
   Runtime{state: Types.State, queue: Queue, jobs: List<&2, Stored>, delay: Nat}
 
+# Candidate transport boundary: carry shared state behind a recursive list
+# through scheduler continuations. Lowering benefit is unvalidated.
+# Edge.Runtime remains unchanged for external fixture consumers.
+type Carrier is Data:
+  Carrier{states: List<&2, Types.State>, queue: Queue, jobs: List<&2, Stored>, delay: Nat}
+
+def carrier(runtime: Runtime) -> Carrier:
+  match runtime:
+    case Runtime{state,queue,jobs,delay}: Carrier{[state],queue,jobs,delay}
+
 type Initialized is Data:
   Initialized{state: Types.State, queue: Queue}
 
@@ -410,10 +420,19 @@ def taken(taken: Engine.Taken, +items: List<&2, Item>, +sequence: Nat,
       input(lookup(items, order), state, Queue{remove(items, order), sequence, sequence}, jobs, now, delay, ih)
     case Engine.Taken{_, None{}}: []
 
-def selected(runtime: Runtime, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def selected_state(states: List<&2, Types.State>, +items: List<&2, Item>, +sequence: Nat,
+    synced: Nat, jobs: List<&2, Stored>, delay: Nat,
+    ih: Carrier -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match states:
+    case Nil{}: [[97n]]
+    case state <> _:
+      taken(Engine.take(sync(items,state,synced)),items,sequence,jobs,delay,next => ih(carrier(next)))
+
+def selected(runtime: Carrier, ih: Carrier -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match runtime:
-    case Runtime{state, Queue{+items, +sequence, synced}, jobs, delay}:
-      taken(Engine.take(sync(items, state, synced)), items, sequence, jobs, delay, ih)
+    case Carrier{states,Queue{items,sequence,synced},jobs,delay}:
+      selected_state(states,items,sequence,synced,jobs,delay,ih)
+
 
 
 
@@ -455,38 +474,56 @@ def fresh(runtime: Runtime, at: Nat) -> Runtime:
     case Runtime{state, queue, jobs, delay}:
       Runtime{state, append(queue, at, Edit{Job{1n, 2n, 10n, [5n], Canonical.RequestFinding{}}}), jobs, delay}
 
-def ending(stage: Stage, +runtime: Runtime, action: Lifecycle.Action, boundary: Nat, new_at: Nat,
-    ih: Runtime -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match stage runtime:
-    case Started{} Runtime{state, queue, jobs, delay}:
-      lifecycle(Engine.lifecycle_action(state, 1n, action), queue, jobs, delay, next => ih(next, Departed{}))
-    case Departed{} Runtime{state, queue, jobs, delay}:
-      lifecycle(Engine.lifecycle_action(state, 1n, Lifecycle.Resume{}), queue, jobs, delay, next => ih(fresh(next, new_at), Resumed{}))
-    case Resumed{} _: []
+def ending_state(states: List<&2, Types.State>, stage: Stage, queue: Queue,
+    jobs: List<&2, Stored>, delay: Nat, action: Lifecycle.Action, new_at: Nat,
+    ih: Carrier -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match states stage:
+    case state <> _ Started{}:
+      lifecycle(Engine.lifecycle_action(state,1n,action),queue,jobs,delay,next => ih(carrier(next),Departed{}))
+    case state <> _ Departed{}:
+      lifecycle(Engine.lifecycle_action(state,1n,Lifecycle.Resume{}),queue,jobs,delay,next => ih(carrier(fresh(next,new_at)),Resumed{}))
+    case _ Resumed{}: []
+    case Nil{} _: [[97n]]
 
-def in_bound(valid: Bool, runtime: Runtime, +stage: Stage, action: Lifecycle.Action, boundary: Nat, new_at: Nat,
-    ih: Runtime -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match valid:
-    case True{}: selected(runtime, next => ih(next, stage))
-    case False{}: ending(stage, runtime, action, boundary, new_at, ih)
-
-def bounded(entries: List<&2, Scheduler.Entry>, runtime: Runtime, +stage: Stage, action: Lifecycle.Action,
-    +boundary: Nat, new_at: Nat, ih: Runtime -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match entries:
-    case Scheduler.Entry{at, _} <> _: in_bound(Nat.is_le(at, stage_bound(stage, boundary)), runtime, stage, action, boundary, new_at, ih)
-    case Nil{}: ending(stage, runtime, action, boundary, new_at, ih)
-
-def next(runtime: Runtime, stage: Stage, action: Lifecycle.Action, boundary: Nat, new_at: Nat,
-    ih: Runtime -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def ending(stage: Stage, runtime: Carrier, action: Lifecycle.Action, new_at: Nat,
+    ih: Carrier -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match runtime:
-    case Runtime{state, Queue{+items, +sequence, synced}, jobs, delay}:
-      +state = sync(items, state, synced)
-      bounded(Engine.queued(state), Runtime{state, Queue{items, sequence, sequence}, jobs, delay}, stage, action, boundary, new_at, ih)
+    case Carrier{states,queue,jobs,delay}: ending_state(states,stage,queue,jobs,delay,action,new_at,ih)
 
-def loop(fuel: Nat, runtime: Runtime, stage: Stage, +action: Lifecycle.Action, +boundary: Nat, +new_at: Nat) -> List<&2, List<&2, Nat>>:
+def in_bound(valid: Bool, runtime: Carrier, +stage: Stage, action: Lifecycle.Action, new_at: Nat,
+    ih: Carrier -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match valid:
+    case True{}: selected(runtime,next => ih(next,stage))
+    case False{}: ending(stage,runtime,action,new_at,ih)
+
+def bounded(entries: List<&2, Scheduler.Entry>, runtime: Carrier, +stage: Stage, action: Lifecycle.Action,
+    boundary: Nat, new_at: Nat, ih: Carrier -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match entries:
+    case Scheduler.Entry{at,_} <> _: in_bound(Nat.is_le(at,stage_bound(stage,boundary)),runtime,stage,action,new_at,ih)
+    case Nil{}: ending(stage,runtime,action,new_at,ih)
+
+def published(states: List<&2, Types.State>, +items: List<&2, Item>, +sequence: Nat,
+    synced: Nat, jobs: List<&2, Stored>, delay: Nat, stage: Stage, action: Lifecycle.Action,
+    boundary: Nat, new_at: Nat, ih: Carrier -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match states:
+    case Nil{}: [[97n]]
+    case state <> _:
+      +state = sync(items,state,synced)
+      bounded(Engine.queued(state),Carrier{[state],Queue{items,sequence,sequence},jobs,delay},stage,action,boundary,new_at,ih)
+
+def next(runtime: Carrier, stage: Stage, action: Lifecycle.Action, boundary: Nat, new_at: Nat,
+    ih: Carrier -> Stage -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match runtime:
+    case Carrier{states,Queue{items,sequence,synced},jobs,delay}:
+      published(states,items,sequence,synced,jobs,delay,stage,action,boundary,new_at,ih)
+
+def loop_carrier(fuel: Nat, runtime: Carrier, stage: Stage, +action: Lifecycle.Action, +boundary: Nat, +new_at: Nat) -> List<&2, List<&2, Nat>>:
   match fuel:
     case 0n: [[98n]]
-    case 1n+rest: next(runtime, stage, action, boundary, new_at, next => stage => loop(rest, next, stage, action, boundary, new_at))
+    case 1n+rest: next(runtime,stage,action,boundary,new_at,following => following_stage => loop_carrier(rest,following,following_stage,action,boundary,new_at))
+
+def loop(fuel: Nat, runtime: Runtime, stage: Stage, action: Lifecycle.Action, boundary: Nat, new_at: Nat) -> List<&2, List<&2, Nat>>:
+  loop_carrier(fuel,carrier(runtime),stage,action,boundary,new_at)
 
 def original_inputs(initial: Initialized, action: Lifecycle.Action, boundary: Nat, new_at: Nat) -> List<&2, List<&2, Nat>>:
   match initial:
