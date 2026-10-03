@@ -17639,7 +17639,7 @@ function $OutputScenario$late_ack$(_late_0, _count_0, _delay_0, _actions_0) {
   if (!_late_0) {
     return _actions_0;
   } else {
-    return $List$append$(_actions_0, {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.DeliveryAcknowledgeCheck", "items": _count_0, "any_expired": true}, _delay_0)), "tail": {$: "Nil"}});
+    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.DeliveryAcknowledgeCheck", "items": _count_0, "any_expired": true}, _delay_0)), "tail": _actions_0};
   }
 }
 
@@ -17673,6 +17673,43 @@ function $OutputScenario$issued$(_capture_0) {
   const _delay_0 = _capture_0["delay"];
   const _lease_0 = _capture_0["lease"];
   return $OutputScenario$late_ack$(($OutputScenario$late$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$selected_count$(_attempt_0)), _delay_0, ($OutputScenario$terminal$(_attempt_0, _outcome_0, ($OutputScenario$expired$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$due$(_outcome_0, _delay_0, _lease_0)), _lease_0)));
+}
+
+function $OutputScenario$finish_terminal_tail$(_action_0, _tail_0) {
+  const _t_0 = _action_0["event"];
+  if (_t_0.$ === "Canonical.FinishTerminal") {
+    const __0 = _t_0["group"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["attempt"];
+    const __3 = _t_0["token"];
+    const __4 = _t_0["selected"];
+    const __5 = _t_0["outcome"];
+    const __6 = _action_0["delay"];
+    const __7 = _action_0["candidate"];
+    const __8 = _action_0["job"];
+    const __9 = _action_0["expiry_advice"];
+    return {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.FinishTerminal", "group": __0, "round": __1, "attempt": __2, "token": __3, "selected": __4, "outcome": __5}, "delay": __6, "candidate": __7, "job": __8, "expiry_advice": __9}, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $OutputScenario$finish_terminals$(_actions_0) {
+  if (_actions_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _action_0 = _actions_0["head"];
+    const _tail_0 = _actions_0["tail"];
+    return $OutputScenario$finish_terminal_tail$(_action_0, ($OutputScenario$finish_terminals$(_tail_0)));
+  }
+}
+
+function $OutputScenario$initial_actions$(_capture_0, _terminal_only_0) {
+  if (!_terminal_only_0) {
+    return $OutputScenario$issued$(_capture_0);
+  } else {
+    return $OutputScenario$finish_terminals$(($OutputScenario$issued$(_capture_0)));
+  }
 }
 
 function $OutputScenario$captured_failure_is_release$(_advice_0, _token_0, _started_0, _delay_0, _lease_0) {
@@ -18409,6 +18446,20 @@ function $Scheduler$clock$(_state_0) {
   return _now_0;
 }
 
+function $OutputCompletion$feedback$(_command_0, _event_0) {
+  if (_command_0.$ === "Canonical.SubmissionExpired") {
+    if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
+      const _advice_0 = _event_0["advice"];
+      const _token_0 = _event_0["token"];
+      return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, 0)), "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
 function $OutputCompletion$elapsed$(_started_0, _now_0) {
   return (_now_0 < _started_0 ? 0 : _now_0 - _started_0);
 }
@@ -18573,30 +18624,6 @@ function $OutputCompletion$replace$(_fact_0, _capture_0, _target_0, _outcome_0, 
   const _action_0 = _fact_0["action"];
   const _completion_0 = _fact_0["completion"];
   return $OutputCompletion$replace_matching$(($Callbacks$target_equal$(_original_0, _target_0)), {$: "Callbacks.Fact", "target": _original_0, "at": _at_0, "action": _action_0, "completion": _completion_0}, _capture_0, _outcome_0, _provenance_0);
-}
-
-function $OutputCompletion$keep$(_result_0, _original_0) {
-  if (_result_0.$ === "Some") {
-    const _action_0 = _result_0["value"];
-    return _action_0;
-  } else {
-    return _original_0;
-  }
-}
-
-function $OutputCompletion$rewrite_actions$(_actions_0, _capture_0, _outcome_0, _started_0) {
-  if (_actions_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _actions_0["head"];
-    const _event_0 = _t_0["event"];
-    const _delay_0 = _t_0["delay"];
-    const _candidate_0 = _t_0["candidate"];
-    const _job_0 = _t_0["job"];
-    const _expiry_0 = _t_0["expiry_advice"];
-    const _tail_0 = _actions_0["tail"];
-    return {$: "Con", "head": ($OutputCompletion$keep$(($OutputCompletion$rewrite$(_capture_0, {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0}, _outcome_0, nat_chk(_started_0 + _delay_0), {$: "OutputCompletion.EnvironmentCompletion"})), {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0})), "tail": ($OutputCompletion$rewrite_actions$(_tail_0, _capture_0, _outcome_0, _started_0))};
-  }
 }
 
 function $OutputCompletion$refused$(_originals_0, _result_0) {
@@ -23817,8 +23844,16 @@ function $scenarios$(_state_0) {
   return _scenarios_0;
 }
 
+function $handle_output$(_state_0, _event_0, _command_0, _context_0) {
+  if (_command_0.$ === "Canonical.SubmissionExpired") {
+    return {$: "Driver.Handled", "handled": true, "actions": ($OutputCompletion$feedback$({$: "Canonical.SubmissionExpired"}, _event_0))};
+  } else {
+    return $handle_cached$(_state_0, _event_0, _command_0, _context_0, ($SharingRuntime$cached_review$(($RuntimeScenarios$sharing$(($scenarios$(_state_0)))), _command_0)));
+  }
+}
+
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
-  return $CollectionScenario$handled$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _command_0, _context_0, ($handle_cached$(_state_0, _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, false)), ($SharingRuntime$cached_review$(($RuntimeScenarios$sharing$(($scenarios$(_state_0)))), _command_0)))));
+  return $CollectionScenario$handled$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _command_0, _context_0, ($handle_output$(_state_0, _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, false)))));
 }
 
 function $edit$(_state_0, _partition_0, _lifetime_0) {
@@ -24703,6 +24738,10 @@ function $output_intervene$(_state_0, _target_0, _outcome_0, _receipt_0) {
   return $output_intervened$(_state_0, ($OutputCompletion$intervene_receipt$(($callback_state$(_state_0)), _target_0, _outcome_0, _receipt_0, ($queued$(_state_0)), ($clock$(_state_0)))));
 }
 
+function $output_initial$(_capture_0, _terminal_only_0) {
+  return $OutputScenario$initial_actions$(_capture_0, _terminal_only_0);
+}
+
 function $output_deliver$(_receipt_0, _now_0) {
   return $OutputCompletion$delivered_fact$(_receipt_0, _now_0);
 }
@@ -25585,7 +25624,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6949a06c2864c8ca82d437a866df9158d379a2fe96e107b47dfa3ec5c033bad4";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:aee5fa8607a8c0c0b62d5f38c9d5797c807efc0ebbbd2462caea2ae1f333cda4";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -25638,6 +25677,7 @@ export default {
  callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
  callback_issue_output: (state,owner,order,at,action,capture) => run_loop($callback_issue_output$(state,facts(owner),facts(order),facts(at),facts(action),facts(capture))),
  output_intervene: (state,target,outcome,receipt) => run_loop($output_intervene$(state,facts(target),facts(outcome),facts(receipt))),
+ output_initial: (capture,terminalOnly) => run_loop($output_initial$(facts(capture),facts(terminalOnly))),
  output_deliver: (receipt,now) => run_loop($output_deliver$(facts(receipt),facts(now))),
  callback_delivered: (state,order) => run_loop($callback_delivered$(state,facts(order))),
  callback_originals: (state) => run_loop($callback_originals$(state)),
