@@ -413,7 +413,7 @@ export class Run {
   private order = 0;
   private count = 0;
   private takes = 0;
-  private progressDriver?: ReplayProgressDriver;
+  private progressDriver: ReplayProgressDriver | undefined;
   private normalizations: ReplayCheckpoint[] = [];
   private get clock() { return this.core.now; }
   private history: Observation[] = [];
