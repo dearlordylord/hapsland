@@ -4,7 +4,7 @@ import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-ben
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
 import { decodeExpiryNativeBoundary, expiryPublicBoundary, captureExpiryPublicRun, compareExpiryFullTrace } from "./expiry-native-boundary.ts";
 import { expiryTicks, reportNotice, collectNotice } from "./expiry-public.fixture.ts";
-import { createRun, replayRun, type Run, type RunConfig } from "./index.ts";
+import { createRun, restoreReplay, type Run, type RunConfig } from "./index.ts";
 
 const captures = new WeakMap<Run, ReturnType<typeof captureExpiryPublicRun>>();
 const completeCaptures: ReturnType<ReturnType<typeof captureExpiryPublicRun>["finish"]>[] = [];
@@ -21,8 +21,7 @@ function makeExpiryRun(times: readonly number[], pendingMs: number, cooldownMs: 
   return run;
 }
 function boundary(run: Run) {
-  const replay = replayRun(JSON.parse(JSON.stringify(run.exportReplay())));
-  replay.advance({ untilTime: run.now, maxEvents: 1000 });
+  const replay = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())));
   expect(replay.observe()).toEqual(run.observe());
   expect(replay.exportReplay()).toEqual(run.exportReplay());
   const capture = captures.get(run);
