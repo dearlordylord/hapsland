@@ -730,7 +730,6 @@ export class Run {
       const owner = this.inputPartition(head);
       const prepared = this.core.preprocessSharing(head.input.event, owner, head.order, untilTime);
       if (prepared.frame) {
-        this.clock = this.core.now;
         for (const followup of readBendList(prepared.events, decodeDriverEvent, 2048)) this.event(owner, followup);
         const frame = prepared.frame;
         return this.record({ sequence: this.count++, time: this.clock, event: decodeDriverEvent(frame.event),
@@ -865,16 +864,17 @@ export class Run {
       adviceEmpty: !before.work.some(w => w.partition === quiet.partition && w.kind === "pendingFinding"),
       handoffIdle: !before.collection.claims.some(c => c.group === quiet.partition) && !before.collection.leases.some(l => before.work.some(w => w.operation === l.advice && w.partition === quiet.partition)) && !before.delivery.submissions.batches.some(s => s.group === quiet.partition), stopAbsent: !this.finishes.has(quiet.partition) } }; }
     // Callback identity is checked against issued work, before the product's stale-result fence.
+    const completionEvent = event;
     if (
-      event.kind === "jevRequestSettled" &&
+      completionEvent.kind === "jevRequestSettled" &&
       !(item.callbackReceipt && this.callbackFacts.has(item.callbackReceipt)) &&
       ![...this.issuedRequests.values()].some(
         (r) =>
-          r.request === event.request &&
-          r.operation === event.operation &&
-          r.partition === event.partition &&
-          r.lifetime === event.lifetime &&
-          r.round === event.round,
+          r.request === completionEvent.request &&
+          r.operation === completionEvent.operation &&
+          r.partition === completionEvent.partition &&
+          r.lifetime === completionEvent.lifetime &&
+          r.round === completionEvent.round,
       )
     )
       throw new Error("mismatched completion identity");

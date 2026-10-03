@@ -1,8 +1,8 @@
 import {expect,it} from "vitest";
 import {captureSharingIdentityFacts,sharingIdentityLabel,encodeSharingKey,encodeSharingMember,encodeSharingPhysical,validateSharingControl} from "./sharing-controls.ts";
 it("encodes a complete scoped identity without a host equivalence or evaluation cache",()=>{
- expect(encodeSharingKey({partition:1,prepared:7})).toEqual({$:"SharingScenario.Key",partition:1,prepared:7});
- expect(encodeSharingKey({partition:2,prepared:7})).toEqual({$:"SharingScenario.Key",partition:2,prepared:7});
+ expect(encodeSharingKey({partition:1,prepared:7})).toEqual({$:"SharingScenario.SharingKey",partition:1,prepared:7});
+ expect(encodeSharingKey({partition:2,prepared:7})).toEqual({$:"SharingScenario.SharingKey",partition:2,prepared:7});
  const member=encodeSharingMember({scope:{partition:1,lifetime:3,round:5,operation:9},subject:11,input:13,generation:17});
  expect(member.scope).toEqual({$:"FreshnessScenario.Scope",partition:1,lifetime:3,round:5,operation:9});
  expect(Object.isFrozen(member.scope)).toBe(true);expect(Object.isFrozen(member.source)).toBe(true);

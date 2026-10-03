@@ -1,5 +1,4 @@
 import {Schema} from "effect";
-import {canonicalValue} from "../../../src/direct-event/model.ts";
 import {decoder,PositiveNat,readBendList} from "../../../src/canonical/boundary-schema.ts";
 import {decodeDriverEvent} from "./driver-codec.ts";
 
@@ -48,5 +47,7 @@ export const captureSharingIdentityFacts=(value:unknown):SharingIdentityFacts=>O
 export const sharingIdentityLabel=(value:unknown):string=>{
  const facts=captureSharingIdentityFacts(value);
  const namespace=`${facts.partition}\0work:${facts.workId??"standalone"}\0credential-generation:${facts.credentialGeneration??"controlled"}`;
- return canonicalValue({partition:namespace,input:facts.preparedIdentity});
+ // Both fields are validated strings; this preserves the production sorted
+ // canonical object spelling without importing Node-only review hashing.
+ return JSON.stringify({input:facts.preparedIdentity,partition:namespace});
 };

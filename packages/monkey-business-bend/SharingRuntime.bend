@@ -561,11 +561,18 @@ def source_current(found: Maybe<&2,Bool>) -> Bool:
     case Some{current}: current
     case None{}: False{}
 
+# resident/joined-reviews.ts retains a captured revision even when its
+# generation has become unavailable. Canonical decides the member disposition.
+def member_stale(canonical: C.State, source: Freshness.Source, generation: Nat) -> Bool:
+  match canonical source:
+    case C.State{_,_,_,_,_,_,_,collection,_} Freshness.Source{subject,_}:
+      Bool.not(Nat.is_eq(Collection.revision_generation(collection,subject),generation))
+
 def member_facts(+canonical: C.State, +freshness: Freshness.State, members: List<&2,Sharing.Member>, +outcome: C.RequestOutcome, +advice: Maybe<&2,Freshness.Scope>) -> List<&2,C.CanonicalEvent>:
   match members:
     case Nil{}: []
     case Sharing.Member{+scope,+source,+generation} <> tail:
-      C.ReuseMemberCheck{joined_outcome(outcome),False{},source_current(Freshness.current_binding(canonical,Some{Freshness.Binding{scope,source,generation}})),Sharing.live_advice(canonical,freshness,advice)} <>
+      C.ReuseMemberCheck{joined_outcome(outcome),member_stale(canonical,source,generation),Nat.is_gt(generation,0n),Sharing.live_advice(canonical,freshness,advice)} <>
         member_facts(canonical,freshness,tail,outcome,advice)
 
 def fanout_found(canonical: C.State, freshness: Freshness.State, outcome: C.RequestOutcome, found: Maybe<&2,Sharing.Evaluation>) -> List<&2,C.CanonicalEvent>:

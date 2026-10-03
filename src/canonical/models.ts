@@ -956,11 +956,21 @@ export const CanonicalEventSchema = Schema.Union([
     unitBytes: boundedArray(ByteCount, 1024),
   }),
   Schema.Struct({
-    kind: Schema.Union([
-      Schema.Literal("startReview"),
-      Schema.Literal("retireReview"),
-      Schema.Literal("cancelReview"),
-    ]),
+    kind: Schema.Literal("startReview"),
+    partition: PositiveNat,
+    lifetime: PositiveNat,
+    round: PositiveNat,
+    operation: PositiveNat,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("retireReview"),
+    partition: PositiveNat,
+    lifetime: PositiveNat,
+    round: PositiveNat,
+    operation: PositiveNat,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("cancelReview"),
     partition: PositiveNat,
     lifetime: PositiveNat,
     round: PositiveNat,

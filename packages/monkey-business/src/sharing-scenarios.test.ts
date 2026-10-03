@@ -84,7 +84,7 @@ it("a superseded joined member cannot consume the current owner's finding",()=>{
  run.advance({untilTime:33,maxEvents:800});
  expect(run.observations.some(f=>f.event.kind==="revisionRegister" && f.commands.some(c=>c.kind==="revisionReplaced"))).toBe(true);
  expect(run.observations.some(f=>f.event.kind==="reuseMemberCheck" && f.commands.some(c=>c.kind==="reuseKeepMember"))).toBe(true);
- expect(run.projection.pendingFindings.filter(f=>f.partition===captured.partition)).toHaveLength(1);
+ expect(run.projection.pendingFindings.filter(f=>run.projection.work.some(w=>w.operation===f.operation && w.partition===captured.partition))).toHaveLength(1);
  expect(run.observations.filter(f=>f.event.kind==="jevRequestStarted")).toHaveLength(2);
  replay(run);
 });

@@ -14612,16 +14612,21 @@ function $SharingRuntime$source_current$(_found_0) {
   }
 }
 
+function $SharingRuntime$member_stale$(_canonical_0, _source_0, _generation_0) {
+  const _collection_0 = _canonical_0["collection"];
+  const _subject_0 = _source_0["subject"];
+  return $Bool$not$(($Nat$is_eq$(($$$$047agent$045flow$045bend$047CollectionState$revision_generation$(_collection_0, _subject_0)), _generation_0)));
+}
+
 function $SharingRuntime$member_facts$(_canonical_0, _freshness_0, _members_0, _outcome_0, _advice_0) {
   if (_members_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _t_0 = _members_0["head"];
-    const _scope_0 = _t_0["scope"];
     const _source_0 = _t_0["source"];
     const _generation_0 = _t_0["generation"];
     const _tail_0 = _members_0["tail"];
-    return {$: "Con", "head": {$: "Canonical.ReuseMemberCheck", "joined_state": ($SharingRuntime$joined_outcome$(_outcome_0)), "stale_unavailable": false, "has_revision": ($SharingRuntime$source_current$(($FreshnessScenario$current_binding$(_canonical_0, {$: "Some", "value": {$: "FreshnessScenario.Binding", "scope": _scope_0, "source": _source_0, "generation": _generation_0}})))), "has_advice_id": ($SharingScenario$live_advice$(_canonical_0, _freshness_0, _advice_0))}, "tail": ($SharingRuntime$member_facts$(_canonical_0, _freshness_0, _tail_0, _outcome_0, _advice_0))};
+    return {$: "Con", "head": {$: "Canonical.ReuseMemberCheck", "joined_state": ($SharingRuntime$joined_outcome$(_outcome_0)), "stale_unavailable": ($SharingRuntime$member_stale$(_canonical_0, _source_0, _generation_0)), "has_revision": ($Nat$is_gt$(_generation_0, 0)), "has_advice_id": ($SharingScenario$live_advice$(_canonical_0, _freshness_0, _advice_0))}, "tail": ($SharingRuntime$member_facts$(_canonical_0, _freshness_0, _tail_0, _outcome_0, _advice_0))};
   }
 }
 
@@ -22136,7 +22141,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:9907dd975870a9b2b3f696ed882701aa83f4f6e8c56b7071c7b51ef4ba0bae24";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:e9ba5a52d65942ff49cae4e4540d31d958bc054af4456edfea36254c00c577e9";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
