@@ -23,6 +23,10 @@ submission to an agent runtime, model visibility, and a repair edit must never b
 inferred from one another. A completed output write establishes submission only.
 An unavailable, interrupted, or discarded evaluation is never reported as clear.
 
+For every agent runtime, the normal delivery boundary is Hapsland's submission;
+Hapsland does not wait for an acknowledgment or reply from the agent. Internal
+delivery acknowledgments are Hapsland bookkeeping, not agent replies.
+
 The installed composed path uses the same resident delivery module for Codex CLI,
 Claude Code, and Pi. Native hooks translate runtime events and response formats; they
 do not own another review queue, reconstruct reviews from the filesystem, or call
