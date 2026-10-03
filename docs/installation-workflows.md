@@ -74,6 +74,7 @@ hapsland update --channel=next
 # For a specific client:
 hapsland update claude
 hapsland update codex
+hapsland update pi
 ```
 
 With no client argument, update discovers Hapsland registrations in the selected/default Claude and Codex homes. It acquires one target for all registered clients, previews each separately, and asks once before applying all applicable proposals. It does not install integrations for clients without Hapsland. If none are registered, it directs you to setup without downloading anything. Already-current clients need no apply. A conflict or partial result is reported for its client, other applicable updates continue, and the command exits unsuccessfully if any client failed. Results are summarized per client.
@@ -132,7 +133,7 @@ Changes to packaged code, metadata, or docs require a newly reviewed archive and
 
 ## Disablement, removal, and recovery
 
-All bare lifecycle commands have the same scope: installed Claude/Codex profiles in their default or selected homes. Setup offers a selector; doctor checks those profiles; update, repair, reinstall and uninstall act on registered profiles. A client argument limits the operation to that client. Both `--host claude` and `--host=claude` are accepted. Unknown, empty, conflicting and repeated options are rejected before acquisition or mutation.
+All bare lifecycle commands have the same scope: installed Claude Code, Codex CLI, and Pi profiles in their default or selected homes. Setup offers a selector; doctor checks those profiles; update, repair, reinstall and uninstall act on registered profiles. A client argument limits the operation to that client. Both `--host claude` and `--host=claude` are accepted. Unknown, empty, conflicting and repeated options are rejected before acquisition or mutation.
 
 ```sh
 hapsland doctor                 # Diagnose without writing
@@ -143,7 +144,7 @@ hapsland uninstall              # Preview and remove installed integrations
 hapsland uninstall codex        # Remove one integration
 ```
 
-Doctor distinguishes no registration from damaged ownership/configuration. Deleting an event, a main/background handler, or Codex's owned hooks-feature entry leaves a damaged integration. Update and repair restore missing entries after a full preview and confirmation. Changed commands or duplicate marked entries remain conflicts under ordinary repair/update. Reinstall replaces marked Hapsland handlers while preserving unmarked handlers, client settings, review configuration, rule packs, saved credentials and native trust. If ownership metadata is damaged, explicit reinstall can replace it. For an interrupted operation from a separately invoked retained package, select that package explicitly with `hapsland repair CLIENT --target=/absolute/retained-prefix/bin/hapsland`. It never guesses how to repair malformed host JSON/TOML and never reconstructs unmarked hooks whose ownership cannot be established.
+Doctor distinguishes no registration from damaged ownership/configuration. Deleting an event, a main/background handler, Codex's owned hooks-feature entry, or Pi's owned extension leaves a damaged integration. Update and repair restore missing entries after a full preview and confirmation. Changed commands or duplicate marked entries remain conflicts under ordinary repair/update. Reinstall replaces marked Hapsland handlers while preserving unmarked handlers, client settings, review configuration, rule packs, saved credentials and native trust. If ownership metadata is damaged, explicit reinstall can replace it. For an interrupted operation from a separately invoked retained package, select that package explicitly with `hapsland repair CLIENT --target=/absolute/retained-prefix/bin/hapsland`. It never guesses how to repair malformed host JSON/TOML and never reconstructs unmarked hooks whose ownership cannot be established.
 
 A supported interrupted Codex operation resumes its journal after approval. Explicit reinstall can replace an unusable journal, keeping a private backup next to it and building from current user files rather than restoring an old whole-file snapshot. The approval binds the current journal as well as configuration changes; later edits require another preview. If the active package is missing or its administrative record is damaged, reinstall falls back to the runnable package in PATH, reports that choice, and reestablishes the active record. Use `hapsland reinstall CLIENT --target=/absolute/healthy-prefix/bin/hapsland` to select another healthy package.
 
