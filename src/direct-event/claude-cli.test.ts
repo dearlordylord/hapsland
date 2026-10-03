@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { readActivity } from "../activity/status.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "./claude-output.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { makeGitFixture, put } from "./test-fixtures.ts";
+import { makeGitFixture, put, stageFiles } from "./test-fixtures.ts";
 import { ensureResidentEffect as ensureResident, residentRequestEffect as residentRequest } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
 import { encodeCurrentResidentRequest } from "../resident/protocol.ts";
@@ -473,6 +473,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const statePath = join(root, "consent");
     const source = Array.from({ length: 6 }, (_, index) => `type Count${index} = number`).join("\n") + "\n";
     const path = await put(root, "type.ts", source);
+    await stageFiles(root, ["type.ts"]);
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
       session_id: "six-findings-session", tool_use_id: "six-findings-tool",
