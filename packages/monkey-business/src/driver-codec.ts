@@ -26,7 +26,7 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
     } else if (key === "minimum_started") result.minimumStarted = readNat(item);
     else if (key === "deadline_reached") result.deadlineReached = readBool(item);
     else if (key === "surface") result[key] = surface(item);
-    else if (["fingerprints", "units", "unit_bytes"].includes(key)) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, 1024);
+    else if (["fingerprints", "units", "unit_bytes", "operations"].includes(key)) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, 1024);
     else result[names[key] ?? key] = typeof item === "boolean" ? readBool(item) : readNat(item);
   }
   return result as CanonicalEvent;

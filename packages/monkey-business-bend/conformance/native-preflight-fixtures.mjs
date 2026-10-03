@@ -5,6 +5,10 @@ export const nativePreflightFixtures = Object.freeze([
   "jev-credentials-restore-native.bend",
   "jev-credentials-rotation-native.bend",
   "jev-terminal-native.bend",
+  "advicee-departure.bend",
+  "advicee-removal.bend",
+  "advicee-preparation-departure.bend",
+  "permit-scenario.bend",
 ].map((name) => new URL(name, import.meta.url)));
 
 export function usesNativePreflight(fixture) {

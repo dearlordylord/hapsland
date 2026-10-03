@@ -17233,11 +17233,20 @@ function $retirements$(_pending_0, _canonical_0) {
   return $retained_retirements$(_pending_0, _work_0);
 }
 
+function $lifecycle_accepted$(_entries_0, _canonical_0, _event_0) {
+  if (_event_0.$ === "Canonical.OpenRound") {
+    const _partition_0 = _event_0["partition"];
+    return $AdviceeActivity$synchronize$(_entries_0, _canonical_0, _partition_0);
+  } else {
+    return _entries_0;
+  }
+}
+
 function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -18100,7 +18109,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6068624829af3ea351465b0e922be80189f897ec15331fd04fc14ef397334552";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:135a24aaac4bc6468e84f051835df8bd86e2100666e59a536da0f27e59717b31";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {

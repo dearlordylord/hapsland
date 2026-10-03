@@ -91,9 +91,14 @@ def retirements(pending: List<&2, Nat>, canonical: Canonical.State) -> List<&2, 
   match canonical:
     case Canonical.State{_, _, work, _, _, _, _, _, _}: retained_retirements(pending, work)
 
+def lifecycle_accepted(entries: List<&2, AdviceeLifecycle.Entry>, canonical: Canonical.State, event: Canonical.CanonicalEvent) -> List<&2, AdviceeLifecycle.Entry>:
+  match event:
+    case Canonical.OpenRound{partition, _}: AdviceeActivity.synchronize(entries, canonical, partition)
+    case _: entries
+
 def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, lifecycles: List<&2, AdviceeLifecycle.Entry>, preparations: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>, activity_scopes: List<&2, AdviceeActivity.Scope>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycles, preparations, activity_scopes}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycle_accepted(lifecycles, state, event), preparations, activity_scopes}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes}, Canonical.Rejected{state, reason}}
 
 def prepared_remaining(settlement: AdviceeLifecycleCleanup.PreparedSettlement) -> List<&2, AdviceeLifecycleCleanup.CapturedPreparation>:
