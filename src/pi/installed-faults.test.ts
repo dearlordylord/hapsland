@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, symlinkSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { configuredRules } from "../policy/rules.ts";
-import { setupInstalledPi, cleanupInstalledPi, cleanupPiFixtures, fixture, before, result } from "../test-support/pi-installed.ts";
+import { setupInstalledPi, cleanupInstalledPi, cleanupPiFixtures, fixture, before, result, installedCommand } from "../test-support/pi-installed.ts";
 
 afterEach(() => { vi.restoreAllMocks(); cleanupPiFixtures(); });
 const settle = { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" };
@@ -24,9 +24,9 @@ const waitFile = async (path: string) => {
 
 // Only the source-free command envelope is intercepted. All nonfaulted calls
 // forward the installed CLI unchanged into its production resident.
-const faultWrapper = (cli: string, root: string) => {
+const faultWrapper = (_cli: string, root: string) => {
   const path = join(root, "command-fault.cjs");
-  writeFileSync(path, `const fs=require('node:fs');const cp=require('node:child_process');const path=require('node:path');let input='';process.stdin.on('data',b=>input+=b);process.stdin.on('end',()=>{const event=JSON.parse(input);const fault=path.join(${JSON.stringify(root)},'fault.json');const config=fs.existsSync(fault)?JSON.parse(fs.readFileSync(fault,'utf8')):{};const hit=event.operation===config.operation;if(hit){fs.writeFileSync(path.join(${JSON.stringify(root)},'fault-hit'),'observed');if(config.mode==='crash')process.exit(9);if(config.mode==='timeout'){setTimeout(()=>{},20000);return;}}const child=cp.spawn(process.execPath,['--experimental-strip-types',${JSON.stringify(cli)},...process.argv.slice(2)],{env:process.env,stdio:['pipe','pipe','inherit']});let output='';child.stdout.on('data',b=>output+=b);child.on('close',code=>{if(hit&&config.mode==='delay-ack'){fs.writeFileSync(path.join(${JSON.stringify(root)},'ack-ready'),'observed');const poll=setInterval(()=>{if(fs.existsSync(path.join(${JSON.stringify(root)},'ack-release'))){clearInterval(poll);process.stdout.write(output);process.exit(code??1);}},20);}else{process.stdout.write(output);process.exit(code??1);}});child.stdin.end(input);});`);
+  writeFileSync(path, `const fs=require('node:fs');const cp=require('node:child_process');const path=require('node:path');let input='';process.stdin.on('data',b=>input+=b);process.stdin.on('end',()=>{const event=JSON.parse(input);const fault=path.join(${JSON.stringify(root)},'fault.json');const config=fs.existsSync(fault)?JSON.parse(fs.readFileSync(fault,'utf8')):{};const hit=event.operation===config.operation;if(hit){fs.writeFileSync(path.join(${JSON.stringify(root)},'fault-hit'),'observed');if(config.mode==='crash')process.exit(9);if(config.mode==='timeout'){setTimeout(()=>{},20000);return;}}const child=cp.spawn(${JSON.stringify(installedCommand[0])},[...${JSON.stringify(installedCommand.slice(1))},...process.argv.slice(2)],{env:process.env,stdio:['pipe','pipe','inherit']});let output='';child.stdout.on('data',b=>output+=b);child.on('close',code=>{if(hit&&config.mode.startsWith('admitted-')){fs.writeFileSync(path.join(${JSON.stringify(root)},'admitted-fault'),'observed');if(config.mode==='admitted-crash')process.exit(9);setTimeout(()=>{},20000);return;}if(hit&&config.mode==='delay-ack'){fs.writeFileSync(path.join(${JSON.stringify(root)},'ack-ready'),'observed');const poll=setInterval(()=>{if(fs.existsSync(path.join(${JSON.stringify(root)},'ack-release'))){clearInterval(poll);process.stdout.write(output);process.exit(code??1);}},20);}else{process.stdout.write(output);process.exit(code??1);}});child.stdin.end(input);});`);
   return [process.execPath, path];
 };
 
@@ -41,6 +41,81 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await f.call("tool_result", result)).toBeUndefined();
     expect(existsSync(f.capturePath)).toBe(false);
     writeFileSync(join(f.root, "fault.json"), "{}");
+    await freshAdvice(f);
+  });
+
+  it.each(["crash", "timeout"])("an admitted hook worker %s closes incomplete work without advice replay", async fault => {
+    const f = fixture(false, { delayMs: 1_000 }, { commandFactory: faultWrapper });
+    await f.call("agent_start", {});
+    await f.call("tool_call", before);
+    writeFileSync(join(f.root, "type.ts"), source);
+    writeFileSync(join(f.root, "fault.json"), JSON.stringify({ operation: "edit", mode: `admitted-${fault}` }));
+    const editing = f.call("tool_result", result);
+    await waitFile(f.capturePath); // Actual production admission reached the controlled evaluator.
+    await waitFile(join(f.root, "admitted-fault"));
+    expect(await editing).toBeUndefined();
+    await f.call("agent_settled", { outcome: "aborted" });
+    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+    expect(await f.call("tool_result", result)).toBeUndefined();
+    writeFileSync(join(f.root, "fault.json"), "{}");
+    await freshAdvice(f);
+  });
+
+  it.each(["session", "root"])("late admitted advice stays isolated after the current %s changes", async partition => {
+    const f = fixture(false, { delayMs: 1_000 });
+    const other = fixture();
+    const current = {
+      cwd: partition === "root" ? other.root : f.root,
+      sessionManager: { getSessionId: () => partition === "session" ? "another-pi-session" : "pi-boundary-session" },
+    };
+    await f.call("agent_start", {});
+    await f.call("tool_call", before);
+    writeFileSync(join(f.root, "type.ts"), source);
+    const editing = f.call("tool_result", result);
+    await waitFile(f.capturePath);
+    await f.call("session_before_switch", {}, current);
+    expect(await editing).toBeUndefined();
+    expect(await f.call("agent_before_settle", settle, current)).toBeUndefined();
+    expect(await f.call("tool_result", result, current)).toBeUndefined();
+    const fresh = { ...before, toolCallId: "fresh-in-new-partition" };
+    await f.call("agent_start", {}, current);
+    await f.call("tool_call", fresh, current);
+    writeFileSync(join(current.cwd, "type.ts"), source);
+    const native = await f.call("tool_result", { ...result, ...fresh }, current);
+    const finish = await f.call("agent_before_settle", settle, current);
+    expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
+    await f.call("agent_settled", {}, current);
+    expect(await f.call("agent_before_settle", settle, f.context)).toBeUndefined();
+  });
+
+  it("resident loss during admitted review withholds its finding and allows fresh recovery", async () => {
+    const f = fixture(false, { delayMs: 2_000 });
+    await f.call("agent_start", {});
+    await f.call("tool_call", before);
+    writeFileSync(join(f.root, "type.ts"), source);
+    const editing = f.call("tool_result", result);
+    await waitFile(f.capturePath);
+    const owner = JSON.parse(readFileSync(join(f.root, "runtime/owner.json"), "utf8"));
+    process.kill(owner.pid, "SIGKILL");
+    expect(await editing).toBeUndefined();
+    await f.call("agent_settled", { outcome: "aborted" });
+    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+    await freshAdvice(f);
+  });
+
+  it.each(["excluded", "symlink"])("%s current source never reaches review egress", async variant => {
+    const f = fixture();
+    if (variant === "excluded") writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1, excludes: ["type.ts"] }));
+    await f.call("tool_call", before);
+    if (variant === "symlink") {
+      writeFileSync(join(f.root, "target.ts"), source);
+      symlinkSync(join(f.root, "target.ts"), join(f.root, "type.ts"));
+    } else writeFileSync(join(f.root, "type.ts"), source);
+    expect(await f.call("tool_result", result)).toBeUndefined();
+    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+    expect(existsSync(f.capturePath)).toBe(false);
+    if (variant === "excluded") writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1 }));
+    else unlinkSync(join(f.root, "type.ts"));
     await freshAdvice(f);
   });
 
