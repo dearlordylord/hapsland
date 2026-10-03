@@ -1,5 +1,5 @@
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { expect } from "vitest";
@@ -44,6 +44,44 @@ export const cleanupInstalledPi = () => {
 type Handler = (event: any, context: any) => Promise<any>;
 const roots: string[] = [];
 const preparedResidents = new Map<string, ChildProcess>();
+const residentMains = new Map<string, string>();
+const fixtureOwnerPid = (path: string): number | undefined => {
+  try {
+    const { pid } = JSON.parse(readFileSync(path, "utf8")) as { pid: number };
+    return Number.isInteger(pid) && pid > 1 && pid !== process.pid ? pid : undefined;
+  } catch { return undefined; }
+};
+const linuxFixtureProcess = (pid: number, main: string, directory: string) => {
+  const args = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
+  return args.length === 4 && args[3] === "" && realpathSync(args[1]!) === realpathSync(main) && realpathSync(args[2]!) === realpathSync(directory);
+};
+const fixtureProcessRunning = (pid: number, main: string, directory: string): boolean => {
+  try {
+    if (process.platform === "linux") return linuxFixtureProcess(pid, main, directory);
+    const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return [main, realpathSync(main)].some(entry =>
+      [directory, realpathSync(directory)].some(root => command.endsWith(`node ${entry} ${root}`)));
+  } catch { return false; }
+};
+const signalFixtureProcess = (pid: number, signal: NodeJS.Signals) => {
+  try { process.kill(pid, signal); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error; }
+};
+const waitForFixtureExit = async (pid: number, main: string, directory: string) => {
+  const deadline = Date.now() + 3_000;
+  while (fixtureProcessRunning(pid, main, directory) && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+};
+const stopFixtureProcess = async (pid: number, main: string, directory: string) => {
+  if (!fixtureProcessRunning(pid, main, directory)) return;
+  signalFixtureProcess(pid, "SIGTERM");
+  await waitForFixtureExit(pid, main, directory);
+  if (!fixtureProcessRunning(pid, main, directory)) return;
+  signalFixtureProcess(pid, "SIGKILL");
+  await waitForFixtureExit(pid, main, directory);
+  if (fixtureProcessRunning(pid, main, directory)) throw new Error("Pi fixture resident did not terminate");
+};
 const stopPreparedResident = async (child: ChildProcess) => {
   if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return;
   await new Promise<void>(resolve => {
@@ -57,10 +95,12 @@ export const cleanupPiFixtures = async () => {
     const prepared = preparedResidents.get(root);
     preparedResidents.delete(root);
     if (prepared !== undefined) await stopPreparedResident(prepared);
-    try {
-      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
-      if (owner.pid !== prepared?.pid) process.kill(owner.pid, "SIGTERM");
-    } catch { /* A refused event need not start the resident. */ }
+    const directory = join(root, "runtime");
+    const main = residentMains.get(root)!;
+    // The lock owner exists before the server publishes its endpoint owner.
+    const pids = new Set([fixtureOwnerPid(join(directory, "owner.json")), fixtureOwnerPid(join(directory, "owner.lock", "owner.json"))]);
+    for (const pid of pids) if (pid !== undefined) await stopFixtureProcess(pid, main, directory);
+    residentMains.delete(root);
     rmSync(root, { recursive: true, force: true });
   }
 };
@@ -82,6 +122,7 @@ const waitForResidentStats = async (root: string, ready: (stats: Extract<Residen
 export const fixture = (gated = false, control: Record<string, unknown> = {}, options: { commandFactory?: (cli: string, root: string) => readonly string[]; env?: NodeJS.ProcessEnv } = {}) => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-pi-boundary-"));
   roots.push(root);
+  residentMains.set(root, join(dirname(installedCli), "resident", fixtureMode === "source" ? "main.ts" : "main.js"));
   execFileSync("git", ["init", "--quiet", root]);
   const capturePath = join(root, "backend-calls");
   const handlers = new Map<string, Handler>();

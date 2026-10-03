@@ -46,6 +46,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it.each(["crash", "timeout"])("an admitted hook worker %s closes incomplete work without advice replay", async fault => {
     const f = fixture(false, { delayMs: 1_000 }, { commandFactory: faultWrapper });
+    await f.prepareResident();
     await f.call("agent_start", {});
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
@@ -68,6 +69,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
       cwd: partition === "root" ? other.root : f.root,
       sessionManager: { getSessionId: () => partition === "session" ? "another-pi-session" : "pi-boundary-session" },
     };
+    await f.prepareResident();
     await f.call("agent_start", {});
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
@@ -90,6 +92,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("resident loss during admitted review withholds its finding and allows fresh recovery", async () => {
     const f = fixture(false, { delayMs: 2_000 });
+    await f.prepareResident();
     await f.call("agent_start", {});
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
@@ -121,6 +124,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("resident loss retires the old admission without replay and permits fresh work", async () => {
     const f = fixture();
+    await f.prepareResident();
     await f.call("tool_call", before);
     const owner = JSON.parse(readFileSync(join(f.root, "runtime/owner.json"), "utf8"));
     process.kill(owner.pid, "SIGKILL");
@@ -162,10 +166,12 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("native abort settlement closes admitted work without a pre-settle callback", async () => {
     const f = fixture(true);
+    await f.prepareResident();
     await f.call("agent_start", {});
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
     expect(await f.call("tool_result", result)).toBeUndefined();
+    await f.waitForWork(1);
     await f.call("agent_settled", { outcome: "aborted" });
     writeFileSync(join(f.root, "backend.gate"), "release");
     expect(await f.call("agent_before_settle", settle)).toBeUndefined();
@@ -174,6 +180,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("reload preserves the closed old partition and requires fresh native admission", async () => {
     const f = fixture();
+    await f.prepareResident();
     await f.call("tool_call", before);
     await f.call("session_shutdown", {});
     f.reload();
@@ -199,6 +206,9 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     writeFileSync(join(f.root, "type.ts"), source);
     expect(await f.call("tool_result", result)).toBeUndefined();
     expect(existsSync(f.capturePath)).toBe(false);
+    // Only the fresh positive control assumes readiness; the refused input
+    // above must not create an owner or send source to the reviewer.
+    await f.prepareResident();
     await freshAdvice(f);
   });
 
@@ -209,6 +219,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
   ])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
     const f = fixture();
+    await f.prepareResident();
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
     const values: Record<string, unknown> = { object: { competingExtension: true }, "null-item": [null], "missing-text": [{ type: "text" }], "bad-image": [{ type: "image", data: 42, mimeType: "image/png" }] };
@@ -222,6 +233,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("valid competing image content preserves native output while admitting review", async () => {
     const f = fixture();
+    await f.prepareResident();
     const image = { type: "image", data: "aW1hZ2U=", mimeType: "image/png" };
     const content = [...result.content, image];
     await f.call("tool_call", before);
@@ -236,6 +248,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it.each(["arguments", "patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
     const f = fixture();
+    await f.prepareResident();
     const native = structuredClone(before);
     await f.call("tool_call", native);
     writeFileSync(join(f.root, "type.ts"), source);
@@ -251,6 +264,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("a newer overlapping edit suppresses a delayed finding from the older source", async () => {
     const f = fixture(false, { delayMs: 650, findingOnSourceIncludes: "number", answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) });
+    await f.prepareResident();
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
     const older = f.call("tool_result", result);
