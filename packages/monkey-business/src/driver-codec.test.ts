@@ -69,3 +69,26 @@ it("decodes complete original Finish reservation facts and rejects malformed bou
  expect(() => decodeDriverEvent({ ...wire, extra: 1 })).toThrow();
  expect(() => decodeDriverEvent({ ...wire, group: 0 })).toThrow();
 });
+
+it.each(["StopGroupPolled", "StopGroupEnded"])("decodes exact %s scope lists and rejects malformed scopes", tag => {
+ const scope = { $: "Canonical.StopScope", partition: 7, round: 3 };
+ const list = (items: unknown[]) => items.reduceRight<unknown>((tail,head) => ({ $: "Con", head, tail }), { $: "Nil" });
+ const wire = { $: `Canonical.${tag}`, group: 9, lifetime: 2, round: 4, scopes: list([scope]),
+  ...(tag === "StopGroupPolled" ? { deadline: true, extra_pending: false, continuations: 2 } : {}) };
+ const event = decodeDriverEvent(wire);
+ expect(event).toEqual({ kind: tag === "StopGroupPolled" ? "stopGroupPolled" : "stopGroupEnded",
+  group: 9, lifetime: 2, round: 4, scopes: [{ partition: 7, round: 3 }],
+  ...(tag === "StopGroupPolled" ? { deadline: true, extraPending: false, continuations: 2 } : {}) });
+ expect(Object.isFrozen(event)).toBe(true);
+ if (event.kind !== "stopGroupPolled" && event.kind !== "stopGroupEnded") throw new Error("wrong event");
+ expect(Object.isFrozen(event.scopes)).toBe(true);
+ expect(Object.isFrozen(event.scopes[0])).toBe(true);
+ for (const malformed of [{ ...scope, $: "Canonical.StopPolled" }, { $: "Canonical.StopScope", partition: 7 },
+  { ...scope, extra: 1 }, { ...scope, round: false }, { ...scope, partition: 0 }, 7]) {
+  expect(() => decodeDriverEvent({ ...wire, scopes: list([malformed]) })).toThrow();
+ }
+ expect(() => decodeDriverEvent({ ...wire, scopes: 7 })).toThrow();
+ expect(() => decodeDriverEvent({ ...wire, scopes: list(Array.from({length:1025}, () => scope)) })).toThrow();
+ expect(() => decodeDriverEvent({ ...wire, extra: 1 })).toThrow();
+ if (tag === "StopGroupPolled") expect(() => decodeDriverEvent({ ...wire, extra_pending: 1 })).toThrow();
+});

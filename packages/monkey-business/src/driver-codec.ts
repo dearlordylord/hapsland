@@ -9,7 +9,7 @@ export type DriverAction = { event: CanonicalEvent; delay: number; candidate?: D
 const outcomeTags: Record<JevRequestOutcome, string> = { neverSent: "NeverSent", finding: "RequestFinding", clear: "RequestClear", backendFailure: "RequestBackendFailure", timeout: "RequestTimeout", interrupted: "RequestInterrupted" };
 export const encodeDriverOutcome = (outcome: JevRequestOutcome): unknown => ({ $: `Canonical.${outcomeTags[outcome]}` });
 const readEvent = decoder(CanonicalEventSchema);
-const names: Record<string, string> = { has_notice: "hasNotice", pass_notices: "passNotices", can_write: "canWrite", binding_valid: "bindingValid", entry_limit: "entryLimit", byte_limit: "byteLimit", live_advice: "liveAdvice", stale_unavailable: "staleUnavailable", has_revision: "hasRevision", has_advice_id: "hasAdviceId", add_member: "addMember", maximum_keys: "maximumKeys", max_count: "maxCount", authority_bound: "authorityBound", lease_expired: "leaseExpired", pending_expired: "pendingExpired", cooldown_expired: "cooldownExpired", current_work: "currentWork", root_valid: "rootValid", configuration_valid: "configurationValid", credential_ready: "credentialReady", credential_valid: "credentialValid", admitted_block: "admittedBlock", current_block: "currentBlock", physical_available: "physicalAvailable", credential_generation: "credentialGeneration", credential_authorized: "credentialAuthorized", work_current: "workCurrent", owner_current: "ownerCurrent", has_findings: "hasFindings", joined_pending: "joinedPending", authorize_now: "authorizeNow", any_expired: "anyExpired", stop_collector: "stopCollector", same_group: "sameGroup" };
+const names: Record<string, string> = { extra_pending: "extraPending", has_notice: "hasNotice", pass_notices: "passNotices", can_write: "canWrite", binding_valid: "bindingValid", entry_limit: "entryLimit", byte_limit: "byteLimit", live_advice: "liveAdvice", stale_unavailable: "staleUnavailable", has_revision: "hasRevision", has_advice_id: "hasAdviceId", add_member: "addMember", maximum_keys: "maximumKeys", max_count: "maxCount", authority_bound: "authorityBound", lease_expired: "leaseExpired", pending_expired: "pendingExpired", cooldown_expired: "cooldownExpired", current_work: "currentWork", root_valid: "rootValid", configuration_valid: "configurationValid", credential_ready: "credentialReady", credential_valid: "credentialValid", admitted_block: "admittedBlock", current_block: "currentBlock", physical_available: "physicalAvailable", credential_generation: "credentialGeneration", credential_authorized: "credentialAuthorized", work_current: "workCurrent", owner_current: "ownerCurrent", has_findings: "hasFindings", joined_pending: "joinedPending", authorize_now: "authorizeNow", any_expired: "anyExpired", stop_collector: "stopCollector", same_group: "sameGroup" };
 export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
   const event = readRecord(value);
   if (typeof event.$ !== "string" || !event.$.startsWith("Canonical.")) throw new TypeError("invalid driver event");
@@ -63,6 +63,11 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
           startedUpper: readNat(facts.started_upper), nowLower: readNat(facts.now_lower),
           adviceePermitLimit: readNat(facts.advicee_permit_limit), residentPermitLimit: readNat(facts.resident_permit_limit) };
       }
+    } else if (key === "scopes" && ["Canonical.StopGroupPolled", "Canonical.StopGroupEnded"].includes(event.$)) {
+      result.scopes = readBendList(item, value => {
+        const scope = decodeCanonicalConstructor(value, "Canonical.StopScope");
+        return { partition: readNat(scope.partition), round: readNat(scope.round) };
+      }, 1024);
     } else if (key === "minimum_started") result.minimumStarted = readNat(item);
     else if (key === "deadline_reached") result.deadlineReached = readBool(item);
     else if (key === "surface") result[key] = surface(item);
