@@ -29,6 +29,19 @@ const read = (path: string): string | undefined => {
 const errorMessage = (cause: unknown) => cause instanceof Error ? cause.message : "Pi installation failed";
 const failure = (operation: string, cause: unknown) => ({ version: 1 as const, operation,
   status: "conflict" as const, error: { message: errorMessage(cause) } });
+const runtimeVersion = (result: { succeeded: boolean; stdout: string }): string =>
+  result.succeeded ? result.stdout.trim() : "unavailable";
+const compatibilityFor = (host: string, runtime: string, extension: string) => {
+  const platform = `${process.platform}-${process.arch}`;
+  const ready = existsSync(extension);
+  return {
+    supported: [platform === "linux-arm64", host === "1.0.0", runtime === "v24.20.0", ready].every(Boolean),
+    platform: { observed: platform, required: "linux-arm64" },
+    host: { observed: host, required: "1.0.0" },
+    runtime: { observed: runtime, required: "v24.20.0" },
+    extension: { path: extension, ready },
+  };
+};
 const configured = Effect.fn("PiInstallation.configured")(function* (request: PiInstallationRequest) {
   const home = resolve(request.piHome ?? (yield* Config.NonEmptyString("PI_CODING_AGENT_DIR").pipe(
     Config.withDefault(join(homedir(), ".pi", "agent")))));
@@ -38,35 +51,58 @@ const configured = Effect.fn("PiInstallation.configured")(function* (request: Pi
   const options = { timeout: 2_000, maxBuffer: 1_048_576, env: { ...process.env, PI_CODING_AGENT_DIR: home } };
   const host = yield* execFileClosedStdin(request.piExecutable ?? "pi", ["--version"], options);
   const node = yield* execFileClosedStdin(runtime, ["-e", "process.stdout.write(process.version)"], options);
-  const compatibility = { supported: process.platform === "linux" && process.arch === "arm64" && host.succeeded && host.stdout.trim() === "1.0.0" && node.stdout.trim() === "v24.20.0" && existsSync(extension),
-    platform: { observed: `${process.platform}-${process.arch}`, required: "linux-arm64" },
-    host: { observed: host.succeeded ? host.stdout.trim() : "unavailable", required: "1.0.0" },
-    runtime: { observed: node.succeeded ? node.stdout.trim() : "unavailable", required: "v24.20.0" },
-    extension: { path: extension, ready: existsSync(extension) } };
+  const compatibility = compatibilityFor(runtimeVersion(host), runtimeVersion(node), extension);
   return { home, runtime, entrypoint, extension, compatibility,
     paths: { extension: join(home, "extensions", "hapsland.ts"), ownership: join(home, ".realtime-review-tool", "pi-installation-v1.json"), journal: join(home, ".realtime-review-tool", "pi-installation-journal-v1.json") } };
 });
 type Input = Effect.Success<ReturnType<typeof configured>>;
-const plan = (input: Input, operation: "install" | "update" | "uninstall") => {
+type Operation = "install" | "update" | "uninstall";
+const Journal = Schema.Struct({
+  version: Schema.Literal(1), operation: Schema.Literals(["install", "update", "uninstall"]), home: Schema.String,
+  before: Schema.optionalKey(Schema.String), beforeRecord: Schema.optionalKey(Schema.String),
+  content: Schema.optionalKey(Schema.String), ownership: Schema.optionalKey(Schema.String),
+});
+const decodeFile = <S extends Schema.Codec<unknown>>(schema: S, content: string | undefined): S["Type"] | undefined =>
+  content === undefined ? undefined : Schema.decodeUnknownSync(schema)(JSON.parse(content));
+const checkJournal = (journal: typeof Journal.Type | undefined, input: Input, operation: Operation,
+  before: string | undefined, beforeRecord: string | undefined): void => {
+  if (journal === undefined) return;
+  if (journal.home !== input.home || journal.operation !== operation)
+    throw new Error(`Interrupted Pi ${journal.operation}; resume that operation before ${operation}`);
+  if (![journal.before, journal.content].includes(before)) throw new Error("Interrupted Pi extension has local modifications");
+  if (![journal.beforeRecord, journal.ownership].includes(beforeRecord)) throw new Error("Interrupted Pi ownership has local modifications");
+};
+const boundOwner = (content: string | undefined, home: string) => {
+  const owner = decodeFile(Owned, content);
+  if (owner !== undefined && owner.home !== home) throw new Error("Pi ownership belongs to another profile");
+  return owner;
+};
+const checkOwner = (owner: typeof Owned.Type | undefined, before: string | undefined,
+  journal: typeof Journal.Type | undefined): void => {
+  if (before === undefined) return;
+  if (owner !== undefined && hash(before) === owner.extensionDigest) return;
+  if (journal !== undefined && before === journal.content) return;
+  throw new Error("Pi extension path is occupied or locally modified; preserve it before retrying");
+};
+const ownedContent = (input: Input, operation: Operation): string | undefined => operation === "uninstall" ? undefined :
+  `// Hapsland-owned Pi extension. Restart Pi after lifecycle changes.\nimport { createPiExtension } from ${JSON.stringify(pathToFileURL(input.extension).href)};\nexport default createPiExtension({ command: ${JSON.stringify([input.runtime, input.entrypoint])} });\n`;
+const ownedRecord = (input: Input, content: string | undefined): string | undefined => content === undefined ? undefined :
+  JSON.stringify({ version: 1, adapter: "pi", home: input.home,
+    extensionDigest: hash(content), runtime: input.runtime, entrypoint: input.entrypoint }) + "\n";
+const plan = (input: Input, operation: Operation) => {
   const journalContent = read(input.paths.journal);
-  const journal = journalContent === undefined ? undefined : Schema.decodeUnknownSync(Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literals(["install", "update", "uninstall"]), home: Schema.String, before: Schema.optionalKey(Schema.String), beforeRecord: Schema.optionalKey(Schema.String), content: Schema.optionalKey(Schema.String), ownership: Schema.optionalKey(Schema.String) }))(JSON.parse(journalContent));
-  if (journal !== undefined && (journal.home !== input.home || journal.operation !== operation)) throw new Error(`Interrupted Pi ${journal.operation}; resume that operation before ${operation}`);
+  const journal = decodeFile(Journal, journalContent);
   const before = read(input.paths.extension);
   const beforeRecord = read(input.paths.ownership);
-  const owner = beforeRecord === undefined ? undefined : Schema.decodeUnknownSync(Owned)(JSON.parse(beforeRecord));
-  if (owner !== undefined && owner.home !== input.home) throw new Error("Pi ownership belongs to another profile");
-  if (before !== undefined && (owner === undefined || hash(before) !== owner.extensionDigest) && (journal === undefined || before !== journal.content))
-    throw new Error("Pi extension path is occupied or locally modified; preserve it before retrying");
-  const content = operation === "uninstall" ? undefined :
-    `// Hapsland-owned Pi extension. Restart Pi after lifecycle changes.\nimport { createPiExtension } from ${JSON.stringify(pathToFileURL(input.extension).href)};\nexport default createPiExtension({ command: ${JSON.stringify([input.runtime, input.entrypoint])} });\n`;
-  const ownership = content === undefined ? undefined : JSON.stringify({ version: 1, adapter: "pi", home: input.home,
-    extensionDigest: hash(content), runtime: input.runtime, entrypoint: input.entrypoint }) + "\n";
+  const owner = boundOwner(beforeRecord, input.home);
+  checkJournal(journal, input, operation, before, beforeRecord);
+  checkOwner(owner, before, journal);
+  const content = ownedContent(input, operation);
+  const ownership = ownedRecord(input, content);
   const changes = [[input.paths.extension, before, content, "owned Pi extension"],
     [input.paths.journal, journalContent, undefined, "retire interrupted Pi installation journal"],
     [input.paths.ownership, beforeRecord, ownership, "Pi ownership record"]].filter(([, old, next]) => old !== next)
     .map(([path, , , description]) => ({ path, description }));
-  if (journal !== undefined && ![journal.before, journal.content].includes(before)) throw new Error("Interrupted Pi extension has local modifications");
-  if (journal !== undefined && ![journal.beforeRecord, journal.ownership].includes(beforeRecord)) throw new Error("Interrupted Pi ownership has local modifications");
   const digest = hash(JSON.stringify([operation, input.home, input.compatibility, before, beforeRecord, content, ownership, journalContent]));
   return { before, beforeRecord, content, ownership, changes, digest };
 };
