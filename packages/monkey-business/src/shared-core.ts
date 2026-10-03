@@ -1,3 +1,5 @@
+import { controlSharedResponse, afterSharedResponse, expireSharedResponses, driveSharedResponse, deliverySharedResponse } from "../../../src/canonical/simulation-adapter.ts";
+import type { CollectionResponseControl, CollectionResponseIdentity } from "./collection-scenario.ts";
 import { beginSharedCache, stepSharedCache, configureSharedCache, type SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
 import { prepareSharedSharing, routeSharedSharing, routedSharedSharing, leaveSharedSharing, leaveAllSharedSharing, completeSharedSharing, preprocessSharedSharing } from "../../../src/canonical/simulation-adapter.ts";
 import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canonical/simulation-adapter.ts";
@@ -204,6 +206,27 @@ export class SharedCore {
   }
   revalidate(context: unknown) { return revalidateSharedCanonical(this.state, context); }
   fence(event: CanonicalEvent, generated: boolean, context: unknown) { return fenceSharedCanonical(this.state, event, generated, context); }
+  responseControl(control: CollectionResponseControl, now: number) {
+    const change = controlSharedResponse(this.state,control,now);
+    this.state = change.state;
+    return change;
+  }
+  responseAfter(target: CollectionResponseIdentity) {
+    const change = afterSharedResponse(this.state,target);
+    this.state = change.state;
+    return change;
+  }
+  responseExpire(now: number) {
+    const change = expireSharedResponses(this.state,now);
+    this.state = change.state;
+    return change;
+  }
+  responseValid(target: CollectionResponseIdentity, now: number, event: CanonicalEvent) {
+    return deliverySharedResponse(this.state,target,now,event);
+  }
+  responseHandle(event: CanonicalEvent, index: number, context: unknown, target: CollectionResponseIdentity) {
+    return driveSharedResponse(this.state,event,index,context,target);
+  }
   handle(event: CanonicalEvent, index: number, context: unknown) {
     const handled = readRecord(driveSharedCommand(this.state, event, index, context));
     const issued = issueSharedActions(this.state, handled.actions);

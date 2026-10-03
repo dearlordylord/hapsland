@@ -1,3 +1,4 @@
+import { validateCollectionResponseControl, encodeCollectionResponse, encodeCollectionResponseIdentity, decodeCollectionResponseIdentity, type CollectionResponseIdentity, type CollectionResponseControl } from "../../packages/monkey-business/src/collection-scenario.ts";
 import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "../../packages/monkey-business/src/output-controls.ts";
 import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
 import { decodeDriver, decodeDriverEvent } from "../../packages/monkey-business/src/driver-codec.ts";
@@ -568,4 +569,68 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   sharedPredecessors.set(transition.state,Object.freeze({...state}));
   consumedCacheFacts.add(capsule);
   return { state:transition.state,result,afterActions, cacheFacts:nextFacts, cacheReleases };
+};
+
+
+const responseResult = decoder(Schema.Struct({ $: Schema.Literal("ResponseResult"),
+  result: Schema.Union([
+    Schema.Struct({ $: Schema.Literal("CollectionScenario.Applied") }),
+    Schema.Struct({ $: Schema.Literal("CollectionScenario.Missing") }),
+    Schema.Struct({ $: Schema.Literal("CollectionScenario.WrongScope") }),
+    Schema.Struct({ $: Schema.Literal("CollectionScenario.AlreadyAttempting") }),
+    Schema.Struct({ $: Schema.Literal("CollectionScenario.IdentityExhausted") }),
+    Schema.Struct({ $: Schema.Literal("CollectionScenario.ContextBound") }),
+  ]), issued: Schema.Union([
+    Schema.Struct({ $: Schema.Literal("None") }),
+    Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Struct({ $: Schema.Literal("CollectionScenario.Identity"), id: Nat, partition: Nat, lifetime: Nat, round: Nat }) }),
+  ]) }));
+const responseResults = { "CollectionScenario.Applied": "applied", "CollectionScenario.Missing": "missing",
+  "CollectionScenario.WrongScope": "wrongScope", "CollectionScenario.AlreadyAttempting": "alreadyAttempting",
+  "CollectionScenario.IdentityExhausted": "identityExhausted", "CollectionScenario.ContextBound": "contextBound" } as const;
+const responseTransition = (before: EngineState, transition: ReturnType<typeof SharedEngine.collection_response_open>) => {
+  // ResponseResult is a local Engine envelope emitted with its exact bare tag.
+  // Its nested facts still pass the strict shared-module constructor decoder.
+  const envelope = readRecord(transition.result);
+  const raw = responseResult({ ...envelope, result: decodeSharedValue(envelope.result),
+    issued: decodeSharedValue(envelope.issued) });
+  const issued = raw.issued.$ === "Some" ? decodeCollectionResponseIdentity({ id: raw.issued.value.id,
+    partition: raw.issued.value.partition, lifetime: raw.issued.value.lifetime, round: raw.issued.value.round }) : undefined;
+  const actions = decodeSharedValue(transition.actions);
+  // Decode every action before publishing state or its newly issued capability.
+  decodeDriver({ handled: true, actions });
+  return { state: retain(before,transition.state), result: responseResults[raw.result.$], issued, actions };
+};
+export const controlSharedResponse = (state: EngineState, control: CollectionResponseControl, now: number) => {
+  sharedCheck(state);
+  control = validateCollectionResponseControl(control);
+  const changed = control.action === "open" ? SharedEngine.collection_response_open(state,encodeSharedValue(encodeCollectionResponse(control.response)))
+    : control.action === "close" ? SharedEngine.collection_response_close(state,BigInt(control.target.id),BigInt(control.target.partition),BigInt(control.target.lifetime),BigInt(control.target.round))
+      : SharedEngine.collection_response_attempt(state,BigInt(control.target.id),BigInt(control.target.partition),BigInt(control.target.lifetime),BigInt(control.target.round),BigInt(readNat(now)),control.currentBlock);
+  return responseTransition(state,changed);
+};
+export const afterSharedResponse = (state: EngineState, target: CollectionResponseIdentity) => {
+  sharedCheck(state);
+  const event = sharedSourceEvents.get(state);
+  const commands = sharedCommands.get(state);
+  if (!event || !commands) throw new TypeError("missing response source transition");
+  return responseTransition(state,SharedEngine.collection_response_after(state,encodeSharedValue(encodeCollectionResponseIdentity(target)),encodeSharedValue(encodeCanonicalEvent(event)),originalCommandList(commands)));
+};
+export const validSharedResponse = (state: EngineState, target: CollectionResponseIdentity, now: number): boolean => {
+  sharedCheck(state);
+  return readBool(decodeSharedValue(SharedEngine.collection_response_valid(state,encodeSharedValue(encodeCollectionResponseIdentity(target)),BigInt(readNat(now)))));
+};
+export const expireSharedResponses = (state: EngineState, now: number) => {
+  sharedCheck(state);
+  return responseTransition(state,SharedEngine.collection_response_expire(state,BigInt(readNat(now))));
+};
+export const driveSharedResponse = (state: EngineState, event: CanonicalEvent, index: number, context: unknown, target: CollectionResponseIdentity): unknown => {
+  sharedCheck(state);
+  const command = sharedCommands.get(state)?.[index];
+  if (!command) throw new TypeError("missing response source command");
+  return decodeSharedValue(SharedEngine.collection_response_handle(state,encodeSharedValue(encodeCanonicalEvent(event)),command,encodeSharedValue(context),encodeSharedValue(encodeCollectionResponseIdentity(target))));
+};
+
+export const deliverySharedResponse = (state: EngineState, target: CollectionResponseIdentity, now: number, event: CanonicalEvent): boolean => {
+  sharedCheck(state);
+  return readBool(decodeSharedValue(SharedEngine.collection_response_delivery_valid(state,encodeSharedValue(encodeCollectionResponseIdentity(target)),BigInt(readNat(now)),encodeSharedValue(encodeCanonicalEvent(event)))));
 };

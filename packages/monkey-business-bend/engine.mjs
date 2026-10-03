@@ -159,6 +159,604 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
+function $$$$047agent$045flow$045bend$047Handoff$validation_route$(_owner_current_0, _status_0) {
+  if (!_owner_current_0) {
+    return {$: "Handoff.IgnoreCandidate"};
+  } else {
+    if (_status_0.$ === "Handoff.Current") {
+      return {$: "Handoff.ContinueCandidate"};
+    } else if (_status_0.$ === "Handoff.Stale") {
+      return {$: "Handoff.RetireCandidate"};
+    } else {
+      return {$: "Handoff.ReleaseCandidate"};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$post_validation$(_work_accepted_0, _expired_0, _has_fitting_0) {
+  const _x_0 = ($Bool$not$(_work_accepted_0));
+  return $Bool$pick$((_x_0 || _expired_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_fitting_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$final_candidate$(_owner_current_0, _credential_generation_0, _credential_authorized_0, _expired_0, _work_current_0, _has_findings_0) {
+  const _x_0 = ($Bool$not$(_work_current_0));
+  return $Bool$pick$(($Bool$not$(_owner_current_0)), {$: "Handoff.IgnoreCandidate"}, ($Bool$pick$(($Bool$not$(_credential_generation_0)), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(($Bool$not$(_credential_authorized_0)), {$: "Handoff.ReleaseCandidate"}, ($Bool$pick$((_expired_0 || _x_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_findings_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$initial$(_partition_0, _round_0) {
+  return {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": {$: "Nil"}, "retained": {$: "Nil"}, "findings": 0, "bytes": 0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$current$(_advice_0, _partition_0, _round_0) {
+  const _source_partition_0 = _advice_0["partition"];
+  const _source_round_0 = _advice_0["round"];
+  const _source_snapshot_0 = _advice_0["snapshot"];
+  const _current_snapshot_0 = _advice_0["current_snapshot"];
+  const _source_credential_0 = _advice_0["credential"];
+  const _current_credential_0 = _advice_0["current_credential"];
+  const _age_ms_0 = _advice_0["age_ms"];
+  const _ready_0 = _advice_0["collection_ready"];
+  return $Bool$and$(($Nat$is_eq$(_source_partition_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_source_round_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_source_snapshot_0, _current_snapshot_0)), ($Bool$and$(($Nat$is_eq$(_source_credential_0, _current_credential_0)), ($Bool$and$((_age_ms_0 < 600000), _ready_0)))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0) {
+  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Nat$is_le$(_bytes_0, 10240)));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$notice_offer$(_items_0, _bytes_0, _skip_unfitting_0) {
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0)), {$: "Handoff.IncludeNotice"}, ($Bool$pick$(_skip_unfitting_0, {$: "Handoff.SkipNotice"}, {$: "Handoff.StopNotices"})));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, _fits_0) {
+  const _partition_0 = _state_0["partition"];
+  const _round_0 = _state_0["round"];
+  const _selected_0 = _state_0["selected"];
+  const _retained_0 = _state_0["retained"];
+  const _count_0 = _state_0["findings"];
+  const _bytes_0 = _state_0["bytes"];
+  if (_fits_0) {
+    return {$: "Handoff.Selected", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": ($List$append$(_selected_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "retained": _retained_0, "findings": nat_chk(_count_0 + 1), "bytes": _prospective_bytes_0}};
+  } else {
+    return {$: "Handoff.Retained", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0) {
+  const _partition_0 = _state_0["partition"];
+  const _round_0 = _state_0["round"];
+  const _selected_0 = _state_0["selected"];
+  const _retained_0 = _state_0["retained"];
+  const _count_0 = _state_0["findings"];
+  const _bytes_0 = _state_0["bytes"];
+  return {$: "Handoff.Limited", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}, "id": _id_0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, _oversized_0) {
+  if (_oversized_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$fits_batch$(nat_chk(_count_0 + 1), _prospective_bytes_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$valid$(_state_0, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0) {
+  if (_valid_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, ($Nat$is_gt$(_solo_bytes_0, 10240)));
+  } else {
+    return {$: "Handoff.Expired", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _valid_0) {
+  const __0 = _state_0["partition"];
+  const __1 = _state_0["round"];
+  const __2 = _state_0["selected"];
+  const __3 = _state_0["retained"];
+  const _count_0 = _state_0["findings"];
+  const __4 = _state_0["bytes"];
+  const _id_0 = _advice_0["id"];
+  const _solo_bytes_0 = _advice_0["solo_bytes"];
+  return $$$$047agent$045flow$045bend$047Handoff$select$valid$({$: "Handoff.Selection", "partition": __0, "round": __1, "selected": __2, "retained": __3, "findings": _count_0, "bytes": __4}, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _ids_0) {
+  if (_ids_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _ids_0["head"];
+    const _rest_0 = _ids_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$duplicate$(_state_0, _advice_0, _prospective_bytes_0, _current_0, _duplicate_0) {
+  if (_duplicate_0) {
+    return {$: "Handoff.Duplicate", "state": _state_0};
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _current_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$(_state_0, _advice_0, _prospective_bytes_0) {
+  const _partition_0 = _state_0["partition"];
+  const _round_0 = _state_0["round"];
+  const _selected_0 = _state_0["selected"];
+  const _retained_0 = _state_0["retained"];
+  const __0 = _state_0["findings"];
+  const __1 = _state_0["bytes"];
+  const _id_0 = _advice_0["id"];
+  const __2 = _advice_0["unit"];
+  const __3 = _advice_0["partition"];
+  const __4 = _advice_0["round"];
+  const __5 = _advice_0["snapshot"];
+  const __6 = _advice_0["current_snapshot"];
+  const __7 = _advice_0["credential"];
+  const __8 = _advice_0["current_credential"];
+  const __9 = _advice_0["age_ms"];
+  const __10 = _advice_0["solo_bytes"];
+  const __11 = _advice_0["collection_ready"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _selected_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _retained_0));
+  return $$$$047agent$045flow$045bend$047Handoff$select$duplicate$({$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$current$({$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$initial$(_round_0) {
+  return {$: "Handoff.Finish", "round": _round_0, "active": true, "closed": false, "continuations": 0, "reserved": false, "token": 0, "collector": 0, "deadline_at": 0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$(_state_0, _can_continue_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _token_0 = _state_0["token"];
+  const _collector_0 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  if (_can_continue_0) {
+    return {$: "Handoff.Continue", "state": {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": nat_chk(_continuations_0 + 1), "reserved": true, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
+  } else {
+    return {$: "Handoff.Allow", "state": {$: "Handoff.Finish", "round": _round_0, "active": false, "closed": true, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const __3 = _state_0["reserved"];
+  const __4 = _state_0["token"];
+  const __5 = _state_0["collector"];
+  const __6 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": _continuations_0, "reserved": __3, "token": __4, "collector": __5, "deadline_at": __6}, ($Bool$and$(($Nat$is_gt$(_actionable_findings_0, 0)), (_continuations_0 < 4))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, _zero_0) {
+  if (_zero_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
+  } else {
+    return {$: "Handoff.Wait", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
+  if (_deadline_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, ($Nat$is_eq$(_unfinished_0, 0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0) {
+  if (_reserved_0) {
+    return {$: "Handoff.Wait", "state": _state_0};
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$guard$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _valid_0, _reserved_0) {
+  if (_valid_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0);
+  } else {
+    return {$: "Handoff.Allow", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$decide$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
+  const __0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const __2 = _state_0["token"];
+  const __3 = _state_0["collector"];
+  const __4 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$guard$({$: "Handoff.Finish", "round": __0, "active": _active_0, "closed": _closed_0, "continuations": __1, "reserved": _reserved_0, "token": __2, "collector": __3, "deadline_at": __4}, _unfinished_0, _deadline_0, _actionable_findings_0, ($Bool$and$(_active_0, ($Bool$not$(_closed_0)))), _reserved_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$(_state_0, _original_deadline_0, _first_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _token_0 = _state_0["token"];
+  const _collector_0 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  if (_first_0) {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _original_deadline_0};
+  } else {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["continuations"];
+  const __4 = _state_0["reserved"];
+  const __5 = _state_0["token"];
+  const __6 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _original_deadline_0, ($Nat$is_eq$(_deadline_at_0, 0)));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$at$(_state_0, _unfinished_0, _now_0, _actionable_findings_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["continuations"];
+  const __4 = _state_0["reserved"];
+  const __5 = _state_0["token"];
+  const __6 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _unfinished_0, ($Nat$is_ge$(_now_0, _deadline_at_0)), _actionable_findings_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$decide_at$(_state_0, _unfinished_0, _now_0, _original_deadline_0, _actionable_findings_0) {
+  return $$$$047agent$045flow$045bend$047Handoff$finish$at$(($$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0)), _unfinished_0, _now_0, _actionable_findings_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$bind_writer$(_state_0, _writer_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _token_0 = _state_0["token"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": nat_chk(_token_0 + 1), "collector": _writer_0, "deadline_at": _deadline_at_0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$(_state_0, _valid_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _token_0 = _state_0["token"];
+  const _collector_0 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  if (_valid_0) {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": 0};
+  } else {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$can_complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
+  const _own_round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _own_token_0 = _state_0["token"];
+  const _own_collector_0 = _state_0["collector"];
+  return $Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(_active_0, ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(_reserved_0, ($Bool$and$(($Nat$is_eq$(_continuations_0, _slot_0)), ($Bool$and$(($Nat$is_eq$(_own_token_0, _token_0)), ($Nat$is_eq$(_own_collector_0, _collector_0)))))))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["continuations"];
+  const __4 = _state_0["reserved"];
+  const __5 = _state_0["token"];
+  const __6 = _state_0["collector"];
+  const __7 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, ($$$$047agent$045flow$045bend$047Handoff$finish$can_complete$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, _round_0, _slot_0, _token_0, _collector_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$main$() {
+  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$(($$$$047agent$045flow$045bend$047Handoff$finish$initial$(1)), 0, false, 1);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$initial$(_item_0, _round_0) {
+  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": false, "reoffered": false, "phase": {$: "Handoff.Available"}};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0) {
+  if (_phase_0.$ === "Handoff.Available") {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": _surface_0}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$(_state_0, _token_0, _surface_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _surface_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
+  if (_same_0) {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Reserved") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$(_state_0, _round_0, _token_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
+  if (_same_0) {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Available"}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Reserved") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$(_state_0, _round_0, _token_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0, _certain_0) {
+  if (_same_0) {
+    if (_certain_0) {
+      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
+    } else {
+      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": _surface_0}}};
+    }
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0) {
+  if (_phase_0.$ === "Handoff.Authorized") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)), _certain_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$(_state_0, _token_0, _certain_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$(_state_0, _round_0, _token_0, _certain_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _certain_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, _uncertain_0, _token_0) {
+  if (_surface_0.$ === "Handoff.Edit") {
+    if (_uncertain_0) {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Edit"}}}};
+    } else {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Edit"}}}};
+    }
+  } else if (_surface_0.$ === "Handoff.Background") {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": true, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": {$: "Handoff.Stop"}}}};
+  } else {
+    if (_uncertain_0) {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Stop"}}}};
+    } else {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Stop"}}}};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Submitted") {
+    const _surface_0 = _phase_0["surface"];
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
+  } else if (_phase_0.$ === "Handoff.Uncertain") {
+    const _surface_1 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_1, true, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const __1 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": __1}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(($Bool$not$(_reoffered_0)), _fresh_0)))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
+  if (_surface_0.$ === "Handoff.Stop") {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$(_state_0, _round_0, _token_0, _surface_0, _fresh_0, _phase_0) {
+  if (_phase_0.$ === "Handoff.Uncertain") {
+    const _t_0 = _phase_0["surface"];
+    if (_t_0.$ === "Handoff.Background") {
+      return $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
+    } else {
+      return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+    }
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$offer$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
+  const __0 = _state_0["item"];
+  const __1 = _state_0["round"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$({$: "Handoff.Lease", "item": __0, "round": __1, "closed": __2, "reoffered": __3, "phase": _phase_0}, _round_0, _token_0, _surface_0, _fresh_0, _phase_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$close$(_state_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": true, "reoffered": _reoffered_0, "phase": _phase_0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_own_0, _requested_0) {
+  if (_own_0.$ === "Handoff.Background") {
+    if (_requested_0.$ === "Handoff.Stop") {
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return true;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
+  if (_phase_0.$ === "Handoff.Available") {
+    return false;
+  } else if (_phase_0.$ === "Handoff.Reserved") {
+    return true;
+  } else if (_phase_0.$ === "Handoff.Authorized") {
+    return true;
+  } else if (_phase_0.$ === "Handoff.Submitted") {
+    return true;
+  } else {
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_surface_0, _requested_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$suppresses$(_state_0, _round_0, _requested_0) {
+  const _owner_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _phase_0 = _state_0["phase"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0)))));
+}
+
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
   if (_purpose_0.$ === "Ledger.ObservationDispatch") {
     return _limits_0;
@@ -3690,604 +4288,6 @@ function $$$$047agent$045flow$045bend$047Collection$expired$(_elapsed_0, _lifeti
 
 function $$$$047agent$045flow$045bend$047Collection$main$() {
   return $$$$047agent$045flow$045bend$047Collection$eligible$(false, true);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$validation_route$(_owner_current_0, _status_0) {
-  if (!_owner_current_0) {
-    return {$: "Handoff.IgnoreCandidate"};
-  } else {
-    if (_status_0.$ === "Handoff.Current") {
-      return {$: "Handoff.ContinueCandidate"};
-    } else if (_status_0.$ === "Handoff.Stale") {
-      return {$: "Handoff.RetireCandidate"};
-    } else {
-      return {$: "Handoff.ReleaseCandidate"};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$post_validation$(_work_accepted_0, _expired_0, _has_fitting_0) {
-  const _x_0 = ($Bool$not$(_work_accepted_0));
-  return $Bool$pick$((_x_0 || _expired_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_fitting_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$final_candidate$(_owner_current_0, _credential_generation_0, _credential_authorized_0, _expired_0, _work_current_0, _has_findings_0) {
-  const _x_0 = ($Bool$not$(_work_current_0));
-  return $Bool$pick$(($Bool$not$(_owner_current_0)), {$: "Handoff.IgnoreCandidate"}, ($Bool$pick$(($Bool$not$(_credential_generation_0)), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(($Bool$not$(_credential_authorized_0)), {$: "Handoff.ReleaseCandidate"}, ($Bool$pick$((_expired_0 || _x_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_findings_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$initial$(_partition_0, _round_0) {
-  return {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": {$: "Nil"}, "retained": {$: "Nil"}, "findings": 0, "bytes": 0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$current$(_advice_0, _partition_0, _round_0) {
-  const _source_partition_0 = _advice_0["partition"];
-  const _source_round_0 = _advice_0["round"];
-  const _source_snapshot_0 = _advice_0["snapshot"];
-  const _current_snapshot_0 = _advice_0["current_snapshot"];
-  const _source_credential_0 = _advice_0["credential"];
-  const _current_credential_0 = _advice_0["current_credential"];
-  const _age_ms_0 = _advice_0["age_ms"];
-  const _ready_0 = _advice_0["collection_ready"];
-  return $Bool$and$(($Nat$is_eq$(_source_partition_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_source_round_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_source_snapshot_0, _current_snapshot_0)), ($Bool$and$(($Nat$is_eq$(_source_credential_0, _current_credential_0)), ($Bool$and$((_age_ms_0 < 600000), _ready_0)))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0) {
-  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Nat$is_le$(_bytes_0, 10240)));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$notice_offer$(_items_0, _bytes_0, _skip_unfitting_0) {
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0)), {$: "Handoff.IncludeNotice"}, ($Bool$pick$(_skip_unfitting_0, {$: "Handoff.SkipNotice"}, {$: "Handoff.StopNotices"})));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, _fits_0) {
-  const _partition_0 = _state_0["partition"];
-  const _round_0 = _state_0["round"];
-  const _selected_0 = _state_0["selected"];
-  const _retained_0 = _state_0["retained"];
-  const _count_0 = _state_0["findings"];
-  const _bytes_0 = _state_0["bytes"];
-  if (_fits_0) {
-    return {$: "Handoff.Selected", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": ($List$append$(_selected_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "retained": _retained_0, "findings": nat_chk(_count_0 + 1), "bytes": _prospective_bytes_0}};
-  } else {
-    return {$: "Handoff.Retained", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0) {
-  const _partition_0 = _state_0["partition"];
-  const _round_0 = _state_0["round"];
-  const _selected_0 = _state_0["selected"];
-  const _retained_0 = _state_0["retained"];
-  const _count_0 = _state_0["findings"];
-  const _bytes_0 = _state_0["bytes"];
-  return {$: "Handoff.Limited", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}, "id": _id_0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, _oversized_0) {
-  if (_oversized_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$fits_batch$(nat_chk(_count_0 + 1), _prospective_bytes_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$valid$(_state_0, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0) {
-  if (_valid_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, ($Nat$is_gt$(_solo_bytes_0, 10240)));
-  } else {
-    return {$: "Handoff.Expired", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _valid_0) {
-  const __0 = _state_0["partition"];
-  const __1 = _state_0["round"];
-  const __2 = _state_0["selected"];
-  const __3 = _state_0["retained"];
-  const _count_0 = _state_0["findings"];
-  const __4 = _state_0["bytes"];
-  const _id_0 = _advice_0["id"];
-  const _solo_bytes_0 = _advice_0["solo_bytes"];
-  return $$$$047agent$045flow$045bend$047Handoff$select$valid$({$: "Handoff.Selection", "partition": __0, "round": __1, "selected": __2, "retained": __3, "findings": _count_0, "bytes": __4}, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _ids_0) {
-  if (_ids_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$duplicate$(_state_0, _advice_0, _prospective_bytes_0, _current_0, _duplicate_0) {
-  if (_duplicate_0) {
-    return {$: "Handoff.Duplicate", "state": _state_0};
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _current_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$(_state_0, _advice_0, _prospective_bytes_0) {
-  const _partition_0 = _state_0["partition"];
-  const _round_0 = _state_0["round"];
-  const _selected_0 = _state_0["selected"];
-  const _retained_0 = _state_0["retained"];
-  const __0 = _state_0["findings"];
-  const __1 = _state_0["bytes"];
-  const _id_0 = _advice_0["id"];
-  const __2 = _advice_0["unit"];
-  const __3 = _advice_0["partition"];
-  const __4 = _advice_0["round"];
-  const __5 = _advice_0["snapshot"];
-  const __6 = _advice_0["current_snapshot"];
-  const __7 = _advice_0["credential"];
-  const __8 = _advice_0["current_credential"];
-  const __9 = _advice_0["age_ms"];
-  const __10 = _advice_0["solo_bytes"];
-  const __11 = _advice_0["collection_ready"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _selected_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _retained_0));
-  return $$$$047agent$045flow$045bend$047Handoff$select$duplicate$({$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$current$({$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$initial$(_round_0) {
-  return {$: "Handoff.Finish", "round": _round_0, "active": true, "closed": false, "continuations": 0, "reserved": false, "token": 0, "collector": 0, "deadline_at": 0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$(_state_0, _can_continue_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _token_0 = _state_0["token"];
-  const _collector_0 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  if (_can_continue_0) {
-    return {$: "Handoff.Continue", "state": {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": nat_chk(_continuations_0 + 1), "reserved": true, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
-  } else {
-    return {$: "Handoff.Allow", "state": {$: "Handoff.Finish", "round": _round_0, "active": false, "closed": true, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const __3 = _state_0["reserved"];
-  const __4 = _state_0["token"];
-  const __5 = _state_0["collector"];
-  const __6 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": _continuations_0, "reserved": __3, "token": __4, "collector": __5, "deadline_at": __6}, ($Bool$and$(($Nat$is_gt$(_actionable_findings_0, 0)), (_continuations_0 < 4))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, _zero_0) {
-  if (_zero_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
-  } else {
-    return {$: "Handoff.Wait", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
-  if (_deadline_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, ($Nat$is_eq$(_unfinished_0, 0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0) {
-  if (_reserved_0) {
-    return {$: "Handoff.Wait", "state": _state_0};
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$guard$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _valid_0, _reserved_0) {
-  if (_valid_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0);
-  } else {
-    return {$: "Handoff.Allow", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$decide$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
-  const __0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const __2 = _state_0["token"];
-  const __3 = _state_0["collector"];
-  const __4 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$guard$({$: "Handoff.Finish", "round": __0, "active": _active_0, "closed": _closed_0, "continuations": __1, "reserved": _reserved_0, "token": __2, "collector": __3, "deadline_at": __4}, _unfinished_0, _deadline_0, _actionable_findings_0, ($Bool$and$(_active_0, ($Bool$not$(_closed_0)))), _reserved_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$(_state_0, _original_deadline_0, _first_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _token_0 = _state_0["token"];
-  const _collector_0 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  if (_first_0) {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _original_deadline_0};
-  } else {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["continuations"];
-  const __4 = _state_0["reserved"];
-  const __5 = _state_0["token"];
-  const __6 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _original_deadline_0, ($Nat$is_eq$(_deadline_at_0, 0)));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$at$(_state_0, _unfinished_0, _now_0, _actionable_findings_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["continuations"];
-  const __4 = _state_0["reserved"];
-  const __5 = _state_0["token"];
-  const __6 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _unfinished_0, ($Nat$is_ge$(_now_0, _deadline_at_0)), _actionable_findings_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$decide_at$(_state_0, _unfinished_0, _now_0, _original_deadline_0, _actionable_findings_0) {
-  return $$$$047agent$045flow$045bend$047Handoff$finish$at$(($$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0)), _unfinished_0, _now_0, _actionable_findings_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$bind_writer$(_state_0, _writer_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _token_0 = _state_0["token"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": nat_chk(_token_0 + 1), "collector": _writer_0, "deadline_at": _deadline_at_0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$(_state_0, _valid_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _token_0 = _state_0["token"];
-  const _collector_0 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  if (_valid_0) {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": 0};
-  } else {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$can_complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
-  const _own_round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _own_token_0 = _state_0["token"];
-  const _own_collector_0 = _state_0["collector"];
-  return $Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(_active_0, ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(_reserved_0, ($Bool$and$(($Nat$is_eq$(_continuations_0, _slot_0)), ($Bool$and$(($Nat$is_eq$(_own_token_0, _token_0)), ($Nat$is_eq$(_own_collector_0, _collector_0)))))))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["continuations"];
-  const __4 = _state_0["reserved"];
-  const __5 = _state_0["token"];
-  const __6 = _state_0["collector"];
-  const __7 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, ($$$$047agent$045flow$045bend$047Handoff$finish$can_complete$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, _round_0, _slot_0, _token_0, _collector_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$main$() {
-  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$(($$$$047agent$045flow$045bend$047Handoff$finish$initial$(1)), 0, false, 1);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$initial$(_item_0, _round_0) {
-  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": false, "reoffered": false, "phase": {$: "Handoff.Available"}};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0) {
-  if (_phase_0.$ === "Handoff.Available") {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": _surface_0}}};
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$(_state_0, _token_0, _surface_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _surface_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
-  if (_same_0) {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
-  if (_phase_0.$ === "Handoff.Reserved") {
-    const _own_token_0 = _phase_0["token"];
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$(_state_0, _token_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$(_state_0, _round_0, _token_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
-  if (_same_0) {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Available"}}};
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
-  if (_phase_0.$ === "Handoff.Reserved") {
-    const _own_token_0 = _phase_0["token"];
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$(_state_0, _token_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$(_state_0, _round_0, _token_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0, _certain_0) {
-  if (_same_0) {
-    if (_certain_0) {
-      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
-    } else {
-      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": _surface_0}}};
-    }
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0) {
-  if (_phase_0.$ === "Handoff.Authorized") {
-    const _own_token_0 = _phase_0["token"];
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)), _certain_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$(_state_0, _token_0, _certain_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$(_state_0, _round_0, _token_0, _certain_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _certain_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, _uncertain_0, _token_0) {
-  if (_surface_0.$ === "Handoff.Edit") {
-    if (_uncertain_0) {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Edit"}}}};
-    } else {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Edit"}}}};
-    }
-  } else if (_surface_0.$ === "Handoff.Background") {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": true, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": {$: "Handoff.Stop"}}}};
-  } else {
-    if (_uncertain_0) {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Stop"}}}};
-    } else {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Stop"}}}};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
-  if (_phase_0.$ === "Handoff.Submitted") {
-    const _surface_0 = _phase_0["surface"];
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
-  } else if (_phase_0.$ === "Handoff.Uncertain") {
-    const _surface_1 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_1, true, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$(_state_0, _token_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const __1 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": __1}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(($Bool$not$(_reoffered_0)), _fresh_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
-  if (_surface_0.$ === "Handoff.Stop") {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$(_state_0, _round_0, _token_0, _surface_0, _fresh_0, _phase_0) {
-  if (_phase_0.$ === "Handoff.Uncertain") {
-    const _t_0 = _phase_0["surface"];
-    if (_t_0.$ === "Handoff.Background") {
-      return $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
-    } else {
-      return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-    }
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$offer$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
-  const __0 = _state_0["item"];
-  const __1 = _state_0["round"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$({$: "Handoff.Lease", "item": __0, "round": __1, "closed": __2, "reoffered": __3, "phase": _phase_0}, _round_0, _token_0, _surface_0, _fresh_0, _phase_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$close$(_state_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": true, "reoffered": _reoffered_0, "phase": _phase_0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_own_0, _requested_0) {
-  if (_own_0.$ === "Handoff.Background") {
-    if (_requested_0.$ === "Handoff.Stop") {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
-    return true;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
-  if (_phase_0.$ === "Handoff.Available") {
-    return false;
-  } else if (_phase_0.$ === "Handoff.Reserved") {
-    return true;
-  } else if (_phase_0.$ === "Handoff.Authorized") {
-    return true;
-  } else if (_phase_0.$ === "Handoff.Submitted") {
-    return true;
-  } else {
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_surface_0, _requested_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$suppresses$(_state_0, _round_0, _requested_0) {
-  const _owner_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _phase_0 = _state_0["phase"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0)))));
 }
 
 function $$$$047agent$045flow$045bend$047Round$stop_terminal$(_has_output_0, _authorized_0, _requested_close_0) {
@@ -12628,6 +12628,1161 @@ function $Driver$revalidate$(_state_0, _context_0) {
   return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
 }
 
+function $CredentialFacts$initial$() {
+  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
+}
+
+function $CredentialFacts$availability$(_state_0, _available_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$rotate$(_state_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
+}
+
+function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
+}
+
+function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$lookup$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["operation"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _items_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
+  }
+}
+
+function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
+  if (_found_0.$ === "None") {
+    const _available_0 = _state_0["available"];
+    const _generation_0 = _state_0["generation"];
+    const _issued_0 = _state_0["issued"];
+    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
+  } else {
+    return _state_0;
+  }
+}
+
+function $CredentialFacts$capture$(_state_0, _operation_0) {
+  const __0 = _state_0["available"];
+  const __1 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
+}
+
+function $CredentialFacts$captured$(_state_0, _operation_0) {
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$lookup$(_issued_0, _operation_0);
+}
+
+function $CredentialFacts$generation_found$(_current_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _generation_0 = _found_0["value"];
+    return $Nat$is_eq$(_current_0, _generation_0);
+  }
+}
+
+function $CredentialFacts$matches$(_state_0, _operation_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
+}
+
+function $Advicees$initial$() {
+  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
+}
+
+function $Advicees$maximum$() {
+  const _x_0 = nat_chk(65536 * 4294967295);
+  return nat_chk(_x_0 + 65535);
+}
+
+function $Advicees$bounded$(_identity_0) {
+  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
+}
+
+function $Advicees$scope_identity$(_scope_0) {
+  const _identity_0 = _scope_0["identity"];
+  return _identity_0;
+}
+
+function $Advicees$scope_partition$(_scope_0) {
+  const _partition_0 = _scope_0["partition"];
+  return _partition_0;
+}
+
+function $Advicees$found$(_equal_0, _scope_0, _other_0) {
+  if (_equal_0) {
+    return {$: "Some", "value": _scope_0};
+  } else {
+    return _other_0;
+  }
+}
+
+function $Advicees$find_identity$(_scopes_0, _identity_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
+  }
+}
+
+function $Advicees$find_partition$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
+  }
+}
+
+function $Advicees$lookup_identity$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_identity$(_scopes_0, _identity_0);
+}
+
+function $Advicees$lookup_partition$(_registry_0, _partition_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_partition$(_scopes_0, _partition_0);
+}
+
+function $Advicees$absent$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
+  if (_valid_0) {
+    const _next_0 = _registry_0["next"];
+    const _scopes_0 = _registry_0["scopes"];
+    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
+    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
+  } else {
+    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
+  }
+}
+
+function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
+  const _next_0 = _registry_0["next"];
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
+}
+
+function $Advicees$targeted$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
+  } else {
+    const _scope_1 = _scope_0["value"];
+    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
+  }
+}
+
+function $Advicees$targets$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  if (_identity_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
+  } else {
+    const _identity_1 = _identity_0["value"];
+    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
+  }
+}
+
+function $CollectionScenario$gate$(_response_0, _now_0, _credential_valid_0) {
+  const _deadline_0 = _response_0["deadline"];
+  return {$: "Canonical.CollectorGateCheck", "expired": ($Nat$is_ge$(_now_0, _deadline_0)), "credential_valid": _credential_valid_0};
+}
+
+function $CollectionScenario$final_authority$(_response_0, _current_block_0) {
+  const _admitted_block_0 = _response_0["admitted_block"];
+  return {$: "Canonical.CollectorFinalAuthorityCheck", "admitted_block": _admitted_block_0, "current_block": _current_block_0};
+}
+
+function $CollectionScenario$finding$(_response_0, _facts_0) {
+  const _p_0 = _response_0["partition"];
+  const _r_0 = _response_0["round"];
+  const _unit_0 = _facts_0["unit"];
+  const _owner_0 = _facts_0["partition"];
+  const _round_0 = _facts_0["round"];
+  const _snapshot_0 = _facts_0["snapshot"];
+  const _current_snapshot_0 = _facts_0["current_snapshot"];
+  const _credential_0 = _facts_0["credential"];
+  const _current_credential_0 = _facts_0["current_credential"];
+  const _age_0 = _facts_0["age_ms"];
+  const _bytes_0 = _facts_0["solo_bytes"];
+  const _ready_0 = _facts_0["ready"];
+  const _count_0 = _facts_0["selected_count"];
+  const _prospective_0 = _facts_0["prospective_bytes"];
+  return {$: "Canonical.CollectionFindingCheck", "selection_partition": _p_0, "selection_round": _r_0, "unit": _unit_0, "partition": _owner_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_0, "solo_bytes": _bytes_0, "collection_ready": _ready_0, "selected_count": _count_0, "prospective_bytes": _prospective_0};
+}
+
+function $CollectionScenario$order$(_left_sequence_0, _right_sequence_0) {
+  return {$: "Canonical.CollectionOrderCheck", "left_sequence": _left_sequence_0, "right_sequence": _right_sequence_0};
+}
+
+function $CollectionScenario$candidate$(_same_partition_0, _unleased_0, _has_unsuppressed_0, _authority_owns_0) {
+  return {$: "Canonical.CollectionCandidateCheck", "same_partition": _same_partition_0, "unleased": _unleased_0, "has_unsuppressed": _has_unsuppressed_0, "authority_owns": _authority_owns_0};
+}
+
+function $CollectionScenario$initial$() {
+  return {$: "CollectionScenario.State", "next_identity": 1, "contexts": {$: "Nil"}, "controlled": {$: "Nil"}};
+}
+
+function $CollectionScenario$identity_same$(_a_0, _b_0) {
+  const _id_0 = _a_0["id"];
+  const _p_0 = _a_0["partition"];
+  const _l_0 = _a_0["lifetime"];
+  const _r_0 = _a_0["round"];
+  const _other_0 = _b_0["id"];
+  const _owner_0 = _b_0["partition"];
+  const _life_0 = _b_0["lifetime"];
+  const _round_0 = _b_0["round"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_id_0, _other_0)), ($Nat$is_eq$(_p_0, _owner_0)))), ($Nat$is_eq$(_l_0, _life_0)))), ($Nat$is_eq$(_r_0, _round_0)));
+}
+
+function $CollectionScenario$scope_current$(_found_0, _scope_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _life_0 = _t_0["lifetime"];
+    const _round_0 = _t_0["id"];
+    const _p_0 = _scope_0["partition"];
+    const _l_0 = _scope_0["lifetime"];
+    const _r_0 = _scope_0["round"];
+    return $Bool$and$(($Bool$and$(($Nat$is_eq$(_owner_0, _p_0)), ($Nat$is_eq$(_life_0, _l_0)))), ($Nat$is_eq$(_round_0, _r_0)));
+  } else {
+    return false;
+  }
+}
+
+function $CollectionScenario$current$(_canonical_0, _scope_0) {
+  const _rounds_0 = _canonical_0["rounds"];
+  const _p_0 = _scope_0["partition"];
+  const __8 = _scope_0["lifetime"];
+  const __9 = _scope_0["round"];
+  return $CollectionScenario$scope_current$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_p_0, _rounds_0)), {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": __8, "round": __9});
+}
+
+function $CollectionScenario$scope$(_response_0) {
+  const _p_0 = _response_0["partition"];
+  const _l_0 = _response_0["lifetime"];
+  const _r_0 = _response_0["round"];
+  return {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0};
+}
+
+function $CollectionScenario$context_identity$(_context_0) {
+  const _identity_0 = _context_0["identity"];
+  return _identity_0;
+}
+
+function $CollectionScenario$context_response$(_context_0) {
+  const _response_0 = _context_0["response"];
+  return _response_0;
+}
+
+function $CollectionScenario$lookup_hit$(_found_0, _context_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _context_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $CollectionScenario$lookup$(_contexts_0, _target_0) {
+  if (_contexts_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _contexts_0["head"];
+    const _tail_0 = _contexts_0["tail"];
+    return $CollectionScenario$lookup_hit$(($CollectionScenario$identity_same$(($CollectionScenario$context_identity$(_head_0)), _target_0)), _head_0, ($CollectionScenario$lookup$(_tail_0, _target_0)));
+  }
+}
+
+function $CollectionScenario$scope_equal$(_a_0, _b_0) {
+  const _p_0 = _a_0["partition"];
+  const _l_0 = _a_0["lifetime"];
+  const _r_0 = _a_0["round"];
+  const _other_0 = _b_0["partition"];
+  const _life_0 = _b_0["lifetime"];
+  const _round_0 = _b_0["round"];
+  return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _other_0)), ($Nat$is_eq$(_l_0, _life_0)))), ($Nat$is_eq$(_r_0, _round_0)));
+}
+
+function $CollectionScenario$scope_known$(_scopes_0, _target_0) {
+  if (_scopes_0.$ === "Nil") {
+    return false;
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    const _x_0 = ($CollectionScenario$scope_equal$(_head_0, _target_0));
+    const _x_1 = ($CollectionScenario$scope_known$(_tail_0, _target_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $CollectionScenario$registered$(_found_0, _scopes_0, _target_0) {
+  if (_found_0) {
+    return _scopes_0;
+  } else {
+    return {$: "Con", "head": _target_0, "tail": _scopes_0};
+  }
+}
+
+function $CollectionScenario$register$(_scopes_0, _target_0) {
+  return $CollectionScenario$registered$(($CollectionScenario$scope_known$(_scopes_0, _target_0)), _scopes_0, _target_0);
+}
+
+function $CollectionScenario$minted$(_state_0, _response_0, _credential_0, _valid_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  const _p_0 = _response_0["partition"];
+  const _l_0 = _response_0["lifetime"];
+  const _r_0 = _response_0["round"];
+  const _started_0 = _response_0["started"];
+  const _deadline_0 = _response_0["deadline"];
+  const _admitted_0 = _response_0["admitted_block"];
+  if (_valid_0) {
+    const _identity_0 = {$: "CollectionScenario.Identity", "id": _next_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0};
+    return {$: "CollectionScenario.Change", "state": {$: "CollectionScenario.State", "next_identity": nat_chk(_next_0 + 1), "contexts": {$: "Con", "head": {$: "CollectionScenario.Context", "identity": _identity_0, "response": {$: "CollectionScenario.Response", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "started": _started_0, "deadline": _deadline_0, "admitted_block": _admitted_0}, "credential": _credential_0, "phase": {$: "CollectionScenario.Idle"}, "selections": {$: "Nil"}}, "tail": _contexts_0}, "controlled": ($CollectionScenario$register$(_controlled_0, {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0}))}, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "Some", "value": _identity_0}, "actions": {$: "Nil"}};
+  } else {
+    return {$: "CollectionScenario.Change", "state": {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": _contexts_0, "controlled": _controlled_0}, "result": {$: "CollectionScenario.WrongScope"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$issuance_time$(_response_0, _now_0) {
+  const _started_0 = _response_0["started"];
+  const _deadline_0 = _response_0["deadline"];
+  return $Bool$and$(($Nat$is_eq$(_started_0, _now_0)), (_now_0 < _deadline_0));
+}
+
+function $CollectionScenario$issued_with_room$(_room_0, _state_0, _response_0, _credential_0, _canonical_0) {
+  if (_room_0) {
+    return $CollectionScenario$minted$(_state_0, _response_0, _credential_0, ($CollectionScenario$current$(_canonical_0, ($CollectionScenario$scope$(_response_0)))));
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.IdentityExhausted"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$context_room$(_contexts_0) {
+  const _x_0 = ($List$length$(_contexts_0));
+  return (_x_0 < 2048);
+}
+
+function $CollectionScenario$issued_with_context_room$(_room_0, _state_0, _response_0, _credential_0, _canonical_0) {
+  if (_room_0) {
+    const _next_0 = _state_0["next_identity"];
+    const _contexts_0 = _state_0["contexts"];
+    const _controlled_0 = _state_0["controlled"];
+    const _x_0 = ($Advicees$maximum$());
+    return $CollectionScenario$issued_with_room$((_next_0 < _x_0), {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": _contexts_0, "controlled": _controlled_0}, _response_0, _credential_0, _canonical_0);
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.ContextBound"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$issue$(_state_0, _response_0, _credential_0, _canonical_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  return $CollectionScenario$issued_with_context_room$(($CollectionScenario$context_room$(_contexts_0)), {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": _contexts_0, "controlled": _controlled_0}, _response_0, _credential_0, _canonical_0);
+}
+
+function $CollectionScenario$replace_hit$(_found_0, _original_0, _next_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Con", "head": _next_0, "tail": _rest_0};
+  } else {
+    return {$: "Con", "head": _original_0, "tail": _rest_0};
+  }
+}
+
+function $CollectionScenario$replace$(_contexts_0, _target_0, _next_0) {
+  if (_contexts_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _contexts_0["head"];
+    const _tail_0 = _contexts_0["tail"];
+    return $CollectionScenario$replace_hit$(($CollectionScenario$identity_same$(($CollectionScenario$context_identity$(_head_0)), _target_0)), _head_0, _next_0, ($CollectionScenario$replace$(_tail_0, _target_0, _next_0)));
+  }
+}
+
+function $CollectionScenario$updated$(_state_0, _context_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  return {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": ($CollectionScenario$replace$(_contexts_0, ($CollectionScenario$context_identity$(_context_0)), _context_0)), "controlled": _controlled_0};
+}
+
+function $CollectionScenario$release_provisional$(_selections_0) {
+  if (_selections_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _selections_0["head"];
+    const _advice_0 = _t_0["advice"];
+    const _token_0 = _t_0["token"];
+    const _tail_0 = _selections_0["tail"];
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, false)), "tail": ($CollectionScenario$release_provisional$(_tail_0))};
+  }
+}
+
+function $CollectionScenario$remove_hit$(_remove_0, _original_0, _tail_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _original_0, "tail": _tail_0};
+  }
+}
+
+function $CollectionScenario$remove$(_contexts_0, _target_0) {
+  if (_contexts_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _contexts_0["head"];
+    const _tail_0 = _contexts_0["tail"];
+    return $CollectionScenario$remove_hit$(($CollectionScenario$identity_same$(($CollectionScenario$context_identity$(_head_0)), _target_0)), _head_0, ($CollectionScenario$remove$(_tail_0, _target_0)));
+  }
+}
+
+function $CollectionScenario$closed$(_found_0, _state_0, _target_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _selections_0 = _t_0["selections"];
+    const _next_0 = _state_0["next_identity"];
+    const _contexts_0 = _state_0["contexts"];
+    const _controlled_0 = _state_0["controlled"];
+    return {$: "CollectionScenario.Change", "state": {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": ($CollectionScenario$remove$(_contexts_0, _target_0)), "controlled": _controlled_0}, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": ($CollectionScenario$release_provisional$(_selections_0))};
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$close$(_state_0, _target_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  return $CollectionScenario$closed$(($CollectionScenario$lookup$(_contexts_0, _target_0)), {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": _contexts_0, "controlled": _controlled_0}, _target_0);
+}
+
+function $CollectionScenario$attempted_phase$(_context_0, _state_0, _now_0, _current_block_0, _credential_0) {
+  const _identity_0 = _context_0["identity"];
+  const _response_0 = _context_0["response"];
+  const _generation_0 = _context_0["credential"];
+  const _t_0 = _context_0["phase"];
+  if (_t_0.$ === "CollectionScenario.Idle") {
+    const _selections_0 = _context_0["selections"];
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _generation_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0})), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Con", "head": ($Driver$immediate$(($CollectionScenario$gate$(_response_0, _now_0, _credential_0)), false)), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.AlreadyAttempting"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$attempted_valid$(_valid_0, _context_0, _state_0, _now_0, _current_block_0, _credential_0) {
+  if (_valid_0) {
+    return $CollectionScenario$attempted_phase$(_context_0, _state_0, _now_0, _current_block_0, _credential_0);
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.WrongScope"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$attempted$(_found_0, _state_0, _canonical_0, _now_0, _current_block_0, _credentials_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _identity_0 = _t_0["identity"];
+    const _response_0 = _t_0["response"];
+    const _generation_0 = _t_0["credential"];
+    const _phase_0 = _t_0["phase"];
+    const _selections_0 = _t_0["selections"];
+    return $CollectionScenario$attempted_valid$(($CollectionScenario$current$(_canonical_0, ($CollectionScenario$scope$(_response_0)))), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _generation_0, "phase": _phase_0, "selections": _selections_0}, _state_0, _now_0, _current_block_0, ($CredentialFacts$authorized$(_credentials_0, _generation_0)));
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$attempt$(_state_0, _target_0, _canonical_0, _now_0, _current_block_0, _credentials_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  return $CollectionScenario$attempted$(($CollectionScenario$lookup$(_contexts_0, _target_0)), {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": _contexts_0, "controlled": _controlled_0}, _canonical_0, _now_0, _current_block_0, _credentials_0);
+}
+
+function $CollectionScenario$contexts$(_state_0) {
+  const _contexts_0 = _state_0["contexts"];
+  return _contexts_0;
+}
+
+function $CollectionScenario$retained_scope$(_valid_0, _head_0, _tail_0) {
+  if (_valid_0) {
+    return {$: "Con", "head": _head_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $CollectionScenario$retain_scopes$(_scopes_0, _canonical_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $CollectionScenario$retained_scope$(($CollectionScenario$current$(_canonical_0, _head_0)), _head_0, ($CollectionScenario$retain_scopes$(_tail_0, _canonical_0)));
+  }
+}
+
+function $CollectionScenario$lease_owned$(_canonical_0, _selection_0) {
+  const _collection_0 = _canonical_0["collection"];
+  const _advice_0 = _selection_0["advice"];
+  const _token_0 = _selection_0["token"];
+  return $$$$047agent$045flow$045bend$047CollectionState$owns_lease$(_collection_0, _advice_0, _token_0);
+}
+
+function $CollectionScenario$retain_selection$(_owned_0, _selection_0, _tail_0) {
+  if (_owned_0) {
+    return {$: "Con", "head": _selection_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $CollectionScenario$retain_selections$(_selections_0, _canonical_0) {
+  if (_selections_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _selections_0["head"];
+    const _tail_0 = _selections_0["tail"];
+    return $CollectionScenario$retain_selection$(($CollectionScenario$lease_owned$(_canonical_0, _head_0)), _head_0, ($CollectionScenario$retain_selections$(_tail_0, _canonical_0)));
+  }
+}
+
+function $CollectionScenario$retain_context_selections$(_context_0, _canonical_0) {
+  const _identity_0 = _context_0["identity"];
+  const _response_0 = _context_0["response"];
+  const _credential_0 = _context_0["credential"];
+  const _phase_0 = _context_0["phase"];
+  const _selections_0 = _context_0["selections"];
+  return {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _phase_0, "selections": ($CollectionScenario$retain_selections$(_selections_0, _canonical_0))};
+}
+
+function $CollectionScenario$retained_context$(_valid_0, _head_0, _canonical_0, _tail_0) {
+  if (_valid_0) {
+    return {$: "Con", "head": ($CollectionScenario$retain_context_selections$(_head_0, _canonical_0)), "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $CollectionScenario$retain_contexts$(_contexts_0, _canonical_0) {
+  if (_contexts_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _contexts_0["head"];
+    const _tail_0 = _contexts_0["tail"];
+    return $CollectionScenario$retained_context$(($CollectionScenario$current$(_canonical_0, ($CollectionScenario$scope$(($CollectionScenario$context_response$(_head_0)))))), _head_0, _canonical_0, ($CollectionScenario$retain_contexts$(_tail_0, _canonical_0)));
+  }
+}
+
+function $CollectionScenario$retain$(_state_0, _canonical_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  return {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": ($CollectionScenario$retain_contexts$(_contexts_0, _canonical_0)), "controlled": ($CollectionScenario$retain_scopes$(_controlled_0, _canonical_0))};
+}
+
+function $CollectionScenario$controlled$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _scopes_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _tail_0 = _scopes_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_owner_0, _partition_0));
+    const _x_1 = ($CollectionScenario$controlled$(_tail_0, _partition_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $CollectionScenario$automatic$(_state_0, _partition_0) {
+  const _scopes_0 = _state_0["controlled"];
+  return $Bool$not$(($CollectionScenario$controlled$(_scopes_0, _partition_0)));
+}
+
+function $CollectionScenario$deadline_live$(_response_0, _now_0) {
+  const _started_0 = _response_0["started"];
+  const _deadline_0 = _response_0["deadline"];
+  return $Bool$and$(($Nat$is_le$(_started_0, _now_0)), (_now_0 < _deadline_0));
+}
+
+function $CollectionScenario$valid_context$(_found_0, _canonical_0, _now_0, _credentials_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _response_0 = _t_0["response"];
+    const _generation_0 = _t_0["credential"];
+    return $Bool$and$(($Bool$and$(($CollectionScenario$current$(_canonical_0, ($CollectionScenario$scope$(_response_0)))), ($CollectionScenario$deadline_live$(_response_0, _now_0)))), ($CredentialFacts$authorized$(_credentials_0, _generation_0)));
+  } else {
+    return false;
+  }
+}
+
+function $CollectionScenario$valid$(_state_0, _target_0, _canonical_0, _now_0, _credentials_0) {
+  return $CollectionScenario$valid_context$(($CollectionScenario$lookup$(($CollectionScenario$contexts$(_state_0)), _target_0)), _canonical_0, _now_0, _credentials_0);
+}
+
+function $CollectionScenario$proceed$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CollectorProceed") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CollectionScenario$final_proceed$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CollectorFinalProceed") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CollectionScenario$reset$(_context_0) {
+  const _identity_0 = _context_0["identity"];
+  const _response_0 = _context_0["response"];
+  const _credential_0 = _context_0["credential"];
+  const _selections_0 = _context_0["selections"];
+  return {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Idle"}, "selections": _selections_0};
+}
+
+function $CollectionScenario$gated$(_allowed_0, _context_0, _state_0, _current_block_0) {
+  if (_allowed_0) {
+    const _identity_0 = _context_0["identity"];
+    const _response_0 = _context_0["response"];
+    const _credential_0 = _context_0["credential"];
+    const _selections_0 = _context_0["selections"];
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_0})), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Con", "head": ($Driver$immediate$(($CollectionScenario$final_authority$(_response_0, _current_block_0)), false)), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, ($CollectionScenario$reset$(_context_0)))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$work_operation$(_work_0) {
+  const _operation_0 = _work_0["operation"];
+  return _operation_0;
+}
+
+function $CollectionScenario$sorted_pick$(_before_0, _head_0, _next_0, _tail_0, _rest_0) {
+  if (_before_0.$ === "Collection.After") {
+    return {$: "Con", "head": _head_0, "tail": _rest_0};
+  } else {
+    return {$: "Con", "head": _next_0, "tail": {$: "Con", "head": _head_0, "tail": _tail_0}};
+  }
+}
+
+function $CollectionScenario$insert_work$(_items_0, _next_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Con", "head": _next_0, "tail": {$: "Nil"}};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectionScenario$sorted_pick$(($$$$047agent$045flow$045bend$047Collection$order$(($CollectionScenario$work_operation$(_next_0)), ($CollectionScenario$work_operation$(_head_0)))), _head_0, _next_0, _tail_0, ($CollectionScenario$insert_work$(_tail_0, _next_0)));
+  }
+}
+
+function $CollectionScenario$sorted_work$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectionScenario$insert_work$(($CollectionScenario$sorted_work$(_tail_0)), _head_0);
+  }
+}
+
+function $CollectionScenario$candidate_owned$(_owned_0, _p_0, _l_0, _r_0, _operation_0, _parent_0, _rest_0) {
+  if (_owned_0) {
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReady", "advice": _operation_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _parent_0, "joined_pending": false}, false)), "tail": _rest_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $CollectionScenario$candidate_work$($0, $1) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      const _response_0 = $1;
+      if (_items_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _items_0["head"];
+        const _p_0 = _t_0["partition"];
+        const _l_0 = _t_0["lifetime"];
+        const _r_0 = _t_0["round"];
+        const _operation_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _parent_0 = _t_0["parent"];
+          const _tail_0 = _items_0["tail"];
+          const _owner_0 = _response_0["partition"];
+          const _life_0 = _response_0["lifetime"];
+          const _round_0 = _response_0["round"];
+          const _started_0 = _response_0["started"];
+          const _deadline_0 = _response_0["deadline"];
+          const _admitted_0 = _response_0["admitted_block"];
+          return $CollectionScenario$candidate_owned$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _life_0)))), ($Nat$is_eq$(_r_0, _round_0)))), _p_0, _l_0, _r_0, _operation_0, _parent_0, ($CollectionScenario$candidate_work$(_tail_0, {$: "CollectionScenario.Response", "partition": _owner_0, "lifetime": _life_0, "round": _round_0, "started": _started_0, "deadline": _deadline_0, "admitted_block": _admitted_0})));
+        } else {
+          const _tail_1 = _items_0["tail"];
+          $0 = _tail_1;
+          $1 = _response_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CollectionScenario$final_selected$(_allowed_0, _context_0, _state_0, _canonical_0) {
+  if (_allowed_0) {
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, ($CollectionScenario$reset$(_context_0)))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": ($CollectionScenario$candidate_work$(($CollectionScenario$sorted_work$(($Driver$work_list$(_canonical_0)))), ($CollectionScenario$context_response$(_context_0))))};
+  } else {
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, ($CollectionScenario$reset$(_context_0)))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$lease_reserved$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CollectionLeaseReserved") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CollectionScenario$submission_begun$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.SubmissionBegun") {
+          return true;
+        } else if (_t_0.$ === "Canonical.SubmissionAuthorized") {
+          return true;
+        } else {
+          const __2 = _commands_0["tail"];
+          $0 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CollectionScenario$selection_removed$(_remove_0, _selection_0, _tail_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _selection_0, "tail": _tail_0};
+  }
+}
+
+function $CollectionScenario$selection_mark$(_items_0, _advice_0, _token_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["advice"];
+    const _owner_0 = _t_0["token"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectionScenario$selection_removed$(($Bool$and$(($Nat$is_eq$(_advice_0, _candidate_0)), ($Nat$is_eq$(_token_0, _owner_0)))), {$: "CollectionScenario.Selection", "advice": _candidate_0, "token": _owner_0}, ($CollectionScenario$selection_mark$(_tail_0, _advice_0, _token_0)));
+  }
+}
+
+function $CollectionScenario$selected_lease$(_accepted_0, _context_0, _state_0, _advice_0, _token_0) {
+  if (_accepted_0) {
+    const _identity_0 = _context_0["identity"];
+    const _response_0 = _context_0["response"];
+    const _credential_0 = _context_0["credential"];
+    const _phase_0 = _context_0["phase"];
+    const _selections_0 = _context_0["selections"];
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _phase_0, "selections": {$: "Con", "head": {$: "CollectionScenario.Selection", "advice": _advice_0, "token": _token_0}, "tail": _selections_0}})), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$selected_authorized$(_accepted_0, _context_0, _state_0, _advice_0, _token_0) {
+  if (_accepted_0) {
+    const _identity_0 = _context_0["identity"];
+    const _response_0 = _context_0["response"];
+    const _credential_0 = _context_0["credential"];
+    const _phase_0 = _context_0["phase"];
+    const _selections_0 = _context_0["selections"];
+    return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _phase_0, "selections": ($CollectionScenario$selection_mark$(_selections_0, _advice_0, _token_0))})), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$after_context$(_context_0, _state_0, _event_0, _commands_0, _canonical_0) {
+  const _identity_0 = _context_0["identity"];
+  const _response_0 = _context_0["response"];
+  const _credential_0 = _context_0["credential"];
+  const _t_0 = _context_0["phase"];
+  if (_t_0.$ === "CollectionScenario.Gating") {
+    const _current_block_0 = _t_0["current_block"];
+    const _selections_0 = _context_0["selections"];
+    if (_event_0.$ === "Canonical.CollectorGateCheck") {
+      return $CollectionScenario$gated$(($CollectionScenario$proceed$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _current_block_0);
+    } else if (_event_0.$ === "Canonical.CollectionReserveLease") {
+      const _advice_0 = _event_0["advice"];
+      const _token_0 = _event_0["token"];
+      return $CollectionScenario$selected_lease$(($CollectionScenario$lease_reserved$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _advice_0, _token_0);
+    } else if (_event_0.$ === "Canonical.SubmissionBegin") {
+      const _advice_1 = _event_0["advice"];
+      const _token_1 = _event_0["token"];
+      return $CollectionScenario$selected_authorized$(($CollectionScenario$submission_begun$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0}, _state_0, _advice_1, _token_1);
+    } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+      return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, ($CollectionScenario$reset$({$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Gating", "current_block": _current_block_0}, "selections": _selections_0})))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+    } else {
+      return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+    }
+  } else if (_t_0.$ === "CollectionScenario.Selecting") {
+    const _selections_1 = _context_0["selections"];
+    if (_event_0.$ === "Canonical.CollectorFinalAuthorityCheck") {
+      return $CollectionScenario$final_selected$(($CollectionScenario$final_proceed$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _canonical_0);
+    } else if (_event_0.$ === "Canonical.CollectionReserveLease") {
+      const _advice_2 = _event_0["advice"];
+      const _token_2 = _event_0["token"];
+      return $CollectionScenario$selected_lease$(($CollectionScenario$lease_reserved$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _advice_2, _token_2);
+    } else if (_event_0.$ === "Canonical.SubmissionBegin") {
+      const _advice_3 = _event_0["advice"];
+      const _token_3 = _event_0["token"];
+      return $CollectionScenario$selected_authorized$(($CollectionScenario$submission_begun$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1}, _state_0, _advice_3, _token_3);
+    } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+      return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, ($CollectionScenario$reset$({$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": {$: "CollectionScenario.Selecting"}, "selections": _selections_1})))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+    } else {
+      return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+    }
+  } else {
+    const _selections_2 = _context_0["selections"];
+    if (_event_0.$ === "Canonical.CollectionReserveLease") {
+      const _advice_4 = _event_0["advice"];
+      const _token_4 = _event_0["token"];
+      return $CollectionScenario$selected_lease$(($CollectionScenario$lease_reserved$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2}, _state_0, _advice_4, _token_4);
+    } else if (_event_0.$ === "Canonical.SubmissionBegin") {
+      const _advice_5 = _event_0["advice"];
+      const _token_5 = _event_0["token"];
+      return $CollectionScenario$selected_authorized$(($CollectionScenario$submission_begun$(_commands_0)), {$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2}, _state_0, _advice_5, _token_5);
+    } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+      return {$: "CollectionScenario.Change", "state": ($CollectionScenario$updated$(_state_0, ($CollectionScenario$reset$({$: "CollectionScenario.Context", "identity": _identity_0, "response": _response_0, "credential": _credential_0, "phase": _t_0, "selections": _selections_2})))), "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+    } else {
+      return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+    }
+  }
+}
+
+function $CollectionScenario$after_found$(_found_0, _state_0, _event_0, _commands_0, _canonical_0) {
+  if (_found_0.$ === "Some") {
+    const _context_0 = _found_0["value"];
+    return $CollectionScenario$after_context$(_context_0, _state_0, _event_0, _commands_0, _canonical_0);
+  } else {
+    return {$: "CollectionScenario.Change", "state": _state_0, "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$after$(_state_0, _target_0, _event_0, _commands_0, _canonical_0) {
+  return $CollectionScenario$after_found$(($CollectionScenario$lookup$(($CollectionScenario$contexts$(_state_0)), _target_0)), _state_0, _event_0, _commands_0, _canonical_0);
+}
+
+function $CollectionScenario$driver_context$(_state_0, _context_0, _response_owned_0) {
+  const _p_0 = _context_0["partition"];
+  const _l_0 = _context_0["lifetime"];
+  const _r_0 = _context_0["round"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const _automatic_collection_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _lease_0 = _context_0["output_lease"];
+  const _background_0 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  const _x_0 = ($CollectionScenario$automatic$(_state_0, _p_0));
+  const _x_1 = ($Bool$and$(_automatic_collection_0, (_background_0 || _x_0)));
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _candidate_0, "automatic_collection": (_response_owned_0 || _x_1), "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+}
+
+function $CollectionScenario$managed_handled$(_automatic_0, _original_0) {
+  if (_automatic_0) {
+    return _original_0;
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$handled$(_state_0, _command_0, _context_0, _original_0) {
+  if (_command_0.$ === "Canonical.CollectionEligible") {
+    const _p_0 = _context_0["partition"];
+    const _t_0 = _context_0["background"];
+    if (!_t_0) {
+      return $CollectionScenario$managed_handled$(($CollectionScenario$automatic$(_state_0, _p_0)), _original_0);
+    } else {
+      return _original_0;
+    }
+  } else {
+    return _original_0;
+  }
+}
+
+function $CollectionScenario$context_deadline$(_context_0) {
+  const _t_0 = _context_0["response"];
+  const _deadline_0 = _t_0["deadline"];
+  return _deadline_0;
+}
+
+function $CollectionScenario$expired_context$(_expired_0, _context_0, _contexts_0, _releases_0) {
+  if (_expired_0) {
+    const _selections_0 = _context_0["selections"];
+    return {$: "Tuple", "fst": _contexts_0, "snd": ($List$append$(($CollectionScenario$release_provisional$(_selections_0)), _releases_0))};
+  } else {
+    return {$: "Tuple", "fst": {$: "Con", "head": _context_0, "tail": _contexts_0}, "snd": _releases_0};
+  }
+}
+
+function $CollectionScenario$expired_tail$(_context_0, _now_0, _rest_0) {
+  const _contexts_0 = _rest_0["fst"];
+  const _releases_0 = _rest_0["snd"];
+  return $CollectionScenario$expired_context$(($Nat$is_ge$(_now_0, ($CollectionScenario$context_deadline$(_context_0)))), _context_0, _contexts_0, _releases_0);
+}
+
+function $CollectionScenario$expire_contexts$(_contexts_0, _now_0) {
+  if (_contexts_0.$ === "Nil") {
+    return {$: "Tuple", "fst": {$: "Nil"}, "snd": {$: "Nil"}};
+  } else {
+    const _head_0 = _contexts_0["head"];
+    const _tail_0 = _contexts_0["tail"];
+    return $CollectionScenario$expired_tail$(_head_0, _now_0, ($CollectionScenario$expire_contexts$(_tail_0, _now_0)));
+  }
+}
+
+function $CollectionScenario$expired_changed$(_next_0, _controlled_0, _expired_0) {
+  const _contexts_0 = _expired_0["fst"];
+  const _releases_0 = _expired_0["snd"];
+  return {$: "CollectionScenario.Change", "state": {$: "CollectionScenario.State", "next_identity": _next_0, "contexts": _contexts_0, "controlled": _controlled_0}, "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}, "actions": _releases_0};
+}
+
+function $CollectionScenario$expire$(_state_0, _now_0) {
+  const _next_0 = _state_0["next_identity"];
+  const _contexts_0 = _state_0["contexts"];
+  const _controlled_0 = _state_0["controlled"];
+  return $CollectionScenario$expired_changed$(_next_0, _controlled_0, ($CollectionScenario$expire_contexts$(_contexts_0, _now_0)));
+}
+
+function $CollectionScenario$exact_response_gate$(_p_0, _l_0, _r_0, _started_0, _deadline_0, _admitted_0, _now_0, _credential_0) {
+  return null;
+}
+
+function $CollectionScenario$reserve_candidate$(_candidate_0, _token_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _advice_0 = _t_0["advice"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReserveLease", "advice": _advice_0, "token": _token_0}, false)), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$candidate_token$(_candidate_0, _token_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _advice_0 = _t_0["advice"];
+    const _r_0 = _t_0["round"];
+    const _surface_0 = _t_0["surface"];
+    const _selected_0 = _t_0["selection"];
+    return {$: "Some", "value": {$: "Driver.Candidate", "partition": _p_0, "advice": _advice_0, "round": _r_0, "token": _token_0, "surface": _surface_0, "selection": _selected_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $CollectionScenario$response_actions$(_actions_0, _token_0) {
+  if (_actions_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _actions_0["head"];
+    const _event_0 = _t_0["event"];
+    const _delay_0 = _t_0["delay"];
+    const _candidate_0 = _t_0["candidate"];
+    const _job_0 = _t_0["job"];
+    const _expiry_0 = _t_0["expiry_advice"];
+    const _tail_0 = _actions_0["tail"];
+    return {$: "Con", "head": {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": ($CollectionScenario$candidate_token$(_candidate_0, _token_0)), "job": _job_0, "expiry_advice": _expiry_0}, "tail": ($CollectionScenario$response_actions$(_tail_0, _token_0))};
+  }
+}
+
+function $CollectionScenario$response_handled$(_handled_0, _token_0) {
+  const _handled_1 = _handled_0["handled"];
+  const _actions_0 = _handled_0["actions"];
+  return {$: "Driver.Handled", "handled": _handled_1, "actions": ($CollectionScenario$response_actions$(_actions_0, _token_0))};
+}
+
+function $CollectionScenario$lease_begin$(_event_0, _target_0) {
+  if (_event_0.$ === "Canonical.CollectionReserveLease") {
+    const _advice_0 = _event_0["advice"];
+    const _token_0 = _event_0["token"];
+    const _p_0 = _target_0["partition"];
+    const _r_0 = _target_0["round"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionBegin", "advice": _advice_0, "group": _p_0, "round": _r_0, "token": _token_0, "surface": {$: "Handoff.Edit"}, "authorize_now": true, "fingerprints": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}, "units": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}}, false)), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  }
+}
+
+function $CollectionScenario$handle_response$(_state_0, _event_0, _command_0, _context_0, _target_0) {
+  if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
+    const _candidate_0 = _context_0["candidate"];
+    const _id_0 = _target_0["id"];
+    return $CollectionScenario$reserve_candidate$(_candidate_0, _id_0);
+  } else if (_command_0.$ === "Canonical.CollectionLeaseReserved") {
+    const _id_1 = _target_0["id"];
+    const __23 = _target_0["partition"];
+    const __24 = _target_0["lifetime"];
+    const __25 = _target_0["round"];
+    return $CollectionScenario$lease_begin$(_event_0, {$: "CollectionScenario.Identity", "id": _id_1, "partition": __23, "lifetime": __24, "round": __25});
+  } else {
+    const _id_2 = _target_0["id"];
+    return $CollectionScenario$response_handled$(($Driver$handle$(_state_0, _event_0, _command_0, _context_0)), _id_2);
+  }
+}
+
+function $CollectionScenario$delivery_context$(_found_0, _canonical_0) {
+  if (_found_0.$ === "Some") {
+    const _context_0 = _found_0["value"];
+    return $CollectionScenario$current$(_canonical_0, ($CollectionScenario$scope$(($CollectionScenario$context_response$(_context_0)))));
+  } else {
+    return false;
+  }
+}
+
+function $CollectionScenario$delivery_valid$(_state_0, _target_0, _canonical_0, _now_0, _credentials_0, _event_0) {
+  if (_event_0.$ === "Canonical.CollectorGateCheck") {
+    return $CollectionScenario$delivery_context$(($CollectionScenario$lookup$(($CollectionScenario$contexts$(_state_0)), _target_0)), _canonical_0);
+  } else {
+    return $CollectionScenario$valid$(_state_0, _target_0, _canonical_0, _now_0, _credentials_0);
+  }
+}
+
+function $CollectionScenario$automatic_candidate$(_state_0, _candidate_0, _background_0) {
+  if (_candidate_0.$ === "None") {
+    return true;
+  } else {
+    const _t_0 = _candidate_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _x_0 = ($CollectionScenario$automatic$(_state_0, _p_0));
+    return (_background_0 || _x_0);
+  }
+}
+
+function $CollectionScenario$retain_action$(_allowed_0, _action_0, _tail_0) {
+  if (_allowed_0) {
+    return {$: "Con", "head": _action_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $CollectionScenario$automatic_actions$(_actions_0, _state_0, _background_0) {
+  if (_actions_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _actions_0["head"];
+    const _event_0 = _t_0["event"];
+    const _delay_0 = _t_0["delay"];
+    const _candidate_0 = _t_0["candidate"];
+    const _job_0 = _t_0["job"];
+    const _expiry_0 = _t_0["expiry_advice"];
+    const _tail_0 = _actions_0["tail"];
+    return $CollectionScenario$retain_action$(($CollectionScenario$automatic_candidate$(_state_0, _candidate_0, _background_0)), {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0}, ($CollectionScenario$automatic_actions$(_tail_0, _state_0, _background_0)));
+  }
+}
+
+function $CollectionScenario$revalidated$(_actions_0, _state_0, _context_0) {
+  const _background_0 = _context_0["background"];
+  return $CollectionScenario$automatic_actions$(_actions_0, _state_0, _background_0);
+}
+
+function $CollectionScenario$context_bound_refuses_atomically$(_next_0, _contexts_0, _controlled_0, _response_0, _credential_0, _canonical_0) {
+  return null;
+}
+
 function $FreshnessScenario$initial$() {
   return {$: "FreshnessScenario.State", "bindings": {$: "Nil"}};
 }
@@ -18000,7 +19155,7 @@ function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
 }
 
 function $RuntimeScenarios$initial$() {
-  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$())};
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$()), "collection": ($CollectionScenario$initial$())};
 }
 
 function $RuntimeScenarios$callbacks$(_state_0) {
@@ -18015,15 +19170,16 @@ function $RuntimeScenarios$with_callbacks$(_state_0, _callbacks_0) {
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
+  const _collection_0 = _state_0["collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
 }
 
-function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0) {
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0};
+function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0) {
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0, "collection": ($CollectionScenario$retain$(_collection_0, _canonical_0))};
 }
 
-function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0) {
-  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0);
+function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0) {
+  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0);
 }
 
 function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
@@ -18034,7 +19190,8 @@ function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
-  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)));
+  const _collection_0 = _state_0["collection"];
+  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)), _collection_0);
 }
 
 function $RuntimeScenarios$notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
@@ -18065,7 +19222,8 @@ function $RuntimeScenarios$with_freshness$(_state_0, _freshness_0) {
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
+  const _collection_0 = _state_0["collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
 }
 
 function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
@@ -18075,7 +19233,8 @@ function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
   const _freshness_0 = _state_0["freshness"];
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
+  const _collection_0 = _state_0["collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
 }
 
 function $RuntimeScenarios$sharing$(_state_0) {
@@ -18090,7 +19249,8 @@ function $RuntimeScenarios$with_sharing$(_state_0, _sharing_0) {
   const _freshness_0 = _state_0["freshness"];
   const _sources_0 = _state_0["sources"];
   const _cache_0 = _state_0["cache"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
+  const _collection_0 = _state_0["collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
 }
 
 function $RuntimeScenarios$cache$(_state_0) {
@@ -18105,7 +19265,8 @@ function $RuntimeScenarios$with_cache$(_state_0, _cache_0) {
   const _freshness_0 = _state_0["freshness"];
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
+  const _collection_0 = _state_0["collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
 }
 
 function $RuntimeScenarios$cache_feedback_state$(_feedback_0) {
@@ -18121,109 +19282,20 @@ function $RuntimeScenarios$accepted$(_state_0, _before_0, _canonical_0, _event_0
   return $RuntimeScenarios$retain$(($RuntimeScenarios$with_cache$(($RuntimeScenarios$with_sharing$(($RuntimeScenarios$with_freshness$(_state_0, ($FreshnessScenario$feedback$(_commands_0, ($RuntimeScenarios$freshness$(_state_0)), _event_0)))), ($SharingRuntime$feedback$(($RuntimeScenarios$sharing$(_state_0)), _event_0, _commands_0)))), ($RuntimeScenarios$cache_feedback$(($RuntimeScenarios$cache$(_state_0)), _before_0, _commands_0)))), _canonical_0);
 }
 
-function $Advicees$initial$() {
-  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
+function $RuntimeScenarios$collection$(_state_0) {
+  const _collection_0 = _state_0["collection"];
+  return _collection_0;
 }
 
-function $Advicees$maximum$() {
-  const _x_0 = nat_chk(65536 * 4294967295);
-  return nat_chk(_x_0 + 65535);
-}
-
-function $Advicees$bounded$(_identity_0) {
-  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
-}
-
-function $Advicees$scope_identity$(_scope_0) {
-  const _identity_0 = _scope_0["identity"];
-  return _identity_0;
-}
-
-function $Advicees$scope_partition$(_scope_0) {
-  const _partition_0 = _scope_0["partition"];
-  return _partition_0;
-}
-
-function $Advicees$found$(_equal_0, _scope_0, _other_0) {
-  if (_equal_0) {
-    return {$: "Some", "value": _scope_0};
-  } else {
-    return _other_0;
-  }
-}
-
-function $Advicees$find_identity$(_scopes_0, _identity_0) {
-  if (_scopes_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _scopes_0["head"];
-    const _tail_0 = _scopes_0["tail"];
-    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
-  }
-}
-
-function $Advicees$find_partition$(_scopes_0, _partition_0) {
-  if (_scopes_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _scopes_0["head"];
-    const _tail_0 = _scopes_0["tail"];
-    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
-  }
-}
-
-function $Advicees$lookup_identity$(_registry_0, _identity_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$find_identity$(_scopes_0, _identity_0);
-}
-
-function $Advicees$lookup_partition$(_registry_0, _partition_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$find_partition$(_scopes_0, _partition_0);
-}
-
-function $Advicees$absent$(_scope_0) {
-  if (_scope_0.$ === "None") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
-  if (_valid_0) {
-    const _next_0 = _registry_0["next"];
-    const _scopes_0 = _registry_0["scopes"];
-    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
-    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
-  } else {
-    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
-  }
-}
-
-function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
-  const _next_0 = _registry_0["next"];
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
-}
-
-function $Advicees$targeted$(_scope_0) {
-  if (_scope_0.$ === "None") {
-    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
-  } else {
-    const _scope_1 = _scope_0["value"];
-    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
-  }
-}
-
-function $Advicees$targets$(_registry_0, _identity_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  if (_identity_0.$ === "None") {
-    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
-  } else {
-    const _identity_1 = _identity_0["value"];
-    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
-  }
+function $RuntimeScenarios$with_collection$(_state_0, _collection_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  const _sharing_0 = _state_0["sharing"];
+  const _cache_0 = _state_0["cache"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
 }
 
 function $AdviceeLifecycle$partition$(_entry_0) {
@@ -18868,84 +19940,6 @@ function $PermitScenario$consumed$(_state_0, _command_0, _p_0, _l_0) {
 
 function $PermitScenario$absent_post_expires$(_p_0, _l_0, _tool_0, _started_0, _deadline_0, _delay_0, _local_0, _resident_0, _token_0) {
   return null;
-}
-
-function $CredentialFacts$initial$() {
-  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
-}
-
-function $CredentialFacts$availability$(_state_0, _available_0) {
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
-}
-
-function $CredentialFacts$rotate$(_state_0) {
-  const _available_0 = _state_0["available"];
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
-}
-
-function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
-  const _available_0 = _state_0["available"];
-  const _generation_0 = _state_0["generation"];
-  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
-}
-
-function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
-}
-
-function $CredentialFacts$lookup$(_items_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _candidate_0 = _t_0["operation"];
-    const _generation_0 = _t_0["generation"];
-    const _tail_0 = _items_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
-  }
-}
-
-function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
-  if (_found_0.$ === "None") {
-    const _available_0 = _state_0["available"];
-    const _generation_0 = _state_0["generation"];
-    const _issued_0 = _state_0["issued"];
-    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
-  } else {
-    return _state_0;
-  }
-}
-
-function $CredentialFacts$capture$(_state_0, _operation_0) {
-  const __0 = _state_0["available"];
-  const __1 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
-}
-
-function $CredentialFacts$captured$(_state_0, _operation_0) {
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$lookup$(_issued_0, _operation_0);
-}
-
-function $CredentialFacts$generation_found$(_current_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return false;
-  } else {
-    const _generation_0 = _found_0["value"];
-    return $Nat$is_eq$(_current_0, _generation_0);
-  }
-}
-
-function $CredentialFacts$matches$(_state_0, _operation_0) {
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
 }
 
 function $CredentialContext$captured_match$(_found_0, _current_0, _supplied_0) {
@@ -22824,7 +23818,7 @@ function $scenarios$(_state_0) {
 }
 
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
-  return $handle_cached$(_state_0, _event_0, _command_0, _context_0, ($SharingRuntime$cached_review$(($RuntimeScenarios$sharing$(($scenarios$(_state_0)))), _command_0)));
+  return $CollectionScenario$handled$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _command_0, _context_0, ($handle_cached$(_state_0, _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, false)), ($SharingRuntime$cached_review$(($RuntimeScenarios$sharing$(($scenarios$(_state_0)))), _command_0)))));
 }
 
 function $edit$(_state_0, _partition_0, _lifetime_0) {
@@ -22934,7 +23928,7 @@ function $preparation_fact_time$(_delay_0, _index_0, _count_0) {
 }
 
 function $revalidate$(_state_0, _context_0) {
-  return $Driver$revalidate$(($canonical$(_state_0)), _context_0);
+  return $CollectionScenario$revalidated$(($Driver$revalidate$(($canonical$(_state_0)), _context_0)), ($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0);
 }
 
 function $clock$(_state_0) {
@@ -23845,9 +24839,10 @@ function $notice_followed$(_state_0, _followup_0) {
   const _sources_0 = _t_0["sources"];
   const _sharing_0 = _t_0["sharing"];
   const _cache_0 = _t_0["cache"];
+  const _collection_0 = _t_0["collection"];
   const _notices_0 = _followup_0["state"];
   const _events_0 = _followup_0["events"];
-  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0}}, "events": _events_0};
+  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0}}, "events": _events_0};
 }
 
 function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
@@ -23871,7 +24866,8 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
   const _sources_0 = _t_0["sources"];
   const _sharing_0 = _t_0["sharing"];
   const _cache_0 = _t_0["cache"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0}};
+  const _collection_0 = _t_0["collection"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0}};
 }
 
 function $notice_pruned$(_state_0, _key_0, _commands_0) {
@@ -23895,7 +24891,8 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   const _sources_0 = _t_0["sources"];
   const _sharing_0 = _t_0["sharing"];
   const _cache_0 = _t_0["cache"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0}};
+  const _collection_0 = _t_0["collection"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0}};
 }
 
 function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
@@ -24345,8 +25342,82 @@ function $configure_cache$(_state_0, _enabled_0, _entries_0, _bytes_0) {
   return $with_cache_runtime$(_state_0, ($CacheRuntime$configure$(($cache_runtime$(_state_0)), _enabled_0, _entries_0, _bytes_0)));
 }
 
-function $Nat$is_eq$(_a_0, _b_0) {
-  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
+function $collection_responses$(_state_0) {
+  return $CollectionScenario$contexts$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))));
+}
+
+function $collection_with$(_state_0, _collection_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$with_collection$(_scenarios_0, _collection_0))};
+}
+
+function $collection_changed$(_state_0, _change_0) {
+  const _collection_0 = _change_0["state"];
+  const _result_0 = _change_0["result"];
+  const _issued_0 = _change_0["issued"];
+  const _actions_0 = _change_0["actions"];
+  return {$: "ResponseTransition", "state": ($collection_with$(_state_0, _collection_0)), "result": {$: "ResponseResult", "result": _result_0, "issued": _issued_0}, "actions": _actions_0};
+}
+
+function $current_credential_generation$(_credentials_0) {
+  const _generation_0 = _credentials_0["generation"];
+  return _generation_0;
+}
+
+function $collection_response_open_at$(_valid_0, _state_0, _response_0) {
+  if (_valid_0) {
+    return $collection_changed$(_state_0, ($CollectionScenario$issue$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _response_0, ($current_credential_generation$(($credential_state$(_state_0)))), ($canonical$(_state_0)))));
+  } else {
+    return {$: "ResponseTransition", "state": _state_0, "result": {$: "ResponseResult", "result": {$: "CollectionScenario.WrongScope"}, "issued": {$: "None"}}, "actions": {$: "Nil"}};
+  }
+}
+
+function $collection_response_open$(_state_0, _response_0) {
+  return $collection_response_open_at$(($CollectionScenario$issuance_time$(_response_0, ($clock$(_state_0)))), _state_0, _response_0);
+}
+
+function $collection_response_close$(_state_0, _id_0, _p_0, _l_0, _r_0) {
+  return $collection_changed$(_state_0, ($CollectionScenario$close$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), {$: "CollectionScenario.Identity", "id": _id_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0})));
+}
+
+function $collection_response_attempt$(_state_0, _id_0, _p_0, _l_0, _r_0, _now_0, _current_block_0) {
+  return $collection_changed$(_state_0, ($CollectionScenario$attempt$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), {$: "CollectionScenario.Identity", "id": _id_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0}, ($canonical$(_state_0)), _now_0, _current_block_0, ($credential_state$(_state_0)))));
+}
+
+function $collection_response_after$(_state_0, _target_0, _event_0, _commands_0) {
+  return $collection_changed$(_state_0, ($CollectionScenario$after$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, _event_0, _commands_0, ($canonical$(_state_0)))));
+}
+
+function $collection_response_valid$(_state_0, _target_0, _now_0) {
+  return $CollectionScenario$valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)));
+}
+
+function $collection_response_automatic$(_state_0, _partition_0) {
+  return $CollectionScenario$automatic$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _partition_0);
+}
+
+function $collection_response_handle$(_state_0, _event_0, _command_0, _context_0, _target_0) {
+  return $CollectionScenario$handle_response$(($canonical$(_state_0)), _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, true)), _target_0);
+}
+
+function $collection_response_expire$(_state_0, _now_0) {
+  return $collection_changed$(_state_0, ($CollectionScenario$expire$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _now_0)));
+}
+
+function $collection_response_delivery_valid$(_state_0, _target_0, _now_0, _event_0) {
+  return $CollectionScenario$delivery_valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)), _event_0);
 }
 
 function $Bool$pick$(_c_0, _a_0, _b_0) {
@@ -24357,8 +25428,32 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
   }
 }
 
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Bool$and$(_a_0, _b_0) {
+  if (!_a_0) {
+    return false;
+  } else {
+    return _b_0;
+  }
+}
+
+function $Nat$is_eq$(_a_0, _b_0) {
+  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
+}
+
 function $Nat$is_gt$(_a_0, _b_0) {
   return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
 function $List$append$(_xs_0, _ys_0) {
@@ -24371,8 +25466,8 @@ function $List$append$(_xs_0, _ys_0) {
   }
 }
 
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+function $Nat$is_ge$(_a_0, _b_0) {
+  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
 }
 
 function $List$length$(_xs_0) {
@@ -24381,26 +25476,6 @@ function $List$length$(_xs_0) {
   } else {
     const _t_0 = _xs_0["tail"];
     return nat_chk(($List$length$(_t_0)) + 1);
-  }
-}
-
-function $Bool$and$(_a_0, _b_0) {
-  if (!_a_0) {
-    return false;
-  } else {
-    return _b_0;
-  }
-}
-
-function $Nat$is_ge$(_a_0, _b_0) {
-  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
-}
-
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -24496,8 +25571,21 @@ function $List$reverse$go$($0, $1) {
   }
 }
 
+function $0m1(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": BigInt(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:9e6c8ed86dc682b517675f534ab7b6dc29894b2625b07f02aa1dd4b46d34b586";
+
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6949a06c2864c8ca82d437a866df9158d379a2fe96e107b47dfa3ec5c033bad4";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -24513,6 +25601,15 @@ const facts = value => {
   return value;
 };
 export default {
+ collection_response_delivery_valid: (state,target,now,event) => run_loop($collection_response_delivery_valid$(state,facts(target),facts(now),facts(event))),
+ collection_response_open: (state,response) => run_loop($collection_response_open$(state,facts(response))),
+ collection_response_close: (state,id,p,l,r) => run_loop($collection_response_close$(state,facts(id),facts(p),facts(l),facts(r))),
+ collection_response_attempt: (state,id,p,l,r,now,block) => run_loop($collection_response_attempt$(state,facts(id),facts(p),facts(l),facts(r),facts(now),facts(block))),
+ collection_response_after: (state,target,event,commands) => run_loop($collection_response_after$(state,facts(target),facts(event),facts(commands))),
+ collection_response_valid: (state,target,now) => run_loop($collection_response_valid$(state,facts(target),facts(now))),
+ collection_response_handle: (state,event,command,context,target) => run_loop($collection_response_handle$(state,facts(event),facts(command),facts(context),facts(target))),
+ collection_response_expire: (state,now) => run_loop($collection_response_expire$(state,facts(now))),
+ collection_responses: state => run_loop($collection_responses$(state)),
  cache_begin: (before,state,event,commands) => run_loop($cache_begin$(before,state,facts(event),facts(commands))),
  cache_apply: (state,fact) => run_loop($cache_apply$(state,facts(fact))),
  cache_removed: (before,commands) => run_loop($cache_removed$(before,facts(commands))),

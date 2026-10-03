@@ -1,3 +1,4 @@
+import { type CollectionResponseControl, type CollectionResponseIdentity, type CollectionResponseReport } from "./collection-scenario.ts";
 import { decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
 export * from "./output-controls.ts";
 import type { SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
@@ -155,6 +156,7 @@ export type Observation = {
 };
 /** One synchronous viewing boundary; presentation never owns simulator state. */
 export type RunObservation = {
+  readonly collectionResponseReports: readonly CollectionResponseReport[];
   readonly callbackTargets: readonly CallbackTarget[];
   readonly callbackReports: readonly CallbackReport[];
   readonly outputReports: readonly OutputAttemptReport[];
@@ -215,6 +217,7 @@ export type Replay = {
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
+  responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl; readonly sequence: number };
   noticeScope?: ReturnType<typeof encodeNoticeScope>;
   noticeDiagnostic?: OperationalNoticeKind;
   callbackReceipt?: CallbackReceipt;
@@ -263,6 +266,7 @@ const defaults = {
 };
 /** Equal-time items follow insertion order; effects appended by a transition follow already queued items. */
 export class Run {
+  private collectionResponseReports: CollectionResponseReport[] = [];
   private core: SharedCore;
   private nextTool = 1;
   private resourceScenarios?: ResourceScenarios;
@@ -434,7 +438,12 @@ export class Run {
       this.generators.set(partition, this.core.session(partition, { ...settings, agent, seed }));
       this.scopes.push({ agent, partition, seed });
     });
-    if (!sessions.length) this.core.declareAdvicee(1, config.seed ?? 1);
+    if (!sessions.length) {
+      const seed = config.seed ?? 1;
+      const declared = this.core.declareAdvicee(1, seed);
+      // Publish the already issued headless advicee; it has no Background generator.
+      this.scopes.push({ agent: "agent-1", partition: declared.partition, seed });
+    }
     if (config.outcome !== undefined && config.outcomeWeights !== undefined) throw new TypeError("choose explicit outcome or outcome weights");
     this.outcome = config.outcome;
     this.outcomeWeights = validateOutcomeWeights(config.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS);
@@ -500,7 +509,7 @@ export class Run {
     return this.count;
   }
   observe(): RunObservation {
-    return freezeCanonicalData({ adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
+    return freezeCanonicalData({ collectionResponseReports: [...this.collectionResponseReports], adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
       projection: this.projection, observations: [...this.history],
       capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions, callbackTargets: this.callbackTargets, callbackReports: [...this.callbackReports], outputReports: [...this.outputReports], outputAttempts: this.outputAttempts });
   }
@@ -562,7 +571,17 @@ export class Run {
       throw new RangeError("unknown agent control target");
     if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
-    if (value.kind === "sharingMember") {
+    if (value.kind === "collectionResponse") {
+      const owner = this.scopes.find(scope => scope.agent === value.agent);
+      if (!owner) throw new RangeError("unknown response advicee");
+      const target = value.action === "open" ? value.response : value.target;
+      if (target.partition !== owner.partition) throw new TypeError("response does not belong to advicee");
+      const changed = this.core.responseControl(value,this.clock);
+      this.collectionResponseReports.push({ at: this.clock, controlSequence: this.timelineOrder,
+        control: value, result: changed.result, ...(changed.issued ? { issued: changed.issued } : {}) });
+      this.enqueueResponseActions(changed.actions,value.action === "attempt"
+        ? { target: value.target, control: value, sequence: this.timelineOrder } : undefined,target.partition);
+    } else if (value.kind === "sharingMember") {
       const owner = this.scopes.find(scope => scope.agent === value.agent)!;
       const partition = value.action === "leave" ? value.target.partition : value.partition;
       if (partition !== owner.partition) throw new TypeError("sharing target does not belong to advicee");
@@ -756,7 +775,7 @@ export class Run {
     const scoped = { ...item, partition: partition ?? 0 };
     const context = this.driverContext(event, scoped, outcome, job);
     if (partition !== undefined) { context.partition = partition; context.background = this.generators.has(partition); }
-    const handled = decodeDriver(this.core.handle(event, index, context));
+    const handled = decodeDriver(item.responseOrigin ? this.core.responseHandle(event,index,context,item.responseOrigin.target) : this.core.handle(event, index, context));
     if (!handled.handled) return { handled: false, outcome: undefined };
     for (const action of handled.actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event, partition);
@@ -764,6 +783,12 @@ export class Run {
         && (action.event.kind === "submissionTerminal" || action.event.kind === "submissionExpiryCheck")
         ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
       this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, "environment", output);
+      if (item.responseOrigin && action.event.kind !== "submissionTerminal" && action.event.kind !== "submissionExpiryCheck"
+        && action.event.kind !== "collectionLeaseCheck" && action.event.kind !== "collectionReleaseLease") {
+        const scheduled = this.scheduled.get(this.order - 1);
+        if (!scheduled) throw new Error("response action lost its original capture");
+        scheduled.responseOrigin = item.responseOrigin;
+      }
       if (action.candidate) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared driver action lost source facts");
@@ -797,6 +822,13 @@ export class Run {
     const item = this.queueShift();
     if (!item) return;
     const partition = this.inputPartition(item);
+    const expiredResponses = this.core.responseExpire(this.clock);
+    this.enqueueResponseActions(expiredResponses.actions,undefined,0);
+    if (item.responseOrigin && item.input.kind === "canonical" && !this.core.responseValid(item.responseOrigin.target,this.clock,item.input.event)) {
+      this.collectionResponseReports.push({ at: this.clock, controlSequence: item.responseOrigin.sequence,
+        control: item.responseOrigin.control, result: "missing" });
+      return this.step(untilTime);
+    }
     const session = this.generators.get(partition);
     if (item.activityScope !== undefined && (item.input.kind === "canonical" ? item.generated && !this.core.activityEventValid(item.input.event, partition, item.activityScope) : item.input.kind !== "preparationGraph" && !this.core.activityValid(partition, item.activityScope))) {
       return this.step(untilTime);
@@ -1478,6 +1510,10 @@ export class Run {
       if (round) emit({ kind: "quietRoundTick", partition: round.partition, lifetime: round.lifetime, round: round.id, now: this.clock,
         window: this.config.lifecycles.quietWindowMs, facts: { nativeWorkIdle: !this.jobs.size, adviceEmpty: !this.projection.work.some(f => f.partition === round.partition && f.kind === "pendingFinding"), handoffIdle: !this.projection.collection.claims.some(c => c.group === round.partition), stopAbsent: !this.finishes.has(round.partition) } });
     }
+    if (item.responseOrigin && !result.rejection) {
+      const changed = this.core.responseAfter(item.responseOrigin.target);
+      this.enqueueResponseActions(changed.actions,item.responseOrigin,partition);
+    }
     const observation: Observation = {
       ...(item.callbackReceipt ? { callbackReceipt: item.callbackReceipt } : {}),
       ...(item.noticeDiagnostic ? { noticeDiagnostic: item.noticeDiagnostic } : {}),
@@ -1503,6 +1539,16 @@ export class Run {
       capacityMetadata: this.capacityMetadata,
     };
     return this.record(observation);
+  }
+  private enqueueResponseActions(actions: unknown, origin: Scheduled["responseOrigin"], fallback: number): void {
+    for (const action of decodeDriver({ handled: true, actions }).actions) {
+      const owner = action.candidate?.partition ?? this.core.eventScope(action.event,fallback) ?? fallback;
+      this.event(owner,action.event,action.delay,undefined,action.expiryAdvice);
+      const item = this.scheduled.get(this.order - 1);
+      if (!item) throw new Error("response action lost its issued queue entry");
+      if (origin) item.responseOrigin = origin;
+      if (action.candidate) item.candidate = action.candidate;
+    }
   }
   private agentName(partition: number): string {
     return this.scopes.find(scope => scope.partition === partition)?.agent ?? `agent-${partition}`;

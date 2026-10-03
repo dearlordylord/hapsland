@@ -3,7 +3,17 @@ export declare const SOURCE_IDENTITY: string;
 export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown; opening: unknown; retiring: unknown; lifecycles: unknown; preparations: unknown; activity_scopes: unknown }
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
+export interface ResponseTransition { $: "ResponseTransition"; state: EngineState; result: unknown; actions: unknown }
 declare const Engine: {
+ collection_response_delivery_valid(state:EngineState,target:unknown,now:bigint,event:unknown):unknown;
+ collection_response_open(state:EngineState,response:unknown):ResponseTransition;
+ collection_response_close(state:EngineState,id:bigint,p:bigint,l:bigint,r:bigint):ResponseTransition;
+ collection_response_attempt(state:EngineState,id:bigint,p:bigint,l:bigint,r:bigint,now:bigint,block:boolean):ResponseTransition;
+ collection_response_after(state:EngineState,target:unknown,event:unknown,commands:unknown):ResponseTransition;
+ collection_response_valid(state:EngineState,target:unknown,now:bigint):unknown;
+ collection_response_handle(state:EngineState,event:unknown,command:unknown,context:unknown,target:unknown):unknown;
+ collection_response_expire(state:EngineState,now:bigint):ResponseTransition;
+ collection_responses(state:EngineState):unknown;
  cache_begin(before: EngineState,state: EngineState,event: unknown,commands: unknown): {state:EngineState;facts:unknown;releases:unknown};
  cache_apply(state: EngineState,fact: unknown): {state:EngineState;event:unknown;result:unknown;facts:unknown;releases:unknown;valid:unknown};
  cache_removed(before: EngineState,commands: unknown): unknown;
