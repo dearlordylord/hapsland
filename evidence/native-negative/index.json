@@ -392,5 +392,37 @@
   },
   "sourceRetained": false,
   "providerBodiesRetained": false,
-  "credentialsRetained": false
+  "credentialsRetained": false,
+  "installedPiNativeCells": {
+    "recordedAt": "2026-10-03",
+    "runtime": "Pi",
+    "version": "1.0.0",
+    "platform": "linux-arm64",
+    "reviewer": "controlled-offline",
+    "agentModel": "openai-codex/gpt-6-luna",
+    "selectedJevRequests": 0,
+    "primary": [
+      {
+        "file": "pi-typescript-reviewer-unavailable-controlled-offline-1791006394501.json",
+        "declaration": "pi-typescript-reviewer-unavailable-controlled-offline-1791006394501-declaration.json",
+        "scenario": "reviewer-unavailable",
+        "verdict": "demonstrated",
+        "providerCalls": 0
+      },
+      {
+        "file": "pi-typescript-unicode-edit-controlled-offline-1791006345293.json",
+        "declaration": "pi-typescript-unicode-edit-controlled-offline-1791006345293-declaration.json",
+        "scenario": "unicode-edit",
+        "verdict": "demonstrated",
+        "providerCalls": 0
+      },
+      {
+        "file": "pi-typescript-unsupported-write-controlled-offline-1791006345275.json",
+        "declaration": "pi-typescript-unsupported-write-controlled-offline-1791006345275-declaration.json",
+        "scenario": "unsupported-write",
+        "verdict": "demonstrated",
+        "providerCalls": 0
+      }
+    ]
+  }
 }

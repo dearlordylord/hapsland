@@ -255,5 +255,37 @@
       ]
     },
     "providerCalls": 0
+  },
+  "installedPiNativeProfile": {
+    "recordedAt": "2026-10-03",
+    "runtime": "Pi",
+    "version": "1.0.0",
+    "platform": "linux-arm64",
+    "mode": "print-json-no-session",
+    "reviewer": "controlled-offline",
+    "agentProvider": "openai-codex",
+    "agentModel": "gpt-6-luna",
+    "primary": {
+      "file": "pi-typescript-adoption-controlled-offline-1791006337959.json",
+      "declaration": "pi-typescript-adoption-controlled-offline-1791006337959-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0
+    },
+    "earlierAttempts": [
+      {
+        "file": "pi-typescript-adoption-controlled-offline-1791006215299.json",
+        "declaration": "pi-typescript-adoption-controlled-offline-1791006215299-declaration.json",
+        "verdict": "incomplete",
+        "providerCalls": 0,
+        "reason": "Initial settlement preview mistaken for final native continuation permission; no model-visible advice or repair."
+      }
+    ],
+    "limits": [
+      "Synthetic TypeScript native edit only",
+      "Exact locally packed package checksum in each record",
+      "Global isolated extension trust; interactive project trust unvalidated",
+      "Native write and Unicode refusal tracked separately",
+      "No live Jev request or registry publication claim"
+    ]
   }
 }

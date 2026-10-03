@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-03T05:46:58.484Z",
+  "runtime": "Pi",
+  "version": "1.0.0",
+  "language": "typescript",
+  "scenario": "reviewer-unavailable",
+  "mode": "controlled-offline",
+  "declaration": {
+    "maximumProviderRequests": 0,
+    "reviewer": "controlled-offline",
+    "agentModelAuthenticated": true,
+    "model": {
+      "provider": "openai-codex",
+      "model": "gpt-6-luna"
+    },
+    "maximumSourceEditCalls": 1,
+    "hostCeilingMs": 240000,
+    "automaticHostRetries": 0,
+    "syntheticRepositoryOnly": true,
+    "runtimeVersion": "1.0.0",
+    "executionMode": "print-json-no-session",
+    "trust": "isolated global agent extension; no project-local files approved",
+    "packageInstallation": "production npm tarball with lifecycle scripts disabled",
+    "ordinaryProfileChanged": false
+  },
+  "executionProfile": {
+    "runtime": "installed-package",
+    "installedPackageValidated": true,
+    "normalTrustValidated": false,
+    "syntheticRepositoryOnly": true
+  },
+  "package": {
+    "name": "@hapsland/hapsland",
+    "version": "0.1.0",
+    "tarballSha256": "b5d5592c17979e9faf9c057033597dbdbd33cbd90c421ca2ae700303fdcc710f"
+  },
+  "runnerHash": "bdd2a5c7d8f9c13ab70ee3e2b0a0265d12792e21e8996f2b66b47bd17bd36de0",
+  "piProfileHash": "8fbeea2bd8b0c44abba7eeda19765f69876d4a9f70072cd7c8e334be426aa79a",
+  "assertionHelperHash": "48630c1cd8b023fff276d58a91e2b845cdc6cc404362550ab1d91145fee20396",
+  "sourceWorktreeDirty": true,
+  "commit": "7d194bf123d32621f66468ea0433b2b31495445f",
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 24005,
+  "providerCalls": 0,
+  "agentProvider": {
+    "provider": "openai-codex",
+    "model": "gpt-6-luna"
+  },
+  "events": [
+    {
+      "kind": "provider-request",
+      "finding": false,
+      "atMs": 11464
+    },
+    {
+      "kind": "hapsland-response",
+      "status": "registered",
+      "findingCount": 0,
+      "continued": false,
+      "atMs": 16050
+    },
+    {
+      "kind": "hapsland-response",
+      "status": "empty",
+      "findingCount": 0,
+      "continued": false,
+      "atMs": 16706
+    },
+    {
+      "kind": "tool-result",
+      "tool": "edit",
+      "toolUseHash": "bd965ced6542fd9d8e2cd85096acec0b550b9fc98fd067ba65ff5518a68797ed",
+      "isError": false,
+      "finding": false,
+      "initial": true,
+      "final": false,
+      "patchPresent": true,
+      "pathMatches": true,
+      "replacementsMatchCurrent": true,
+      "unsupported": false,
+      "atMs": 16718
+    },
+    {
+      "kind": "provider-request",
+      "finding": false,
+      "atMs": 16723
+    },
+    {
+      "kind": "tool-result",
+      "tool": "bash",
+      "toolUseHash": "0aed2c325e4471dd304e1f3d3fc8de685e4eb10ec29700f3874ff1d88cad46c1",
+      "isError": false,
+      "finding": false,
+      "initial": true,
+      "final": false,
+      "patchPresent": false,
+      "pathMatches": false,
+      "replacementsMatchCurrent": false,
+      "unsupported": false,
+      "atMs": 18213
+    },
+    {
+      "kind": "provider-request",
+      "finding": false,
+      "atMs": 18215
+    },
+    {
+      "kind": "hapsland-response",
+      "status": "empty",
+      "findingCount": 0,
+      "continued": false,
+      "atMs": 19746
+    },
+    {
+      "kind": "before-settle",
+      "finding": false,
+      "continued": false,
+      "canContinue": false,
+      "atMs": 19756
+    },
+    {
+      "kind": "hapsland-response",
+      "status": "closed",
+      "findingCount": 0,
+      "continued": false,
+      "atMs": 20100
+    },
+    {
+      "kind": "settled",
+      "atMs": 20114
+    },
+    {
+      "kind": "hapsland-response",
+      "status": "closed",
+      "findingCount": 0,
+      "continued": false,
+      "atMs": 20451
+    },
+    {
+      "kind": "native-message",
+      "role": "system",
+      "finding": false,
+      "atMs": null
+    },
+    {
+      "kind": "native-message",
+      "role": "user",
+      "finding": false,
+      "atMs": null
+    },
+    {
+      "kind": "native-message",
+      "role": "assistant",
+      "finding": false,
+      "atMs": null
+    },
+    {
+      "kind": "native-message",
+      "role": "toolResult",
+      "finding": false,
+      "atMs": null
+    },
+    {
+      "kind": "native-message",
+      "role": "assistant",
+      "finding": false,
+      "atMs": null
+    },
+    {
+      "kind": "native-message",
+      "role": "toolResult",
+      "finding": false,
+      "atMs": null
+    },
+    {
+      "kind": "native-message",
+      "role": "assistant",
+      "finding": false,
+      "atMs": null
+    }
+  ],
+  "requestShapes": [
+    {
+      "rootKind": "interface",
+      "conditionalFindingSourceMatched": true,
+      "evidenceNodes": 2,
+      "expandedEdges": 2,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "outcomeSummaries": [],
+  "checks": {
+    "installedSetupReady": true,
+    "nativeMutationObserved": true,
+    "noActionableAdvice": true,
+    "sourceLeftAtDraft": true,
+    "reviewAttempted": true,
+    "noJevRequestAttempt": true,
+    "nativeAgentResponseObserved": true
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 59787,
+  "verdict": "demonstrated"
+}
