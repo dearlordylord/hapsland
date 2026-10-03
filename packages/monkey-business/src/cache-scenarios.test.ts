@@ -47,14 +47,6 @@ it.each([7,31,101,997])("bounded pressure campaign preserves actual owners and r
 // ABI gate. These assertions do not claim credential/configuration generation
 // changes are represented by merely changing the public evaluationInputs label.
 
-it("uses the changed production reuse namespace after credential rotate, with stable semantic input",()=>{
- const run=start([edit("same-prepared-source",0)]);
- expect(run.advance({maxEvents:1000}).reason).toBe("idle");const original={...run.projection.reuse.cache[0]!};
- run.applyControl({kind:"credentials",action:"rotate"});run.schedule(edit("same-prepared-source",run.now+10));
- expect(run.advance({maxEvents:1000}).reason).toBe("idle");expect(issued(run)).toHaveLength(2);owners(run);
- const retained=run.projection.reuse.cache.find(entry=>entry.id===original.id);if(retained)expect(retained).toEqual(original);
- replay(run);
-});
 it("requires genuine advicee removal to free that owner's cached payload without consuming another owner's result",()=>{
  const run=start([edit("same",0,"a"),edit("same",0,"b")],8,128*1024,
  {sessions:[{agent:"a",seed:11,editIntervalMs:1000,variationMs:0,editsPerTask:100,taskPauseMs:1000},{agent:"b",seed:12,editIntervalMs:1000,variationMs:0,editsPerTask:100,taskPauseMs:1000}]});
@@ -62,11 +54,6 @@ it("requires genuine advicee removal to free that owner's cached payload without
  run.applyControl({kind:"adviceeLifecycle",agent:"a",action:"remove"});run.advance({untilTime:10,maxEvents:1000});
  expect(run.projection.reuse.cache).toEqual([healthy]);expect(run.projection.global).toEqual({items:1,bytes:5});owners(run);replay(run);
 });
-// Contract: docs/review-contract-compatibility.md:46–53 owns semantic matching
-// and current-source reuse. Production src/resident/server.ts:1693–1695 scopes
-// residentReuse.key to advicee partition + original work id + captured credential
-// generation; evaluation-reuse.ts:12–15 pairs that namespace with prepared.identity.
-// Rotation changes this existing reuse namespace, not the semantic content hash
-// (src/direct-event/model.ts:231–233), and does not command cache invalidation.
-// The same-source rotate case is TDD for carrying that captured production scope
-// through #188/#189. A bare logical-partition + semantic-input label is insufficient.
+// Explicit SameNamespaceHit/ChangedWorkMiss and controlled/authenticated capture
+// fixtures live in cache-namespace.test.ts. A credentials rotate control alone
+// does not establish the production dispatch credential capture or work cohort.
