@@ -1398,8 +1398,6 @@ def stop_command(+state: Types.State, event: Canonical.CanonicalEvent, command: 
     +context: Driver.Context, facts: StopScenario.CommandFacts) -> StopHandled:
   stop_command_valid(stop_active(state,collector_partition(context)),state,event,command,context,facts)
 
-def collection_response_delivery_valid(+state: Types.State, target: CollectionScenario.Identity, now: Nat, event: Canonical.CanonicalEvent) -> Bool:
-  CollectionScenario.delivery_valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state),event)
 
 # Sample expiry facts before ordinary collection; returned events still pass
 # through the same Canonical step and notice feedback as every other event.
