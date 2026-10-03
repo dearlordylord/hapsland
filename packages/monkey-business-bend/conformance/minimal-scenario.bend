@@ -93,17 +93,30 @@ def lifetime(config: Config) -> Nat:
   match config:
     case Config{_, _, _, _, _, value}: value
 
+def issued(issued: Engine.IssuedActions, queue: Queue, now: Nat) -> Types.State & Queue:
+  match issued:
+    case Engine.IssuedActions{state, actions}: (state, enqueue(actions, queue, now))
+
+def handled_state(result: Driver.Handled, state: Types.State, queue: Queue, now: Nat) -> Types.State & Queue:
+  match result:
+    case Driver.Handled{_, actions}: issued(Engine.issue_actions(state, actions), queue, now)
+
 def command(queue: Queue, +now: Nat, +state: Types.State, +event: Canonical.CanonicalEvent,
-    command: Canonical.Command, +ctx: Driver.Context) -> Queue:
+    command: Canonical.Command, +ctx: Driver.Context) -> Types.State & Queue:
   match command:
-    case Canonical.Prepare{operation, _}: graph_facts(queue, now, operation, context_lifetime(ctx))
-    case command: handled(queue, now, Engine.handle(state, event, command, ctx))
+    case Canonical.Prepare{operation, _}: (state, graph_facts(queue, now, operation, context_lifetime(ctx)))
+    case command: handled_state(Engine.handle(state, event, command, ctx), state, queue, now)
+
+def commands_next(pair: Types.State & Queue,
+    ih: Types.State -> Queue -> Types.State & Queue) -> Types.State & Queue:
+  match pair:
+    case (state, queue): ih(state, queue)
 
 def commands(list: List<&2, Canonical.Command>, queue: Queue, +now: Nat, +state: Types.State, +event: Canonical.CanonicalEvent,
-    +ctx: Driver.Context) -> Queue:
+    +ctx: Driver.Context) -> Types.State & Queue:
   match list:
-    case Nil{}: queue
-    case head <> tail: commands(tail, command(queue, now, state, event, head, ctx), now, state, event, ctx)
+    case Nil{}: (state, queue)
+    case head <> tail: commands_next(command(queue, now, state, event, head, ctx), next => q => commands(tail, q, now, next, event, ctx))
 
 def event_code(event: Canonical.CanonicalEvent) -> Nat:
   match event:
@@ -309,15 +322,22 @@ def boundary_control(event: Canonical.CanonicalEvent, queue: Queue, state: Types
     case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: control_if(controlled(config), queue, state, context, now)
     case _: queue
 
+def canonical_driven(pair: Types.State & Queue, before: Types.State, +action: Driver.Action,
+    +now: Nat, +config: Config, list: List<&2, Canonical.Command>,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match pair action:
+    case (+state, q) Driver.Action{+event, +delay, +candidate, +job, +expiry}:
+      +q = enqueue(Engine.after(before, state, event), q, now)
+      +q = boundary_control(event, q, state, config, context(Driver.Action{event, delay, candidate, job, expiry}, config, now), now)
+      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), 0n <> command_codes(list))))) <> ih((state, q))
+
 def canonical_result(transition: Engine.Transition, +before: Types.State,
     +action: Driver.Action, queue: Queue, +now: Nat, +config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match transition action:
     case Engine.Transition{+state, Canonical.Advanced{_, +list}} Driver.Action{+event, +delay, +candidate, +job, +expiry}:
-      +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, config, now))
-      +q = enqueue(Engine.after(before, state, event), q, now)
-      +q = boundary_control(event, q, state, config, context(Driver.Action{event, delay, candidate, job, expiry}, config, now), now)
-      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), 0n <> command_codes(list))))) <> ih((state, q))
+      canonical_driven(commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, config, now)),
+        before, Driver.Action{event, delay, candidate, job, expiry}, now, config, list, ih)
     case Engine.Transition{+state, Canonical.Rejected{_, _}} Driver.Action{+event, _, _, _, _}:
       (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), [1n])))) <>
         ih((state, enqueue(Engine.after(before, state, event), queue, now)))

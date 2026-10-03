@@ -23,12 +23,16 @@ type Advance is Data:
 def config() -> Minimal.Config:
   Minimal.Config{Canonical.RequestFinding{},True{},True{},True{},True{},1n}
 
+def advanced(pair: Types.State & Minimal.Queue, before: Types.State, +event: Canonical.CanonicalEvent,
+    +now: Nat, commands: List<&2,Canonical.Command>) -> NativeStep:
+  match pair:
+    case (+state,q):
+      NativeStep{state,Minimal.enqueue(Engine.after(before,state,event),q,now),[(Minimal.event_code(event) <> now <> List.append(&2,Nat,Minimal.event_identity(event),List.append(&2,Nat,Minimal.event_facts(event),List.append(&2,Nat,Minimal.state_counts(state),0n <> Minimal.command_codes(commands)))))]}
+
 def transition(transition: Engine.Transition, +before: Types.State, action: Driver.Action, queue: Minimal.Queue, +now: Nat) -> NativeStep:
   match transition action:
     case Engine.Transition{+state,Canonical.Advanced{_,+commands}} Driver.Action{+event,+delay,+candidate,+job,+expiry}:
-      +q = Minimal.commands(commands,queue,now,state,event,Minimal.context(Driver.Action{event,delay,candidate,job,expiry},config(),now))
-      +q = Minimal.enqueue(Engine.after(before,state,event),q,now)
-      NativeStep{state,q,[(Minimal.event_code(event) <> now <> List.append(&2,Nat,Minimal.event_identity(event),List.append(&2,Nat,Minimal.event_facts(event),List.append(&2,Nat,Minimal.state_counts(state),0n <> Minimal.command_codes(commands)))))]}
+      advanced(Minimal.commands(commands,queue,now,state,event,Minimal.context(Driver.Action{event,delay,candidate,job,expiry},config(),now)),before,event,now,commands)
     case Engine.Transition{+state,Canonical.Rejected{_,_}} Driver.Action{+event,_,_,_,_}:
       NativeStep{state,Minimal.enqueue(Engine.after(before,state,event),queue,now),[(Minimal.event_code(event) <> now <> List.append(&2,Nat,Minimal.event_identity(event),List.append(&2,Nat,Minimal.event_facts(event),List.append(&2,Nat,Minimal.state_counts(state),[1n]))))]}
 
