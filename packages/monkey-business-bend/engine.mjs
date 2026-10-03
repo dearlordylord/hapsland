@@ -17608,6 +17608,37 @@ function $SharingRuntime$terminal_found$(_state_0, _scope_0, _physical_0, _outco
   }
 }
 
+function $SharingRuntime$unavailable_command$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.JevRequestUnavailable") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $SharingRuntime$unavailable_binding$(_state_0, _scope_0, _commands_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return _state_0;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _evaluation_0 = _t_0["evaluation"];
+    const _bytes_0 = _t_0["bytes"];
+    return $Bool$pick$(($SharingRuntime$unavailable_command$(_commands_0)), ($SharingRuntime$result_record$(_state_0, _evaluation_0, {$: "Canonical.NeverSent"}, _scope_0, _bytes_0)), _state_0);
+  }
+}
+
 function $SharingRuntime$terminal$(_state_0, _event_0, _commands_0) {
   if (_event_0.$ === "Canonical.JevRequestSettled") {
     const _p_0 = _event_0["partition"];
@@ -17617,6 +17648,12 @@ function $SharingRuntime$terminal$(_state_0, _event_0, _commands_0) {
     const _request_0 = _event_0["request"];
     const _outcome_0 = _event_0["outcome"];
     return $SharingRuntime$terminal_found$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, _commands_0, ($SharingRuntime$lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    return $SharingRuntime$unavailable_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, _commands_0, ($SharingRuntime$lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})));
   } else {
     return _state_0;
   }
@@ -18226,17 +18263,96 @@ function $SharingRuntime$terminal_members$(_canonical_0, _freshness_0, _before_0
   }
 }
 
+function $SharingRuntime$unavailable_release$(_evaluation_0, _outcome_0) {
+  if (_outcome_0.$ === "Canonical.RequestFinding") {
+    return {$: "Nil"};
+  } else if (_outcome_0.$ === "Canonical.RequestClear") {
+    return {$: "Nil"};
+  } else {
+    return {$: "Con", "head": {$: "Canonical.ReuseRelease", "id": _evaluation_0}, "tail": {$: "Nil"}};
+  }
+}
+
 function $SharingRuntime$postprocess_binding$(_before_0, _after_0, _canonical_0, _freshness_0, _physical_0, _outcome_0, _binding_0) {
   if (_binding_0.$ === "None") {
     return {$: "Nil"};
   } else {
     const _t_0 = _binding_0["value"];
     const _evaluation_0 = _t_0["evaluation"];
-    return $Bool$pick$(($SharingRuntime$physical_consumed$(($SharingScenario$lookup$(($SharingRuntime$sharing$(_before_0)), _evaluation_0)), ($SharingScenario$lookup$(($SharingRuntime$sharing$(_after_0)), _evaluation_0)), _physical_0)), ($SharingRuntime$terminal_members$(_canonical_0, _freshness_0, ($SharingScenario$lookup$(($SharingRuntime$sharing$(_before_0)), _evaluation_0)), ($SharingScenario$lookup$(($SharingRuntime$sharing$(_after_0)), _evaluation_0)), _outcome_0)), {$: "Nil"});
+    return $Bool$pick$(($SharingRuntime$physical_consumed$(($SharingScenario$lookup$(($SharingRuntime$sharing$(_before_0)), _evaluation_0)), ($SharingScenario$lookup$(($SharingRuntime$sharing$(_after_0)), _evaluation_0)), _physical_0)), ($List$append$(($SharingRuntime$terminal_members$(_canonical_0, _freshness_0, ($SharingScenario$lookup$(($SharingRuntime$sharing$(_before_0)), _evaluation_0)), ($SharingScenario$lookup$(($SharingRuntime$sharing$(_after_0)), _evaluation_0)), _outcome_0)), ($SharingRuntime$unavailable_release$(_evaluation_0, _outcome_0)))), {$: "Nil"});
   }
 }
 
-function $SharingRuntime$postprocess$(_before_0, _after_0, _canonical_0, _freshness_0, _event_0) {
+function $SharingRuntime$never_sent$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    if (_t_0.$ === "Canonical.NeverSent") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $SharingRuntime$reviewing_removed$(_before_0, _after_0) {
+  if (_before_0.$ === "Some") {
+    const _t_0 = _before_0["value"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Reviewing") {
+      if (_after_0.$ === "None") {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $SharingRuntime$work_at$(_canonical_0, _scope_0) {
+  const _work_0 = _canonical_0["work"];
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  const _o_0 = _scope_0["operation"];
+  return $$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, _l_0, _r_0, _o_0, _work_0);
+}
+
+function $SharingRuntime$unissued$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["physical"];
+    if (_t_1.$ === "None") {
+      const _t_2 = _t_0["advice"];
+      if (_t_2.$ === "None") {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $SharingRuntime$unavailable_postprocess$(_before_0, _after_0, _previous_0, _canonical_0, _freshness_0, _scope_0, _binding_0) {
+  if (_binding_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _binding_0["value"];
+    const _evaluation_0 = _t_0["evaluation"];
+    return $Bool$pick$(($Bool$and$(($Bool$and$(($SharingRuntime$reviewing_removed$(($SharingRuntime$work_at$(_previous_0, _scope_0)), ($SharingRuntime$work_at$(_canonical_0, _scope_0)))), ($SharingRuntime$unissued$(($SharingScenario$lookup$(($SharingRuntime$sharing$(_before_0)), _evaluation_0)))))), ($SharingRuntime$never_sent$(($SharingRuntime$result$(_after_0, _evaluation_0)))))), ($List$append$(($SharingRuntime$terminal_members$(_canonical_0, _freshness_0, ($SharingScenario$lookup$(($SharingRuntime$sharing$(_before_0)), _evaluation_0)), ($SharingScenario$lookup$(($SharingRuntime$sharing$(_after_0)), _evaluation_0)), {$: "Canonical.NeverSent"})), {$: "Con", "head": {$: "Canonical.ReuseRelease", "id": _evaluation_0}, "tail": {$: "Nil"}})), {$: "Nil"});
+  }
+}
+
+function $SharingRuntime$postprocess$(_before_0, _after_0, _previous_0, _canonical_0, _freshness_0, _event_0) {
   if (_event_0.$ === "Canonical.JevRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
@@ -18245,6 +18361,12 @@ function $SharingRuntime$postprocess$(_before_0, _after_0, _canonical_0, _freshn
     const _request_0 = _event_0["request"];
     const _outcome_0 = _event_0["outcome"];
     return $SharingRuntime$postprocess_binding$(_before_0, _after_0, _canonical_0, _freshness_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, ($SharingRuntime$lookup_binding$(_before_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    return $SharingRuntime$unavailable_postprocess$(_before_0, _after_0, _previous_0, _canonical_0, _freshness_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, ($SharingRuntime$lookup_binding$(_before_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})));
   } else {
     return {$: "Nil"};
   }
@@ -26712,7 +26834,7 @@ function $after$(_before_0, _state_0, _event_0) {
   const _previous_0 = _before_0["canonical"];
   const _captures_0 = _before_0["preparations"];
   const _scenarios_0 = _before_0["scenarios"];
-  return $List$append$(($sharing_actions$(($SharingRuntime$postprocess$(($RuntimeScenarios$sharing$(_scenarios_0)), ($sharing_runtime$(_state_0)), ($canonical$(_state_0)), ($freshness_state$(_state_0)), _event_0)))), ($List$append$(($WriterScenario$departure_actions$(($WriterScenario$retired$(($RuntimeScenarios$writers$(_scenarios_0)), _previous_0, ($canonical$(_state_0)), _event_0)), ($RuntimeScenarios$collection$(_scenarios_0)))), ($List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($AdviceeLifecycleCleanup$preparation_actions$(_captures_0, ($preparation_running$(_previous_0)), _event_0)))))));
+  return $List$append$(($sharing_actions$(($SharingRuntime$postprocess$(($RuntimeScenarios$sharing$(_scenarios_0)), ($sharing_runtime$(_state_0)), _previous_0, ($canonical$(_state_0)), ($freshness_state$(_state_0)), _event_0)))), ($List$append$(($WriterScenario$departure_actions$(($WriterScenario$retired$(($RuntimeScenarios$writers$(_scenarios_0)), _previous_0, ($canonical$(_state_0)), _event_0)), ($RuntimeScenarios$collection$(_scenarios_0)))), ($List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($AdviceeLifecycleCleanup$preparation_actions$(_captures_0, ($preparation_running$(_previous_0)), _event_0)))))));
 }
 
 function $enqueue$(_state_0, _at_0, _order_0) {
@@ -28160,7 +28282,7 @@ function $cache_begin_current$(_state_0, _offer_0, _binding_0, _allowed_0) {
   if (_allowed_0) {
     return $cache_published$(_state_0, ($CacheRuntime$begin_configured$(($cache_runtime$(_state_0)), _offer_0, _binding_0)));
   } else {
-    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": ($CacheRuntime$terminal_claim$(_offer_0))};
   }
 }
 
@@ -28169,22 +28291,30 @@ function $cache_begin_captured$(_before_0, _state_0, _offer_0, _source_0) {
     const _binding_0 = _source_0["value"];
     return $cache_begin_current$(_state_0, _offer_0, _binding_0, ($CacheRuntime$current_found$(($FreshnessScenario$current_binding$(($canonical$(_before_0)), {$: "Some", "value": _binding_0})))));
   } else {
-    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": ($CacheRuntime$terminal_claim$(_offer_0))};
   }
 }
 
-function $cache_begin_offer$(_before_0, _state_0, _offer_0) {
+function $cache_begin_eligible$(_before_0, _state_0, _offer_0, _eligible_0) {
+  if (_eligible_0) {
+    return $cache_begin_captured$(_before_0, _state_0, _offer_0, ($FreshnessScenario$lookup$(($FreshnessScenario$bindings$(($freshness_state$(_before_0)))), ($CacheScenario$original$(_offer_0)))));
+  } else {
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": ($CacheRuntime$terminal_claim$(_offer_0))};
+  }
+}
+
+function $cache_begin_offer$(_before_0, _state_0, _offer_0, _eligible_0) {
   if (_offer_0.$ === "None") {
     return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
   } else {
     const _offer_1 = _offer_0["value"];
-    return $cache_begin_captured$(_before_0, _state_0, _offer_1, ($FreshnessScenario$lookup$(($FreshnessScenario$bindings$(($freshness_state$(_before_0)))), ($CacheScenario$original$(_offer_1)))));
+    return $cache_begin_eligible$(_before_0, _state_0, _offer_1, _eligible_0);
   }
 }
 
-function $cache_begin_checked$(_before_0, _state_0, _event_0, _allowed_0) {
+function $cache_begin_checked$(_before_0, _state_0, _event_0, _allowed_0, _eligible_0) {
   if (_allowed_0) {
-    return $cache_begin_offer$(_before_0, _state_0, ($SharingRuntime$cache_offer$(($sharing_runtime$(_state_0)), _event_0)));
+    return $cache_begin_offer$(_before_0, _state_0, ($SharingRuntime$cache_offer$(($sharing_runtime$(_state_0)), _event_0)), _eligible_0);
   } else {
     return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
   }
@@ -28212,7 +28342,7 @@ function $cache_original_request$(_state_0, _event_0) {
 }
 
 function $cache_begin$(_before_0, _state_0, _event_0, _commands_0) {
-  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($Bool$and$(($recorded_cache_result$(_commands_0)), ($cache_original_request$(($canonical$(_before_0)), _event_0)))));
+  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($Bool$and$(($SharingRuntime$original_consumed$(_commands_0)), ($cache_original_request$(($canonical$(_before_0)), _event_0)))), ($recorded_cache_result$(_commands_0)));
 }
 
 function $cache_removed_result$(_feedback_0) {
@@ -28916,7 +29046,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:3c48d78977f6df7b172e888fb42341f73e7647ef8b3c614e9397730c2566f5f4";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4c4af362bd4c57e958bab629128b8f1bdd175d799e5b66eb9f5a4c626d363d7d";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
