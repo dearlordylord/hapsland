@@ -81,6 +81,7 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   // bridge key and its predecessor metadata from earlier transitions.
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
   const cacheFacts: readonly SharedCacheFact[] = [];
+  const writerReleases=departureFacts.map(fact=>writerReleaseFact(state,encodeSharedValue(fact.capture),fact.event));
   return { state: transition.state, result, afterActions, cacheReleases, cacheFacts, writerReleases, structural: transition, structuralSource: undefined };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
