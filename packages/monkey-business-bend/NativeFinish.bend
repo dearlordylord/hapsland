@@ -1,6 +1,7 @@
 import Base
 import ./NativeRunTypes.bend as T
 import ./Driver.bend as Driver
+import ./StopScenario.bend as StopScenario
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/CollectionState.bend as CollectionState
 import ../agent-flow-bend/DeliveryState.bend as DeliveryState
@@ -55,7 +56,7 @@ def validation_count(finish: T.Finish) -> Nat:
 def poll(finish: T.Finish, +now: Nat, +delay: Nat) -> Driver.Action:
   match finish:
     case T.Finish{p, l, r, _, _, deadline, _, _, _, _}:
-      Driver.Action{Canonical.StopPolled{p, l, r, Nat.is_le(deadline, Nat.add(now, delay))}, delay, None{}, False{}, None{}}
+      Driver.Action{StopScenario.cutoff_poll(p,l,r,deadline,Nat.add(now,delay)), delay, None{}, False{}, None{}}
 
 def counter(state: Canonical.State, p: Nat, r: Nat) -> Nat:
   match state:
@@ -80,8 +81,8 @@ def ended(finish: T.Finish) -> Driver.Action:
 def consumed(finish: T.Finish) -> List<&2, Driver.Action>:
   match finish:
     case T.Finish{+p, _, +r, attempt, token, _, _, _, _, _}:
-      [Driver.immediate(Canonical.ContinuationConsume{p, r}, False{}),
-       Driver.immediate(Canonical.FinishEnd{p, r, attempt, token}, False{})]
+      # DeliveryState.reserve already charged this exact continuation.
+      [Driver.immediate(Canonical.FinishEnd{p, r, attempt, token}, False{})]
 
 def pending(work: Canonical.Work, p: Nat, r: Nat) -> Maybe<&2, Nat>:
   match work:

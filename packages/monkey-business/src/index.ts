@@ -1,3 +1,4 @@
+import { wakeStopFacts } from "./stop-codec.ts";
 import { type CollectionResponseControl, type CollectionResponseIdentity, type CollectionResponseReport } from "./collection-scenario.ts";
 import { initialOutputActions, decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
 export * from "./output-controls.ts";
@@ -247,6 +248,7 @@ const integer = (n: number, name: string) => {
 const copy = <T>(x: T): T => structuredClone(x);
 const restoreEndpoint = Symbol("restore replay endpoint");
 type Finish = {
+  started: number;
   lifetime: number;
   round: number;
   attempt: number;
@@ -875,6 +877,7 @@ export class Run {
         if (scope && round && !this.finishes.get(partition)) {
           const identity = this.nextFinishIdentity++;
           this.finishes.set(partition, {
+            started: this.clock,
             lifetime: scope.lifetime,
             round,
             attempt: identity,
@@ -1396,11 +1399,7 @@ export class Run {
         case "finishRecorded": {
           const f = finish;
           if (f) {
-            emit({
-              kind: "continuationConsume",
-              group: partition,
-              round: f.round,
-            });
+            // FinishReserve already charged this exact provisional continuation.
             emit({
               kind: "finishEnd",
               group: partition,
@@ -1584,23 +1583,11 @@ export class Run {
     if (!f) return;
     const at = this.clock + delay;
     if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === partition && item.at === at)) return;
-    this.queuePush({
-      at,
-      order: this.order++,
-      finishAttempt: f.attempt,
-      partition: partition,
-      input: {
-        at: this.clock + delay,
-        kind: "canonical",
-        event: {
-          kind: "stopPolled",
-          partition: partition,
-          lifetime: f.lifetime,
-          round: f.round,
-          deadline: this.clock + delay >= f.deadline,
-        },
-      },
-    });
+    const facts = wakeStopFacts({ partition, lifetime: f.lifetime, round: f.round,
+      attempt: f.attempt, token: f.token, started: f.started, cutoff: f.deadline }, at);
+    for (const fact of facts) this.queuePush({ at: fact.at, order: this.order++,
+      finishAttempt: f.attempt, partition,
+      input: { at: fact.at, kind: "canonical", event: fact.event } });
   }
   private endFinish(partition: number, continuation: boolean) {
     const f = this.finishes.get(partition);

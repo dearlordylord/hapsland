@@ -8,6 +8,7 @@ import ./FreshnessContext.bend as FreshnessContext
 import ./FreshnessScenario.bend as FreshnessScenario
 import ./ScopedRevision.bend as ScopedRevision
 import ./Callbacks.bend as Callbacks
+import ./StopScenario.bend as StopScenario
 import ./OutputScenario.bend as OutputScenario
 import ./OutputCompletion.bend as OutputCompletion
 import ./NoticeScenario.bend as NoticeScenario
@@ -112,9 +113,44 @@ def lifecycle_accepted(entries: List<&2, AdviceeLifecycle.Entry>, canonical: Can
     case Canonical.OpenRound{partition, _}: AdviceeActivity.synchronize(entries, canonical, partition)
     case _: entries
 
-def settle(before: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, lifecycles: List<&2, AdviceeLifecycle.Entry>, preparations: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>, activity_scopes: List<&2, AdviceeActivity.Scope>, scenarios: RuntimeScenarios.State, +event: Canonical.CanonicalEvent) -> Transition:
+# Cancellation releases logical work first, but the original PRE callback still
+# owns its physical parent slot. Capture that tuple from the actual CancelWork
+# command before Canonical's removed work disappears. Late delivery uses the
+# existing factual preparation_actions path, including rejected logical results.
+def preparation_capture_present(items: List<&2,AdviceeLifecycleCleanup.CapturedPreparation>, +capture: AdviceeLifecycleCleanup.CapturedPreparation) -> Bool:
+  match items capture:
+    case Nil{} _: False{}
+    case AdviceeLifecycleCleanup.CapturedPreparation{p,l,r,o,parent} <> tail
+      AdviceeLifecycleCleanup.CapturedPreparation{+cp,+cl,+cr,+co,+cparent}:
+      (Nat.is_eq(p,cp) && Nat.is_eq(l,cl) && Nat.is_eq(r,cr) && Nat.is_eq(o,co) && Nat.is_eq(parent,cparent)) ||
+        preparation_capture_present(tail,AdviceeLifecycleCleanup.CapturedPreparation{cp,cl,cr,co,cparent})
+
+def preparation_capture_insert(present: Bool, capture: AdviceeLifecycleCleanup.CapturedPreparation, items: List<&2,AdviceeLifecycleCleanup.CapturedPreparation>) -> List<&2,AdviceeLifecycleCleanup.CapturedPreparation>:
+  match present:
+    case True{}: items
+    case False{}: List.append(&2,AdviceeLifecycleCleanup.CapturedPreparation,items,[capture])
+
+def canceled_preparation_parent(parent_valid: Bool, +capture: AdviceeLifecycleCleanup.CapturedPreparation, +items: List<&2,AdviceeLifecycleCleanup.CapturedPreparation>) -> List<&2,AdviceeLifecycleCleanup.CapturedPreparation>:
+  match parent_valid:
+    case False{}: items
+    case True{}: preparation_capture_insert(preparation_capture_present(items,capture),capture,items)
+
+def canceled_preparation(found: Maybe<&2,Canonical.Work>, items: List<&2,AdviceeLifecycleCleanup.CapturedPreparation>) -> List<&2,AdviceeLifecycleCleanup.CapturedPreparation>:
+  match found:
+    case Some{Canonical.Work{p,l,r,o,_,Canonical.Preparing{},+parent}}:
+      canceled_preparation_parent(Nat.is_gt(parent,0n),AdviceeLifecycleCleanup.CapturedPreparation{p,l,r,o,parent},items)
+    case _: items
+
+def cancellation_preparations(commands: List<&2,Canonical.Command>, +work: List<&2,Canonical.Work>, items: List<&2,AdviceeLifecycleCleanup.CapturedPreparation>) -> List<&2,AdviceeLifecycleCleanup.CapturedPreparation>:
+  match commands:
+    case Nil{}: items
+    case Canonical.CancelWork{operation} <> tail:
+      cancellation_preparations(tail,work,canceled_preparation(Driver.find_operation(work,operation),items))
+    case _ <> tail: cancellation_preparations(tail,work,items)
+
+def settle(+before: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, lifecycles: List<&2, AdviceeLifecycle.Entry>, preparations: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>, activity_scopes: List<&2, AdviceeActivity.Scope>, scenarios: RuntimeScenarios.State, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycle_accepted(lifecycles, state, event), preparations, activity_scopes, RuntimeScenarios.accepted(scenarios,before,state,event,commands)}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycle_accepted(lifecycles, state, event), cancellation_preparations(commands,Driver.work_list(before),preparations), activity_scopes, RuntimeScenarios.accepted(scenarios,before,state,event,commands)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}, Canonical.Rejected{state, reason}}
 
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
@@ -1066,3 +1102,10 @@ def collection_response_expire(+state: Types.State, now: Nat) -> ResponseTransit
 
 def collection_response_delivery_valid(+state: Types.State, target: CollectionScenario.Identity, now: Nat, event: Canonical.CanonicalEvent) -> Bool:
   CollectionScenario.delivery_valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state),event)
+
+# Original safe-hook facts; Canonical retains all Finish decision authority.
+def stop_initial(capture: StopScenario.Capture) -> List<&2,StopScenario.Fact>:
+  StopScenario.initial(capture)
+
+def stop_wake(capture: StopScenario.Capture, now: Nat) -> List<&2,StopScenario.Fact>:
+  [StopScenario.wake(capture,now)]

@@ -43,6 +43,8 @@ declare const Engine: {
  callback_issue_output(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown, capture: unknown): {state:EngineState;receipt:unknown};
  output_intervene(state: EngineState,target:unknown,outcome:unknown,receipt:unknown): {state:EngineState;result:unknown;cancel:unknown;schedule:unknown;receipt:unknown};
  output_deliver(receipt:unknown,now:bigint):unknown;
+ stop_initial(capture:unknown):unknown;
+ stop_wake(capture:unknown,now:number):unknown;
  output_initial(capture:unknown,terminalOnly:boolean):unknown;
  callback_delivered(state: EngineState, order: bigint): EngineState;
  callback_originals(state: EngineState): unknown;
