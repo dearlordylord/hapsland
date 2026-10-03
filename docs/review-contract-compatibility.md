@@ -65,8 +65,7 @@ destination; a change to any of these invalidates reuse. See the
 [provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
-`apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply
-one. Source containing non-ASCII characters currently fails this coordinate
+`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0 native `edit` unified-result patches can supply one. Pi verifies the exact patch coordinates against bounded current source; it does not retain a separate pre-edit image. Native Pi `write`, nested/child mutations, shell mutations, and custom tools are unsupported/incomplete rather than inferred Add or Update observations. Source containing non-ASCII characters currently fails this coordinate
 check closed for both Add and Update, so the path produces no review unit.
 [#151](https://github.com/dearlordylord/hapsland/issues/151) tracks this limit.
 

@@ -68,3 +68,7 @@ the machine manifest and may not be removed to obtain a passing declaration.
 This declaration covers Codex only. It makes no runtime support claim for other agent hosts and no
 public distribution or registry claim. Updating a version, platform, artifact, or evidence record
 requires a new exact cell and checksum rather than inference from an adjacent tested profile.
+
+## Pi installed native candidate
+
+Pi 1.0.0 on Linux arm64 is a separate current candidate profile, documented in the [Pi guide](pi-installation.md) and [testing matrix](testing-matrix.md). Its installed native runner production-installs the current locally packed package and records each attempt independently. It does not amend the checksum-bound historical Codex release cells above. Registration and offline doctor ownership readiness alone establish neither native review submission nor model-visible advice or repair. Registry publication, macOS Pi support, arbitrary Pi versions, and interactive native trust remain outside this candidate declaration.

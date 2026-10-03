@@ -19,13 +19,14 @@ import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts";
 import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.ts";
 
 import { faultProfile, assessPreFault } from './native-hook-faults.mjs';
+import { runPiNativeProfile } from './native-pi-profile.mjs';
 
 const project = resolve(import.meta.dirname, "..");
 const host = process.argv.find((arg) => arg.startsWith("--host="))?.slice(7);
 const language = process.argv.find(arg => arg.startsWith('--language='))?.slice(11) ?? 'typescript';
 if (!['typescript','rust','bend'].includes(language)) throw new Error('Choose a supported source language');
 const scenario = process.argv.find(arg => arg.startsWith('--scenario='))?.slice(11) ?? 'adoption';
-if (!['adoption','reviewer-unavailable','hook-crash','hook-timeout','stale-result','pre-delay','pre-timeout','pre-crash'].includes(scenario))
+if (!['adoption','reviewer-unavailable','hook-crash','hook-timeout','stale-result','pre-delay','pre-timeout','pre-crash','unsupported-write','unicode-edit'].includes(scenario))
   throw new Error('Choose an adoption, reviewer, POST-hook or PRE-hook scenario');
 const fault = faultProfile(scenario);
 const preFault = fault?.phase === 'pre';
@@ -43,7 +44,12 @@ const fixture = fixtures[language];
 const initialSourceMarker = language === 'typescript' ? 'interface PaymentState'
   : language === 'rust' ? 'struct PaymentState' : 'PaymentState{status:';
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline";
-if (host !== "codex" && host !== "claude") throw new Error("Choose --host=codex or --host=claude");
+if (host === "pi") {
+  await runPiNativeProfile({ project, fixture, language, scenario, mode, messages: NOUL_MESSAGES, runnerPath: new URL(import.meta.url) });
+  process.exit(process.exitCode ?? 0);
+}
+if (host !== "codex" && host !== "claude") throw new Error("Choose --host=codex, --host=claude or --host=pi");
+if (['unsupported-write','unicode-edit'].includes(scenario)) throw new Error('This native scenario is Pi-specific');
 if (mode === "live-jev" && !process.argv.includes("--execute-paid")) throw new Error("Live Jev requires --execute-paid");
 if (scenario !== 'adoption' && mode === 'live-jev') throw new Error('Fault scenarios use the controlled offline reviewer');
 const codexBinary = process.env.HAPSLAND_TEST_CODEX ?? "/tmp/hapsland-codex-01551/node_modules/.bin/codex";
