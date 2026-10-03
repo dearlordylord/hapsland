@@ -50,3 +50,22 @@ it("keeps permit facts distinct from quiet facts and validates the complete perm
  expect(() => decodeDriverEvent(permit({ ...facts, hook_window: -1 }))).toThrow();
  expect(() => decodeDriverEvent({ ...quietTick(quietFacts), $: "Canonical.CompleteObservation" })).toThrow();
 });
+
+it("decodes complete original Finish reservation facts and rejects malformed boundaries", () => {
+ const wire = { $: "Canonical.FinishReserve", group: 7, lifetime: 2, round: 3, attempt: 4, token: 5,
+  selected: { $: "Con", head: 11, tail: { $: "Con", head: 13, tail: { $: "Nil" } } },
+  has_notice: true, pass_notices: false, can_write: true, binding_valid: false, deadline_reached: true };
+ const event = decodeDriverEvent(wire);
+ expect(event).toEqual({ kind: "finishReserve", group: 7, lifetime: 2, round: 3, attempt: 4, token: 5,
+  selected: [11,13], hasNotice: true, passNotices: false, canWrite: true, bindingValid: false, deadlineReached: true });
+ expect(Object.isFrozen(event)).toBe(true);
+ if (event.kind !== "finishReserve") throw new Error("wrong event");
+ expect(Object.isFrozen(event.selected)).toBe(true);
+ for (const field of ["has_notice", "pass_notices", "can_write", "binding_valid", "deadline_reached"]) {
+  const missing: Record<string,unknown> = { ...wire }; delete missing[field];
+  expect(() => decodeDriverEvent(missing)).toThrow();
+  expect(() => decodeDriverEvent({ ...wire, [field]: 1 })).toThrow();
+ }
+ expect(() => decodeDriverEvent({ ...wire, extra: 1 })).toThrow();
+ expect(() => decodeDriverEvent({ ...wire, group: 0 })).toThrow();
+});
