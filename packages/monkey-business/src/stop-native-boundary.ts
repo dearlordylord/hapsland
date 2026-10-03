@@ -163,6 +163,7 @@ export function compareStopObservedOwners(nativeFrames: readonly unknown[], publ
     if (frame.$ === "advicee_lifecycle_driver.GraphFrame") {
       same(single(frame.result), transition, `frame ${index} full graph transition`);
     } else if (frame.$ === "advicee_lifecycle_driver.CanonicalFrame" || frame.$ === "advicee_lifecycle_driver.CacheFrame") {
+      if (source.observation.event.kind === "preparationGraph") throw new Error("canonical frame changed original graph event kind");
       same(single(frame.result), transition.result, `frame ${index} full canonical result`);
       same(decodePrefixCanonicalEvent(frame.event), encodeCanonicalEvent(source.observation.event), `frame ${index} original event`);
       same(list(frame.command_scopes).map(optional), source.observation.commandScopes, `frame ${index} actual command scopes`);
