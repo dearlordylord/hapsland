@@ -97,3 +97,26 @@ it("reorders the original completion ahead of a held start, exposes WrongStage, 
   expect(run.observations.filter(frame => frame.commands.some(command => command.kind === "reservationReleased"))).toHaveLength(1);
   replay(run);
 });
+
+
+it("retires replaced queued provenance after the actual replacement settles while retaining delivered history", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const original = issued(run);
+  if (original.effect.kind !== "jevSettled") throw new Error("missing original completion");
+  const started = run.observe().callbackTargets.find(target => target.effect.kind === "jevStarted")!;
+  run.advance({ untilTime: run.now });
+  const request = { ...original.owner, request: original.effect.request };
+  run.applyControl({ kind: "jevRequest", target: request, outcome: "backendFailure" });
+  expect(run.observe().interventions.at(-1)?.result).toBe("applied");
+  // The old receipt remains while its exact physical authority is still live.
+  expect(run.observe().callbackTargets).toContainEqual(original);
+  run.advance({ untilTime: 30 });
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.observe().callbackTargets).not.toContainEqual(original);
+  expect(run.observe().callbackTargets).not.toContainEqual(started);
+  const replacement = run.observations.find(frame => frame.event.kind === "jevRequestSettled")!;
+  expect(replacement.callbackReceipt).toBeDefined();
+  expect(run.observe().callbackTargets).toContainEqual(replacement.callbackReceipt!.target);
+  replay(run);
+});
