@@ -5,7 +5,7 @@ import {
   type DecodedRulePack,
   type RuleDefinition,
 } from "./schema.ts";
-import { FUNCTION_CAPABILITIES, FUNCTION_INPUT_CONTRACT, TYPE_CAPABILITIES, TYPE_INPUT_CONTRACT } from "./targets.ts";
+import { FUNCTION_INPUT_CONTRACT, TYPE_CAPABILITIES, TYPE_INPUT_CONTRACT } from "./targets.ts";
 
 /** Stable content identity for the bundled Noul baseline. */
 export const NOUL_PACK_ID = "noul" as const;
@@ -34,7 +34,7 @@ const rules: ReadonlyArray<RuleDefinition> = NOUL_KEYS.map((id) => {
     reviewTargets: [
       { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: TYPE_CAPABILITIES },
       ...(id === "r9_body_reaches_undeclared" ? [{ artifactKind: "function" as const,
-        inputContract: FUNCTION_INPUT_CONTRACT, capabilities: FUNCTION_CAPABILITIES }] : []),
+        inputContract: FUNCTION_INPUT_CONTRACT, capabilities: ["signature", "body"] as const }] : []),
     ],
   };
 });

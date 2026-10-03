@@ -38,8 +38,7 @@ for (const fixture of cases) {
       });
       assert.equal(result.status, 0, `Preparation failed for ${fixture.id}: ${result.stderr.slice(0, 500)}`);
       const prepared = JSON.parse(result.stdout.trim().split('\n').at(-1));
-      const knownIncompleteFunction = ['clock-sensitive-expiry', 'hidden-audit-write'].includes(fixture.id);
-      assert(prepared.ready === 1 || (knownIncompleteFunction && prepared.ready === 0 && prepared.pathReasons.some(item => item.analysisFailures.some(failure => failure.reason === 'missing-evidence'))), `Unexpected preparation for ${fixture.id}/${phase}: ${JSON.stringify(prepared)}`);
+      assert.equal(prepared.ready, 1, `Unexpected preparation for ${fixture.id}/${phase}: ${JSON.stringify(prepared)}`);
       if (prepared.ready === 1) {
         assert.equal(prepared.preparedUnits[0].declaration, fixture.declarationName);
         assert.deepEqual(prepared.preparedUnits[0].ruleIds, [fixture.ruleId]);

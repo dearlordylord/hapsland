@@ -28,6 +28,10 @@ capabilities. A rule shared by type and function review names both targets.
 Unknown versions, targets, capabilities, or fields fail the selected pack.
 Invalid or unsupported pack versions fail configuration before source capture.
 Bundled Noul rules target type review; its body rule also targets function review.
+The function target of the body rule requires the exact signature and body, not
+complete call/type closure. It reviews resource use visible in included source
+with omissions retained explicitly; missing references alone are not findings.
+Other targets retain their declared closure requirements.
 Rule IDs, enablement,
 path filters, probability thresholds, and authored messages retain their
 configured meanings. Choice and Score result forms remain separate decisions.
