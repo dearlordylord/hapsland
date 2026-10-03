@@ -1,4 +1,5 @@
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
+import { execFileSync } from "../../scripts/test-harness/process.mjs";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -58,7 +59,7 @@ const linuxFixtureProcess = (pid: number, main: string, directory: string) => {
 const fixtureProcessRunning = (pid: number, main: string, directory: string): boolean => {
   try {
     if (process.platform === "linux") return linuxFixtureProcess(pid, main, directory);
-    const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], { encoding: "utf8", timeout: 1_000, stdio: ["ignore", "pipe", "ignore"] }).trim();
     return [main, realpathSync(main)].some(entry =>
       [directory, realpathSync(directory)].some(root => command.endsWith(`node ${entry} ${root}`)));
   } catch { return false; }

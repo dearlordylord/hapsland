@@ -16,6 +16,25 @@ const freshAdvice = async (f: ReturnType<typeof fixture>, id = "fresh-after-faul
   expect(native ?? finish).toBeDefined();
   expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
 };
+const recoveryEdit = async (f: ReturnType<typeof fixture>, id: string, oldText: string, newText: string) => {
+  const edit = { ...before, toolCallId: id, input: { path: "type.ts", edits: [{ oldText, newText }] } };
+  await f.call("tool_call", edit);
+  writeFileSync(join(f.root, "type.ts"), `${newText}\n`);
+  const patch = `--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-${oldText}\n+${newText}\n`;
+  const native = await f.call("tool_result", { ...result, ...edit, details: { patch } });
+  const finish = await f.call("agent_before_settle", settle);
+  return native ?? finish;
+};
+const recoverAfterLoss = async (f: ReturnType<typeof fixture>) => {
+  // A real edit triggers automatic startup; its event may be lost during recovery.
+  const first = await recoveryEdit(f, "recovery-start", "type OrderCount = number", "type RecoveryCount = number");
+  if (first !== undefined) expect(JSON.stringify(first)).toContain("type.ts :: RecoveryCount");
+  // This only observes the automatically started resident through owner + IPC stats.
+  await f.waitForWork(0);
+  const second = await recoveryEdit(f, "recovery-after-ready", "type RecoveryCount = number", "type RecoveryFinalCount = number");
+  expect(second).toBeDefined();
+  expect(JSON.stringify(second)).toContain("type.ts :: RecoveryFinalCount");
+};
 const waitFile = async (path: string) => {
   const deadline = Date.now() + 10_000;
   while (!existsSync(path) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
@@ -41,7 +60,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await f.call("tool_result", result)).toBeUndefined();
     expect(existsSync(f.capturePath)).toBe(false);
     writeFileSync(join(f.root, "fault.json"), "{}");
-    await freshAdvice(f);
+    await recoverAfterLoss(f);
   });
 
   it.each(["crash", "timeout"])("an admitted hook worker %s closes incomplete work without advice replay", async fault => {
@@ -103,7 +122,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await editing).toBeUndefined();
     await f.call("agent_settled", { outcome: "aborted" });
     expect(await f.call("agent_before_settle", settle)).toBeUndefined();
-    await freshAdvice(f);
+    await recoverAfterLoss(f);
   });
 
   it.each(["excluded", "symlink"])("%s current source never reaches review egress", async variant => {
@@ -132,7 +151,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     writeFileSync(join(f.root, "type.ts"), source);
     expect(await f.call("tool_result", result)).toBeUndefined();
     expect(existsSync(f.capturePath)).toBe(false);
-    await freshAdvice(f);
+    await recoverAfterLoss(f);
   });
 
   it("an expired native permit cannot review its late result", async () => {
