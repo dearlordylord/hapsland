@@ -38,7 +38,8 @@ const configured = Effect.fn("PiInstallation.configured")(function* (request: Pi
   const options = { timeout: 2_000, maxBuffer: 1_048_576, env: { ...process.env, PI_CODING_AGENT_DIR: home } };
   const host = yield* execFileClosedStdin(request.piExecutable ?? "pi", ["--version"], options);
   const node = yield* execFileClosedStdin(runtime, ["-e", "process.stdout.write(process.version)"], options);
-  const compatibility = { supported: host.succeeded && host.stdout.trim() === "1.0.0" && node.stdout.trim() === "v24.20.0" && existsSync(extension),
+  const compatibility = { supported: process.platform === "linux" && process.arch === "arm64" && host.succeeded && host.stdout.trim() === "1.0.0" && node.stdout.trim() === "v24.20.0" && existsSync(extension),
+    platform: { observed: `${process.platform}-${process.arch}`, required: "linux-arm64" },
     host: { observed: host.succeeded ? host.stdout.trim() : "unavailable", required: "1.0.0" },
     runtime: { observed: node.succeeded ? node.stdout.trim() : "unavailable", required: "v24.20.0" },
     extension: { path: extension, ready: existsSync(extension) } };
