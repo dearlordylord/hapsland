@@ -2,7 +2,7 @@
 set -eu
 
 case "${0##*/}" in
-  hapsland) entry=dist/cli.js ;;
+  hapsland|launch.sh) entry=dist/cli.js ;;
   hapsland-doctor) entry=dist/package-doctor.js ;;
   hapsland-parser) entry=dist/parser-main.js ;;
   hapsland-resident) entry=dist/resident/main.js ;;
