@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime.json"), "utf8"));
@@ -949,19 +949,23 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   }, { cwd: temporary, env: installedHostEnvironment });
   // The installed async PostToolUse collector can deliver advice before Stop.
   // This fixture awaits each installed command, so validate both supported delivery paths.
+  const { configuredRules: packagedRules } = await import(pathToFileURL(join(packageDirectory, "dist/policy/rules.js")).href);
+  const expectedFindingLines = packagedRules.map((rule) => `profile.ts :: Delivery: ${rule.message}`).sort();
   const deliveredAdvice = [...postToolOutputs, ...stopOutputs].flatMap((output) => {
     const context = output.decision === "block" ? output.reason
       : output.hookSpecificOutput?.hookEventName === "PostToolUse"
         ? output.hookSpecificOutput.additionalContext : undefined;
-    return typeof context === "string" &&
-      context.split("\n").some((line) => /^profile\.ts :: Delivery \[r[1-9]_[a-z_]+, p=0\.91\]: /.test(line))
-      ? [context] : [];
+    if (typeof context !== "string") return [];
+    const findingLines = context.split("\n").filter((line) => line.startsWith("profile.ts :: Delivery:")).sort();
+    return JSON.stringify(findingLines) === JSON.stringify(expectedFindingLines) ? [context] : [];
   });
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
   if (deliveredAdvice.length !== 1) {
     throw new Error(`packaged installed hooks did not deliver the expected finding exactly once; deliveries=${deliveredAdvice.length}; outputs=${JSON.stringify([...postToolOutputs, ...stopOutputs].map((output) => ({
       keys: Object.keys(output), decision: output.decision ?? null,
+      findingLines: String(output.reason ?? output.hookSpecificOutput?.additionalContext ?? "").split("\n").filter((line) => line.startsWith("profile.ts :: Delivery:")).length,
+      noticeKinds: ["capacity", "credential", "host response limit", "Jev was unavailable"].filter((kind) => String(output.reason ?? output.hookSpecificOutput?.additionalContext ?? "").includes(kind)),
     })))}`);
   }
   await runInstalledHooks(codexHome, { ...addEvent, tool_name: "Bash", tool_use_id: "package-independent-check",
@@ -1026,8 +1030,10 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       const context = output.decision === "block" ? output.reason
         : output.hookSpecificOutput?.hookEventName === "PostToolUse"
           ? output.hookSpecificOutput.additionalContext : undefined;
-      return typeof context === "string" && context.split("\n").some((line) =>
-        /^restarted\.ts :: Restarted \[r[1-9]_[a-z_]+, p=0\.91\]: /.test(line));
+      if (typeof context !== "string") return false;
+      const lines = context.split("\n").filter((line) => line.startsWith("restarted.ts :: Restarted:")).sort();
+      const expected = packagedRules.map((rule) => `restarted.ts :: Restarted: ${rule.message}`).sort();
+      return JSON.stringify(lines) === JSON.stringify(expected);
     };
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
