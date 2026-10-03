@@ -39,6 +39,18 @@ describe("trusted simulation composition boundary", () => {
     expect(projectSharedCanonical(state)).toBe(projection);
     expect(queuedShared(state)).toEqual([]);
   });
+  it("rejects a same-kind caller event as original cache result provenance", () => {
+    const original = initialSharedCanonical(limits);
+    const event = { kind: "openRound", partition: 1, lifetime: 1 } as const;
+    const state = stepSharedCanonical(original, event).state;
+    const retained = enqueueShared(state, 10, 1);
+    const projection = projectSharedCanonical(retained);
+
+    expect(() => beginSharedCache(state, { ...event, partition: 2 })).toThrow(/cache result provenance/);
+    expect(() => beginSharedCache(retained, structuredClone(event))).toThrow(/cache result provenance/);
+    expect(projectSharedCanonical(retained)).toBe(projection);
+    expect(queuedShared(retained)).toEqual([{ at: 10, order: 1 }]);
+  });
   it("rejects numeric narrowing and foreign namespaces while preserving U32 words", () => {
     expect(() => decodeSharedValue(281474976710656n)).toThrow();
     expect(() => encodeSharedValue(-1)).toThrow();
