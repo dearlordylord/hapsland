@@ -165,7 +165,8 @@ it("duplicate tool and resident ceilings are checked independently of local ceil
  expect(run.observations.filter(o => o.rejection)).toHaveLength(2);
  expect(run.projection.admissions.find(a => a.partition === 2)?.permits).toHaveLength(1);
  expect(run.observations[0]!.capacityMetadata.permits).toBeUndefined();
- expect(run.observations[0]!.capacityMetadata.deliveryGroups).toBeUndefined();
+ expect(run.agentScopes).toEqual([{ agent: "agent-1", partition: 1, seed: 1 }]);
+ expect(run.observations[0]!.capacityMetadata.deliveryGroups).toEqual([{ partition: 1, group: 1 }]);
  expect(run.capacityMetadata.permits).toEqual({ residentLimit: 1, adviceeLimits: [{ partition: 1, limit: 2 }, { partition: 2, limit: 2 }] });
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
