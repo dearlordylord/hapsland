@@ -1,6 +1,7 @@
 import { decodeOutputCapture, encodeOutputCapture, OutputScenarioProfileSchema, type OutputCapture } from "./output-controls.ts";
 import SharedEngine from "../../monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
+import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
 import { decoder, Nat, PositiveNat, readBendList, readNat } from "../../../src/canonical/boundary-schema.ts";
 import { validateLiveControl } from "./controls.ts";
 import { decodeDriver, type DriverAction, decodeDriverEvent } from "./driver-codec.ts";
@@ -112,13 +113,14 @@ const optionalWire = <T>(value: unknown, decode: (value: unknown) => T): T | und
   return item.$ === "Some" ? decode(item.value) : undefined;
 };
 export const decodeStopCommand = (value: unknown) => {
-  const report = decoder(Schema.Struct({ $: Schema.Literal("Engine.StopHandled"), state: Schema.Unknown,
-    handled: Schema.Struct({ $: Schema.Literal("Driver.Handled"), handled: Schema.Boolean, actions: Schema.Unknown }),
+  const report = decoder(Schema.Struct({ $: Schema.Literal("StopHandled"), state: Schema.Unknown,
+    handled: Schema.Unknown,
     ended: Schema.Unknown, fit_attempt: Schema.Unknown, output: Schema.Unknown }))(value);
-  const ended = optionalWire(report.ended, value => {
+  const handled = decodeDriver(decodeSharedValue(report.handled));
+  const ended = optionalWire(decodeSharedValue(report.ended), value => {
     const fact = decoder(Schema.Struct({ $: Schema.Literal("StopScenario.Ended"), finish: Schema.Unknown, continuation: Schema.Boolean }))(value);
     return { finish: decodeStopFinish(fact.finish), continuation: fact.continuation };
   });
-  return { handled: report.handled.handled, actions: decodeStopActions(report.handled.actions), ended,
-    fitAttempt: optionalWire(report.fit_attempt, readNat), output: optionalWire(report.output, decodeOutputCapture) };
+  return { handled: handled.handled, actions: handled.actions, ended,
+    fitAttempt: optionalWire(decodeSharedValue(report.fit_attempt), readNat), output: optionalWire(decodeSharedValue(report.output), decodeOutputCapture) };
 };

@@ -815,6 +815,6 @@ export const driveSharedStop = (state: EngineState, index: number, context: unkn
   if (!command || !source) throw new TypeError("missing original Stop command facts");
   const changed = SharedEngine.stop_command(state,encodeSharedValue(encodeCanonicalEvent(source)),command,
     encodeSharedValue(context),encodeSharedValue(encodeStopCommandFacts(facts)));
-  const report = decodeStopCommand(decodeSharedValue(changed));
+  const report = decodeStopCommand(changed);
   return { state: retain(state,changed.state), report };
 };
