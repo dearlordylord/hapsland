@@ -1,10 +1,12 @@
 # Development-time architecture game balance laboratory
 
+**Tracker owner:** [Laboratory issue #203](https://github.com/dearlordylord/hapsland/issues/203).
+
 **Purpose:** Specify a development-time laboratory for controlled experiments with editable architecture-teaching game mechanisms.
-**Status:** Concrete proposal; publication requires confirmation of the testing seam requested in the current session. The owner selected Coordinator, Packager and Parallelizer as the provisional experimental set on 2026-10-02.
-**Authority:** Feature design proposal synthesized from the owner's discussion, constrained by the accepted shared-simulator specification. This issue does not change product policy, accept a final tower roster or establish educational effectiveness.
+**Status:** Ready for implementation scheduling; the owner confirmed the headless shared-engine testing seam on 2026-10-02. Implementation waits for the required Bend Monkey Business capabilities. The owner selected Coordinator, Packager and Parallelizer as the provisional experimental set on 2026-10-02.
+**Authority:** Owner-agreed laboratory scope and testing seam synthesized from the discussion, constrained by the accepted shared-simulator specification. Detailed implementation choices remain proposals within that scope. This issue does not change product policy, accept a final tower roster or establish educational effectiveness.
 **Expected use:** Implement the smallest reusable experiment boundary and bounded comparison/search workflow, then use evidence to select or replace mechanisms.
-**Lifecycle:** Keep this issue current through implementation; at completion consolidate enduring experiment and configuration contracts into the optional-game guide and testing matrix, transfer roster decisions to the game-design owner, update inbound links and delete superseded draft/handoff documents.
+**Lifecycle:** The published issue owns implementation scheduling. At completion of #203, **consolidate** enduring experiment/configuration contracts into the optional-game guide and testing matrix, transfer roster decisions to the game-design owner, update inbound links and **delete** this local specification snapshot and superseded handoff documents.
 
 ## Problem Statement
 
@@ -105,4 +107,4 @@ The owner's intended sequence is laboratory foundation, reversible mechanic sele
 
 Specification work proceeds now, independently of the ongoing Bend rewrite. Implementation waits for the required new Bend Monkey Business boundary and selected mechanism capabilities. This work is downstream of the continuous consumer in #199 and reuses the public boundary from #176. It does not enlarge their already agreed scope or require every migration ticket to finish before specifying experiments. The strongest risk is optimizing a proxy or weak player policy while damaging the architectural lesson; preserve separate observations and retain a later human teaching check.
 
-The [source-inspected tower priority assessment](tower-teaching-priority.md) and [game-design context](game-design-context.md) are prepared in the isolated `spec/game-balance-lab` worktree. They record proposed selection, unsupported mappings and follow-up decisions; no new balance experiment or learning validation is claimed. The owner confirmation of the testing seam is required by the explicitly invoked `to-spec` workflow and must be recorded before publication.
+The [source-inspected tower priority assessment](tower-teaching-priority.md) and [game-design context](game-design-context.md) are prepared in the isolated `spec/game-balance-lab` worktree. They record proposed selection, unsupported mappings and follow-up decisions; no new balance experiment or learning validation is claimed. The owner confirmed the headless experiment boundary over the shared engine on 2026-10-02. This confirms the testing seam and permits publication/scheduling; implementation still waits for the required Bend Monkey Business scenario/action capabilities.

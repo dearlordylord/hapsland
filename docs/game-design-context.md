@@ -1,10 +1,10 @@
 # Architecture teaching game: design context and next decisions
 
 **Purpose:** Preserve the owner's goals for the teaching game and balance laboratory without fixing the tower roster or abilities prematurely.
-**Status:** Active design proposal from the 2026-10-02 discussion; the owner selected Coordinator, Packager and Parallelizer for initial experiments; confirmation of the laboratory testing seam remains pending.
+**Status:** Active design proposal from the 2026-10-02 discussion; the owner selected Coordinator, Packager and Parallelizer for initial experiments; the owner confirmed the headless shared-engine testing seam on 2026-10-02; implementation waits for the required Bend Monkey Business capabilities.
 **Authority:** Owner-stated design intentions and proposed game decisions. Existing product contracts and shared-simulator issues own business behavior; this document neither changes them nor establishes learning outcomes.
 **Expected use:** Select a small initial set of teaching mechanisms, specify the laboratory, and evaluate replacements or wider gameplay changes against the same goals.
-**Lifecycle:** At acceptance of the first laboratory/game-design specification, **consolidate** its selected decisions into the implementation issue and enduring optional-game guide; keep unresolved roster/ability decisions in that named design owner, update inbound links, and **delete** this temporary context document. Review before changing a teaching mechanism or replacing the shared simulator consumer.
+**Lifecycle:** At completion of [laboratory implementation #203](https://github.com/dearlordylord/hapsland/issues/203), **consolidate** its selected decisions into the implementation issue and enduring optional-game guide; keep unresolved roster/ability decisions in that named design owner, update inbound links, and **delete** this temporary context document. Review before changing a teaching mechanism or replacing the shared simulator consumer.
 
 ## Owner goals and sequence
 
@@ -64,7 +64,7 @@ Preserve the causal lesson: accelerating service differs from acquiring a shared
 
 One game-owned headless experiment interface takes mechanism settings, a source-free scenario, a deterministic player action schedule/policy and finite budgets. It consumes the shared public Monkey Business boundary and returns game metrics, business observations and sufficient ordinary replay input to reproduce the run. It owns no duplicate business simulation.
 
-The [laboratory specification draft](game-balance-lab-spec.md) makes these decisions reviewable. The `to-spec` workflow requires the owner to confirm this testing seam before publishing the laboratory implementation issue. The concrete draft also covers mechanism replacement, disable/remove cases and meaningful tests of paired comparison. Publication schedules work; it does not accept the provisional roster or prove teaching effectiveness.
+The [published laboratory specification #203](https://github.com/dearlordylord/hapsland/issues/203), with a [local review copy](game-balance-lab-spec.md), makes these decisions reviewable. The owner confirmed this testing seam on 2026-10-02, completing the required `to-spec` confirmation before publication of the laboratory implementation issue. The concrete draft also covers mechanism replacement, disable/remove cases and meaningful tests of paired comparison. Publication schedules work; it does not accept the provisional roster or prove teaching effectiveness.
 
 Outstanding decisions after the laboratory foundation:
 

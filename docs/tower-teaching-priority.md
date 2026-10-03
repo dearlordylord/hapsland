@@ -4,7 +4,7 @@
 **Status:** Temporary source-inspection report; the owner selected the first three mechanisms for initial experiments on 2026-10-02. The final lineup remains open.
 **Authority:** Design advice based on implementation inspection; accepted product contracts and issues #176/#199 own architecture and migration scope. This report does not establish human learning or empirical balance.
 **Expected use:** Choose two or three provisional interventions and paired cases for the laboratory specification.
-**Lifecycle:** When the laboratory specification is accepted, consolidate useful decisions and limitations into that specification and the game design-context owner, update inbound links, and delete this report. Revisit before acceptance if #176/#199 change their simulation boundary.
+**Lifecycle:** When the initial mechanism cases are accepted at completion of [laboratory issue #203](https://github.com/dearlordylord/hapsland/issues/203), **consolidate** useful decisions and limitations into the optional-game guide and game design owner, update inbound links, and **delete** this report. Revisit before acceptance if #176/#199 change their simulation boundary.
 
 ## Recommendation
 
