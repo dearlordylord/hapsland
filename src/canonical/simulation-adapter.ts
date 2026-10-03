@@ -408,3 +408,13 @@ export const routedSharedSharing = (state: EngineState, route: unknown) => {
   const list = commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
   return retain(state, SharedEngine.sharing_routed(state, encodeSharedValue(route), list));
 };
+
+export const leaveSharedSharing = (state: EngineState, scope: unknown) => {
+  sharedCheck(state);
+  const result = SharedEngine.sharing_leave(state, encodeSharedValue(scope));
+  return { state: retain(state, result.state), events: decodeSharedValue(result.events), valid: decodeSharedValue(result.valid) };
+};
+export const completeSharedSharing = (state: EngineState, event: CanonicalEvent) => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.sharing_completion(state, encodeSharedValue(encodeCanonicalEvent(event))));
+};
