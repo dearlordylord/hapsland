@@ -4,7 +4,7 @@ import {expect,it} from "vitest";
 import {createRun,restoreReplay} from "./index.ts";
 import {initialCanonical,stepCanonical,projectCanonical,type CanonicalEvent} from "../../../src/canonical/adapter.ts";
 import {sharingIdentityLabel,captureSharingIdentityFacts,type SharingIdentityFacts} from "./sharing-controls.ts";
-import {runWorkloadNative} from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import {runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Independent original source-free captures. Production source owners:
 // server.ts:628 / capacity.ts:194–196 create a WorkCohort; round-records.ts:37–40
@@ -48,7 +48,7 @@ it("compares native original namespace routes to the emitted public Canonical bo
  // This is finite exact namespace routing/owner evidence, not a full Driver
  // graph/request/output agreement claim. Original capture acquisition remains
  // central #188/#189 wiring, never inferred from an unrelated global counter.
-},30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 // Production semantic identity contains provider/model/full destination. The
 // work cohort and credentials remain separately captured resident namespaces.

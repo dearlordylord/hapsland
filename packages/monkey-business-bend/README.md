@@ -54,8 +54,8 @@ Canonical/Graph events, states, commands, rejection, scopes, receipts, controls,
 advance endpoints and ordinary replay with the independent public scenarios.
 The aggregate `conformance/sharing-native.bend` remains a convenience entrypoint;
 the mandatory gate runs each original separately. Native phases retain fresh
-twelve-second C emission, fifteen-second clang and five-second execution bounds;
-emitted JavaScript uses separate fresh five-second emission/execution phases.
+thirty-second C emission, thirty-second clang and five-second execution bounds;
+emitted JavaScript uses separate fresh fifteen-second emission and five-second execution phases.
 An earlier checker pass does not establish any of those execution results.
 
 Python 3 is a development prerequisite for the one shared private prefix codec.
@@ -137,4 +137,6 @@ mutant that republishes the batch; the mutant fails in the proposal's own sectio
 This and the started-request NeverSent refusal law remain candidate proposals for
 owner review under #176, not accepted new product requirements.
 
-Native validation budgets: fresh C emission is bounded at 12 seconds, external clang compilation at 15 seconds, and native execution at 5 seconds. JS emission/execution and source checking remain bounded at 5 seconds. On 2026-10-03 the user authorized modest C-only increases: first from 5 to 8 seconds, then to 10 seconds after the full output root still exceeded 8 seconds. After the full diagnostic root emitted successfully in 10.75 seconds with the call-size errors resolved, the C-only bound increased to 12 seconds under that authorization. Those earlier failures remain failures; the amended deadline requires fresh validation. The preflight manifest records the C deadline with compiler flags and rejects mismatched provenance.
+Native validation budgets: fresh C emission and external clang compilation are each bounded at 30 seconds; emitted-JavaScript compilation, including the maintained Engine build, and source-only checks are bounded at 15 seconds. Native and JavaScript execution remain bounded at 5 seconds. Kernel/proof checks retain their separate 5-second deadline. A fresh native/JavaScript comparison has a 100-second aggregate test watchdog for its 85 seconds of phase allowances and finite cleanup; ordinary public/unit test watchdogs are unchanged. These compilation allowances bound local validation processes; they do not change product deadlines, virtual clocks, original scenario inputs or assertions. The native preflight manifest records both compilation deadlines alongside compiler flags and rejects mismatches.
+
+On 2026-10-03 the user authorized modest timeout increases and asked to be informed. Earlier C-only amendments moved the bound from 5 to 8, 10 and 12 seconds; the full diagnostic root had emitted in 10.75 seconds after its call-size errors were resolved. The later announced amendment sets source/JS compilation to 15 seconds and C/clang compilation to 30 seconds, preserving runtime and proof bounds. Previous failures remain failures; fresh validation under the amended allowances is required. This explicit user authorization overrides the skill's five-second source-check guidance for source-only validation, not the retained kernel/proof gate.

@@ -1,6 +1,6 @@
 import { beforeAll, expect, it } from "vitest";
 import { createRun, restoreReplay, type CanonicalEvent, type RunInput } from "./index.ts";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const cases = [
   { outcome: "success", delay: 9, terminal: [0, 0, 1, 0, 0] },
@@ -13,7 +13,7 @@ const cases = [
 let native: unknown;
 beforeAll(() => {
   native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/permit-scenario.bend", import.meta.url));
-}, 25000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 // Original source-free PRE/POST facts, independent of the new Bend fact generator.
 const inputs = (outcome: typeof cases[number]["outcome"], delay: number): RunInput[] => {

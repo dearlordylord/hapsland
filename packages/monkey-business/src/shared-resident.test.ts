@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { createRun, restoreReplay, projectAgent, DEFAULT_FILE_TREE_PROFILE, type Observation, type Run } from "./index.ts";
 
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const opaqueAdvicees = ["runtime/subagent:7", "unrelated:session/2"] as const;
 const contentionConfig = {
@@ -163,7 +163,7 @@ it("compares original shared contention and recovery inputs with the compiled na
   for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20]);
 
 
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 function originalCancellation(): Run {
   residentCheckpoint("cancellation create start");
@@ -235,7 +235,7 @@ it("compares original advicee cancellation with the compiled native shared drive
   expect(canceled.length).toBeLessThan(80);
   expect(canceled.at(-1)!.slice(16, 24)).toEqual([1, 7, 0, 0, 1, 7, 0, 0]);
   expect(canceled).toEqual(originalCancellation().observations.map(residentRow));
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 const config = {
   seed: 7,

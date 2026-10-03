@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run } from "./index.ts";
 import type { OutputAttemptControl } from "./output-controls.ts";
 import { decodeOutputNativeBoundary, outputPublicBoundary } from "./output-native-boundary.ts";
-import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const snapshot = (run: Run) => run.observe();
 const settings = (outcome: "certain" | "uncertain" | "failed", delayMs = 5, leaseMs = 10) => ({
@@ -75,7 +75,7 @@ it("compares original authorized output scripts with native Bend and preserves e
     if (selected.delayMs === 11) expect(run.observations.find(frame => frame.event.kind === "deliveryAcknowledgeCheck")?.time).toBe(18);
     replay(run);
   }
-}, 30_000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it.each(["certain", "uncertain"] as const)("allows exactly the accepted same-round Stop reoffer boundary for %s", outcome => {
   const run = createRun(settings(outcome, 0));

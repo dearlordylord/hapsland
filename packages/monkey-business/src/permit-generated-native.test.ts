@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Boundary milestones only. These projections never drive execution.
 const codes: Record<string, number> = { admitObservation: 2, queueDispatch: 3, startObservation: 4,
@@ -103,4 +103,4 @@ it("compares original generated PRE scripts through actual native preparation, J
     expect(run.projection.dispatch.running).toEqual([]);
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
   }
-}, 30_000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

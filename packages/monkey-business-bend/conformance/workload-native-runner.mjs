@@ -3,11 +3,14 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { NATIVE_C_EMISSION_TIMEOUT_MS, validateNativeFixture } from "./native-preflight.mjs";
+import { NATIVE_C_EMISSION_TIMEOUT_MS, NATIVE_CLANG_TIMEOUT_MS, validateNativeFixture } from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
-// C emission uses the user-authorized 12s bound; JS emission and execution stay
-// at 5s. External C compilation retains its separately authorized 15s bound.
+// One fresh native+JS comparison has at most 85s of phase allowances plus cleanup.
+export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
+
+// User-authorized compile allowances: C/clang 30s and emitted JS 15s.
+// Both execution lanes retain their independent 5s bound.
 export function runWorkloadNative(fixture) {
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;
   const sessionId = process.env.HAPSLAND_NATIVE_PREFLIGHT_SESSION;
@@ -24,7 +27,7 @@ export function runWorkloadNative(fixture) {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
     checked("bend", [fileURLToPath(fixture), "-o", source], NATIVE_C_EMISSION_TIMEOUT_MS);
-    checked("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], 15000);
+    checked("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], NATIVE_CLANG_TIMEOUT_MS);
     return JSON.parse(checked(binary, [], 5000));
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -37,7 +40,7 @@ export function runWorkloadEmitted(fixture) {
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-js-"));
   try {
     const source = join(directory, "scenario.mjs");
-    checked("bend", [fileURLToPath(fixture), "-o", source], 5000);
+    checked("bend", [fileURLToPath(fixture), "-o", source], 15000);
     const program = join(directory, "execute.mjs");
     writeFileSync(program, `import Fixture from ${JSON.stringify(pathToFileURL(source).href)};
 const value = Fixture.json();

@@ -1,5 +1,5 @@
 import {expect,it} from "vitest";
-import {runWorkloadNative} from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import {runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Independent finite contract observations: original receipt fields and delay
 // unchanged; postauthorized failed is MAY-have-reached uncertainty; exact
@@ -25,4 +25,4 @@ it("pins original output completion identity, exact expiry and atomic batch payl
  // This helper fact check is not full Driver agreement, nor proof of private
  // receipt provenance, actual queued status or authorized state. Central #182
  // gates those before it may replace one original scheduled completion.
-},30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

@@ -4,7 +4,7 @@ import { createRun, restoreReplay, type Run, DEFAULT_FILE_TREE_PROFILE } from ".
 import { encodeCanonicalEvent } from "../../../src/canonical/adapter.ts";
 import { callbackPublicBoundary, decodeCallbackNativeBoundary } from "./callback-native-codec.ts";
 import type { CallbackTarget } from "./callback-controls.ts";
-import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Original-input native, emitted-JS and public traces retain the full contract
 // boundary through exact structural codecs. No compact-count fallback applies.
@@ -148,7 +148,7 @@ it.each(nativePrograms)("compares original %s at the full immutable public bound
   expect(nativeDTO).toEqual(emittedDTO);
   expect(decodeCallbackNativeBoundary(nativeDTO)).toEqual(expected);
   expect(decodeCallbackNativeBoundary(emittedDTO)).toEqual(expected);
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it("consumes a rejected late preparation receipt while releasing its original physical parent", () => {
   const run = createRun({ inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5] }], preparationDelay: 20, retention: 1 });

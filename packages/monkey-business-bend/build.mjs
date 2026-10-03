@@ -27,7 +27,7 @@ if (process.argv.includes("--check")) {
 } else {
   const temp = mkdtempSync(join(tmpdir(), "hapsland-monkey-business-"));
   try {
-    const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], { encoding: "utf8", timeout: 5000 });
+    const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], { encoding: "utf8", timeout: 15000 });
     if (run.error || run.status !== 0) throw run.error ?? new Error(run.stdout + run.stderr);
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";

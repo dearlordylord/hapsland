@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import fc from "fast-check";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunConfig, type Run, type Observation } from "./index.ts";
 
 const advicees = ["opaque:departing/session", "independent/advicee"] as const;
@@ -316,7 +316,7 @@ it.each([
   expect(native.length).toBeLessThan(120);
   expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
   expect(native).toEqual(lifecycleTrace(departAndResume(action)));
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it("native shared driver agrees on original preparation completion after departure", () => {
   const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url)) as number[][];
@@ -325,4 +325,4 @@ it("native shared driver agrees on original preparation completion after departu
   expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
   expect(native.filter(row => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1);
   expect(native).toEqual(lifecycleTrace(preparationDeparture()));
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

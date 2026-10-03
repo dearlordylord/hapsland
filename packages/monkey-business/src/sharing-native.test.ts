@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunInput } from "./index.ts";
-import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { validateSharingControl, type SharingControl } from "./sharing-controls.ts";
 import { callbackPublicBoundary } from "./callback-native-codec.ts";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
@@ -144,4 +144,4 @@ it.each(programs)("compares original %s full native/emitted/public/replay bounda
     expect(actual.endpoint.projection.partitions).toEqual(projection.partitions);
     expect(actual.endpoint.projection.dispatch.requests).toEqual([]);
   }
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

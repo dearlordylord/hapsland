@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 it.each(["neverSent", "backendFailure", "timeout", "interrupted"] as const)(
   "releases each request and restores delivery through twelve %s cycles without reset",
@@ -113,7 +113,7 @@ describe("compact native terminal recovery", () => {
   // retains its 5s Bend emission/execution and 15s external C compilation bounds.
   beforeAll(() => {
     native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-terminal-native.bend", import.meta.url)) as number[];
-  }, 30000);
+  }, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
   it("agrees on compact native recovery after 2050 terminal requests without growing issuance history", () => {
     // Fixed original script: 2050 clear edits at cycle*10, PRE2/Jev1, then
@@ -189,7 +189,7 @@ it("compares original targeted Jev interventions with native reports and full pu
     expect(nativeTrace.filter(row => row[0] !== 30)).toEqual(run.observations.map(row));
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
   }
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it.each([0, 1, 2] as const)("compares original credential action script %i with the same native resident", mode => {
   const fixtures = ["jev-credentials-unavailable-native.bend", "jev-credentials-restore-native.bend", "jev-credentials-rotation-native.bend"] as const;
@@ -270,4 +270,4 @@ it.each([0, 1, 2] as const)("compares original credential action script %i with 
     expect(run.projection.collection.leases).toEqual([]);
     expect(run.interventions.every(report => report.result === "applied")).toBe(true);
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

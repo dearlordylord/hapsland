@@ -50,6 +50,14 @@ function fixture(failCompile = false) {
 }
 
 
+it("records finite compilation allowances separately from execution", () => {
+  const test = fixture();
+  const handle = test.create();
+  const manifest = JSON.parse(readFileSync(handle.manifestPath, "utf8"));
+  expect(manifest.flags.cEmissionTimeoutMs).toBe(30000);
+  expect(manifest.flags.clangTimeoutMs).toBe(30000);
+});
+
 it("creates distinct fresh sessions and validates their exact selected fixture", () => {
   const test = fixture();
   const first = test.create();

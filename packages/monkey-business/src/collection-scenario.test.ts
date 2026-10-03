@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay } from "./index.ts";
 import { captureCollectionResponse, encodeCollectionResponse, encodeCollectionFindingFacts } from "./collection-scenario.ts";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import type { CanonicalEvent } from "../../../src/canonical/adapter.ts";
 
 it("freezes response issuance scope and refuses foreign or out-of-range facts synchronously", () => {
@@ -53,7 +53,7 @@ it("compares original native response facts against literal decisions and public
   run.advance({ untilTime: 9, maxEvents: 10 });
   const codes = new Map(collectionDecisionCases.map(({ expected: name }, index) => [name, expected[index]![0]]));
   expect(run.observations.map(frame => frame.commands.map(command => codes.get(command.kind)))).toEqual(expected);
-}, 30_000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 const eligibleFinding: Extract<CanonicalEvent, { kind: "collectionFindingCheck" }> = {
   kind: "collectionFindingCheck", selectionPartition: 1, selectionRound: 3, unit: 1,

@@ -1,6 +1,6 @@
 import {expect,it} from "vitest";
 import {initialCanonical,stepCanonical,projectCanonical,type CanonicalEvent} from "../../../src/canonical/adapter.ts";
-import {runWorkloadNative} from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import {runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Independent ORIGINAL finite command script. Release facts below name the
 // original pre-command owners explicitly. Native uses real shared feedback.
@@ -31,4 +31,4 @@ it("compares original native cache pressure and refusal to emitted public Canoni
  // Exact cache and logical-charge rows are finite evidence. This does not claim
  // full Driver graph/request/output trace agreement or prepared credential and
  // configuration changes; those require the central #187/#188/#189 ABI gate.
-},30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

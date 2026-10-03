@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run, type RunConfig } from "./index.ts";
 import type { OutcomeWeights } from "./outcomes.ts";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import Shared from "../../monkey-business-bend/engine.mjs";
 import { SessionGenerator } from "./session.ts";
 
@@ -250,7 +250,7 @@ it("executes an original continuous arrival through the native shared workload a
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
   expect(outcomes(run)).toEqual(["clear"]);
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it("runs original IEEE64 weight words in the compiled native numeric owner", () => {
   const native = runWorkloadNative(new URL(
@@ -262,7 +262,7 @@ it("runs original IEEE64 weight words in the compiled native numeric owner", () 
   const run = createRun({ seed: 7, inputs, outcomeWeights: weights({ finding: .25, clear: .75 }) });
   drain(run);
   expect(native[2]).toEqual(outcomes(run).map(outcome => outcome === "finding" ? 1 : outcome === "clear" ? 2 : -1));
-}, 30000);
+}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it("preserves raw MIN_VALUE words when either addend is exact zero", () => {
   const zero = { $: "Numeric.Words", high: 0, low: 0 };

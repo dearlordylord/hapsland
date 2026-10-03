@@ -9,7 +9,7 @@ it("bounds every fresh native phase to 16MiB and keeps the phase timeouts", () =
   spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
   expect(runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
   expect(spawn.mock.calls).toHaveLength(3);
-  expect(spawn.mock.calls.map(call => { const { env, ...options } = call[2]; return options; })).toEqual([12000, 15000, 5000].map(timeout => ({
+  expect(spawn.mock.calls.map(call => { const { env, ...options } = call[2]; return options; })).toEqual([30000, 30000, 5000].map(timeout => ({
     encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024,
   })));
   expect(spawn.mock.calls[0]?.[2].env.BEND_NO_TELEMETRY).toBe("1");
@@ -22,7 +22,7 @@ it("disables the compiler's update check for fresh emitted JavaScript", () => {
   expect(runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
   expect(spawn.mock.calls).toHaveLength(2);
   expect(spawn.mock.calls[0]?.[2].env.BEND_NO_TELEMETRY).toBe("1");
-  expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([5000, 5000]);
+  expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([15000, 5000]);
 });
 it("reports a bounded-output failure and cleans the fresh directory", () => {
   spawn.mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
