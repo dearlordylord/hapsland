@@ -85,7 +85,8 @@ const bothClients = (test: ReturnType<typeof fixture>) => {
   const claudeExecutable = join(test.root, "claude"); const codexExecutable = join(test.root, "codex");
   writeFileSync(claudeExecutable, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
   writeFileSync(codexExecutable, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
-  return { claudeHome, codexHome, flags: [`--claude-home=${claudeHome}`, `--claude-executable=${claudeExecutable}`, `--codex-home=${codexHome}`, `--codex-executable=${codexExecutable}`] };
+  const piExecutable = join(test.root, "pi"); writeFileSync(piExecutable, "#!/bin/sh\nprintf 'unsupported-fixture\\n'\n", { mode: 0o700 });
+  return { claudeHome, codexHome, flags: [`--pi-executable=${piExecutable}`, `--pi-home=${join(test.root, "pi-home")}`, `--claude-home=${claudeHome}`, `--claude-executable=${claudeExecutable}`, `--codex-home=${codexHome}`, `--codex-executable=${codexExecutable}`] };
 };
 it.skipIf(process.platform !== "linux")("bare setup selects and installs both clients with independent confirmation", async () => {
   const test = fixture(); const clients = bothClients(test);

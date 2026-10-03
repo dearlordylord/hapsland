@@ -1,3 +1,4 @@
+import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts";
 import * as Effect from "effect/Effect";
 import { discoverWorkingTreeRoot } from "../repository/root.ts";
 import {
@@ -41,6 +42,7 @@ export type SetupRequest = SetupFields &
         readonly codexHome?: string;
         readonly codexExecutable?: string;
       }
+    | { readonly host: "pi"; readonly piHome?: string; readonly piExecutable?: string }
     | {
         readonly host: "claude";
         readonly claudeHome?: string;
@@ -633,6 +635,7 @@ const reportInstallation = (
 };
 
 const installationOperations = (request: SetupRequest) => {
+  if (request.host === "pi") return { preview: () => previewPiInstallation(request), install: (proposalDigest: string) => installPiIntegration({ ...request, proposalDigest }) };
   if (request.host === "codex") {
     const codexRequest = installationRequest(request);
     return {
@@ -703,7 +706,7 @@ const installationPreview = (request: SetupRequest, installation: unknown) => {
   const installationStatus = text(installationRecord.status) ?? "conflict";
   const hostHome =
     text(previewHost?.home) ??
-    (request.host === "claude" ? request.claudeHome : request.codexHome);
+    (request.host === "pi" ? request.piHome : request.host === "claude" ? request.claudeHome : request.codexHome);
 
   return { installationRecord, compatibility, installationStatus, hostHome };
 };
@@ -712,7 +715,7 @@ const setupInstallation = Effect.fn("Setup.installation")(function* (
   request: SetupRequest,
   progress: SetupProgress,
 ) {
-  const hostName = request.host === "claude" ? "Claude Code" : "Codex";
+  const hostName = request.host === "pi" ? "Pi" : request.host === "claude" ? "Claude Code" : "Codex";
   const { preview, install } = installationOperations(request);
   let installation: unknown = yield* preview();
   const previewEvidence = installationPreview(request, installation);

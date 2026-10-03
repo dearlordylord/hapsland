@@ -29,8 +29,8 @@ const q=s=>"'"+s.replaceAll("'","'\\\\''")+"'";
 fs.writeFileSync(path.join(prefix,'bin',name),'#!/bin/sh\\nexec '+q(${JSON.stringify(process.execPath)})+' '+q(path.join(pkg,'dist',entry))+' "$@"\\n',{mode:0o700});
 }
 `, { mode: 0o700 });
-const terminal = async args => {
-  const command = [process.execPath, join(checkout, 'src/cli.ts'), ...args].map(quote).join(' ');
+const terminal = async (args, entrypoint = join(checkout, 'src/cli.ts')) => {
+  const command = [process.execPath, entrypoint, ...args].map(quote).join(' ');
   const child = spawn('script', ['-qfec', command, '/dev/null'], { env, cwd: repository, stdio: ['pipe', 'pipe', 'pipe'] });
   let output = ''; let sent = 0;
   child.stdout.on('data', chunk => {
@@ -77,5 +77,34 @@ try {
   assert.equal(JSON.parse(readFileSync(join(root, '.local/share/hapsland/active.json'), 'utf8')).entrypoint,join(checkout,'src/cli.ts'));
   for(const [home,file] of [[claudeHome,'settings.json'],[codexHome,'hooks.json']]) assert.equal(JSON.parse(readFileSync(join(home,file),'utf8')).userSetting,'preserved');
   const removal=await terminal(['uninstall']);assert.equal(removal.code,0,removal.output);
+  // Restore the deliberately removed retained CLI for the independent Pi workflow.
+  cpSync(join(checkout, 'dist/cli.js'), active.entrypoint);
+  // The Pi lifecycle runs the built package CLI, preserving an isolated custom profile.
+  const piHome = join(root, 'pi-custom'); const pi = join(root, 'pi-selected');
+  writeFileSync(pi, "#!/bin/sh\nprintf '1.0.0\\n'\n", { mode: 0o700 });
+  mkdirSync(join(piHome, 'extensions'), { recursive: true });
+  const piSettings = '{"model":"gpt-6-luna","provider":"fixture","extensions":["unrelated"]}';
+  writeFileSync(join(piHome, 'settings.json'), piSettings);
+  writeFileSync(join(piHome, 'extensions/other.ts'), 'preserved unrelated extension');
+  env.HAPSLAND_ACTIVE_DISPATCH = '1';
+  const piFlags = [`--pi-home=${piHome}`, `--pi-executable=${pi}`];
+  const piRun = args => terminal([...args, ...piFlags], join(checkout, 'dist/cli.js'));
+  const piSetup = await piRun(['setup', 'pi']); assert.equal(piSetup.code, 0, piSetup.output); assert.equal(piSetup.confirmations, 1);
+  const piExtension = join(piHome, 'extensions/hapsland.ts');
+  const firstPi = readFileSync(piExtension, 'utf8'); assert(firstPi.includes('/dist/pi/extension.js'));
+  const piRepeated = await piRun(['setup', 'pi']); assert.equal(piRepeated.code, 0, piRepeated.output); assert.equal(piRepeated.confirmations, 0);
+  const piDoctor = await piRun(['doctor', 'pi']); assert.equal(piDoctor.code, 0, piDoctor.output); assert(piDoctor.output.includes('review-support: unknown'), piDoctor.output);
+  assert.equal(readFileSync(piExtension, 'utf8'), firstPi);
+  const piUpdate = await piRun(['update', 'pi']); assert.equal(piUpdate.code, 0, piUpdate.output);
+  const updatedPi = readFileSync(piExtension, 'utf8'); assert(updatedPi.includes('/candidates/'));
+  const piUpdateAgain = await piRun(['update', 'pi']); assert.equal(piUpdateAgain.code, 0, piUpdateAgain.output); assert.equal(piUpdateAgain.confirmations, 0);
+  rmSync(piExtension); const piRepair = await piRun(['repair', 'pi']); assert.equal(piRepair.code, 0, piRepair.output);
+  const piReinstall = await piRun(['reinstall', 'pi']); assert.equal(piReinstall.code, 0, piReinstall.output); assert(readFileSync(piExtension, 'utf8').includes('/dist/pi/extension.js'));
+  writeFileSync(piExtension, 'local edit'); const piConflict = await piRun(['uninstall', 'pi']); assert.notEqual(piConflict.code, 0, piConflict.output); assert.equal(readFileSync(piExtension, 'utf8'), 'local edit');
+  writeFileSync(piExtension, firstPi);
+  const piRemoval = await piRun(['uninstall', 'pi']); assert.equal(piRemoval.code, 0, piRemoval.output); assert(!existsSync(piExtension));
+  const piRemovalAgain = await piRun(['uninstall', 'pi']); assert.equal(piRemovalAgain.code, 0, piRemovalAgain.output); assert.equal(piRemovalAgain.confirmations, 0);
+  assert.equal(readFileSync(join(piHome, 'settings.json'), 'utf8'), piSettings);
+  assert.equal(readFileSync(join(piHome, 'extensions/other.ts'), 'utf8'), 'preserved unrelated extension');
   console.log('PASS: ordinary registry update twice, one snapshot, no repeated approval, active CLI dispatch, no setup rollback, partial update resumed through public repair, both-client doctor/repair/reinstall/uninstall, missing active-package recovery, settings preserved; offline fixture only.');
 } finally { rmSync(root,{recursive:true,force:true}); }

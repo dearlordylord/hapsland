@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { runPiHook } from "./pi/transport.ts";
+import { previewPiInstallation, installPiIntegration, previewPiUpdate, updatePiIntegration, uninstallPiIntegration, diagnosePiIntegration, inspectPiInstallation, hasPiRegistration } from "./onboarding/pi-installation.ts";
 import { formatReviewFeedback } from "./feedback/message.ts";
 import { credentialDiagnostic } from "./onboarding/credential-diagnostics.ts";
 import { maintainClients } from "./onboarding/maintenance.ts";
@@ -140,6 +142,7 @@ const assignResultExitCode = (output: unknown): void => {
     composedKind === undefined &&
     !isCodexHook &&
     !isClaudeHook &&
+    !isPiHook &&
     !isOpenCodeHook &&
     typeof output === "object" &&
     output !== null
@@ -281,6 +284,7 @@ const InstallationOperation = Schema.Union([
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   }),
+  installationOperationsFor({ host: Schema.Literal("pi"), piHome: Schema.optionalKey(Schema.NonEmptyString), piExecutable: Schema.optionalKey(Schema.NonEmptyString) }),
   installationOperationsFor({
     host: Schema.Literal("claude"),
     claudeHome: Schema.optionalKey(Schema.NonEmptyString),
@@ -310,6 +314,7 @@ const SetupOperation = Schema.Union([
     codexHome: Schema.optionalKey(Schema.NonEmptyString),
     codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   }),
+  setupOperationsFor({ host: Schema.Literal("pi"), piHome: Schema.optionalKey(Schema.NonEmptyString), piExecutable: Schema.optionalKey(Schema.NonEmptyString) }),
   setupOperationsFor({
     host: Schema.Literal("claude"),
     claudeHome: Schema.optionalKey(Schema.NonEmptyString),
@@ -438,6 +443,7 @@ const fileSelectionReadiness = (settings: ReviewSettings) => {
 
 const isCodexHook = cliSwitch("codex-hook");
 const isClaudeHook = cliSwitch("claude-hook");
+const isPiHook = cliSwitch("pi-hook");
 const isOpenCodeHook = cliSwitch("opencode-hook");
 const isComposedEditHook = cliSwitch("composed-edit-hook");
 const composedKind: ComposedHookKind | undefined = cliSwitch("composed-before-edit-hook")
@@ -848,7 +854,7 @@ const dispatchOpencodeInstallation = Effect.fn("Cli.dispatchOpencodeInstallation
   return yield* opencodeInstallationHandlers[operation.operation](opencodeInstallationRequest(operation));
 });
 
-type CodexInstallationOperation = Exclude<InstallationOperation, { host: "claude" | "opencode" }>;
+type CodexInstallationOperation = Exclude<InstallationOperation, { host: "claude" | "opencode" | "pi" }>;
 const codexInstallationRequest = (operation: CodexInstallationOperation) => {
   return {
     ...installationReinstall(operation),
@@ -891,6 +897,17 @@ const dispatchInstallation = Effect.fn("Cli.dispatchInstallation")(function* (
   operation: InstallationOperation,
   userConfigPath: string | undefined,
 ) {
+  if (operation.host === "pi") {
+    const request = { ...operation, ...installationDigest(operation), ...installationReinstall(operation) };
+    if (operation.operation === "doctor") {
+      const diagnosis = yield* diagnosePiIntegration(request);
+      const repository = yield* doctorRepositoryChecks(operation.cwd, userConfigPath);
+      return { ...diagnosis, checks: [...diagnosis.checks.filter(check => check.stage !== "credential"), repository.repository, repository.credential] };
+    }
+    const handlers = { doctor: diagnosePiIntegration, "install-preview": previewPiInstallation, install: installPiIntegration,
+      "update-preview": previewPiUpdate, update: updatePiIntegration, uninstall: uninstallPiIntegration };
+    return yield* handlers[operation.operation](request);
+  }
   if (operation.host === "claude") return yield* dispatchClaudeInstallation(operation);
   if (operation.host === "opencode") return yield* dispatchOpencodeInstallation(operation);
   return yield* dispatchCodexInstallation(operation, userConfigPath);
@@ -990,6 +1007,8 @@ const runNativeInput = Effect.fn("Cli.runNativeInput")(function* (
   userConfigPath: string | undefined,
 ) {
   const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
+
+  if (isPiHook) return yield* runPiHook(yield* decodeJson(input), { statePath, activityPath, ...(userConfigPath === undefined ? {} : { userConfigPath }), ...(controlled === undefined ? {} : { controlled }) }).pipe(Effect.catch(() => Effect.succeed({ status: "unavailable" })));
 
   if (isClaudeHook) {
     if (!isComposedEditHook) return {};
@@ -1306,19 +1325,19 @@ const claudeClientStatus = Effect.fn("InteractiveSetup.claudeStatus")(function* 
 const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (host: SetupClient) {
   const fields = hostFields(host);
   const inspection =
-    fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
+    fields.host === "pi" ? yield* inspectPiInstallation(fields) : fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
   const decoded = Schema.decodeUnknownSync(
     Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }),
   )(inspection);
   const initial = initialClientStatus(decoded);
   const status =
-    fields.host === "claude" ? yield* claudeClientStatus(fields, initial) : yield* codexClientStatus(fields, initial);
-  return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
+    fields.host === "pi" ? (yield* previewPiInstallation(fields)).status === "unsupported" ? "unavailable" as const : initial : fields.host === "claude" ? yield* claudeClientStatus(fields, initial) : yield* codexClientStatus(fields, initial);
+  return { host, name: host === "pi" ? "Pi" : host === "claude" ? "Claude Code" : "Codex CLI", status };
 });
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
   if (!process.stdin.isTTY || !process.stderr.isTTY)
     throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
-  const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex"] as const, setupClientChoice);
+  const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex", "pi"] as const, setupClientChoice);
   const hosts = yield* selectSetupClients(choices);
   if (hosts.length === 0) {
     process.stderr.write("No clients selected. No changes made.\n");
@@ -1416,9 +1435,9 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(
       {
         fields: hostFields,
         installed: (fields) =>
-          fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields),
+          fields.host === "pi" ? hasPiRegistration(fields) : fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields),
         inspect: (fields) =>
-          fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields),
+          fields.host === "pi" ? inspectPiInstallation(fields) : fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields),
         invoke: (host, request) =>
           invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request),
         activate: activateCurrentPackage(fileURLToPath(import.meta.url)),

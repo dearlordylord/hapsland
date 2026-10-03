@@ -11,6 +11,7 @@ import type { SetupClient } from "./onboarding/client-selection.ts";
 const hookFlags = new Set([
   "--codex-hook",
   "--claude-hook",
+  "--pi-hook",
   "--opencode-hook",
   "--composed-edit-hook",
   "--composed-before-edit-hook",
@@ -46,12 +47,14 @@ const valueFlag = (name: string) =>
     Flag.map((values) => values[0]),
   );
 const profiles = {
-  host: Flag.Literals("host", ["claude", "codex"]).pipe(
+  host: Flag.Literals("host", ["claude", "codex", "pi"]).pipe(
     Flag.atMost(1),
     Flag.map((values) => values[0]),
   ),
   "claude-home": valueFlag("claude-home"),
   "claude-executable": valueFlag("claude-executable"),
+  "pi-home": valueFlag("pi-home"),
+  "pi-executable": valueFlag("pi-executable"),
   "codex-home": valueFlag("codex-home"),
   "codex-executable": valueFlag("codex-executable"),
 };
@@ -84,6 +87,7 @@ const automationFlags = {
   "evaluation-live": switchFlag("evaluation-live"),
   "codex-hook": switchFlag("codex-hook"),
   "claude-hook": switchFlag("claude-hook"),
+  "pi-hook": switchFlag("pi-hook"),
   "opencode-hook": switchFlag("opencode-hook"),
   "composed-edit-hook": switchFlag("composed-edit-hook"),
   "composed-before-edit-hook": switchFlag("composed-before-edit-hook"),
@@ -127,7 +131,7 @@ const parentOptions = {
   ...automationFlags,
   ...profiles,
   target: valueFlag("target"),
-  client: Argument.Literals("client", ["claude", "codex"]).pipe(Argument.optional),
+  client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional),
 };
 type ParentOptions = Command.Command.Config.Infer<typeof parentOptions>;
 const activeOption = (value: unknown): boolean => value !== false && value !== undefined;
@@ -158,6 +162,8 @@ const hasClientProfile = (values: ParentOptions): boolean =>
     values["claude-executable"],
     values["codex-home"],
     values["codex-executable"],
+    values["pi-home"],
+    values["pi-executable"],
     values.target,
   ].some((value) => value !== undefined);
 const validateClientProfile = (values: ParentOptions): void => {
@@ -166,7 +172,7 @@ const validateClientProfile = (values: ParentOptions): void => {
 };
 const validateAutomation = (values: ParentOptions): void => {
   const operations = (Object.keys(operationFlags) as Array<keyof typeof operationFlags>).filter((key) => values[key]);
-  const hooks = ["codex-hook", "claude-hook", "opencode-hook"].filter(
+  const hooks = ["codex-hook", "claude-hook", "opencode-hook", "pi-hook"].filter(
     (key) => values[key as keyof typeof values] === true,
   );
   const composed = [
@@ -197,7 +203,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
           command,
           {
             ...profiles,
-            client: Argument.Literals("client", ["claude", "codex"]).pipe(Argument.optional),
+            client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional),
             ...(command === "update" || command === "setup" || command === "repair" || command === "reinstall"
               ? { target: valueFlag("target") }
               : {}),
