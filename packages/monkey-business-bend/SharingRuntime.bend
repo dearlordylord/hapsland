@@ -522,3 +522,19 @@ def depart(+state: State, scope: Freshness.Scope) -> Departure:
   match state:
     case State{Sharing.State{evaluations,_},_,_,_}:
       departure_found(state,removed_scopes(evaluations,scope))
+
+
+# Attach only an actual Own result for the exact retained route. This is a
+# source-free follow-up fact; Canonical remains claim/attachment authority.
+def attached_route(route: Route, valid: Bool, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
+  match valid:
+    case False{}: []
+    case True{}:
+      match own(commands):
+        case False{}: []
+        case True{}:
+          match route:
+            case Route{_,_,_,evaluation}: [C.ReuseAttach{evaluation}]
+
+def route_followups(+state: State, +route: Route, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
+  attached_route(route,route_valid(state,route),commands)

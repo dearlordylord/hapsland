@@ -94,7 +94,11 @@ export class SharedCore {
   }
   completeSharing(event: CanonicalEvent) { return completeSharedSharing(this.state, event); }
   routeSharing(route: unknown) { return routeSharedSharing(this.state, route); }
-  routedSharing(route: unknown) { this.state = routedSharedSharing(this.state, route); }
+  routedSharing(route: unknown) {
+    const result = routedSharedSharing(this.state, route);
+    this.state = result.state;
+    return result.events;
+  }
   freshnessChecks(scope: FreshnessScope) { return sharedFreshnessChecks(this.state, encodeFreshnessScope({ partition: scope.partition, lifetime: scope.lifetime, round: scope.round, operation: scope.operation })); }
   issuePermit(capture: unknown, issuanceNow: number) { return issueSharedPermit(this.state, capture, issuanceNow); }
   issuedPermit(capture: unknown, token: number) { return issuedSharedPermit(this.state, capture, token); }

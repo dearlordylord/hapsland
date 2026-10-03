@@ -12,7 +12,7 @@ declare const Engine: {
  sharing_leave(state: EngineState,scope: unknown): {state: EngineState; events: unknown; valid: unknown};
  sharing_prepare(state: EngineState,scope: unknown,keys: unknown,sizes: unknown): {state: EngineState; routes: unknown; valid: unknown};
  sharing_route(state: EngineState,route: unknown): unknown;
- sharing_routed(state: EngineState,route: unknown,commands: unknown): EngineState;
+ sharing_routed(state: EngineState,route: unknown,commands: unknown): {state: EngineState; events: unknown};
  sharing_completion(state: EngineState,event: unknown): unknown;
  sharing_binding(state: EngineState,scope: unknown): unknown;
  sharing_result(state: EngineState,evaluation: bigint): unknown;

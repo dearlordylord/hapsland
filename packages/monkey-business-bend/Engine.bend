@@ -663,8 +663,11 @@ def sharing_prepare(+state: Types.State, +scope: FreshnessScenario.Scope, keys: 
 def sharing_route(+state: Types.State, route: SharingRuntime.Route) -> List<&2,Canonical.CanonicalEvent>:
   SharingRuntime.route_event(canonical(state),freshness_state(state),sharing_runtime(state),route)
 
-def sharing_routed(+state: Types.State, route: SharingRuntime.Route, commands: List<&2,Canonical.Command>) -> Types.State:
-  with_sharing_runtime(state,SharingRuntime.routed(sharing_runtime(state),route,commands))
+type SharingRouted is Data:
+  SharingRouted{state: Types.State, events: List<&2,Canonical.CanonicalEvent>}
+
+def sharing_routed(+state: Types.State, +route: SharingRuntime.Route, +commands: List<&2,Canonical.Command>) -> SharingRouted:
+  SharingRouted{with_sharing_runtime(state,SharingRuntime.routed(sharing_runtime(state),route,commands)),SharingRuntime.route_followups(sharing_runtime(state),route,commands)}
 
 def sharing_completion(state: Types.State, event: Canonical.CanonicalEvent) -> SharingRuntime.Completion:
   SharingRuntime.completion(sharing_runtime(state),event)

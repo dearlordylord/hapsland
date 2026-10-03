@@ -406,7 +406,8 @@ export const routedSharedSharing = (state: EngineState, route: unknown) => {
   const captured = readRecord(route);
   if (!commands || event?.kind !== "reuseRoute" || event.id !== readNat(captured.evaluation)) throw new RangeError("missing original shared route result");
   const list = commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
-  return retain(state, SharedEngine.sharing_routed(state, encodeSharedValue(route), list));
+  const result = SharedEngine.sharing_routed(state, encodeSharedValue(route), list);
+  return { state: retain(state, result.state), events: decodeSharedValue(result.events) };
 };
 
 export const leaveSharedSharing = (state: EngineState, scope: unknown) => {
