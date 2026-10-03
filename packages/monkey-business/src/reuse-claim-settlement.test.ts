@@ -23,3 +23,24 @@ it("settles a superseded pre-issuance claim while preserving the other prepared 
   expect(replay.observations).toEqual(run.observations);
   expect(replay.projection).toEqual(run.projection);
 });
+
+it("settles an authentically issued stale clear result without caching its replaced revision", () => {
+  const run = createRun({ outcome: "clear", preparationDelay: 2, jevDelay: 5,
+    inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: ["old"] },
+      { at: 3, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: ["new"] }],
+    lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } } });
+  expect(run.advance({ untilTime: 100, maxEvents: 1000 }).reason).toBe("idle");
+  const commands = run.observations.flatMap(frame => frame.commands);
+  expect(commands.filter(command => command.kind === "jevRequestIssued")).toHaveLength(2);
+  expect(commands.filter(command => command.kind === "jevObservationIgnored")).toHaveLength(1);
+  expect(commands.filter(command => command.kind === "cacheCommitted")).toHaveLength(1);
+  expect(run.projection.work).toEqual([]);
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.reuse.claims).toEqual([]);
+  expect(run.projection.reuse.cache).toHaveLength(1);
+  expect(run.projection.charges.map(charge => charge.id)).toEqual(run.projection.reuse.cache.map(entry => entry.reservation));
+  expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
+  const replay = restoreReplay(run.exportReplay());
+  expect(replay.observations).toEqual(run.observations);
+  expect(replay.projection).toEqual(run.projection);
+});

@@ -4,6 +4,9 @@ import ../../agent-flow-bend/Ledger.bend as Ledger
 import ../SharingRuntime.bend as Runtime
 import ../SharingScenario.bend as Sharing
 import ../FreshnessScenario.bend as Freshness
+import ../Engine.bend as Engine
+import ../CacheScenario.bend as Cache
+import ../Types.bend as Types
 
 # Literal bookkeeping seam regressions, not laws or a substitute for the
 # unchanged public late-join and original unavailable-owner scenarios.
@@ -51,6 +54,35 @@ def settled(items: List<&2,C.CanonicalEvent>) -> Bool:
     case C.ReuseMemberCheck{_,_,_,_} <> C.ReuseRelease{1n} <> Nil{}: True{}
     case _: False{}
 
+def released(items: List<&2,C.CanonicalEvent>) -> Bool:
+  match items:
+    case C.ReuseRelease{1n} <> Nil{}: True{}
+    case _: False{}
+
+def no_cache_attempt(published: Engine.CachePublished) -> Bool:
+  match published:
+    case Engine.CachePublished{_,Nil{},releases}: released(releases)
+    case _: False{}
+
+def rejected_cache(published: Engine.CachePublished) -> Bool:
+  match published:
+    case Engine.CachePublished{_,Nil{},Nil{}}: True{}
+    case _: False{}
+
+def engine() -> Types.State:
+  Engine.initial(Ledger.Limits{10n,100n,10n,100n})
+
+def clear_callback() -> C.CanonicalEvent:
+  C.JevRequestSettled{1n,1n,1n,3n,7n,C.RequestClear{},False{}}
+
+def clear_result() -> Types.State:
+  Engine.with_sharing_runtime(engine(),Runtime.feedback(physical(),clear_callback(),[C.JevObservationIgnored{}]))
+
+def cache_guards() -> Bool:
+  no_cache_attempt(Engine.cache_begin_current(engine(),Cache.Offer{1n,Sharing.SharingKey{1n,1n},scope(),5n,C.RequestClear{}},Freshness.Binding{scope(),Freshness.Source{1n,1n},1n},False{})) &&
+  rejected_cache(Engine.cache_begin(engine(),clear_result(),clear_callback(),[])) &&
+  rejected_cache(Engine.cache_begin(engine(),clear_result(),clear_callback(),[C.JevObservationIgnored{}]))
+
 def checks() -> Bool:
   settled(facts(reviewing(base()),base(),3n,accepted())) &&
   empty(facts(reviewing(base()),reviewing(base()),3n,accepted())) &&
@@ -59,7 +91,7 @@ def checks() -> Bool:
   empty(facts(reviewing(base()),base(),3n,Runtime.feedback(captured(),ready(3n),[]))) &&
   settled(Runtime.postprocess(physical(),consumed(),base(),base(),Freshness.initial(),callback(7n))) &&
   empty(Runtime.postprocess(physical(),physical(),base(),base(),Freshness.initial(),callback(99n))) &&
-  empty(Runtime.postprocess(consumed(),consumed(),base(),base(),Freshness.initial(),callback(7n)))
+  empty(Runtime.postprocess(consumed(),consumed(),base(),base(),Freshness.initial(),callback(7n))) && cache_guards()
 
 def main() -> IO(Unit):
   IO.print(Bool.pick(String,checks(),"PASS unavailable ownership guards","FAIL unavailable ownership guards"))

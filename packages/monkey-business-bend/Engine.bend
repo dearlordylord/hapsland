@@ -1002,22 +1002,26 @@ def recorded_cache_result(commands: List<&2,Canonical.Command>) -> Bool:
 def cache_begin_current(+state: Types.State, offer: CacheScenario.Offer, binding: FreshnessScenario.Binding, allowed: Bool) -> CachePublished:
   match allowed:
     case True{}: cache_published(state,CacheRuntime.begin_configured(cache_runtime(state),offer,binding))
-    case False{}: CachePublished{state,[],[]}
+    case False{}: CachePublished{state,[],CacheRuntime.terminal_claim(offer)}
 
 def cache_begin_captured(before: Types.State, +state: Types.State, +offer: CacheScenario.Offer, source: Maybe<&2,FreshnessScenario.Binding>) -> CachePublished:
   match source:
     case Some{+binding}: cache_begin_current(state,offer,binding,CacheRuntime.current_found(FreshnessScenario.current_binding(canonical(before),Some{binding})))
-    case None{}: CachePublished{state,[],[]}
+    case None{}: CachePublished{state,[],CacheRuntime.terminal_claim(offer)}
 
-def cache_begin_offer(+before: Types.State, state: Types.State, offer: Maybe<&2,CacheScenario.Offer>) -> CachePublished:
+def cache_begin_eligible(+before: Types.State, +state: Types.State, +offer: CacheScenario.Offer, eligible: Bool) -> CachePublished:
+  match eligible:
+    case True{}: cache_begin_captured(before,state,offer,FreshnessScenario.lookup(FreshnessScenario.bindings(freshness_state(before)),CacheScenario.original(offer)))
+    case False{}: CachePublished{state,[],CacheRuntime.terminal_claim(offer)}
+
+def cache_begin_offer(before: Types.State, state: Types.State, offer: Maybe<&2,CacheScenario.Offer>, eligible: Bool) -> CachePublished:
   match offer:
     case None{}: CachePublished{state,[],[]}
-    case Some{+offer}:
-      cache_begin_captured(before,state,offer,FreshnessScenario.lookup(FreshnessScenario.bindings(freshness_state(before)),CacheScenario.original(offer)))
+    case Some{offer}: cache_begin_eligible(before,state,offer,eligible)
 
-def cache_begin_checked(before: Types.State, +state: Types.State, event: Canonical.CanonicalEvent, allowed: Bool) -> CachePublished:
+def cache_begin_checked(before: Types.State, +state: Types.State, event: Canonical.CanonicalEvent, allowed: Bool, eligible: Bool) -> CachePublished:
   match allowed:
-    case True{}: cache_begin_offer(before,state,SharingRuntime.cache_offer(sharing_runtime(state),event))
+    case True{}: cache_begin_offer(before,state,SharingRuntime.cache_offer(sharing_runtime(state),event),eligible)
     case False{}: CachePublished{state,[],[]}
 
 def cache_original_found(found: Maybe<&2,Dispatch.Request>) -> Bool:
@@ -1030,8 +1034,11 @@ def cache_original_request(state: Canonical.State, event: Canonical.CanonicalEve
     case Canonical.JevRequestSettled{p,l,r,o,request,_,_}: cache_original_found(FaultTargets.request(state,FaultTargets.Target{p,l,r,o,request}))
     case _: False{}
 
-def cache_begin(+before: Types.State, state: Types.State, +event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> CachePublished:
-  cache_begin_checked(before,state,event,recorded_cache_result(commands) && cache_original_request(canonical(before),event))
+# A stale original result can authentically settle its physical request while
+# being ineligible for caching. Its existing claim still ends; only current
+# recorded results may start the unchanged cache reservation/commit route.
+def cache_begin(+before: Types.State, state: Types.State, +event: Canonical.CanonicalEvent, +commands: List<&2,Canonical.Command>) -> CachePublished:
+  cache_begin_checked(before,state,event,SharingRuntime.original_consumed(commands) && cache_original_request(canonical(before),event),recorded_cache_result(commands))
 
 def cache_removed_result(feedback: CacheRuntime.Feedback) -> List<&2,Canonical.CanonicalEvent>:
   match feedback:
