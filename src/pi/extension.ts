@@ -75,6 +75,35 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   api.on("agent_start", async (_event, ctx) => {
     active = { id: identity(ctx, "finish", randomUUID()), generation: epoch };
   });
+  const registerCall = async (id: Identity, key: string, fingerprint: string) => {
+    const generation = epoch;
+    const result = await send(id, "before");
+    if (result.status !== "registered") return;
+    if (generation !== epoch) { await send(id, "retire"); return; }
+    calls.set(key, { id, input: fingerprint, expires: Date.now() + 30_000 });
+    partitions.set(partition(id), id);
+  };
+  const acknowledgeOffer = async (id: Identity, result: Event, output: Event, generation: number, fields: Event = {}) => {
+    // This ack proves our native handler offered these bytes; later handlers may replace them.
+    await send(id, "ack", { token: result.token, lifetime: result.lifetime, ...fields });
+    if (generation !== epoch) return;
+    return output;
+  };
+  const editOffer = async (id: Identity, event: Event, original: Event) => {
+    const generation = epoch;
+    const result = await send(id, "edit", { input: event.input, details: event.details, isError: false });
+    if (["incomplete", "unavailable"].includes(result.status)) await send(id, "retire");
+    if (result.status !== "advice" || generation !== epoch || typeof result.text !== "string") return;
+    const output = { ...original, content: [...original.content, { type: "text", text: result.text }] };
+    return acknowledgeOffer(id, result, output, generation);
+  };
+  const finishOffer = async (id: Identity, event: Event, entries: unknown[], generation: number) => {
+    // Pi rebuilds canContinue after our entry: an initial assistant-only preview is false.
+    const result = await send(id, "finish");
+    if (result.status !== "advice" || generation !== epoch || typeof result.text !== "string") return;
+    const output = { entries: [...entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };
+    return acknowledgeOffer(id, result, output, generation, { stopToken: result.stopToken, continued: result.continued });
+  };
   api.on("tool_call", async (event, ctx) => {
     prune();
     if (!supported(event) || calls.size >= 64) return;
@@ -83,11 +112,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     const id = identity(ctx, event.toolName, event.toolCallId);
     const key = `${partition(id)}\0${id.tool_use_id}`;
     if (calls.has(key)) return;
-    const generation = epoch;
-    const result = await send(id, "before");
-    if (result.status !== "registered" || generation !== epoch) { if (result.status === "registered") await send(id, "retire"); return; }
-    calls.set(key, { id, input: fingerprint, expires: Date.now() + 30_000 });
-    partitions.set(partition(id), id);
+    await registerCall(id, key, fingerprint);
   });
   api.on("tool_result", async (event, ctx) => {
     prune();
@@ -99,15 +124,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     calls.delete(key);
     const original = nativeOutput(event);
     if (event.isError !== false || call.input !== digest(event.input) || original === undefined) { await send(call.id, "retire"); return; }
-    const generation = epoch;
-    const result = await send(call.id, "edit", { input: event.input, details: event.details, isError: false });
-    if (result.status !== "advice" || generation !== epoch) { if (["incomplete", "unavailable"].includes(result.status)) await send(call.id, "retire"); return; }
-    if (typeof result.text !== "string") return;
-    const output = { ...original, content: [...original.content, { type: "text", text: result.text }] };
-    // This ack proves our native handler offered these bytes; later handlers may replace them.
-    await send(call.id, "ack", { token: result.token, lifetime: result.lifetime });
-    if (generation !== epoch) return;
-    return output;
+    return editOffer(call.id, event, original);
   });
   api.on("agent_before_settle", async (event, ctx) => {
     if (!Array.isArray(event.entries)) return;
@@ -116,14 +133,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     const generation = epoch;
     boundary = { id, generation };
     if (event.outcome !== "completed") { await send(id, "close"); return; }
-    // Pi rebuilds canContinue after our entry: an initial assistant-only preview is false.
-    const result = await send(id, "finish");
-    if (result.status !== "advice" || generation !== epoch) return;
-    if (typeof result.text !== "string") return;
-    const output = { entries: [...entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };
-    await send(id, "ack", { token: result.token, lifetime: result.lifetime, stopToken: result.stopToken, continued: result.continued });
-    if (generation !== epoch) return;
-    return output;
+    return finishOffer(id, event, entries, generation);
   });
   const cleanup = async () => {
     epoch++;

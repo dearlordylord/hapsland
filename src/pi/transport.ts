@@ -51,19 +51,36 @@ const offerAdvice = Effect.fn("Pi.offer")(function* (context: Context, advice: A
   return { status: "advice", text: advice.output.hookSpecificOutput.additionalContext, token: advice.token, lifetime: advice.lifetime, findingCount: advice.findingCount, continued, ...(stopToken === undefined ? {} : { stopToken }) };
 });
 const finishFacts = (token: string | undefined, time: number, deadline: number) => token === undefined ? undefined : { token, deadlineReached: time >= deadline - 750 };
-const collect = Effect.fn("Pi.collect")(function* (context: Context, dispatch: ResidentDispatchContext) {
-  const { event, root, advicee, paths } = context;
+type Collection = { deadline: number; stopToken: string | undefined; surface: "turn-end" | "ordinary" };
+const beginCollection = Effect.fn("Pi.beginCollection")(function* ({ event, root, advicee, paths }: Context) {
   const finish = event.operation === "finish";
   const deadline = (yield* now) + (finish ? PI_FINISH_DEADLINE_MS : 250);
   const stopToken = finish ? randomUUID() : undefined;
-  if (stopToken !== undefined && !(yield* composedStopBoundaryEffect("begin-stop", root, advicee, stopToken, false, paths))) return { status: "unavailable" };
+  if (stopToken !== undefined && !(yield* composedStopBoundaryEffect("begin-stop", root, advicee, stopToken, false, paths))) return undefined;
+  return { deadline, stopToken, surface: finish ? "turn-end" as const : "ordinary" as const };
+});
+const pollCollection = Effect.fn("Pi.pollCollection")(function* (context: Context, dispatch: ResidentDispatchContext, collection: Collection) {
+  const { root, advicee, paths } = context;
+  const { deadline, stopToken, surface } = collection;
   while ((yield* now) < deadline - 150) {
-    const outcome = yield* collectAdviceeOutcomeEffect(root, advicee, dispatch, paths, finish ? "turn-end" : "ordinary", deadline, finishFacts(stopToken, yield* now, deadline));
+    const outcome = yield* collectAdviceeOutcomeEffect(root, advicee, dispatch, paths, surface, deadline, finishFacts(stopToken, yield* now, deadline));
     if (outcome.status === "advice") return yield* offerAdvice(context, outcome.advice, stopToken);
     if (outcome.status === "empty") break;
     yield* Effect.sleep("50 millis");
   }
-  if (stopToken !== undefined) yield* composedStopBoundaryEffect("finish-stop", root, advicee, stopToken, true, paths, (yield* now) >= deadline - 750 ? "deadline" : "no-advice");
+  return undefined;
+});
+const closeCollection = Effect.fn("Pi.closeCollection")(function* ({ root, advicee, paths }: Context, { deadline, stopToken }: Collection) {
+  if (stopToken === undefined) return;
+  const reason = (yield* now) >= deadline - 750 ? "deadline" : "no-advice";
+  yield* composedStopBoundaryEffect("finish-stop", root, advicee, stopToken, true, paths, reason);
+});
+const collect = Effect.fn("Pi.collect")(function* (context: Context, dispatch: ResidentDispatchContext) {
+  const collection = yield* beginCollection(context);
+  if (collection === undefined) return { status: "unavailable" };
+  const offer = yield* pollCollection(context, dispatch, collection);
+  if (offer !== undefined) return offer;
+  yield* closeCollection(context, collection);
   return empty;
 });
 const review = Effect.fn("Pi.review")(function* (context: Context) {
