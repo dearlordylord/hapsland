@@ -865,7 +865,7 @@ type TransitionHook<-F: Data> is Type:
 def transition_identity(-F: Data, _before: List<&2,Runtime>, after: List<&2,Runtime>,
     _event: Canonical.CanonicalEvent, _result: Canonical.Step, _now: Nat,
     hook: CommandHook<F>) -> List<&2,Runtime> & CommandHook<F>:
-  after & hook
+  (after,hook)
 
 def transition_hook(-F: Data, hook: CommandHook<F>) -> TransitionHook<F>:
   TransitionHook{hook,transition_identity(F)}
