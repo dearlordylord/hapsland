@@ -232,7 +232,7 @@ def after(+before: Types.State, +state: Types.State, +event: Canonical.Canonical
   match before:
     case Types.State{+previous, _, _, _, _, _, _, _, _, _, captures, _, scenarios}:
       List.append(&2, Driver.Action,
-        sharing_actions(SharingRuntime.postprocess(RuntimeScenarios.sharing(scenarios),sharing_runtime(state),canonical(state),freshness_state(state),event)),
+        sharing_actions(SharingRuntime.postprocess(RuntimeScenarios.sharing(scenarios),sharing_runtime(state),previous,canonical(state),freshness_state(state),event)),
         List.append(&2, Driver.Action, WriterScenario.departure_actions(WriterScenario.retired(RuntimeScenarios.writers(scenarios),previous,canonical(state),event),RuntimeScenarios.collection(scenarios)),List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), AdviceeLifecycleCleanup.preparation_actions(captures, preparation_running(previous), event))))
 
 type Taken is Data:

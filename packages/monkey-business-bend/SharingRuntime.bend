@@ -288,10 +288,26 @@ def terminal_found(+state: State, +scope: Freshness.Scope, physical: Sharing.Phy
       Bool.pick(State,Sharing.callback_original(sharing(state),evaluation,physical) && original_consumed(commands),
         result_record(with_sharing(state,Sharing.terminal_feedback(Bool.pick(Sharing.State,retained_finding(commands),Sharing.retained(sharing(state),evaluation,scope),sharing(state)),evaluation,True{})),evaluation,outcome,scope,bytes),state)
 
+def unavailable_command(commands: List<&2,C.Command>) -> Bool:
+  match commands:
+    case Nil{}: False{}
+    case C.JevRequestUnavailable{} <> _: True{}
+    case _ <> tail: unavailable_command(tail)
+
+# An accepted pre-issuance rejection has no physical tuple to consume. Record
+# its logical result only from Canonical's factual unavailable command.
+def unavailable_binding(+state: State, scope: Freshness.Scope, commands: List<&2,C.Command>, found: Maybe<&2,Binding>) -> State:
+  match found:
+    case None{}: state
+    case Some{Binding{_,evaluation,bytes,_}}:
+      Bool.pick(State,unavailable_command(commands),result_record(state,evaluation,C.NeverSent{},scope,bytes),state)
+
 def terminal(+state: State, event: C.CanonicalEvent, commands: List<&2,C.Command>) -> State:
   match event:
     case C.JevRequestSettled{+p,+l,+r,+o,+request,outcome,_}:
       terminal_found(state,Freshness.Scope{p,l,r,o},Sharing.Physical{p,l,r,o,request},outcome,commands,lookup_binding(state,Freshness.Scope{p,l,r,o}))
+    case C.JevRequestReady{+p,+l,+r,+o,_,_,_,_,_,_}:
+      unavailable_binding(state,Freshness.Scope{p,l,r,o},commands,lookup_binding(state,Freshness.Scope{p,l,r,o}))
     case _: state
 
 def commands_feedback(commands: List<&2,C.Command>, state: State, +event: C.CanonicalEvent) -> State:
@@ -622,17 +638,51 @@ def terminal_members(canonical: C.State, freshness: Freshness.State, before: May
     case Some{Sharing.Evaluation{_,_,members,_,_}}: member_facts(canonical,freshness,members,outcome,result_advice(after))
     case None{}: []
 
-def postprocess_binding(+before: State, +after: State, canonical: C.State, freshness: Freshness.State, +physical: Sharing.Physical, outcome: C.RequestOutcome, binding: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
+def unavailable_release(evaluation: Nat, outcome: C.RequestOutcome) -> List<&2,C.CanonicalEvent>:
+  match outcome:
+    case C.RequestFinding{}: []
+    case C.RequestClear{}: []
+    case _: [C.ReuseRelease{evaluation}]
+
+def postprocess_binding(+before: State, +after: State, canonical: C.State, freshness: Freshness.State, +physical: Sharing.Physical, +outcome: C.RequestOutcome, binding: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
   match binding:
     case None{}: []
     case Some{Binding{_,+evaluation,_,_}}:
       Bool.pick(List<&2,C.CanonicalEvent>,physical_consumed(Sharing.lookup(sharing(before),evaluation),Sharing.lookup(sharing(after),evaluation),physical),
-        terminal_members(canonical,freshness,Sharing.lookup(sharing(before),evaluation),Sharing.lookup(sharing(after),evaluation),outcome),[])
+        List.append(&2,C.CanonicalEvent,terminal_members(canonical,freshness,Sharing.lookup(sharing(before),evaluation),Sharing.lookup(sharing(after),evaluation),outcome),unavailable_release(evaluation,outcome)),[])
 
-def postprocess(+before: State, after: State, canonical: C.State, freshness: Freshness.State, event: C.CanonicalEvent) -> List<&2,C.CanonicalEvent>:
+def never_sent(found: Maybe<&2,C.RequestOutcome>) -> Bool:
+  match found:
+    case Some{C.NeverSent{}}: True{}
+    case _: False{}
+
+def reviewing_removed(before: Maybe<&2,C.Work>, after: Maybe<&2,C.Work>) -> Bool:
+  match before after:
+    case Some{C.Work{_,_,_,_,_,C.Reviewing{},_}} None{}: True{}
+    case _ _: False{}
+
+def work_at(canonical: C.State, scope: Freshness.Scope) -> Maybe<&2,C.Work>:
+  match canonical scope:
+    case C.State{_,_,work,_,_,_,_,_,_} Freshness.Scope{p,l,r,o}: C.find_work(p,l,r,o,work)
+
+def unissued(found: Maybe<&2,Sharing.Evaluation>) -> Bool:
+  match found:
+    case Some{Sharing.Evaluation{_,_,_,None{},None{}}}: True{}
+    case _: False{}
+
+def unavailable_postprocess(+before: State, +after: State, previous: C.State, +canonical: C.State, freshness: Freshness.State, +scope: Freshness.Scope, binding: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
+  match binding:
+    case None{}: []
+    case Some{Binding{_,+evaluation,_,_}}:
+      Bool.pick(List<&2,C.CanonicalEvent>,reviewing_removed(work_at(previous,scope),work_at(canonical,scope)) && unissued(Sharing.lookup(sharing(before),evaluation)) && never_sent(result(after,evaluation)),
+        List.append(&2,C.CanonicalEvent,terminal_members(canonical,freshness,Sharing.lookup(sharing(before),evaluation),Sharing.lookup(sharing(after),evaluation),C.NeverSent{}),[C.ReuseRelease{evaluation}]),[])
+
+def postprocess(+before: State, after: State, previous: C.State, canonical: C.State, freshness: Freshness.State, event: C.CanonicalEvent) -> List<&2,C.CanonicalEvent>:
   match event:
     case C.JevRequestSettled{+p,+l,+r,+o,+request,outcome,_}:
       postprocess_binding(before,after,canonical,freshness,Sharing.Physical{p,l,r,o,request},outcome,lookup_binding(before,Freshness.Scope{p,l,r,o}))
+    case C.JevRequestReady{+p,+l,+r,+o,_,_,_,_,_,_}:
+      unavailable_postprocess(before,after,previous,canonical,freshness,Freshness.Scope{p,l,r,o},lookup_binding(before,Freshness.Scope{p,l,r,o}))
     case _: []
 
 def empty_evaluation(found: Maybe<&2,Sharing.Evaluation>) -> Bool:
@@ -784,4 +834,3 @@ def cached_review(state: State, command: C.Command) -> Maybe<&2,Freshness.Scope>
   match command:
     case C.UnitAdmitted{operation,_,_,_,_}: cached_operation(bindings_of(state),operation)
     case _: None{}
-
