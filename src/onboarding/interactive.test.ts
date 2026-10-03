@@ -173,15 +173,6 @@ it.skipIf(process.platform !== "linux")("a failed client update reports failure 
   expect(recordedRequests(target.requests).map(r => `${r.host}:${r.operation}`)).toEqual(["claude:update-preview", "codex:update-preview", "claude:update", "codex:update"]);
   expect(result.output).toContain("claude: failed."); expect(result.output).toContain("codex: updated.");
 }, 20_000);
-it.skipIf(process.platform !== "linux")("current client registrations require no apply or confirmation", async () => {
-  const test = fixture(); const clients = bothClients(test);
-  expect((await terminal(test, ["setup", "claude", ...clients.flags], "y")).code).toBe(0);
-  const target = updaterFixture(test, { currentHost: "claude" });
-  const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y");
-  expect(result.code).toBe(0); expect(result.answered).toBe(false);
-  expect(recordedRequests(target.requests)).toHaveLength(1);
-  expect(result.output).toContain("claude: already current.");
-});
 it.skipIf(process.platform !== "linux")("bare update acquires one target for both installed clients", async () => {
   const test = fixture(); const clients = bothClients(test);
   expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);

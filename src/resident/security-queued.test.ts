@@ -16,7 +16,6 @@ import type { ResidentDispatchContext } from "./protocol.ts";
 // Regresses dispatch authorization after a completed policy update. The
 // controlled provider writes one line per DecisionModel call.
 
-
 const directories: string[] = [];
 afterEach(async () => {
   for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true });
@@ -40,9 +39,8 @@ const setup = async (initiallyExcluded: boolean) => {
   return { root, observation, dispatch, capturePath };
 };
 
-const calls = (path: string) => existsSync(path)
-  ? readFileSync(path, "utf8").trim().split("\n").filter(Boolean).length
-  : 0;
+const calls = (path: string) =>
+  existsSync(path) ? readFileSync(path, "utf8").trim().split("\n").filter(Boolean).length : 0;
 
 describe("queued exclusion authority", () => {
   it("has a provider-attempt positive control", async () => {
@@ -67,11 +65,14 @@ describe("queued exclusion authority", () => {
     const release = deferred();
     let preparedSourceSeen = false;
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
-      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
-        preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
-        yield* entered.complete();
-        yield* release.wait;
-      }) }),
+      reviewControls: reviewControlsLayer({
+        beforeEvaluate: (prepared) =>
+          Effect.gen(function* () {
+            preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
+            yield* entered.complete();
+            yield* release.wait;
+          }),
+      }),
     });
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await entered.promise;
@@ -89,9 +90,12 @@ describe("queued exclusion authority", () => {
     const controls = await Effect.runPromise(makeDispatchControls());
     await Effect.runPromise(controls.holdNext("credentialResolved"));
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
-      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
-        preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
-      }) }),
+      reviewControls: reviewControlsLayer({
+        beforeEvaluate: (prepared) =>
+          Effect.gen(function* () {
+            preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
+          }),
+      }),
       dispatchControls: controls.layer,
     });
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
@@ -102,4 +106,37 @@ describe("queued exclusion authority", () => {
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
+});
+
+it("reports a credential failure when the configured credential changes after resolution", async () => {
+  const fixture = await setup(false);
+  const credentialStatePath = join(fixture.root, "credential-state.json");
+  await put(
+    fixture.root,
+    "credential-state.json",
+    JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }),
+  );
+  const controls = await Effect.runPromise(makeDispatchControls());
+  await Effect.runPromise(controls.holdNext("credentialResolved"));
+  const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
+    dispatchControls: controls.layer,
+  });
+  const dispatch: ResidentDispatchContext = {
+    ...fixture.dispatch,
+    credential: {
+      name: "TYPESAFE_API_KEY",
+      environmentValue: "synthetic-credential-marker",
+      environmentOnly: true,
+      generation: 1,
+      statePath: credentialStatePath,
+    },
+    controlled: { capturePath: fixture.capturePath, requireCredential: true },
+  };
+  expect(Effect.runSync(server.admit(fixture.observation, dispatch)).status).toBe("accepted");
+  expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
+  await put(fixture.root, ".review.jsonc", '{"version":1,"credentialEnvVar":"ALTERNATE_API_KEY"}\n');
+  await Effect.runPromise(controls.release);
+  await Effect.runPromise(server.whenIdle());
+  expect(calls(fixture.capturePath)).toBe(0);
+  expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
 });

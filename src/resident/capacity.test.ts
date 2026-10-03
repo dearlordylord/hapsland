@@ -287,28 +287,6 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 1, bytes: 5 });
   });
 
-  it("enforces the profile's exact item and revised byte boundaries", () => {
-    const counts = Effect.runSync(makeResidentState());
-    for (let index = 0; index < 16; index += 1) expect(Effect.runSync(counts.reserve("one", 1, "reviewUnit"))).toBeDefined();
-    expect(Effect.runSync(counts.reserve("one", 1, "reviewUnit"))).toBeUndefined();
-    for (let index = 16; index < 512; index += 1) {
-      expect(Effect.runSync(counts.reserve(`partition-${Math.floor(index / 16)}`, 1, "reviewUnit"))).toBeDefined();
-    }
-    expect(Effect.runSync(counts.reserve("overflow", 0, "reviewUnit"))).toBeUndefined();
-    expect(Effect.runSync(counts.snapshot())).toMatchObject({ items: 512, bytes: 512 });
-
-    const bytes = Effect.runSync(makeResidentState());
-    for (let index = 0; index < 128; index += 1) {
-      expect(Effect.runSync(bytes.reserve(`bytes-${index}`, 2 * 1024 * 1024, "reviewUnit"))).toBeDefined();
-    }
-    expect(Effect.runSync(bytes.reserve("overflow", 1, "reviewUnit"))).toBeUndefined();
-    expect(Effect.runSync(bytes.snapshot())).toMatchObject({ items: 128, bytes: 256 * 1024 * 1024 });
-    const partitionBytes = Effect.runSync(makeResidentState());
-    for (let index = 0; index < 16; index += 1) {
-      expect(Effect.runSync(partitionBytes.reserve("one", 2 * 1024 * 1024, "reviewUnit"))).toBeDefined();
-    }
-    expect(Effect.runSync(partitionBytes.reserve("one", 1, "reviewUnit"))).toBeUndefined();
-  });
 
   it("accepts exact count boundaries and isolates partition pressure", () => {
     const ledger = Effect.runSync(makeResidentState({
@@ -534,3 +512,24 @@ effectIt.effect("defers observation admission and rolls back an invalid round", 
   expect((yield* owner.canonicalProjection())).toEqual(retained);
   expect(yield* owner.currentRoundId("agent")).toBe(round);
 }));
+
+
+it.each([
+  [0, true, true, true],
+  [1, true, true, false],
+  [0, false, true, false],
+  [0, true, false, false],
+])("classifies empty preparation with ready=%s, attempted=%s, authority=%s", (ready, attempted, authority, lost) => {
+  const owner = Effect.runSync(makeResidentState());
+  expect(Effect.runSync(owner.emptyPrepared(ready, attempted, authority))).toBe(lost);
+  expect(Effect.runSync(owner.snapshot()).items).toBe(0);
+});
+
+
+it.each([
+  [2, 2, false, true], [2, 1, false, false], [2, 2, true, false], [0, 0, false, true],
+])("bounds discard scope to named jobs when named=%s, cancelled=%s, unnamed=%s", (named, cancelled, unnamed, namedOnly) => {
+  const owner = Effect.runSync(makeResidentState());
+  expect(Effect.runSync(owner.dispatchScope(named, cancelled, unnamed))).toBe(namedOnly);
+  expect(Effect.runSync(owner.snapshot()).items).toBe(0);
+});

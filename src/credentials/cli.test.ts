@@ -135,6 +135,27 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     expect(`${child.stdout}${child.stderr}`).not.toContain(marker);
   });
 
+  it.skipIf(process.platform !== "linux")("warns in a terminal that logout leaves the configured environment credential active", () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-logout-pty-"));
+    const helper = join(root, "helper.mjs");
+    const entrypoint = join(process.cwd(), "src", "cli.ts");
+    spawnSync("git", ["init", "--quiet"], { cwd: root });
+    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n');
+    writeFileSync(helper, `#!/usr/bin/env node
+console.log('{"version":1,"status":"missing"}');
+`, { mode: 0o700 });
+    const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
+    const child = spawnSync("script", ["-qfec", `${quote(process.execPath)} ${quote(entrypoint)} --logout`, "/dev/null"], {
+      cwd: root, encoding: "utf8", timeout: 5_000,
+      env: { ...process.env, ALT_KEY: "synthetic-terminal-logout-marker", REVIEW_CREDENTIAL_HELPER: helper,
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json") },
+    });
+    expect(child.status, child.stderr).toBe(0);
+    expect(child.stdout).toContain("Logout: logged-out.");
+    expect(child.stdout).toContain("ALT_KEY remains active; set user excludes");
+    expect(`${child.stdout}${child.stderr}`).not.toContain("synthetic-terminal-logout-marker");
+  });
+
   it.skipIf(process.platform !== "linux")("restores the exact terminal mode after SIGINT during masked input", async () => {
     const root = mkdtempSync(join(tmpdir(), "credential-pty-"));
     const helper = join(root, "helper.mjs");

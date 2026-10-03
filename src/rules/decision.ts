@@ -2,9 +2,12 @@ import { initialCanonical, probabilityWords, stepCanonical, type CanonicalEvent 
 
 const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 });
 
+const ruleTransitionAccepted = (result: ReturnType<typeof stepCanonical>): boolean =>
+  result.rejection === undefined && result.commands.length === 1;
+
 const decide = (event: CanonicalEvent) => {
   const result = stepCanonical(initial, event);
-  if (result.rejection !== undefined || result.commands.length !== 1) {
+  if (!ruleTransitionAccepted(result)) {
     throw new Error("canonical rule decision refused");
   }
   return result.commands[0];
@@ -53,8 +56,7 @@ export const compareRuleRank = (
 ): number => {
   const a = probabilityWords(left.probability);
   const b = probabilityWords(right.probability);
-  return decodedOrder({ kind: "ruleRankOrderCheck", left: a, right: b,
-    leftRank: left.rank, rightRank: right.rank });
+  return decodedOrder({ kind: "ruleRankOrderCheck", left: a, right: b, leftRank: left.rank, rightRank: right.rank });
 };
 
 const nativeOrder = (value: number): "before" | "equal" | "after" =>
@@ -66,9 +68,13 @@ export const compareAdviceOrder = (
 ): number => {
   const a = probabilityWords(left.probability);
   const b = probabilityWords(right.probability);
-  return decodedOrder({ kind: "adviceOrderCheck", left: a, right: b,
+  return decodedOrder({
+    kind: "adviceOrderCheck",
+    left: a,
+    right: b,
     pathOrder: nativeOrder(left.path.localeCompare(right.path)),
-    idOrder: nativeOrder(left.ruleId.localeCompare(right.ruleId)) });
+    idOrder: nativeOrder(left.ruleId.localeCompare(right.ruleId)),
+  });
 };
 
 export const withinAdviceBudget = (position: number, limit: number): boolean =>

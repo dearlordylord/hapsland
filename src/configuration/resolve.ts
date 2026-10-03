@@ -24,10 +24,7 @@ export type ConfigurationLayer = {
   readonly document: ConfigurationDocument;
 };
 
-const origin = (
-  layer: ConfigurationLayer,
-  field: string,
-): ConfigurationOrigin => ({
+const origin = (layer: ConfigurationLayer, field: string): ConfigurationOrigin => ({
   layer: layer.name,
   source: layer.source,
   field,
@@ -42,19 +39,18 @@ const patternsFor = (
   layer: ConfigurationLayer,
   field: string,
   values: ReadonlyArray<string>,
-): ReadonlyArray<PatternOrigin> =>
-  values.map((value) => ({ value, origin: origin(layer, field), active: true }));
+): ReadonlyArray<PatternOrigin> => values.map((value) => ({ value, origin: origin(layer, field), active: true }));
 
-const includeValues = (document: ConfigurationDocument):
-  | { readonly field: "includes"; readonly values: ReadonlyArray<string> }
-  | undefined => {
+const includeValues = (
+  document: ConfigurationDocument,
+): { readonly field: "includes"; readonly values: ReadonlyArray<string> } | undefined => {
   if (document.includes !== undefined) return { field: "includes", values: document.includes };
   return undefined;
 };
 
-const excludeValues = (document: ConfigurationDocument):
-  | { readonly field: "excludes"; readonly values: ReadonlyArray<string> }
-  | undefined => {
+const excludeValues = (
+  document: ConfigurationDocument,
+): { readonly field: "excludes"; readonly values: ReadonlyArray<string> } | undefined => {
   if (document.excludes !== undefined) return { field: "excludes", values: document.excludes };
   return undefined;
 };
@@ -70,12 +66,9 @@ const stable = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
-const digest = (value: unknown): string =>
-  createHash("sha256").update(stable(value)).digest("hex");
+const digest = (value: unknown): string => createHash("sha256").update(stable(value)).digest("hex");
 
-const dedupePatterns = (
-  values: ReadonlyArray<PatternOrigin>,
-): ReadonlyArray<PatternOrigin> => {
+const dedupePatterns = (values: ReadonlyArray<PatternOrigin>): ReadonlyArray<PatternOrigin> => {
   const seen = new Set<string>();
   return values.filter((entry) => {
     if (seen.has(entry.value)) return false;
@@ -86,19 +79,21 @@ const dedupePatterns = (
 
 const allLayers = (layers: ReadonlyArray<ConfigurationLayer>): ReadonlyArray<ConfigurationLayer> => {
   const builtIn = layers.find((layer) => layer.name === "built-in");
-  const ordered: Array<ConfigurationLayer> = builtIn !== undefined ? [...layers] : [
-    {
-      name: "built-in",
-      source: "built-in",
-      document: { version: 1 },
-    },
-    ...layers,
-  ];
+  const ordered: Array<ConfigurationLayer> =
+    builtIn !== undefined
+      ? [...layers]
+      : [
+          {
+            name: "built-in",
+            source: "built-in",
+            document: { version: 1 },
+          },
+          ...layers,
+        ];
   return ordered.sort((left, right) => layerRank(left.name) - layerRank(right.name));
 };
 
-const layerRank = (name: ConfigurationLayerName): number =>
-  name === "built-in" ? 0 : name === "user" ? 1 : 2;
+const layerRank = (name: ConfigurationLayerName): number => (name === "built-in" ? 0 : name === "user" ? 1 : 2);
 
 const effectiveGraphLimit = (layers: ReadonlyArray<ConfigurationLayer>, key: GraphLimitField): Originated<number> => {
   let value: number = GRAPH_LIMIT_CEILINGS[key];
@@ -108,7 +103,8 @@ const effectiveGraphLimit = (layers: ReadonlyArray<ConfigurationLayer>, key: Gra
     if (supplied === undefined) continue;
     if (layer.name === "project" && owner.layer === "user" && supplied > value) {
       throw new ConfigurationError({
-        source: layer.source, field: `graphLimits.${key}`,
+        source: layer.source,
+        field: `graphLimits.${key}`,
         reason: "project graph limit may only lower the user maximum",
       });
     }
@@ -131,8 +127,11 @@ export const effectiveGraphLimits = (policy: ResolvedPolicy): GraphLimits =>
     work: policy.graphLimits.work.value,
   });
 
-export const effectiveEditPermitLimits = (policy: ResolvedPolicy): {
-  readonly perAdvicee: number; readonly resident: number;
+export const effectiveEditPermitLimits = (
+  policy: ResolvedPolicy,
+): {
+  readonly perAdvicee: number;
+  readonly resident: number;
 } => {
   const user = policy.layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
   return {
@@ -145,38 +144,39 @@ export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean =>
   policy.layers.find((layer) => layer.name === "user")?.document.sessionAnalytics ?? false;
 
 export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
-  policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ??
-    DEFAULT_VIRTUAL_ROUND_QUIET_MS;
+  policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS;
 
-/**
- * Resolve built-in → user → project policy while retaining every relevant origin.
- * The returned value is immutable-by-convention and can be captured per event.
- */
-export const resolveConfiguration = (
-  suppliedLayers: ReadonlyArray<ConfigurationLayer>,
-  root = ".",
-): ResolvedPolicy => {
-  const layers = allLayers(suppliedLayers);
-  for (const layer of layers) if (layer.name === "project" && layer.document.editPermitLimits !== undefined) {
-    throw new ConfigurationError({ source: layer.source, field: "editPermitLimits",
-      reason: "only user configuration may set shared resident edit permit limits" });
+const userOwnedControls = [
+  { field: "editPermitLimits", reason: "only user configuration may set shared resident edit permit limits" },
+  { field: "virtualRoundQuietMs", reason: "only user configuration may set the shared resident virtual round timeout" },
+  { field: "sessionAnalytics", reason: "only user configuration may set session analytics" },
+] as const;
+
+const validateUserControls = (layers: ReadonlyArray<ConfigurationLayer>) => {
+  for (const control of userOwnedControls) {
+    for (const layer of layers) {
+      if (layer.name === "project" && layer.document[control.field] !== undefined) {
+        throw new ConfigurationError({ source: layer.source, field: control.field, reason: control.reason });
+      }
+    }
   }
-  for (const layer of layers) if (layer.name === "project" && layer.document.virtualRoundQuietMs !== undefined) {
-    throw new ConfigurationError({ source: layer.source, field: "virtualRoundQuietMs",
-      reason: "only user configuration may set the shared resident virtual round timeout" });
-  }
-  for (const layer of layers) if (layer.name === "project" && layer.document.sessionAnalytics !== undefined) {
-    throw new ConfigurationError({ source: layer.source, field: "sessionAnalytics",
-      reason: "only user configuration may set session analytics" });
-  }
+};
+
+const validatePermitLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
   const userPermitLimits = layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
-  if ((userPermitLimits?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee) >
-      (userPermitLimits?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident)) {
+  if (
+    (userPermitLimits?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee) >
+    (userPermitLimits?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident)
+  ) {
     throw new ConfigurationError({
       source: layers.find((layer) => layer.name === "user")?.source ?? "built-in",
-      field: "editPermitLimits", reason: "perAdvicee limit cannot exceed resident limit",
+      field: "editPermitLimits",
+      reason: "perAdvicee limit cannot exceed resident limit",
     });
   }
+};
+
+const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
   let includes: ReadonlyArray<PatternOrigin> = patternsFor(
     layers[0] ?? { name: "built-in", source: "built-in", document: { version: 1 } },
     "includes",
@@ -185,14 +185,11 @@ export const resolveConfiguration = (
   let overriddenIncludes: ReadonlyArray<PatternOrigin> = [];
   let includeRank = 0;
   let excludes: ReadonlyArray<PatternOrigin> = [];
-  const protectedExcludes: Array<PatternOrigin> = [];
-  for (const pattern of BUILT_IN_PROTECTED_EXCLUDES) {
-    protectedExcludes.push({
-      value: pattern,
-      origin: { layer: "built-in", source: "built-in", field: "protectedExcludes" },
-      active: true,
-    });
-  }
+  const protectedExcludes: Array<PatternOrigin> = BUILT_IN_PROTECTED_EXCLUDES.map((value) => ({
+    value,
+    origin: { layer: "built-in", source: "built-in", field: "protectedExcludes" },
+    active: true,
+  }));
 
   for (const layer of layers) {
     const suppliedIncludes = includeValues(layer.document);
@@ -208,18 +205,17 @@ export const resolveConfiguration = (
     }
     const suppliedExcludes = excludeValues(layer.document);
     if (suppliedExcludes !== undefined) {
-      excludes = dedupePatterns([
-        ...excludes,
-        ...patternsFor(layer, suppliedExcludes.field, suppliedExcludes.values),
-      ]);
+      excludes = dedupePatterns([...excludes, ...patternsFor(layer, suppliedExcludes.field, suppliedExcludes.values)]);
     }
     if (layer.document.privacyExcludes !== undefined) {
-      protectedExcludes.push(
-        ...patternsFor(layer, "privacyExcludes", layer.document.privacyExcludes),
-      );
+      protectedExcludes.push(...patternsFor(layer, "privacyExcludes", layer.document.privacyExcludes));
     }
   }
 
+  return { includes, overriddenIncludes, excludes, protectedExcludes: dedupePatterns(protectedExcludes) };
+};
+
+const resolveCredentialReference = (layers: ReadonlyArray<ConfigurationLayer>) => {
   let credentialEnvVar: Originated<string> = originated(DEFAULT_CREDENTIAL_ENV_VAR, {
     layer: "built-in",
     source: "built-in",
@@ -237,6 +233,10 @@ export const resolveConfiguration = (
     }
   }
 
+  return credentialEnvVar;
+};
+
+const resolveClaudeFeedback = (layers: ReadonlyArray<ConfigurationLayer>) => {
   let claudeFeedbackMode: Originated<ClaudeFeedbackMode> = originated("advisory", {
     layer: "built-in",
     source: "built-in",
@@ -255,6 +255,10 @@ export const resolveConfiguration = (
     claudeFeedbackMode = originated(value, origin(layer, "claudeFeedbackMode"));
   }
 
+  return claudeFeedbackMode;
+};
+
+const resolveGraphLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
   const graphLimits = {
     version: 1 as const,
     sourceBytes: effectiveGraphLimit(layers, "sourceBytes"),
@@ -267,17 +271,31 @@ export const resolveConfiguration = (
   };
   if (graphLimits.readBytes.value < graphLimits.sourceBytes.value) {
     throw new ConfigurationError({
-      source: graphLimits.readBytes.origin.source, field: "graphLimits.readBytes",
+      source: graphLimits.readBytes.origin.source,
+      field: "graphLimits.readBytes",
       reason: "total read cap must be at least the per-file source cap for full-file reservation",
     });
   }
 
+  return graphLimits;
+};
+
+/**
+ * Resolve built-in → user → project policy while retaining every relevant origin.
+ * The returned value is immutable-by-convention and can be captured per event.
+ */
+export const resolveConfiguration = (suppliedLayers: ReadonlyArray<ConfigurationLayer>, root = "."): ResolvedPolicy => {
+  const layers = allLayers(suppliedLayers);
+  validateUserControls(layers);
+  validatePermitLimits(layers);
+  const patterns = resolvePatterns(layers);
+  const credentialEnvVar = resolveCredentialReference(layers);
+  const claudeFeedbackMode = resolveClaudeFeedback(layers);
+  const graphLimits = resolveGraphLimits(layers);
+
   const policyWithoutDigest = {
     root,
-    includes,
-    overriddenIncludes,
-    excludes,
-    protectedExcludes: dedupePatterns(protectedExcludes),
+    ...patterns,
     credentialEnvVar,
     claudeFeedbackMode,
     graphLimits,
@@ -289,9 +307,7 @@ export const resolveConfiguration = (
   };
 };
 
-export const captureConfiguration = (
-  policy: ResolvedPolicy,
-): ConfigurationCapture => {
+export const captureConfiguration = (policy: ResolvedPolicy): ConfigurationCapture => {
   return { policy };
 };
 
@@ -301,17 +317,20 @@ export const stableConfigurationValue = stable;
 
 /** Validate a captured policy before an event can dispatch source. */
 export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
-  if (policy.digest !== digest({
-    root: policy.root,
-    includes: policy.includes,
-    overriddenIncludes: policy.overriddenIncludes,
-    excludes: policy.excludes,
-    protectedExcludes: policy.protectedExcludes,
-    credentialEnvVar: policy.credentialEnvVar,
-    claudeFeedbackMode: policy.claudeFeedbackMode,
-    graphLimits: policy.graphLimits,
-    layers: policy.layers,
-  })) {
+  if (
+    policy.digest !==
+    digest({
+      root: policy.root,
+      includes: policy.includes,
+      overriddenIncludes: policy.overriddenIncludes,
+      excludes: policy.excludes,
+      protectedExcludes: policy.protectedExcludes,
+      credentialEnvVar: policy.credentialEnvVar,
+      claudeFeedbackMode: policy.claudeFeedbackMode,
+      graphLimits: policy.graphLimits,
+      layers: policy.layers,
+    })
+  ) {
     throw new ConfigurationError({
       source: "captured-policy",
       field: "digest",

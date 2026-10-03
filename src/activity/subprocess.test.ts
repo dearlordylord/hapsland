@@ -6,7 +6,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const roots: Array<string> = [];
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    try {
+      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
+      process.kill(owner.pid, "SIGTERM");
+    } catch { /* no resident owner */ }
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 const waitFor = (predicate: () => boolean, timeoutMs = 5_000) => {

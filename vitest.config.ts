@@ -9,7 +9,9 @@ export default defineConfig({
     ],
     exclude: ["vendor/**", "node_modules/**"],
     coverage: {
-      provider: "v8",
+      provider: "custom",
+      customProviderModule: "./scripts/coverage-provider.mjs",
+      autoAttachSubprocess: true,
       reporter: ["json", "text-summary"],
       reportOnFailure: true,
       include: ["src/**/*.ts"],

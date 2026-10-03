@@ -109,3 +109,34 @@ describe("declarative CLI subprocess contracts", () => {
     expect(result.files).toEqual([]);
   });
 });
+
+
+it.each(["repair", "reinstall", "uninstall"])("rejects interactive %s without a terminal", command => {
+  const result = cli([command, "codex"]);
+  expect(result.status).toBe(6);
+  expect(result.stderr).toContain(`${command} needs a terminal`);
+  expect(result.files).toEqual([]);
+});
+
+
+it.each([
+  { host: "claude", homeField: "claudeHome", executableField: "claudeExecutable" },
+  { host: "opencode", homeField: "opencodeConfigHome", executableField: "opencodeExecutable" },
+])("routes the version-one $host installation preview to the selected profile", ({ host, homeField, executableField }) => {
+  const profile = mkdtempSync(join(tmpdir(), "hapsland-preview-profile-"));
+  try {
+    const result = cli(["--install-preview"], JSON.stringify({ version: 1, operation: "install-preview", host,
+      [homeField]: profile, [executableField]: join(profile, "missing-client"),
+    }));
+    const output = JSON.parse(result.stdout);
+    expect(output.operation).toBe("install-preview");
+    expect(output.error?.code).not.toBe("invalid_request");
+    if (host === "opencode") {
+      expect(output.status).toBe("unsupported");
+      expect(output.host.adapter).toBe("opencode");
+    } else {
+      expect(JSON.stringify(output)).toContain(profile);
+    }
+    expect(readdirSync(profile)).toEqual([]);
+  } finally { rmSync(profile, { recursive: true, force: true }); }
+});

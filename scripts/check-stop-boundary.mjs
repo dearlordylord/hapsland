@@ -46,7 +46,8 @@ for (const ownership of [
   "Scope.close(residentIpcScope, Exit.void)",
   "(connection) => port.close.pipe(Effect.andThen",
 ]) {
-  if (!server.includes(ownership)) throw new Error(`missing scoped IPC ownership: ${ownership}`);
+  if (!server.replace(/\s+/gu, "").includes(ownership.replace(/\s+/gu, "")))
+    throw new Error(`missing scoped IPC ownership: ${ownership}`);
 }
 
 if (/listenEffect|closeEffect|(?:whenIdle|listen|close)\(\): Promise/u.test(server)) {
@@ -57,6 +58,6 @@ if (/readonly (?:beforeRevalidate|beforeEvaluate|afterRevalidationWorkspaceReser
     /resident(?:BeforeRevalidate|BeforeEvaluate|AfterRevalidationWorkspaceReserved|AfterAdvicePending|BeforeFinalRevalidate|BeforeResponseHandoff)/u.test(server)) {
   throw new Error("resident coordination must use scoped review controls rather than Promise hooks");
 }
-if (!server.includes("Layer.buildWithScope(options.reviewControls ?? reviewControlsLayer, residentControlScope)")) {
+if (!server.replace(/\s+/gu, "").includes("Layer.buildWithScope(options.reviewControls??reviewControlsLayer,residentControlScope)")) {
   throw new Error("resident review controls must be owned by its control scope");
 }

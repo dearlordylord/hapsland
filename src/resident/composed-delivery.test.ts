@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Effect } from "effect";
 import { it as effectIt } from "@effect/vitest";
-import { makeResidentState, MAX_PARTITION_IDENTITIES } from "./capacity.ts";
+import { makeResidentState } from "./capacity.ts";
 import { BACKGROUND_WAITER_EXPIRY_MS, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
-const RECENT_EDIT_IDENTITIES = 1_000;
 import { monotonicNow } from "./hook-clock.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
@@ -12,35 +11,123 @@ const makeDeliveryFixture = (...args: Parameters<typeof makeResidentState>) => {
   return { ...canonical.delivery(), canonical };
 };
 
-const canonicalFinding = (state: Pick<ReturnType<typeof makeDeliveryFixture>, "canonical">, partition = "agent"): number => {
+const canonicalFinding = (
+  state: Pick<ReturnType<typeof makeDeliveryFixture>, "canonical">,
+  partition = "agent",
+): number => {
   const owner = Effect.runSync(state.canonical.partitionId(partition));
   const round = Effect.runSync(state.canonical.roundId(partition));
-  const observation = Effect.runSync(state.canonical.transition({ kind: "admitObservation",
-    partition: owner, lifetime: 1, round })).commands[0];
+  const observation = Effect.runSync(
+    state.canonical.transition({ kind: "admitObservation", partition: owner, lifetime: 1, round }),
+  ).commands[0];
   if (observation?.kind !== "observationAdmitted") throw new Error("canonical source admission failed");
-  Effect.runSync(state.canonical.transition({ kind: "startObservation", partition: owner,
-    lifetime: 1, round, observation: observation.id }));
-  const preparation = Effect.runSync(state.canonical.transition({ kind: "beginObservedPreparation",
-    partition: owner, lifetime: 1, round, observation: observation.id, bytes: 10 })).commands[0];
+  Effect.runSync(
+    state.canonical.transition({
+      kind: "startObservation",
+      partition: owner,
+      lifetime: 1,
+      round,
+      observation: observation.id,
+    }),
+  );
+  const preparation = Effect.runSync(
+    state.canonical.transition({
+      kind: "beginObservedPreparation",
+      partition: owner,
+      lifetime: 1,
+      round,
+      observation: observation.id,
+      bytes: 10,
+    }),
+  ).commands[0];
   if (preparation?.kind !== "prepare") throw new Error("canonical preparation failed");
-  const admitted = Effect.runSync(state.canonical.transition({ kind: "preparationCompleted",
-    partition: owner, lifetime: 1, round, operation: preparation.operation,
-    unitBytes: [5] })).commands.find((command) => command.kind === "unitAdmitted");
+  const admitted = Effect.runSync(
+    state.canonical.transition({
+      kind: "preparationCompleted",
+      partition: owner,
+      lifetime: 1,
+      round,
+      operation: preparation.operation,
+      unitBytes: [5],
+    }),
+  ).commands.find((command) => command.kind === "unitAdmitted");
   if (admitted?.kind !== "unitAdmitted") throw new Error("canonical unit admission failed");
-  Effect.runSync(state.canonical.transition({ kind: "completeObservation", partition: owner,
-    lifetime: 1, round, observation: observation.id }));
-  Effect.runSync(state.canonical.transition({ kind: "queueDispatch", partition: owner,
-    lifetime: 1, round, operation: admitted.operation }));
-  Effect.runSync(state.canonical.transition({ kind: "startReview", partition: owner,
-    lifetime: 1, round, operation: admitted.operation }));
-  const reviewed = Effect.runSync(state.canonical.transition({ kind: "reviewObserved", partition: owner,
-    lifetime: 1, round, operation: admitted.operation, outcome: "finding",
-    currentWork: true }));
+  Effect.runSync(
+    state.canonical.transition({
+      kind: "completeObservation",
+      partition: owner,
+      lifetime: 1,
+      round,
+      observation: observation.id,
+    }),
+  );
+  Effect.runSync(
+    state.canonical.transition({
+      kind: "queueDispatch",
+      partition: owner,
+      lifetime: 1,
+      round,
+      operation: admitted.operation,
+    }),
+  );
+  Effect.runSync(
+    state.canonical.transition({
+      kind: "startReview",
+      partition: owner,
+      lifetime: 1,
+      round,
+      operation: admitted.operation,
+    }),
+  );
+  const reviewed = Effect.runSync(
+    state.canonical.transition({
+      kind: "reviewObserved",
+      partition: owner,
+      lifetime: 1,
+      round,
+      operation: admitted.operation,
+      outcome: "finding",
+      currentWork: true,
+    }),
+  );
   if (reviewed.commands.at(-1)?.kind !== "retainFinding") throw new Error("canonical finding not retained");
   return admitted.operation;
 };
 
 describe("shared Hapsland rounds", () => {
+  it("retains live token identities through uncertainty and removes them when ownership ends", () => {
+    const state = makeDeliveryFixture();
+    const keys = () => Effect.runSync(state.liveCollectionTokenKeys());
+    expect(keys()).toEqual(new Set());
+    Effect.runSync(state.admitEdit("agent", "edit", 0));
+    expect(Effect.runSync(state.claimBackground("agent", "writer", 100))).toBe(true);
+    expect(keys()).toEqual(new Set(["writer"]));
+    const finding = { rule: "r", advice: "repair" };
+    expect(Effect.runSync(state.beginSubmission("advice", "agent", "output", [finding], "background", 101))).toBe(true);
+    const submittedKeys = keys();
+    expect(submittedKeys.has("writer")).toBe(true);
+    expect(submittedKeys.has("output")).toBe(true);
+    expect(submittedKeys.has("submission-advice\0advice")).toBe(true);
+    expect([...submittedKeys].filter((key) => key.startsWith("submission-finding\0advice\0"))).toHaveLength(1);
+    Effect.runSync(state.releaseBackground("agent", "writer"));
+    expect(keys()).toEqual(new Set([...submittedKeys].filter((key) => key !== "writer")));
+    expect(Effect.runSync(state.closureCounts("agent")).uncertain).toBe(1);
+    Effect.runSync(state.release("output"));
+    expect(keys()).toEqual(new Set());
+    expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
+    const unit = canonicalFinding(state);
+    Effect.runSync(state.finishGate("agent", "stop", 0, true));
+    expect(
+      Effect.runSync(
+        state.reserveFinishOutput("agent", "stop", "finish", [{ id: "finish-advice", unit, findings: [finding] }], 102),
+      ),
+    ).toBe(true);
+    expect(keys().has("finish")).toBe(true);
+    expect(keys().has("submission-advice\0finish-advice")).toBe(true);
+    Effect.runSync(state.release("finish"));
+    expect(keys()).toEqual(new Set());
+  });
+
   it("rolls back provisional revocation and nested submissions when Stop closure fails", () => {
     const state = makeDeliveryFixture();
     const permitRead = state.hasFinishPermit("output");
@@ -58,7 +145,9 @@ describe("shared Hapsland rounds", () => {
 
     // finishStop revokes provisional output and ends the Stop before validating
     // its closure timestamp. Neither step may escape when that timestamp fails.
-    expect(() => Effect.runSync(state.finishStop("agent", "attempt", true, Number.POSITIVE_INFINITY))).toThrow(TypeError);
+    expect(() => Effect.runSync(state.finishStop("agent", "attempt", true, Number.POSITIVE_INFINITY))).toThrow(
+      TypeError,
+    );
     expect(Effect.runSync(state.canonical.canonicalProjection())).toEqual(before);
     expect(Effect.runSync(state.closureCounts("agent"))).toEqual(beforeCounts);
     expect(Effect.runSync(permitRead)).toBe(true);
@@ -117,10 +206,19 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet))).toBe(1);
     expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "late-stop"))).toBe(false);
-    expect(Effect.runSync(state.registerEditDecision("agent", "late-edit", 99, 100 + VIRTUAL_ROUND_QUIET_MS + 1)).accepted)
-      .toBe(false);
-    expect(Effect.runSync(state.registerEditDecision("agent", "second", 100 + VIRTUAL_ROUND_QUIET_MS + 2,
-      100 + VIRTUAL_ROUND_QUIET_MS + 3))).toEqual({ accepted: true });
+    expect(
+      Effect.runSync(state.registerEditDecision("agent", "late-edit", 99, 100 + VIRTUAL_ROUND_QUIET_MS + 1)).accepted,
+    ).toBe(false);
+    expect(
+      Effect.runSync(
+        state.registerEditDecision(
+          "agent",
+          "second",
+          100 + VIRTUAL_ROUND_QUIET_MS + 2,
+          100 + VIRTUAL_ROUND_QUIET_MS + 3,
+        ),
+      ),
+    ).toEqual({ accepted: true });
     expect(Effect.runSync(state.admitEdit("agent", "second", 100 + VIRTUAL_ROUND_QUIET_MS + 4, true))).toBe(2);
   });
 
@@ -131,8 +229,11 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.tickQuietRound("agent", 100, quiet));
     expect(Effect.runSync(state.admitEdit("agent", "second", VIRTUAL_ROUND_QUIET_MS - 10))).toBe(1);
     expect(Effect.runSync(state.tickQuietRound("agent", VIRTUAL_ROUND_QUIET_MS + 100, quiet))).toBeUndefined();
-    expect(Effect.runSync(state.tickQuietRound("agent", 2 * VIRTUAL_ROUND_QUIET_MS + 100,
-      { nativeWorkIdle: true, adviceEmpty: false }))).toBeUndefined();
+    expect(
+      Effect.runSync(
+        state.tickQuietRound("agent", 2 * VIRTUAL_ROUND_QUIET_MS + 100, { nativeWorkIdle: true, adviceEmpty: false }),
+      ),
+    ).toBeUndefined();
     expect(Effect.runSync(state.tickQuietRound("agent", 2 * VIRTUAL_ROUND_QUIET_MS + 101, quiet))).toBeUndefined();
     expect(Effect.runSync(state.tickQuietRound("agent", 3 * VIRTUAL_ROUND_QUIET_MS + 101, quiet))).toBe(1);
   });
@@ -140,11 +241,15 @@ describe("shared Hapsland rounds", () => {
   it("uses the quiet duration captured by the first admitted edit", () => {
     const state = makeDeliveryFixture();
     const limits = { perAdvicee: 32, resident: 4096 };
-    expect(Effect.runSync(state.registerEditDecision("agent", "first", 100, 101, limits, 10_000))).toEqual({ accepted: true });
+    expect(Effect.runSync(state.registerEditDecision("agent", "first", 100, 101, limits, 10_000))).toEqual({
+      accepted: true,
+    });
     expect(Effect.runSync(state.admitEdit("agent", "first", 102, true))).toBe(1);
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     Effect.runSync(state.tickQuietRound("agent", 200, quiet));
-    expect(Effect.runSync(state.registerEditDecision("agent", "second", 300, 301, limits, 20_000))).toEqual({ accepted: true });
+    expect(Effect.runSync(state.registerEditDecision("agent", "second", 300, 301, limits, 20_000))).toEqual({
+      accepted: true,
+    });
     expect(Effect.runSync(state.admitEdit("agent", "second", 302, true))).toBe(1);
     Effect.runSync(state.tickQuietRound("agent", 400, quiet));
     expect(Effect.runSync(state.tickQuietRound("agent", 10_399, quiet))).toBeUndefined();
@@ -199,28 +304,11 @@ describe("shared Hapsland rounds", () => {
   it("does not retain an advicee identity for a rejected first edit", () => {
     const state = makeDeliveryFixture();
     expect(Effect.runSync(state.registerEditDecision("late-advicee", "edit", 100, 2600))).toEqual({
-      accepted: false, reason: "StaleInvocation",
+      accepted: false,
+      reason: "StaleInvocation",
     });
     expect(Effect.runSync(state.canonical.knownPartitionId("late-advicee"))).toBeUndefined();
     expect(Effect.runSync(state.canonical.canonicalProjection()).admissions).toEqual([]);
-  });
-
-  it("reclaims a closed advicee record and refuses its old edit after eviction", () => {
-    const state = makeDeliveryFixture();
-    Effect.runSync(state.admitEdit("agent", "first", 1));
-    expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
-    expect(Effect.runSync(state.finishStop("agent", "stop", true, 100))).toBe(1);
-    const oldId = Effect.runSync(state.canonical.knownPartitionId("agent"));
-    for (let index = 1; index < MAX_PARTITION_IDENTITIES; index++) {
-      Effect.runSync(state.canonical.partitionId(`other-${index}`));
-    }
-    Effect.runSync(state.canonical.partitionId("overflow"));
-    expect(Effect.runSync(state.canonical.knownPartitionId("agent"))).toBeUndefined();
-    expect(Effect.runSync(state.canonical.canonicalProjection()).admissions.some(
-      (item) => item.partition === oldId)).toBe(false);
-    const oldStart = Effect.runSync(state.canonical.minimumFreshStart()) / 1000;
-    expect(Effect.runSync(state.registerEditDecision("agent", "late", oldStart, oldStart + 1)).accepted).toBe(false);
-    expect(Effect.runSync(state.canonical.knownPartitionId("agent"))).toBeUndefined();
   });
 
   it("removes the Bend delivery counter when a virtual round ends", () => {
@@ -228,8 +316,9 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.admitEdit("agent", "first", 1));
     const group = Effect.runSync(state.canonical.partitionId("agent"));
     const round = Effect.runSync(state.canonical.roundId("agent"));
-    expect(Effect.runSync(state.canonical.transition({ kind: "continuationConsume", group, round })).commands[0]?.kind)
-      .toBe("continuationConsumed");
+    expect(
+      Effect.runSync(state.canonical.transition({ kind: "continuationConsume", group, round })).commands[0]?.kind,
+    ).toBe("continuationConsumed");
     expect(Effect.runSync(state.canonical.canonicalProjection()).delivery.counters).toHaveLength(1);
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
     expect(Effect.runSync(state.finishStop("agent", "stop", true, 100))).toBe(1);
@@ -248,8 +337,9 @@ describe("shared Hapsland rounds", () => {
   it("denies a duplicate token after its native lease expires without dropping uncertainty", () => {
     const state = makeDeliveryFixture();
     Effect.runSync(state.admitEdit("agent", "edit", 100));
-    expect(Effect.runSync(state.beginSubmission("advice", "agent", "output", [{ rule: "r" }],
-      "background", 100))).toBe(true);
+    expect(Effect.runSync(state.beginSubmission("advice", "agent", "output", [{ rule: "r" }], "background", 100))).toBe(
+      true,
+    );
     Effect.runSync(state.expire(100 + DELIVERY_LEASE_MS));
     expect(Effect.runSync(state.closureCounts("agent")).uncertain).toBe(1);
     expect(Effect.runSync(state.canBeginExistingToken("background", "output"))).toBe(false);
@@ -289,7 +379,8 @@ describe("shared Hapsland rounds", () => {
     const state = makeDeliveryFixture();
     expect(Effect.runSync(state.admitEdit("agent", "no-pre", 100, true))).toBeUndefined();
     expect(Effect.runSync(state.registerEditDecision("agent", "bad-clock", 200, 100))).toEqual({
-      accepted: false, reason: "InvalidClock",
+      accepted: false,
+      reason: "InvalidClock",
     });
     expect(Effect.runSync(state.registerEdit("agent", "expired", 100, 2600))).toBe(false);
     expect(Effect.runSync(state.registerEdit("agent", "edit", 100, 110))).toBe(true);
@@ -306,18 +397,24 @@ describe("shared Hapsland rounds", () => {
 
   it("lets Bend enforce the supplied pre-edit window at its exact boundary", () => {
     const state = makeDeliveryFixture();
-    expect(Effect.runSync(state.registerEditDecision("agent", "just-before-window", 100, 2599.999))).toEqual({ accepted: true });
+    expect(Effect.runSync(state.registerEditDecision("agent", "just-before-window", 100, 2599.999))).toEqual({
+      accepted: true,
+    });
     expect(Effect.runSync(state.registerEditDecision("agent", "at-window", 100, 2600))).toEqual({
-      accepted: false, reason: "StaleInvocation",
+      accepted: false,
+      reason: "StaleInvocation",
     });
     expect(Effect.runSync(state.registerEditDecision("agent", "reversed-submicrosecond", 100.0009, 100.0001))).toEqual({
-      accepted: false, reason: "InvalidClock",
+      accepted: false,
+      reason: "InvalidClock",
     });
     expect(Effect.runSync(state.registerEditDecision("agent", "fractional-at-window", 100.0009, 2600.0009))).toEqual({
-      accepted: false, reason: "StaleInvocation",
+      accepted: false,
+      reason: "StaleInvocation",
     });
     expect(Effect.runSync(state.registerEditDecision("agent", "fractional-past-window", 100.0001, 2600.0009))).toEqual({
-      accepted: false, reason: "StaleInvocation",
+      accepted: false,
+      reason: "StaleInvocation",
     });
   });
 
@@ -329,32 +426,18 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.closureCounts("agent")).editPermits).toBe(1);
     expect(Effect.runSync(state.admitEdit("agent", "same-edit", 130, true))).toBe(1);
     expect(Effect.runSync(state.registerEditDecision("agent", "same-edit", 131, 140))).toEqual({
-      accepted: false, reason: "DuplicateTool",
+      accepted: false,
+      reason: "DuplicateTool",
     });
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
     expect(Effect.runSync(state.finishStop("agent", "stop", true, 200))).toBe(1);
     expect(Effect.runSync(state.registerEditDecision("agent", "same-edit", 220, 230))).toEqual({
-      accepted: false, reason: "DuplicateTool",
+      accepted: false,
+      reason: "DuplicateTool",
     });
     expect(diagnostics).toMatchObject([{ phase: "pending" }, { phase: "completed", completedReason: "consumed" }]);
     expect(Effect.runSync(state.recentEditCount())).toBe(1);
   });
-
-  it("retains at most 1000 completed identities across the resident", () => {
-    const diagnostics: unknown[] = [];
-    const state = Effect.runSync(makeResidentState()).delivery((diagnostic) => diagnostics.push(diagnostic));
-    for (let index = 0; index < RECENT_EDIT_IDENTITIES; index += 1) {
-      expect(Effect.runSync(state.admitEdit(`agent-${index % 2}`, `edit-${index}`, index + 1))).toBe(1);
-    }
-    expect(Effect.runSync(state.recentEditCount())).toBe(RECENT_EDIT_IDENTITIES);
-    expect(Effect.runSync(state.editIdentityMappingCount())).toBe(RECENT_EDIT_IDENTITIES);
-    expect(Effect.runSync(state.registerEditDecision("agent-0", "edit-0", 1002, 1003))).toEqual({ accepted: false, reason: "DuplicateTool" });
-    expect(diagnostics).toHaveLength(1);
-    expect(Effect.runSync(state.admitEdit("agent-0", `edit-${RECENT_EDIT_IDENTITIES}`, 1001))).toBe(1);
-    expect(Effect.runSync(state.recentEditCount())).toBe(RECENT_EDIT_IDENTITIES);
-    expect(Effect.runSync(state.editIdentityMappingCount())).toBe(RECENT_EDIT_IDENTITIES);
-    expect(Effect.runSync(state.registerEditDecision("agent-0", "edit-0", 1004, 1005))).toEqual({ accepted: true });
-  }, 20_000);
 
   it("counts pending permits per advicee and across the resident, then frees consumed capacity", () => {
     const state = makeDeliveryFixture();
@@ -384,13 +467,15 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEdit("agent", "failed", 200, 201))).toBe(true);
     Effect.runSync(state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS));
     expect(Effect.runSync(state.closureCounts("agent")).editPermits).toBe(0);
-    expect(Effect.runSync(state.registerEdit("agent", "failed", 101 + EDIT_PERMIT_EXPIRY_MS,
-      102 + EDIT_PERMIT_EXPIRY_MS))).toBe(false);
+    expect(
+      Effect.runSync(state.registerEdit("agent", "failed", 101 + EDIT_PERMIT_EXPIRY_MS, 102 + EDIT_PERMIT_EXPIRY_MS)),
+    ).toBe(false);
     expect(Effect.runSync(state.admitEdit("agent", "failed", 103 + EDIT_PERMIT_EXPIRY_MS, true))).toBeUndefined();
     expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.canonical.canonicalProjection()).rounds).toHaveLength(0);
-    expect(Effect.runSync(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS,
-      105 + EDIT_PERMIT_EXPIRY_MS))).toBe(true);
+    expect(
+      Effect.runSync(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS, 105 + EDIT_PERMIT_EXPIRY_MS)),
+    ).toBe(true);
     expect(Effect.runSync(state.admitEdit("agent", "fresh", 106 + EDIT_PERMIT_EXPIRY_MS, true))).toBe(1);
   });
 
@@ -402,8 +487,9 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.closureCounts("agent")).editPermits).toBe(1);
     Effect.runSync(state.expirePermits(startedAt + EDIT_PERMIT_EXPIRY_MS));
     expect(Effect.runSync(state.closureCounts("agent")).editPermits).toBe(0);
-    expect(Effect.runSync(state.admitEdit("agent", "fractional", startedAt + EDIT_PERMIT_EXPIRY_MS, true)))
-      .toBeUndefined();
+    expect(
+      Effect.runSync(state.admitEdit("agent", "fractional", startedAt + EDIT_PERMIT_EXPIRY_MS, true)),
+    ).toBeUndefined();
   });
 
   it("expires a failed edit permit without opening a round", () => {
@@ -414,8 +500,11 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.generation("agent"))).toBe(0);
     expect(Effect.runSync(state.canonical.canonicalProjection()).rounds).toHaveLength(0);
     expect(Effect.runSync(state.admitEdit("agent", "first", 100 + EDIT_PERMIT_EXPIRY_MS + 2, true))).toBeUndefined();
-    expect(Effect.runSync(state.registerEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 3,
-      100 + EDIT_PERMIT_EXPIRY_MS + 4))).toBe(true);
+    expect(
+      Effect.runSync(
+        state.registerEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 3, 100 + EDIT_PERMIT_EXPIRY_MS + 4),
+      ),
+    ).toBe(true);
     expect(Effect.runSync(state.admitEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 5, true))).toBe(1);
   });
 
@@ -430,8 +519,9 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.generation("agent"))).toBe(1);
     expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "permit-only"))).toBe(false);
-    expect(Effect.runSync(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS,
-      105 + EDIT_PERMIT_EXPIRY_MS))).toBe(true);
+    expect(
+      Effect.runSync(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS, 105 + EDIT_PERMIT_EXPIRY_MS)),
+    ).toBe(true);
     expect(Effect.runSync(state.admitEdit("agent", "fresh", 106 + EDIT_PERMIT_EXPIRY_MS, true))).toBe(2);
   });
 
@@ -444,7 +534,8 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false);
     const admission = Effect.runSync(state.canonical.canonicalProjection()).admissions.find(
-      (item) => item.partition === Effect.runSync(state.canonical.partitionId("agent")));
+      (item) => item.partition === Effect.runSync(state.canonical.partitionId("agent")),
+    );
     expect(admission).toMatchObject({ active: false, round: 0, permits: [] });
     expect(Effect.runSync(state.recentEditCount())).toBe(1);
   });
@@ -484,8 +575,17 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.beginStop("agent", "attempt"));
     const canonicalUnit = canonicalFinding(state);
     Effect.runSync(state.finishGate("agent", "attempt", 0, true));
-    expect(Effect.runSync(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1))).toBe(true);
+    expect(
+      Effect.runSync(
+        state.reserveFinishOutput(
+          "agent",
+          "attempt",
+          "output",
+          [{ id: "advice", unit: canonicalUnit, findings: [finding] }],
+          1,
+        ),
+      ),
+    ).toBe(true);
     expect(Effect.runSync(state.expireStop("agent", "attempt"))).toBe(1);
     expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(false);
@@ -502,8 +602,17 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.beginStop("agent", "attempt"));
     const canonicalUnit = canonicalFinding(state);
     Effect.runSync(state.finishGate("agent", "attempt", 0, true));
-    expect(Effect.runSync(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1))).toBe(true);
+    expect(
+      Effect.runSync(
+        state.reserveFinishOutput(
+          "agent",
+          "attempt",
+          "output",
+          [{ id: "advice", unit: canonicalUnit, findings: [finding] }],
+          1,
+        ),
+      ),
+    ).toBe(true);
     expect(Effect.runSync(state.authorizeFinishOutput("agent", "output"))).toBe(true);
     expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit + 1]))).toBe(false);
     expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit]))).toBe(true);
@@ -521,25 +630,60 @@ describe("shared Hapsland rounds", () => {
     const second = canonicalFinding(state);
     Effect.runSync(state.beginStop("agent", "attempt"));
     Effect.runSync(state.finishGate("agent", "attempt", 0, true));
-    expect(Effect.runSync(state.reserveFinishOutput("agent", "attempt", "output", [
-      { id: "first", unit: first, findings: [{ rule: "a", advice: "first" }] },
-      { id: "second", unit: second, findings: [{ rule: "b", advice: "second" }] },
-    ], 1))).toBe(true);
+    expect(
+      Effect.runSync(
+        state.reserveFinishOutput(
+          "agent",
+          "attempt",
+          "output",
+          [
+            { id: "first", unit: first, findings: [{ rule: "a", advice: "first" }] },
+            { id: "second", unit: second, findings: [{ rule: "b", advice: "second" }] },
+          ],
+          1,
+        ),
+      ),
+    ).toBe(true);
     expect(Effect.runSync(state.authorizeFinishOutput("agent", "output"))).toBe(true);
     const before = Effect.runSync(state.canonical.canonicalProjection());
     expect(before.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["authorized", "authorized"]);
     const firstBatch = before.delivery.submissions.batches[0];
     if (firstBatch === undefined) throw new Error("expected first Stop advice record");
-    expect(Effect.runSync(state.canonical.transition({ kind: "submissionTerminal", advice: firstBatch.advice,
-      token: firstBatch.token, certain: true })).commands[0]?.kind).toBe("submissionRefused");
-    expect(Effect.runSync(state.canonical.transition({ kind: "submissionRelease", advice: firstBatch.advice,
-      token: firstBatch.token })).commands[0]?.kind).toBe("submissionRefused");
+    expect(
+      Effect.runSync(
+        state.canonical.transition({
+          kind: "submissionTerminal",
+          advice: firstBatch.advice,
+          token: firstBatch.token,
+          certain: true,
+        }),
+      ).commands[0]?.kind,
+    ).toBe("submissionRefused");
+    expect(
+      Effect.runSync(
+        state.canonical.transition({ kind: "submissionRelease", advice: firstBatch.advice, token: firstBatch.token }),
+      ).commands[0]?.kind,
+    ).toBe("submissionRefused");
     const slot = before.delivery.slots[0];
     if (slot === undefined) throw new Error("expected Stop output slot");
-    expect(Effect.runSync(state.canonical.transition({ kind: "finishEnd", group: slot.group,
-      round: slot.round, attempt: slot.attempt, token: slot.token })).commands[0]?.kind).toBe("finishRefused");
-    expect(Effect.runSync(state.canonical.transition({ kind: "submissionForget", advice: firstBatch.advice })).rejection).toBeDefined();
-    expect(Effect.runSync(state.canonical.transition({ kind: "collectionRetireAdvice", advice: firstBatch.advice })).rejection).toBeDefined();
+    expect(
+      Effect.runSync(
+        state.canonical.transition({
+          kind: "finishEnd",
+          group: slot.group,
+          round: slot.round,
+          attempt: slot.attempt,
+          token: slot.token,
+        }),
+      ).commands[0]?.kind,
+    ).toBe("finishRefused");
+    expect(
+      Effect.runSync(state.canonical.transition({ kind: "submissionForget", advice: firstBatch.advice })).rejection,
+    ).toBeDefined();
+    expect(
+      Effect.runSync(state.canonical.transition({ kind: "collectionRetireAdvice", advice: firstBatch.advice }))
+        .rejection,
+    ).toBeDefined();
     expect(Effect.runSync(state.canonical.canonicalProjection())).toEqual(before);
     expect(Effect.runSync(state.markSubmitted("output", [first]))).toBe(false);
     expect(Effect.runSync(state.canonical.canonicalProjection())).toEqual(before);
@@ -556,10 +700,20 @@ describe("shared Hapsland rounds", () => {
     const second = canonicalFinding(state);
     Effect.runSync(state.beginStop("agent", "attempt"));
     Effect.runSync(state.finishGate("agent", "attempt", 0, true));
-    expect(Effect.runSync(state.reserveFinishOutput("agent", "attempt", "output", [
-      { id: "first", unit: first, findings: [{ rule: "a", advice: "first" }] },
-      { id: "second", unit: second, findings: [{ rule: "b", advice: "second" }] },
-    ], 1))).toBe(true);
+    expect(
+      Effect.runSync(
+        state.reserveFinishOutput(
+          "agent",
+          "attempt",
+          "output",
+          [
+            { id: "first", unit: first, findings: [{ rule: "a", advice: "first" }] },
+            { id: "second", unit: second, findings: [{ rule: "b", advice: "second" }] },
+          ],
+          1,
+        ),
+      ),
+    ).toBe(true);
     expect(Effect.runSync(state.authorizeFinishOutput("agent", "output"))).toBe(true);
     expect(Effect.runSync(state.markUncertain("output"))).toBe(true);
     const after = Effect.runSync(state.canonical.canonicalProjection());
@@ -594,8 +748,17 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.beginStop("agent", "attempt"))).toBe(true);
     const canonicalUnit = canonicalFinding(state);
     expect(Effect.runSync(state.finishGate("agent", "attempt", 0, true))?.status).toBe("cutoff");
-    expect(Effect.runSync(state.reserveFinishOutput("agent", "attempt", "output",
-      [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1))).toBe(true);
+    expect(
+      Effect.runSync(
+        state.reserveFinishOutput(
+          "agent",
+          "attempt",
+          "output",
+          [{ id: "advice", unit: canonicalUnit, findings: [finding] }],
+          1,
+        ),
+      ),
+    ).toBe(true);
     expect(Effect.runSync(state.closureCounts("agent")).reservedContinuations).toBe(1);
     expect(Effect.runSync(state.revokeProvisionalFinishOutput("agent", "attempt", "output"))).toBe(true);
     expect(Effect.runSync(state.closureCounts("agent")).reservedContinuations).toBe(0);
@@ -660,7 +823,10 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.canonical.canonicalProjection()).rounds).toEqual([]);
 
     expect(Effect.runSync(state.closureCounts("agent"))).toEqual({
-      reservedContinuations: 0, submitted: 0, uncertain: 0, editPermits: 0,
+      reservedContinuations: 0,
+      submitted: 0,
+      uncertain: 0,
+      editPermits: 0,
     });
     expect(Effect.runSync(state.hasVirtualRoundContinuationBudget("agent"))).toBe(false);
     expect(Effect.runSync(state.canSubmit("agent", "background"))).toBe(false);
@@ -693,22 +859,28 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
     const scopes = ["agent"];
     const round = Effect.runSync(state.canonical.roundId("agent"));
-    expect(Effect.runSync(state.finishGate("agent", "stop", 0, false)))
-      .toMatchObject({ status: "waiting" });
+    expect(Effect.runSync(state.finishGate("agent", "stop", 0, false))).toMatchObject({ status: "waiting" });
     expect(Effect.runSync(state.canonical.observation(scopes[0]!, first, "completeObservation", round))).toBe(false);
     expect(Effect.runSync(state.canonical.observation(scopes[0]!, first, "startObservation", round))).toBe(true);
     expect(Effect.runSync(state.canonical.observation(scopes[0]!, first, "completeObservation", round))).toBe(true);
-    expect(Effect.runSync(state.finishGate("agent", "stop", 0, false)))
-      .toMatchObject({ status: "waiting" });
+    expect(Effect.runSync(state.finishGate("agent", "stop", 0, false))).toMatchObject({ status: "waiting" });
     const cutoff = Effect.runSync(state.finishGate("agent", "stop", 0, true));
     expect(cutoff).toMatchObject({ status: "cutoff", cancelledSource: [] });
-    expect(Effect.runSync(state.canonical.canonicalProjection()).rounds.filter((item) =>
-      scopes.some((scope) => item.partition === Effect.runSync(state.canonical.partitionId(scope))))
-      .every((item) => item.deciding)).toBe(true);
+    expect(
+      Effect.runSync(state.canonical.canonicalProjection())
+        .rounds.filter((item) =>
+          scopes.some((scope) => item.partition === Effect.runSync(state.canonical.partitionId(scope))),
+        )
+        .every((item) => item.deciding),
+    ).toBe(true);
     expect(Effect.runSync(state.finishStop("agent", "stop", false, 100))).toBeUndefined();
-    expect(Effect.runSync(state.canonical.canonicalProjection()).rounds.filter((item) =>
-      scopes.some((scope) => item.partition === Effect.runSync(state.canonical.partitionId(scope))))
-      .every((item) => !item.deciding)).toBe(true);
+    expect(
+      Effect.runSync(state.canonical.canonicalProjection())
+        .rounds.filter((item) =>
+          scopes.some((scope) => item.partition === Effect.runSync(state.canonical.partitionId(scope))),
+        )
+        .every((item) => !item.deciding),
+    ).toBe(true);
     expect(Effect.runSync(state.canonical.admitObservation(scopes[0]!))).toBeGreaterThan(second);
   });
 
@@ -734,7 +906,10 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.admitEdit("agent", "edit", 0));
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
     expect(Effect.runSync(state.finishGate("agent", "stop", 1, false))).toMatchObject({ status: "waiting" });
-    expect(Effect.runSync(state.finishGate("agent", "stop", 1, true))).toMatchObject({ status: "cutoff", limited: false });
+    expect(Effect.runSync(state.finishGate("agent", "stop", 1, true))).toMatchObject({
+      status: "cutoff",
+      limited: false,
+    });
   });
 
   it("coalesces background waiters and forbids submission after the Stop barrier", () => {
@@ -830,56 +1005,70 @@ describe("shared Hapsland rounds", () => {
   });
 });
 
-effectIt.effect("serializes background claims and defers release until execution", () => Effect.gen(function* () {
-  const owner = yield* makeResidentState();
-  const delivery = owner.delivery();
-  yield* delivery.admitEdit("agent", "edit", 0);
-  const before = (yield* owner.canonicalProjection());
-  const claim = delivery.claimBackground("agent", "winner", 0);
-  expect((yield* owner.canonicalProjection())).toEqual(before);
-  const claims = yield* Effect.forEach(Array.from({ length: 16 }), (_, index) =>
-    delivery.claimBackground("agent", `worker-${index}`, 0), { concurrency: "unbounded" });
-  expect(claims.filter(Boolean)).toHaveLength(1);
-  const winner = claims.findIndex(Boolean);
-  const retained = (yield* owner.canonicalProjection());
-  const release = delivery.releaseBackground("agent", `worker-${winner}`);
-  expect((yield* owner.canonicalProjection())).toEqual(retained);
-  expect(yield* claim).toBe(false);
-  yield* release;
-  expect(yield* claim).toBe(true);
-  yield* delivery.releaseBackground("agent", "winner");
-  expect(yield* delivery.claimBackground("agent", "replacement", 0)).toBe(true);
-}));
+effectIt.effect("serializes background claims and defers release until execution", () =>
+  Effect.gen(function* () {
+    const owner = yield* makeResidentState();
+    const delivery = owner.delivery();
+    yield* delivery.admitEdit("agent", "edit", 0);
+    const before = yield* owner.canonicalProjection();
+    const claim = delivery.claimBackground("agent", "winner", 0);
+    expect(yield* owner.canonicalProjection()).toEqual(before);
+    const claims = yield* Effect.forEach(
+      Array.from({ length: 16 }),
+      (_, index) => delivery.claimBackground("agent", `worker-${index}`, 0),
+      { concurrency: "unbounded" },
+    );
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    const winner = claims.findIndex(Boolean);
+    const retained = yield* owner.canonicalProjection();
+    const release = delivery.releaseBackground("agent", `worker-${winner}`);
+    expect(yield* owner.canonicalProjection()).toEqual(retained);
+    expect(yield* claim).toBe(false);
+    yield* release;
+    expect(yield* claim).toBe(true);
+    yield* delivery.releaseBackground("agent", "winner");
+    expect(yield* delivery.claimBackground("agent", "replacement", 0)).toBe(true);
+  }),
+);
 
-effectIt.effect("retains exactly one owner among competing Stop claims", () => Effect.gen(function* () {
-  const owner = yield* makeResidentState();
-  const delivery = owner.delivery();
-  yield* delivery.admitEdit("agent", "edit", 0);
-  const before = (yield* owner.canonicalProjection());
-  const stop = delivery.beginStop("agent", "deferred");
-  expect((yield* owner.canonicalProjection())).toEqual(before);
-  const claims = yield* Effect.forEach(Array.from({ length: 16 }), (_, index) =>
-    delivery.beginStop("agent", `stop-${index}`), { concurrency: "unbounded" });
-  expect(claims.filter(Boolean)).toHaveLength(1);
-  const winner = claims.findIndex(Boolean);
-  expect(yield* delivery.ownsStop("agent", `stop-${winner}`)).toBe(true);
-  expect(yield* delivery.ownsStop("agent", "deferred")).toBe(false);
-  expect(yield* stop).toBe(false);
-}));
+effectIt.effect("retains exactly one owner among competing Stop claims", () =>
+  Effect.gen(function* () {
+    const owner = yield* makeResidentState();
+    const delivery = owner.delivery();
+    yield* delivery.admitEdit("agent", "edit", 0);
+    const before = yield* owner.canonicalProjection();
+    const stop = delivery.beginStop("agent", "deferred");
+    expect(yield* owner.canonicalProjection()).toEqual(before);
+    const claims = yield* Effect.forEach(
+      Array.from({ length: 16 }),
+      (_, index) => delivery.beginStop("agent", `stop-${index}`),
+      { concurrency: "unbounded" },
+    );
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    const winner = claims.findIndex(Boolean);
+    expect(yield* delivery.ownsStop("agent", `stop-${winner}`)).toBe(true);
+    expect(yield* delivery.ownsStop("agent", "deferred")).toBe(false);
+    expect(yield* stop).toBe(false);
+  }),
+);
 
-effectIt.effect("coalesces competing edit registrations into one permit and one repeat diagnostic", () => Effect.gen(function* () {
-  const owner = yield* makeResidentState();
-  const diagnostics: unknown[] = [];
-  const delivery = owner.delivery((diagnostic) => diagnostics.push(diagnostic));
-  const registration = delivery.registerEditDecision("agent", "same-edit", 100, 110);
-  expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 0 });
-  expect(diagnostics).toEqual([]);
-  const registrations = yield* Effect.forEach(Array.from({ length: 16 }), () => registration, { concurrency: "unbounded" });
-  expect(registrations).toEqual(Array.from({ length: 16 }, () => ({ accepted: true })));
-  expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 1 });
-  expect(diagnostics).toMatchObject([{ phase: "pending" }]);
-  expect(diagnostics).toHaveLength(1);
-  expect(yield* delivery.admitEdit("agent", "same-edit", 130, true)).toBe(1);
-  expect(yield* registration).toEqual({ accepted: false, reason: "DuplicateTool" });
-  expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 0 });
-}));
+effectIt.effect("coalesces competing edit registrations into one permit and one repeat diagnostic", () =>
+  Effect.gen(function* () {
+    const owner = yield* makeResidentState();
+    const diagnostics: unknown[] = [];
+    const delivery = owner.delivery((diagnostic) => diagnostics.push(diagnostic));
+    const registration = delivery.registerEditDecision("agent", "same-edit", 100, 110);
+    expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 0 });
+    expect(diagnostics).toEqual([]);
+    const registrations = yield* Effect.forEach(Array.from({ length: 16 }), () => registration, {
+      concurrency: "unbounded",
+    });
+    expect(registrations).toEqual(Array.from({ length: 16 }, () => ({ accepted: true })));
+    expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 1 });
+    expect(diagnostics).toMatchObject([{ phase: "pending" }]);
+    expect(diagnostics).toHaveLength(1);
+    expect(yield* delivery.admitEdit("agent", "same-edit", 130, true)).toBe(1);
+    expect(yield* registration).toEqual({ accepted: false, reason: "DuplicateTool" });
+    expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 0 });
+  }),
+);

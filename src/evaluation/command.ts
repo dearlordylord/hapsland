@@ -21,11 +21,7 @@ import {
   makeRendererAdapterIdentity,
   planEvaluation,
 } from "./plan.ts";
-import {
-  BUNDLED_EVALUATION_EXPECTATIONS,
-  BUNDLED_EVALUATION_FIXTURES,
-  BUNDLED_EVALUATION_RULES,
-} from "./fixtures.ts";
+import { BUNDLED_EVALUATION_EXPECTATIONS, BUNDLED_EVALUATION_FIXTURES, BUNDLED_EVALUATION_RULES } from "./fixtures.ts";
 import { digestValue, makeConfigurationCase, makeConfigurationLayer, makeEffectiveConfiguration } from "./digest.ts";
 import { executeEvaluation, type EvaluationExecutionError } from "./runner.ts";
 import { isReportDigestValid } from "./report.ts";
@@ -40,10 +36,12 @@ import {
 
 export const EVALUATION_PROTOCOL_VERSION = 1 as const;
 
-export class EvaluationCommandError extends Schema.TaggedError<EvaluationCommandError>()(
-  "EvaluationCommandError", { reason: Schema.NonEmptyString },
-) {
-  override get message(): string { return this.reason; }
+export class EvaluationCommandError extends Schema.TaggedError<EvaluationCommandError>()("EvaluationCommandError", {
+  reason: Schema.NonEmptyString,
+}) {
+  override get message(): string {
+    return this.reason;
+  }
 }
 
 const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
@@ -97,8 +95,7 @@ const productionPack: LoadedRulePack = {
 
 const compiledRules = compileRules({ packs: [productionPack] });
 const allRuleIds = BUNDLED_EVALUATION_RULES.map((rule) => rule.identity.qualifiedId);
-const backendIdentity = (mode: "controlled" | "live") =>
-  makeBackendIdentity({ id: "jev", version: "1", mode });
+const backendIdentity = (mode: "controlled" | "live") => makeBackendIdentity({ id: "jev", version: "1", mode });
 const inputContract = makeInputContractIdentity({
   id: "full-file-plus-path",
   version: "1",
@@ -129,30 +126,33 @@ const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
     readonly name: string;
     readonly interaction: "isolated" | "full" | "named";
     readonly rules: ReadonlyArray<(typeof BUNDLED_EVALUATION_RULES)[number]>;
-  }) => makeEvaluationScenario({
-    id: input.id,
-    name: input.name,
-    interaction: input.interaction,
-    ...(input.interaction === "named" ? { interactionName: "inferred-case-related-pair" } : {}),
-    fixtures: BUNDLED_EVALUATION_FIXTURES,
-    ruleDefinitions: input.rules,
-    configurationCaseId: configuration.id,
-    effectiveConfigurationDigest: configuration.expectedEffective.configurationDigest,
-    backend,
-    inputContract,
-    rendererAdapter,
-  });
+  }) =>
+    makeEvaluationScenario({
+      id: input.id,
+      name: input.name,
+      interaction: input.interaction,
+      ...(input.interaction === "named" ? { interactionName: "inferred-case-related-pair" } : {}),
+      fixtures: BUNDLED_EVALUATION_FIXTURES,
+      ruleDefinitions: input.rules,
+      configurationCaseId: configuration.id,
+      effectiveConfigurationDigest: configuration.expectedEffective.configurationDigest,
+      backend,
+      inputContract,
+      rendererAdapter,
+    });
   const r1 = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "r1_inferred_case");
   const r2 = BUNDLED_EVALUATION_RULES.filter((rule) => rule.identity.ruleId === "r2_meaningless_combinations");
   return {
     configuration,
     scenarios: [
-      ...BUNDLED_EVALUATION_RULES.map((rule) => scenario({
-        id: `isolated-${rule.identity.ruleId}`,
-        name: "isolated inferred-case rule",
-        interaction: "isolated",
-        rules: [rule],
-      })),
+      ...BUNDLED_EVALUATION_RULES.map((rule) =>
+        scenario({
+          id: `isolated-${rule.identity.ruleId}`,
+          name: "isolated inferred-case rule",
+          interaction: "isolated",
+          rules: [rule],
+        }),
+      ),
       scenario({
         id: "full-enabled-batch",
         name: "full enabled bundled batch",
@@ -169,14 +169,16 @@ const makeScenarioSet = (backend: ReturnType<typeof backendIdentity>) => {
   };
 };
 
-export const makeDefaultEvaluationSuite = (input: {
-  readonly mode?: "controlled" | "live";
-  readonly repetitions?: number;
-  readonly maximumRequests?: number;
-  readonly maximumRetriesPerRequest?: number;
-  readonly authorizedRemainingCalls?: number;
-  readonly liveOptIn?: boolean;
-} = {}): DefaultEvaluationSuite => {
+export const makeDefaultEvaluationSuite = (
+  input: {
+    readonly mode?: "controlled" | "live";
+    readonly repetitions?: number;
+    readonly maximumRequests?: number;
+    readonly maximumRetriesPerRequest?: number;
+    readonly authorizedRemainingCalls?: number;
+    readonly liveOptIn?: boolean;
+  } = {},
+): DefaultEvaluationSuite => {
   const backend = backendIdentity(input.mode ?? "controlled");
   const { configuration, scenarios } = makeScenarioSet(backend);
   const run = makeEvaluationRun({
@@ -216,21 +218,20 @@ const credentialPresent = Effect.fn("EvaluationCommand.credentialPresent")((name
   ),
 );
 
-const runLayer = (
-  options: EvaluationCommandOptions,
-  suite: DefaultEvaluationSuite,
-) => {
+const runLayer = (options: EvaluationCommandOptions, suite: DefaultEvaluationSuite) => {
   if (suite.run.backend.mode === "live") {
     return ReviewBackend.layerWithOptions({
       transientRetries: suite.run.budget.maximumRetriesPerRequest,
-    }).pipe(
-      Layer.provide(
-        liveLayer({
-          apiUrl: JEV_API_BASE,
-          credentialEnvVar: options.credentialEnvVar ?? "TYPESAFE_API_KEY",
-        }),
-      ),
-    ).pipe(Layer.orDie);
+    })
+      .pipe(
+        Layer.provide(
+          liveLayer({
+            apiUrl: JEV_API_BASE,
+            credentialEnvVar: options.credentialEnvVar ?? "TYPESAFE_API_KEY",
+          }),
+        ),
+      )
+      .pipe(Layer.orDie);
   }
   return ReviewBackend.layerWithOptions({
     transientRetries: suite.run.budget.maximumRetriesPerRequest,
@@ -243,14 +244,19 @@ const planFor = Effect.fn("EvaluationCommand.plan")(function* (
 ) {
   const live = command.liveOptIn === true;
   const suite = yield* Effect.try({
-    try: () => makeDefaultEvaluationSuite({
-      mode: live ? "live" : "controlled",
-      ...(command.repetitions === undefined ? {} : { repetitions: command.repetitions }),
-      ...(command.maximumRequests === undefined ? {} : { maximumRequests: command.maximumRequests }),
-      ...(command.maximumRetriesPerRequest === undefined ? {} : { maximumRetriesPerRequest: command.maximumRetriesPerRequest }),
-      ...(command.authorizedRemainingCalls === undefined ? {} : { authorizedRemainingCalls: command.authorizedRemainingCalls }),
-      liveOptIn: live,
-    }),
+    try: () =>
+      makeDefaultEvaluationSuite({
+        mode: live ? "live" : "controlled",
+        ...(command.repetitions === undefined ? {} : { repetitions: command.repetitions }),
+        ...(command.maximumRequests === undefined ? {} : { maximumRequests: command.maximumRequests }),
+        ...(command.maximumRetriesPerRequest === undefined
+          ? {}
+          : { maximumRetriesPerRequest: command.maximumRetriesPerRequest }),
+        ...(command.authorizedRemainingCalls === undefined
+          ? {}
+          : { authorizedRemainingCalls: command.authorizedRemainingCalls }),
+        liveOptIn: live,
+      }),
     catch: () => new EvaluationCommandError({ reason: "evaluation plan input was invalid" }),
   });
   const liveCredentialPresent = live
@@ -265,31 +271,49 @@ const planFor = Effect.fn("EvaluationCommand.plan")(function* (
 
 export type EvaluationCommandResult =
   | { readonly version: 1; readonly operation: "plan"; readonly status: "planned"; readonly plan: EvaluationPlan }
-  | { readonly version: 1; readonly operation: "run"; readonly status: "complete" | "rejected"; readonly plan: EvaluationPlan; readonly report?: EvaluationReportType; readonly reason?: string }
-  | { readonly version: 1; readonly operation: "report"; readonly status: "verified" | "invalid"; readonly report?: EvaluationReportType; readonly reason?: string };
+  | {
+      readonly version: 1;
+      readonly operation: "run";
+      readonly status: "complete" | "rejected";
+      readonly plan: EvaluationPlan;
+      readonly report?: EvaluationReportType;
+      readonly reason?: string;
+    }
+  | {
+      readonly version: 1;
+      readonly operation: "report";
+      readonly status: "verified" | "invalid";
+      readonly report?: EvaluationReportType;
+      readonly reason?: string;
+    };
 
+const verifiedEvaluationReport = (value: unknown): EvaluationCommandResult => {
+  const report = Schema.decodeUnknownResult(EvaluationReport, strictParseOptions)(value);
+  if (report._tag === "Failure")
+    return {
+      version: 1,
+      operation: "report",
+      status: "invalid",
+      reason: "report does not satisfy the evaluation contract",
+    };
+  if (!isReportDigestValid(report.success))
+    return {
+      version: 1,
+      operation: "report",
+      status: "invalid",
+      reason: "report digest does not match its sanitized contents",
+    };
+  return { version: 1, operation: "report", status: "verified", report: report.success };
+};
 export const runEvaluationCommand = Effect.fn("EvaluationCommand.run")(function* (
   value: unknown,
   options: EvaluationCommandOptions = {},
 ): Effect.fn.Return<EvaluationCommandResult, EvaluationCommandError | EvaluationExecutionError> {
-  const command = yield* Schema.decodeUnknownEffect(EvaluationCommand, strictParseOptions)(value).pipe(
-    Effect.mapError(() => new EvaluationCommandError({ reason: "invalid evaluation command" })),
-  );
-  if (command.operation === "report") {
-    const report = Schema.decodeUnknownResult(EvaluationReport, strictParseOptions)(command.report);
-    if (report._tag === "Failure") {
-      return { version: 1, operation: "report", status: "invalid", reason: "report does not satisfy the evaluation contract" };
-    }
-    if (!isReportDigestValid(report.success)) {
-      return { version: 1, operation: "report", status: "invalid", reason: "report digest does not match its sanitized contents" };
-    }
-    return {
-      version: 1,
-      operation: "report",
-      status: "verified",
-      report: report.success,
-    };
-  }
+  const command = yield* Schema.decodeUnknownEffect(
+    EvaluationCommand,
+    strictParseOptions,
+  )(value).pipe(Effect.mapError(() => new EvaluationCommandError({ reason: "invalid evaluation command" })));
+  if (command.operation === "report") return verifiedEvaluationReport(command.report);
   const suite = yield* planFor(command, options);
   if (command.operation === "plan") {
     return { version: 1, operation: "plan", status: "planned", plan: suite.plan };
@@ -300,9 +324,7 @@ export const runEvaluationCommand = Effect.fn("EvaluationCommand.run")(function*
       operation: "run",
       status: "rejected",
       plan: suite.plan,
-      ...(suite.plan.rejectionReason === undefined
-        ? {}
-        : { reason: suite.plan.rejectionReason }),
+      ...(suite.plan.rejectionReason === undefined ? {} : { reason: suite.plan.rejectionReason }),
     };
   }
   if (suite.run.backend.mode === "live" && options.allowLive !== true) {

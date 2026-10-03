@@ -202,6 +202,20 @@ describe("Rust direct review integration", () => {
     }
   }));
 
+  for (const binaryPath of ["src/bin/tool.rs", "src/bin/tool/main.rs"]) {
+    it.effect(`resolves the conventional Cargo binary root ${binaryPath}`, () => Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+      yield* Effect.promise(() => put(root, binaryPath, "mod receipt; struct Count { value: crate::receipt::Receipt }"));
+      yield* Effect.promise(() => put(root, binaryPath.replace(/[^/]+$/, "receipt.rs"), "pub struct Receipt { value: u8 }"));
+      const prepared = yield* prepare(addEvent(root, [binaryPath]));
+      const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
+      expect(ready?.status).toBe("ready");
+      if (ready?.status !== "ready") throw new Error("conventional binary root was not ready");
+      expect(ready.prepared.input.sourceFingerprints?.map((source) => source.path)).toContain("Cargo.toml");
+    }));
+  }
+
   it.effect("does not revive dormant main.rs when explicit binary targets exist", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n[[bin]]\nname = "fixture"\npath = "custom.rs"\n'));
@@ -233,6 +247,25 @@ describe("Rust direct review integration", () => {
     yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
     yield* Effect.promise(() => put(root, "src/receipt/mod.rs", "pub struct Receipt { value: u16 }"));
     expect((yield* prepare(addEvent(root, ["src/lib.rs"]))).outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+  }));
+
+  it.effect("stops external-module authority at its configured depth budget", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod model;"));
+    yield* Effect.promise(() => put(root, "src/model.rs", "mod item;"));
+    yield* Effect.promise(() => put(root, "src/model/item.rs", "struct Count { value: u8 }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["src/model/item.rs"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "src/model/item.rs", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("capture failed");
+    const context = { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY };
+    const denied = yield* resolveRustModuleContext("src/model/item.rs", capture, context, { ...GRAPH_LIMIT_CEILINGS, depth: 1 }, () => false);
+    expect(denied.options).toBeUndefined();
+    const accepted = yield* resolveRustModuleContext("src/model/item.rs", capture, context, GRAPH_LIMIT_CEILINGS, () => false);
+    expect(accepted.options).toMatchObject({ rustExternalModule: true });
   }));
 
   it.effect("checks metadata exclusion and the Cargo graph reservation before reading", () => Effect.gen(function* () {

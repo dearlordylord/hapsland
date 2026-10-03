@@ -4,6 +4,9 @@ import * as Schema from "effect/Schema";
 import { DEFAULT_RULE_THRESHOLD } from "../rules/schema.ts";
 import {
   Comparison,
+  ComparisonResult,
+  ComparisonSummary,
+  EvaluationTimingEvidence,
   EvaluationPlan,
   EvaluationReport,
   EvaluationScenario,
@@ -13,6 +16,7 @@ import {
 } from "./model.ts";
 import {
   digestValue,
+  isScenarioDigestValid,
   makeConfigurationCase,
   makeConfigurationLayer,
   makeEffectiveConfiguration,
@@ -32,11 +36,7 @@ import {
   planEvaluation,
   enforceCallBudget,
 } from "./plan.ts";
-import {
-  compareObservation,
-  compareObservationPair,
-  compareObservations,
-} from "./comparison.ts";
+import { compareObservation, compareObservationPair, compareObservations } from "./comparison.ts";
 import {
   buildEvaluationReport,
   isReportDigestValid,
@@ -218,7 +218,10 @@ const observation = (input: {
 describe("evaluation model", () => {
   it("rejects unknown model fields at the strict boundary", () => {
     expect(() =>
-      Schema.decodeUnknownSync(EvaluationReport, strictParseOptions)({
+      Schema.decodeUnknownSync(
+        EvaluationReport,
+        strictParseOptions,
+      )({
         runId: run.id,
         suiteId: run.suiteId,
         runDigest: run.runDigest,
@@ -270,33 +273,53 @@ describe("evaluation model", () => {
   });
 
   it("rejects invalid interaction, transport, review, comparison, and plan variants", () => {
-    expect(() => Schema.decodeUnknownSync(EvaluationScenario, strictParseOptions)({
-      ...isolated,
-      interaction: "named",
-    })).toThrow();
-    expect(() => Schema.decodeUnknownSync(EvaluationScenario, strictParseOptions)({
-      ...named,
-      interaction: "full",
-    })).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        EvaluationScenario,
+        strictParseOptions,
+      )({
+        ...isolated,
+        interaction: "named",
+      }),
+    ).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        EvaluationScenario,
+        strictParseOptions,
+      )({
+        ...named,
+        interaction: "full",
+      }),
+    ).toThrow();
 
-    expect(() => Schema.decodeUnknownSync(TransportObservation, strictParseOptions)({
-      ...observation({
-        id: "transport-invalid",
-        scenarioId: isolated.id,
-        fixtureId: fixture.id,
-      }).transport,
-      status: "available",
-      errorCategory: "unexpected-error",
-    })).toThrow();
-    expect(() => Schema.decodeUnknownSync(TransportObservation, strictParseOptions)({
-      ...observation({
-        id: "transport-invalid-unavailable",
-        scenarioId: isolated.id,
-        fixtureId: fixture.id,
-        transport: "unavailable",
-      }).transport,
-      errorCategory: undefined,
-    })).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        TransportObservation,
+        strictParseOptions,
+      )({
+        ...observation({
+          id: "transport-invalid",
+          scenarioId: isolated.id,
+          fixtureId: fixture.id,
+        }).transport,
+        status: "available",
+        errorCategory: "unexpected-error",
+      }),
+    ).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        TransportObservation,
+        strictParseOptions,
+      )({
+        ...observation({
+          id: "transport-invalid-unavailable",
+          scenarioId: isolated.id,
+          fixtureId: fixture.id,
+          transport: "unavailable",
+        }).transport,
+        errorCategory: undefined,
+      }),
+    ).toThrow();
 
     const reviewedWithoutAssessment = observation({
       id: "reviewed-without-assessment",
@@ -305,9 +328,14 @@ describe("evaluation model", () => {
       probability: 0.1,
     });
     const { assessment: _assessment, ...reviewedWithoutAssessmentFields } = reviewedWithoutAssessment;
-    expect(() => Schema.decodeUnknownSync(Observation, strictParseOptions)({
-      ...reviewedWithoutAssessmentFields,
-    })).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        Observation,
+        strictParseOptions,
+      )({
+        ...reviewedWithoutAssessmentFields,
+      }),
+    ).toThrow();
 
     const exact = makeComparison({
       id: "invalid-exact",
@@ -317,14 +345,24 @@ describe("evaluation model", () => {
       rightObservationId: "right",
       tolerance: 0,
     });
-    expect(() => Schema.decodeUnknownSync(Comparison, strictParseOptions)({
-      ...exact,
-      observationId: "also-observation",
-    })).toThrow();
-    expect(() => Schema.decodeUnknownSync(Comparison, strictParseOptions)({
-      ...exact,
-      relation: "measured-change",
-    })).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        Comparison,
+        strictParseOptions,
+      )({
+        ...exact,
+        observationId: "also-observation",
+      }),
+    ).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        Comparison,
+        strictParseOptions,
+      )({
+        ...exact,
+        relation: "measured-change",
+      }),
+    ).toThrow();
     const semantic = makeComparison({
       id: "semantic-without-rule",
       name: "semantic without rule",
@@ -334,51 +372,71 @@ describe("evaluation model", () => {
       tolerance: 0,
     });
     const { ruleId: _ruleId, ...semanticWithoutRule } = semantic;
-    expect(() => Schema.decodeUnknownSync(Comparison, strictParseOptions)({
-      ...semanticWithoutRule,
-    })).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        Comparison,
+        strictParseOptions,
+      )({
+        ...semanticWithoutRule,
+      }),
+    ).toThrow();
 
     const plan = planEvaluation(run, [isolated, full, named]);
-    expect(() => Schema.decodeUnknownSync(EvaluationPlan, strictParseOptions)({
-      ...plan,
-      permitted: true,
-    })).toThrow();
-    expect(() => Schema.decodeUnknownSync(EvaluationPlan, strictParseOptions)({
-      ...plan,
-      permitted: false,
-      rejectionReason: undefined,
-    })).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        EvaluationPlan,
+        strictParseOptions,
+      )({
+        ...plan,
+        permitted: true,
+      }),
+    ).toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(
+        EvaluationPlan,
+        strictParseOptions,
+      )({
+        ...plan,
+        permitted: false,
+        rejectionReason: undefined,
+      }),
+    ).toThrow();
   });
 
   it("preserves canonical roundtrips under generated object-key permutations", () => {
-    fc.assert(fc.property(
-      fc.uniqueArray(fc.constantFrom("alpha", "beta", "gamma"), { minLength: 1 }),
-      (keys) => {
-        const value = Object.fromEntries(keys.map((key, index) => [key, {
-          index,
-          nested: [index, key.length],
-        }]));
-        const reordered = Object.fromEntries([...keys].reverse().map((key) => [
-          key,
-          value[key],
-        ]));
+    fc.assert(
+      fc.property(fc.uniqueArray(fc.constantFrom("alpha", "beta", "gamma"), { minLength: 1 }), (keys) => {
+        const value = Object.fromEntries(
+          keys.map((key, index) => [
+            key,
+            {
+              index,
+              nested: [index, key.length],
+            },
+          ]),
+        );
+        const reordered = Object.fromEntries([...keys].reverse().map((key) => [key, value[key]]));
         expect(stableStringify(reordered)).toBe(stableStringify(value));
-      },
-    ));
+      }),
+    );
 
     const report = buildEvaluationReport({
       run,
-      plan: planEvaluation({
-        ...run,
-        budget: { maximumRequests: 100, maximumRetriesPerRequest: 1 },
-      }, [isolated, full, named]),
+      plan: planEvaluation(
+        {
+          ...run,
+          budget: { maximumRequests: 100, maximumRetriesPerRequest: 1 },
+        },
+        [isolated, full, named],
+      ),
       scenarios: [isolated, full, named],
       observations: [],
       comparisons: [],
     });
-    const roundtripped = Schema.decodeUnknownSync(EvaluationReport, strictParseOptions)(
-      JSON.parse(JSON.stringify(report)),
-    );
+    const roundtripped = Schema.decodeUnknownSync(
+      EvaluationReport,
+      strictParseOptions,
+    )(JSON.parse(JSON.stringify(report)));
     expect(stableStringify(roundtripped)).toBe(stableStringify(report));
   });
 
@@ -570,3 +628,276 @@ describe("evaluation model", () => {
     expect(() => Schema.decodeUnknownSync(EvaluationReport, strictParseOptions)(report)).not.toThrow();
   });
 });
+
+it("validates retry accounting independently of transport availability", () => {
+  const transport = { status: "available", attempts: 2, retries: 1, durationMs: 12 };
+  const decode = Schema.decodeUnknownSync(TransportObservation, strictParseOptions);
+  expect(decode(transport)).toEqual(transport);
+  expect(() => decode({ ...transport, attempts: 1 })).toThrow("attempts must equal retries plus one");
+  expect(() => decode({ ...transport, errorCategory: "timeout" })).toThrow(
+    "available transport cannot carry an error category",
+  );
+  expect(() => decode({ ...transport, status: "unavailable" })).toThrow(
+    "unavailable transport requires an error category",
+  );
+  expect(decode({ ...transport, status: "unavailable", errorCategory: "timeout" })).toMatchObject({
+    status: "unavailable",
+  });
+});
+
+it("rejects invalid timing ranges, inconsistent means, and nonzero empty aggregates", () => {
+  const decode = Schema.decodeUnknownSync(EvaluationTimingEvidence, strictParseOptions);
+  const timing = {
+    sampleCount: 2,
+    totalDurationMs: 20,
+    minimumDurationMs: 5,
+    maximumDurationMs: 15,
+    meanDurationMs: 10,
+    p50DurationMs: 10,
+    p95DurationMs: 14,
+  };
+  expect(decode(timing)).toEqual(timing);
+  for (const patch of [
+    { minimumDurationMs: 16 },
+    { p50DurationMs: 4 },
+    { p50DurationMs: 16 },
+    { p95DurationMs: 9 },
+    { p95DurationMs: 16 },
+  ]) {
+    expect(() => decode({ ...timing, ...patch })).toThrow("timing percentiles must be ordered");
+  }
+  expect(() => decode({ ...timing, meanDurationMs: 11 })).toThrow("timing mean must agree");
+  const empty = {
+    sampleCount: 0,
+    totalDurationMs: 0,
+    minimumDurationMs: 0,
+    maximumDurationMs: 0,
+    meanDurationMs: 0,
+    p50DurationMs: 0,
+    p95DurationMs: 0,
+  };
+  expect(decode(empty)).toEqual(empty);
+  for (const field of [
+    "totalDurationMs",
+    "minimumDurationMs",
+    "maximumDurationMs",
+    "meanDurationMs",
+    "p50DurationMs",
+    "p95DurationMs",
+  ]) {
+    expect(() => decode({ ...empty, [field]: 1 })).toThrow("empty timing evidence must contain zero aggregates");
+  }
+});
+
+it("keeps comparison results and report summaries subject to the same outcome constraints", () => {
+  const base = {
+    relation: "exact",
+    deterministic: "passed",
+    transport: "available",
+    conformance: "passed",
+    semantic: "unchecked",
+    passed: true,
+  };
+  const result = Schema.decodeUnknownSync(ComparisonResult, strictParseOptions);
+  const summary = Schema.decodeUnknownSync(ComparisonSummary, strictParseOptions);
+  const valid = [
+    base,
+    { ...base, transport: "unavailable", passed: false },
+    { ...base, conformance: "failed", passed: false },
+    { ...base, deterministic: "failed", passed: false },
+    { ...base, relation: "semantic-band", deterministic: "unchecked", semantic: "passed" },
+    { ...base, relation: "semantic-band", deterministic: "unchecked", semantic: "failed", passed: false },
+    { ...base, relation: "measured-change", deterministic: "unchecked", semantic: "passed", delta: 0.3 },
+  ];
+  for (const fields of valid) {
+    expect(result({ ...fields, comparisonId: "comparison" })).toMatchObject(fields);
+    expect(summary({ ...fields, id: "comparison" })).toMatchObject(fields);
+  }
+  const invalid = [
+    { ...base, semantic: "passed" },
+    { ...base, relation: "semantic-band" },
+    { ...base, passed: false },
+    { ...base, transport: "unavailable" },
+    { ...base, delta: 0.1 },
+  ];
+  for (const fields of invalid) {
+    expect(() => result({ ...fields, comparisonId: "comparison" })).toThrow();
+    expect(() => summary({ ...fields, id: "comparison" })).toThrow();
+  }
+});
+
+it.each([isolated, full, named])("verifies scenario digest and rejects changed identity: $interaction", (scenario) => {
+  expect(isScenarioDigestValid(scenario)).toBe(true);
+  expect(isScenarioDigestValid({ ...scenario, name: `${scenario.name} changed` })).toBe(false);
+  expect(
+    isScenarioDigestValid({ ...scenario, eventSequence: [{ kind: "duplicate-event", identity: "changed" }] }),
+  ).toBe(false);
+});
+
+it("evaluates measured changes in both directions and enforces no-change tolerance", () => {
+  const left = observation({ id: "direction-left", scenarioId: isolated.id, fixtureId: fixture.id, probability: 0.5 });
+  const cases = [
+    { direction: "increase", probability: 0.8, expected: "passed" },
+    { direction: "increase", probability: 0.2, expected: "failed" },
+    { direction: "decrease", probability: 0.2, expected: "passed" },
+    { direction: "decrease", probability: 0.8, expected: "failed" },
+    { direction: "change", probability: 0.2, expected: "passed" },
+    { direction: "change", probability: 0.6, expected: "failed" },
+    { direction: "no-change", probability: 0.505, expected: "passed" },
+    { direction: "no-change", probability: 0.53, expected: "failed" },
+  ] as const;
+  for (const entry of cases) {
+    const right = observation({
+      id: "direction-right",
+      scenarioId: isolated.id,
+      fixtureId: fixture.id,
+      probability: entry.probability,
+    });
+    const comparison = makeComparison({
+      id: "direction",
+      name: "measured direction",
+      relation: "measured-change",
+      leftObservationId: left.id,
+      rightObservationId: right.id,
+      ruleId: ruleA.identity.qualifiedId,
+      direction: entry.direction,
+      minimumDelta: 0.25,
+      tolerance: 0.01,
+    });
+    expect(compareObservations(comparison, [left, right])).toMatchObject({
+      semantic: entry.expected,
+      passed: entry.expected === "passed",
+      delta: entry.probability - 0.5,
+    });
+  }
+});
+
+it("keeps absent observations and absent semantic evidence unchecked", () => {
+  const target = observation({
+    id: "semantic-target",
+    scenarioId: isolated.id,
+    fixtureId: fixture.id,
+    reviewStatus: "incomplete",
+    conformance: "failed",
+  });
+  const comparison = makeComparison({
+    id: "semantic-evidence",
+    name: "semantic evidence",
+    relation: "semantic-band",
+    observationId: target.id,
+    ruleId: ruleA.identity.qualifiedId,
+    tolerance: 0,
+    expectation: makeExpectation({
+      fixtureId: fixture.id,
+      ruleId: ruleA.identity.qualifiedId,
+      result: { kind: "clear", band: { minimum: 0, maximum: 0.5, minimumInclusive: true, maximumInclusive: true } },
+      rationale: "A labeled control must have a measured probability.",
+    }),
+  });
+  expect(compareObservations(comparison, [])).toMatchObject({
+    semantic: "unchecked",
+    reason: "missing-observation",
+    passed: false,
+  });
+  expect(compareObservations(comparison, [target])).toMatchObject({
+    semantic: "unchecked",
+    reason: "missing-assessment",
+    passed: false,
+  });
+  const mismatched = observation({
+    id: target.id,
+    scenarioId: isolated.id,
+    fixtureId: controlFixture.id,
+    probability: 0.2,
+  });
+  expect(compareObservations(comparison, [mismatched])).toMatchObject({
+    semantic: "unchecked",
+    reason: "fixture-context-mismatch",
+    passed: false,
+  });
+  const unlabeled = makeComparison({
+    ...comparison,
+    expectation: makeExpectation({
+      fixtureId: fixture.id,
+      ruleId: ruleA.identity.qualifiedId,
+      result: { kind: "unchecked", reason: "label pending" },
+      rationale: "Owner has not labeled this fixture.",
+    }),
+  });
+  expect(compareObservations(unlabeled, [target])).toMatchObject({
+    semantic: "unchecked",
+    reason: "label pending",
+    passed: false,
+  });
+  const pair = makeComparison({
+    id: "missing-pair",
+    name: "missing comparison peer",
+    relation: "exact",
+    leftObservationId: target.id,
+    rightObservationId: "absent-peer",
+    tolerance: 0,
+  });
+  expect(compareObservations(pair, [target])).toMatchObject({
+    deterministic: "unchecked",
+    reason: "missing-observation",
+    passed: false,
+  });
+});
+
+it.each(["semantic-band", "measured-change"] as const)(
+  "enforces release acceptance separately for %s results",
+  (relation) => {
+    const releaseRun = (requireSemanticPass: boolean, requireNoUnchecked: boolean) =>
+      makeEvaluationRun({
+        id: "release-policy-run",
+        name: "release policy",
+        suiteId: "release-policy",
+        scenarios: [isolated],
+        backend,
+        inputContract,
+        rendererAdapter: renderer,
+        repetitions: 1,
+        budget: { maximumRequests: 100, maximumRetriesPerRequest: 0 },
+        liveOptIn: false,
+        acceptance: {
+          requireTransportAvailable: true,
+          requireConformance: true,
+          requireSemanticPass,
+          requireNoUnchecked,
+        },
+      });
+    for (const semantic of ["passed", "failed", "unchecked", "ambiguous"] as const) {
+      const comparison = Schema.decodeUnknownSync(
+        ComparisonResult,
+        strictParseOptions,
+      )({
+        comparisonId: `release-${relation}-${semantic}`,
+        relation,
+        deterministic: "unchecked",
+        transport: "available",
+        conformance: "passed",
+        semantic,
+        passed: semantic === "passed",
+      });
+      for (const [requireSemanticPass, requireNoUnchecked, expected] of [
+        [true, false, semantic === "passed"],
+        [false, false, true],
+        [false, true, semantic === "passed" || semantic === "failed"],
+      ] as const) {
+        const release = releaseRun(requireSemanticPass, requireNoUnchecked);
+        const report = buildEvaluationReport({
+          run: release,
+          plan: planEvaluation(release, [isolated]),
+          scenarios: [isolated],
+          observations: [],
+          comparisons: [comparison],
+        });
+        expect(
+          report.releaseAccepted,
+          `${semantic}: semantic=${requireSemanticPass}, unchecked=${requireNoUnchecked}`,
+        ).toBe(expected);
+        expect(isReportDigestValid(report)).toBe(true);
+      }
+    }
+  },
+);

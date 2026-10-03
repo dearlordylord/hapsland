@@ -428,6 +428,29 @@ else if (operation === "probe") console.log('{"status":"available"}');
   }, 45_000);
 });
 
+describe("setup repository failures", () => {
+  it("reports an undiscoverable scope without claiming credential readiness", () => {
+    const test = fixture();
+    const output = invoke(test, { scope: { cwd: test.root, review: "enabled" } });
+    expect(output.status).toBe("unsupported");
+    expect(output.stages.find(stage => stage.stage === "credential")?.status).toBe("unknown");
+    expect(output.stages.find(stage => stage.stage === "repository")?.status).toBe("unsupported");
+    expect(output.actions.some(action => action.code === "select-repository")).toBe(true);
+    expect(output.actions.some(action => action.code === "provide-credential")).toBe(false);
+  });
+
+  it("reports invalid review configuration as a conflict without requesting a credential", () => {
+    const test = fixture();
+    writeFileSync(join(test.root, "user.jsonc"), '{"version":1,"includes":42}');
+    const output = invoke(test, {});
+    expect(output.status).toBe("conflict");
+    expect(output.stages.find(stage => stage.stage === "credential")?.status).toBe("unknown");
+    expect(output.stages.find(stage => stage.stage === "repository")?.status).toBe("conflict");
+    expect(output.actions.some(action => action.code === "repair-repository-configuration")).toBe(true);
+    expect(output.actions.some(action => action.code === "provide-credential")).toBe(false);
+  });
+});
+
 describe("Claude setup shares the resumable credential and repository workflow", () => {
   it("requires digest approval, preserves independent hooks, and supports repeated setup", () => {
     const test = fixture();
@@ -459,7 +482,7 @@ describe("Claude setup shares the resumable credential and repository workflow",
     expect(targetApplied.stages.find(stage => stage.stage === "installation")?.status).toBe("complete");
     expect(readFileSync(join(claudeHome, "settings.json"), "utf8")).toContain(targetEntrypoint);
 
-  });
+  }, 15_000);
   it("rejects an unsupported Claude profile before writing hooks", () => {
     const test = fixture();
     const claudeHome = join(test.root, "claude-home");

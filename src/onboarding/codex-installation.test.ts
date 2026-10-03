@@ -1,5 +1,5 @@
 import { createInstallationPackageFixture, installationPackageDeclaration } from "../test-support/installation-package.ts";
-import { ConfigProvider, Effect } from "effect";
+import { ConfigProvider, Effect, Schema } from "effect";
 import {
   chmodSync,
   existsSync,
@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { inspectCodexInstallation, installCodexIntegration, previewCodexInstallation, uninstallCodexIntegration } from "./codex-installation.ts";
+import { inspectCodexInstallation, installCodexIntegration, previewCodexInstallation, uninstallCodexIntegration, updateCodexIntegration } from "./codex-installation.ts";
 
 const runInstallation = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
   Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
@@ -1129,3 +1129,79 @@ describe("Codex update and explicit reinstall journeys", { timeout: 30_000 }, ()
     expect(readFileSync(configPath, "utf8")).not.toContain("hooks = true");
   });
 });
+
+it.each([
+  { name: "version", patch: { version: 2 } },
+  { name: "operation", patch: { operation: "repair" } },
+  { name: "mutation", patch: { mutations: [{ path: 42 }] } },
+  { name: "completed index", patch: { completed: [0] } },
+])("rejects a malformed recovery journal $name without changing configuration", async ({ patch }) => {
+  const { home, bin } = fixture();
+  const directory = join(home, ".realtime-review-tool");
+  mkdirSync(directory);
+  const journalPath = join(directory, "journal-v1.json");
+  const journal = JSON.stringify({ version: 1, operation: "install", proposalDigest: "digest", mutations: [], completed: [], ...patch });
+  const config = "model = 'user-choice'\n";
+  writeFileSync(journalPath, journal);
+  writeFileSync(join(home, "config.toml"), config);
+  expect(await runFixtureInstallation(home, inspectCodexInstallation({ codexHome: home, codexExecutable: bin }))).toMatchObject({
+    status: "conflict", error: { message: "recovery journal is malformed; inspect it before making further changes" },
+  });
+  expect(readFileSync(journalPath, "utf8")).toBe(journal);
+  expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(config);
+});
+
+it.each(["install", "update"])("reports invalid ownership during %s without starting a journal", async (operation) => {
+  const { home, bin } = fixture();
+  const directory = join(home, ".realtime-review-tool");
+  mkdirSync(directory);
+  const ownership = JSON.stringify({ version: 2 });
+  writeFileSync(join(directory, "installation-v1.json"), ownership);
+  expect(await runFixtureInstallation(home, (operation === "install" ? installCodexIntegration : updateCodexIntegration)({ codexHome: home, codexExecutable: bin, proposalDigest: "0".repeat(64) }))).toMatchObject({
+    status: "conflict", error: { message: "installation ownership record has an unsupported shape or version" },
+  });
+  expect(readFileSync(join(directory, "installation-v1.json"), "utf8")).toBe(ownership);
+  expect(existsSync(join(directory, "journal-v1.json"))).toBe(false);
+});
+
+it("resumes an interrupted uninstall using only its original approved digest", async () => {
+  const { root, home, bin } = fixture();
+  const entrypoint = createInstallationPackageFixture(root);
+  const request = { codexHome: home, codexExecutable: bin };
+  const run = <A, E>(effect: Effect.Effect<A, E>, failAfter = "-1") => Effect.runPromise(effect.pipe(
+    Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+      REVIEW_INSTALL_ENTRYPOINT: entrypoint, REVIEW_INSTALL_FAIL_AFTER_WRITES: failAfter,
+    }))),
+  ));
+  const config = "model = 'user-choice'\n";
+  writeFileSync(join(home, "config.toml"), config);
+  const preview = await run(previewCodexInstallation(request));
+  const installDigest = readProposalDigest(preview);
+  expect(await run(installCodexIntegration({ ...request, proposalDigest: installDigest }))).toMatchObject({ status: "installed" });
+  const removal = await run(uninstallCodexIntegration(request));
+  const digest = readProposalDigest(removal);
+  expect(await run(uninstallCodexIntegration({ ...request, proposalDigest: digest }), "1")).toMatchObject({
+    status: "partial", recovery: { completedFiles: 1, proposalDigest: digest },
+  });
+  expect(await run(uninstallCodexIntegration(request))).toMatchObject({
+    status: "partial", proposal: { digest }, recovery: { operation: "uninstall" },
+  });
+  expect(await run(uninstallCodexIntegration({ ...request, proposalDigest: "wrong" }))).toMatchObject({
+    status: "conflict", error: { message: "another journaled operation requires recovery before uninstall" },
+  });
+  expect(await run(uninstallCodexIntegration({ ...request, proposalDigest: digest }))).toMatchObject({ status: "uninstalled", resumed: true });
+  expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+  expect(existsSync(join(home, ".realtime-review-tool", "installation-v1.json"))).toBe(false);
+  expect(readFileSync(join(home, "config.toml"), "utf8")).toContain(config);
+  expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true");
+});
+
+const readProposalDigest = (value: unknown) => Schema.decodeUnknownSync(Schema.Struct({
+  proposal: Schema.Struct({ digest: Schema.String }),
+}))(value).proposal.digest;
+
+const runFixtureInstallation = <A, E>(home: string, effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
+  Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+    REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(home)),
+  }))),
+));

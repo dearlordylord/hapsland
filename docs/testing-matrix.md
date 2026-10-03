@@ -51,6 +51,19 @@ threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
+Subprocess coverage is enabled so CLI and resident tests contribute evidence
+from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
+uses the pinned V8 provider while keeping Vite and native Node offsets separate
+until source remapping, then combines counters for the same original function
+body. It also normalizes uniquely identified multiline callback signatures
+and zero-count entries for uncovered files, preserving their counters and
+leaving ambiguous mappings for strict rejection. This avoids Vitest 5.0.1
+mixing incompatible offset spaces or emitting
+duplicate function entries. Its [regression test](../scripts/coverage-provider.test.mts)
+checks separation of execution contexts and combination of source-map aliases
+without a nested test runner. The full quality gate validates the emitted
+Istanbul counters through strict crap4ts analysis.
+Review this adapter against upstream behavior whenever Vitest is updated.
 `npm run quality:check` regenerates coverage through
 `npm run test:coverage`, which includes the existing boundary checks and tests.
 The tool removes the previous JSON artifact before running that command and
