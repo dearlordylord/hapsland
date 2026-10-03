@@ -1,3 +1,4 @@
+import { beginSharedCache, stepSharedCache, configureSharedCache, type SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
 import { prepareSharedSharing, routeSharedSharing, routedSharedSharing, leaveSharedSharing, leaveAllSharedSharing, completeSharedSharing, preprocessSharedSharing } from "../../../src/canonical/simulation-adapter.ts";
 import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canonical/simulation-adapter.ts";
 import { encodeFreshnessScope, encodeFreshnessSource, type FreshnessScope, type FreshnessSource } from "./freshness-codec.ts";
@@ -164,11 +165,15 @@ export class SharedCore {
     };
   }
   get projection() { return projectSharedCanonical(this.state); }
-  step(event: CanonicalEvent) {
-    const transition = stepSharedCanonical(this.state, event);
+  configureCache(entries: number, bytes: number) { this.state = configureSharedCache(this.state,entries,bytes); }
+  beginCache(event: CanonicalEvent) {
+    const result = beginSharedCache(this.state,event); this.state=result.state; return result;
+  }
+  step(event: CanonicalEvent, cacheFact?: SharedCacheFact) {
+    const transition = cacheFact ? stepSharedCache(this.state,cacheFact) : stepSharedCanonical(this.state, event);
     const result = transition.result;
     this.state = transition.state;
-    return { ...result, afterActions: transition.afterActions };
+    return { ...result, afterActions: transition.afterActions, cacheReleases: transition.cacheReleases, cacheFacts: "cacheFacts" in transition ? transition.cacheFacts : [] };
   }
   graphStep(event: PreparationEvent): PreparationFrame {
     const limits = encodePreparationGraphLimits(event.graphLimits ?? GRAPH_LIMIT_CEILINGS);

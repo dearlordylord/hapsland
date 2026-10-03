@@ -1,7 +1,7 @@
 import {expect,it} from "vitest";
 import {createRun,restoreReplay,type RunConfig,type RunInput} from "./index.ts";
 const edit=(identity:string,at:number,agent?:string):RunInput=>({at,kind:"edit",...(agent?{agent}:{}),bytes:10,unitBytes:[5],evaluationInputs:[identity]});
-const start=(inputs:RunInput[],entryLimit=8,byteLimit=128*1024,extra:Partial<RunConfig>={})=>createRun({seed:7,retention:10000,inputs,outcome:"clear",jevDelay:2,lifecycles:{reuse:{entryLimit,byteLimit}},...extra});
+const start=(inputs:RunInput[],entryLimit=8,byteLimit=128*1024,extra:Partial<Omit<RunConfig,"outcome" | "outcomeWeights">>={})=>createRun({seed:7,retention:10000,inputs,outcome:"clear",jevDelay:2,lifecycles:{reuse:{entryLimit,byteLimit}},...extra});
 const issued=(run:ReturnType<typeof createRun>)=>run.observations.filter(frame=>frame.commands.some(command=>command.kind==="jevRequestIssued"));
 const replay=(run:ReturnType<typeof createRun>)=>expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 const owners=(run:ReturnType<typeof createRun>)=>{

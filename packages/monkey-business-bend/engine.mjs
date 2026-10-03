@@ -159,6 +159,3519 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
+function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
+  if (_purpose_0.$ === "Ledger.ObservationDispatch") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.Preparation") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.ReviewUnit") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.StoredResult") {
+    return _limits_0;
+  } else if (_purpose_0.$ === "Ledger.OperationalNotice") {
+    return _limits_0;
+  } else {
+    return _limits_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$inventory$(_limits_0) {
+  return {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ObservationDispatch"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.ObservationDispatch"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.Preparation"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.Preparation"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ReviewUnit"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.ReviewUnit"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.StoredResult"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.StoredResult"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.OperationalNotice"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.OperationalNotice"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.AdviceRecheck"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.AdviceRecheck"}, _limits_0))}, "tail": {$: "Nil"}}}}}}};
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$initial$(_limits_0) {
+  return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": 1, "charges": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$total$add$(_usage_0, _bytes_0) {
+  const _items_0 = _usage_0["items"];
+  const _current_bytes_0 = _usage_0["bytes"];
+  return {$: "Ledger.Usage", "items": nat_chk(_items_0 + 1), "bytes": nat_chk(_current_bytes_0 + _bytes_0)};
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$total$(_charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "Ledger.Usage", "items": 0, "bytes": 0};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _bytes_0 = _t_0["bytes"];
+    const _rest_0 = _charges_0["tail"];
+    return $$$$047agent$045flow$045bend$047Ledger$total$add$(($$$$047agent$045flow$045bend$047Ledger$total$(_rest_0)), _bytes_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$partition_usage$add$(_usage_0, _bytes_0, _same_0) {
+  const _items_0 = _usage_0["items"];
+  const _current_bytes_0 = _usage_0["bytes"];
+  if (_same_0) {
+    return {$: "Ledger.Usage", "items": nat_chk(_items_0 + 1), "bytes": nat_chk(_current_bytes_0 + _bytes_0)};
+  } else {
+    return {$: "Ledger.Usage", "items": _items_0, "bytes": _current_bytes_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$partition_usage$(_charges_0, _partition_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "Ledger.Usage", "items": 0, "bytes": 0};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _bytes_0 = _t_0["bytes"];
+    const _rest_0 = _charges_0["tail"];
+    return $$$$047agent$045flow$045bend$047Ledger$partition_usage$add$(($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_rest_0, _partition_0)), _bytes_0, ($Nat$is_eq$(_owner_0, _partition_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
+  const _global_items_0 = _limits_0["global_items"];
+  const _global_bytes_0 = _limits_0["global_bytes"];
+  const _partition_items_0 = _limits_0["partition_items"];
+  const _partition_bytes_0 = _limits_0["partition_bytes"];
+  const _used_items_0 = _global_0["items"];
+  const _used_bytes_0 = _global_0["bytes"];
+  const _local_items_0 = _local_0["items"];
+  const _local_bytes_0 = _local_0["bytes"];
+  return $Bool$pick$(($Nat$is_gt$(nat_chk(_used_items_0 + 1), _global_items_0)), {$: "Ledger.GlobalItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_used_bytes_0 + _bytes_0), _global_bytes_0)), {$: "Ledger.GlobalByteLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_items_0 + 1), _partition_items_0)), {$: "Ledger.PartitionItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_bytes_0 + _bytes_0), _partition_bytes_0)), {$: "Ledger.PartitionByteLimit"}, {$: "Ledger.Fits"})))))));
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$decision_fits$(_decision_0) {
+  if (_decision_0.$ === "Ledger.Fits") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$fits$(_limits_0, _global_0, _local_0, _bytes_0) {
+  return $$$$047agent$045flow$045bend$047Ledger$decision_fits$(($$$$047agent$045flow$045bend$047Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$admission$(_state_0, _partition_0, _bytes_0) {
+  const _limits_0 = _state_0["limits"];
+  const _charges_0 = _state_0["charges"];
+  return $$$$047agent$045flow$045bend$047Ledger$fit_decision$(_limits_0, ($$$$047agent$045flow$045bend$047Ledger$total$(_charges_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0);
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
+  } else {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, _purpose_0) {
+  const _limits_0 = _state_0["limits"];
+  const _next_id_0 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  return $$$$047agent$045flow$045bend$047Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, ($$$$047agent$045flow$045bend$047Ledger$fits$(($$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0)), ($$$$047agent$045flow$045bend$047Ledger$total$(_charges_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$reserve$(_state_0, _partition_0, _bytes_0) {
+  return $$$$047agent$045flow$045bend$047Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, {$: "Ledger.ReviewUnit"});
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$find$pick$(_charge_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _charge_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["bytes"];
+    const __2 = _t_0["purpose"];
+    const _rest_0 = _charges_0["tail"];
+    return $$$$047agent$045flow$045bend$047Ledger$find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$remove$pick$(_charge_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _charge_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["bytes"];
+    const __2 = _t_0["purpose"];
+    const _rest_0 = _charges_0["tail"];
+    return $$$$047agent$045flow$045bend$047Ledger$remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$release$found$(_state_0, _id_0, _found_0) {
+  const _limits_0 = _state_0["limits"];
+  const _next_id_0 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  if (_found_0.$ === "Some") {
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0))}, "id": _id_0};
+  } else {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$release$(_state_0, _id_0) {
+  const __0 = _state_0["limits"];
+  const __1 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  return $$$$047agent$045flow$045bend$047Ledger$release$found$({$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, _id_0, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _charge_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$replace$(_id_0, _bytes_0, _charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _current_0 = _t_0["id"];
+    const _partition_0 = _t_0["partition"];
+    const _old_bytes_0 = _t_0["bytes"];
+    const _purpose_0 = _t_0["purpose"];
+    const _rest_0 = _charges_0["tail"];
+    return $$$$047agent$045flow$045bend$047Ledger$replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _current_0 = _t_0["id"];
+    const _partition_0 = _t_0["partition"];
+    const __0 = _t_0["bytes"];
+    const __1 = _t_0["purpose"];
+    const _rest_0 = _charges_0["tail"];
+    return $$$$047agent$045flow$045bend$047Ledger$replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": __0, "purpose": __1}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$resize$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$replace$(_id_0, _bytes_0, _charges_0))}, "id": _id_0};
+  } else {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$resize_for$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _charges_0))}, "id": _id_0};
+  } else {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$resize_for$found$(_state_0, _id_0, _bytes_0, _purpose_0, _found_0) {
+  const _limits_0 = _state_0["limits"];
+  const _next_id_0 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  if (_found_0.$ === "None") {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _partition_0 = _t_0["partition"];
+    const _others_0 = ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0));
+    return $$$$047agent$045flow$045bend$047Ledger$resize_for$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _purpose_0, ($$$$047agent$045flow$045bend$047Ledger$fits$(($$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0)), ($$$$047agent$045flow$045bend$047Ledger$total$(_others_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_others_0, _partition_0)), _bytes_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$resize_for$(_state_0, _id_0, _bytes_0, _purpose_0) {
+  const __0 = _state_0["limits"];
+  const __1 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  return $$$$047agent$045flow$045bend$047Ledger$resize_for$found$({$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, _id_0, _bytes_0, _purpose_0, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$resize$found$(_state_0, _id_0, _bytes_0, _found_0) {
+  const _limits_0 = _state_0["limits"];
+  const _next_id_0 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  if (_found_0.$ === "None") {
+    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _partition_0 = _t_0["partition"];
+    const _others_0 = ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0));
+    return $$$$047agent$045flow$045bend$047Ledger$resize$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, ($$$$047agent$045flow$045bend$047Ledger$fits$(_limits_0, ($$$$047agent$045flow$045bend$047Ledger$total$(_others_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_others_0, _partition_0)), _bytes_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$resize$(_state_0, _id_0, _bytes_0) {
+  const __0 = _state_0["limits"];
+  const __1 = _state_0["next_id"];
+  const _charges_0 = _state_0["charges"];
+  return $$$$047agent$045flow$045bend$047Ledger$resize$found$({$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, _id_0, _bytes_0, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$clear$(_state_0) {
+  const _limits_0 = _state_0["limits"];
+  const _next_id_0 = _state_0["next_id"];
+  return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Ledger$main$() {
+  return $$$$047agent$045flow$045bend$047Ledger$reserve$(($$$$047agent$045flow$045bend$047Ledger$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), 1, 20);
+}
+
+function $$$$047agent$045flow$045bend$047Admission$prospective_gate_ordered$(_clock_valid_0, _within_0) {
+  if (!_within_0) {
+    return {$: "Admission.PermitLate"};
+  } else {
+    return $Bool$pick$(_clock_valid_0, {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
+  const _clock_valid_0 = _facts_0["clock_valid"];
+  if (!_ordered_0) {
+    return {$: "Admission.PermitInvalidClock"};
+  } else {
+    return $$$$047agent$045flow$045bend$047Admission$prospective_gate_ordered$(_clock_valid_0, _within_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
+  const _clock_valid_0 = _facts_0["clock_valid"];
+  const _hook_window_0 = _facts_0["hook_window"];
+  const _started_upper_0 = _facts_0["started_upper"];
+  const _now_lower_0 = _facts_0["now_lower"];
+  const _advicee_permit_limit_0 = _facts_0["advicee_permit_limit"];
+  const _resident_permit_limit_0 = _facts_0["resident_permit_limit"];
+  const _x_0 = nat_chk(_started_0 + _hook_window_0);
+  return $$$$047agent$045flow$045bend$047Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$pending_count$(_state_0) {
+  const _permits_0 = _state_0["permits"];
+  return $List$length$(_permits_0);
+}
+
+function $$$$047agent$045flow$045bend$047Admission$initial$(_partition_0, _lifetime_0) {
+  return {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": 0, "active": false, "closed_at": 0, "next_token": 1, "permits": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Admission$has_tool$(_tool_0, _permits_0) {
+  if (_permits_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _current_0 = _t_0["tool"];
+    const _rest_0 = _permits_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Admission$has_tool$(_tool_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _permit_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _permits_0) {
+  if (_permits_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _current_0 = _t_0["token"];
+    const __0 = _t_0["tool"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["started"];
+    const __3 = _t_0["deadline"];
+    const _rest_0 = _permits_0["tail"];
+    return $$$$047agent$045flow$045bend$047Admission$find_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _permit_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0) {
+  if (_permits_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _current_0 = _t_0["token"];
+    const __0 = _t_0["tool"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["started"];
+    const __3 = _t_0["deadline"];
+    const _rest_0 = _permits_0["tail"];
+    return $$$$047agent$045flow$045bend$047Admission$remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$candidate_round$(_round_0, _active_0) {
+  if (_active_0) {
+    return _round_0;
+  } else {
+    return nat_chk(_round_0 + 1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _duplicate_0) {
+  if (_duplicate_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.DuplicateTool"}};
+  } else {
+    const _expected_round_0 = ($$$$047agent$045flow$045bend$047Admission$candidate_round$(_round_0, _active_0));
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": nat_chk(_next_token_0 + 1), "permits": ($List$append$(_permits_0, {$: "Con", "head": {$: "Admission.Permit", "token": _next_token_0, "tool": _tool_0, "round": _expected_round_0, "started": _started_0, "deadline": _deadline_0}, "tail": {$: "Nil"}}))}, "token": {$: "Some", "value": _next_token_0}, "round": {$: "Some", "value": _expected_round_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$issue$guard$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _now_0, _clock_valid_0) {
+  if (!_clock_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.StaleInvocation"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, ($$$$047agent$045flow$045bend$047Admission$has_tool$(_tool_0, _permits_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$issue$guard$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _now_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _permitted_round_0, _correct_round_0) {
+  if (!_correct_round_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.OldRound"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _permitted_round_0, "active": true, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0))}, "token": {$: "Some", "value": _token_0}, "round": {$: "Some", "value": _permitted_round_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.Expired"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _permitted_round_0, ($Nat$is_eq$(_permitted_round_0, ($$$$047agent$045flow$045bend$047Admission$candidate_round$(_round_0, _active_0)))));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, _correct_tool_0) {
+  if (!_correct_tool_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongTool"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0) {
+  if (_permit_0.$ === "None") {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.NoPermit"}};
+  } else {
+    const _t_0 = _permit_0["value"];
+    const _permitted_tool_0 = _t_0["tool"];
+    const _permitted_round_0 = _t_0["round"];
+    const _started_0 = _t_0["started"];
+    const _deadline_0 = _t_0["deadline"];
+    return $$$$047agent$045flow$045bend$047Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$consume$(_state_0, _token_0, _tool_0, _now_0) {
+  const __0 = _state_0["partition"];
+  const __1 = _state_0["lifetime"];
+  const __2 = _state_0["round"];
+  const __3 = _state_0["active"];
+  const __4 = _state_0["closed_at"];
+  const __5 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$consume$found$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0}, _token_0, _tool_0, _now_0, ($$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _permits_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$release$found$(_state_0, _token_0, _found_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  if (_found_0.$ === "None") {
+    return {$: "Admission.Rejected", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, "reason": {$: "Admission.NoPermit"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0))}, "token": {$: "None"}, "round": {$: "None"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$release$(_state_0, _token_0) {
+  const __0 = _state_0["partition"];
+  const __1 = _state_0["lifetime"];
+  const __2 = _state_0["round"];
+  const __3 = _state_0["active"];
+  const __4 = _state_0["closed_at"];
+  const __5 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$release$found$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0}, _token_0, ($$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _permits_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$expire$due$(_state_0, _token_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return {$: "Admission.RemovePermit", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0))}};
+}
+
+function $$$$047agent$045flow$045bend$047Admission$expire$(_state_0, _token_0, _deadline_reached_0) {
+  if (!_deadline_reached_0) {
+    return {$: "Admission.KeepPermit", "state": _state_0};
+  } else {
+    return $$$$047agent$045flow$045bend$047Admission$expire$due$(_state_0, _token_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.InvalidClock"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$close_round$active$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _at_0) {
+  if (!_active_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.RoundAlreadyClosed"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, ($Nat$is_ge$(_at_0, _closed_at_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$close_round$(_state_0, _at_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _at_0);
+}
+
+function $$$$047agent$045flow$045bend$047Admission$restart$fresh$(_state_0, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.LifetimeNotFresh"}};
+  } else {
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _new_lifetime_0, "round": 0, "active": false, "closed_at": _at_0, "next_token": 1, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "None"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const __2 = _state_0["next_token"];
+  const __3 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$restart$fresh$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": __0, "active": __1, "closed_at": _closed_at_0, "next_token": __2, "permits": __3}, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, ($Bool$and$(($Nat$is_gt$(_new_lifetime_0, _lifetime_0)), ($Nat$is_ge$(_at_0, _closed_at_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$callback_current$(_state_0, _partition_0, _lifetime_0, _round_0) {
+  const _owner_0 = _state_0["partition"];
+  const _live_0 = _state_0["lifetime"];
+  const _current_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  return $Bool$and$(_active_0, ($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_live_0, _lifetime_0)), ($Nat$is_eq$(_current_0, _round_0)))))));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$apply_event$(_state_0, _event_0) {
+  if (_event_0.$ === "Admission.Issue") {
+    const _tool_0 = _event_0["tool"];
+    const _started_0 = _event_0["started"];
+    const _deadline_0 = _event_0["deadline"];
+    const _now_0 = _event_0["now"];
+    return $$$$047agent$045flow$045bend$047Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0);
+  } else if (_event_0.$ === "Admission.Consume") {
+    const _token_0 = _event_0["token"];
+    const _tool_1 = _event_0["tool"];
+    const _now_1 = _event_0["now"];
+    return $$$$047agent$045flow$045bend$047Admission$consume$(_state_0, _token_0, _tool_1, _now_1);
+  } else if (_event_0.$ === "Admission.Release") {
+    const _token_1 = _event_0["token"];
+    return $$$$047agent$045flow$045bend$047Admission$release$(_state_0, _token_1);
+  } else if (_event_0.$ === "Admission.CloseRound") {
+    const _at_0 = _event_0["at"];
+    return $$$$047agent$045flow$045bend$047Admission$close_round$(_state_0, _at_0);
+  } else {
+    const _new_lifetime_0 = _event_0["new_lifetime"];
+    const _at_1 = _event_0["at"];
+    return $$$$047agent$045flow$045bend$047Admission$restart$(_state_0, _new_lifetime_0, _at_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$step$partition$(_state_0, _partition_0, _lifetime_0, _event_0, _correct_partition_0, _correct_lifetime_0) {
+  if (!_correct_partition_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongPartition"}};
+  } else {
+    if (!_correct_lifetime_0) {
+      return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongLifetime"}};
+    } else {
+      return $$$$047agent$045flow$045bend$047Admission$apply_event$(_state_0, _event_0);
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Admission$step$(_state_0, _partition_0, _lifetime_0, _event_0) {
+  const _owner_0 = _state_0["partition"];
+  const _live_0 = _state_0["lifetime"];
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed_at"];
+  const __3 = _state_0["next_token"];
+  const __4 = _state_0["permits"];
+  return $$$$047agent$045flow$045bend$047Admission$step$partition$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _live_0, "round": __0, "active": __1, "closed_at": __2, "next_token": __3, "permits": __4}, _partition_0, _lifetime_0, _event_0, ($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_live_0, _lifetime_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Admission$main$() {
+  return $$$$047agent$045flow$045bend$047Admission$step$(($$$$047agent$045flow$045bend$047Admission$initial$(7, 3)), 7, 3, {$: "Admission.Issue", "tool": 42, "started": 10, "deadline": 20, "now": 11});
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$initial$() {
+  return {$: "EditHistory.State", "entries": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$count$(_state_0) {
+  const _entries_0 = _state_0["entries"];
+  return $List$length$(_entries_0);
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$lookup_entries$(_tool_0, _entries_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "EditHistory.Absent"};
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _current_0 = _t_0["tool"];
+    const _reason_0 = _t_0["reason"];
+    const _reported_0 = _t_0["reported"];
+    const _rest_0 = _entries_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_tool_0, _current_0)), {$: "EditHistory.Seen", "reason": _reason_0, "report": ($Bool$not$(_reported_0))}, ($$$$047agent$045flow$045bend$047EditHistory$lookup_entries$(_tool_0, _rest_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$lookup$(_tool_0, _state_0) {
+  const _entries_0 = _state_0["entries"];
+  return $$$$047agent$045flow$045bend$047EditHistory$lookup_entries$(_tool_0, _entries_0);
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$mark_entries$(_tool_0, _entries_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _current_0 = _t_0["tool"];
+    const _reason_0 = _t_0["reason"];
+    const _reported_0 = _t_0["reported"];
+    const _rest_0 = _entries_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
+    return {$: "Con", "head": {$: "EditHistory.Completed", "tool": _current_0, "reason": _reason_0, "reported": (_reported_0 || _x_0)}, "tail": ($$$$047agent$045flow$045bend$047EditHistory$mark_entries$(_tool_0, _rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$mark_reported$(_tool_0, _state_0) {
+  const _entries_0 = _state_0["entries"];
+  return {$: "EditHistory.State", "entries": ($$$$047agent$045flow$045bend$047EditHistory$mark_entries$(_tool_0, _entries_0))};
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$record_entries$(_tool_0, _reason_0, _entries_0, _size_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "EditHistory.Recorded", "state": {$: "EditHistory.State", "entries": {$: "Con", "head": {$: "EditHistory.Completed", "tool": _tool_0, "reason": _reason_0, "reported": false}, "tail": {$: "Nil"}}}, "evicted": {$: "None"}};
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _oldest_0 = _t_0["tool"];
+    const _old_reason_0 = _t_0["reason"];
+    const _reported_0 = _t_0["reported"];
+    const _tail_0 = _entries_0["tail"];
+    return $Bool$pick$((_size_0 < 1000), {$: "EditHistory.Recorded", "state": {$: "EditHistory.State", "entries": ($List$append$({$: "Con", "head": {$: "EditHistory.Completed", "tool": _oldest_0, "reason": _old_reason_0, "reported": _reported_0}, "tail": _tail_0}, {$: "Con", "head": {$: "EditHistory.Completed", "tool": _tool_0, "reason": _reason_0, "reported": false}, "tail": {$: "Nil"}}))}, "evicted": {$: "None"}}, {$: "EditHistory.Recorded", "state": {$: "EditHistory.State", "entries": ($List$append$(_tail_0, {$: "Con", "head": {$: "EditHistory.Completed", "tool": _tool_0, "reason": _reason_0, "reported": false}, "tail": {$: "Nil"}}))}, "evicted": {$: "Some", "value": _oldest_0}});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047EditHistory$record$(_tool_0, _reason_0, _state_0) {
+  const _entries_0 = _state_0["entries"];
+  return $$$$047agent$045flow$045bend$047EditHistory$record_entries$(_tool_0, _reason_0, _entries_0, ($List$length$(_entries_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Quiescence$facts_quiet$(_facts_0) {
+  const _work_0 = _facts_0["native_work_idle"];
+  const _advice_0 = _facts_0["advice_empty"];
+  const _handoff_0 = _facts_0["handoff_idle"];
+  const _stop_0 = _facts_0["stop_absent"];
+  return $Bool$and$(_work_0, ($Bool$and$(_advice_0, ($Bool$and$(_handoff_0, _stop_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Quiescence$decide_started$(_since_0, _now_0, _window_0) {
+  return $Bool$pick$(($Nat$is_ge$(_now_0, nat_chk(_since_0 + _window_0))), {$: "Quiescence.Expired", "since": _since_0}, {$: "Quiescence.Waiting", "since": _since_0});
+}
+
+function $$$$047agent$045flow$045bend$047Quiescence$decide_quiet$(_since_0, _now_0, _window_0) {
+  if (_since_0.$ === "None") {
+    return {$: "Quiescence.Waiting", "since": _now_0};
+  } else {
+    const _start_0 = _since_0["value"];
+    return $Bool$pick$(($Nat$is_ge$(_now_0, _start_0)), ($$$$047agent$045flow$045bend$047Quiescence$decide_started$(_start_0, _now_0, _window_0)), {$: "Quiescence.Waiting", "since": _now_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Quiescence$decide$(_since_0, _now_0, _window_0, _quiet_0) {
+  if (!_quiet_0) {
+    return {$: "Quiescence.Busy"};
+  } else {
+    return $$$$047agent$045flow$045bend$047Quiescence$decide_quiet$(_since_0, _now_0, _window_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0) {
+  const _low_0 = _capacity_0["low"];
+  const _high_0 = _capacity_0["high"];
+  const _x_0 = ($Nat$is_gt$(_high_0, 0));
+  const _x_1 = ($Nat$is_gt$(_low_0, 0));
+  return (_x_0 || _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0) {
+  const _low_0 = _capacity_0["low"];
+  const _high_0 = _capacity_0["high"];
+  const _x_0 = ($Nat$is_gt$(_high_0, 0));
+  const _x_1 = (_occupied_0 < _low_0);
+  return (_x_0 || _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$route_of$(_event_0) {
+  if (_event_0.$ === "Flow.EditObserved") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.AgentEditNode"}, "to": {$: "Flow.EditQueueNode"}, "input": {$: "Flow.EditObservation"}, "output": {$: "Flow.CaptureJob"}, "copy": false};
+  } else if (_event_0.$ === "Flow.IngressStarted") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.EditQueueNode"}, "to": {$: "Flow.PreparationNode"}, "input": {$: "Flow.CaptureJob"}, "output": {$: "Flow.CaptureJob"}, "copy": false};
+  } else if (_event_0.$ === "Flow.ReviewUnitPrepared") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.PreparationNode"}, "to": {$: "Flow.ReviewQueueNode"}, "input": {$: "Flow.CaptureJob"}, "output": {$: "Flow.ReviewWorkItem"}, "copy": false};
+  } else if (_event_0.$ === "Flow.UnitDispatched") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.ReviewQueueNode"}, "to": {$: "Flow.JevDispatchNode"}, "input": {$: "Flow.ReviewWorkItem"}, "output": {$: "Flow.DecisionRequest"}, "copy": false};
+  } else if (_event_0.$ === "Flow.JevRequestSent") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.JevDispatchNode"}, "to": {$: "Flow.JevNode"}, "input": {$: "Flow.DecisionRequest"}, "output": {$: "Flow.NetworkRequest"}, "copy": false};
+  } else if (_event_0.$ === "Flow.JevFindingReceived") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.AdviceStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.Advice"}, "copy": false};
+  } else if (_event_0.$ === "Flow.JevClearReceived") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.OutcomeStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.ReviewStatus"}, "copy": false};
+  } else if (_event_0.$ === "Flow.JevUnavailable") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.OutcomeStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.ReviewStatus"}, "copy": false};
+  } else if (_event_0.$ === "Flow.BackgroundWaitStarted") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.AgentEditNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.BackgroundSignal"}};
+  } else if (_event_0.$ === "Flow.StopHookFired") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.AgentEditNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.StopSignal"}};
+  } else if (_event_0.$ === "Flow.FinishDecisionAllWorkSettled") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.DeliveryStateNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.SettledSignal"}};
+  } else if (_event_0.$ === "Flow.FinishDecisionDeadlineReached") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.DeliveryStateNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.DeadlineSignal"}};
+  } else if (_event_0.$ === "Flow.FinishDecisionBudgetExhausted") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.DeliveryStateNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.AllowSignal"}};
+  } else if (_event_0.$ === "Flow.AdviceLeasedByBackground") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.AdviceStoreNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "input": {$: "Flow.Advice"}, "output": {$: "Flow.LeasedBatch"}, "copy": true};
+  } else if (_event_0.$ === "Flow.AdviceLeasedByStop") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.AdviceStoreNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "input": {$: "Flow.Advice"}, "output": {$: "Flow.LeasedBatch"}, "copy": true};
+  } else if (_event_0.$ === "Flow.AdviceReofferedAtStop") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.AdviceStoreNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "input": {$: "Flow.Advice"}, "output": {$: "Flow.LeasedBatch"}, "copy": true};
+  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
+    return {$: "Flow.DataRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.ObservedWriteNode"}, "input": {$: "Flow.LeasedBatch"}, "output": {$: "Flow.RuntimeSubmission"}, "copy": false};
+  } else if (_event_0.$ === "Flow.StopAllowed") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.DeliveryStateNode"}, "signal": {$: "Flow.AllowSignal"}};
+  } else if (_event_0.$ === "Flow.FinishResponseRequested") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.ResponseCommandNode"}, "signal": {$: "Flow.ResponseSignal"}};
+  } else if (_event_0.$ === "Flow.SourceCapacitySet") {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.AllowSignal"}};
+  } else {
+    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.AllowSignal"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$initial$() {
+  return {$: "Flow.Flow", "packets": {$: "Nil"}, "next_id": 1, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "round_id": 0, "active": false, "continuations": 0, "waiting": false, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Flow$same_place$(_a_0, _b_0) {
+  if (_a_0.$ === "Flow.EditQueue") {
+    if (_b_0.$ === "Flow.EditQueue") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Flow.Preparation") {
+    if (_b_0.$ === "Flow.Preparation") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Flow.ReviewQueue") {
+    if (_b_0.$ === "Flow.ReviewQueue") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Flow.Jev") {
+    if (_b_0.$ === "Flow.Jev") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Flow.AdviceStore") {
+    if (_b_0.$ === "Flow.AdviceStore") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    if (_b_0.$ === "Flow.AdvicePolicy") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$at$(_place_0, _packet_0) {
+  const _location_0 = _packet_0["at"];
+  return $$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _place_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$count$(_place_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _p_0 = _packets_0["head"];
+    const _rest_0 = _packets_0["tail"];
+    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Flow$at$(_place_0, _p_0)), 1, 0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Flow$count$(_place_0, _rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$ids$pick$(_id_0, _rest_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": _id_0, "tail": _rest_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$ids$(_place_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _location_0 = _t_0["at"];
+    const _rest_0 = _packets_0["tail"];
+    return $$$$047agent$045flow$045bend$047Flow$ids$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$ids$(_place_0, _rest_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _place_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _xs_0) {
+  if (_xs_0.$ === "Nil") {
+    return false;
+  } else {
+    const _x_0 = _xs_0["head"];
+    const _rest_0 = _xs_0["tail"];
+    const _x_1 = ($Nat$is_eq$(_x_0, _id_0));
+    const _x_2 = ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _rest_0));
+    return (_x_1 || _x_2);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$unfinished$($0) {
+  for (;;) {
+    {
+      const _packets_0 = $0;
+      if (_packets_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _packets_0["head"];
+        const _t_1 = _t_0["at"];
+        if (_t_1.$ === "Flow.EditQueue") {
+          return true;
+        } else if (_t_1.$ === "Flow.Preparation") {
+          return true;
+        } else if (_t_1.$ === "Flow.ReviewQueue") {
+          return true;
+        } else if (_t_1.$ === "Flow.Jev") {
+          return true;
+        } else {
+          const _rest_4 = _packets_0["tail"];
+          $0 = _rest_4;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$find$id_match$(_id_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _id_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$find$pick$(_id_0, _selected_0, _fallback_0, _same_place_0) {
+  if (_selected_0.$ === "None") {
+    if (!_same_place_0) {
+      return _fallback_0;
+    } else {
+      return {$: "Some", "value": _id_0};
+    }
+  } else {
+    const _wanted_0 = _selected_0["value"];
+    if (!_same_place_0) {
+      return _fallback_0;
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$find$id_match$(_id_0, _fallback_0, ($Nat$is_eq$(_wanted_0, _id_0)));
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$find$(_place_0, _selected_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _location_0 = _t_0["at"];
+    const _rest_0 = _packets_0["tail"];
+    return $$$$047agent$045flow$045bend$047Flow$find$pick$(_id_0, _selected_0, ($$$$047agent$045flow$045bend$047Flow$find$(_place_0, _selected_0, _rest_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _place_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$move_one$pick$(_pid_0, _location_0, _tail_0, _target_0, _copy_0, _hit_0) {
+  if (_copy_0) {
+    if (_hit_0) {
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": ($List$append$(_tail_0, {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _target_0}, "tail": {$: "Nil"}}))};
+    } else {
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": _tail_0};
+    }
+  } else {
+    if (_hit_0) {
+      return $List$append$(_tail_0, {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _target_0}, "tail": {$: "Nil"}});
+    } else {
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": _tail_0};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, _source_0, _target_0, _copy_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _pid_0 = _t_0["id"];
+    const _location_0 = _t_0["at"];
+    const _rest_0 = _packets_0["tail"];
+    const _hit_0 = ($Bool$and$(($Nat$is_eq$(_pid_0, _id_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _source_0))));
+    const _tail_0 = ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, _source_0, _target_0, _copy_0, _rest_0));
+    return $$$$047agent$045flow$045bend$047Flow$move_one$pick$(_pid_0, _location_0, _tail_0, _target_0, _copy_0, _hit_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$remove_one$pick$(_pid_0, _location_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, _source_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _pid_0 = _t_0["id"];
+    const _location_0 = _t_0["at"];
+    const _rest_0 = _packets_0["tail"];
+    const _hit_0 = ($Bool$and$(($Nat$is_eq$(_pid_0, _id_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _source_0))));
+    return $$$$047agent$045flow$045bend$047Flow$remove_one$pick$(_pid_0, _location_0, ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, _source_0, _rest_0)), _hit_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$fill_source$(_packets_0, _capacity_0, _occupied_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _t_1 = _t_0["at"];
+    if (_t_1.$ === "Flow.EditQueue") {
+      const _rest_0 = _packets_0["tail"];
+      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
+      const _new_place_0 = ($Bool$pick$(_room_0, {$: "Flow.Preparation"}, {$: "Flow.EditQueue"}));
+      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
+      const _new_occupied_0 = nat_chk(_occupied_0 + _x_0);
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _new_place_0}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_source$(_rest_0, _capacity_0, _new_occupied_0))};
+    } else {
+      const _rest_1 = _packets_0["tail"];
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _t_1}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_source$(_rest_1, _capacity_0, _occupied_0))};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$fill_jev$(_packets_0, _capacity_0, _occupied_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _t_1 = _t_0["at"];
+    if (_t_1.$ === "Flow.ReviewQueue") {
+      const _rest_0 = _packets_0["tail"];
+      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
+      const _new_place_0 = ($Bool$pick$(_room_0, {$: "Flow.Jev"}, {$: "Flow.ReviewQueue"}));
+      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
+      const _new_occupied_0 = nat_chk(_occupied_0 + _x_0);
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _new_place_0}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_jev$(_rest_0, _capacity_0, _new_occupied_0))};
+    } else {
+      const _rest_1 = _packets_0["tail"];
+      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _t_1}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_jev$(_rest_1, _capacity_0, _occupied_0))};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$settle$(_flow_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _t_0 = _flow_0["active"];
+  if (!_t_0) {
+    const _continuations_0 = _flow_0["continuations"];
+    const _waiting_0 = _flow_0["waiting"];
+    const _background_available_0 = _flow_0["background_available"];
+    const _lease_0 = _flow_0["lease"];
+    const _leased_id_0 = _flow_0["leased_id"];
+    const _last_surface_0 = _flow_0["last_surface"];
+    const _last_id_0 = _flow_0["last_id"];
+    const _background_submitted_0 = _flow_0["background_submitted"];
+    return {$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": false, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0};
+  } else {
+    const _continuations_1 = _flow_0["continuations"];
+    const _waiting_1 = _flow_0["waiting"];
+    const _background_available_1 = _flow_0["background_available"];
+    const _lease_1 = _flow_0["lease"];
+    const _leased_id_1 = _flow_0["leased_id"];
+    const _last_surface_1 = _flow_0["last_surface"];
+    const _last_id_1 = _flow_0["last_id"];
+    const _background_submitted_1 = _flow_0["background_submitted"];
+    const _started_0 = ($$$$047agent$045flow$045bend$047Flow$fill_source$(_packets_0, _source_capacity_0, ($$$$047agent$045flow$045bend$047Flow$count$({$: "Flow.Preparation"}, _packets_0))));
+    return {$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$fill_jev$(_started_0, _review_capacity_0, ($$$$047agent$045flow$045bend$047Flow$count$({$: "Flow.Jev"}, _started_0)))), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": true, "continuations": _continuations_1, "waiting": _waiting_1, "background_available": _background_available_1, "lease": _lease_1, "leased_id": _leased_id_1, "last_surface": _last_surface_1, "last_id": _last_id_1, "background_submitted": _background_submitted_1};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$replace_packets$(_flow_0, _new_packets_0) {
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _background_available_0 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const _leased_id_0 = _flow_0["leased_id"];
+  const _last_surface_0 = _flow_0["last_surface"];
+  const _last_id_0 = _flow_0["last_id"];
+  const _background_submitted_0 = _flow_0["background_submitted"];
+  return {$: "Flow.Flow", "packets": _new_packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0};
+}
+
+function $$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0) {
+  if (_lease_0.$ === "None") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$work_pending$(_flow_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _lease_0 = _flow_0["lease"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Flow$unfinished$(_packets_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0));
+  return (_x_0 || _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$distinct$pick$(_id_0, _tail_0, _known_0) {
+  if (_known_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _id_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$distinct$(_xs_0, _seen_0) {
+  if (_xs_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _id_0 = _xs_0["head"];
+    const _rest_0 = _xs_0["tail"];
+    return $$$$047agent$045flow$045bend$047Flow$distinct$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$distinct$(_rest_0, {$: "Con", "head": _id_0, "tail": _seen_0})), ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _seen_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _rest_0 = _packets_0["tail"];
+    return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Flow$all_ids$(_rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$discarded$pick$(_id_0, _tail_0, _keep_0) {
+  if (_keep_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _id_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$discarded$(_ids_all_0, _advice_0, _keep_advice_0) {
+  if (_ids_all_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _id_0 = _ids_all_0["head"];
+    const _rest_0 = _ids_all_0["tail"];
+    return $$$$047agent$045flow$045bend$047Flow$discarded$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$discarded$(_rest_0, _advice_0, _keep_advice_0)), ($Bool$and$(_keep_advice_0, ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _advice_0)))));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish$choose$(_original_0, _packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _continuations_0, _submitted_0, _advice_0, _can_continue_0) {
+  if (_can_continue_0) {
+    const _dropped_0 = ($$$$047agent$045flow$045bend$047Flow$discarded$(($$$$047agent$045flow$045bend$047Flow$distinct$(($$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0)), {$: "Nil"})), _advice_0, true));
+    const _decision_0 = {$: "Flow.ContinueWithAdvice", "ids": _advice_0, "discarded": _dropped_0, "cancelled_source": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Preparation"}, _packets_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Jev"}, _packets_0))};
+    return {$: "Flow.Accepted", "state": {$: "Flow.Flow", "packets": {$: "Nil"}, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": true, "continuations": nat_chk(_continuations_0 + 1), "waiting": false, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}}, "decision": _decision_0, "settled": _original_0};
+  } else {
+    const _decision_1 = {$: "Flow.AllowFinish", "discarded": ($$$$047agent$045flow$045bend$047Flow$distinct$(($$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0)), {$: "Nil"})), "cancelled_source": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Preparation"}, _packets_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Jev"}, _packets_0))};
+    return {$: "Flow.Accepted", "state": {$: "Flow.Flow", "packets": {$: "Nil"}, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": false, "continuations": _continuations_0, "waiting": false, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}}, "decision": _decision_1, "settled": _original_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const __0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const __1 = _flow_0["waiting"];
+  const __2 = _flow_0["background_available"];
+  const __3 = _flow_0["lease"];
+  const __4 = _flow_0["leased_id"];
+  const __5 = _flow_0["last_surface"];
+  const __6 = _flow_0["last_id"];
+  const _submitted_0 = _flow_0["background_submitted"];
+  const _advice_0 = ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.AdviceStore"}, _packets_0));
+  const _can_continue_0 = ($Bool$and$(($Bool$not$(($List$is_empty$(_advice_0)))), (_continuations_0 < 4)));
+  return $$$$047agent$045flow$045bend$047Flow$finish$choose$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": __0, "continuations": _continuations_0, "waiting": __1, "background_available": __2, "lease": __3, "leased_id": __4, "last_surface": __5, "last_id": __6, "background_submitted": _submitted_0}, _packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _continuations_0, _submitted_0, _advice_0, _can_continue_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$ready_to_finish$(_flow_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const __6 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const __7 = _flow_0["background_available"];
+  const __8 = _flow_0["lease"];
+  const __9 = _flow_0["leased_id"];
+  const __10 = _flow_0["last_surface"];
+  const __11 = _flow_0["last_id"];
+  const __12 = _flow_0["background_submitted"];
+  return $Bool$and$(_waiting_0, ($Bool$not$(($$$$047agent$045flow$045bend$047Flow$work_pending$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": _waiting_0, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12})))));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$accept$after$(_flow_0, _ready_0) {
+  if (_ready_0) {
+    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
+  } else {
+    return {$: "Flow.Accepted", "state": _flow_0, "decision": {$: "Flow.NoDecision"}, "settled": _flow_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$accept$(_flow_0) {
+  const _settled_0 = ($$$$047agent$045flow$045bend$047Flow$settle$(_flow_0));
+  return $$$$047agent$045flow$045bend$047Flow$accept$after$(_settled_0, ($$$$047agent$045flow$045bend$047Flow$ready_to_finish$(_settled_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, _reason_0) {
+  return {$: "Flow.Rejected", "state": _flow_0, "reason": _reason_0};
+}
+
+function $$$$047agent$045flow$045bend$047Flow$edit$open$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0) {
+  if (_active_0) {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($List$append$(_packets_0, {$: "Con", "head": {$: "Flow.Packet", "id": _next_id_0, "at": {$: "Flow.EditQueue"}}, "tail": {$: "Nil"}})), "next_id": nat_chk(_next_id_0 + 1), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": true, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": true, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": {$: "Con", "head": {$: "Flow.Packet", "id": _next_id_0, "at": {$: "Flow.EditQueue"}}, "tail": {$: "Nil"}}, "next_id": nat_chk(_next_id_0 + 1), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": nat_chk(_round_id_0 + 1), "active": true, "continuations": 0, "waiting": false, "background_available": true, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$edit$(_flow_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _lease_0 = _flow_0["lease"];
+  const _leased_id_0 = _flow_0["leased_id"];
+  const _last_surface_0 = _flow_0["last_surface"];
+  const _last_id_0 = _flow_0["last_id"];
+  const _background_submitted_0 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$edit$open$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$set_capacity$valid$(_flow_0, _capacity_0, _source_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const __0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _background_available_0 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const _leased_id_0 = _flow_0["leased_id"];
+  const _last_surface_0 = _flow_0["last_surface"];
+  const _last_id_0 = _flow_0["last_id"];
+  const _background_submitted_0 = _flow_0["background_submitted"];
+  if (_source_0) {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": __0, "review_capacity": _capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$set_capacity$choose$(_flow_0, _capacity_0, _source_0, _valid_0) {
+  if (!_valid_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InvalidCapacity"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$set_capacity$valid$(_flow_0, _capacity_0, _source_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$set_capacity$(_flow_0, _capacity_0, _source_0) {
+  return $$$$047agent$045flow$045bend$047Flow$set_capacity$choose$(_flow_0, _capacity_0, _source_0, ($$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$stop$budget$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0, _under_budget_0) {
+  if (_under_budget_0) {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": true, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$finish$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": true, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$stop$choose$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0) {
+  if (_waiting_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": true, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0}, {$: "Flow.FinishDecisionAlreadyOpen"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$stop$budget$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0, (_continuations_0 < 4));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$stop$(_flow_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _background_available_0 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const _leased_id_0 = _flow_0["leased_id"];
+  const _last_surface_0 = _flow_0["last_surface"];
+  const _last_id_0 = _flow_0["last_id"];
+  const _background_submitted_0 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$stop$choose$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$is_active$(_flow_0) {
+  const _active_0 = _flow_0["active"];
+  return _active_0;
+}
+
+function $$$$047agent$045flow$045bend$047Flow$apply_move$do$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _id_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _background_available_0 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const _leased_id_0 = _flow_0["leased_id"];
+  const _last_surface_0 = _flow_0["last_surface"];
+  const _last_id_0 = _flow_0["last_id"];
+  const _submitted_0 = _flow_0["background_submitted"];
+  if (_terminal_0) {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, _source_0, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, _source_0, _target_0, _copy_0, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$apply_move$found$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.MissingPacket"});
+  } else {
+    const _id_0 = _found_0["value"];
+    return $$$$047agent$045flow$045bend$047Flow$apply_move$do$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _selected_0) {
+  const _packets_0 = _flow_0["packets"];
+  const __0 = _flow_0["next_id"];
+  const __1 = _flow_0["source_capacity"];
+  const __2 = _flow_0["review_capacity"];
+  const __3 = _flow_0["round_id"];
+  const __4 = _flow_0["active"];
+  const __5 = _flow_0["continuations"];
+  const __6 = _flow_0["waiting"];
+  const __7 = _flow_0["background_available"];
+  const __8 = _flow_0["lease"];
+  const __9 = _flow_0["leased_id"];
+  const __10 = _flow_0["last_surface"];
+  const __11 = _flow_0["last_id"];
+  const __12 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$apply_move$found$({$: "Flow.Flow", "packets": _packets_0, "next_id": __0, "source_capacity": __1, "review_capacity": __2, "round_id": __3, "active": __4, "continuations": __5, "waiting": __6, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12}, _source_0, _target_0, _copy_0, _terminal_0, ($$$$047agent$045flow$045bend$047Flow$find$(_source_0, _selected_0, _packets_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$deadline$settled$(_flow_0, _pending_0) {
+  if (_pending_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.WorkStillPending"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$deadline$budget$(_flow_0, _under_budget_0) {
+  if (_under_budget_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.UnexpectedControl"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$deadline$kind$(_flow_0, _kind_0, _continuations_0) {
+  if (_kind_0.$ === "Flow.FinishDecisionAllWorkSettled") {
+    return $$$$047agent$045flow$045bend$047Flow$deadline$settled$(_flow_0, ($$$$047agent$045flow$045bend$047Flow$work_pending$(_flow_0)));
+  } else if (_kind_0.$ === "Flow.FinishDecisionBudgetExhausted") {
+    return $$$$047agent$045flow$045bend$047Flow$deadline$budget$(_flow_0, (_continuations_0 < 4));
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$deadline$wait$(_flow_0, _kind_0, _continuations_0, _waiting_0) {
+  if (!_waiting_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.StopNotWaiting"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$deadline$kind$(_flow_0, _kind_0, _continuations_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, _kind_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const __6 = _flow_0["background_available"];
+  const __7 = _flow_0["lease"];
+  const __8 = _flow_0["leased_id"];
+  const __9 = _flow_0["last_surface"];
+  const __10 = _flow_0["last_id"];
+  const __11 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$deadline$wait$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": __6, "lease": __7, "leased_id": __8, "last_surface": __9, "last_id": __10, "background_submitted": __11}, _kind_0, _continuations_0, _waiting_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_apply$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _last_surface_0, _last_id_0, _submitted_0, _surface_0, _id_0) {
+  if (_surface_0.$ === "Flow.Background") {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, {$: "Flow.AdviceStore"}, {$: "Flow.AdvicePolicy"}, true, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _available_0, "lease": {$: "Some", "value": {$: "Flow.Background"}}, "leased_id": {$: "Some", "value": _id_0}, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, {$: "Flow.AdviceStore"}, {$: "Flow.AdvicePolicy"}, true, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": nat_chk(_continuations_0 + 1), "waiting": _waiting_0, "background_available": _available_0, "lease": {$: "Some", "value": {$: "Flow.Stop"}}, "leased_id": {$: "Some", "value": _id_0}, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, _surface_0, _id_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _available_0 = _flow_0["background_available"];
+  const _last_surface_0 = _flow_0["last_surface"];
+  const _last_id_0 = _flow_0["last_id"];
+  const _submitted_0 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_apply$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _last_surface_0, _last_id_0, _submitted_0, _surface_0, _id_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_check$submitted$(_flow_0, _surface_0, _id_0, _submitted_0) {
+  if (_surface_0.$ === "Flow.Background") {
+    if (_submitted_0) {
+      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.BackgroundAlreadySubmitted"});
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Background"}, _id_0);
+    }
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Stop"}, _id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_check$(_flow_0, _surface_0, _id_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const __6 = _flow_0["continuations"];
+  const __7 = _flow_0["waiting"];
+  const __8 = _flow_0["background_available"];
+  const __9 = _flow_0["lease"];
+  const __10 = _flow_0["leased_id"];
+  const __11 = _flow_0["last_surface"];
+  const __12 = _flow_0["last_id"];
+  const _submitted_0 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_check$submitted$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": __8, "lease": __9, "leased_id": __10, "last_surface": __11, "last_id": __12, "background_submitted": _submitted_0}, _surface_0, _id_0, ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _submitted_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_found$(_flow_0, _surface_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.MissingPacket"});
+  } else {
+    const _id_0 = _found_0["value"];
+    return $$$$047agent$045flow$045bend$047Flow$lease_check$(_flow_0, _surface_0, _id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_find$(_flow_0, _selected_0, _surface_0) {
+  const _packets_0 = _flow_0["packets"];
+  const __0 = _flow_0["next_id"];
+  const __1 = _flow_0["source_capacity"];
+  const __2 = _flow_0["review_capacity"];
+  const __3 = _flow_0["round_id"];
+  const __4 = _flow_0["active"];
+  const __5 = _flow_0["continuations"];
+  const __6 = _flow_0["waiting"];
+  const __7 = _flow_0["background_available"];
+  const __8 = _flow_0["lease"];
+  const __9 = _flow_0["leased_id"];
+  const __10 = _flow_0["last_surface"];
+  const __11 = _flow_0["last_id"];
+  const __12 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_found$({$: "Flow.Flow", "packets": _packets_0, "next_id": __0, "source_capacity": __1, "review_capacity": __2, "round_id": __3, "active": __4, "continuations": __5, "waiting": __6, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12}, _surface_0, ($$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.AdviceStore"}, _selected_0, _packets_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_background$guard$(_flow_0, _selected_0, _available_0, _busy_0) {
+  if (!_available_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.BackgroundNotRequested"});
+  } else {
+    if (_busy_0) {
+      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.LeaseBusy"});
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$lease_find$(_flow_0, _selected_0, {$: "Flow.Background"});
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_background$(_flow_0, _selected_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const __6 = _flow_0["continuations"];
+  const __7 = _flow_0["waiting"];
+  const _available_0 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const __8 = _flow_0["leased_id"];
+  const __9 = _flow_0["last_surface"];
+  const __10 = _flow_0["last_id"];
+  const __11 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_background$guard$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": _available_0, "lease": _lease_0, "leased_id": __8, "last_surface": __9, "last_id": __10, "background_submitted": __11}, _selected_0, _available_0, ($$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$eligible$(_flow_0, _id_0, _reoffer_0, _submitted_0) {
+  if (_reoffer_0) {
+    if (!_submitted_0) {
+      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.ReofferNeedsBackground"});
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Stop"}, _id_0);
+    }
+  } else {
+    if (_submitted_0) {
+      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.StopNeedsFreshAdvice"});
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Stop"}, _id_0);
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$check$(_flow_0, _reoffer_0, _id_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const __6 = _flow_0["continuations"];
+  const __7 = _flow_0["waiting"];
+  const __8 = _flow_0["background_available"];
+  const __9 = _flow_0["lease"];
+  const __10 = _flow_0["leased_id"];
+  const __11 = _flow_0["last_surface"];
+  const __12 = _flow_0["last_id"];
+  const _submitted_0 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_stop$eligible$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": __8, "lease": __9, "leased_id": __10, "last_surface": __11, "last_id": __12, "background_submitted": _submitted_0}, _id_0, _reoffer_0, ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _submitted_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$found$(_flow_0, _reoffer_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.MissingPacket"});
+  } else {
+    const _id_0 = _found_0["value"];
+    return $$$$047agent$045flow$045bend$047Flow$lease_stop$check$(_flow_0, _reoffer_0, _id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$find$(_flow_0, _selected_0, _reoffer_0) {
+  const _packets_0 = _flow_0["packets"];
+  const __0 = _flow_0["next_id"];
+  const __1 = _flow_0["source_capacity"];
+  const __2 = _flow_0["review_capacity"];
+  const __3 = _flow_0["round_id"];
+  const __4 = _flow_0["active"];
+  const __5 = _flow_0["continuations"];
+  const __6 = _flow_0["waiting"];
+  const __7 = _flow_0["background_available"];
+  const __8 = _flow_0["lease"];
+  const __9 = _flow_0["leased_id"];
+  const __10 = _flow_0["last_surface"];
+  const __11 = _flow_0["last_id"];
+  const __12 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_stop$found$({$: "Flow.Flow", "packets": _packets_0, "next_id": __0, "source_capacity": __1, "review_capacity": __2, "round_id": __3, "active": __4, "continuations": __5, "waiting": __6, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12}, _reoffer_0, ($$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.AdviceStore"}, _selected_0, _packets_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$budget$(_flow_0, _selected_0, _reoffer_0, _under_budget_0) {
+  if (!_under_budget_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.ContinuationBudgetExhausted"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$lease_stop$find$(_flow_0, _selected_0, _reoffer_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$guard$(_flow_0, _selected_0, _reoffer_0, _continuations_0, _waiting_0, _busy_0) {
+  if (!_waiting_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.StopNotRequested"});
+  } else {
+    if (_busy_0) {
+      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.LeaseBusy"});
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$lease_stop$budget$(_flow_0, _selected_0, _reoffer_0, (_continuations_0 < 4));
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$lease_stop$(_flow_0, _selected_0, _reoffer_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const __6 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const __7 = _flow_0["leased_id"];
+  const __8 = _flow_0["last_surface"];
+  const __9 = _flow_0["last_id"];
+  const __10 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$lease_stop$guard$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": __6, "lease": _lease_0, "leased_id": __7, "last_surface": __8, "last_id": __9, "background_submitted": __10}, _selected_0, _reoffer_0, _continuations_0, _waiting_0, ($$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Flow$submit$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _submitted_0, _surface_0, _id_0) {
+  if (_surface_0.$ === "Flow.Background") {
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, {$: "Flow.AdvicePolicy"}, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "Some", "value": {$: "Flow.Background"}}, "last_id": {$: "Some", "value": _id_0}, "background_submitted": ($List$append$(_submitted_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}}))});
+  } else {
+    const _next_0 = ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, {$: "Flow.AdvicePolicy"}, _packets_0));
+    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, {$: "Flow.AdviceStore"}, _next_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": false, "background_available": _available_0, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "Some", "value": {$: "Flow.Stop"}}, "last_id": {$: "Some", "value": _id_0}, "background_submitted": _submitted_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$submit$run$(_flow_0, _surface_0, _id_0) {
+  const _packets_0 = _flow_0["packets"];
+  const _next_id_0 = _flow_0["next_id"];
+  const _source_capacity_0 = _flow_0["source_capacity"];
+  const _review_capacity_0 = _flow_0["review_capacity"];
+  const _round_id_0 = _flow_0["round_id"];
+  const _active_0 = _flow_0["active"];
+  const _continuations_0 = _flow_0["continuations"];
+  const _waiting_0 = _flow_0["waiting"];
+  const _available_0 = _flow_0["background_available"];
+  const _submitted_0 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$submit$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _submitted_0, _surface_0, _id_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$submit$lease$(_flow_0, _lease_0, _leased_id_0) {
+  if (_lease_0.$ === "None") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.NoLease"});
+  } else {
+    const _surface_0 = _lease_0["value"];
+    if (_leased_id_0.$ === "Some") {
+      const _id_0 = _leased_id_0["value"];
+      return $$$$047agent$045flow$045bend$047Flow$submit$run$(_flow_0, _surface_0, _id_0);
+    } else {
+      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.NoLease"});
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$submit$(_flow_0) {
+  const __0 = _flow_0["packets"];
+  const __1 = _flow_0["next_id"];
+  const __2 = _flow_0["source_capacity"];
+  const __3 = _flow_0["review_capacity"];
+  const __4 = _flow_0["round_id"];
+  const __5 = _flow_0["active"];
+  const __6 = _flow_0["continuations"];
+  const __7 = _flow_0["waiting"];
+  const __8 = _flow_0["background_available"];
+  const _lease_0 = _flow_0["lease"];
+  const _leased_id_0 = _flow_0["leased_id"];
+  const __9 = _flow_0["last_surface"];
+  const __10 = _flow_0["last_id"];
+  const __11 = _flow_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$submit$lease$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": __8, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": __9, "last_id": __10, "background_submitted": __11}, _lease_0, _leased_id_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$step$live$(_flow_0, _event_0, _item_id_0) {
+  if (_event_0.$ === "Flow.ReviewUnitPrepared") {
+    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Preparation"}, {$: "Flow.ReviewQueue"}, false, false, _item_id_0);
+  } else if (_event_0.$ === "Flow.JevFindingReceived") {
+    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Jev"}, {$: "Flow.AdviceStore"}, false, false, _item_id_0);
+  } else if (_event_0.$ === "Flow.JevClearReceived") {
+    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Jev"}, {$: "Flow.Jev"}, false, true, _item_id_0);
+  } else if (_event_0.$ === "Flow.JevUnavailable") {
+    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Jev"}, {$: "Flow.Jev"}, false, true, _item_id_0);
+  } else if (_event_0.$ === "Flow.StopHookFired") {
+    return $$$$047agent$045flow$045bend$047Flow$stop$(_flow_0);
+  } else if (_event_0.$ === "Flow.FinishDecisionDeadlineReached") {
+    return $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, {$: "Flow.FinishDecisionDeadlineReached"});
+  } else if (_event_0.$ === "Flow.FinishDecisionAllWorkSettled") {
+    return $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, {$: "Flow.FinishDecisionAllWorkSettled"});
+  } else if (_event_0.$ === "Flow.FinishDecisionBudgetExhausted") {
+    return $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, {$: "Flow.FinishDecisionBudgetExhausted"});
+  } else if (_event_0.$ === "Flow.AdviceLeasedByBackground") {
+    return $$$$047agent$045flow$045bend$047Flow$lease_background$(_flow_0, _item_id_0);
+  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
+    return $$$$047agent$045flow$045bend$047Flow$submit$(_flow_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.UnexpectedControl"});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$step$active$(_flow_0, _event_0, _item_id_0, _active_0) {
+  if (!_active_0) {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.VirtualRoundClosed"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$step$live$(_flow_0, _event_0, _item_id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$step$(_flow_0, _event_0, _item_id_0) {
+  if (_event_0.$ === "Flow.EditObserved") {
+    return $$$$047agent$045flow$045bend$047Flow$edit$(_flow_0);
+  } else if (_event_0.$ === "Flow.SourceCapacitySet") {
+    const _capacity_0 = _event_0["capacity"];
+    return $$$$047agent$045flow$045bend$047Flow$set_capacity$(_flow_0, _capacity_0, true);
+  } else if (_event_0.$ === "Flow.ReviewCapacitySet") {
+    const _capacity_1 = _event_0["capacity"];
+    return $$$$047agent$045flow$045bend$047Flow$set_capacity$(_flow_0, _capacity_1, false);
+  } else if (_event_0.$ === "Flow.IngressStarted") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.UnitDispatched") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.JevRequestSent") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.BackgroundWaitStarted") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.AdviceLeasedByStop") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.AdviceReofferedAtStop") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.StopAllowed") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else if (_event_0.$ === "Flow.FinishResponseRequested") {
+    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
+  } else {
+    return $$$$047agent$045flow$045bend$047Flow$step$active$(_flow_0, _event_0, _item_id_0, ($$$$047agent$045flow$045bend$047Flow$is_active$(_flow_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$main$() {
+  return $$$$047agent$045flow$045bend$047Flow$initial$();
+}
+
+function $$$$047agent$045flow$045bend$047Flow$some$(_value_0) {
+  if (_value_0.$ === "None") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$event_item$pick$(_event_0, _selected_0, _packets_0, _next_id_0, _leased_id_0) {
+  if (_event_0.$ === "Flow.EditObserved") {
+    return {$: "Some", "value": _next_id_0};
+  } else if (_event_0.$ === "Flow.ReviewUnitPrepared") {
+    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Preparation"}, _selected_0, _packets_0);
+  } else if (_event_0.$ === "Flow.JevFindingReceived") {
+    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Jev"}, _selected_0, _packets_0);
+  } else if (_event_0.$ === "Flow.JevClearReceived") {
+    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Jev"}, _selected_0, _packets_0);
+  } else if (_event_0.$ === "Flow.JevUnavailable") {
+    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Jev"}, _selected_0, _packets_0);
+  } else if (_event_0.$ === "Flow.AdviceLeasedByBackground") {
+    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.AdviceStore"}, _selected_0, _packets_0);
+  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
+    return _leased_id_0;
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$event_item$(_event_0, _selected_0, _before_0) {
+  const _packets_0 = _before_0["packets"];
+  const _next_id_0 = _before_0["next_id"];
+  const _leased_id_0 = _before_0["leased_id"];
+  return $$$$047agent$045flow$045bend$047Flow$event_item$pick$(_event_0, _selected_0, _packets_0, _next_id_0, _leased_id_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$own_change$(_event_0, _before_0, _item_0) {
+  if (_event_0.$ === "Flow.SourceCapacitySet") {
+    const _capacity_0 = _event_0["capacity"];
+    const _previous_0 = _before_0["source_capacity"];
+    return {$: "Flow.CapacityChanged", "source": true, "before": _previous_0, "after": _capacity_0};
+  } else if (_event_0.$ === "Flow.ReviewCapacitySet") {
+    const _capacity_1 = _event_0["capacity"];
+    const _previous_1 = _before_0["review_capacity"];
+    return {$: "Flow.CapacityChanged", "source": false, "before": _previous_1, "after": _capacity_1};
+  } else {
+    return {$: "Flow.Transition", "event": _event_0, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$(_event_0)), "item": _item_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$opened$(_before_active_0, _mid_active_0, _round_id_0) {
+  if (!_before_active_0) {
+    if (_mid_active_0) {
+      return {$: "Con", "head": {$: "Flow.RoundOpened", "id": _round_id_0}, "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$emission$(_event_0, _item_0) {
+  if (_event_0.$ === "Flow.JevClearReceived") {
+    if (_item_0.$ === "Some") {
+      const _id_0 = _item_0["value"];
+      return {$: "Con", "head": {$: "Flow.Emitted", "event": {$: "Flow.JevClearReceived"}, "at": {$: "Flow.OutcomeStoreNode"}, "item": _id_0}, "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else if (_event_0.$ === "Flow.JevUnavailable") {
+    if (_item_0.$ === "Some") {
+      const _id_1 = _item_0["value"];
+      return {$: "Con", "head": {$: "Flow.Emitted", "event": {$: "Flow.JevUnavailable"}, "at": {$: "Flow.OutcomeStoreNode"}, "item": _id_1}, "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
+    if (_item_0.$ === "Some") {
+      const _id_2 = _item_0["value"];
+      return {$: "Con", "head": {$: "Flow.Emitted", "event": {$: "Flow.HostOutputSubmitted"}, "at": {$: "Flow.ObservedWriteNode"}, "item": _id_2}, "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$is_edit$(_event_0) {
+  if (_event_0.$ === "Flow.EditObserved") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$is_prepared$(_event_0) {
+  if (_event_0.$ === "Flow.ReviewUnitPrepared") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$schedule_source$pick$(_id_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.IngressStarted"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.IngressStarted"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$schedule_source$(_event_0, _next_id_0, _old_edit_ids_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _place_0 = _t_0["at"];
+    const _rest_0 = _packets_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _old_edit_ids_0));
+    const _x_1 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$is_edit$(_event_0)), ($Nat$is_eq$(_id_0, _next_id_0))));
+    const _hit_0 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$same_place$(_place_0, {$: "Flow.Preparation"})), (_x_0 || _x_1)));
+    return $$$$047agent$045flow$045bend$047Flow$schedule_source$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$schedule_source$(_event_0, _next_id_0, _old_edit_ids_0, _rest_0)), _hit_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$selected_is$(_id_0, _selected_0) {
+  if (_selected_0.$ === "None") {
+    return false;
+  } else {
+    const _wanted_0 = _selected_0["value"];
+    return $Nat$is_eq$(_id_0, _wanted_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$schedule_review$pick$(_id_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.UnitDispatched"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.UnitDispatched"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.JevRequestSent"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.JevRequestSent"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0}};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$schedule_review$(_event_0, _own_item_0, _old_review_ids_0, _packets_0) {
+  if (_packets_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _packets_0["head"];
+    const _id_0 = _t_0["id"];
+    const _place_0 = _t_0["at"];
+    const _rest_0 = _packets_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _old_review_ids_0));
+    const _x_1 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$is_prepared$(_event_0)), ($$$$047agent$045flow$045bend$047Flow$selected_is$(_id_0, _own_item_0))));
+    const _hit_0 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$same_place$(_place_0, {$: "Flow.Jev"})), (_x_0 || _x_1)));
+    return $$$$047agent$045flow$045bend$047Flow$schedule_review$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$schedule_review$(_event_0, _own_item_0, _old_review_ids_0, _rest_0)), _hit_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$first_id$(_ids_0) {
+  if (_ids_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _id_0 = _ids_0["head"];
+    return {$: "Some", "value": _id_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_trigger$stop$(_under_budget_0) {
+  if (_under_budget_0) {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishDecisionAllWorkSettled"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishDecisionAllWorkSettled"})), "item": {$: "None"}}, "tail": {$: "Nil"}};
+  } else {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishDecisionBudgetExhausted"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishDecisionBudgetExhausted"})), "item": {$: "None"}}, "tail": {$: "Nil"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_trigger$(_event_0, _continuations_0) {
+  if (_event_0.$ === "Flow.FinishDecisionDeadlineReached") {
+    return {$: "Nil"};
+  } else if (_event_0.$ === "Flow.FinishDecisionAllWorkSettled") {
+    return {$: "Nil"};
+  } else if (_event_0.$ === "Flow.FinishDecisionBudgetExhausted") {
+    return {$: "Nil"};
+  } else if (_event_0.$ === "Flow.StopHookFired") {
+    return $$$$047agent$045flow$045bend$047Flow$finish_trigger$stop$((_continuations_0 < 4));
+  } else {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishDecisionAllWorkSettled"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishDecisionAllWorkSettled"})), "item": {$: "None"}}, "tail": {$: "Nil"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_leases$pick$(_id_0, _tail_0, _reoffer_0) {
+  if (_reoffer_0) {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.AdviceReofferedAtStop"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.AdviceReofferedAtStop"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.AdviceLeasedByStop"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.AdviceLeasedByStop"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_leases$(_ids_0, _submitted_0) {
+  if (_ids_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _id_0 = _ids_0["head"];
+    const _rest_0 = _ids_0["tail"];
+    return $$$$047agent$045flow$045bend$047Flow$finish_leases$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$finish_leases$(_rest_0, _submitted_0)), ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _submitted_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_tail$pick$(_decision_0, _packets_0, _round_id_0, _submitted_0) {
+  if (_decision_0.$ === "Flow.NoDecision") {
+    return {$: "Nil"};
+  } else if (_decision_0.$ === "Flow.ContinueWithAdvice") {
+    const _advice_ids_0 = _decision_0["ids"];
+    const __0 = _decision_0["discarded"];
+    const __1 = _decision_0["cancelled_source"];
+    const __2 = _decision_0["cancelled_jev"];
+    return $List$append$(($$$$047agent$045flow$045bend$047Flow$finish_leases$(_advice_ids_0, _submitted_0)), {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishResponseRequested"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishResponseRequested"})), "item": ($$$$047agent$045flow$045bend$047Flow$first_id$(_advice_ids_0))}, "tail": {$: "Con", "head": {$: "Flow.FinishDecision", "decision": {$: "Flow.ContinueWithAdvice", "ids": _advice_ids_0, "discarded": __0, "cancelled_source": __1, "cancelled_jev": __2}}, "tail": {$: "Nil"}}});
+  } else {
+    const __3 = _decision_0["discarded"];
+    const __4 = _decision_0["cancelled_source"];
+    const __5 = _decision_0["cancelled_jev"];
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.StopAllowed"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.StopAllowed"})), "item": {$: "None"}}, "tail": {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishResponseRequested"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishResponseRequested"})), "item": {$: "None"}}, "tail": {$: "Con", "head": {$: "Flow.FinishDecision", "decision": {$: "Flow.AllowFinish", "discarded": __3, "cancelled_source": __4, "cancelled_jev": __5}}, "tail": {$: "Con", "head": {$: "Flow.RoundClosed", "id": _round_id_0, "discarded": ($List$length$(($$$$047agent$045flow$045bend$047Flow$distinct$(($$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0)), {$: "Nil"}))))}, "tail": {$: "Nil"}}}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_tail$(_decision_0, _mid_0) {
+  const _packets_0 = _mid_0["packets"];
+  const _round_id_0 = _mid_0["round_id"];
+  const _submitted_0 = _mid_0["background_submitted"];
+  return $$$$047agent$045flow$045bend$047Flow$finish_tail$pick$(_decision_0, _packets_0, _round_id_0, _submitted_0);
+}
+
+function $$$$047agent$045flow$045bend$047Flow$finish_changes$(_event_0, _continuations_0, _decision_0, _mid_0) {
+  if (_decision_0.$ === "Flow.NoDecision") {
+    return {$: "Nil"};
+  } else {
+    return $List$append$(($$$$047agent$045flow$045bend$047Flow$finish_trigger$(_event_0, _continuations_0)), ($$$$047agent$045flow$045bend$047Flow$finish_tail$(_decision_0, _mid_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$background_start$(_event_0, _available_0, _item_0) {
+  if (_event_0.$ === "Flow.EditObserved") {
+    if (!_available_0) {
+      if (_item_0.$ === "Some") {
+        const _id_0 = _item_0["value"];
+        return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.BackgroundWaitStarted"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.BackgroundWaitStarted"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Nil"}};
+      } else {
+        return {$: "Nil"};
+      }
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Flow$changes$accepted$(_before_0, _event_0, _selected_0, _decision_0, _mid_0) {
+  const _old_packets_0 = _before_0["packets"];
+  const _next_id_0 = _before_0["next_id"];
+  const __0 = _before_0["source_capacity"];
+  const __1 = _before_0["review_capacity"];
+  const __2 = _before_0["round_id"];
+  const _old_active_0 = _before_0["active"];
+  const _continuations_0 = _before_0["continuations"];
+  const __3 = _before_0["waiting"];
+  const _old_background_0 = _before_0["background_available"];
+  const __4 = _before_0["lease"];
+  const __5 = _before_0["leased_id"];
+  const __6 = _before_0["last_surface"];
+  const __7 = _before_0["last_id"];
+  const __8 = _before_0["background_submitted"];
+  const _mid_packets_0 = _mid_0["packets"];
+  const __9 = _mid_0["next_id"];
+  const __10 = _mid_0["source_capacity"];
+  const __11 = _mid_0["review_capacity"];
+  const _round_id_0 = _mid_0["round_id"];
+  const _mid_active_0 = _mid_0["active"];
+  const __12 = _mid_0["continuations"];
+  const __13 = _mid_0["waiting"];
+  const __14 = _mid_0["background_available"];
+  const __15 = _mid_0["lease"];
+  const __16 = _mid_0["leased_id"];
+  const __17 = _mid_0["last_surface"];
+  const __18 = _mid_0["last_id"];
+  const __19 = _mid_0["background_submitted"];
+  const _own_item_0 = ($$$$047agent$045flow$045bend$047Flow$event_item$(_event_0, _selected_0, {$: "Flow.Flow", "packets": _old_packets_0, "next_id": _next_id_0, "source_capacity": __0, "review_capacity": __1, "round_id": __2, "active": _old_active_0, "continuations": _continuations_0, "waiting": __3, "background_available": _old_background_0, "lease": __4, "leased_id": __5, "last_surface": __6, "last_id": __7, "background_submitted": __8}));
+  const _own_0 = ($$$$047agent$045flow$045bend$047Flow$own_change$(_event_0, {$: "Flow.Flow", "packets": _old_packets_0, "next_id": _next_id_0, "source_capacity": __0, "review_capacity": __1, "round_id": __2, "active": _old_active_0, "continuations": _continuations_0, "waiting": __3, "background_available": _old_background_0, "lease": __4, "leased_id": __5, "last_surface": __6, "last_id": __7, "background_submitted": __8}, _own_item_0));
+  const _opening_0 = ($$$$047agent$045flow$045bend$047Flow$opened$(_old_active_0, _mid_active_0, _round_id_0));
+  const _emitted_0 = ($$$$047agent$045flow$045bend$047Flow$emission$(_event_0, _own_item_0));
+  const _started_source_0 = ($$$$047agent$045flow$045bend$047Flow$schedule_source$(_event_0, _next_id_0, ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.EditQueue"}, _old_packets_0)), _mid_packets_0));
+  const _started_review_0 = ($$$$047agent$045flow$045bend$047Flow$schedule_review$(_event_0, _own_item_0, ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.ReviewQueue"}, _old_packets_0)), _mid_packets_0));
+  const _finished_0 = ($$$$047agent$045flow$045bend$047Flow$finish_changes$(_event_0, _continuations_0, _decision_0, {$: "Flow.Flow", "packets": _mid_packets_0, "next_id": __9, "source_capacity": __10, "review_capacity": __11, "round_id": _round_id_0, "active": _mid_active_0, "continuations": __12, "waiting": __13, "background_available": __14, "lease": __15, "leased_id": __16, "last_surface": __17, "last_id": __18, "background_submitted": __19}));
+  const _background_0 = ($$$$047agent$045flow$045bend$047Flow$background_start$(_event_0, _old_background_0, _own_item_0));
+  return {$: "Con", "head": _own_0, "tail": ($List$append$(_opening_0, ($List$append$(_emitted_0, ($List$append$(_started_source_0, ($List$append$(_started_review_0, ($List$append$(_finished_0, _background_0))))))))))};
+}
+
+function $$$$047agent$045flow$045bend$047Flow$changes$(_before_0, _event_0, _selected_0, _result_0) {
+  if (_result_0.$ === "Flow.Rejected") {
+    return {$: "Nil"};
+  } else {
+    const _decision_0 = _result_0["decision"];
+    const _mid_0 = _result_0["settled"];
+    return $$$$047agent$045flow$045bend$047Flow$changes$accepted$(_before_0, _event_0, _selected_0, _decision_0, _mid_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$prepared_offer$(_ready_0, _within_frame_0) {
+  return $Bool$pick$(($Bool$not$(_ready_0)), {$: "Work.SkipPrepared"}, ($Bool$pick$(_within_frame_0, {$: "Work.AdmitPrepared"}, {$: "Work.RejectPreparedCapacity"})));
+}
+
+function $$$$047agent$045flow$045bend$047Work$empty_prepared$(_ready_count_0, _has_non_skipped_0, _authority_bound_0) {
+  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_ready_count_0, 0)), ($Bool$and$(_has_non_skipped_0, _authority_bound_0)))), {$: "Work.FailEmptyLost"}, {$: "Work.NoEmptyFailure"});
+}
+
+function $$$$047agent$045flow$045bend$047Work$evaluated_disposition$(_has_findings_0, _current_work_0) {
+  return $Bool$pick$(_has_findings_0, ($Bool$pick$(_current_work_0, {$: "Work.RetainFinding"}, {$: "Work.RetireStaleFinding"})), ($Bool$pick$(_current_work_0, {$: "Work.SettleClear"}, {$: "Work.SettleStaleClear"})));
+}
+
+function $$$$047agent$045flow$045bend$047Work$failure_disposition$(_backend_or_timeout_0, _credential_0, _missing_0) {
+  return $Bool$pick$(_backend_or_timeout_0, {$: "Work.BackendUnavailable"}, ($Bool$pick$(_credential_0, {$: "Work.CredentialUnavailable"}, ($Bool$pick$(_missing_0, {$: "Work.LostUnavailable"}, {$: "Work.NoFailure"})))));
+}
+
+function $$$$047agent$045flow$045bend$047Work$initial$() {
+  return {$: "Work.Work", "next_observation": 1, "next_unit": 1, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Work$is_source_reading$(_stage_0) {
+  if (_stage_0.$ === "Work.SourceQueued") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$is_at_jev$(_stage_0) {
+  if (_stage_0.$ === "Work.AtJev") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0) {
+  if (_stage_0.$ === "Work.ReviewQueued") {
+    return true;
+  } else if (_stage_0.$ === "Work.AtJev") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$reading_count$(_observations_0) {
+  if (_observations_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _observations_0["head"];
+    const _stage_0 = _t_0["stage"];
+    const _rest_0 = _observations_0["tail"];
+    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Work$is_source_reading$(_stage_0)), 1, 0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Work$reading_count$(_rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$at_jev_count$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _units_0["head"];
+    const _stage_0 = _t_0["stage"];
+    const _rest_0 = _units_0["tail"];
+    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Work$is_at_jev$(_stage_0)), 1, 0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Work$at_jev_count$(_rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$unfinished_observations$(_observations_0) {
+  return $List$length$(_observations_0);
+}
+
+function $$$$047agent$045flow$045bend$047Work$unfinished_units$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _units_0["head"];
+    const _stage_0 = _t_0["stage"];
+    const _rest_0 = _units_0["tail"];
+    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0)), 1, 0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Work$unfinished_units$(_rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$unfinished$(_work_0) {
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Work$unfinished_observations$(_observations_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Work$unfinished_units$(_units_0));
+  return nat_chk(_x_0 + _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047Work$finish_wait$(_unfinished_0, _deadline_reached_0, _continuation_budget_0) {
+  return $Bool$and$(_continuation_budget_0, ($Bool$and$(($Bool$not$(_deadline_reached_0)), ($Nat$is_gt$(_unfinished_0, 0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Work$pending_findings_in$($0) {
+  for (;;) {
+    {
+      const _units_0 = $0;
+      if (_units_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _units_0["head"];
+        const _t_1 = _t_0["stage"];
+        if (_t_1.$ === "Work.PendingFinding") {
+          const _findings_0 = _t_0["findings"];
+          const _rest_0 = _units_0["tail"];
+          const _x_0 = ($$$$047agent$045flow$045bend$047Work$pending_findings_in$(_rest_0));
+          return nat_chk(_findings_0 + _x_0);
+        } else {
+          const _rest_1 = _units_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$pending_findings$(_work_0) {
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$pending_findings_in$(_units_0);
+}
+
+function $$$$047agent$045flow$045bend$047Work$fill_source$(_observations_0, _capacity_0, _occupied_0) {
+  if (_observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _observations_0["head"];
+    const _id_0 = _t_0["id"];
+    const _t_1 = _t_0["stage"];
+    if (_t_1.$ === "Work.SourceQueued") {
+      const _rest_0 = _observations_0["tail"];
+      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
+      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.SourceReading"}, {$: "Work.SourceQueued"}));
+      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
+      return {$: "Con", "head": {$: "Work.Observation", "id": _id_0, "stage": _next_stage_0}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_source$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
+    } else {
+      const _rest_1 = _observations_0["tail"];
+      return {$: "Con", "head": {$: "Work.Observation", "id": _id_0, "stage": {$: "Work.SourceReading"}}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_source$(_rest_1, _capacity_0, _occupied_0))};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$fill_review$(_units_0, _capacity_0, _occupied_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const _id_0 = _t_0["id"];
+    const _observation_0 = _t_0["observation"];
+    const _t_1 = _t_0["stage"];
+    if (_t_1.$ === "Work.ReviewQueued") {
+      const _findings_0 = _t_0["findings"];
+      const _bytes_0 = _t_0["bytes"];
+      const _rest_0 = _units_0["tail"];
+      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
+      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.AtJev"}, {$: "Work.ReviewQueued"}));
+      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
+      return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _next_stage_0, "findings": _findings_0, "bytes": _bytes_0}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_review$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
+    } else {
+      const _findings_1 = _t_0["findings"];
+      const _bytes_1 = _t_0["bytes"];
+      const _rest_1 = _units_0["tail"];
+      return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _t_1, "findings": _findings_1, "bytes": _bytes_1}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_review$(_rest_1, _capacity_0, _occupied_0))};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$settle$(_work_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$fill_source$(_observations_0, _source_capacity_0, ($$$$047agent$045flow$045bend$047Work$reading_count$(_observations_0)))), "units": ($$$$047agent$045flow$045bend$047Work$fill_review$(_units_0, _review_capacity_0, ($$$$047agent$045flow$045bend$047Work$at_jev_count$(_units_0))))};
+}
+
+function $$$$047agent$045flow$045bend$047Work$admit$(_work_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": nat_chk(_next_observation_0 + 1), "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($List$append$(_observations_0, {$: "Con", "head": {$: "Work.Observation", "id": _next_observation_0, "stage": {$: "Work.SourceQueued"}}, "tail": {$: "Nil"}})), "units": _units_0})), "admitted": {$: "Con", "head": _next_observation_0, "tail": {$: "Nil"}}};
+}
+
+function $$$$047agent$045flow$045bend$047Work$find_observation$pick$(_observation_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _observation_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0) {
+  if (_observations_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _observations_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["stage"];
+    const _rest_0 = _observations_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$find_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_observation$read$(_observation_0, _tail_0) {
+  const _id_0 = _observation_0["id"];
+  return {$: "Con", "head": {$: "Work.Observation", "id": _id_0, "stage": {$: "Work.SourceReading"}}, "tail": _tail_0};
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_observation$pick$(_observation_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return $$$$047agent$045flow$045bend$047Work$start_observation$read$(_observation_0, _tail_0);
+  } else {
+    return {$: "Con", "head": _observation_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_observation$(_id_0, _observations_0) {
+  if (_observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _observations_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["stage"];
+    const _rest_0 = _observations_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$start_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$start_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_source$apply$(_work_0, _id_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Accepted", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$start_observation$(_id_0, _observations_0)), "units": _units_0}, "admitted": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_source$found$(_work_0, _id_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$start_source$apply$(_work_0, _id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_source$(_work_0, _id_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const __4 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$start_source$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$remove_observation$pick$(_observation_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _observation_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$remove_observation$(_id_0, _observations_0) {
+  if (_observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _observations_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["stage"];
+    const _rest_0 = _observations_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$remove_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$remove_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$make_units$(_count_0, _observation_0, _next_id_0) {
+  if (_count_0 === 0) {
+    return {$: "Nil"};
+  } else {
+    const _rest_0 = (_count_0 - 1);
+    return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _next_id_0, "observation": _observation_0, "stage": {$: "Work.ReviewQueued"}, "findings": 0, "bytes": 0}, "tail": ($$$$047agent$045flow$045bend$047Work$make_units$(_rest_0, _observation_0, nat_chk(_next_id_0 + 1)))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$unit_ids$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const _id_0 = _t_0["id"];
+    const _rest_0 = _units_0["tail"];
+    return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$unit_ids$(_rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$prepare$apply$(_work_0, _observation_0, _count_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  const _new_units_0 = ($$$$047agent$045flow$045bend$047Work$make_units$(_count_0, _observation_0, _next_unit_0));
+  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": nat_chk(_next_unit_0 + _count_0), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$remove_observation$(_observation_0, _observations_0)), "units": ($List$append$(_units_0, _new_units_0))})), "admitted": ($$$$047agent$045flow$045bend$047Work$unit_ids$(_new_units_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Work$prepare$count$(_work_0, _observation_0, _count_0, _within_limit_0) {
+  if (!_within_limit_0) {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.TooManyUnits"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$prepare$apply$(_work_0, _observation_0, _count_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$prepare$stage$(_work_0, _observation_0, _count_0, _stage_0) {
+  if (_stage_0.$ === "Work.SourceQueued") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$prepare$count$(_work_0, _observation_0, _count_0, ($Nat$is_le$(_count_0, 16)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$prepare$found$(_work_0, _observation_0, _count_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _stage_0 = _t_0["stage"];
+    return $$$$047agent$045flow$045bend$047Work$prepare$stage$(_work_0, _observation_0, _count_0, _stage_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$prepare$(_work_0, _observation_0, _count_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const __4 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$prepare$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_observation_0, _observations_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$spawn$apply$(_work_0, _observation_0, _count_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  const _new_units_0 = ($$$$047agent$045flow$045bend$047Work$make_units$(_count_0, _observation_0, _next_unit_0));
+  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": nat_chk(_next_unit_0 + _count_0), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($List$append$(_units_0, _new_units_0))})), "admitted": ($$$$047agent$045flow$045bend$047Work$unit_ids$(_new_units_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Work$spawn$count$(_work_0, _observation_0, _count_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.TooManyUnits"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$spawn$apply$(_work_0, _observation_0, _count_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$spawn$found$(_work_0, _observation_0, _count_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["stage"];
+    if (_t_1.$ === "Work.SourceQueued") {
+      return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
+    } else {
+      return $$$$047agent$045flow$045bend$047Work$spawn$count$(_work_0, _observation_0, _count_0, ($Nat$is_le$(_count_0, 16)));
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$spawn$(_work_0, _observation_0, _count_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const __4 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$spawn$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_observation_0, _observations_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$find_unit$pick$(_unit_0, _fallback_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _unit_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["observation"];
+    const __1 = _t_0["stage"];
+    const __2 = _t_0["findings"];
+    const __3 = _t_0["bytes"];
+    const _rest_0 = _units_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$find_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$pending_for$found$(_found_0) {
+  if (_found_0.$ === "None") {
+    return 0;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["stage"];
+    if (_t_1.$ === "Work.PendingFinding") {
+      const _findings_0 = _t_0["findings"];
+      return _findings_0;
+    } else {
+      return 0;
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$pending_for$(_work_0, _id_0) {
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$pending_for$found$(($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$replace_unit$pick$(_unit_0, _replacement_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _unit_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$replace_unit$(_id_0, _replacement_0, _units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["observation"];
+    const __1 = _t_0["stage"];
+    const __2 = _t_0["findings"];
+    const __3 = _t_0["bytes"];
+    const _rest_0 = _units_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$replace_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, _replacement_0, ($$$$047agent$045flow$045bend$047Work$replace_unit$(_id_0, _replacement_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, _unit_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  const _id_0 = _unit_0["id"];
+  const __0 = _unit_0["observation"];
+  const __1 = _unit_0["stage"];
+  const __2 = _unit_0["findings"];
+  const __3 = _unit_0["bytes"];
+  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($$$$047agent$045flow$045bend$047Work$replace_unit$(_id_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, _units_0))})), "admitted": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_unit$apply$(_work_0, _id_0, _observation_0) {
+  return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.AtJev"}, "findings": 0, "bytes": 0});
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
+  if (_stage_0.$ === "Work.ReviewQueued") {
+    return $$$$047agent$045flow$045bend$047Work$start_unit$apply$(_work_0, _id_0, _observation_0);
+  } else if (_stage_0.$ === "Work.AtJev") {
+    return {$: "Work.Accepted", "state": _work_0, "admitted": {$: "Nil"}};
+  } else {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_unit$found$(_work_0, _id_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _observation_0 = _t_0["observation"];
+    const _stage_0 = _t_0["stage"];
+    return $$$$047agent$045flow$045bend$047Work$start_unit$stage$(_work_0, _id_0, _observation_0, _stage_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$start_unit$(_work_0, _id_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const __4 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$start_unit$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$outcome$finding$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, _positive_0) {
+  if (!_positive_0) {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.InvalidFinding"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.PendingFinding"}, "findings": _count_0, "bytes": _bytes_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$outcome$kind$(_work_0, _id_0, _observation_0, _result_0) {
+  if (_result_0.$ === "Work.Finding") {
+    const _count_0 = _result_0["count"];
+    const _bytes_0 = _result_0["bytes"];
+    return $$$$047agent$045flow$045bend$047Work$outcome$finding$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
+  } else if (_result_0.$ === "Work.Clear") {
+    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.ClearResult"}, "findings": 0, "bytes": 0});
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.UnavailableResult"}, "findings": 0, "bytes": 0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0) {
+  if (_stage_0.$ === "Work.AtJev") {
+    return $$$$047agent$045flow$045bend$047Work$outcome$kind$(_work_0, _id_0, _observation_0, _result_0);
+  } else {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$outcome$found$(_work_0, _id_0, _result_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _observation_0 = _t_0["observation"];
+    const _stage_0 = _t_0["stage"];
+    return $$$$047agent$045flow$045bend$047Work$outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$outcome$(_work_0, _id_0, _result_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const __4 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$outcome$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, _result_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$revise_finding$valid$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.InvalidFinding"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.PendingFinding"}, "findings": _count_0, "bytes": _bytes_0});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$revise_finding$stage$(_work_0, _id_0, _observation_0, _stage_0, _count_0, _bytes_0) {
+  if (_stage_0.$ === "Work.PendingFinding") {
+    return $$$$047agent$045flow$045bend$047Work$revise_finding$valid$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
+  } else {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$revise_finding$found$(_work_0, _id_0, _count_0, _bytes_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _observation_0 = _t_0["observation"];
+    const _stage_0 = _t_0["stage"];
+    return $$$$047agent$045flow$045bend$047Work$revise_finding$stage$(_work_0, _id_0, _observation_0, _stage_0, _count_0, _bytes_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$revise_finding$(_work_0, _id_0, _count_0, _bytes_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const __4 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$revise_finding$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, _count_0, _bytes_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
+  if (_stage_0.$ === "Work.AtJev") {
+    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
+  } else if (_stage_0.$ === "Work.ReviewQueued") {
+    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
+  } else {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$interrupt_unit$found$(_work_0, _id_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _observation_0 = _t_0["observation"];
+    const _stage_0 = _t_0["stage"];
+    return $$$$047agent$045flow$045bend$047Work$interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$interrupt_unit$(_work_0, _id_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const __4 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$interrupt_unit$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$interrupt_observation$found$(_work_0, _id_0, _found_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0}, "reason": {$: "Work.MissingObservation"}};
+  } else {
+    return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$remove_observation$(_id_0, _observations_0)), "units": _units_0})), "admitted": {$: "Nil"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$interrupt_observation$(_work_0, _id_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const __4 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$interrupt_observation$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$complete_source$found$(_work_0, _id_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["stage"];
+    if (_t_1.$ === "Work.SourceQueued") {
+      return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
+    } else {
+      return $$$$047agent$045flow$045bend$047Work$interrupt_observation$(_work_0, _id_0);
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$complete_source$(_work_0, _id_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const __4 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$complete_source$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$cached_finding$apply$(_work_0, _observation_0, _count_0, _bytes_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Accepted", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": nat_chk(_next_unit_0 + 1), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($List$append$(_units_0, {$: "Con", "head": {$: "Work.ReviewUnit", "id": _next_unit_0, "observation": _observation_0, "stage": {$: "Work.PendingFinding"}, "findings": _count_0, "bytes": _bytes_0}, "tail": {$: "Nil"}}))}, "admitted": {$: "Con", "head": _next_unit_0, "tail": {$: "Nil"}}};
+}
+
+function $$$$047agent$045flow$045bend$047Work$cached_finding$count$(_work_0, _observation_0, _count_0, _bytes_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.InvalidFinding"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$cached_finding$apply$(_work_0, _observation_0, _count_0, _bytes_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$cached_finding$found$(_work_0, _observation_0, _count_0, _bytes_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["stage"];
+    if (_t_1.$ === "Work.SourceQueued") {
+      return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
+    } else {
+      return $$$$047agent$045flow$045bend$047Work$cached_finding$count$(_work_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$cached_finding$(_work_0, _observation_0, _count_0, _bytes_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const __4 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$cached_finding$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, _bytes_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_observation_0, _observations_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$remove_unit$pick$(_unit_0, _tail_0, _hit_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _unit_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$remove_unit$(_id_0, _units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const _current_0 = _t_0["id"];
+    const __0 = _t_0["observation"];
+    const __1 = _t_0["stage"];
+    const __2 = _t_0["findings"];
+    const __3 = _t_0["bytes"];
+    const _rest_0 = _units_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$remove_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$remove_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$retire$apply$(_work_0, _id_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Accepted", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($$$$047agent$045flow$045bend$047Work$remove_unit$(_id_0, _units_0))}, "admitted": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Work$retire$stage$(_work_0, _id_0, _unfinished_0) {
+  if (_unfinished_0) {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitStillUnfinished"}};
+  } else {
+    return $$$$047agent$045flow$045bend$047Work$retire$apply$(_work_0, _id_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$retire$found$(_work_0, _id_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _stage_0 = _t_0["stage"];
+    return $$$$047agent$045flow$045bend$047Work$retire$stage$(_work_0, _id_0, ($$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$retire$(_work_0, _id_0) {
+  const __0 = _work_0["next_observation"];
+  const __1 = _work_0["next_unit"];
+  const __2 = _work_0["source_capacity"];
+  const __3 = _work_0["review_capacity"];
+  const __4 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return $$$$047agent$045flow$045bend$047Work$retire$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$set_source_capacity$apply$(_work_0, _capacity_0, _valid_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  if (!_valid_0) {
+    return {$: "Work.Rejected", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0}, "reason": {$: "Work.InvalidCapacity"}};
+  } else {
+    return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0})), "admitted": {$: "Nil"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$set_source_capacity$(_work_0, _capacity_0) {
+  return $$$$047agent$045flow$045bend$047Work$set_source_capacity$apply$(_work_0, _capacity_0, ($$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$set_review_capacity$apply$(_work_0, _capacity_0, _valid_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  if (!_valid_0) {
+    return {$: "Work.Rejected", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0}, "reason": {$: "Work.InvalidCapacity"}};
+  } else {
+    return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _capacity_0, "observations": _observations_0, "units": _units_0})), "admitted": {$: "Nil"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$set_review_capacity$(_work_0, _capacity_0) {
+  return $$$$047agent$045flow$045bend$047Work$set_review_capacity$apply$(_work_0, _capacity_0, ($$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Work$source_cancel_ids$($0) {
+  for (;;) {
+    {
+      const _observations_0 = $0;
+      if (_observations_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _observations_0["head"];
+        const _id_0 = _t_0["id"];
+        const _t_1 = _t_0["stage"];
+        if (_t_1.$ === "Work.SourceReading") {
+          const _rest_0 = _observations_0["tail"];
+          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$source_cancel_ids$(_rest_0))};
+        } else {
+          const _rest_1 = _observations_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$observation_ids$(_observations_0) {
+  if (_observations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _observations_0["head"];
+    const _id_0 = _t_0["id"];
+    const _rest_0 = _observations_0["tail"];
+    return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$observation_ids$(_rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$($0) {
+  for (;;) {
+    {
+      const _units_0 = $0;
+      if (_units_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _units_0["head"];
+        const _id_0 = _t_0["id"];
+        const _t_1 = _t_0["stage"];
+        if (_t_1.$ === "Work.ReviewQueued") {
+          const _rest_0 = _units_0["tail"];
+          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$(_rest_0))};
+        } else if (_t_1.$ === "Work.AtJev") {
+          const _rest_1 = _units_0["tail"];
+          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$(_rest_1))};
+        } else {
+          const _rest_2 = _units_0["tail"];
+          $0 = _rest_2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$keep_terminal$pick$(_unit_0, _tail_0, _unfinished_0) {
+  if (_unfinished_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _unit_0, "tail": _tail_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$keep_terminal$(_units_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const __0 = _t_0["id"];
+    const __1 = _t_0["observation"];
+    const _stage_0 = _t_0["stage"];
+    const __2 = _t_0["findings"];
+    const __3 = _t_0["bytes"];
+    const _rest_0 = _units_0["tail"];
+    return $$$$047agent$045flow$045bend$047Work$keep_terminal$pick$({$: "Work.ReviewUnit", "id": __0, "observation": __1, "stage": _stage_0, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$keep_terminal$(_rest_0)), ($$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$cancel_unfinished$(_work_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Cancelled", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": {$: "Nil"}, "units": ($$$$047agent$045flow$045bend$047Work$keep_terminal$(_units_0))}, "cancelled_source": ($$$$047agent$045flow$045bend$047Work$observation_ids$(_observations_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$(_units_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Work$jev_cancel_ids$($0) {
+  for (;;) {
+    {
+      const _units_0 = $0;
+      if (_units_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _units_0["head"];
+        const _id_0 = _t_0["id"];
+        const _t_1 = _t_0["stage"];
+        if (_t_1.$ === "Work.AtJev") {
+          const _rest_0 = _units_0["tail"];
+          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$jev_cancel_ids$(_rest_0))};
+        } else {
+          const _rest_1 = _units_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$discarded_finding_ids$($0) {
+  for (;;) {
+    {
+      const _units_0 = $0;
+      if (_units_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _units_0["head"];
+        const _id_0 = _t_0["id"];
+        const _t_1 = _t_0["stage"];
+        if (_t_1.$ === "Work.PendingFinding") {
+          const _rest_0 = _units_0["tail"];
+          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$discarded_finding_ids$(_rest_0))};
+        } else {
+          const _rest_1 = _units_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Work$close$(_work_0) {
+  const _next_observation_0 = _work_0["next_observation"];
+  const _next_unit_0 = _work_0["next_unit"];
+  const _source_capacity_0 = _work_0["source_capacity"];
+  const _review_capacity_0 = _work_0["review_capacity"];
+  const _observations_0 = _work_0["observations"];
+  const _units_0 = _work_0["units"];
+  return {$: "Work.Closed", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": {$: "Nil"}, "units": {$: "Nil"}}, "cancelled_source": ($$$$047agent$045flow$045bend$047Work$source_cancel_ids$(_observations_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Work$jev_cancel_ids$(_units_0)), "discarded_findings": ($$$$047agent$045flow$045bend$047Work$discarded_finding_ids$(_units_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Work$main$() {
+  return $$$$047agent$045flow$045bend$047Work$admit$(($$$$047agent$045flow$045bend$047Work$initial$()));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$initial$() {
+  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$max_running$() {
+  return 8;
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$max_requests$() {
+  return 8;
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$preparation_count$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _t_1 = _t_0["preparation"];
+        if (_t_1) {
+          const _rest_0 = _items_0["tail"];
+          const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_rest_0));
+          return nat_chk(1 + _x_0);
+        } else {
+          const _rest_1 = _items_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _owner_0 = _entry_0["partition"];
+  const _generation_0 = _entry_0["lifetime"];
+  const _current_0 = _entry_0["round"];
+  const _id_0 = _entry_0["operation"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Nat$is_eq$(_id_0, _operation_0)))))));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$contains$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return (_x_0 || _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0) {
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0) {
+  const _t_0 = _entry_0["preparation"];
+  if (!_t_0) {
+    return true;
+  } else {
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_running_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_running$());
+    return (_x_0 < _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, _result_0) {
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _t_0 = _result_0["state"];
+    const _queued_0 = _t_0["queued"];
+    const _running_0 = _t_0["running"];
+    const _next_sequence_0 = _t_0["next_sequence"];
+    const _closed_0 = _t_0["closed"];
+    const _requests_0 = _t_0["requests"];
+    const _commands_0 = _result_0["commands"];
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
+  } else {
+    const _state_0 = _result_0["state"];
+    return {$: "Dispatch.Denied", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
+  if (_queued_0.$ === "Nil") {
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
+  } else {
+    const _entry_0 = _queued_0["head"];
+    const _rest_0 = _queued_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_one$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _second_0 = _result_0["state"];
+    const _more_0 = _result_0["commands"];
+    return {$: "Dispatch.Advanced", "state": _second_0, "commands": ($List$append$(_commands_0, _more_0))};
+  } else {
+    return {$: "Dispatch.Denied", "state": _first_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_next$(_first_0, _commands_0) {
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_one$(_first_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0) {
+  if (_queued_0.$ === "Nil") {
+    return false;
+  } else {
+    const _entry_0 = _queued_0["head"];
+    const _rest_0 = _queued_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_rest_0, _running_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_remaining_0, _result_0) {
+  if (_remaining_0 === 0) {
+    return _result_0;
+  } else {
+    const _rest_0 = (_remaining_0 - 1);
+    if (_result_0.$ === "Dispatch.Advanced") {
+      const _t_0 = _result_0["state"];
+      const _queued_0 = _t_0["queued"];
+      const _running_0 = _t_0["running"];
+      const __0 = _t_0["next_sequence"];
+      const __1 = _t_0["closed"];
+      const __2 = _t_0["requests"];
+      const _commands_0 = _result_0["commands"];
+      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
+    } else {
+      const _state_0 = _result_0["state"];
+      return {$: "Dispatch.Denied", "state": _state_0};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_available$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const __0 = _state_0["running"];
+  const __1 = _state_0["next_sequence"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0)), _rest_0, {$: "Con", "head": _entry_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0) {
+  if (_ids_0.$ === "Nil") {
+    return false;
+  } else {
+    const _id_0 = _ids_0["head"];
+    const _rest_0 = _ids_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$listed$(_rest_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, _running_0) {
+  const _operation_0 = _entry_0["operation"];
+  return {$: "Dispatch.Discarded", "operation": _operation_0, "running": _running_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
+  if (_hit_0) {
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": _entries_0, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": _commands_0}};
+  } else {
+    const _entries_1 = _tail_0["entries"];
+    const _commands_1 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_1}, "commands": _commands_1};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_items_0, _ids_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const __3 = _t_0["sequence"];
+    const __4 = _t_0["cancelled"];
+    const __5 = _t_0["preparation"];
+    const _rest_0 = _items_0["tail"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_rest_0, _ids_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0) {
+  const _partition_0 = _entry_0["partition"];
+  const _lifetime_0 = _entry_0["lifetime"];
+  const _round_0 = _entry_0["round"];
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  const _preparation_0 = _entry_0["preparation"];
+  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
+  if (!_hit_0) {
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_0}, "commands": _commands_0};
+  } else {
+    const _entries_1 = _tail_0["entries"];
+    const _commands_1 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0)), "tail": _entries_1}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, true)), "tail": _commands_1}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$(_entry_0, _hit_0, _tail_0) {
+  const __0 = _entry_0["partition"];
+  const __1 = _entry_0["lifetime"];
+  const __2 = _entry_0["round"];
+  const __3 = _entry_0["operation"];
+  const __4 = _entry_0["sequence"];
+  const _t_0 = _entry_0["cancelled"];
+  if (_t_0) {
+    const __5 = _entry_0["preparation"];
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
+  } else {
+    const __6 = _entry_0["preparation"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running$(_items_0, _ids_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const __3 = _t_0["sequence"];
+    const __4 = _t_0["cancelled"];
+    const __5 = _t_0["preparation"];
+    const _rest_0 = _items_0["tail"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_rest_0, _ids_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discarded_result$(_state_0, _queued_0, _running_0) {
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _waiting_0 = _queued_0["entries"];
+  const _waiting_commands_0 = _queued_0["commands"];
+  const _executing_0 = _running_0["entries"];
+  const _executing_commands_0 = _running_0["commands"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discard$(_state_0, _ids_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const __0 = _state_0["next_sequence"];
+  const __1 = _state_0["closed"];
+  const __2 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_running_0, _ids_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discard_all$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$close$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _requests_0 = _state_0["requests"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_queued_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  const _owner_0 = _item_0["partition"];
+  const _generation_0 = _item_0["lifetime"];
+  const _current_0 = _item_0["round"];
+  const _work_0 = _item_0["operation"];
+  const _id_0 = _item_0["request"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _work_0 = _t_0["operation"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_work_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_rest_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _x_0 = ($List$length$(_requests_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_requests$());
+  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_requests_0, _operation_0));
+  const _x_3 = ($Bool$not$((_x_0 < _x_1)));
+  const _x_4 = (_x_2 || _x_3);
+  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _work_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const __0 = _t_0["started"];
+    const _interrupted_0 = _t_0["interrupted"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _work_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const _started_0 = _t_0["started"];
+    const __0 = _t_0["interrupted"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  if (_found_0.$ === "None") {
+    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _started_0 = _t_0["started"];
+    const _interrupted_0 = _t_0["interrupted"];
+    const _x_0 = ($Bool$and$(_interrupt_0, _interrupted_0));
+    const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
+    const _x_2 = ($Bool$and$(_start_0, _started_0));
+    const _x_3 = (_x_0 || _x_1);
+    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
+  const __0 = _state_0["queued"];
+  const __1 = _state_0["running"];
+  const __2 = _state_0["next_sequence"];
+  const __3 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Retention$cleanup_gate$(_facts_0) {
+  const _active_0 = _facts_0["active"];
+  const _dispatcher_idle_0 = _facts_0["dispatcher_idle"];
+  const _no_advice_0 = _facts_0["no_advice"];
+  const _no_notices_0 = _facts_0["no_notices"];
+  const _no_pending_evaluations_0 = _facts_0["no_pending_evaluations"];
+  const _no_current_work_0 = _facts_0["no_current_work"];
+  const _no_cooldowns_0 = _facts_0["no_cooldowns"];
+  const _connection_count_ok_0 = _facts_0["connection_count_ok"];
+  const _cache_matches_ledger_0 = _facts_0["cache_matches_ledger"];
+  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(_dispatcher_idle_0, ($Bool$and$(_no_advice_0, ($Bool$and$(_no_notices_0, ($Bool$and$(_no_pending_evaluations_0, ($Bool$and$(_no_current_work_0, ($Bool$and$(_no_cooldowns_0, ($Bool$and$(_connection_count_ok_0, _cache_matches_ledger_0)))))))))))))))), {$: "Retention.CleanupReady"}, {$: "Retention.CleanupBusy"});
+}
+
+function $$$$047agent$045flow$045bend$047Retention$cleanup_commit$(_ledger_empty_0) {
+  return $Bool$pick$(_ledger_empty_0, {$: "Retention.CleanupReady"}, {$: "Retention.CleanupBusy"});
+}
+
+function $$$$047agent$045flow$045bend$047Retention$cleanup_live_state$(_rounds_empty_0, _pending_permits_empty_0) {
+  return $Bool$and$(_rounds_empty_0, _pending_permits_empty_0);
+}
+
+function $$$$047agent$045flow$045bend$047Retention$discard_scope$(_named_count_0, _cancelled_count_0, _has_unnamed_0) {
+  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_named_count_0, _cancelled_count_0)), ($Bool$not$(_has_unnamed_0)))), {$: "Retention.NamedOnly"}, {$: "Retention.AllUnfinished"});
+}
+
+function $$$$047agent$045flow$045bend$047Retention$main$() {
+  return $$$$047agent$045flow$045bend$047Retention$cleanup_gate$({$: "Retention.CleanupFacts", "active": true, "dispatcher_idle": true, "no_advice": true, "no_notices": true, "no_pending_evaluations": true, "no_current_work": true, "no_cooldowns": true, "connection_count_ok": true, "cache_matches_ledger": true});
+}
+
 function $$$$047agent$045flow$045bend$047Collection$credential_disposition$(_same_scope_0, _generation_valid_0) {
   return $Bool$pick$(($Bool$and$(_same_scope_0, ($Bool$not$(_generation_valid_0)))), {$: "Collection.RetireAdvice"}, {$: "Collection.RetainAdvice"});
 }
@@ -3688,6 +7201,18 @@ function $$$$047agent$045flow$045bend$047CollectionState$with_notices$(_state_0,
   return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "reuse": _reuse_0, "notices": _replacement_0};
 }
 
+function $$$$047agent$045flow$045bend$047CollectorAuthority$collect_gate$(_expired_0, _credential_valid_0) {
+  return $Bool$pick$(_expired_0, {$: "CollectorAuthority.CollectUnavailable", "reason": {$: "CollectorAuthority.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "CollectorAuthority.CollectUnavailable", "reason": {$: "CollectorAuthority.Credential"}}, {$: "CollectorAuthority.CollectProceed"})));
+}
+
+function $$$$047agent$045flow$045bend$047CollectorAuthority$final_authority$(_admitted_block_0, _current_block_0) {
+  return $Bool$pick$(($Bool$and$(_admitted_block_0, ($Bool$not$(_current_block_0)))), {$: "CollectorAuthority.FinalRelease"}, {$: "CollectorAuthority.FinalProceed"});
+}
+
+function $$$$047agent$045flow$045bend$047CollectorAuthority$main$() {
+  return $$$$047agent$045flow$045bend$047CollectorAuthority$collect_gate$(false, true);
+}
+
 function $$$$047agent$045flow$045bend$047Reuse$route$(_live_advice_0, _attached_pending_0, _claimed_pending_0) {
   if (_live_advice_0) {
     return {$: "Reuse.JoinAdvice"};
@@ -3730,3531 +7255,6 @@ function $$$$047agent$045flow$045bend$047Reuse$joined_disposition$(_state_0, _st
 
 function $$$$047agent$045flow$045bend$047Reuse$main$() {
   return $$$$047agent$045flow$045bend$047Reuse$route$(false, false, false);
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
-  if (_purpose_0.$ === "Ledger.ObservationDispatch") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.Preparation") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.ReviewUnit") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.StoredResult") {
-    return _limits_0;
-  } else if (_purpose_0.$ === "Ledger.OperationalNotice") {
-    return _limits_0;
-  } else {
-    return _limits_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$inventory$(_limits_0) {
-  return {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ObservationDispatch"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.ObservationDispatch"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.Preparation"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.Preparation"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.ReviewUnit"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.ReviewUnit"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.StoredResult"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.StoredResult"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.OperationalNotice"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.OperationalNotice"}, _limits_0))}, "tail": {$: "Con", "head": {$: "Ledger.InventoryEntry", "purpose": {$: "Ledger.AdviceRecheck"}, "limits": ($$$$047agent$045flow$045bend$047Ledger$limits_for$({$: "Ledger.AdviceRecheck"}, _limits_0))}, "tail": {$: "Nil"}}}}}}};
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$initial$(_limits_0) {
-  return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": 1, "charges": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$total$add$(_usage_0, _bytes_0) {
-  const _items_0 = _usage_0["items"];
-  const _current_bytes_0 = _usage_0["bytes"];
-  return {$: "Ledger.Usage", "items": nat_chk(_items_0 + 1), "bytes": nat_chk(_current_bytes_0 + _bytes_0)};
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$total$(_charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "Ledger.Usage", "items": 0, "bytes": 0};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _bytes_0 = _t_0["bytes"];
-    const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$total$add$(($$$$047agent$045flow$045bend$047Ledger$total$(_rest_0)), _bytes_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$partition_usage$add$(_usage_0, _bytes_0, _same_0) {
-  const _items_0 = _usage_0["items"];
-  const _current_bytes_0 = _usage_0["bytes"];
-  if (_same_0) {
-    return {$: "Ledger.Usage", "items": nat_chk(_items_0 + 1), "bytes": nat_chk(_current_bytes_0 + _bytes_0)};
-  } else {
-    return {$: "Ledger.Usage", "items": _items_0, "bytes": _current_bytes_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$partition_usage$(_charges_0, _partition_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "Ledger.Usage", "items": 0, "bytes": 0};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _bytes_0 = _t_0["bytes"];
-    const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$partition_usage$add$(($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_rest_0, _partition_0)), _bytes_0, ($Nat$is_eq$(_owner_0, _partition_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
-  const _global_items_0 = _limits_0["global_items"];
-  const _global_bytes_0 = _limits_0["global_bytes"];
-  const _partition_items_0 = _limits_0["partition_items"];
-  const _partition_bytes_0 = _limits_0["partition_bytes"];
-  const _used_items_0 = _global_0["items"];
-  const _used_bytes_0 = _global_0["bytes"];
-  const _local_items_0 = _local_0["items"];
-  const _local_bytes_0 = _local_0["bytes"];
-  return $Bool$pick$(($Nat$is_gt$(nat_chk(_used_items_0 + 1), _global_items_0)), {$: "Ledger.GlobalItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_used_bytes_0 + _bytes_0), _global_bytes_0)), {$: "Ledger.GlobalByteLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_items_0 + 1), _partition_items_0)), {$: "Ledger.PartitionItemLimit"}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_local_bytes_0 + _bytes_0), _partition_bytes_0)), {$: "Ledger.PartitionByteLimit"}, {$: "Ledger.Fits"})))))));
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$decision_fits$(_decision_0) {
-  if (_decision_0.$ === "Ledger.Fits") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$fits$(_limits_0, _global_0, _local_0, _bytes_0) {
-  return $$$$047agent$045flow$045bend$047Ledger$decision_fits$(($$$$047agent$045flow$045bend$047Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$admission$(_state_0, _partition_0, _bytes_0) {
-  const _limits_0 = _state_0["limits"];
-  const _charges_0 = _state_0["charges"];
-  return $$$$047agent$045flow$045bend$047Ledger$fit_decision$(_limits_0, ($$$$047agent$045flow$045bend$047Ledger$total$(_charges_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0);
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
-  if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
-  } else {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, _purpose_0) {
-  const _limits_0 = _state_0["limits"];
-  const _next_id_0 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  return $$$$047agent$045flow$045bend$047Ledger$reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, ($$$$047agent$045flow$045bend$047Ledger$fits$(($$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0)), ($$$$047agent$045flow$045bend$047Ledger$total$(_charges_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_charges_0, _partition_0)), _bytes_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$reserve$(_state_0, _partition_0, _bytes_0) {
-  return $$$$047agent$045flow$045bend$047Ledger$reserve_for$(_state_0, _partition_0, _bytes_0, {$: "Ledger.ReviewUnit"});
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$find$pick$(_charge_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _charge_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["bytes"];
-    const __2 = _t_0["purpose"];
-    const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$remove$pick$(_charge_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _charge_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["bytes"];
-    const __2 = _t_0["purpose"];
-    const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$release$found$(_state_0, _id_0, _found_0) {
-  const _limits_0 = _state_0["limits"];
-  const _next_id_0 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  if (_found_0.$ === "Some") {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0))}, "id": _id_0};
-  } else {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$release$(_state_0, _id_0) {
-  const __0 = _state_0["limits"];
-  const __1 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  return $$$$047agent$045flow$045bend$047Ledger$release$found$({$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, _id_0, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
-  } else {
-    return {$: "Con", "head": _charge_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$replace$(_id_0, _bytes_0, _charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _current_0 = _t_0["id"];
-    const _partition_0 = _t_0["partition"];
-    const _old_bytes_0 = _t_0["bytes"];
-    const _purpose_0 = _t_0["purpose"];
-    const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _charges_0["head"];
-    const _current_0 = _t_0["id"];
-    const _partition_0 = _t_0["partition"];
-    const __0 = _t_0["bytes"];
-    const __1 = _t_0["purpose"];
-    const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": __0, "purpose": __1}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$resize$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _allowed_0) {
-  if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$replace$(_id_0, _bytes_0, _charges_0))}, "id": _id_0};
-  } else {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$resize_for$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
-  if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": ($$$$047agent$045flow$045bend$047Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _charges_0))}, "id": _id_0};
-  } else {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$resize_for$found$(_state_0, _id_0, _bytes_0, _purpose_0, _found_0) {
-  const _limits_0 = _state_0["limits"];
-  const _next_id_0 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  if (_found_0.$ === "None") {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _partition_0 = _t_0["partition"];
-    const _others_0 = ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0));
-    return $$$$047agent$045flow$045bend$047Ledger$resize_for$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, _purpose_0, ($$$$047agent$045flow$045bend$047Ledger$fits$(($$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0)), ($$$$047agent$045flow$045bend$047Ledger$total$(_others_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_others_0, _partition_0)), _bytes_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$resize_for$(_state_0, _id_0, _bytes_0, _purpose_0) {
-  const __0 = _state_0["limits"];
-  const __1 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  return $$$$047agent$045flow$045bend$047Ledger$resize_for$found$({$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, _id_0, _bytes_0, _purpose_0, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$resize$found$(_state_0, _id_0, _bytes_0, _found_0) {
-  const _limits_0 = _state_0["limits"];
-  const _next_id_0 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  if (_found_0.$ === "None") {
-    return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _partition_0 = _t_0["partition"];
-    const _others_0 = ($$$$047agent$045flow$045bend$047Ledger$remove$(_id_0, _charges_0));
-    return $$$$047agent$045flow$045bend$047Ledger$resize$check$(_limits_0, _next_id_0, _charges_0, _id_0, _partition_0, _bytes_0, ($$$$047agent$045flow$045bend$047Ledger$fits$(_limits_0, ($$$$047agent$045flow$045bend$047Ledger$total$(_others_0)), ($$$$047agent$045flow$045bend$047Ledger$partition_usage$(_others_0, _partition_0)), _bytes_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$resize$(_state_0, _id_0, _bytes_0) {
-  const __0 = _state_0["limits"];
-  const __1 = _state_0["next_id"];
-  const _charges_0 = _state_0["charges"];
-  return $$$$047agent$045flow$045bend$047Ledger$resize$found$({$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, _id_0, _bytes_0, ($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, _charges_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$clear$(_state_0) {
-  const _limits_0 = _state_0["limits"];
-  const _next_id_0 = _state_0["next_id"];
-  return {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Ledger$main$() {
-  return $$$$047agent$045flow$045bend$047Ledger$reserve$(($$$$047agent$045flow$045bend$047Ledger$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), 1, 20);
-}
-
-function $$$$047agent$045flow$045bend$047Admission$prospective_gate_ordered$(_clock_valid_0, _within_0) {
-  if (!_within_0) {
-    return {$: "Admission.PermitLate"};
-  } else {
-    return $Bool$pick$(_clock_valid_0, {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
-  const _clock_valid_0 = _facts_0["clock_valid"];
-  if (!_ordered_0) {
-    return {$: "Admission.PermitInvalidClock"};
-  } else {
-    return $$$$047agent$045flow$045bend$047Admission$prospective_gate_ordered$(_clock_valid_0, _within_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
-  const _clock_valid_0 = _facts_0["clock_valid"];
-  const _hook_window_0 = _facts_0["hook_window"];
-  const _started_upper_0 = _facts_0["started_upper"];
-  const _now_lower_0 = _facts_0["now_lower"];
-  const _advicee_permit_limit_0 = _facts_0["advicee_permit_limit"];
-  const _resident_permit_limit_0 = _facts_0["resident_permit_limit"];
-  const _x_0 = nat_chk(_started_0 + _hook_window_0);
-  return $$$$047agent$045flow$045bend$047Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$pending_count$(_state_0) {
-  const _permits_0 = _state_0["permits"];
-  return $List$length$(_permits_0);
-}
-
-function $$$$047agent$045flow$045bend$047Admission$initial$(_partition_0, _lifetime_0) {
-  return {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": 0, "active": false, "closed_at": 0, "next_token": 1, "permits": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Admission$has_tool$(_tool_0, _permits_0) {
-  if (_permits_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _permits_0["head"];
-    const _current_0 = _t_0["tool"];
-    const _rest_0 = _permits_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Admission$has_tool$(_tool_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _permit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _permits_0) {
-  if (_permits_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _permits_0["head"];
-    const _current_0 = _t_0["token"];
-    const __0 = _t_0["tool"];
-    const __1 = _t_0["round"];
-    const __2 = _t_0["started"];
-    const __3 = _t_0["deadline"];
-    const _rest_0 = _permits_0["tail"];
-    return $$$$047agent$045flow$045bend$047Admission$find_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _permit_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0) {
-  if (_permits_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _permits_0["head"];
-    const _current_0 = _t_0["token"];
-    const __0 = _t_0["tool"];
-    const __1 = _t_0["round"];
-    const __2 = _t_0["started"];
-    const __3 = _t_0["deadline"];
-    const _rest_0 = _permits_0["tail"];
-    return $$$$047agent$045flow$045bend$047Admission$remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$candidate_round$(_round_0, _active_0) {
-  if (_active_0) {
-    return _round_0;
-  } else {
-    return nat_chk(_round_0 + 1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _duplicate_0) {
-  if (_duplicate_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.DuplicateTool"}};
-  } else {
-    const _expected_round_0 = ($$$$047agent$045flow$045bend$047Admission$candidate_round$(_round_0, _active_0));
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": nat_chk(_next_token_0 + 1), "permits": ($List$append$(_permits_0, {$: "Con", "head": {$: "Admission.Permit", "token": _next_token_0, "tool": _tool_0, "round": _expected_round_0, "started": _started_0, "deadline": _deadline_0}, "tail": {$: "Nil"}}))}, "token": {$: "Some", "value": _next_token_0}, "round": {$: "Some", "value": _expected_round_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$issue$guard$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _now_0, _clock_valid_0) {
-  if (!_clock_valid_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.StaleInvocation"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, ($$$$047agent$045flow$045bend$047Admission$has_tool$(_tool_0, _permits_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$issue$guard$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _now_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _permitted_round_0, _correct_round_0) {
-  if (!_correct_round_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.OldRound"}};
-  } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _permitted_round_0, "active": true, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0))}, "token": {$: "Some", "value": _token_0}, "round": {$: "Some", "value": _permitted_round_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.Expired"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _permitted_round_0, ($Nat$is_eq$(_permitted_round_0, ($$$$047agent$045flow$045bend$047Admission$candidate_round$(_round_0, _active_0)))));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, _correct_tool_0) {
-  if (!_correct_tool_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongTool"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0) {
-  if (_permit_0.$ === "None") {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.NoPermit"}};
-  } else {
-    const _t_0 = _permit_0["value"];
-    const _permitted_tool_0 = _t_0["tool"];
-    const _permitted_round_0 = _t_0["round"];
-    const _started_0 = _t_0["started"];
-    const _deadline_0 = _t_0["deadline"];
-    return $$$$047agent$045flow$045bend$047Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$consume$(_state_0, _token_0, _tool_0, _now_0) {
-  const __0 = _state_0["partition"];
-  const __1 = _state_0["lifetime"];
-  const __2 = _state_0["round"];
-  const __3 = _state_0["active"];
-  const __4 = _state_0["closed_at"];
-  const __5 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$consume$found$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0}, _token_0, _tool_0, _now_0, ($$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _permits_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$release$found$(_state_0, _token_0, _found_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  if (_found_0.$ === "None") {
-    return {$: "Admission.Rejected", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, "reason": {$: "Admission.NoPermit"}};
-  } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0))}, "token": {$: "None"}, "round": {$: "None"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$release$(_state_0, _token_0) {
-  const __0 = _state_0["partition"];
-  const __1 = _state_0["lifetime"];
-  const __2 = _state_0["round"];
-  const __3 = _state_0["active"];
-  const __4 = _state_0["closed_at"];
-  const __5 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$release$found$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0}, _token_0, ($$$$047agent$045flow$045bend$047Admission$find_permit$(_token_0, _permits_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$expire$due$(_state_0, _token_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  return {$: "Admission.RemovePermit", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($$$$047agent$045flow$045bend$047Admission$remove_permit$(_token_0, _permits_0))}};
-}
-
-function $$$$047agent$045flow$045bend$047Admission$expire$(_state_0, _token_0, _deadline_reached_0) {
-  if (!_deadline_reached_0) {
-    return {$: "Admission.KeepPermit", "state": _state_0};
-  } else {
-    return $$$$047agent$045flow$045bend$047Admission$expire$due$(_state_0, _token_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.InvalidClock"}};
-  } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$close_round$active$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _at_0) {
-  if (!_active_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.RoundAlreadyClosed"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, ($Nat$is_ge$(_at_0, _closed_at_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$close_round$(_state_0, _at_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _at_0);
-}
-
-function $$$$047agent$045flow$045bend$047Admission$restart$fresh$(_state_0, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.LifetimeNotFresh"}};
-  } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _new_lifetime_0, "round": 0, "active": false, "closed_at": _at_0, "next_token": 1, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "None"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const __2 = _state_0["next_token"];
-  const __3 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$restart$fresh$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": __0, "active": __1, "closed_at": _closed_at_0, "next_token": __2, "permits": __3}, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, ($Bool$and$(($Nat$is_gt$(_new_lifetime_0, _lifetime_0)), ($Nat$is_ge$(_at_0, _closed_at_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$callback_current$(_state_0, _partition_0, _lifetime_0, _round_0) {
-  const _owner_0 = _state_0["partition"];
-  const _live_0 = _state_0["lifetime"];
-  const _current_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  return $Bool$and$(_active_0, ($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_live_0, _lifetime_0)), ($Nat$is_eq$(_current_0, _round_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$apply_event$(_state_0, _event_0) {
-  if (_event_0.$ === "Admission.Issue") {
-    const _tool_0 = _event_0["tool"];
-    const _started_0 = _event_0["started"];
-    const _deadline_0 = _event_0["deadline"];
-    const _now_0 = _event_0["now"];
-    return $$$$047agent$045flow$045bend$047Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0);
-  } else if (_event_0.$ === "Admission.Consume") {
-    const _token_0 = _event_0["token"];
-    const _tool_1 = _event_0["tool"];
-    const _now_1 = _event_0["now"];
-    return $$$$047agent$045flow$045bend$047Admission$consume$(_state_0, _token_0, _tool_1, _now_1);
-  } else if (_event_0.$ === "Admission.Release") {
-    const _token_1 = _event_0["token"];
-    return $$$$047agent$045flow$045bend$047Admission$release$(_state_0, _token_1);
-  } else if (_event_0.$ === "Admission.CloseRound") {
-    const _at_0 = _event_0["at"];
-    return $$$$047agent$045flow$045bend$047Admission$close_round$(_state_0, _at_0);
-  } else {
-    const _new_lifetime_0 = _event_0["new_lifetime"];
-    const _at_1 = _event_0["at"];
-    return $$$$047agent$045flow$045bend$047Admission$restart$(_state_0, _new_lifetime_0, _at_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$step$partition$(_state_0, _partition_0, _lifetime_0, _event_0, _correct_partition_0, _correct_lifetime_0) {
-  if (!_correct_partition_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongPartition"}};
-  } else {
-    if (!_correct_lifetime_0) {
-      return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongLifetime"}};
-    } else {
-      return $$$$047agent$045flow$045bend$047Admission$apply_event$(_state_0, _event_0);
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Admission$step$(_state_0, _partition_0, _lifetime_0, _event_0) {
-  const _owner_0 = _state_0["partition"];
-  const _live_0 = _state_0["lifetime"];
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed_at"];
-  const __3 = _state_0["next_token"];
-  const __4 = _state_0["permits"];
-  return $$$$047agent$045flow$045bend$047Admission$step$partition$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _live_0, "round": __0, "active": __1, "closed_at": __2, "next_token": __3, "permits": __4}, _partition_0, _lifetime_0, _event_0, ($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_live_0, _lifetime_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Admission$main$() {
-  return $$$$047agent$045flow$045bend$047Admission$step$(($$$$047agent$045flow$045bend$047Admission$initial$(7, 3)), 7, 3, {$: "Admission.Issue", "tool": 42, "started": 10, "deadline": 20, "now": 11});
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$initial$() {
-  return {$: "EditHistory.State", "entries": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$count$(_state_0) {
-  const _entries_0 = _state_0["entries"];
-  return $List$length$(_entries_0);
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$lookup_entries$(_tool_0, _entries_0) {
-  if (_entries_0.$ === "Nil") {
-    return {$: "EditHistory.Absent"};
-  } else {
-    const _t_0 = _entries_0["head"];
-    const _current_0 = _t_0["tool"];
-    const _reason_0 = _t_0["reason"];
-    const _reported_0 = _t_0["reported"];
-    const _rest_0 = _entries_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_tool_0, _current_0)), {$: "EditHistory.Seen", "reason": _reason_0, "report": ($Bool$not$(_reported_0))}, ($$$$047agent$045flow$045bend$047EditHistory$lookup_entries$(_tool_0, _rest_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$lookup$(_tool_0, _state_0) {
-  const _entries_0 = _state_0["entries"];
-  return $$$$047agent$045flow$045bend$047EditHistory$lookup_entries$(_tool_0, _entries_0);
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$mark_entries$(_tool_0, _entries_0) {
-  if (_entries_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _entries_0["head"];
-    const _current_0 = _t_0["tool"];
-    const _reason_0 = _t_0["reason"];
-    const _reported_0 = _t_0["reported"];
-    const _rest_0 = _entries_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
-    return {$: "Con", "head": {$: "EditHistory.Completed", "tool": _current_0, "reason": _reason_0, "reported": (_reported_0 || _x_0)}, "tail": ($$$$047agent$045flow$045bend$047EditHistory$mark_entries$(_tool_0, _rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$mark_reported$(_tool_0, _state_0) {
-  const _entries_0 = _state_0["entries"];
-  return {$: "EditHistory.State", "entries": ($$$$047agent$045flow$045bend$047EditHistory$mark_entries$(_tool_0, _entries_0))};
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$record_entries$(_tool_0, _reason_0, _entries_0, _size_0) {
-  if (_entries_0.$ === "Nil") {
-    return {$: "EditHistory.Recorded", "state": {$: "EditHistory.State", "entries": {$: "Con", "head": {$: "EditHistory.Completed", "tool": _tool_0, "reason": _reason_0, "reported": false}, "tail": {$: "Nil"}}}, "evicted": {$: "None"}};
-  } else {
-    const _t_0 = _entries_0["head"];
-    const _oldest_0 = _t_0["tool"];
-    const _old_reason_0 = _t_0["reason"];
-    const _reported_0 = _t_0["reported"];
-    const _tail_0 = _entries_0["tail"];
-    return $Bool$pick$((_size_0 < 1000), {$: "EditHistory.Recorded", "state": {$: "EditHistory.State", "entries": ($List$append$({$: "Con", "head": {$: "EditHistory.Completed", "tool": _oldest_0, "reason": _old_reason_0, "reported": _reported_0}, "tail": _tail_0}, {$: "Con", "head": {$: "EditHistory.Completed", "tool": _tool_0, "reason": _reason_0, "reported": false}, "tail": {$: "Nil"}}))}, "evicted": {$: "None"}}, {$: "EditHistory.Recorded", "state": {$: "EditHistory.State", "entries": ($List$append$(_tail_0, {$: "Con", "head": {$: "EditHistory.Completed", "tool": _tool_0, "reason": _reason_0, "reported": false}, "tail": {$: "Nil"}}))}, "evicted": {$: "Some", "value": _oldest_0}});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047EditHistory$record$(_tool_0, _reason_0, _state_0) {
-  const _entries_0 = _state_0["entries"];
-  return $$$$047agent$045flow$045bend$047EditHistory$record_entries$(_tool_0, _reason_0, _entries_0, ($List$length$(_entries_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Quiescence$facts_quiet$(_facts_0) {
-  const _work_0 = _facts_0["native_work_idle"];
-  const _advice_0 = _facts_0["advice_empty"];
-  const _handoff_0 = _facts_0["handoff_idle"];
-  const _stop_0 = _facts_0["stop_absent"];
-  return $Bool$and$(_work_0, ($Bool$and$(_advice_0, ($Bool$and$(_handoff_0, _stop_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Quiescence$decide_started$(_since_0, _now_0, _window_0) {
-  return $Bool$pick$(($Nat$is_ge$(_now_0, nat_chk(_since_0 + _window_0))), {$: "Quiescence.Expired", "since": _since_0}, {$: "Quiescence.Waiting", "since": _since_0});
-}
-
-function $$$$047agent$045flow$045bend$047Quiescence$decide_quiet$(_since_0, _now_0, _window_0) {
-  if (_since_0.$ === "None") {
-    return {$: "Quiescence.Waiting", "since": _now_0};
-  } else {
-    const _start_0 = _since_0["value"];
-    return $Bool$pick$(($Nat$is_ge$(_now_0, _start_0)), ($$$$047agent$045flow$045bend$047Quiescence$decide_started$(_start_0, _now_0, _window_0)), {$: "Quiescence.Waiting", "since": _now_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Quiescence$decide$(_since_0, _now_0, _window_0, _quiet_0) {
-  if (!_quiet_0) {
-    return {$: "Quiescence.Busy"};
-  } else {
-    return $$$$047agent$045flow$045bend$047Quiescence$decide_quiet$(_since_0, _now_0, _window_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0) {
-  const _low_0 = _capacity_0["low"];
-  const _high_0 = _capacity_0["high"];
-  const _x_0 = ($Nat$is_gt$(_high_0, 0));
-  const _x_1 = ($Nat$is_gt$(_low_0, 0));
-  return (_x_0 || _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0) {
-  const _low_0 = _capacity_0["low"];
-  const _high_0 = _capacity_0["high"];
-  const _x_0 = ($Nat$is_gt$(_high_0, 0));
-  const _x_1 = (_occupied_0 < _low_0);
-  return (_x_0 || _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$route_of$(_event_0) {
-  if (_event_0.$ === "Flow.EditObserved") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.AgentEditNode"}, "to": {$: "Flow.EditQueueNode"}, "input": {$: "Flow.EditObservation"}, "output": {$: "Flow.CaptureJob"}, "copy": false};
-  } else if (_event_0.$ === "Flow.IngressStarted") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.EditQueueNode"}, "to": {$: "Flow.PreparationNode"}, "input": {$: "Flow.CaptureJob"}, "output": {$: "Flow.CaptureJob"}, "copy": false};
-  } else if (_event_0.$ === "Flow.ReviewUnitPrepared") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.PreparationNode"}, "to": {$: "Flow.ReviewQueueNode"}, "input": {$: "Flow.CaptureJob"}, "output": {$: "Flow.ReviewWorkItem"}, "copy": false};
-  } else if (_event_0.$ === "Flow.UnitDispatched") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.ReviewQueueNode"}, "to": {$: "Flow.JevDispatchNode"}, "input": {$: "Flow.ReviewWorkItem"}, "output": {$: "Flow.DecisionRequest"}, "copy": false};
-  } else if (_event_0.$ === "Flow.JevRequestSent") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.JevDispatchNode"}, "to": {$: "Flow.JevNode"}, "input": {$: "Flow.DecisionRequest"}, "output": {$: "Flow.NetworkRequest"}, "copy": false};
-  } else if (_event_0.$ === "Flow.JevFindingReceived") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.AdviceStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.Advice"}, "copy": false};
-  } else if (_event_0.$ === "Flow.JevClearReceived") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.OutcomeStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.ReviewStatus"}, "copy": false};
-  } else if (_event_0.$ === "Flow.JevUnavailable") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.OutcomeStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.ReviewStatus"}, "copy": false};
-  } else if (_event_0.$ === "Flow.BackgroundWaitStarted") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.AgentEditNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.BackgroundSignal"}};
-  } else if (_event_0.$ === "Flow.StopHookFired") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.AgentEditNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.StopSignal"}};
-  } else if (_event_0.$ === "Flow.FinishDecisionAllWorkSettled") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.DeliveryStateNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.SettledSignal"}};
-  } else if (_event_0.$ === "Flow.FinishDecisionDeadlineReached") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.DeliveryStateNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.DeadlineSignal"}};
-  } else if (_event_0.$ === "Flow.FinishDecisionBudgetExhausted") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.DeliveryStateNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.AllowSignal"}};
-  } else if (_event_0.$ === "Flow.AdviceLeasedByBackground") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.AdviceStoreNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "input": {$: "Flow.Advice"}, "output": {$: "Flow.LeasedBatch"}, "copy": true};
-  } else if (_event_0.$ === "Flow.AdviceLeasedByStop") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.AdviceStoreNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "input": {$: "Flow.Advice"}, "output": {$: "Flow.LeasedBatch"}, "copy": true};
-  } else if (_event_0.$ === "Flow.AdviceReofferedAtStop") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.AdviceStoreNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "input": {$: "Flow.Advice"}, "output": {$: "Flow.LeasedBatch"}, "copy": true};
-  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
-    return {$: "Flow.DataRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.ObservedWriteNode"}, "input": {$: "Flow.LeasedBatch"}, "output": {$: "Flow.RuntimeSubmission"}, "copy": false};
-  } else if (_event_0.$ === "Flow.StopAllowed") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.DeliveryStateNode"}, "signal": {$: "Flow.AllowSignal"}};
-  } else if (_event_0.$ === "Flow.FinishResponseRequested") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.ResponseCommandNode"}, "signal": {$: "Flow.ResponseSignal"}};
-  } else if (_event_0.$ === "Flow.SourceCapacitySet") {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.AllowSignal"}};
-  } else {
-    return {$: "Flow.ControlRoute", "from": {$: "Flow.AdvicePolicyNode"}, "to": {$: "Flow.AdvicePolicyNode"}, "signal": {$: "Flow.AllowSignal"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$initial$() {
-  return {$: "Flow.Flow", "packets": {$: "Nil"}, "next_id": 1, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "round_id": 0, "active": false, "continuations": 0, "waiting": false, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Flow$same_place$(_a_0, _b_0) {
-  if (_a_0.$ === "Flow.EditQueue") {
-    if (_b_0.$ === "Flow.EditQueue") {
-      return true;
-    } else {
-      return false;
-    }
-  } else if (_a_0.$ === "Flow.Preparation") {
-    if (_b_0.$ === "Flow.Preparation") {
-      return true;
-    } else {
-      return false;
-    }
-  } else if (_a_0.$ === "Flow.ReviewQueue") {
-    if (_b_0.$ === "Flow.ReviewQueue") {
-      return true;
-    } else {
-      return false;
-    }
-  } else if (_a_0.$ === "Flow.Jev") {
-    if (_b_0.$ === "Flow.Jev") {
-      return true;
-    } else {
-      return false;
-    }
-  } else if (_a_0.$ === "Flow.AdviceStore") {
-    if (_b_0.$ === "Flow.AdviceStore") {
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    if (_b_0.$ === "Flow.AdvicePolicy") {
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$at$(_place_0, _packet_0) {
-  const _location_0 = _packet_0["at"];
-  return $$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _place_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$count$(_place_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _p_0 = _packets_0["head"];
-    const _rest_0 = _packets_0["tail"];
-    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Flow$at$(_place_0, _p_0)), 1, 0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Flow$count$(_place_0, _rest_0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$ids$pick$(_id_0, _rest_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Con", "head": _id_0, "tail": _rest_0};
-  } else {
-    return _rest_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$ids$(_place_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _location_0 = _t_0["at"];
-    const _rest_0 = _packets_0["tail"];
-    return $$$$047agent$045flow$045bend$047Flow$ids$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$ids$(_place_0, _rest_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _place_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _xs_0) {
-  if (_xs_0.$ === "Nil") {
-    return false;
-  } else {
-    const _x_0 = _xs_0["head"];
-    const _rest_0 = _xs_0["tail"];
-    const _x_1 = ($Nat$is_eq$(_x_0, _id_0));
-    const _x_2 = ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _rest_0));
-    return (_x_1 || _x_2);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$unfinished$($0) {
-  for (;;) {
-    {
-      const _packets_0 = $0;
-      if (_packets_0.$ === "Nil") {
-        return false;
-      } else {
-        const _t_0 = _packets_0["head"];
-        const _t_1 = _t_0["at"];
-        if (_t_1.$ === "Flow.EditQueue") {
-          return true;
-        } else if (_t_1.$ === "Flow.Preparation") {
-          return true;
-        } else if (_t_1.$ === "Flow.ReviewQueue") {
-          return true;
-        } else if (_t_1.$ === "Flow.Jev") {
-          return true;
-        } else {
-          const _rest_4 = _packets_0["tail"];
-          $0 = _rest_4;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$find$id_match$(_id_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _id_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$find$pick$(_id_0, _selected_0, _fallback_0, _same_place_0) {
-  if (_selected_0.$ === "None") {
-    if (!_same_place_0) {
-      return _fallback_0;
-    } else {
-      return {$: "Some", "value": _id_0};
-    }
-  } else {
-    const _wanted_0 = _selected_0["value"];
-    if (!_same_place_0) {
-      return _fallback_0;
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$find$id_match$(_id_0, _fallback_0, ($Nat$is_eq$(_wanted_0, _id_0)));
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$find$(_place_0, _selected_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _location_0 = _t_0["at"];
-    const _rest_0 = _packets_0["tail"];
-    return $$$$047agent$045flow$045bend$047Flow$find$pick$(_id_0, _selected_0, ($$$$047agent$045flow$045bend$047Flow$find$(_place_0, _selected_0, _rest_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _place_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$move_one$pick$(_pid_0, _location_0, _tail_0, _target_0, _copy_0, _hit_0) {
-  if (_copy_0) {
-    if (_hit_0) {
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": ($List$append$(_tail_0, {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _target_0}, "tail": {$: "Nil"}}))};
-    } else {
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": _tail_0};
-    }
-  } else {
-    if (_hit_0) {
-      return $List$append$(_tail_0, {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _target_0}, "tail": {$: "Nil"}});
-    } else {
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": _tail_0};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, _source_0, _target_0, _copy_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _pid_0 = _t_0["id"];
-    const _location_0 = _t_0["at"];
-    const _rest_0 = _packets_0["tail"];
-    const _hit_0 = ($Bool$and$(($Nat$is_eq$(_pid_0, _id_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _source_0))));
-    const _tail_0 = ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, _source_0, _target_0, _copy_0, _rest_0));
-    return $$$$047agent$045flow$045bend$047Flow$move_one$pick$(_pid_0, _location_0, _tail_0, _target_0, _copy_0, _hit_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$remove_one$pick$(_pid_0, _location_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": {$: "Flow.Packet", "id": _pid_0, "at": _location_0}, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, _source_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _pid_0 = _t_0["id"];
-    const _location_0 = _t_0["at"];
-    const _rest_0 = _packets_0["tail"];
-    const _hit_0 = ($Bool$and$(($Nat$is_eq$(_pid_0, _id_0)), ($$$$047agent$045flow$045bend$047Flow$same_place$(_location_0, _source_0))));
-    return $$$$047agent$045flow$045bend$047Flow$remove_one$pick$(_pid_0, _location_0, ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, _source_0, _rest_0)), _hit_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$fill_source$(_packets_0, _capacity_0, _occupied_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _t_1 = _t_0["at"];
-    if (_t_1.$ === "Flow.EditQueue") {
-      const _rest_0 = _packets_0["tail"];
-      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
-      const _new_place_0 = ($Bool$pick$(_room_0, {$: "Flow.Preparation"}, {$: "Flow.EditQueue"}));
-      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
-      const _new_occupied_0 = nat_chk(_occupied_0 + _x_0);
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _new_place_0}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_source$(_rest_0, _capacity_0, _new_occupied_0))};
-    } else {
-      const _rest_1 = _packets_0["tail"];
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _t_1}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_source$(_rest_1, _capacity_0, _occupied_0))};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$fill_jev$(_packets_0, _capacity_0, _occupied_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _t_1 = _t_0["at"];
-    if (_t_1.$ === "Flow.ReviewQueue") {
-      const _rest_0 = _packets_0["tail"];
-      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
-      const _new_place_0 = ($Bool$pick$(_room_0, {$: "Flow.Jev"}, {$: "Flow.ReviewQueue"}));
-      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
-      const _new_occupied_0 = nat_chk(_occupied_0 + _x_0);
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _new_place_0}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_jev$(_rest_0, _capacity_0, _new_occupied_0))};
-    } else {
-      const _rest_1 = _packets_0["tail"];
-      return {$: "Con", "head": {$: "Flow.Packet", "id": _id_0, "at": _t_1}, "tail": ($$$$047agent$045flow$045bend$047Flow$fill_jev$(_rest_1, _capacity_0, _occupied_0))};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$settle$(_flow_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _t_0 = _flow_0["active"];
-  if (!_t_0) {
-    const _continuations_0 = _flow_0["continuations"];
-    const _waiting_0 = _flow_0["waiting"];
-    const _background_available_0 = _flow_0["background_available"];
-    const _lease_0 = _flow_0["lease"];
-    const _leased_id_0 = _flow_0["leased_id"];
-    const _last_surface_0 = _flow_0["last_surface"];
-    const _last_id_0 = _flow_0["last_id"];
-    const _background_submitted_0 = _flow_0["background_submitted"];
-    return {$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": false, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0};
-  } else {
-    const _continuations_1 = _flow_0["continuations"];
-    const _waiting_1 = _flow_0["waiting"];
-    const _background_available_1 = _flow_0["background_available"];
-    const _lease_1 = _flow_0["lease"];
-    const _leased_id_1 = _flow_0["leased_id"];
-    const _last_surface_1 = _flow_0["last_surface"];
-    const _last_id_1 = _flow_0["last_id"];
-    const _background_submitted_1 = _flow_0["background_submitted"];
-    const _started_0 = ($$$$047agent$045flow$045bend$047Flow$fill_source$(_packets_0, _source_capacity_0, ($$$$047agent$045flow$045bend$047Flow$count$({$: "Flow.Preparation"}, _packets_0))));
-    return {$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$fill_jev$(_started_0, _review_capacity_0, ($$$$047agent$045flow$045bend$047Flow$count$({$: "Flow.Jev"}, _started_0)))), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": true, "continuations": _continuations_1, "waiting": _waiting_1, "background_available": _background_available_1, "lease": _lease_1, "leased_id": _leased_id_1, "last_surface": _last_surface_1, "last_id": _last_id_1, "background_submitted": _background_submitted_1};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$replace_packets$(_flow_0, _new_packets_0) {
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _background_available_0 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const _leased_id_0 = _flow_0["leased_id"];
-  const _last_surface_0 = _flow_0["last_surface"];
-  const _last_id_0 = _flow_0["last_id"];
-  const _background_submitted_0 = _flow_0["background_submitted"];
-  return {$: "Flow.Flow", "packets": _new_packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0};
-}
-
-function $$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0) {
-  if (_lease_0.$ === "None") {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$work_pending$(_flow_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _lease_0 = _flow_0["lease"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Flow$unfinished$(_packets_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0));
-  return (_x_0 || _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$distinct$pick$(_id_0, _tail_0, _known_0) {
-  if (_known_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _id_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$distinct$(_xs_0, _seen_0) {
-  if (_xs_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _id_0 = _xs_0["head"];
-    const _rest_0 = _xs_0["tail"];
-    return $$$$047agent$045flow$045bend$047Flow$distinct$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$distinct$(_rest_0, {$: "Con", "head": _id_0, "tail": _seen_0})), ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _seen_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _rest_0 = _packets_0["tail"];
-    return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Flow$all_ids$(_rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$discarded$pick$(_id_0, _tail_0, _keep_0) {
-  if (_keep_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _id_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$discarded$(_ids_all_0, _advice_0, _keep_advice_0) {
-  if (_ids_all_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _id_0 = _ids_all_0["head"];
-    const _rest_0 = _ids_all_0["tail"];
-    return $$$$047agent$045flow$045bend$047Flow$discarded$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$discarded$(_rest_0, _advice_0, _keep_advice_0)), ($Bool$and$(_keep_advice_0, ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _advice_0)))));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish$choose$(_original_0, _packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _continuations_0, _submitted_0, _advice_0, _can_continue_0) {
-  if (_can_continue_0) {
-    const _dropped_0 = ($$$$047agent$045flow$045bend$047Flow$discarded$(($$$$047agent$045flow$045bend$047Flow$distinct$(($$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0)), {$: "Nil"})), _advice_0, true));
-    const _decision_0 = {$: "Flow.ContinueWithAdvice", "ids": _advice_0, "discarded": _dropped_0, "cancelled_source": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Preparation"}, _packets_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Jev"}, _packets_0))};
-    return {$: "Flow.Accepted", "state": {$: "Flow.Flow", "packets": {$: "Nil"}, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": true, "continuations": nat_chk(_continuations_0 + 1), "waiting": false, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}}, "decision": _decision_0, "settled": _original_0};
-  } else {
-    const _decision_1 = {$: "Flow.AllowFinish", "discarded": ($$$$047agent$045flow$045bend$047Flow$distinct$(($$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0)), {$: "Nil"})), "cancelled_source": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Preparation"}, _packets_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.Jev"}, _packets_0))};
-    return {$: "Flow.Accepted", "state": {$: "Flow.Flow", "packets": {$: "Nil"}, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": false, "continuations": _continuations_0, "waiting": false, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}}, "decision": _decision_1, "settled": _original_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const __0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const __1 = _flow_0["waiting"];
-  const __2 = _flow_0["background_available"];
-  const __3 = _flow_0["lease"];
-  const __4 = _flow_0["leased_id"];
-  const __5 = _flow_0["last_surface"];
-  const __6 = _flow_0["last_id"];
-  const _submitted_0 = _flow_0["background_submitted"];
-  const _advice_0 = ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.AdviceStore"}, _packets_0));
-  const _can_continue_0 = ($Bool$and$(($Bool$not$(($List$is_empty$(_advice_0)))), (_continuations_0 < 4)));
-  return $$$$047agent$045flow$045bend$047Flow$finish$choose$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": __0, "continuations": _continuations_0, "waiting": __1, "background_available": __2, "lease": __3, "leased_id": __4, "last_surface": __5, "last_id": __6, "background_submitted": _submitted_0}, _packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _continuations_0, _submitted_0, _advice_0, _can_continue_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$ready_to_finish$(_flow_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const __6 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const __7 = _flow_0["background_available"];
-  const __8 = _flow_0["lease"];
-  const __9 = _flow_0["leased_id"];
-  const __10 = _flow_0["last_surface"];
-  const __11 = _flow_0["last_id"];
-  const __12 = _flow_0["background_submitted"];
-  return $Bool$and$(_waiting_0, ($Bool$not$(($$$$047agent$045flow$045bend$047Flow$work_pending$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": _waiting_0, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12})))));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$accept$after$(_flow_0, _ready_0) {
-  if (_ready_0) {
-    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
-  } else {
-    return {$: "Flow.Accepted", "state": _flow_0, "decision": {$: "Flow.NoDecision"}, "settled": _flow_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$accept$(_flow_0) {
-  const _settled_0 = ($$$$047agent$045flow$045bend$047Flow$settle$(_flow_0));
-  return $$$$047agent$045flow$045bend$047Flow$accept$after$(_settled_0, ($$$$047agent$045flow$045bend$047Flow$ready_to_finish$(_settled_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, _reason_0) {
-  return {$: "Flow.Rejected", "state": _flow_0, "reason": _reason_0};
-}
-
-function $$$$047agent$045flow$045bend$047Flow$edit$open$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0) {
-  if (_active_0) {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($List$append$(_packets_0, {$: "Con", "head": {$: "Flow.Packet", "id": _next_id_0, "at": {$: "Flow.EditQueue"}}, "tail": {$: "Nil"}})), "next_id": nat_chk(_next_id_0 + 1), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": true, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": true, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": {$: "Con", "head": {$: "Flow.Packet", "id": _next_id_0, "at": {$: "Flow.EditQueue"}}, "tail": {$: "Nil"}}, "next_id": nat_chk(_next_id_0 + 1), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": nat_chk(_round_id_0 + 1), "active": true, "continuations": 0, "waiting": false, "background_available": true, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "None"}, "last_id": {$: "None"}, "background_submitted": {$: "Nil"}});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$edit$(_flow_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _lease_0 = _flow_0["lease"];
-  const _leased_id_0 = _flow_0["leased_id"];
-  const _last_surface_0 = _flow_0["last_surface"];
-  const _last_id_0 = _flow_0["last_id"];
-  const _background_submitted_0 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$edit$open$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$set_capacity$valid$(_flow_0, _capacity_0, _source_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const __0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _background_available_0 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const _leased_id_0 = _flow_0["leased_id"];
-  const _last_surface_0 = _flow_0["last_surface"];
-  const _last_id_0 = _flow_0["last_id"];
-  const _background_submitted_0 = _flow_0["background_submitted"];
-  if (_source_0) {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": __0, "review_capacity": _capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$set_capacity$choose$(_flow_0, _capacity_0, _source_0, _valid_0) {
-  if (!_valid_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InvalidCapacity"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$set_capacity$valid$(_flow_0, _capacity_0, _source_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$set_capacity$(_flow_0, _capacity_0, _source_0) {
-  return $$$$047agent$045flow$045bend$047Flow$set_capacity$choose$(_flow_0, _capacity_0, _source_0, ($$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$stop$budget$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0, _under_budget_0) {
-  if (_under_budget_0) {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": true, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$finish$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": true, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$stop$choose$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0) {
-  if (_waiting_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$({$: "Flow.Flow", "packets": _packets_0, "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": true, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _background_submitted_0}, {$: "Flow.FinishDecisionAlreadyOpen"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$stop$budget$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0, (_continuations_0 < 4));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$stop$(_flow_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _background_available_0 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const _leased_id_0 = _flow_0["leased_id"];
-  const _last_surface_0 = _flow_0["last_surface"];
-  const _last_id_0 = _flow_0["last_id"];
-  const _background_submitted_0 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$stop$choose$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _background_available_0, _lease_0, _leased_id_0, _last_surface_0, _last_id_0, _background_submitted_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$is_active$(_flow_0) {
-  const _active_0 = _flow_0["active"];
-  return _active_0;
-}
-
-function $$$$047agent$045flow$045bend$047Flow$apply_move$do$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _id_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _background_available_0 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const _leased_id_0 = _flow_0["leased_id"];
-  const _last_surface_0 = _flow_0["last_surface"];
-  const _last_id_0 = _flow_0["last_id"];
-  const _submitted_0 = _flow_0["background_submitted"];
-  if (_terminal_0) {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, _source_0, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, _source_0, _target_0, _copy_0, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _background_available_0, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$apply_move$found$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.MissingPacket"});
-  } else {
-    const _id_0 = _found_0["value"];
-    return $$$$047agent$045flow$045bend$047Flow$apply_move$do$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, _source_0, _target_0, _copy_0, _terminal_0, _selected_0) {
-  const _packets_0 = _flow_0["packets"];
-  const __0 = _flow_0["next_id"];
-  const __1 = _flow_0["source_capacity"];
-  const __2 = _flow_0["review_capacity"];
-  const __3 = _flow_0["round_id"];
-  const __4 = _flow_0["active"];
-  const __5 = _flow_0["continuations"];
-  const __6 = _flow_0["waiting"];
-  const __7 = _flow_0["background_available"];
-  const __8 = _flow_0["lease"];
-  const __9 = _flow_0["leased_id"];
-  const __10 = _flow_0["last_surface"];
-  const __11 = _flow_0["last_id"];
-  const __12 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$apply_move$found$({$: "Flow.Flow", "packets": _packets_0, "next_id": __0, "source_capacity": __1, "review_capacity": __2, "round_id": __3, "active": __4, "continuations": __5, "waiting": __6, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12}, _source_0, _target_0, _copy_0, _terminal_0, ($$$$047agent$045flow$045bend$047Flow$find$(_source_0, _selected_0, _packets_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$deadline$settled$(_flow_0, _pending_0) {
-  if (_pending_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.WorkStillPending"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$deadline$budget$(_flow_0, _under_budget_0) {
-  if (_under_budget_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.UnexpectedControl"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$deadline$kind$(_flow_0, _kind_0, _continuations_0) {
-  if (_kind_0.$ === "Flow.FinishDecisionAllWorkSettled") {
-    return $$$$047agent$045flow$045bend$047Flow$deadline$settled$(_flow_0, ($$$$047agent$045flow$045bend$047Flow$work_pending$(_flow_0)));
-  } else if (_kind_0.$ === "Flow.FinishDecisionBudgetExhausted") {
-    return $$$$047agent$045flow$045bend$047Flow$deadline$budget$(_flow_0, (_continuations_0 < 4));
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$finish$(_flow_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$deadline$wait$(_flow_0, _kind_0, _continuations_0, _waiting_0) {
-  if (!_waiting_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.StopNotWaiting"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$deadline$kind$(_flow_0, _kind_0, _continuations_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, _kind_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const __6 = _flow_0["background_available"];
-  const __7 = _flow_0["lease"];
-  const __8 = _flow_0["leased_id"];
-  const __9 = _flow_0["last_surface"];
-  const __10 = _flow_0["last_id"];
-  const __11 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$deadline$wait$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": __6, "lease": __7, "leased_id": __8, "last_surface": __9, "last_id": __10, "background_submitted": __11}, _kind_0, _continuations_0, _waiting_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_apply$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _last_surface_0, _last_id_0, _submitted_0, _surface_0, _id_0) {
-  if (_surface_0.$ === "Flow.Background") {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, {$: "Flow.AdviceStore"}, {$: "Flow.AdvicePolicy"}, true, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": _available_0, "lease": {$: "Some", "value": {$: "Flow.Background"}}, "leased_id": {$: "Some", "value": _id_0}, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$move_one$(_id_0, {$: "Flow.AdviceStore"}, {$: "Flow.AdvicePolicy"}, true, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": nat_chk(_continuations_0 + 1), "waiting": _waiting_0, "background_available": _available_0, "lease": {$: "Some", "value": {$: "Flow.Stop"}}, "leased_id": {$: "Some", "value": _id_0}, "last_surface": _last_surface_0, "last_id": _last_id_0, "background_submitted": _submitted_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, _surface_0, _id_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _available_0 = _flow_0["background_available"];
-  const _last_surface_0 = _flow_0["last_surface"];
-  const _last_id_0 = _flow_0["last_id"];
-  const _submitted_0 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_apply$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _last_surface_0, _last_id_0, _submitted_0, _surface_0, _id_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_check$submitted$(_flow_0, _surface_0, _id_0, _submitted_0) {
-  if (_surface_0.$ === "Flow.Background") {
-    if (_submitted_0) {
-      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.BackgroundAlreadySubmitted"});
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Background"}, _id_0);
-    }
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Stop"}, _id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_check$(_flow_0, _surface_0, _id_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const __6 = _flow_0["continuations"];
-  const __7 = _flow_0["waiting"];
-  const __8 = _flow_0["background_available"];
-  const __9 = _flow_0["lease"];
-  const __10 = _flow_0["leased_id"];
-  const __11 = _flow_0["last_surface"];
-  const __12 = _flow_0["last_id"];
-  const _submitted_0 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_check$submitted$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": __8, "lease": __9, "leased_id": __10, "last_surface": __11, "last_id": __12, "background_submitted": _submitted_0}, _surface_0, _id_0, ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _submitted_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_found$(_flow_0, _surface_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.MissingPacket"});
-  } else {
-    const _id_0 = _found_0["value"];
-    return $$$$047agent$045flow$045bend$047Flow$lease_check$(_flow_0, _surface_0, _id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_find$(_flow_0, _selected_0, _surface_0) {
-  const _packets_0 = _flow_0["packets"];
-  const __0 = _flow_0["next_id"];
-  const __1 = _flow_0["source_capacity"];
-  const __2 = _flow_0["review_capacity"];
-  const __3 = _flow_0["round_id"];
-  const __4 = _flow_0["active"];
-  const __5 = _flow_0["continuations"];
-  const __6 = _flow_0["waiting"];
-  const __7 = _flow_0["background_available"];
-  const __8 = _flow_0["lease"];
-  const __9 = _flow_0["leased_id"];
-  const __10 = _flow_0["last_surface"];
-  const __11 = _flow_0["last_id"];
-  const __12 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_found$({$: "Flow.Flow", "packets": _packets_0, "next_id": __0, "source_capacity": __1, "review_capacity": __2, "round_id": __3, "active": __4, "continuations": __5, "waiting": __6, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12}, _surface_0, ($$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.AdviceStore"}, _selected_0, _packets_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_background$guard$(_flow_0, _selected_0, _available_0, _busy_0) {
-  if (!_available_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.BackgroundNotRequested"});
-  } else {
-    if (_busy_0) {
-      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.LeaseBusy"});
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$lease_find$(_flow_0, _selected_0, {$: "Flow.Background"});
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_background$(_flow_0, _selected_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const __6 = _flow_0["continuations"];
-  const __7 = _flow_0["waiting"];
-  const _available_0 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const __8 = _flow_0["leased_id"];
-  const __9 = _flow_0["last_surface"];
-  const __10 = _flow_0["last_id"];
-  const __11 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_background$guard$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": _available_0, "lease": _lease_0, "leased_id": __8, "last_surface": __9, "last_id": __10, "background_submitted": __11}, _selected_0, _available_0, ($$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$eligible$(_flow_0, _id_0, _reoffer_0, _submitted_0) {
-  if (_reoffer_0) {
-    if (!_submitted_0) {
-      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.ReofferNeedsBackground"});
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Stop"}, _id_0);
-    }
-  } else {
-    if (_submitted_0) {
-      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.StopNeedsFreshAdvice"});
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$lease_apply$(_flow_0, {$: "Flow.Stop"}, _id_0);
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$check$(_flow_0, _reoffer_0, _id_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const __6 = _flow_0["continuations"];
-  const __7 = _flow_0["waiting"];
-  const __8 = _flow_0["background_available"];
-  const __9 = _flow_0["lease"];
-  const __10 = _flow_0["leased_id"];
-  const __11 = _flow_0["last_surface"];
-  const __12 = _flow_0["last_id"];
-  const _submitted_0 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_stop$eligible$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": __8, "lease": __9, "leased_id": __10, "last_surface": __11, "last_id": __12, "background_submitted": _submitted_0}, _id_0, _reoffer_0, ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _submitted_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$found$(_flow_0, _reoffer_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.MissingPacket"});
-  } else {
-    const _id_0 = _found_0["value"];
-    return $$$$047agent$045flow$045bend$047Flow$lease_stop$check$(_flow_0, _reoffer_0, _id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$find$(_flow_0, _selected_0, _reoffer_0) {
-  const _packets_0 = _flow_0["packets"];
-  const __0 = _flow_0["next_id"];
-  const __1 = _flow_0["source_capacity"];
-  const __2 = _flow_0["review_capacity"];
-  const __3 = _flow_0["round_id"];
-  const __4 = _flow_0["active"];
-  const __5 = _flow_0["continuations"];
-  const __6 = _flow_0["waiting"];
-  const __7 = _flow_0["background_available"];
-  const __8 = _flow_0["lease"];
-  const __9 = _flow_0["leased_id"];
-  const __10 = _flow_0["last_surface"];
-  const __11 = _flow_0["last_id"];
-  const __12 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_stop$found$({$: "Flow.Flow", "packets": _packets_0, "next_id": __0, "source_capacity": __1, "review_capacity": __2, "round_id": __3, "active": __4, "continuations": __5, "waiting": __6, "background_available": __7, "lease": __8, "leased_id": __9, "last_surface": __10, "last_id": __11, "background_submitted": __12}, _reoffer_0, ($$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.AdviceStore"}, _selected_0, _packets_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$budget$(_flow_0, _selected_0, _reoffer_0, _under_budget_0) {
-  if (!_under_budget_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.ContinuationBudgetExhausted"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$lease_stop$find$(_flow_0, _selected_0, _reoffer_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$guard$(_flow_0, _selected_0, _reoffer_0, _continuations_0, _waiting_0, _busy_0) {
-  if (!_waiting_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.StopNotRequested"});
-  } else {
-    if (_busy_0) {
-      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.LeaseBusy"});
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$lease_stop$budget$(_flow_0, _selected_0, _reoffer_0, (_continuations_0 < 4));
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$lease_stop$(_flow_0, _selected_0, _reoffer_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const __6 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const __7 = _flow_0["leased_id"];
-  const __8 = _flow_0["last_surface"];
-  const __9 = _flow_0["last_id"];
-  const __10 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$lease_stop$guard$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": __6, "lease": _lease_0, "leased_id": __7, "last_surface": __8, "last_id": __9, "background_submitted": __10}, _selected_0, _reoffer_0, _continuations_0, _waiting_0, ($$$$047agent$045flow$045bend$047Flow$has_lease$(_lease_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Flow$submit$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _submitted_0, _surface_0, _id_0) {
-  if (_surface_0.$ === "Flow.Background") {
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, {$: "Flow.AdvicePolicy"}, _packets_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": _waiting_0, "background_available": false, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "Some", "value": {$: "Flow.Background"}}, "last_id": {$: "Some", "value": _id_0}, "background_submitted": ($List$append$(_submitted_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}}))});
-  } else {
-    const _next_0 = ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, {$: "Flow.AdvicePolicy"}, _packets_0));
-    return $$$$047agent$045flow$045bend$047Flow$accept$({$: "Flow.Flow", "packets": ($$$$047agent$045flow$045bend$047Flow$remove_one$(_id_0, {$: "Flow.AdviceStore"}, _next_0)), "next_id": _next_id_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "round_id": _round_id_0, "active": _active_0, "continuations": _continuations_0, "waiting": false, "background_available": _available_0, "lease": {$: "None"}, "leased_id": {$: "None"}, "last_surface": {$: "Some", "value": {$: "Flow.Stop"}}, "last_id": {$: "Some", "value": _id_0}, "background_submitted": _submitted_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$submit$run$(_flow_0, _surface_0, _id_0) {
-  const _packets_0 = _flow_0["packets"];
-  const _next_id_0 = _flow_0["next_id"];
-  const _source_capacity_0 = _flow_0["source_capacity"];
-  const _review_capacity_0 = _flow_0["review_capacity"];
-  const _round_id_0 = _flow_0["round_id"];
-  const _active_0 = _flow_0["active"];
-  const _continuations_0 = _flow_0["continuations"];
-  const _waiting_0 = _flow_0["waiting"];
-  const _available_0 = _flow_0["background_available"];
-  const _submitted_0 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$submit$surface$(_packets_0, _next_id_0, _source_capacity_0, _review_capacity_0, _round_id_0, _active_0, _continuations_0, _waiting_0, _available_0, _submitted_0, _surface_0, _id_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$submit$lease$(_flow_0, _lease_0, _leased_id_0) {
-  if (_lease_0.$ === "None") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.NoLease"});
-  } else {
-    const _surface_0 = _lease_0["value"];
-    if (_leased_id_0.$ === "Some") {
-      const _id_0 = _leased_id_0["value"];
-      return $$$$047agent$045flow$045bend$047Flow$submit$run$(_flow_0, _surface_0, _id_0);
-    } else {
-      return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.NoLease"});
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$submit$(_flow_0) {
-  const __0 = _flow_0["packets"];
-  const __1 = _flow_0["next_id"];
-  const __2 = _flow_0["source_capacity"];
-  const __3 = _flow_0["review_capacity"];
-  const __4 = _flow_0["round_id"];
-  const __5 = _flow_0["active"];
-  const __6 = _flow_0["continuations"];
-  const __7 = _flow_0["waiting"];
-  const __8 = _flow_0["background_available"];
-  const _lease_0 = _flow_0["lease"];
-  const _leased_id_0 = _flow_0["leased_id"];
-  const __9 = _flow_0["last_surface"];
-  const __10 = _flow_0["last_id"];
-  const __11 = _flow_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$submit$lease$({$: "Flow.Flow", "packets": __0, "next_id": __1, "source_capacity": __2, "review_capacity": __3, "round_id": __4, "active": __5, "continuations": __6, "waiting": __7, "background_available": __8, "lease": _lease_0, "leased_id": _leased_id_0, "last_surface": __9, "last_id": __10, "background_submitted": __11}, _lease_0, _leased_id_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$step$live$(_flow_0, _event_0, _item_id_0) {
-  if (_event_0.$ === "Flow.ReviewUnitPrepared") {
-    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Preparation"}, {$: "Flow.ReviewQueue"}, false, false, _item_id_0);
-  } else if (_event_0.$ === "Flow.JevFindingReceived") {
-    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Jev"}, {$: "Flow.AdviceStore"}, false, false, _item_id_0);
-  } else if (_event_0.$ === "Flow.JevClearReceived") {
-    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Jev"}, {$: "Flow.Jev"}, false, true, _item_id_0);
-  } else if (_event_0.$ === "Flow.JevUnavailable") {
-    return $$$$047agent$045flow$045bend$047Flow$apply_move$(_flow_0, {$: "Flow.Jev"}, {$: "Flow.Jev"}, false, true, _item_id_0);
-  } else if (_event_0.$ === "Flow.StopHookFired") {
-    return $$$$047agent$045flow$045bend$047Flow$stop$(_flow_0);
-  } else if (_event_0.$ === "Flow.FinishDecisionDeadlineReached") {
-    return $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, {$: "Flow.FinishDecisionDeadlineReached"});
-  } else if (_event_0.$ === "Flow.FinishDecisionAllWorkSettled") {
-    return $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, {$: "Flow.FinishDecisionAllWorkSettled"});
-  } else if (_event_0.$ === "Flow.FinishDecisionBudgetExhausted") {
-    return $$$$047agent$045flow$045bend$047Flow$deadline$(_flow_0, {$: "Flow.FinishDecisionBudgetExhausted"});
-  } else if (_event_0.$ === "Flow.AdviceLeasedByBackground") {
-    return $$$$047agent$045flow$045bend$047Flow$lease_background$(_flow_0, _item_id_0);
-  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
-    return $$$$047agent$045flow$045bend$047Flow$submit$(_flow_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.UnexpectedControl"});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$step$active$(_flow_0, _event_0, _item_id_0, _active_0) {
-  if (!_active_0) {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.VirtualRoundClosed"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$step$live$(_flow_0, _event_0, _item_id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$step$(_flow_0, _event_0, _item_id_0) {
-  if (_event_0.$ === "Flow.EditObserved") {
-    return $$$$047agent$045flow$045bend$047Flow$edit$(_flow_0);
-  } else if (_event_0.$ === "Flow.SourceCapacitySet") {
-    const _capacity_0 = _event_0["capacity"];
-    return $$$$047agent$045flow$045bend$047Flow$set_capacity$(_flow_0, _capacity_0, true);
-  } else if (_event_0.$ === "Flow.ReviewCapacitySet") {
-    const _capacity_1 = _event_0["capacity"];
-    return $$$$047agent$045flow$045bend$047Flow$set_capacity$(_flow_0, _capacity_1, false);
-  } else if (_event_0.$ === "Flow.IngressStarted") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.UnitDispatched") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.JevRequestSent") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.BackgroundWaitStarted") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.AdviceLeasedByStop") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.AdviceReofferedAtStop") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.StopAllowed") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.FinishResponseRequested") {
-    return $$$$047agent$045flow$045bend$047Flow$reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else {
-    return $$$$047agent$045flow$045bend$047Flow$step$active$(_flow_0, _event_0, _item_id_0, ($$$$047agent$045flow$045bend$047Flow$is_active$(_flow_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$main$() {
-  return $$$$047agent$045flow$045bend$047Flow$initial$();
-}
-
-function $$$$047agent$045flow$045bend$047Flow$some$(_value_0) {
-  if (_value_0.$ === "None") {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$event_item$pick$(_event_0, _selected_0, _packets_0, _next_id_0, _leased_id_0) {
-  if (_event_0.$ === "Flow.EditObserved") {
-    return {$: "Some", "value": _next_id_0};
-  } else if (_event_0.$ === "Flow.ReviewUnitPrepared") {
-    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Preparation"}, _selected_0, _packets_0);
-  } else if (_event_0.$ === "Flow.JevFindingReceived") {
-    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Jev"}, _selected_0, _packets_0);
-  } else if (_event_0.$ === "Flow.JevClearReceived") {
-    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Jev"}, _selected_0, _packets_0);
-  } else if (_event_0.$ === "Flow.JevUnavailable") {
-    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.Jev"}, _selected_0, _packets_0);
-  } else if (_event_0.$ === "Flow.AdviceLeasedByBackground") {
-    return $$$$047agent$045flow$045bend$047Flow$find$({$: "Flow.AdviceStore"}, _selected_0, _packets_0);
-  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
-    return _leased_id_0;
-  } else {
-    return {$: "None"};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$event_item$(_event_0, _selected_0, _before_0) {
-  const _packets_0 = _before_0["packets"];
-  const _next_id_0 = _before_0["next_id"];
-  const _leased_id_0 = _before_0["leased_id"];
-  return $$$$047agent$045flow$045bend$047Flow$event_item$pick$(_event_0, _selected_0, _packets_0, _next_id_0, _leased_id_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$own_change$(_event_0, _before_0, _item_0) {
-  if (_event_0.$ === "Flow.SourceCapacitySet") {
-    const _capacity_0 = _event_0["capacity"];
-    const _previous_0 = _before_0["source_capacity"];
-    return {$: "Flow.CapacityChanged", "source": true, "before": _previous_0, "after": _capacity_0};
-  } else if (_event_0.$ === "Flow.ReviewCapacitySet") {
-    const _capacity_1 = _event_0["capacity"];
-    const _previous_1 = _before_0["review_capacity"];
-    return {$: "Flow.CapacityChanged", "source": false, "before": _previous_1, "after": _capacity_1};
-  } else {
-    return {$: "Flow.Transition", "event": _event_0, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$(_event_0)), "item": _item_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$opened$(_before_active_0, _mid_active_0, _round_id_0) {
-  if (!_before_active_0) {
-    if (_mid_active_0) {
-      return {$: "Con", "head": {$: "Flow.RoundOpened", "id": _round_id_0}, "tail": {$: "Nil"}};
-    } else {
-      return {$: "Nil"};
-    }
-  } else {
-    return {$: "Nil"};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$emission$(_event_0, _item_0) {
-  if (_event_0.$ === "Flow.JevClearReceived") {
-    if (_item_0.$ === "Some") {
-      const _id_0 = _item_0["value"];
-      return {$: "Con", "head": {$: "Flow.Emitted", "event": {$: "Flow.JevClearReceived"}, "at": {$: "Flow.OutcomeStoreNode"}, "item": _id_0}, "tail": {$: "Nil"}};
-    } else {
-      return {$: "Nil"};
-    }
-  } else if (_event_0.$ === "Flow.JevUnavailable") {
-    if (_item_0.$ === "Some") {
-      const _id_1 = _item_0["value"];
-      return {$: "Con", "head": {$: "Flow.Emitted", "event": {$: "Flow.JevUnavailable"}, "at": {$: "Flow.OutcomeStoreNode"}, "item": _id_1}, "tail": {$: "Nil"}};
-    } else {
-      return {$: "Nil"};
-    }
-  } else if (_event_0.$ === "Flow.HostOutputSubmitted") {
-    if (_item_0.$ === "Some") {
-      const _id_2 = _item_0["value"];
-      return {$: "Con", "head": {$: "Flow.Emitted", "event": {$: "Flow.HostOutputSubmitted"}, "at": {$: "Flow.ObservedWriteNode"}, "item": _id_2}, "tail": {$: "Nil"}};
-    } else {
-      return {$: "Nil"};
-    }
-  } else {
-    return {$: "Nil"};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$is_edit$(_event_0) {
-  if (_event_0.$ === "Flow.EditObserved") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$is_prepared$(_event_0) {
-  if (_event_0.$ === "Flow.ReviewUnitPrepared") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$schedule_source$pick$(_id_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.IngressStarted"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.IngressStarted"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0};
-  } else {
-    return _tail_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$schedule_source$(_event_0, _next_id_0, _old_edit_ids_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _place_0 = _t_0["at"];
-    const _rest_0 = _packets_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _old_edit_ids_0));
-    const _x_1 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$is_edit$(_event_0)), ($Nat$is_eq$(_id_0, _next_id_0))));
-    const _hit_0 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$same_place$(_place_0, {$: "Flow.Preparation"})), (_x_0 || _x_1)));
-    return $$$$047agent$045flow$045bend$047Flow$schedule_source$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$schedule_source$(_event_0, _next_id_0, _old_edit_ids_0, _rest_0)), _hit_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$selected_is$(_id_0, _selected_0) {
-  if (_selected_0.$ === "None") {
-    return false;
-  } else {
-    const _wanted_0 = _selected_0["value"];
-    return $Nat$is_eq$(_id_0, _wanted_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$schedule_review$pick$(_id_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.UnitDispatched"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.UnitDispatched"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.JevRequestSent"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.JevRequestSent"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0}};
-  } else {
-    return _tail_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$schedule_review$(_event_0, _own_item_0, _old_review_ids_0, _packets_0) {
-  if (_packets_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _packets_0["head"];
-    const _id_0 = _t_0["id"];
-    const _place_0 = _t_0["at"];
-    const _rest_0 = _packets_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _old_review_ids_0));
-    const _x_1 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$is_prepared$(_event_0)), ($$$$047agent$045flow$045bend$047Flow$selected_is$(_id_0, _own_item_0))));
-    const _hit_0 = ($Bool$and$(($$$$047agent$045flow$045bend$047Flow$same_place$(_place_0, {$: "Flow.Jev"})), (_x_0 || _x_1)));
-    return $$$$047agent$045flow$045bend$047Flow$schedule_review$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$schedule_review$(_event_0, _own_item_0, _old_review_ids_0, _rest_0)), _hit_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$first_id$(_ids_0) {
-  if (_ids_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _id_0 = _ids_0["head"];
-    return {$: "Some", "value": _id_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_trigger$stop$(_under_budget_0) {
-  if (_under_budget_0) {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishDecisionAllWorkSettled"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishDecisionAllWorkSettled"})), "item": {$: "None"}}, "tail": {$: "Nil"}};
-  } else {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishDecisionBudgetExhausted"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishDecisionBudgetExhausted"})), "item": {$: "None"}}, "tail": {$: "Nil"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_trigger$(_event_0, _continuations_0) {
-  if (_event_0.$ === "Flow.FinishDecisionDeadlineReached") {
-    return {$: "Nil"};
-  } else if (_event_0.$ === "Flow.FinishDecisionAllWorkSettled") {
-    return {$: "Nil"};
-  } else if (_event_0.$ === "Flow.FinishDecisionBudgetExhausted") {
-    return {$: "Nil"};
-  } else if (_event_0.$ === "Flow.StopHookFired") {
-    return $$$$047agent$045flow$045bend$047Flow$finish_trigger$stop$((_continuations_0 < 4));
-  } else {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishDecisionAllWorkSettled"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishDecisionAllWorkSettled"})), "item": {$: "None"}}, "tail": {$: "Nil"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_leases$pick$(_id_0, _tail_0, _reoffer_0) {
-  if (_reoffer_0) {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.AdviceReofferedAtStop"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.AdviceReofferedAtStop"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0};
-  } else {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.AdviceLeasedByStop"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.AdviceLeasedByStop"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_leases$(_ids_0, _submitted_0) {
-  if (_ids_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _id_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    return $$$$047agent$045flow$045bend$047Flow$finish_leases$pick$(_id_0, ($$$$047agent$045flow$045bend$047Flow$finish_leases$(_rest_0, _submitted_0)), ($$$$047agent$045flow$045bend$047Flow$contains$(_id_0, _submitted_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_tail$pick$(_decision_0, _packets_0, _round_id_0, _submitted_0) {
-  if (_decision_0.$ === "Flow.NoDecision") {
-    return {$: "Nil"};
-  } else if (_decision_0.$ === "Flow.ContinueWithAdvice") {
-    const _advice_ids_0 = _decision_0["ids"];
-    const __0 = _decision_0["discarded"];
-    const __1 = _decision_0["cancelled_source"];
-    const __2 = _decision_0["cancelled_jev"];
-    return $List$append$(($$$$047agent$045flow$045bend$047Flow$finish_leases$(_advice_ids_0, _submitted_0)), {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishResponseRequested"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishResponseRequested"})), "item": ($$$$047agent$045flow$045bend$047Flow$first_id$(_advice_ids_0))}, "tail": {$: "Con", "head": {$: "Flow.FinishDecision", "decision": {$: "Flow.ContinueWithAdvice", "ids": _advice_ids_0, "discarded": __0, "cancelled_source": __1, "cancelled_jev": __2}}, "tail": {$: "Nil"}}});
-  } else {
-    const __3 = _decision_0["discarded"];
-    const __4 = _decision_0["cancelled_source"];
-    const __5 = _decision_0["cancelled_jev"];
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.StopAllowed"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.StopAllowed"})), "item": {$: "None"}}, "tail": {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.FinishResponseRequested"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.FinishResponseRequested"})), "item": {$: "None"}}, "tail": {$: "Con", "head": {$: "Flow.FinishDecision", "decision": {$: "Flow.AllowFinish", "discarded": __3, "cancelled_source": __4, "cancelled_jev": __5}}, "tail": {$: "Con", "head": {$: "Flow.RoundClosed", "id": _round_id_0, "discarded": ($List$length$(($$$$047agent$045flow$045bend$047Flow$distinct$(($$$$047agent$045flow$045bend$047Flow$all_ids$(_packets_0)), {$: "Nil"}))))}, "tail": {$: "Nil"}}}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_tail$(_decision_0, _mid_0) {
-  const _packets_0 = _mid_0["packets"];
-  const _round_id_0 = _mid_0["round_id"];
-  const _submitted_0 = _mid_0["background_submitted"];
-  return $$$$047agent$045flow$045bend$047Flow$finish_tail$pick$(_decision_0, _packets_0, _round_id_0, _submitted_0);
-}
-
-function $$$$047agent$045flow$045bend$047Flow$finish_changes$(_event_0, _continuations_0, _decision_0, _mid_0) {
-  if (_decision_0.$ === "Flow.NoDecision") {
-    return {$: "Nil"};
-  } else {
-    return $List$append$(($$$$047agent$045flow$045bend$047Flow$finish_trigger$(_event_0, _continuations_0)), ($$$$047agent$045flow$045bend$047Flow$finish_tail$(_decision_0, _mid_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$background_start$(_event_0, _available_0, _item_0) {
-  if (_event_0.$ === "Flow.EditObserved") {
-    if (!_available_0) {
-      if (_item_0.$ === "Some") {
-        const _id_0 = _item_0["value"];
-        return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.BackgroundWaitStarted"}, "route": ($$$$047agent$045flow$045bend$047Flow$route_of$({$: "Flow.BackgroundWaitStarted"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Nil"}};
-      } else {
-        return {$: "Nil"};
-      }
-    } else {
-      return {$: "Nil"};
-    }
-  } else {
-    return {$: "Nil"};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Flow$changes$accepted$(_before_0, _event_0, _selected_0, _decision_0, _mid_0) {
-  const _old_packets_0 = _before_0["packets"];
-  const _next_id_0 = _before_0["next_id"];
-  const __0 = _before_0["source_capacity"];
-  const __1 = _before_0["review_capacity"];
-  const __2 = _before_0["round_id"];
-  const _old_active_0 = _before_0["active"];
-  const _continuations_0 = _before_0["continuations"];
-  const __3 = _before_0["waiting"];
-  const _old_background_0 = _before_0["background_available"];
-  const __4 = _before_0["lease"];
-  const __5 = _before_0["leased_id"];
-  const __6 = _before_0["last_surface"];
-  const __7 = _before_0["last_id"];
-  const __8 = _before_0["background_submitted"];
-  const _mid_packets_0 = _mid_0["packets"];
-  const __9 = _mid_0["next_id"];
-  const __10 = _mid_0["source_capacity"];
-  const __11 = _mid_0["review_capacity"];
-  const _round_id_0 = _mid_0["round_id"];
-  const _mid_active_0 = _mid_0["active"];
-  const __12 = _mid_0["continuations"];
-  const __13 = _mid_0["waiting"];
-  const __14 = _mid_0["background_available"];
-  const __15 = _mid_0["lease"];
-  const __16 = _mid_0["leased_id"];
-  const __17 = _mid_0["last_surface"];
-  const __18 = _mid_0["last_id"];
-  const __19 = _mid_0["background_submitted"];
-  const _own_item_0 = ($$$$047agent$045flow$045bend$047Flow$event_item$(_event_0, _selected_0, {$: "Flow.Flow", "packets": _old_packets_0, "next_id": _next_id_0, "source_capacity": __0, "review_capacity": __1, "round_id": __2, "active": _old_active_0, "continuations": _continuations_0, "waiting": __3, "background_available": _old_background_0, "lease": __4, "leased_id": __5, "last_surface": __6, "last_id": __7, "background_submitted": __8}));
-  const _own_0 = ($$$$047agent$045flow$045bend$047Flow$own_change$(_event_0, {$: "Flow.Flow", "packets": _old_packets_0, "next_id": _next_id_0, "source_capacity": __0, "review_capacity": __1, "round_id": __2, "active": _old_active_0, "continuations": _continuations_0, "waiting": __3, "background_available": _old_background_0, "lease": __4, "leased_id": __5, "last_surface": __6, "last_id": __7, "background_submitted": __8}, _own_item_0));
-  const _opening_0 = ($$$$047agent$045flow$045bend$047Flow$opened$(_old_active_0, _mid_active_0, _round_id_0));
-  const _emitted_0 = ($$$$047agent$045flow$045bend$047Flow$emission$(_event_0, _own_item_0));
-  const _started_source_0 = ($$$$047agent$045flow$045bend$047Flow$schedule_source$(_event_0, _next_id_0, ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.EditQueue"}, _old_packets_0)), _mid_packets_0));
-  const _started_review_0 = ($$$$047agent$045flow$045bend$047Flow$schedule_review$(_event_0, _own_item_0, ($$$$047agent$045flow$045bend$047Flow$ids$({$: "Flow.ReviewQueue"}, _old_packets_0)), _mid_packets_0));
-  const _finished_0 = ($$$$047agent$045flow$045bend$047Flow$finish_changes$(_event_0, _continuations_0, _decision_0, {$: "Flow.Flow", "packets": _mid_packets_0, "next_id": __9, "source_capacity": __10, "review_capacity": __11, "round_id": _round_id_0, "active": _mid_active_0, "continuations": __12, "waiting": __13, "background_available": __14, "lease": __15, "leased_id": __16, "last_surface": __17, "last_id": __18, "background_submitted": __19}));
-  const _background_0 = ($$$$047agent$045flow$045bend$047Flow$background_start$(_event_0, _old_background_0, _own_item_0));
-  return {$: "Con", "head": _own_0, "tail": ($List$append$(_opening_0, ($List$append$(_emitted_0, ($List$append$(_started_source_0, ($List$append$(_started_review_0, ($List$append$(_finished_0, _background_0))))))))))};
-}
-
-function $$$$047agent$045flow$045bend$047Flow$changes$(_before_0, _event_0, _selected_0, _result_0) {
-  if (_result_0.$ === "Flow.Rejected") {
-    return {$: "Nil"};
-  } else {
-    const _decision_0 = _result_0["decision"];
-    const _mid_0 = _result_0["settled"];
-    return $$$$047agent$045flow$045bend$047Flow$changes$accepted$(_before_0, _event_0, _selected_0, _decision_0, _mid_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$prepared_offer$(_ready_0, _within_frame_0) {
-  return $Bool$pick$(($Bool$not$(_ready_0)), {$: "Work.SkipPrepared"}, ($Bool$pick$(_within_frame_0, {$: "Work.AdmitPrepared"}, {$: "Work.RejectPreparedCapacity"})));
-}
-
-function $$$$047agent$045flow$045bend$047Work$empty_prepared$(_ready_count_0, _has_non_skipped_0, _authority_bound_0) {
-  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_ready_count_0, 0)), ($Bool$and$(_has_non_skipped_0, _authority_bound_0)))), {$: "Work.FailEmptyLost"}, {$: "Work.NoEmptyFailure"});
-}
-
-function $$$$047agent$045flow$045bend$047Work$evaluated_disposition$(_has_findings_0, _current_work_0) {
-  return $Bool$pick$(_has_findings_0, ($Bool$pick$(_current_work_0, {$: "Work.RetainFinding"}, {$: "Work.RetireStaleFinding"})), ($Bool$pick$(_current_work_0, {$: "Work.SettleClear"}, {$: "Work.SettleStaleClear"})));
-}
-
-function $$$$047agent$045flow$045bend$047Work$failure_disposition$(_backend_or_timeout_0, _credential_0, _missing_0) {
-  return $Bool$pick$(_backend_or_timeout_0, {$: "Work.BackendUnavailable"}, ($Bool$pick$(_credential_0, {$: "Work.CredentialUnavailable"}, ($Bool$pick$(_missing_0, {$: "Work.LostUnavailable"}, {$: "Work.NoFailure"})))));
-}
-
-function $$$$047agent$045flow$045bend$047Work$initial$() {
-  return {$: "Work.Work", "next_observation": 1, "next_unit": 1, "source_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "review_capacity": {$: "Flow.Capacity", "low": 3, "high": 0}, "observations": {$: "Nil"}, "units": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Work$is_source_reading$(_stage_0) {
-  if (_stage_0.$ === "Work.SourceQueued") {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$is_at_jev$(_stage_0) {
-  if (_stage_0.$ === "Work.AtJev") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0) {
-  if (_stage_0.$ === "Work.ReviewQueued") {
-    return true;
-  } else if (_stage_0.$ === "Work.AtJev") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$reading_count$(_observations_0) {
-  if (_observations_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _observations_0["head"];
-    const _stage_0 = _t_0["stage"];
-    const _rest_0 = _observations_0["tail"];
-    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Work$is_source_reading$(_stage_0)), 1, 0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Work$reading_count$(_rest_0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$at_jev_count$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _units_0["head"];
-    const _stage_0 = _t_0["stage"];
-    const _rest_0 = _units_0["tail"];
-    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Work$is_at_jev$(_stage_0)), 1, 0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Work$at_jev_count$(_rest_0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$unfinished_observations$(_observations_0) {
-  return $List$length$(_observations_0);
-}
-
-function $$$$047agent$045flow$045bend$047Work$unfinished_units$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _units_0["head"];
-    const _stage_0 = _t_0["stage"];
-    const _rest_0 = _units_0["tail"];
-    const _x_0 = ($Bool$pick$(($$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0)), 1, 0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Work$unfinished_units$(_rest_0));
-    return nat_chk(_x_0 + _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$unfinished$(_work_0) {
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Work$unfinished_observations$(_observations_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Work$unfinished_units$(_units_0));
-  return nat_chk(_x_0 + _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Work$finish_wait$(_unfinished_0, _deadline_reached_0, _continuation_budget_0) {
-  return $Bool$and$(_continuation_budget_0, ($Bool$and$(($Bool$not$(_deadline_reached_0)), ($Nat$is_gt$(_unfinished_0, 0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Work$pending_findings_in$($0) {
-  for (;;) {
-    {
-      const _units_0 = $0;
-      if (_units_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _units_0["head"];
-        const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.PendingFinding") {
-          const _findings_0 = _t_0["findings"];
-          const _rest_0 = _units_0["tail"];
-          const _x_0 = ($$$$047agent$045flow$045bend$047Work$pending_findings_in$(_rest_0));
-          return nat_chk(_findings_0 + _x_0);
-        } else {
-          const _rest_1 = _units_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$pending_findings$(_work_0) {
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$pending_findings_in$(_units_0);
-}
-
-function $$$$047agent$045flow$045bend$047Work$fill_source$(_observations_0, _capacity_0, _occupied_0) {
-  if (_observations_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _observations_0["head"];
-    const _id_0 = _t_0["id"];
-    const _t_1 = _t_0["stage"];
-    if (_t_1.$ === "Work.SourceQueued") {
-      const _rest_0 = _observations_0["tail"];
-      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
-      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.SourceReading"}, {$: "Work.SourceQueued"}));
-      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
-      return {$: "Con", "head": {$: "Work.Observation", "id": _id_0, "stage": _next_stage_0}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_source$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
-    } else {
-      const _rest_1 = _observations_0["tail"];
-      return {$: "Con", "head": {$: "Work.Observation", "id": _id_0, "stage": {$: "Work.SourceReading"}}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_source$(_rest_1, _capacity_0, _occupied_0))};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$fill_review$(_units_0, _capacity_0, _occupied_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _units_0["head"];
-    const _id_0 = _t_0["id"];
-    const _observation_0 = _t_0["observation"];
-    const _t_1 = _t_0["stage"];
-    if (_t_1.$ === "Work.ReviewQueued") {
-      const _findings_0 = _t_0["findings"];
-      const _bytes_0 = _t_0["bytes"];
-      const _rest_0 = _units_0["tail"];
-      const _room_0 = ($$$$047agent$045flow$045bend$047Flow$has_room$(_occupied_0, _capacity_0));
-      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.AtJev"}, {$: "Work.ReviewQueued"}));
-      const _x_0 = ($Bool$pick$(_room_0, 1, 0));
-      return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _next_stage_0, "findings": _findings_0, "bytes": _bytes_0}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_review$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
-    } else {
-      const _findings_1 = _t_0["findings"];
-      const _bytes_1 = _t_0["bytes"];
-      const _rest_1 = _units_0["tail"];
-      return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _t_1, "findings": _findings_1, "bytes": _bytes_1}, "tail": ($$$$047agent$045flow$045bend$047Work$fill_review$(_rest_1, _capacity_0, _occupied_0))};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$settle$(_work_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$fill_source$(_observations_0, _source_capacity_0, ($$$$047agent$045flow$045bend$047Work$reading_count$(_observations_0)))), "units": ($$$$047agent$045flow$045bend$047Work$fill_review$(_units_0, _review_capacity_0, ($$$$047agent$045flow$045bend$047Work$at_jev_count$(_units_0))))};
-}
-
-function $$$$047agent$045flow$045bend$047Work$admit$(_work_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": nat_chk(_next_observation_0 + 1), "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($List$append$(_observations_0, {$: "Con", "head": {$: "Work.Observation", "id": _next_observation_0, "stage": {$: "Work.SourceQueued"}}, "tail": {$: "Nil"}})), "units": _units_0})), "admitted": {$: "Con", "head": _next_observation_0, "tail": {$: "Nil"}}};
-}
-
-function $$$$047agent$045flow$045bend$047Work$find_observation$pick$(_observation_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _observation_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0) {
-  if (_observations_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _observations_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["stage"];
-    const _rest_0 = _observations_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$find_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_observation$read$(_observation_0, _tail_0) {
-  const _id_0 = _observation_0["id"];
-  return {$: "Con", "head": {$: "Work.Observation", "id": _id_0, "stage": {$: "Work.SourceReading"}}, "tail": _tail_0};
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_observation$pick$(_observation_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return $$$$047agent$045flow$045bend$047Work$start_observation$read$(_observation_0, _tail_0);
-  } else {
-    return {$: "Con", "head": _observation_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_observation$(_id_0, _observations_0) {
-  if (_observations_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _observations_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["stage"];
-    const _rest_0 = _observations_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$start_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$start_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_source$apply$(_work_0, _id_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Accepted", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$start_observation$(_id_0, _observations_0)), "units": _units_0}, "admitted": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_source$found$(_work_0, _id_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$start_source$apply$(_work_0, _id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_source$(_work_0, _id_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const __4 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$start_source$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$remove_observation$pick$(_observation_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _observation_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$remove_observation$(_id_0, _observations_0) {
-  if (_observations_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _observations_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["stage"];
-    const _rest_0 = _observations_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$remove_observation$pick$({$: "Work.Observation", "id": _current_0, "stage": __0}, ($$$$047agent$045flow$045bend$047Work$remove_observation$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$make_units$(_count_0, _observation_0, _next_id_0) {
-  if (_count_0 === 0) {
-    return {$: "Nil"};
-  } else {
-    const _rest_0 = (_count_0 - 1);
-    return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _next_id_0, "observation": _observation_0, "stage": {$: "Work.ReviewQueued"}, "findings": 0, "bytes": 0}, "tail": ($$$$047agent$045flow$045bend$047Work$make_units$(_rest_0, _observation_0, nat_chk(_next_id_0 + 1)))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$unit_ids$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _units_0["head"];
-    const _id_0 = _t_0["id"];
-    const _rest_0 = _units_0["tail"];
-    return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$unit_ids$(_rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$prepare$apply$(_work_0, _observation_0, _count_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  const _new_units_0 = ($$$$047agent$045flow$045bend$047Work$make_units$(_count_0, _observation_0, _next_unit_0));
-  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": nat_chk(_next_unit_0 + _count_0), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$remove_observation$(_observation_0, _observations_0)), "units": ($List$append$(_units_0, _new_units_0))})), "admitted": ($$$$047agent$045flow$045bend$047Work$unit_ids$(_new_units_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Work$prepare$count$(_work_0, _observation_0, _count_0, _within_limit_0) {
-  if (!_within_limit_0) {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.TooManyUnits"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$prepare$apply$(_work_0, _observation_0, _count_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$prepare$stage$(_work_0, _observation_0, _count_0, _stage_0) {
-  if (_stage_0.$ === "Work.SourceQueued") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$prepare$count$(_work_0, _observation_0, _count_0, ($Nat$is_le$(_count_0, 16)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$prepare$found$(_work_0, _observation_0, _count_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _stage_0 = _t_0["stage"];
-    return $$$$047agent$045flow$045bend$047Work$prepare$stage$(_work_0, _observation_0, _count_0, _stage_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$prepare$(_work_0, _observation_0, _count_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const __4 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$prepare$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_observation_0, _observations_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$spawn$apply$(_work_0, _observation_0, _count_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  const _new_units_0 = ($$$$047agent$045flow$045bend$047Work$make_units$(_count_0, _observation_0, _next_unit_0));
-  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": nat_chk(_next_unit_0 + _count_0), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($List$append$(_units_0, _new_units_0))})), "admitted": ($$$$047agent$045flow$045bend$047Work$unit_ids$(_new_units_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Work$spawn$count$(_work_0, _observation_0, _count_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.TooManyUnits"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$spawn$apply$(_work_0, _observation_0, _count_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$spawn$found$(_work_0, _observation_0, _count_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _t_1 = _t_0["stage"];
-    if (_t_1.$ === "Work.SourceQueued") {
-      return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
-    } else {
-      return $$$$047agent$045flow$045bend$047Work$spawn$count$(_work_0, _observation_0, _count_0, ($Nat$is_le$(_count_0, 16)));
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$spawn$(_work_0, _observation_0, _count_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const __4 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$spawn$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_observation_0, _observations_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$find_unit$pick$(_unit_0, _fallback_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Some", "value": _unit_0};
-  } else {
-    return _fallback_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _units_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["observation"];
-    const __1 = _t_0["stage"];
-    const __2 = _t_0["findings"];
-    const __3 = _t_0["bytes"];
-    const _rest_0 = _units_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$find_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$pending_for$found$(_found_0) {
-  if (_found_0.$ === "None") {
-    return 0;
-  } else {
-    const _t_0 = _found_0["value"];
-    const _t_1 = _t_0["stage"];
-    if (_t_1.$ === "Work.PendingFinding") {
-      const _findings_0 = _t_0["findings"];
-      return _findings_0;
-    } else {
-      return 0;
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$pending_for$(_work_0, _id_0) {
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$pending_for$found$(($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$replace_unit$pick$(_unit_0, _replacement_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return {$: "Con", "head": _replacement_0, "tail": _tail_0};
-  } else {
-    return {$: "Con", "head": _unit_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$replace_unit$(_id_0, _replacement_0, _units_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _units_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["observation"];
-    const __1 = _t_0["stage"];
-    const __2 = _t_0["findings"];
-    const __3 = _t_0["bytes"];
-    const _rest_0 = _units_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$replace_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, _replacement_0, ($$$$047agent$045flow$045bend$047Work$replace_unit$(_id_0, _replacement_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, _unit_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  const _id_0 = _unit_0["id"];
-  const __0 = _unit_0["observation"];
-  const __1 = _unit_0["stage"];
-  const __2 = _unit_0["findings"];
-  const __3 = _unit_0["bytes"];
-  return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($$$$047agent$045flow$045bend$047Work$replace_unit$(_id_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, _units_0))})), "admitted": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_unit$apply$(_work_0, _id_0, _observation_0) {
-  return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.AtJev"}, "findings": 0, "bytes": 0});
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
-  if (_stage_0.$ === "Work.ReviewQueued") {
-    return $$$$047agent$045flow$045bend$047Work$start_unit$apply$(_work_0, _id_0, _observation_0);
-  } else if (_stage_0.$ === "Work.AtJev") {
-    return {$: "Work.Accepted", "state": _work_0, "admitted": {$: "Nil"}};
-  } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_unit$found$(_work_0, _id_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _observation_0 = _t_0["observation"];
-    const _stage_0 = _t_0["stage"];
-    return $$$$047agent$045flow$045bend$047Work$start_unit$stage$(_work_0, _id_0, _observation_0, _stage_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$start_unit$(_work_0, _id_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const __4 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$start_unit$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$outcome$finding$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, _positive_0) {
-  if (!_positive_0) {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.InvalidFinding"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.PendingFinding"}, "findings": _count_0, "bytes": _bytes_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$outcome$kind$(_work_0, _id_0, _observation_0, _result_0) {
-  if (_result_0.$ === "Work.Finding") {
-    const _count_0 = _result_0["count"];
-    const _bytes_0 = _result_0["bytes"];
-    return $$$$047agent$045flow$045bend$047Work$outcome$finding$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
-  } else if (_result_0.$ === "Work.Clear") {
-    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.ClearResult"}, "findings": 0, "bytes": 0});
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.UnavailableResult"}, "findings": 0, "bytes": 0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0) {
-  if (_stage_0.$ === "Work.AtJev") {
-    return $$$$047agent$045flow$045bend$047Work$outcome$kind$(_work_0, _id_0, _observation_0, _result_0);
-  } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$outcome$found$(_work_0, _id_0, _result_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _observation_0 = _t_0["observation"];
-    const _stage_0 = _t_0["stage"];
-    return $$$$047agent$045flow$045bend$047Work$outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$outcome$(_work_0, _id_0, _result_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const __4 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$outcome$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, _result_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$revise_finding$valid$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.InvalidFinding"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.PendingFinding"}, "findings": _count_0, "bytes": _bytes_0});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$revise_finding$stage$(_work_0, _id_0, _observation_0, _stage_0, _count_0, _bytes_0) {
-  if (_stage_0.$ === "Work.PendingFinding") {
-    return $$$$047agent$045flow$045bend$047Work$revise_finding$valid$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
-  } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$revise_finding$found$(_work_0, _id_0, _count_0, _bytes_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _observation_0 = _t_0["observation"];
-    const _stage_0 = _t_0["stage"];
-    return $$$$047agent$045flow$045bend$047Work$revise_finding$stage$(_work_0, _id_0, _observation_0, _stage_0, _count_0, _bytes_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$revise_finding$(_work_0, _id_0, _count_0, _bytes_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const __4 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$revise_finding$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, _count_0, _bytes_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
-  if (_stage_0.$ === "Work.AtJev") {
-    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
-  } else if (_stage_0.$ === "Work.ReviewQueued") {
-    return $$$$047agent$045flow$045bend$047Work$outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
-  } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$interrupt_unit$found$(_work_0, _id_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _observation_0 = _t_0["observation"];
-    const _stage_0 = _t_0["stage"];
-    return $$$$047agent$045flow$045bend$047Work$interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$interrupt_unit$(_work_0, _id_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const __4 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$interrupt_unit$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$interrupt_observation$found$(_work_0, _id_0, _found_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0}, "reason": {$: "Work.MissingObservation"}};
-  } else {
-    return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": ($$$$047agent$045flow$045bend$047Work$remove_observation$(_id_0, _observations_0)), "units": _units_0})), "admitted": {$: "Nil"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$interrupt_observation$(_work_0, _id_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const __4 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$interrupt_observation$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$complete_source$found$(_work_0, _id_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _t_1 = _t_0["stage"];
-    if (_t_1.$ === "Work.SourceQueued") {
-      return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
-    } else {
-      return $$$$047agent$045flow$045bend$047Work$interrupt_observation$(_work_0, _id_0);
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$complete_source$(_work_0, _id_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const __4 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$complete_source$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_id_0, _observations_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$cached_finding$apply$(_work_0, _observation_0, _count_0, _bytes_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Accepted", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": nat_chk(_next_unit_0 + 1), "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($List$append$(_units_0, {$: "Con", "head": {$: "Work.ReviewUnit", "id": _next_unit_0, "observation": _observation_0, "stage": {$: "Work.PendingFinding"}, "findings": _count_0, "bytes": _bytes_0}, "tail": {$: "Nil"}}))}, "admitted": {$: "Con", "head": _next_unit_0, "tail": {$: "Nil"}}};
-}
-
-function $$$$047agent$045flow$045bend$047Work$cached_finding$count$(_work_0, _observation_0, _count_0, _bytes_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.InvalidFinding"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$cached_finding$apply$(_work_0, _observation_0, _count_0, _bytes_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$cached_finding$found$(_work_0, _observation_0, _count_0, _bytes_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingObservation"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _t_1 = _t_0["stage"];
-    if (_t_1.$ === "Work.SourceQueued") {
-      return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.SourceNotReading"}};
-    } else {
-      return $$$$047agent$045flow$045bend$047Work$cached_finding$count$(_work_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$cached_finding$(_work_0, _observation_0, _count_0, _bytes_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const __4 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$cached_finding$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": _observations_0, "units": __4}, _observation_0, _count_0, _bytes_0, ($$$$047agent$045flow$045bend$047Work$find_observation$(_observation_0, _observations_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$remove_unit$pick$(_unit_0, _tail_0, _hit_0) {
-  if (_hit_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _unit_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$remove_unit$(_id_0, _units_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _units_0["head"];
-    const _current_0 = _t_0["id"];
-    const __0 = _t_0["observation"];
-    const __1 = _t_0["stage"];
-    const __2 = _t_0["findings"];
-    const __3 = _t_0["bytes"];
-    const _rest_0 = _units_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$remove_unit$pick$({$: "Work.ReviewUnit", "id": _current_0, "observation": __0, "stage": __1, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$remove_unit$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$retire$apply$(_work_0, _id_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Accepted", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": ($$$$047agent$045flow$045bend$047Work$remove_unit$(_id_0, _units_0))}, "admitted": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Work$retire$stage$(_work_0, _id_0, _unfinished_0) {
-  if (_unfinished_0) {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitStillUnfinished"}};
-  } else {
-    return $$$$047agent$045flow$045bend$047Work$retire$apply$(_work_0, _id_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$retire$found$(_work_0, _id_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.MissingUnit"}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _stage_0 = _t_0["stage"];
-    return $$$$047agent$045flow$045bend$047Work$retire$stage$(_work_0, _id_0, ($$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$retire$(_work_0, _id_0) {
-  const __0 = _work_0["next_observation"];
-  const __1 = _work_0["next_unit"];
-  const __2 = _work_0["source_capacity"];
-  const __3 = _work_0["review_capacity"];
-  const __4 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return $$$$047agent$045flow$045bend$047Work$retire$found$({$: "Work.Work", "next_observation": __0, "next_unit": __1, "source_capacity": __2, "review_capacity": __3, "observations": __4, "units": _units_0}, _id_0, ($$$$047agent$045flow$045bend$047Work$find_unit$(_id_0, _units_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$set_source_capacity$apply$(_work_0, _capacity_0, _valid_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  if (!_valid_0) {
-    return {$: "Work.Rejected", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0}, "reason": {$: "Work.InvalidCapacity"}};
-  } else {
-    return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0})), "admitted": {$: "Nil"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$set_source_capacity$(_work_0, _capacity_0) {
-  return $$$$047agent$045flow$045bend$047Work$set_source_capacity$apply$(_work_0, _capacity_0, ($$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$set_review_capacity$apply$(_work_0, _capacity_0, _valid_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  if (!_valid_0) {
-    return {$: "Work.Rejected", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": _observations_0, "units": _units_0}, "reason": {$: "Work.InvalidCapacity"}};
-  } else {
-    return {$: "Work.Accepted", "state": ($$$$047agent$045flow$045bend$047Work$settle$({$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _capacity_0, "observations": _observations_0, "units": _units_0})), "admitted": {$: "Nil"}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$set_review_capacity$(_work_0, _capacity_0) {
-  return $$$$047agent$045flow$045bend$047Work$set_review_capacity$apply$(_work_0, _capacity_0, ($$$$047agent$045flow$045bend$047Flow$capacity_valid$(_capacity_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Work$source_cancel_ids$($0) {
-  for (;;) {
-    {
-      const _observations_0 = $0;
-      if (_observations_0.$ === "Nil") {
-        return {$: "Nil"};
-      } else {
-        const _t_0 = _observations_0["head"];
-        const _id_0 = _t_0["id"];
-        const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.SourceReading") {
-          const _rest_0 = _observations_0["tail"];
-          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$source_cancel_ids$(_rest_0))};
-        } else {
-          const _rest_1 = _observations_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$observation_ids$(_observations_0) {
-  if (_observations_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _observations_0["head"];
-    const _id_0 = _t_0["id"];
-    const _rest_0 = _observations_0["tail"];
-    return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$observation_ids$(_rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$($0) {
-  for (;;) {
-    {
-      const _units_0 = $0;
-      if (_units_0.$ === "Nil") {
-        return {$: "Nil"};
-      } else {
-        const _t_0 = _units_0["head"];
-        const _id_0 = _t_0["id"];
-        const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.ReviewQueued") {
-          const _rest_0 = _units_0["tail"];
-          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$(_rest_0))};
-        } else if (_t_1.$ === "Work.AtJev") {
-          const _rest_1 = _units_0["tail"];
-          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$(_rest_1))};
-        } else {
-          const _rest_2 = _units_0["tail"];
-          $0 = _rest_2;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$keep_terminal$pick$(_unit_0, _tail_0, _unfinished_0) {
-  if (_unfinished_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _unit_0, "tail": _tail_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$keep_terminal$(_units_0) {
-  if (_units_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _units_0["head"];
-    const __0 = _t_0["id"];
-    const __1 = _t_0["observation"];
-    const _stage_0 = _t_0["stage"];
-    const __2 = _t_0["findings"];
-    const __3 = _t_0["bytes"];
-    const _rest_0 = _units_0["tail"];
-    return $$$$047agent$045flow$045bend$047Work$keep_terminal$pick$({$: "Work.ReviewUnit", "id": __0, "observation": __1, "stage": _stage_0, "findings": __2, "bytes": __3}, ($$$$047agent$045flow$045bend$047Work$keep_terminal$(_rest_0)), ($$$$047agent$045flow$045bend$047Work$is_unit_unfinished$(_stage_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$cancel_unfinished$(_work_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Cancelled", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": {$: "Nil"}, "units": ($$$$047agent$045flow$045bend$047Work$keep_terminal$(_units_0))}, "cancelled_source": ($$$$047agent$045flow$045bend$047Work$observation_ids$(_observations_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Work$unfinished_unit_ids$(_units_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Work$jev_cancel_ids$($0) {
-  for (;;) {
-    {
-      const _units_0 = $0;
-      if (_units_0.$ === "Nil") {
-        return {$: "Nil"};
-      } else {
-        const _t_0 = _units_0["head"];
-        const _id_0 = _t_0["id"];
-        const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.AtJev") {
-          const _rest_0 = _units_0["tail"];
-          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$jev_cancel_ids$(_rest_0))};
-        } else {
-          const _rest_1 = _units_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$discarded_finding_ids$($0) {
-  for (;;) {
-    {
-      const _units_0 = $0;
-      if (_units_0.$ === "Nil") {
-        return {$: "Nil"};
-      } else {
-        const _t_0 = _units_0["head"];
-        const _id_0 = _t_0["id"];
-        const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.PendingFinding") {
-          const _rest_0 = _units_0["tail"];
-          return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$discarded_finding_ids$(_rest_0))};
-        } else {
-          const _rest_1 = _units_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Work$close$(_work_0) {
-  const _next_observation_0 = _work_0["next_observation"];
-  const _next_unit_0 = _work_0["next_unit"];
-  const _source_capacity_0 = _work_0["source_capacity"];
-  const _review_capacity_0 = _work_0["review_capacity"];
-  const _observations_0 = _work_0["observations"];
-  const _units_0 = _work_0["units"];
-  return {$: "Work.Closed", "state": {$: "Work.Work", "next_observation": _next_observation_0, "next_unit": _next_unit_0, "source_capacity": _source_capacity_0, "review_capacity": _review_capacity_0, "observations": {$: "Nil"}, "units": {$: "Nil"}}, "cancelled_source": ($$$$047agent$045flow$045bend$047Work$source_cancel_ids$(_observations_0)), "cancelled_jev": ($$$$047agent$045flow$045bend$047Work$jev_cancel_ids$(_units_0)), "discarded_findings": ($$$$047agent$045flow$045bend$047Work$discarded_finding_ids$(_units_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Work$main$() {
-  return $$$$047agent$045flow$045bend$047Work$admit$(($$$$047agent$045flow$045bend$047Work$initial$()));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$initial$() {
-  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$max_running$() {
-  return 8;
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$max_requests$() {
-  return 8;
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$preparation_count$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["preparation"];
-        if (_t_1) {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_rest_0));
-          return nat_chk(1 + _x_0);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _owner_0 = _entry_0["partition"];
-  const _generation_0 = _entry_0["lifetime"];
-  const _current_0 = _entry_0["round"];
-  const _id_0 = _entry_0["operation"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Nat$is_eq$(_id_0, _operation_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$contains$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return (_x_0 || _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0) {
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0) {
-  const _t_0 = _entry_0["preparation"];
-  if (!_t_0) {
-    return true;
-  } else {
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_running_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_running$());
-    return (_x_0 < _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _t_0 = _result_0["state"];
-    const _queued_0 = _t_0["queued"];
-    const _running_0 = _t_0["running"];
-    const _next_sequence_0 = _t_0["next_sequence"];
-    const _closed_0 = _t_0["closed"];
-    const _requests_0 = _t_0["requests"];
-    const _commands_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
-  } else {
-    const _state_0 = _result_0["state"];
-    return {$: "Dispatch.Denied", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
-  if (_queued_0.$ === "Nil") {
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
-  } else {
-    const _entry_0 = _queued_0["head"];
-    const _rest_0 = _queued_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_one$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _second_0 = _result_0["state"];
-    const _more_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": _second_0, "commands": ($List$append$(_commands_0, _more_0))};
-  } else {
-    return {$: "Dispatch.Denied", "state": _first_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_next$(_first_0, _commands_0) {
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_one$(_first_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0) {
-  if (_queued_0.$ === "Nil") {
-    return false;
-  } else {
-    const _entry_0 = _queued_0["head"];
-    const _rest_0 = _queued_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_rest_0, _running_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_remaining_0, _result_0) {
-  if (_remaining_0 === 0) {
-    return _result_0;
-  } else {
-    const _rest_0 = (_remaining_0 - 1);
-    if (_result_0.$ === "Dispatch.Advanced") {
-      const _t_0 = _result_0["state"];
-      const _queued_0 = _t_0["queued"];
-      const _running_0 = _t_0["running"];
-      const __0 = _t_0["next_sequence"];
-      const __1 = _t_0["closed"];
-      const __2 = _t_0["requests"];
-      const _commands_0 = _result_0["commands"];
-      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
-    } else {
-      const _state_0 = _result_0["state"];
-      return {$: "Dispatch.Denied", "state": _state_0};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_available$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const __0 = _state_0["running"];
-  const __1 = _state_0["next_sequence"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0)), _rest_0, {$: "Con", "head": _entry_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0) {
-  if (_ids_0.$ === "Nil") {
-    return false;
-  } else {
-    const _id_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$listed$(_rest_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, _running_0) {
-  const _operation_0 = _entry_0["operation"];
-  return {$: "Dispatch.Discarded", "operation": _operation_0, "running": _running_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
-  if (_hit_0) {
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": _entries_0, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": _commands_0}};
-  } else {
-    const _entries_1 = _tail_0["entries"];
-    const _commands_1 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_1}, "commands": _commands_1};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_items_0, _ids_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _operation_0 = _t_0["operation"];
-    const __3 = _t_0["sequence"];
-    const __4 = _t_0["cancelled"];
-    const __5 = _t_0["preparation"];
-    const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_rest_0, _ids_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0) {
-  const _partition_0 = _entry_0["partition"];
-  const _lifetime_0 = _entry_0["lifetime"];
-  const _round_0 = _entry_0["round"];
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  const _preparation_0 = _entry_0["preparation"];
-  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
-  if (!_hit_0) {
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_0}, "commands": _commands_0};
-  } else {
-    const _entries_1 = _tail_0["entries"];
-    const _commands_1 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0)), "tail": _entries_1}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, true)), "tail": _commands_1}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$(_entry_0, _hit_0, _tail_0) {
-  const __0 = _entry_0["partition"];
-  const __1 = _entry_0["lifetime"];
-  const __2 = _entry_0["round"];
-  const __3 = _entry_0["operation"];
-  const __4 = _entry_0["sequence"];
-  const _t_0 = _entry_0["cancelled"];
-  if (_t_0) {
-    const __5 = _entry_0["preparation"];
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
-  } else {
-    const __6 = _entry_0["preparation"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running$(_items_0, _ids_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _operation_0 = _t_0["operation"];
-    const __3 = _t_0["sequence"];
-    const __4 = _t_0["cancelled"];
-    const __5 = _t_0["preparation"];
-    const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_rest_0, _ids_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discarded_result$(_state_0, _queued_0, _running_0) {
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _waiting_0 = _queued_0["entries"];
-  const _waiting_commands_0 = _queued_0["commands"];
-  const _executing_0 = _running_0["entries"];
-  const _executing_commands_0 = _running_0["commands"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discard$(_state_0, _ids_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const __0 = _state_0["next_sequence"];
-  const __1 = _state_0["closed"];
-  const __2 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_running_0, _ids_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discard_all$(_items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$close$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _requests_0 = _state_0["requests"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_queued_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  const _owner_0 = _item_0["partition"];
-  const _generation_0 = _item_0["lifetime"];
-  const _current_0 = _item_0["round"];
-  const _work_0 = _item_0["operation"];
-  const _id_0 = _item_0["request"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_items_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _work_0 = _t_0["operation"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_work_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_rest_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($List$length$(_requests_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_requests$());
-  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_requests_0, _operation_0));
-  const _x_3 = ($Bool$not$((_x_0 < _x_1)));
-  const _x_4 = (_x_2 || _x_3);
-  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const __0 = _t_0["started"];
-    const _interrupted_0 = _t_0["interrupted"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const _started_0 = _t_0["started"];
-    const __0 = _t_0["interrupted"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  if (_found_0.$ === "None") {
-    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _started_0 = _t_0["started"];
-    const _interrupted_0 = _t_0["interrupted"];
-    const _x_0 = ($Bool$and$(_interrupt_0, _interrupted_0));
-    const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
-    const _x_2 = ($Bool$and$(_start_0, _started_0));
-    const _x_3 = (_x_0 || _x_1);
-    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
-  const __0 = _state_0["queued"];
-  const __1 = _state_0["running"];
-  const __2 = _state_0["next_sequence"];
-  const __3 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Retention$cleanup_gate$(_facts_0) {
-  const _active_0 = _facts_0["active"];
-  const _dispatcher_idle_0 = _facts_0["dispatcher_idle"];
-  const _no_advice_0 = _facts_0["no_advice"];
-  const _no_notices_0 = _facts_0["no_notices"];
-  const _no_pending_evaluations_0 = _facts_0["no_pending_evaluations"];
-  const _no_current_work_0 = _facts_0["no_current_work"];
-  const _no_cooldowns_0 = _facts_0["no_cooldowns"];
-  const _connection_count_ok_0 = _facts_0["connection_count_ok"];
-  const _cache_matches_ledger_0 = _facts_0["cache_matches_ledger"];
-  return $Bool$pick$(($Bool$and$(_active_0, ($Bool$and$(_dispatcher_idle_0, ($Bool$and$(_no_advice_0, ($Bool$and$(_no_notices_0, ($Bool$and$(_no_pending_evaluations_0, ($Bool$and$(_no_current_work_0, ($Bool$and$(_no_cooldowns_0, ($Bool$and$(_connection_count_ok_0, _cache_matches_ledger_0)))))))))))))))), {$: "Retention.CleanupReady"}, {$: "Retention.CleanupBusy"});
-}
-
-function $$$$047agent$045flow$045bend$047Retention$cleanup_commit$(_ledger_empty_0) {
-  return $Bool$pick$(_ledger_empty_0, {$: "Retention.CleanupReady"}, {$: "Retention.CleanupBusy"});
-}
-
-function $$$$047agent$045flow$045bend$047Retention$cleanup_live_state$(_rounds_empty_0, _pending_permits_empty_0) {
-  return $Bool$and$(_rounds_empty_0, _pending_permits_empty_0);
-}
-
-function $$$$047agent$045flow$045bend$047Retention$discard_scope$(_named_count_0, _cancelled_count_0, _has_unnamed_0) {
-  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_named_count_0, _cancelled_count_0)), ($Bool$not$(_has_unnamed_0)))), {$: "Retention.NamedOnly"}, {$: "Retention.AllUnfinished"});
-}
-
-function $$$$047agent$045flow$045bend$047Retention$main$() {
-  return $$$$047agent$045flow$045bend$047Retention$cleanup_gate$({$: "Retention.CleanupFacts", "active": true, "dispatcher_idle": true, "no_advice": true, "no_notices": true, "no_pending_evaluations": true, "no_current_work": true, "no_cooldowns": true, "connection_count_ok": true, "cache_matches_ledger": true});
-}
-
-function $$$$047agent$045flow$045bend$047CollectorAuthority$collect_gate$(_expired_0, _credential_valid_0) {
-  return $Bool$pick$(_expired_0, {$: "CollectorAuthority.CollectUnavailable", "reason": {$: "CollectorAuthority.Expired"}}, ($Bool$pick$(($Bool$not$(_credential_valid_0)), {$: "CollectorAuthority.CollectUnavailable", "reason": {$: "CollectorAuthority.Credential"}}, {$: "CollectorAuthority.CollectProceed"})));
-}
-
-function $$$$047agent$045flow$045bend$047CollectorAuthority$final_authority$(_admitted_block_0, _current_block_0) {
-  return $Bool$pick$(($Bool$and$(_admitted_block_0, ($Bool$not$(_current_block_0)))), {$: "CollectorAuthority.FinalRelease"}, {$: "CollectorAuthority.FinalProceed"});
-}
-
-function $$$$047agent$045flow$045bend$047CollectorAuthority$main$() {
-  return $$$$047agent$045flow$045bend$047CollectorAuthority$collect_gate$(false, true);
 }
 
 function $$$$047agent$045flow$045bend$047Configuration$include_choice$(_supplied_0, _current_rank_0, _candidate_rank_0) {
@@ -13535,6 +13535,1059 @@ function $SharingScenario$retirement_feedback$(_state_0, _evaluation_id_0, _acce
   return $SharingScenario$advice_retired$(_state_0, ($SharingScenario$lookup$(_state_0, _evaluation_id_0)), _accepted_0);
 }
 
+function $SharingScenario$evaluation_id$(_evaluation_0) {
+  return $SharingScenario$id$(_evaluation_0);
+}
+
+function $SharingScenario$cached_existing$(_state_0, _key_0, _member_0, _id_0, _found_0) {
+  const _items_0 = _state_0["evaluations"];
+  const _next_0 = _state_0["next_id"];
+  if (_found_0.$ === "None") {
+    return {$: "SharingScenario.Registration", "state": {$: "SharingScenario.State", "evaluations": {$: "Con", "head": {$: "SharingScenario.Evaluation", "id": _id_0, "key": _key_0, "members": {$: "Con", "head": _member_0, "tail": {$: "Nil"}}, "physical": {$: "None"}, "advice": {$: "None"}}, "tail": _items_0}, "next_id": _next_0}, "id": {$: "Some", "value": _id_0}};
+  } else {
+    const _evaluation_0 = _found_0["value"];
+    return {$: "SharingScenario.Registration", "state": {$: "SharingScenario.State", "evaluations": _items_0, "next_id": _next_0}, "id": {$: "Some", "value": ($SharingScenario$evaluation_id$(_evaluation_0))}};
+  }
+}
+
+function $SharingScenario$cached_scoped$(_state_0, _key_0, _member_0, _id_0, _allowed_0) {
+  const _items_0 = _state_0["evaluations"];
+  const _next_0 = _state_0["next_id"];
+  if (_allowed_0) {
+    return $SharingScenario$cached_existing$({$: "SharingScenario.State", "evaluations": _items_0, "next_id": _next_0}, _key_0, _member_0, _id_0, ($SharingScenario$find_live_key$(_items_0, _key_0)));
+  } else {
+    return {$: "SharingScenario.Registration", "state": {$: "SharingScenario.State", "evaluations": _items_0, "next_id": _next_0}, "id": {$: "None"}};
+  }
+}
+
+function $SharingScenario$register_cached$(_state_0, _key_0, _member_0, _cached_0) {
+  if (_cached_0.$ === "None") {
+    return $SharingScenario$register$(_state_0, _key_0, _member_0);
+  } else {
+    const _id_0 = _cached_0["value"];
+    return $SharingScenario$cached_scoped$(_state_0, _key_0, _member_0, _id_0, ($Bool$and$(($Nat$is_gt$(_id_0, 0)), ($Nat$is_eq$(($SharingScenario$key_partition$(_key_0)), ($SharingScenario$member_partition$(_member_0)))))));
+  }
+}
+
+function $CacheScenario$initial$() {
+  return {$: "CacheScenario.State", "payloads": {$: "Nil"}};
+}
+
+function $CacheScenario$offer_id$(_offer_0) {
+  const _id_0 = _offer_0["id"];
+  return _id_0;
+}
+
+function $CacheScenario$offer_partition$(_offer_0) {
+  const _t_0 = _offer_0["key"];
+  const _partition_0 = _t_0["partition"];
+  return _partition_0;
+}
+
+function $CacheScenario$payload_id$(_payload_0) {
+  const _offer_0 = _payload_0["offer"];
+  return $CacheScenario$offer_id$(_offer_0);
+}
+
+function $CacheScenario$same_outcome$(_left_0, _right_0) {
+  if (_left_0.$ === "Canonical.NeverSent") {
+    if (_right_0.$ === "Canonical.NeverSent") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_left_0.$ === "Canonical.RequestClear") {
+    if (_right_0.$ === "Canonical.RequestClear") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_left_0.$ === "Canonical.RequestFinding") {
+    if (_right_0.$ === "Canonical.RequestFinding") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_left_0.$ === "Canonical.RequestBackendFailure") {
+    if (_right_0.$ === "Canonical.RequestBackendFailure") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_left_0.$ === "Canonical.RequestTimeout") {
+    if (_right_0.$ === "Canonical.RequestTimeout") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    if (_right_0.$ === "Canonical.RequestInterrupted") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+function $CacheScenario$same_offer$(_left_0, _right_0) {
+  const _id_0 = _left_0["id"];
+  const _key_0 = _left_0["key"];
+  const _original_0 = _left_0["original"];
+  const _bytes_0 = _left_0["bytes"];
+  const _outcome_0 = _left_0["outcome"];
+  const _other_0 = _right_0["id"];
+  const _other_key_0 = _right_0["key"];
+  const _scope_0 = _right_0["original"];
+  const _size_0 = _right_0["bytes"];
+  const _result_0 = _right_0["outcome"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_id_0, _other_0)), ($SharingScenario$same_key$(_key_0, _other_key_0)))), ($FreshnessScenario$same$(_original_0, _scope_0)))), ($Nat$is_eq$(_bytes_0, _size_0)))), ($CacheScenario$same_outcome$(_outcome_0, _result_0)));
+}
+
+function $CacheScenario$successful$(_outcome_0) {
+  if (_outcome_0.$ === "Canonical.RequestFinding") {
+    return true;
+  } else if (_outcome_0.$ === "Canonical.RequestClear") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $CacheScenario$valid$(_offer_0) {
+  const _id_0 = _offer_0["id"];
+  const _t_0 = _offer_0["key"];
+  const _partition_0 = _t_0["partition"];
+  const _prepared_0 = _t_0["prepared"];
+  const _t_1 = _offer_0["original"];
+  const _owner_0 = _t_1["partition"];
+  const _lifetime_0 = _t_1["lifetime"];
+  const _round_0 = _t_1["round"];
+  const _operation_0 = _t_1["operation"];
+  const _outcome_0 = _offer_0["outcome"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_gt$(_id_0, 0)), ($Nat$is_gt$(_partition_0, 0)))), ($Nat$is_gt$(_prepared_0, 0)))), ($Nat$is_eq$(_partition_0, _owner_0)))), ($Nat$is_gt$(_lifetime_0, 0)))), ($Nat$is_gt$(_round_0, 0)))), ($Nat$is_gt$(_operation_0, 0)))), ($CacheScenario$successful$(_outcome_0)));
+}
+
+function $CacheScenario$choose$(_found_0, _payload_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _payload_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $CacheScenario$find$(_items_0, _id_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheScenario$choose$(($Nat$is_eq$(($CacheScenario$payload_id$(_head_0)), _id_0)), _head_0, ($CacheScenario$find$(_tail_0, _id_0)));
+  }
+}
+
+function $CacheScenario$lookup$(_state_0, _id_0) {
+  const _items_0 = _state_0["payloads"];
+  return $CacheScenario$find$(_items_0, _id_0);
+}
+
+function $CacheScenario$key_lookup$(_items_0, _key_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _t_1 = _t_0["offer"];
+    const __0 = _t_1["id"];
+    const _other_0 = _t_1["key"];
+    const __1 = _t_1["original"];
+    const __2 = _t_1["bytes"];
+    const __3 = _t_1["outcome"];
+    const __4 = _t_0["reservation"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheScenario$choose$(($SharingScenario$same_key$(_key_0, _other_0)), {$: "CacheScenario.Payload", "offer": {$: "CacheScenario.Offer", "id": __0, "key": _other_0, "original": __1, "bytes": __2, "outcome": __3}, "reservation": __4}, ($CacheScenario$key_lookup$(_tail_0, _key_0)));
+  }
+}
+
+function $CacheScenario$found_id$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _offer_0 = _t_0["offer"];
+    return {$: "Some", "value": ($CacheScenario$offer_id$(_offer_0))};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $CacheScenario$key_id$(_state_0, _key_0) {
+  const _items_0 = _state_0["payloads"];
+  return $CacheScenario$found_id$(($CacheScenario$key_lookup$(_items_0, _key_0)));
+}
+
+function $CacheScenario$entry_matches$(_payload_0, _entry_0) {
+  const _t_0 = _payload_0["offer"];
+  const _id_0 = _t_0["id"];
+  const _t_1 = _t_0["key"];
+  const _partition_0 = _t_1["partition"];
+  const _bytes_0 = _t_0["bytes"];
+  const _reservation_0 = _payload_0["reservation"];
+  const _other_0 = _entry_0["id"];
+  const _owner_0 = _entry_0["partition"];
+  const _size_0 = _entry_0["bytes"];
+  const _charge_0 = _entry_0["reservation"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_id_0, _other_0)), ($Nat$is_eq$(_partition_0, _owner_0)))), ($Nat$is_eq$(_bytes_0, _size_0)))), ($Nat$is_eq$(_reservation_0, _charge_0)));
+}
+
+function $CacheScenario$cached$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.ReuseCached") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CacheScenario$hit_matching$(_payload_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "Some", "value": _payload_0};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $CacheScenario$hit_checked$(_payload_0, _entry_0, _accepted_0) {
+  if (_payload_0.$ === "Some") {
+    const _payload_1 = _payload_0["value"];
+    if (_entry_0.$ === "Some") {
+      const _entry_1 = _entry_0["value"];
+      if (_accepted_0) {
+        return $CacheScenario$hit_matching$(_payload_1, ($CacheScenario$entry_matches$(_payload_1, _entry_1)));
+      } else {
+        return {$: "None"};
+      }
+    } else {
+      return {$: "None"};
+    }
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $CacheScenario$cached_lookup$(_state_0, _id_0) {
+  const _entries_0 = _state_0["cache"];
+  return $$$$047agent$045flow$045bend$047ReuseState$find_entry$(_id_0, _entries_0);
+}
+
+function $CacheScenario$absent$(_found_0) {
+  if (_found_0.$ === "None") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $CacheScenario$hit$(_state_0, _canonical_0, _id_0, _commands_0) {
+  return $CacheScenario$hit_checked$(($CacheScenario$lookup$(_state_0, _id_0)), ($CacheScenario$cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))), _id_0)), ($CacheScenario$cached$(_commands_0)));
+}
+
+function $CacheScenario$prepare$(_offer_0, _entry_limit_0, _byte_limit_0) {
+  const _id_0 = _offer_0["id"];
+  const _bytes_0 = _offer_0["bytes"];
+  return {$: "Canonical.CachePrepare", "id": _id_0, "bytes": _bytes_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0};
+}
+
+function $CacheScenario$reserve$(_offer_0) {
+  const _t_0 = _offer_0["key"];
+  const _partition_0 = _t_0["partition"];
+  const _bytes_0 = _offer_0["bytes"];
+  return {$: "Canonical.ReserveCapacity", "partition": _partition_0, "bytes": _bytes_0, "purpose": {$: "Ledger.StoredResult"}};
+}
+
+function $CacheScenario$commit$(_offer_0, _reservation_0, _entry_limit_0, _byte_limit_0) {
+  const _id_0 = _offer_0["id"];
+  const _t_0 = _offer_0["key"];
+  const _partition_0 = _t_0["partition"];
+  const _bytes_0 = _offer_0["bytes"];
+  return {$: "Canonical.CacheCommit", "id": _id_0, "partition": _partition_0, "bytes": _bytes_0, "reservation": _reservation_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0};
+}
+
+function $CacheScenario$committed$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CacheCommitted") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CacheScenario$retained_allowed$(_items_0, _payload_0, _allowed_0) {
+  if (_allowed_0) {
+    return {$: "CacheScenario.State", "payloads": ($List$append$(_items_0, {$: "Con", "head": _payload_0, "tail": {$: "Nil"}}))};
+  } else {
+    return {$: "CacheScenario.State", "payloads": _items_0};
+  }
+}
+
+function $CacheScenario$payload_offer$(_payload_0) {
+  const _offer_0 = _payload_0["offer"];
+  return _offer_0;
+}
+
+function $CacheScenario$retain_checked$(_state_0, _payload_0, _entry_0, _accepted_0) {
+  const _items_0 = _state_0["payloads"];
+  if (_entry_0.$ === "Some") {
+    const _entry_1 = _entry_0["value"];
+    if (_accepted_0) {
+      return $CacheScenario$retained_allowed$(_items_0, _payload_0, ($Bool$and$(($Bool$and$(($CacheScenario$entry_matches$(_payload_0, _entry_1)), ($CacheScenario$valid$(($CacheScenario$payload_offer$(_payload_0)))))), ($CacheScenario$absent$(($CacheScenario$find$(_items_0, ($CacheScenario$payload_id$(_payload_0)))))))));
+    } else {
+      return {$: "CacheScenario.State", "payloads": _items_0};
+    }
+  } else {
+    return {$: "CacheScenario.State", "payloads": _items_0};
+  }
+}
+
+function $CacheScenario$retain$(_state_0, _canonical_0, _offer_0, _reservation_0, _commands_0) {
+  return $CacheScenario$retain_checked$(_state_0, {$: "CacheScenario.Payload", "offer": _offer_0, "reservation": _reservation_0}, ($CacheScenario$cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))), ($CacheScenario$offer_id$(_offer_0)))), ($CacheScenario$committed$(_commands_0)));
+}
+
+function $CacheScenario$remove_if$(_found_0, _payload_0, _rest_0) {
+  if (_found_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _payload_0, "tail": _rest_0};
+  }
+}
+
+function $CacheScenario$remove$(_items_0, _id_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheScenario$remove_if$(($Nat$is_eq$(($CacheScenario$payload_id$(_head_0)), _id_0)), _head_0, ($CacheScenario$remove$(_tail_0, _id_0)));
+  }
+}
+
+function $CacheScenario$release_entry$(_entry_0) {
+  if (_entry_0.$ === "Some") {
+    const _t_0 = _entry_0["value"];
+    const _reservation_0 = _t_0["reservation"];
+    return {$: "Con", "head": {$: "Canonical.ReleaseCapacity", "reservation": _reservation_0}, "tail": {$: "Nil"}};
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $CacheScenario$dropped_tail$(_before_0, _id_0, _feedback_0) {
+  const _state_0 = _feedback_0["state"];
+  const _releases_0 = _feedback_0["releases"];
+  return {$: "CacheScenario.Feedback", "state": _state_0, "releases": ($List$append$(($CacheScenario$release_entry$(($CacheScenario$cached_lookup$(_before_0, _id_0)))), _releases_0))};
+}
+
+function $CacheScenario$drop_ids$(_ids_0, _state_0, _before_0) {
+  if (_ids_0.$ === "Nil") {
+    const _items_0 = _state_0["payloads"];
+    return {$: "CacheScenario.Feedback", "state": {$: "CacheScenario.State", "payloads": _items_0}, "releases": {$: "Nil"}};
+  } else {
+    const _id_0 = _ids_0["head"];
+    const _tail_0 = _ids_0["tail"];
+    const _items_1 = _state_0["payloads"];
+    return $CacheScenario$dropped_tail$(_before_0, _id_0, ($CacheScenario$drop_ids$(_tail_0, {$: "CacheScenario.State", "payloads": ($CacheScenario$remove$(_items_1, _id_0))}, _before_0)));
+  }
+}
+
+function $CacheScenario$feedback$($0, $1, $2) {
+  for (;;) {
+    {
+      const _state_0 = $0;
+      const _before_0 = $1;
+      const _commands_0 = $2;
+      if (_commands_0.$ === "Nil") {
+        return {$: "CacheScenario.Feedback", "state": _state_0, "releases": {$: "Nil"}};
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CachePrepared") {
+          const _ids_0 = _t_0["evicted"];
+          return $CacheScenario$drop_ids$(_ids_0, _state_0, ($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_before_0)))));
+        } else if (_t_0.$ === "Canonical.CacheDiscarded") {
+          const _ids_1 = _t_0["ids"];
+          return $CacheScenario$drop_ids$(_ids_1, _state_0, ($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_before_0)))));
+        } else {
+          const __2 = _commands_0["tail"];
+          $0 = _state_0;
+          $1 = _before_0;
+          $2 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CacheScenario$refused$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.ReuseRefused") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CacheScenario$owns_reservation$(_items_0, _reservation_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _charge_0 = _t_0["reservation"];
+    const _tail_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_charge_0, _reservation_0));
+    const _x_1 = ($CacheScenario$owns_reservation$(_tail_0, _reservation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $CacheScenario$refused_release_checked$(_eligible_0, _reservation_0) {
+  if (_eligible_0) {
+    return {$: "Con", "head": {$: "Canonical.ReleaseCapacity", "reservation": _reservation_0}, "tail": {$: "Nil"}};
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $CacheScenario$ledger_charges$(_state_0) {
+  const _t_0 = _state_0["ledger"];
+  const _charges_0 = _t_0["charges"];
+  return _charges_0;
+}
+
+function $CacheScenario$refused_entries$(_before_0, _partition_0, _bytes_0, _reservation_0, _commands_0, _reuse_0) {
+  const _entries_0 = _reuse_0["cache"];
+  return $CacheScenario$refused_release_checked$(($Bool$and$(($Bool$and$(($CacheScenario$refused$(_commands_0)), ($$$$047agent$045flow$045bend$047Canonical$cache_charge_valid$(($$$$047agent$045flow$045bend$047Ledger$find$(_reservation_0, ($CacheScenario$ledger_charges$(_before_0)))), _partition_0, _bytes_0)))), ($Bool$not$(($CacheScenario$owns_reservation$(_entries_0, _reservation_0)))))), _reservation_0);
+}
+
+function $CacheScenario$refused_release$(_before_0, _offer_0, _reservation_0, _commands_0) {
+  const _t_0 = _offer_0["key"];
+  const _partition_0 = _t_0["partition"];
+  const _bytes_0 = _offer_0["bytes"];
+  return $CacheScenario$refused_entries$(_before_0, _partition_0, _bytes_0, _reservation_0, _commands_0, ($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_before_0)))));
+}
+
+function $CacheScenario$original$(_offer_0) {
+  const _original_0 = _offer_0["original"];
+  return _original_0;
+}
+
+function $CacheRuntime$initial$() {
+  return {$: "CacheRuntime.State", "cache": ($CacheScenario$initial$()), "pending": {$: "Nil"}, "sources": {$: "Nil"}, "config": {$: "CacheRuntime.Config", "enabled": false, "entry_limit": 8, "byte_limit": 131072}};
+}
+
+function $CacheRuntime$cache$(_state_0) {
+  const _cache_0 = _state_0["cache"];
+  return _cache_0;
+}
+
+function $CacheRuntime$key_id$(_state_0, _key_0) {
+  return $CacheScenario$key_id$(($CacheRuntime$cache$(_state_0)), _key_0);
+}
+
+function $CacheRuntime$hit$(_state_0, _canonical_0, _id_0, _commands_0) {
+  return $CacheScenario$hit$(($CacheRuntime$cache$(_state_0)), _canonical_0, _id_0, _commands_0);
+}
+
+function $CacheRuntime$existing_feedback$(_pending_0, _sources_0, _config_0, _feedback_0) {
+  const _cache_0 = _feedback_0["state"];
+  const _releases_0 = _feedback_0["releases"];
+  return {$: "CacheRuntime.Feedback", "state": {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": _sources_0, "config": _config_0}, "events": _releases_0};
+}
+
+function $CacheRuntime$existing_removed$(_state_0, _before_0, _commands_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  return $CacheRuntime$existing_feedback$(_pending_0, _sources_0, _config_0, ($CacheScenario$feedback$(_cache_0, _before_0, _commands_0)));
+}
+
+function $CacheRuntime$retained$(_state_0, _canonical_0, _offer_0, _reservation_0, _commands_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  return {$: "CacheRuntime.State", "cache": ($CacheScenario$retain$(_cache_0, _canonical_0, _offer_0, _reservation_0, _commands_0)), "pending": _pending_0, "sources": _sources_0, "config": _config_0};
+}
+
+function $CacheRuntime$lookup_payload$(_id_0, _payload_0) {
+  if (_payload_0.$ === "Some") {
+    return {$: "Some", "value": _id_0};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $CacheRuntime$lookup_live$(_cache_0, _canonical_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _id_0 = _found_0["value"];
+    return $CacheRuntime$lookup_payload$(_id_0, ($CacheScenario$hit_checked$(($CacheScenario$lookup$(_cache_0, _id_0)), ($CacheScenario$cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))), _id_0)), true)));
+  }
+}
+
+function $CacheRuntime$lookup_key$(_state_0, _canonical_0, _key_0) {
+  return $CacheRuntime$lookup_live$(($CacheRuntime$cache$(_state_0)), _canonical_0, ($CacheScenario$key_id$(($CacheRuntime$cache$(_state_0)), _key_0)));
+}
+
+function $CacheRuntime$pending_offer$(_value_0) {
+  const _offer_0 = _value_0["offer"];
+  return _offer_0;
+}
+
+function $CacheRuntime$pending_known$(_items_0, _offer_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    const _x_0 = ($CacheScenario$same_offer$(($CacheRuntime$pending_offer$(_head_0)), _offer_0));
+    const _x_1 = ($CacheRuntime$pending_known$(_tail_0, _offer_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $CacheRuntime$begun$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, _allowed_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  if (_allowed_0) {
+    return {$: "CacheRuntime.Published", "state": {$: "CacheRuntime.State", "cache": _cache_0, "pending": {$: "Con", "head": {$: "CacheRuntime.Pending", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "reservation": {$: "None"}, "stage": {$: "CacheRuntime.PrepareStage"}}, "tail": _pending_0}, "sources": _sources_0, "config": _config_0}, "facts": {$: "Con", "head": {$: "CacheRuntime.Fact", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "stage": {$: "CacheRuntime.PrepareStage"}, "reservation": {$: "None"}, "event": ($CacheScenario$prepare$(_offer_0, _entry_limit_0, _byte_limit_0))}, "tail": {$: "Nil"}}, "releases": {$: "Nil"}};
+  } else {
+    return {$: "CacheRuntime.Published", "state": {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": _sources_0, "config": _config_0}, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
+function $CacheRuntime$begin$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0) {
+  const __0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const __1 = _state_0["sources"];
+  const __2 = _state_0["config"];
+  return $CacheRuntime$begun$({$: "CacheRuntime.State", "cache": __0, "pending": _pending_0, "sources": __1, "config": __2}, _offer_0, _entry_limit_0, _byte_limit_0, ($Bool$and$(($CacheScenario$valid$(_offer_0)), ($Bool$not$(($CacheRuntime$pending_known$(_pending_0, _offer_0)))))));
+}
+
+function $CacheRuntime$removed_pending$(_remove_0, _head_0, _tail_0) {
+  if (_remove_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _tail_0};
+  }
+}
+
+function $CacheRuntime$remove_offer$(_items_0, _offer_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheRuntime$removed_pending$(($CacheScenario$same_offer$(($CacheRuntime$pending_offer$(_head_0)), _offer_0)), _head_0, ($CacheRuntime$remove_offer$(_tail_0, _offer_0)));
+  }
+}
+
+function $CacheRuntime$completed_pending$(_state_0, _offer_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  return {$: "CacheRuntime.State", "cache": _cache_0, "pending": ($CacheRuntime$remove_offer$(_pending_0, _offer_0)), "sources": _sources_0, "config": _config_0};
+}
+
+function $CacheRuntime$prepared$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CachePrepared") {
+          return true;
+        } else {
+          const __2 = _commands_0["tail"];
+          $0 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CacheRuntime$advanced_pending$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, _reservation_0, _stage_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  return {$: "CacheRuntime.State", "cache": _cache_0, "pending": {$: "Con", "head": {$: "CacheRuntime.Pending", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "reservation": _reservation_0, "stage": _stage_0}, "tail": ($CacheRuntime$remove_offer$(_pending_0, _offer_0))}, "sources": _sources_0, "config": _config_0};
+}
+
+function $CacheRuntime$prepare_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, _accepted_0) {
+  if (_accepted_0) {
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$advanced_pending$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, {$: "None"}, {$: "CacheRuntime.ReserveStage"})), "facts": {$: "Con", "head": {$: "CacheRuntime.Fact", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "stage": {$: "CacheRuntime.ReserveStage"}, "reservation": {$: "None"}, "event": ($CacheScenario$reserve$(_offer_0))}, "tail": {$: "Nil"}}, "releases": {$: "Nil"}};
+  } else {
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
+function $CacheRuntime$reservation$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return {$: "None"};
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CapacityGranted") {
+          const _id_0 = _t_0["id"];
+          return {$: "Some", "value": _id_0};
+        } else {
+          const __2 = _commands_0["tail"];
+          $0 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $CacheRuntime$reserve_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  } else {
+    const _id_0 = _found_0["value"];
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$advanced_pending$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, {$: "Some", "value": _id_0}, {$: "CacheRuntime.CommitStage"})), "facts": {$: "Con", "head": {$: "CacheRuntime.Fact", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "stage": {$: "CacheRuntime.CommitStage"}, "reservation": {$: "Some", "value": _id_0}, "event": ($CacheScenario$commit$(_offer_0, _id_0, _entry_limit_0, _byte_limit_0))}, "tail": {$: "Nil"}}, "releases": {$: "Nil"}};
+  }
+}
+
+function $CacheRuntime$commit_released$(_state_0, _offer_0, _events_0) {
+  return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": _events_0};
+}
+
+function $CacheRuntime$commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _commands_0) {
+  return $CacheRuntime$commit_released$(($CacheRuntime$retained$(_state_0, _after_0, _offer_0, _id_0, _commands_0)), _offer_0, ($CacheScenario$refused_release$(_before_0, _offer_0, _id_0, _commands_0)));
+}
+
+function $CacheRuntime$feedback_unchecked$(_state_0, _before_0, _after_0, _fact_0, _commands_0) {
+  const _offer_0 = _fact_0["offer"];
+  const _entry_limit_0 = _fact_0["entry_limit"];
+  const _byte_limit_0 = _fact_0["byte_limit"];
+  const _t_0 = _fact_0["stage"];
+  if (_t_0.$ === "CacheRuntime.PrepareStage") {
+    return $CacheRuntime$prepare_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, ($CacheRuntime$prepared$(_commands_0)));
+  } else if (_t_0.$ === "CacheRuntime.ReserveStage") {
+    return $CacheRuntime$reserve_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, ($CacheRuntime$reservation$(_commands_0)));
+  } else {
+    const _t_1 = _fact_0["reservation"];
+    if (_t_1.$ === "Some") {
+      const _id_0 = _t_1["value"];
+      return $CacheRuntime$commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _commands_0);
+    } else {
+      return {$: "CacheRuntime.Published", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+    }
+  }
+}
+
+function $CacheRuntime$same_stage$(_left_0, _right_0) {
+  if (_left_0.$ === "CacheRuntime.PrepareStage") {
+    if (_right_0.$ === "CacheRuntime.PrepareStage") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (_left_0.$ === "CacheRuntime.ReserveStage") {
+    if (_right_0.$ === "CacheRuntime.ReserveStage") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    if (_right_0.$ === "CacheRuntime.CommitStage") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+function $CacheRuntime$same_reservation$(_left_0, _right_0) {
+  if (_left_0.$ === "None") {
+    if (_right_0.$ === "None") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    const _id_0 = _left_0["value"];
+    if (_right_0.$ === "Some") {
+      const _other_0 = _right_0["value"];
+      return $Nat$is_eq$(_id_0, _other_0);
+    } else {
+      return false;
+    }
+  }
+}
+
+function $CacheRuntime$fact_known$(_items_0, _fact_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _offer_0 = _t_0["offer"];
+    const _entries_0 = _t_0["entry_limit"];
+    const _bytes_0 = _t_0["byte_limit"];
+    const _reservation_0 = _t_0["reservation"];
+    const _stage_0 = _t_0["stage"];
+    const _tail_0 = _items_0["tail"];
+    const _original_0 = _fact_0["offer"];
+    const _entry_limit_0 = _fact_0["entry_limit"];
+    const _byte_limit_0 = _fact_0["byte_limit"];
+    const _phase_0 = _fact_0["stage"];
+    const _reserved_0 = _fact_0["reservation"];
+    const _event_0 = _fact_0["event"];
+    const _x_0 = ($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($CacheScenario$same_offer$(_offer_0, _original_0)), ($Nat$is_eq$(_entries_0, _entry_limit_0)))), ($Nat$is_eq$(_bytes_0, _byte_limit_0)))), ($CacheRuntime$same_stage$(_stage_0, _phase_0)))), ($CacheRuntime$same_reservation$(_reservation_0, _reserved_0))));
+    const _x_1 = ($CacheRuntime$fact_known$(_tail_0, {$: "CacheRuntime.Fact", "offer": _original_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "stage": _phase_0, "reservation": _reserved_0, "event": _event_0}));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $CacheRuntime$fact_event_valid$(_fact_0) {
+  const _t_0 = _fact_0["offer"];
+  const _id_0 = _t_0["id"];
+  const _t_1 = _t_0["key"];
+  const _partition_0 = _t_1["partition"];
+  const _bytes_0 = _t_0["bytes"];
+  const _entries_0 = _fact_0["entry_limit"];
+  const _limit_0 = _fact_0["byte_limit"];
+  const _t_2 = _fact_0["stage"];
+  if (_t_2.$ === "CacheRuntime.PrepareStage") {
+    const _t_3 = _fact_0["reservation"];
+    if (_t_3.$ === "None") {
+      const _t_4 = _fact_0["event"];
+      if (_t_4.$ === "Canonical.CachePrepare") {
+        const _other_0 = _t_4["id"];
+        const _size_0 = _t_4["bytes"];
+        const _entry_limit_0 = _t_4["entry_limit"];
+        const _byte_limit_0 = _t_4["byte_limit"];
+        return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_id_0, _other_0)), ($Nat$is_eq$(_bytes_0, _size_0)))), ($Nat$is_eq$(_entries_0, _entry_limit_0)))), ($Nat$is_eq$(_limit_0, _byte_limit_0)));
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else if (_t_2.$ === "CacheRuntime.ReserveStage") {
+    const _t_5 = _fact_0["reservation"];
+    if (_t_5.$ === "None") {
+      const _t_6 = _fact_0["event"];
+      if (_t_6.$ === "Canonical.ReserveCapacity") {
+        const _owner_0 = _t_6["partition"];
+        const _size_1 = _t_6["bytes"];
+        const _t_7 = _t_6["purpose"];
+        if (_t_7.$ === "Ledger.StoredResult") {
+          return $Bool$and$(($Nat$is_eq$(_partition_0, _owner_0)), ($Nat$is_eq$(_bytes_0, _size_1)));
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    const _t_8 = _fact_0["reservation"];
+    if (_t_8.$ === "Some") {
+      const _reservation_0 = _t_8["value"];
+      const _t_9 = _fact_0["event"];
+      if (_t_9.$ === "Canonical.CacheCommit") {
+        const _other_1 = _t_9["id"];
+        const _owner_1 = _t_9["partition"];
+        const _size_2 = _t_9["bytes"];
+        const _charge_0 = _t_9["reservation"];
+        const _entry_limit_1 = _t_9["entry_limit"];
+        const _byte_limit_1 = _t_9["byte_limit"];
+        return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_id_0, _other_1)), ($Nat$is_eq$(_partition_0, _owner_1)))), ($Nat$is_eq$(_bytes_0, _size_2)))), ($Nat$is_eq$(_reservation_0, _charge_0)))), ($Nat$is_eq$(_entries_0, _entry_limit_1)))), ($Nat$is_eq$(_limit_0, _byte_limit_1)));
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+}
+
+function $CacheRuntime$valid_fact$(_state_0, _fact_0) {
+  const _pending_0 = _state_0["pending"];
+  return $Bool$and$(($CacheRuntime$fact_known$(_pending_0, _fact_0)), ($CacheRuntime$fact_event_valid$(_fact_0)));
+}
+
+function $CacheRuntime$source_capture$(_state_0, _offer_0, _binding_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  return {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": {$: "Con", "head": {$: "CacheRuntime.SourceCapture", "offer": _offer_0, "binding": _binding_0}, "tail": _sources_0}, "config": _config_0};
+}
+
+function $CacheRuntime$source_found$(_items_0, _offer_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _original_0 = _t_0["offer"];
+    const _binding_0 = _t_0["binding"];
+    const _tail_0 = _items_0["tail"];
+    return $Bool$pick$(($CacheScenario$same_offer$(_original_0, _offer_0)), {$: "Some", "value": _binding_0}, ($CacheRuntime$source_found$(_tail_0, _offer_0)));
+  }
+}
+
+function $CacheRuntime$source$(_state_0, _offer_0) {
+  const _sources_0 = _state_0["sources"];
+  return $CacheRuntime$source_found$(_sources_0, _offer_0);
+}
+
+function $CacheRuntime$fact_source$(_state_0, _fact_0) {
+  const _offer_0 = _fact_0["offer"];
+  return $CacheRuntime$source$(_state_0, _offer_0);
+}
+
+function $CacheRuntime$current_found$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _current_0 = _found_0["value"];
+    return _current_0;
+  } else {
+    return false;
+  }
+}
+
+function $CacheRuntime$source_current$(_state_0, _canonical_0, _fact_0) {
+  return $CacheRuntime$current_found$(($FreshnessScenario$current_binding$(_canonical_0, ($CacheRuntime$fact_source$(_state_0, _fact_0)))));
+}
+
+function $CacheRuntime$feedback_guarded$(_allowed_0, _state_0, _before_0, _after_0, _fact_0, _commands_0) {
+  if (_allowed_0) {
+    return $CacheRuntime$feedback_unchecked$(_state_0, _before_0, _after_0, _fact_0, _commands_0);
+  } else {
+    return {$: "CacheRuntime.Published", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
+function $CacheRuntime$feedback_fact$(_state_0, _before_0, _after_0, _fact_0, _commands_0) {
+  return $CacheRuntime$feedback_guarded$(($CacheRuntime$valid_fact$(_state_0, _fact_0)), _state_0, _before_0, _after_0, _fact_0, _commands_0);
+}
+
+function $CacheRuntime$capture_published$(_published_0, _offer_0, _binding_0) {
+  const _state_0 = _published_0["state"];
+  const _t_0 = _published_0["facts"];
+  if (_t_0.$ === "Nil") {
+    const _releases_0 = _published_0["releases"];
+    return {$: "CacheRuntime.Published", "state": _state_0, "facts": {$: "Nil"}, "releases": _releases_0};
+  } else {
+    const _releases_1 = _published_0["releases"];
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$source_capture$(_state_0, _offer_0, _binding_0)), "facts": _t_0, "releases": _releases_1};
+  }
+}
+
+function $CacheRuntime$begin_source$(_state_0, _offer_0, _binding_0, _entries_0, _bytes_0) {
+  return $CacheRuntime$capture_published$(($CacheRuntime$begin$(_state_0, _offer_0, _entries_0, _bytes_0)), _offer_0, _binding_0);
+}
+
+function $CacheRuntime$fact_event$(_fact_0) {
+  const _event_0 = _fact_0["event"];
+  return _event_0;
+}
+
+function $CacheRuntime$source_checked$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["source"];
+    const _subject_0 = _t_1["subject"];
+    const _input_0 = _t_1["input"];
+    const _generation_0 = _t_0["generation"];
+    return {$: "Some", "value": {$: "Canonical.RevisionCurrentCheck", "subject": _subject_0, "input": _input_0, "generation": _generation_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $CacheRuntime$source_check$(_state_0, _fact_0) {
+  return $CacheRuntime$source_checked$(($CacheRuntime$fact_source$(_state_0, _fact_0)));
+}
+
+function $CacheRuntime$source_bindings$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _binding_0 = _t_0["binding"];
+    const _tail_0 = _items_0["tail"];
+    return {$: "Con", "head": _binding_0, "tail": ($CacheRuntime$source_bindings$(_tail_0))};
+  }
+}
+
+function $CacheRuntime$bindings$(_state_0) {
+  const _sources_0 = _state_0["sources"];
+  return $CacheRuntime$source_bindings$(_sources_0);
+}
+
+function $CacheRuntime$current_payload_found$(_offer_0, _payload_0, _entry_0) {
+  if (_payload_0.$ === "Some") {
+    const _payload_1 = _payload_0["value"];
+    if (_entry_0.$ === "Some") {
+      const _entry_1 = _entry_0["value"];
+      return $Bool$and$(($CacheScenario$same_offer$(_offer_0, ($CacheScenario$payload_offer$(_payload_1)))), ($CacheScenario$entry_matches$(_payload_1, _entry_1)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $CacheRuntime$current_payload$(_offer_0, _cache_0, _canonical_0) {
+  return $CacheRuntime$current_payload_found$(_offer_0, ($CacheScenario$lookup$(_cache_0, ($CacheScenario$offer_id$(_offer_0)))), ($CacheScenario$cached_lookup$(($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))), ($CacheScenario$offer_id$(_offer_0)))));
+}
+
+function $CacheRuntime$source_retained$(_offer_0, _pending_0, _cache_0, _canonical_0) {
+  const _x_0 = ($CacheRuntime$pending_known$(_pending_0, _offer_0));
+  const _x_1 = ($CacheRuntime$current_payload$(_offer_0, _cache_0, _canonical_0));
+  return (_x_0 || _x_1);
+}
+
+function $CacheRuntime$source_kept$(_keep_0, _capture_0, _tail_0) {
+  if (_keep_0) {
+    return {$: "Con", "head": _capture_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $CacheRuntime$retained_sources$(_items_0, _pending_0, _cache_0, _canonical_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _offer_0 = _t_0["offer"];
+    const _binding_0 = _t_0["binding"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheRuntime$source_kept$(($CacheRuntime$source_retained$(_offer_0, _pending_0, _cache_0, _canonical_0)), {$: "CacheRuntime.SourceCapture", "offer": _offer_0, "binding": _binding_0}, ($CacheRuntime$retained_sources$(_tail_0, _pending_0, _cache_0, _canonical_0)));
+  }
+}
+
+function $CacheRuntime$retain$(_state_0, _canonical_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  return {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": ($CacheRuntime$retained_sources$(_sources_0, _pending_0, _cache_0, _canonical_0)), "config": _config_0};
+}
+
+function $CacheRuntime$reference_scopes$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _scope_0 = _t_0["scope"];
+    const _tail_0 = _items_0["tail"];
+    return {$: "Con", "head": _scope_0, "tail": ($CacheRuntime$reference_scopes$(_tail_0))};
+  }
+}
+
+function $CacheRuntime$references$(_state_0) {
+  return $CacheRuntime$reference_scopes$(($CacheRuntime$bindings$(_state_0)));
+}
+
+function $CacheRuntime$binding_scope$(_binding_0) {
+  const _scope_0 = _binding_0["scope"];
+  return _scope_0;
+}
+
+function $CacheRuntime$inserted_source$(_binding_0, _known_0, _existing_0) {
+  if (_known_0.$ === "None") {
+    return {$: "Con", "head": _binding_0, "tail": _existing_0};
+  } else {
+    return _existing_0;
+  }
+}
+
+function $CacheRuntime$inserted_sources$(_items_0, _existing_0) {
+  if (_items_0.$ === "Nil") {
+    return _existing_0;
+  } else {
+    const _binding_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheRuntime$inserted_source$(_binding_0, ($FreshnessScenario$lookup$(_existing_0, ($CacheRuntime$binding_scope$(_binding_0)))), ($CacheRuntime$inserted_sources$(_tail_0, _existing_0)));
+  }
+}
+
+function $CacheRuntime$restored_sources$(_state_0, _cache_0) {
+  const _items_0 = _state_0["bindings"];
+  return {$: "FreshnessScenario.State", "bindings": ($CacheRuntime$inserted_sources$(($CacheRuntime$bindings$(_cache_0)), _items_0))};
+}
+
+function $CacheRuntime$configure$(_state_0, _enabled_0, _entries_0, _bytes_0) {
+  const _cache_0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const _sources_0 = _state_0["sources"];
+  return {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": _sources_0, "config": {$: "CacheRuntime.Config", "enabled": _enabled_0, "entry_limit": _entries_0, "byte_limit": _bytes_0}};
+}
+
+function $CacheRuntime$begin_configured$(_state_0, _offer_0, _binding_0) {
+  const __0 = _state_0["cache"];
+  const __1 = _state_0["pending"];
+  const __2 = _state_0["sources"];
+  const _t_0 = _state_0["config"];
+  const _t_1 = _t_0["enabled"];
+  if (_t_1) {
+    const _entries_0 = _t_0["entry_limit"];
+    const _bytes_0 = _t_0["byte_limit"];
+    return $CacheRuntime$begin_source$({$: "CacheRuntime.State", "cache": __0, "pending": __1, "sources": __2, "config": {$: "CacheRuntime.Config", "enabled": true, "entry_limit": _entries_0, "byte_limit": _bytes_0}}, _offer_0, _binding_0, _entries_0, _bytes_0);
+  } else {
+    const _entries_1 = _t_0["entry_limit"];
+    const _bytes_1 = _t_0["byte_limit"];
+    return {$: "CacheRuntime.Published", "state": {$: "CacheRuntime.State", "cache": __0, "pending": __1, "sources": __2, "config": {$: "CacheRuntime.Config", "enabled": _t_1, "entry_limit": _entries_1, "byte_limit": _bytes_1}}, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
 function $SharingRuntime$initial$() {
   return {$: "SharingRuntime.State", "sharing": ($SharingScenario$initial$()), "preparations": {$: "Nil"}, "bindings": {$: "Nil"}, "results": {$: "Nil"}};
 }
@@ -13634,8 +14687,8 @@ function $SharingRuntime$captured_registration$(_state_0, _scope_0, _member_0, _
   }
 }
 
-function $SharingRuntime$captured_step$(_state_0, _scope_0, _member_0, _position_0, _bytes_0, _key_0) {
-  return $SharingRuntime$captured_registration$(_state_0, _scope_0, _member_0, _position_0, _bytes_0, _key_0, ($SharingScenario$register$(($SharingRuntime$sharing$(_state_0)), _key_0, _member_0)));
+function $SharingRuntime$captured_step$(_state_0, _scope_0, _member_0, _position_0, _bytes_0, _key_0, _cache_0, _canonical_0) {
+  return $SharingRuntime$captured_registration$(_state_0, _scope_0, _member_0, _position_0, _bytes_0, _key_0, ($SharingScenario$register_cached$(($SharingRuntime$sharing$(_state_0)), _key_0, _member_0, ($CacheRuntime$lookup_key$(_cache_0, _canonical_0, _key_0)))));
 }
 
 function $SharingRuntime$step_state$(_step_0) {
@@ -13661,7 +14714,7 @@ function $SharingRuntime$captured_tail$(_step_0, _tail_0) {
   }
 }
 
-function $SharingRuntime$capture_units$(_keys_0, _sizes_0, _scope_0, _member_0, _position_0, _state_0) {
+function $SharingRuntime$capture_units$(_keys_0, _sizes_0, _scope_0, _member_0, _position_0, _state_0, _cache_0, _canonical_0) {
   if (_keys_0.$ === "Nil") {
     if (_sizes_0.$ === "Nil") {
       return {$: "SharingRuntime.Captured", "state": _state_0, "routes": {$: "Nil"}, "valid": true};
@@ -13674,25 +14727,25 @@ function $SharingRuntime$capture_units$(_keys_0, _sizes_0, _scope_0, _member_0, 
     if (_sizes_0.$ === "Con") {
       const _size_0 = _sizes_0["head"];
       const _rest_0 = _sizes_0["tail"];
-      const _next_0 = ($SharingRuntime$captured_step$(_state_0, _scope_0, _member_0, _position_0, _size_0, _key_0));
-      return $SharingRuntime$captured_tail$(_next_0, ($SharingRuntime$capture_units$(_tail_0, _rest_0, _scope_0, _member_0, nat_chk(_position_0 + 1), ($SharingRuntime$step_state$(_next_0)))));
+      const _next_0 = ($SharingRuntime$captured_step$(_state_0, _scope_0, _member_0, _position_0, _size_0, _key_0, _cache_0, _canonical_0));
+      return $SharingRuntime$captured_tail$(_next_0, ($SharingRuntime$capture_units$(_tail_0, _rest_0, _scope_0, _member_0, nat_chk(_position_0 + 1), ($SharingRuntime$step_state$(_next_0)), _cache_0, _canonical_0)));
     } else {
       return {$: "SharingRuntime.Captured", "state": _state_0, "routes": {$: "Nil"}, "valid": false};
     }
   }
 }
 
-function $SharingRuntime$capture_found$(_state_0, _scope_0, _keys_0, _sizes_0, _found_0) {
+function $SharingRuntime$capture_found$(_state_0, _scope_0, _keys_0, _sizes_0, _found_0, _cache_0, _canonical_0) {
   if (_found_0.$ === "None") {
     return {$: "SharingRuntime.Captured", "state": _state_0, "routes": {$: "Nil"}, "valid": false};
   } else {
     const _member_0 = _found_0["value"];
-    return $SharingRuntime$capture_units$(_keys_0, _sizes_0, _scope_0, _member_0, 1, _state_0);
+    return $SharingRuntime$capture_units$(_keys_0, _sizes_0, _scope_0, _member_0, 1, _state_0, _cache_0, _canonical_0);
   }
 }
 
-function $SharingRuntime$capture$(_state_0, _freshness_0, _scope_0, _parent_0, _keys_0, _sizes_0) {
-  return $SharingRuntime$capture_found$(_state_0, _scope_0, _keys_0, _sizes_0, ($SharingRuntime$member$(($FreshnessScenario$lookup$(($FreshnessScenario$bindings$(_freshness_0)), _parent_0)))));
+function $SharingRuntime$capture$(_state_0, _freshness_0, _scope_0, _parent_0, _keys_0, _sizes_0, _cache_0, _canonical_0) {
+  return $SharingRuntime$capture_found$(_state_0, _scope_0, _keys_0, _sizes_0, ($SharingRuntime$member$(($FreshnessScenario$lookup$(($FreshnessScenario$bindings$(_freshness_0)), _parent_0)))), _cache_0, _canonical_0);
 }
 
 function $SharingRuntime$route_unit$(_units_0, _position_0, _evaluation_0) {
@@ -14854,6 +15907,69 @@ function $SharingRuntime$depart_all$(_state_0, _canonical_0, _partition_0, _life
   return $SharingRuntime$depart_scopes$(($SharingRuntime$scoped_members$(($SharingRuntime$source_references$(_state_0)), _partition_0, _lifetime_0)), _state_0, _canonical_0);
 }
 
+function $SharingRuntime$cache_result_found$(_results_0, _scope_0) {
+  if (_results_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _results_0["head"];
+    const _id_0 = _t_0["evaluation"];
+    const _outcome_0 = _t_0["outcome"];
+    const _original_0 = _t_0["original"];
+    const _bytes_0 = _t_0["bytes"];
+    const _tail_0 = _results_0["tail"];
+    return $Bool$pick$(($FreshnessScenario$same$(_scope_0, _original_0)), {$: "Some", "value": {$: "SharingRuntime.SharingResult", "evaluation": _id_0, "outcome": _outcome_0, "original": _original_0, "bytes": _bytes_0}}, ($SharingRuntime$cache_result_found$(_tail_0, _scope_0)));
+  }
+}
+
+function $SharingRuntime$cache_result_key$(_found_0, _evaluation_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _id_0 = _t_0["evaluation"];
+    const _outcome_0 = _t_0["outcome"];
+    const _original_0 = _t_0["original"];
+    const _bytes_0 = _t_0["bytes"];
+    if (_evaluation_0.$ === "Some") {
+      const _t_1 = _evaluation_0["value"];
+      const _key_0 = _t_1["key"];
+      return {$: "Some", "value": {$: "CacheScenario.Offer", "id": _id_0, "key": _key_0, "original": _original_0, "bytes": _bytes_0, "outcome": _outcome_0}};
+    } else {
+      return {$: "None"};
+    }
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SharingRuntime$cache_result_evaluation$(_state_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _id_0 = _t_0["evaluation"];
+    const _outcome_0 = _t_0["outcome"];
+    const _original_0 = _t_0["original"];
+    const _bytes_0 = _t_0["bytes"];
+    return $SharingRuntime$cache_result_key$({$: "Some", "value": {$: "SharingRuntime.SharingResult", "evaluation": _id_0, "outcome": _outcome_0, "original": _original_0, "bytes": _bytes_0}}, ($SharingScenario$lookup$(($SharingRuntime$sharing$(_state_0)), _id_0)));
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SharingRuntime$results$(_state_0) {
+  const _results_0 = _state_0["results"];
+  return _results_0;
+}
+
+function $SharingRuntime$cache_offer$(_state_0, _event_0) {
+  if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    return $SharingRuntime$cache_result_evaluation$(_state_0, ($SharingRuntime$cache_result_found$(($SharingRuntime$results$(_state_0)), {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else {
+    return {$: "None"};
+  }
+}
+
 function $FreshnessContext$candidate_scope$(_bindings_0, _partition_0, _round_0, _advice_0) {
   if (_bindings_0.$ === "Nil") {
     return {$: "None"};
@@ -15949,7 +17065,7 @@ function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
 }
 
 function $RuntimeScenarios$initial$() {
-  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$())};
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$())};
 }
 
 function $RuntimeScenarios$callbacks$(_state_0) {
@@ -15963,15 +17079,16 @@ function $RuntimeScenarios$with_callbacks$(_state_0, _callbacks_0) {
   const _freshness_0 = _state_0["freshness"];
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0};
+  const _cache_0 = _state_0["cache"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
 }
 
-function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0) {
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0};
+function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0) {
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0};
 }
 
-function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0) {
-  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(_freshness_0, _canonical_0, ($SharingRuntime$source_references$(_sharing_0)))), _sources_0, _canonical_0, _sharing_0);
+function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0) {
+  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0);
 }
 
 function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
@@ -15981,7 +17098,8 @@ function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
   const _freshness_0 = _state_0["freshness"];
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
-  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)));
+  const _cache_0 = _state_0["cache"];
+  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)));
 }
 
 function $RuntimeScenarios$notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
@@ -16011,7 +17129,8 @@ function $RuntimeScenarios$with_freshness$(_state_0, _freshness_0) {
   const _clocks_0 = _state_0["clocks"];
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0};
+  const _cache_0 = _state_0["cache"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
 }
 
 function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
@@ -16020,7 +17139,8 @@ function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
   const _clocks_0 = _state_0["clocks"];
   const _freshness_0 = _state_0["freshness"];
   const _sharing_0 = _state_0["sharing"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0};
+  const _cache_0 = _state_0["cache"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
 }
 
 function $RuntimeScenarios$sharing$(_state_0) {
@@ -16034,11 +17154,36 @@ function $RuntimeScenarios$with_sharing$(_state_0, _sharing_0) {
   const _clocks_0 = _state_0["clocks"];
   const _freshness_0 = _state_0["freshness"];
   const _sources_0 = _state_0["sources"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0};
+  const _cache_0 = _state_0["cache"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
 }
 
-function $RuntimeScenarios$accepted$(_state_0, _canonical_0, _event_0, _commands_0) {
-  return $RuntimeScenarios$retain$(($RuntimeScenarios$with_sharing$(($RuntimeScenarios$with_freshness$(_state_0, ($FreshnessScenario$feedback$(_commands_0, ($RuntimeScenarios$freshness$(_state_0)), _event_0)))), ($SharingRuntime$feedback$(($RuntimeScenarios$sharing$(_state_0)), _event_0, _commands_0)))), _canonical_0);
+function $RuntimeScenarios$cache$(_state_0) {
+  const _cache_0 = _state_0["cache"];
+  return _cache_0;
+}
+
+function $RuntimeScenarios$with_cache$(_state_0, _cache_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  const _sharing_0 = _state_0["sharing"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0};
+}
+
+function $RuntimeScenarios$cache_feedback_state$(_feedback_0) {
+  const _state_0 = _feedback_0["state"];
+  return _state_0;
+}
+
+function $RuntimeScenarios$cache_feedback$(_state_0, _before_0, _commands_0) {
+  return $RuntimeScenarios$cache_feedback_state$(($CacheRuntime$existing_removed$(_state_0, _before_0, _commands_0)));
+}
+
+function $RuntimeScenarios$accepted$(_state_0, _before_0, _canonical_0, _event_0, _commands_0) {
+  return $RuntimeScenarios$retain$(($RuntimeScenarios$with_cache$(($RuntimeScenarios$with_sharing$(($RuntimeScenarios$with_freshness$(_state_0, ($FreshnessScenario$feedback$(_commands_0, ($RuntimeScenarios$freshness$(_state_0)), _event_0)))), ($SharingRuntime$feedback$(($RuntimeScenarios$sharing$(_state_0)), _event_0, _commands_0)))), ($RuntimeScenarios$cache_feedback$(($RuntimeScenarios$cache$(_state_0)), _before_0, _commands_0)))), _canonical_0);
 }
 
 function $Advicees$initial$() {
@@ -20753,11 +21898,11 @@ function $lifecycle_accepted$(_entries_0, _canonical_0, _event_0) {
   }
 }
 
-function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0, _event_0) {
+function $settle$(_before_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$accepted$(_scenarios_0, _state_0, _event_0, _commands_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$accepted$(_scenarios_0, _before_0, _state_0, _event_0, _commands_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -20779,7 +21924,7 @@ function $step$(_state_0, _event_0) {
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
   const _scenarios_0 = _state_0["scenarios"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($AdviceeLifecycleCleanup$remaining_preparations$(_preparations_0, _event_0)), _activity_scopes_0, _scenarios_0, _event_0);
+  return $settle$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($AdviceeLifecycleCleanup$remaining_preparations$(_preparations_0, _event_0)), _activity_scopes_0, _scenarios_0, _event_0);
 }
 
 function $canonical$(_state_0) {
@@ -21601,9 +22746,10 @@ function $notice_followed$(_state_0, _followup_0) {
   const _freshness_0 = _t_0["freshness"];
   const _sources_0 = _t_0["sources"];
   const _sharing_0 = _t_0["sharing"];
+  const _cache_0 = _t_0["cache"];
   const _notices_0 = _followup_0["state"];
   const _events_0 = _followup_0["events"];
-  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0}}, "events": _events_0};
+  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0}}, "events": _events_0};
 }
 
 function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
@@ -21626,7 +22772,8 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
   const _freshness_0 = _t_0["freshness"];
   const _sources_0 = _t_0["sources"];
   const _sharing_0 = _t_0["sharing"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0}};
+  const _cache_0 = _t_0["cache"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0}};
 }
 
 function $notice_pruned$(_state_0, _key_0, _commands_0) {
@@ -21649,7 +22796,8 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   const _freshness_0 = _t_0["freshness"];
   const _sources_0 = _t_0["sources"];
   const _sharing_0 = _t_0["sharing"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0}};
+  const _cache_0 = _t_0["cache"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0}};
 }
 
 function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
@@ -21790,7 +22938,7 @@ function $sharing_prepare_found$(_state_0, _scope_0, _keys_0, _sizes_0, _found_0
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Preparing") {
       const _parent_0 = _t_0["parent"];
-      return $sharing_captured$(_state_0, ($SharingRuntime$capture$(($sharing_runtime$(_state_0)), ($freshness_state$(_state_0)), _scope_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _parent_0}, _keys_0, _sizes_0)));
+      return $sharing_captured$(_state_0, ($SharingRuntime$capture$(($sharing_runtime$(_state_0)), ($freshness_state$(_state_0)), _scope_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _parent_0}, _keys_0, _sizes_0, ($RuntimeScenarios$cache$(($scenarios$(_state_0)))), ($canonical$(_state_0)))));
     } else {
       return {$: "SharingCapture", "state": _state_0, "routes": {$: "Nil"}, "valid": false};
     }
@@ -21976,6 +23124,131 @@ function $sharing_leave_all$(_state_0, _partition_0, _lifetime_0) {
   return $sharing_departed$(_state_0, ($SharingRuntime$depart_all$(($sharing_runtime$(_state_0)), ($canonical$(_state_0)), _partition_0, _lifetime_0)));
 }
 
+function $cache_runtime$(_state_0) {
+  return $RuntimeScenarios$cache$(($scenarios$(_state_0)));
+}
+
+function $with_cache_runtime$(_state_0, _cache_0) {
+  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_cache$(($scenarios$(_state_0)), _cache_0)));
+}
+
+function $cache_published$(_state_0, _published_0) {
+  const _cache_0 = _published_0["state"];
+  const _facts_0 = _published_0["facts"];
+  const _releases_0 = _published_0["releases"];
+  return {$: "CachePublished", "state": ($with_cache_runtime$(_state_0, _cache_0)), "facts": _facts_0, "releases": _releases_0};
+}
+
+function $recorded_cache_result$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.JevRequestOutcomeRecorded") {
+          return true;
+        } else {
+          const __2 = _commands_0["tail"];
+          $0 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $cache_begin_current$(_state_0, _offer_0, _binding_0, _allowed_0) {
+  if (_allowed_0) {
+    return $cache_published$(_state_0, ($CacheRuntime$begin_configured$(($cache_runtime$(_state_0)), _offer_0, _binding_0)));
+  } else {
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
+function $cache_begin_captured$(_before_0, _state_0, _offer_0, _source_0) {
+  if (_source_0.$ === "Some") {
+    const _binding_0 = _source_0["value"];
+    return $cache_begin_current$(_state_0, _offer_0, _binding_0, ($CacheRuntime$current_found$(($FreshnessScenario$current_binding$(($canonical$(_before_0)), {$: "Some", "value": _binding_0})))));
+  } else {
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
+function $cache_begin_offer$(_before_0, _state_0, _offer_0) {
+  if (_offer_0.$ === "None") {
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  } else {
+    const _offer_1 = _offer_0["value"];
+    return $cache_begin_captured$(_before_0, _state_0, _offer_1, ($FreshnessScenario$lookup$(($FreshnessScenario$bindings$(($freshness_state$(_before_0)))), ($CacheScenario$original$(_offer_1)))));
+  }
+}
+
+function $cache_begin_checked$(_before_0, _state_0, _event_0, _allowed_0) {
+  if (_allowed_0) {
+    return $cache_begin_offer$(_before_0, _state_0, ($SharingRuntime$cache_offer$(($sharing_runtime$(_state_0)), _event_0)));
+  } else {
+    return {$: "CachePublished", "state": _state_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+  }
+}
+
+function $cache_begin$(_before_0, _state_0, _event_0, _commands_0) {
+  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($recorded_cache_result$(_commands_0)));
+}
+
+function $cache_removed_result$(_feedback_0) {
+  const _events_0 = _feedback_0["events"];
+  return _events_0;
+}
+
+function $cache_removed$(_before_0, _commands_0) {
+  return $cache_removed_result$(($CacheRuntime$existing_removed$(($cache_runtime$(_before_0)), ($canonical$(_before_0)), _commands_0)));
+}
+
+function $cache_applied_published$(_state_0, _event_0, _result_0, _published_0) {
+  const _cache_0 = _published_0["state"];
+  const _facts_0 = _published_0["facts"];
+  const _releases_0 = _published_0["releases"];
+  return {$: "CacheApplied", "state": ($with_cache_runtime$(_state_0, _cache_0)), "event": _event_0, "result": _result_0, "facts": _facts_0, "releases": _releases_0, "valid": true};
+}
+
+function $canonical_state$(_state_0) {
+  return $canonical$(_state_0);
+}
+
+function $cache_applied_feedback$(_before_0, _state_0, _event_0, _fact_0, _transition_0) {
+  const _after_0 = _transition_0["state"];
+  const _t_0 = _transition_0["result"];
+  if (_t_0.$ === "Canonical.Advanced") {
+    const _canonical_0 = _t_0["state"];
+    const _commands_0 = _t_0["commands"];
+    return $cache_applied_published$(_after_0, _event_0, {$: "Canonical.Advanced", "state": _canonical_0, "commands": _commands_0}, ($CacheRuntime$feedback_fact$(($cache_runtime$(_after_0)), ($canonical_state$(_before_0)), _canonical_0, _fact_0, _commands_0)));
+  } else {
+    return {$: "CacheApplied", "state": _after_0, "event": _event_0, "result": _t_0, "facts": {$: "Nil"}, "releases": {$: "Nil"}, "valid": true};
+  }
+}
+
+function $cache_apply_checked$(_state_0, _fact_0, _allowed_0) {
+  if (!_allowed_0) {
+    return {$: "CacheApplied", "state": _state_0, "event": ($CacheRuntime$fact_event$(_fact_0)), "result": {$: "Canonical.Rejected", "state": ($canonical$(_state_0)), "reason": {$: "Canonical.StaleOperation"}}, "facts": {$: "Nil"}, "releases": {$: "Nil"}, "valid": false};
+  } else {
+    return $cache_applied_feedback$(_state_0, _state_0, ($CacheRuntime$fact_event$(_fact_0)), _fact_0, ($step$(_state_0, ($CacheRuntime$fact_event$(_fact_0)))));
+  }
+}
+
+function $cache_apply$(_state_0, _fact_0) {
+  return $cache_apply_checked$(_state_0, _fact_0, ($CacheRuntime$valid_fact$(($cache_runtime$(_state_0)), _fact_0)));
+}
+
+function $configure_cache$(_state_0, _enabled_0, _entries_0, _bytes_0) {
+  return $with_cache_runtime$(_state_0, ($CacheRuntime$configure$(($cache_runtime$(_state_0)), _enabled_0, _entries_0, _bytes_0)));
+}
+
+function $Nat$is_eq$(_a_0, _b_0) {
+  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
+}
+
 function $Bool$pick$(_c_0, _a_0, _b_0) {
   if (!_c_0) {
     return _b_0;
@@ -21984,36 +23257,8 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
   }
 }
 
-function $Bool$and$(_a_0, _b_0) {
-  if (!_a_0) {
-    return false;
-  } else {
-    return _b_0;
-  }
-}
-
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function $Nat$is_gt$(_a_0, _b_0) {
   return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
-}
-
-function $Nat$is_ge$(_a_0, _b_0) {
-  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
-}
-
-function $Nat$is_eq$(_a_0, _b_0) {
-  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
-}
-
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
 function $List$append$(_xs_0, _ys_0) {
@@ -22026,12 +23271,44 @@ function $List$append$(_xs_0, _ys_0) {
   }
 }
 
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+}
+
 function $List$length$(_xs_0) {
   if (_xs_0.$ === "Nil") {
     return 0;
   } else {
     const _t_0 = _xs_0["tail"];
     return nat_chk(($List$length$(_t_0)) + 1);
+  }
+}
+
+function $Bool$and$(_a_0, _b_0) {
+  if (!_a_0) {
+    return false;
+  } else {
+    return _b_0;
+  }
+}
+
+function $Nat$is_ge$(_a_0, _b_0) {
+  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
+}
+
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $List$is_empty$(_xs_0) {
+  if (_xs_0.$ === "Nil") {
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -22047,14 +23324,6 @@ function $Maybe$is_some$(_m_0) {
   }
 }
 
-function $List$is_empty$(_xs_0) {
-  if (_xs_0.$ === "Nil") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function $Nat$div$(_a_0, _b_0) {
   return $Pair$fst$(nat_divmod(_a_0, _b_0));
 }
@@ -22067,22 +23336,6 @@ function $List$reverse$(_xs_0) {
   return $List$reverse$go$(_xs_0, {$: "Nil"});
 }
 
-function $Cmp$is_gt$(_c_0) {
-  if (_c_0.$ === "GT") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Cmp$is_ge$(_c_0) {
-  if (_c_0.$ === "LT") {
-    return false;
-  } else {
-    return true;
-  }
-}
-
 function $Cmp$is_eq$(_c_0) {
   if (_c_0.$ === "EQ") {
     return true;
@@ -22091,8 +23344,24 @@ function $Cmp$is_eq$(_c_0) {
   }
 }
 
+function $Cmp$is_gt$(_c_0) {
+  if (_c_0.$ === "GT") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 function $Cmp$is_le$(_c_0) {
   if (_c_0.$ === "GT") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $Cmp$is_ge$(_c_0) {
+  if (_c_0.$ === "LT") {
     return false;
   } else {
     return true;
@@ -22127,21 +23396,8 @@ function $List$reverse$go$($0, $1) {
   }
 }
 
-function $0m1(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": BigInt(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
 
-
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:e9ba5a52d65942ff49cae4e4540d31d958bc054af4456edfea36254c00c577e9";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:393243c9c6b6e1de7872650279b1544271f6d6bebd74b67dfb7354ff399b5982";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -22157,6 +23413,10 @@ const facts = value => {
   return value;
 };
 export default {
+ cache_begin: (before,state,event,commands) => run_loop($cache_begin$(before,state,facts(event),facts(commands))),
+ cache_apply: (state,fact) => run_loop($cache_apply$(state,facts(fact))),
+ cache_removed: (before,commands) => run_loop($cache_removed$(before,facts(commands))),
+ configure_cache: (state,enabled,entries,bytes) => run_loop($configure_cache$(state,facts(enabled),facts(entries),facts(bytes))),
  sharing_prepare: (state,scope,keys,sizes) => run_loop($sharing_prepare$(state,facts(scope),facts(keys),facts(sizes))),
  sharing_after: (before,after,event,commands) => run_loop($sharing_after$(before,after,facts(event),facts(commands))),
  sharing_admitted: (state,scope,source,command) => run_loop($sharing_admitted$(state,facts(scope),facts(source),facts(command))),

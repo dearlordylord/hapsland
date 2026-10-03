@@ -1,5 +1,6 @@
 import Base
 import ./CacheRuntime.bend as CacheRuntime
+import ./CacheScenario.bend as CacheScenario
 import ../agent-flow-bend/CollectionState.bend as Collection
 import ../agent-flow-bend/ReuseState.bend as Reuse
 import ../agent-flow-bend/Reuse.bend as ReusePolicy
@@ -691,3 +692,35 @@ def depart_scopes(scopes: List<&2,Freshness.Scope>, +state: State, +canonical: C
 
 def depart_all(+state: State, canonical: C.State, partition: Nat, lifetime: Nat) -> Departure:
   depart_scopes(scoped_members(source_references(state),partition,lifetime),state,canonical)
+
+# Only the original, accepted physical result can create a stored-result offer.
+# Its complete scoped key was captured before preparation; no host outcome map
+# or source reconstruction participates in this transfer.
+def cache_result_found(results: List<&2,SharingResult>, +scope: Freshness.Scope) -> Maybe<&2,SharingResult>:
+  match results:
+    case Nil{}: None{}
+    case SharingResult{+id,+outcome,+original,+bytes} <> tail:
+      Bool.pick(Maybe<&2,SharingResult>,Freshness.same(scope,original),Some{SharingResult{id,outcome,original,bytes}},cache_result_found(tail,scope))
+
+def cache_result_key(found: Maybe<&2,SharingResult>, evaluation: Maybe<&2,Sharing.Evaluation>) -> Maybe<&2,CacheScenario.Offer>:
+  match found evaluation:
+    case Some{SharingResult{id,outcome,original,bytes}} Some{Sharing.Evaluation{_,key,_,_,_}}:
+      Some{CacheScenario.Offer{id,key,original,bytes,outcome}}
+    case _ _: None{}
+
+def cache_result_evaluation(+state: State, found: Maybe<&2,SharingResult>) -> Maybe<&2,CacheScenario.Offer>:
+  match found:
+    case Some{SharingResult{+id,+outcome,+original,+bytes}}:
+      cache_result_key(Some{SharingResult{id,outcome,original,bytes}},Sharing.lookup(sharing(state),id))
+    case None{}: None{}
+
+def results(state: State) -> List<&2,SharingResult>:
+  match state:
+    case State{_,_,_,results}: results
+
+def cache_offer(state: State, event: C.CanonicalEvent) -> Maybe<&2,CacheScenario.Offer>:
+  match state event:
+    case +state C.JevRequestSettled{p,l,r,o,_,_,_}:
+      cache_result_evaluation(state,cache_result_found(results(state),Freshness.Scope{p,l,r,o}))
+    case _ _: None{}
+

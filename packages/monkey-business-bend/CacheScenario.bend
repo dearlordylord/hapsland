@@ -236,3 +236,7 @@ def refused_release(+before: C.State, offer: Offer, +reservation: Nat, commands:
   match offer:
     case Offer{_,Sharing.SharingKey{partition,_},_,bytes,_}:
       refused_entries(before,partition,bytes,reservation,commands,Collection.reuse_state(C.collection_of(before)))
+
+def original(offer: Offer) -> Freshness.Scope:
+  match offer:
+    case Offer{_,_,original,_,_}: original

@@ -1,6 +1,7 @@
+import { decodeDriverEvent } from "../../packages/monkey-business/src/driver-codec.ts";
 import SharedEngine, { type EngineState } from "../../packages/monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
-import { decoder, readRecord, readBendList, readNat, Nat } from "./boundary-schema.ts";
+import { decoder, readRecord, readBendList, readNat, readBool, Nat } from "./boundary-schema.ts";
 import { CanonicalLimitsSchema, type CanonicalEvent, type CanonicalProjection } from "./models.ts";
 import { freezeCanonicalData } from "./immutable.ts";
 import { encodeCanonicalEvent, projectCanonical, decodeTrustedCanonicalStep, projectTrustedCanonical } from "./canonical-boundary.ts";
@@ -9,6 +10,7 @@ import { projectImportGraph, decodeImportGraphStep } from "./graph-adapter.ts";
 const graphKey = decoder(Schema.Struct({ $: Schema.Literal("Types.GraphKey"), partition: Nat, lifetime: Nat, round: Nat, operation: Nat, unit: Nat }));
 const decodeLimits = decoder(CanonicalLimitsSchema);
 const readList = <T>(value: unknown, decode: (value: unknown) => T): T[] => readBendList(value, decode, 2048);
+const originalCommandList = (commands: readonly unknown[]): unknown => commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
 const projectionOf = (state: EngineState): CanonicalProjection => {
   const projection = sharedProjections.get(state);
   if (projection === undefined) throw new TypeError("missing shared projection");
@@ -16,13 +18,20 @@ const projectionOf = (state: EngineState): CanonicalProjection => {
 };
 // This composition bridge accepts only original states issued by the shared Bend engine.
 const sharedStates = new WeakSet<object>();
+const sharedResidents = new WeakMap<object, object>();
 const sharedRegister = (state: EngineState): EngineState => {
   freezeCanonicalData(state);
   sharedStates.add(state);
+  if (!sharedResidents.has(state)) sharedResidents.set(state, {});
   return state;
 };
 const sharedCheck = (state: EngineState): void => {
   if (!sharedStates.has(state)) throw new TypeError("foreign shared engine state");
+};
+const residentOf = (state: EngineState): object => {
+  const resident = sharedResidents.get(state);
+  if (resident === undefined) throw new TypeError("missing shared resident provenance");
+  return resident;
 };
 const sharedProjections = new WeakMap<object, CanonicalProjection>();
 const sharedCommands = new WeakMap<object, readonly unknown[]>();
@@ -51,14 +60,16 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   const afterActions = decodeSharedValue(SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(event))));
   const raw = readRecord(transition.result);
   const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, x => x) : [];
+  const cacheReleases = readList(SharedEngine.cache_removed(state, originalCommandList(commands)), value => decodeDriverEvent(decodeSharedValue(value)));
   sharedRegister(transition.state);
+  sharedResidents.set(transition.state, residentOf(state));
   sharedProjections.set(transition.state, projection);
   sharedCommands.set(transition.state, commands);
   sharedSourceEvents.set(transition.state, freezeCanonicalData(event));
   // A detached root carries immediate transition facts without retaining the
   // bridge key and its predecessor metadata from earlier transitions.
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
-  return { state: transition.state, result, afterActions };
+  return { state: transition.state, result, afterActions, cacheReleases };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
   sharedCheck(state);
@@ -150,6 +161,7 @@ const retain = (before: EngineState, next: EngineState): EngineState => {
   const projection = projectionOf(before);
   const commands = sharedCommands.get(before);
   sharedRegister(next);
+  sharedResidents.set(next, residentOf(before));
   sharedProjections.set(next, projection);
   if (commands !== undefined) sharedCommands.set(next, commands);
   const event = sharedSourceEvents.get(before);
@@ -357,7 +369,7 @@ export const afterSharedNotice = (state: EngineState, scope: unknown, event: Can
   const before = sharedPredecessors.get(state), commands = sharedCommands.get(state);
   if (!before || !commands) throw new TypeError("missing actual notice feedback");
   const transition = SharedEngine.notice_after(before, state, encodeSharedValue(scope), encodeSharedValue(encodeCanonicalEvent(event)),
-    commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" }), BigInt(readNat(now)));
+    originalCommandList(commands), BigInt(readNat(now)));
   return { state: retain(state, transition.state), events: readList(decodeSharedValue(transition.events), x => x) };
 };
 export const suppliedSharedNotice = (state: EngineState, scope: unknown, now: number, key: number, sequence: number) => {
@@ -405,7 +417,7 @@ export const routedSharedSharing = (state: EngineState, route: unknown) => {
   const event = sharedSourceEvents.get(state);
   const captured = readRecord(route);
   if (!commands || event?.kind !== "reuseRoute" || event.id !== readNat(captured.evaluation)) throw new RangeError("missing original shared route result");
-  const list = commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
+  const list = originalCommandList(commands);
   const result = SharedEngine.sharing_routed(state, encodeSharedValue(route), list);
   return { state: retain(state, result.state), events: decodeSharedValue(result.events) };
 };
@@ -434,6 +446,7 @@ export const preprocessSharedSharing = (state: EngineState, event: CanonicalEven
   const raw = readRecord(frame.result);
   const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, command => command) : [];
   sharedRegister(afterState);
+  sharedResidents.set(afterState, residentOf(state));
   sharedProjections.set(afterState, projectCanonical(result.state));
   sharedCommands.set(afterState, commands);
   sharedPredecessors.set(afterState, Object.freeze({ ...beforeState }));
@@ -443,6 +456,7 @@ export const preprocessSharedSharing = (state: EngineState, event: CanonicalEven
     return owner.$ === "Some" ? owner.value : undefined;
   });
   sharedRegister(prepared.state);
+  sharedResidents.set(prepared.state, residentOf(state));
   sharedProjections.set(prepared.state, projectCanonical(result.state));
   sharedCommands.set(prepared.state, commands);
   sharedPredecessors.set(prepared.state, Object.freeze({ ...beforeState }));
@@ -454,4 +468,55 @@ export const leaveAllSharedSharing = (state: EngineState, partition: number, lif
   sharedCheck(state);
   const result = SharedEngine.sharing_leave_all(state, BigInt(readNat(partition)), BigInt(readNat(lifetime)));
   return { state: retain(state, result.state), events: decodeSharedValue(result.events), valid: decodeSharedValue(result.valid) };
+};
+
+export type SharedCacheFact = Readonly<{ event: CanonicalEvent; partition: number }>;
+const cacheFacts = new WeakMap<object, { owner: object; raw: unknown }>();
+const consumedCacheFacts = new WeakSet<object>();
+const consumedCacheResults = new WeakSet<object>();
+const cacheFactsOf = (state: EngineState, facts: unknown): readonly SharedCacheFact[] => readList(facts, raw => {
+  const record = readRecord(decodeSharedValue(raw));
+  const offer = readRecord(record.offer);
+  const capsule = Object.freeze({ event: decodeDriverEvent(record.event), partition: readNat(readRecord(offer.key).partition) });
+  cacheFacts.set(capsule, { owner: residentOf(state), raw });
+  return capsule;
+});
+export const configureSharedCache = (state: EngineState, entries: number, bytes: number): EngineState => {
+  sharedCheck(state);
+  return retain(state, SharedEngine.configure_cache(state,true,BigInt(readNat(entries)),BigInt(readNat(bytes))));
+};
+export const beginSharedCache = (state: EngineState, event: CanonicalEvent) => {
+  sharedCheck(state);
+  const before = sharedPredecessors.get(state);
+  const commands = sharedCommands.get(state);
+  const source = sharedSourceEvents.get(state);
+  if (!before || !commands || source !== event || consumedCacheResults.has(source)) throw new TypeError("missing or consumed actual cache result provenance");
+  const published = SharedEngine.cache_begin(before,state,encodeSharedValue(encodeCanonicalEvent(source)),originalCommandList(commands));
+  const releases = readList(published.releases,value=>decodeDriverEvent(decodeSharedValue(value)));
+  const facts = cacheFactsOf(state,published.facts);
+  const next = retain(state,published.state);
+  consumedCacheResults.add(source);
+  return { state:next, facts, releases };
+};
+export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) => {
+  sharedCheck(state);
+  const provenance = cacheFacts.get(capsule);
+  if (!provenance || provenance.owner !== sharedResidents.get(state) || consumedCacheFacts.has(capsule)) throw new TypeError("foreign or consumed cache metadata fact");
+  const transition = SharedEngine.cache_apply(state, provenance.raw);
+  if (!readBool(transition.valid)) throw new TypeError("stale cache metadata phase");
+  const result = decodeTrustedCanonicalStep(transition.result);
+  const raw = readRecord(transition.result);
+  const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands,value=>value) : [];
+  const projection = projectCanonical(result.state);
+  const afterActions = decodeSharedValue(SharedEngine.after(state,transition.state,encodeSharedValue(encodeCanonicalEvent(capsule.event))));
+  const cacheReleases = [...readList(transition.releases,value=>decodeDriverEvent(decodeSharedValue(value))),...readList(SharedEngine.cache_removed(state,originalCommandList(commands)),value=>decodeDriverEvent(decodeSharedValue(value)))];
+  const nextFacts = cacheFactsOf(state,transition.facts);
+  sharedRegister(transition.state);
+  sharedResidents.set(transition.state,provenance.owner);
+  sharedProjections.set(transition.state,projection);
+  sharedCommands.set(transition.state,commands);
+  sharedSourceEvents.set(transition.state,capsule.event);
+  sharedPredecessors.set(transition.state,Object.freeze({...state}));
+  consumedCacheFacts.add(capsule);
+  return { state:transition.state,result,afterActions, cacheFacts:nextFacts, cacheReleases };
 };

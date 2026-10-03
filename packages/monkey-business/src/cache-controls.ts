@@ -7,7 +7,7 @@ import {SharingKeySchema,SharingScopeSchema} from "./sharing-controls.ts";
  * bijectively by the edge; the key partition remains the logical ledger owner. This codec
  * captures original provenance and contains no cache eligibility policy. */
 export const CacheOfferSchema=Schema.Struct({id:PositiveNat,key:SharingKeySchema,original:SharingScopeSchema,
- bytes:ByteCount,outcome:Schema.Literal("clear","finding")}).check(Schema.makeFilter(value=>value.key.partition===value.original.partition));
+ bytes:ByteCount,outcome:Schema.Literals(["clear","finding"])}).check(Schema.makeFilter(value=>value.key.partition===value.original.partition));
 export type CacheOffer=typeof CacheOfferSchema.Type;
 const readOffer=decoder(CacheOfferSchema);
 export const captureCacheOffer=(value:unknown):CacheOffer=>{

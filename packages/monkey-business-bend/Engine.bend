@@ -1,4 +1,6 @@
 import Base
+import ./CacheRuntime.bend as CacheRuntime
+import ./CacheScenario.bend as CacheScenario
 import ./SharingRuntime.bend as SharingRuntime
 import ./SharingScenario.bend as SharingScenario
 import ./FreshnessContext.bend as FreshnessContext
@@ -104,14 +106,14 @@ def lifecycle_accepted(entries: List<&2, AdviceeLifecycle.Entry>, canonical: Can
     case Canonical.OpenRound{partition, _}: AdviceeActivity.synchronize(entries, canonical, partition)
     case _: entries
 
-def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, lifecycles: List<&2, AdviceeLifecycle.Entry>, preparations: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>, activity_scopes: List<&2, AdviceeActivity.Scope>, scenarios: RuntimeScenarios.State, +event: Canonical.CanonicalEvent) -> Transition:
+def settle(before: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, lifecycles: List<&2, AdviceeLifecycle.Entry>, preparations: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>, activity_scopes: List<&2, AdviceeActivity.Scope>, scenarios: RuntimeScenarios.State, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycle_accepted(lifecycles, state, event), preparations, activity_scopes, RuntimeScenarios.accepted(scenarios, state, event, commands)}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycle_accepted(lifecycles, state, event), preparations, activity_scopes, RuntimeScenarios.accepted(scenarios,before,state,event,commands)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}, Canonical.Rejected{state, reason}}
 
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, opening, retiring, lifecycles, AdviceeLifecycleCleanup.remaining_preparations(preparations, event), activity_scopes, scenarios, event)
+    case Types.State{+canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}: settle(canonical, graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, opening, retiring, lifecycles, AdviceeLifecycleCleanup.remaining_preparations(preparations, event), activity_scopes, scenarios, event)
 
 def canonical(state: Types.State) -> Canonical.State:
   match state:
@@ -790,3 +792,84 @@ def sharing_after(before: Types.State, +after: Types.State, event: Canonical.Can
 
 def sharing_leave_all(+state: Types.State, partition: Nat, lifetime: Nat) -> SharingDeparture:
   sharing_departed(state,SharingRuntime.depart_all(sharing_runtime(state),canonical(state),partition,lifetime))
+
+# The private metadata context is created only from an accepted original
+# physical result and its before-transition source capture. Canonical formats
+# and public raw reservation events have no cache continuation capability.
+type CachePublished is Data:
+  CachePublished{state: Types.State, facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>}
+type CacheApplied is Data:
+  CacheApplied{state: Types.State, event: Canonical.CanonicalEvent, result: Canonical.Step,
+    facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>, valid: Bool}
+
+def cache_runtime(state: Types.State) -> CacheRuntime.State:
+  RuntimeScenarios.cache(scenarios(state))
+
+def with_cache_runtime(+state: Types.State, cache: CacheRuntime.State) -> Types.State:
+  with_scenarios(state,RuntimeScenarios.with_cache(scenarios(state),cache))
+
+def cache_published(state: Types.State, published: CacheRuntime.Published) -> CachePublished:
+  match published:
+    case CacheRuntime.Published{cache,facts,releases}: CachePublished{with_cache_runtime(state,cache),facts,releases}
+
+def recorded_cache_result(commands: List<&2,Canonical.Command>) -> Bool:
+  match commands:
+    case Nil{}: False{}
+    case Canonical.JevRequestOutcomeRecorded{_} <> _: True{}
+    case _ <> tail: recorded_cache_result(tail)
+
+def cache_begin_current(+state: Types.State, offer: CacheScenario.Offer, binding: FreshnessScenario.Binding, allowed: Bool) -> CachePublished:
+  match allowed:
+    case True{}: cache_published(state,CacheRuntime.begin_configured(cache_runtime(state),offer,binding))
+    case False{}: CachePublished{state,[],[]}
+
+def cache_begin_captured(before: Types.State, +state: Types.State, +offer: CacheScenario.Offer, source: Maybe<&2,FreshnessScenario.Binding>) -> CachePublished:
+  match source:
+    case Some{+binding}: cache_begin_current(state,offer,binding,CacheRuntime.current_found(FreshnessScenario.current_binding(canonical(before),Some{binding})))
+    case None{}: CachePublished{state,[],[]}
+
+def cache_begin_offer(+before: Types.State, state: Types.State, offer: Maybe<&2,CacheScenario.Offer>) -> CachePublished:
+  match offer:
+    case None{}: CachePublished{state,[],[]}
+    case Some{+offer}:
+      cache_begin_captured(before,state,offer,FreshnessScenario.lookup(FreshnessScenario.bindings(freshness_state(before)),CacheScenario.original(offer)))
+
+def cache_begin_checked(before: Types.State, +state: Types.State, event: Canonical.CanonicalEvent, allowed: Bool) -> CachePublished:
+  match allowed:
+    case True{}: cache_begin_offer(before,state,SharingRuntime.cache_offer(sharing_runtime(state),event))
+    case False{}: CachePublished{state,[],[]}
+
+def cache_begin(before: Types.State, state: Types.State, event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> CachePublished:
+  cache_begin_checked(before,state,event,recorded_cache_result(commands))
+
+def cache_removed_result(feedback: CacheRuntime.Feedback) -> List<&2,Canonical.CanonicalEvent>:
+  match feedback:
+    case CacheRuntime.Feedback{_,events}: events
+
+def cache_removed(+before: Types.State, commands: List<&2,Canonical.Command>) -> List<&2,Canonical.CanonicalEvent>:
+  cache_removed_result(CacheRuntime.existing_removed(cache_runtime(before),canonical(before),commands))
+
+def cache_applied_published(state: Types.State, event: Canonical.CanonicalEvent, result: Canonical.Step, published: CacheRuntime.Published) -> CacheApplied:
+  match published:
+    case CacheRuntime.Published{cache,facts,releases}:
+      CacheApplied{with_cache_runtime(state,cache),event,result,facts,releases,True{}}
+
+def canonical_state(state: Types.State) -> Canonical.State:
+  canonical(state)
+
+def cache_applied_feedback(+before: Types.State, state: Types.State, +event: Canonical.CanonicalEvent, fact: CacheRuntime.Fact, transition: Transition) -> CacheApplied:
+  match transition:
+    case Transition{+after,Canonical.Advanced{+canonical,+commands}}:
+      cache_applied_published(after,event,Canonical.Advanced{canonical,commands},CacheRuntime.feedback_fact(cache_runtime(after),canonical_state(before),canonical,fact,commands))
+    case Transition{after,result}: CacheApplied{after,event,result,[],[],True{}}
+
+def cache_apply_checked(+state: Types.State, +fact: CacheRuntime.Fact, allowed: Bool) -> CacheApplied:
+  match allowed:
+    case False{}: CacheApplied{state,CacheRuntime.fact_event(fact),Canonical.Rejected{canonical(state),Canonical.StaleOperation{}},[],[],False{}}
+    case True{}: cache_applied_feedback(state,state,CacheRuntime.fact_event(fact),fact,step(state,CacheRuntime.fact_event(fact)))
+
+def cache_apply(+state: Types.State, +fact: CacheRuntime.Fact) -> CacheApplied:
+  cache_apply_checked(state,fact,CacheRuntime.valid_fact(cache_runtime(state),fact))
+
+def configure_cache(+state: Types.State, enabled: Bool, entries: Nat, bytes: Nat) -> Types.State:
+  with_cache_runtime(state,CacheRuntime.configure(cache_runtime(state),enabled,entries,bytes))

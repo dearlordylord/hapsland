@@ -4,6 +4,10 @@ export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unk
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ cache_begin(before: EngineState,state: EngineState,event: unknown,commands: unknown): {state:EngineState;facts:unknown;releases:unknown};
+ cache_apply(state: EngineState,fact: unknown): {state:EngineState;event:unknown;result:unknown;facts:unknown;releases:unknown;valid:unknown};
+ cache_removed(before: EngineState,commands: unknown): unknown;
+ configure_cache(state:EngineState,enabled:boolean,entries:bigint,bytes:bigint):EngineState;
  notice_after(before: EngineState,state: EngineState,scope: unknown,event: unknown,commands: unknown,now: bigint): {state: EngineState; events: unknown};
  notice_exercise(scope: unknown): unknown;
  notice_failure(state: EngineState,scope: unknown,now: bigint,key: bigint,sequence: bigint): unknown;
