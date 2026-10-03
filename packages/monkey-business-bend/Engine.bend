@@ -728,11 +728,17 @@ def sharing_within(now: Nat, horizon: Maybe<&2,Nat>) -> Bool:
     case None{}: True{}
     case Some{end}: Nat.is_le(now,end)
 
+def sharing_preparation_live(+state: Types.State, event: Canonical.CanonicalEvent) -> Bool:
+  match event:
+    case Canonical.PreparationCompleted{+p,+l,r,o,_}:
+      preparation_active(state,p,l,r,o) && AdviceeLifecycle.permits_activity(lifecycle_entries(state),p,l)
+    case _: False{}
+
 def sharing_at_head(+state: Types.State, +event: Canonical.CanonicalEvent, order: Nat, horizon: Maybe<&2,Nat>, head: Maybe<&2,Scheduler.Entry>) -> SharingNext:
   match head:
     case None{}: SharingNext{state,None{},[]}
     case Some{Scheduler.Entry{+at,id}}:
-      match Nat.is_eq(order,id) && sharing_within(at,horizon):
+      match Nat.is_eq(order,id) && sharing_within(at,horizon) && sharing_preparation_live(state,event):
         case False{}: SharingNext{state,None{},[]}
         case True{}:
           match SharingRuntime.pending(sharing_runtime(state),event):
