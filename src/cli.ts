@@ -893,21 +893,28 @@ const dispatchCodexInstallation = Effect.fn("Cli.dispatchCodexInstallation")(fun
   }
 });
 
+const piInstallationDoctor = Effect.fn("Cli.piInstallationDoctor")(function* (
+  request: Extract<InstallationOperation, { host: "pi" }>, cwd: string, userConfigPath: string | undefined,
+) {
+  const diagnosis = yield* diagnosePiIntegration(request);
+  const repository = yield* doctorRepositoryChecks(cwd, userConfigPath);
+  return { ...diagnosis, checks: [...diagnosis.checks.filter(check => check.stage !== "credential"), repository.repository, repository.credential] };
+});
+const piInstallationHandlers = { "install-preview": previewPiInstallation, install: installPiIntegration,
+  "update-preview": previewPiUpdate, update: updatePiIntegration, uninstall: uninstallPiIntegration };
+const dispatchPiInstallation = Effect.fn("Cli.dispatchPiInstallation")(function* (
+  operation: Extract<InstallationOperation, { host: "pi" }>, userConfigPath: string | undefined,
+) {
+  const request = { ...operation, ...installationDigest(operation), ...installationReinstall(operation) };
+  if (operation.operation === "doctor") return yield* piInstallationDoctor(request, operation.cwd, userConfigPath);
+  return yield* piInstallationHandlers[operation.operation](request);
+});
+
 const dispatchInstallation = Effect.fn("Cli.dispatchInstallation")(function* (
   operation: InstallationOperation,
   userConfigPath: string | undefined,
 ) {
-  if (operation.host === "pi") {
-    const request = { ...operation, ...installationDigest(operation), ...installationReinstall(operation) };
-    if (operation.operation === "doctor") {
-      const diagnosis = yield* diagnosePiIntegration(request);
-      const repository = yield* doctorRepositoryChecks(operation.cwd, userConfigPath);
-      return { ...diagnosis, checks: [...diagnosis.checks.filter(check => check.stage !== "credential"), repository.repository, repository.credential] };
-    }
-    const handlers = { doctor: diagnosePiIntegration, "install-preview": previewPiInstallation, install: installPiIntegration,
-      "update-preview": previewPiUpdate, update: updatePiIntegration, uninstall: uninstallPiIntegration };
-    return yield* handlers[operation.operation](request);
-  }
+  if (operation.host === "pi") return yield* dispatchPiInstallation(operation, userConfigPath);
   if (operation.host === "claude") return yield* dispatchClaudeInstallation(operation);
   if (operation.host === "opencode") return yield* dispatchOpencodeInstallation(operation);
   return yield* dispatchCodexInstallation(operation, userConfigPath);
@@ -1000,42 +1007,41 @@ const runAdministrativeOperation = Effect.fn("Cli.runAdministrativeOperation")(f
   return yield* runOperation(operation, statePath, activityPath, userConfigPath);
 });
 
+const runPiNativeInput = Effect.fn("Cli.runPiNativeInput")(function* (
+  input: string, statePath: string, activityPath: string, userConfigPath: string | undefined,
+  controlled: ControlledDecisionModelOptions | undefined,
+) {
+  return yield* runPiHook(yield* decodeJson(input), { statePath, activityPath,
+    ...(userConfigPath === undefined ? {} : { userConfigPath }),
+    ...(controlled === undefined ? {} : { controlled }),
+  }).pipe(Effect.catch(() => Effect.succeed({ status: "unavailable" })));
+});
+const runClaudeNativeInput = Effect.fn("Cli.runClaudeNativeInput")(function* (
+  input: string, statePath: string, activityPath: string, userConfigPath: string | undefined,
+  controlled: ControlledDecisionModelOptions | undefined,
+) {
+  if (!isComposedEditHook) return {};
+  const observation = yield* adaptClaudeDirectEvent(yield* decodeJson(input),
+    userConfigPath === undefined ? {} : { userConfigPath });
+  return yield* runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath).pipe(
+    Effect.catch(() => Effect.succeed({})),
+  );
+});
+const runCodexNativeInput = Effect.fn("Cli.runCodexNativeInput")(function* (
+  input: string, statePath: string, activityPath: string, userConfigPath: string | undefined,
+  controlled: ControlledDecisionModelOptions | undefined,
+) {
+  const direct = yield* runDirectCodexHook(yield* decodeJson(input), codexHookVersion, controlled,
+    statePath, activityPath, userConfigPath);
+  return direct.handled ? direct.output : {};
+});
 const runNativeInput = Effect.fn("Cli.runNativeInput")(function* (
-  input: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined,
+  input: string, statePath: string, activityPath: string, userConfigPath: string | undefined,
 ) {
   const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
-
-  if (isPiHook) return yield* runPiHook(yield* decodeJson(input), { statePath, activityPath, ...(userConfigPath === undefined ? {} : { userConfigPath }), ...(controlled === undefined ? {} : { controlled }) }).pipe(Effect.catch(() => Effect.succeed({ status: "unavailable" })));
-
-  if (isClaudeHook) {
-    if (!isComposedEditHook) return {};
-    const nativeEvent = yield* decodeJson(input);
-    const observation = yield* adaptClaudeDirectEvent(
-      nativeEvent,
-      userConfigPath === undefined ? {} : { userConfigPath },
-    );
-    return yield* runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath).pipe(
-      Effect.catch(() => Effect.succeed({})),
-    );
-  }
-
-  if (isCodexHook) {
-    const nativeEvent = yield* decodeJson(input);
-    const direct = yield* runDirectCodexHook(
-      nativeEvent,
-      codexHookVersion,
-      controlled,
-      statePath,
-      activityPath,
-      userConfigPath,
-    );
-    if (direct.handled) return direct.output;
-    return {};
-  }
-
+  if (isPiHook) return yield* runPiNativeInput(input, statePath, activityPath, userConfigPath, controlled);
+  if (isClaudeHook) return yield* runClaudeNativeInput(input, statePath, activityPath, userConfigPath, controlled);
+  if (isCodexHook) return yield* runCodexNativeInput(input, statePath, activityPath, userConfigPath, controlled);
   return { version: 1, error: { code: "invalid_request", message: "unsupported command" } };
 });
 
