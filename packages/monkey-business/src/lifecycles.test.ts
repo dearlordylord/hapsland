@@ -55,13 +55,65 @@ it("optional resource scenarios execute and replay in the same resident", () => 
 it("finding reuse supplies retained advice and eviction releases cached charges", () => {
  const inputs = [0, 0, 20, 40].map((at, index) => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: [index === 3 ? "changed" : "same"] }));
  const run = complete({ inputs, outcome: "finding", lifecycles: { reuse: { entryLimit: 1, byteLimit: 10 } } });
- expect(run.observations.filter(o => o.commands.some(c => c.kind === "jevRequestIssued"))).toHaveLength(2);
- expect(run.observations.filter(o => o.commands.some(c => c.kind === "retainFinding"))).toHaveLength(4);
- expect(run.projection.reuse.cache).toHaveLength(1);
- expect(run.projection.charges.filter(c => c.purpose === "storedResult")).toHaveLength(1);
- expect(run.observations.filter(o => o.rejection)).toEqual([]);
- expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
+ const frames = run.observations;
+ const issued = frames.flatMap(frame => frame.commands.filter(command => command.kind === "jevRequestIssued"));
+ expect(issued).toHaveLength(2);
+ const original = issued[0]!, changed = issued[1]!;
+ const findings = frames.filter(frame => frame.commands.some(command => command.kind === "retainFinding"));
+ // #188/#189 preserve shared evaluation/advice authority: joining an existing
+ // advice ID gives a member findings, not another physical finding record.
+ expect(findings.map(frame => frame.event)).toEqual([
+  expect.objectContaining({ kind: "jevRequestSettled", operation: original.operation, request: original.request, outcome: "finding" }),
+  expect.objectContaining({ kind: "jevRequestSettled", operation: changed.operation, request: changed.request, outcome: "finding" }),
+ ]);
+ expect(findings.map(frame => frame.time)).toEqual([0 + 2 + 5, 40 + 2 + 5]);
+ expect(changed.operation).not.toBe(original.operation);
+ expect(changed.request).not.toBe(original.request);
+ const firstRoute = frames.find(frame => frame.time === 2 && frame.commands.some(command => command.kind === "reuseOwn"))!;
+ const pendingJoin = frames.find(frame => frame.time === 2 && frame.commands.some(command => command.kind === "reuseJoinClaimed"))!;
+ expect(firstRoute.event).toMatchObject({ kind: "reuseRoute", liveAdvice: false });
+ expect(pendingJoin.event).toEqual(firstRoute.event);
+ expect(pendingJoin.after.global).toEqual({ items: 2, bytes: 15 });
+ const memberFindings = frames.filter(frame => frame.time === 7 && frame.commands.some(command => command.kind === "reuseSetMemberFinding"));
+ expect(memberFindings).toHaveLength(2);
+ for (const frame of memberFindings) {
+  expect(frame.event).toEqual({ kind: "reuseMemberCheck", state: "finding", staleUnavailable: false, hasRevision: true, hasAdviceId: true });
+  expect(frame.after.pendingFindings).toEqual([{ operation: original.operation, count: 1 }]);
+ }
+ const liveJoin = frames.find(frame => frame.time === 20 + 2 && frame.commands.some(command => command.kind === "reuseJoinAdvice"))!;
+ expect(liveJoin.event).toEqual({ ...firstRoute.event, liveAdvice: true });
+ expect(liveJoin.before.pendingFindings).toEqual([{ operation: original.operation, count: 1 }]);
+ expect(liveJoin.after.pendingFindings).toEqual(liveJoin.before.pendingFindings);
+ // The live-advice route exposes its original authority, but has no separate
+ // public member-disposition frame; do not invent one or count another advice.
+ expect(frames.filter(frame => frame.time >= 20 && frame.time < 40).some(frame =>
+  frame.commands.some(command => command.kind === "jevRequestIssued" || command.kind === "unitAdmitted" || command.kind === "retainFinding"))).toBe(false);
+ expect(frames.some(frame => frame.commands.some(command => command.kind === "reuseCached"))).toBe(false);
+ const commits = frames.filter(frame => frame.event.kind === "cacheCommit" && frame.commands.some(command => command.kind === "cacheCommitted"));
+ expect(commits).toHaveLength(2);
+ const oldCommit = commits[0]!, newCommit = commits[1]!;
+ if (oldCommit.event.kind !== "cacheCommit" || newCommit.event.kind !== "cacheCommit") throw new Error("missing accepted original cache commits");
+ const oldEntry = oldCommit.event, newEntry = newCommit.event;
+ expect(newEntry.id).not.toBe(oldEntry.id);
+ const eviction = frames.find(frame => frame.event.kind === "cachePrepare" && frame.event.id === newEntry.id)!;
+ expect(eviction.commands).toContainEqual({ kind: "cachePrepared", evicted: [oldEntry.id] });
+ expect(newCommit.before.charges).toContainEqual({ id: oldEntry.reservation, partition: 1, bytes: 5, purpose: "storedResult" });
+ expect(newCommit.after.charges.some(charge => charge.id === oldEntry.reservation)).toBe(false);
+ // Evicting the cache payload must preserve independently retained live advice.
+ expect(newCommit.after.pendingFindings).toEqual([{ operation: original.operation, count: 1 }, { operation: changed.operation, count: 1 }]);
+ expect(run.projection.reuse).toEqual({ claims: [], cache: [{ id: newEntry.id, partition: 1, bytes: 5, reservation: newEntry.reservation }] });
+ expect(run.projection.charges).toEqual([{ id: newEntry.reservation, partition: 1, bytes: 5, purpose: "storedResult" }]);
+ expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
+ expect(run.projection.work).toEqual([]);
+ expect(run.projection.pendingFindings).toEqual([]);
+ expect(run.projection.dispatch.requests).toEqual([]);
+ expect(frames.filter(frame => frame.rejection)).toEqual([]);
+ const replay = restoreReplay(run.exportReplay());
+ expect(replay.observations).toEqual(frames);
+ expect(replay.projection).toEqual(run.projection);
+ expect(replay.queuedFacts).toEqual(run.queuedFacts);
 });
+
 it("changed revision fences its earlier late result", () => {
  const inputs = [0, 3].map((at, index) => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5], revisionSubject: "root", revisionInput: `input-${index}` }));
  const run = complete({ inputs, outcome: "finding", jevDelay: 20 });
