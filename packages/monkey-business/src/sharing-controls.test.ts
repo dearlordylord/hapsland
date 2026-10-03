@@ -32,6 +32,7 @@ it("keeps actual controlled-null namespace stable and distinguishes configured c
  expect(original).toBe('{"input":"semantic-A","partition":"advicee/root\\u0000work:standalone\\u0000credential-generation:controlled"}');
  expect(sharingIdentityLabel({...controlled})).toBe(original);
  expect(sharingIdentityLabel({...controlled,credentialGeneration:3})).not.toBe(original);
+ expect(sharingIdentityLabel({...controlled,credentialGeneration:0})).toBe('{"input":"semantic-A","partition":"advicee/root\\u0000work:standalone\\u0000credential-generation:0"}');
  // 'controlled provider with requireCredential' is numeric when the actual
  // dispatch credential exists. No provider-mode boolean is part of this codec.
 });

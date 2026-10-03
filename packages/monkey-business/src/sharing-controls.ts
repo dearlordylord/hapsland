@@ -38,7 +38,7 @@ export const decodeSharingEvents=(value:unknown)=>Object.freeze(readBendList(val
  * choosing a controlled model does not itself imply a null credential capture. */
 const IdentityText=Schema.String.check(Schema.isMinLength(1),Schema.isMaxLength(8192));
 export const SharingIdentityFactsSchema=Schema.Struct({partition:IdentityText,
- workId:Schema.NullOr(IdentityText),credentialGeneration:Schema.NullOr(PositiveNat),preparedIdentity:IdentityText});
+ workId:Schema.NullOr(IdentityText),credentialGeneration:Schema.NullOr(Schema.Number.check(Schema.isInt(),Schema.isBetween({minimum:0,maximum:Number.MAX_SAFE_INTEGER}))),preparedIdentity:IdentityText});
 export type SharingIdentityFacts=typeof SharingIdentityFactsSchema.Type;
 const readIdentityFacts=decoder(SharingIdentityFactsSchema);
 export const captureSharingIdentityFacts=(value:unknown):SharingIdentityFacts=>Object.freeze(readIdentityFacts(value));
