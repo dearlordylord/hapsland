@@ -1,0 +1,10 @@
+{
+ "imports": ["../SharingScenario.bend as S", "../FreshnessScenario.bend as F"],
+ "instances": [
+  {"name":"same_complete_scope","claim":"{S.same_key(S.Key{1n,7n},S.Key{1n,7n}) == True{} : Bool}"},
+  {"name":"forbidden_other_partition","claim":"{S.same_key(S.Key{1n,7n},S.Key{2n,7n}) == False{} : Bool}"},
+  {"name":"different_prepared_input","claim":"{S.same_key(S.Key{1n,7n},S.Key{1n,8n}) == False{} : Bool}"},
+  {"name":"callback_old_lifetime","claim":"{S.physical_same(S.Physical{1n,1n,1n,5n,9n},S.Physical{1n,2n,1n,5n,9n}) == False{} : Bool}"},
+  {"name":"callback_other_request","claim":"{S.physical_same(S.Physical{1n,1n,1n,5n,9n},S.Physical{1n,1n,1n,5n,10n}) == False{} : Bool}"}
+ ]
+}
