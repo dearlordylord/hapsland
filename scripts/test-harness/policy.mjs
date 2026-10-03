@@ -7,6 +7,8 @@ export const FIXTURE_READY_TIMEOUT_MS = 20_000;
 export const CLEANUP_TIMEOUT_MS = 10_000;
 
 export const boundedScenarioFiles = new Map([
+  ['src/resident/capacity.test.ts', 'bounded metadata-capacity exhaustion'],
+  ['packages/monkey-business/src/outcomes.test.ts', 'bounded seeded outcome simulation and replay'],
   ['src/resident/server.test.ts', 'bounded resident saturation and batch collection'],
   ['packages/monkey-business/src/lifecycles.test.ts', 'bounded lifecycle simulation and replay'],
 ]);

@@ -21,6 +21,8 @@ it('finds actual imports through cyclic fixtures without treating strings or typ
   put('src/cycle.ts', 'import "./fixture.ts"; import {spawn} from "node:child_process";');
   put('src/dynamic.test.ts', 'const fixture = import("./fixture.ts");');
   put('src/mixed.test.ts', 'import defaultRuntime, {type ChildProcess} from "node:child_process";');
+  put('src/resident/capacity.test.ts', 'const boundedMetadata = true;');
+  put('packages/monkey-business/src/outcomes.test.ts', 'const seededReplay = true;');
   put('src/resident/server.test.ts', 'const boundedSaturation = true;');
   const entries = Object.fromEntries(inventoryTestHarness(root).map(entry => [entry.path, entry]));
   expect(entries['src/unit.test.ts'].kind).toBe('unit');
@@ -30,5 +32,8 @@ it('finds actual imports through cyclic fixtures without treating strings or typ
   expect(entries['src/dynamic.test.ts'].kind).toBe('process');
   expect(entries['src/mixed.test.ts'].kind).toBe('process');
   expect(entries['src/resident/server.test.ts'].kind).toBe('bounded-scenario');
+  for (const path of ['src/resident/capacity.test.ts', 'packages/monkey-business/src/outcomes.test.ts']) {
+    expect(entries[path]).toMatchObject({ kind: 'bounded-scenario', timeoutMs: 60_000 });
+  }
   expect(timeoutForKind('unit')).toBe(5_000);
 });
