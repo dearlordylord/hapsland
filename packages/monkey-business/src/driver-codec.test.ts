@@ -42,4 +42,11 @@ it("keeps permit facts distinct from quiet facts and validates the complete perm
  expect(() => decodeDriverEvent(permit(quietFacts))).toThrow();
  expect(() => decodeDriverEvent(permit({ ...facts, extra: 1 }))).toThrow();
  expect(() => decodeDriverEvent(quietTick(facts))).toThrow();
+ for (const field of ["clock_valid", "hook_window", "started_upper", "now_lower", "advicee_permit_limit", "resident_permit_limit"]) {
+  const missing: Record<string,unknown> = { ...facts }; delete missing[field];
+  expect(() => decodeDriverEvent(permit(missing))).toThrow();
+ }
+ expect(() => decodeDriverEvent(permit({ ...facts, clock_valid: 1 }))).toThrow();
+ expect(() => decodeDriverEvent(permit({ ...facts, hook_window: -1 }))).toThrow();
+ expect(() => decodeDriverEvent({ ...quietTick(quietFacts), $: "Canonical.CompleteObservation" })).toThrow();
 });

@@ -47,13 +47,18 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
       result.purpose = purposes[purpose];
     } else if (key === "facts") {
       const facts = readRecord(item);
-      if (event.$ === "Canonical.QuietRoundTick") {
-        decodeCanonicalConstructor(facts,"Quiescence.Facts");
+      const quiet = event.$ === "Canonical.QuietRoundTick";
+      if (!quiet && event.$ !== "Canonical.IssuePermit") throw new TypeError("invalid driver facts event");
+      const expectedTag = quiet ? "Quiescence.Facts" : "Admission.ProspectiveFacts";
+      const fields = quiet ? ["$", "native_work_idle", "advice_empty", "handoff_idle", "stop_absent"]
+        : ["$", "clock_valid", "hook_window", "started_upper", "now_lower", "advicee_permit_limit", "resident_permit_limit"];
+      const keys = Object.keys(facts);
+      if (facts.$ !== expectedTag || keys.length !== fields.length || keys.some(key => !fields.includes(key)))
+        throw new TypeError("invalid driver facts shape");
+      if (quiet) {
         result[key] = { nativeWorkIdle: readBool(facts.native_work_idle), adviceEmpty: readBool(facts.advice_empty),
           handoffIdle: readBool(facts.handoff_idle), stopAbsent: readBool(facts.stop_absent) };
       } else {
-        if (facts.$ !== "Admission.ProspectiveFacts") throw new TypeError("invalid driver permit facts");
-        decodeCanonicalConstructor(facts,"Admission.ProspectiveFacts");
         result[key] = { clockValid: readBool(facts.clock_valid), hookWindow: readNat(facts.hook_window),
           startedUpper: readNat(facts.started_upper), nowLower: readNat(facts.now_lower),
           adviceePermitLimit: readNat(facts.advicee_permit_limit), residentPermitLimit: readNat(facts.resident_permit_limit) };
