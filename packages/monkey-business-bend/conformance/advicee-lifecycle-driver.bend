@@ -1030,7 +1030,7 @@ def observed_transition_ready(-F: Data, transitioned: List<&2,Runtime> & Command
     +job: Job, +now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
     environment: Environment) -> Observed<F>:
   match transitioned:
-    case runtime & hook:
+    case (runtime,hook):
       observed_commanded(F,observed_commands(F,actual_commands(result),runtime_sync(runtime),event,now,job,candidate,environment,hook),
         before,event,now,order,job,result)
 
