@@ -69,7 +69,7 @@ def inherit(state: State, child: Scope, parent: Maybe<&2, Binding>) -> State:
 # edit replaced the subject while preparation was still physically in flight.
 def unit(+state: State, +parent: Scope, command: Canonical.Command) -> State:
   match state parent command:
-    case State{+bindings} Scope{+p, +l, +r, +operation} Canonical.UnitAdmitted{child, _, _}:
+    case State{+bindings} Scope{+p, +l, +r, +operation} Canonical.UnitAdmitted{child, _, _, _, _}:
       inherit(state, Scope{p, l, r, child}, lookup(bindings, Scope{p, l, r, operation}))
     case _ _ _: state
 
