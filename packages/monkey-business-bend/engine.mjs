@@ -13866,31 +13866,39 @@ function $AdviceeLifecycleCleanup$released_parent$(_running_0, _capture_0) {
   }
 }
 
-function $AdviceeLifecycleCleanup$completion_actions$(_state_0, _capture_0) {
-  const _t_0 = _state_0["dispatch"];
-  const _running_0 = _t_0["running"];
-  return $AdviceeLifecycleCleanup$released_parent$(($AdviceeLifecycleCleanup$parent_running$(_running_0, _capture_0)), _capture_0);
-}
-
-function $AdviceeLifecycleCleanup$prepared_hit$(_matches_0, _capture_0, _state_0, _tail_0) {
+function $AdviceeLifecycleCleanup$remaining_hit$(_matches_0, _capture_0, _tail_0) {
   if (_matches_0) {
-    const _remaining_0 = _tail_0["remaining"];
-    const _actions_0 = _tail_0["actions"];
-    return {$: "AdviceeLifecycleCleanup.PreparedSettlement", "remaining": _remaining_0, "actions": ($List$append$(($AdviceeLifecycleCleanup$completion_actions$(_state_0, _capture_0)), _actions_0))};
+    return _tail_0;
   } else {
-    const _remaining_1 = _tail_0["remaining"];
-    const _actions_1 = _tail_0["actions"];
-    return {$: "AdviceeLifecycleCleanup.PreparedSettlement", "remaining": {$: "Con", "head": _capture_0, "tail": _remaining_1}, "actions": _actions_1};
+    return {$: "Con", "head": _capture_0, "tail": _tail_0};
   }
 }
 
-function $AdviceeLifecycleCleanup$settle_preparations$(_captures_0, _state_0, _event_0) {
+function $AdviceeLifecycleCleanup$remaining_preparations$(_captures_0, _event_0) {
   if (_captures_0.$ === "Nil") {
-    return {$: "AdviceeLifecycleCleanup.PreparedSettlement", "remaining": {$: "Nil"}, "actions": {$: "Nil"}};
+    return {$: "Nil"};
   } else {
     const _head_0 = _captures_0["head"];
     const _tail_0 = _captures_0["tail"];
-    return $AdviceeLifecycleCleanup$prepared_hit$(($AdviceeLifecycleCleanup$callback_matches$(_head_0, _event_0)), _head_0, _state_0, ($AdviceeLifecycleCleanup$settle_preparations$(_tail_0, _state_0, _event_0)));
+    return $AdviceeLifecycleCleanup$remaining_hit$(($AdviceeLifecycleCleanup$callback_matches$(_head_0, _event_0)), _head_0, ($AdviceeLifecycleCleanup$remaining_preparations$(_tail_0, _event_0)));
+  }
+}
+
+function $AdviceeLifecycleCleanup$preparation_hit$(_matches_0, _capture_0, _running_0, _tail_0) {
+  if (_matches_0) {
+    return $List$append$(($AdviceeLifecycleCleanup$released_parent$(($AdviceeLifecycleCleanup$parent_running$(_running_0, _capture_0)), _capture_0)), _tail_0);
+  } else {
+    return _tail_0;
+  }
+}
+
+function $AdviceeLifecycleCleanup$preparation_actions$(_captures_0, _before_running_0, _event_0) {
+  if (_captures_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _captures_0["head"];
+    const _tail_0 = _captures_0["tail"];
+    return $AdviceeLifecycleCleanup$preparation_hit$(($AdviceeLifecycleCleanup$callback_matches$(_head_0, _event_0)), _head_0, _before_running_0, ($AdviceeLifecycleCleanup$preparation_actions$(_tail_0, _before_running_0, _event_0)));
   }
 }
 
@@ -18096,16 +18104,6 @@ function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _
   }
 }
 
-function $prepared_remaining$(_settlement_0) {
-  const _remaining_0 = _settlement_0["remaining"];
-  return _remaining_0;
-}
-
-function $prepared_actions$(_settlement_0) {
-  const _actions_0 = _settlement_0["actions"];
-  return _actions_0;
-}
-
 function $step$(_state_0, _event_0) {
   const _canonical_0 = _state_0["canonical"];
   const _graphs_0 = _state_0["graphs"];
@@ -18120,7 +18118,7 @@ function $step$(_state_0, _event_0) {
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
   const _scenarios_0 = _state_0["scenarios"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($prepared_remaining$(($AdviceeLifecycleCleanup$settle_preparations$(_preparations_0, _canonical_0, _event_0)))), _activity_scopes_0, _scenarios_0, _event_0);
+  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($AdviceeLifecycleCleanup$remaining_preparations$(_preparations_0, _event_0)), _activity_scopes_0, _scenarios_0, _event_0);
 }
 
 function $canonical$(_state_0) {
@@ -18149,10 +18147,16 @@ function $preparation_completed$(_partition_0, _lifetime_0, _round_0, _operation
   return $Driver$preparation_completed$(_partition_0, _lifetime_0, _round_0, _operation_0, _unit_bytes_0, _delay_0);
 }
 
+function $preparation_running$(_state_0) {
+  const _t_0 = _state_0["dispatch"];
+  const _running_0 = _t_0["running"];
+  return _running_0;
+}
+
 function $after$(_before_0, _state_0, _event_0) {
   const _previous_0 = _before_0["canonical"];
   const _captures_0 = _before_0["preparations"];
-  return $List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($prepared_actions$(($AdviceeLifecycleCleanup$settle_preparations$(_captures_0, _previous_0, _event_0)))));
+  return $List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($AdviceeLifecycleCleanup$preparation_actions$(_captures_0, ($preparation_running$(_previous_0)), _event_0)));
 }
 
 function $enqueue$(_state_0, _at_0, _order_0) {
@@ -19156,7 +19160,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:9318b989daa4d754738218cb70025693da95a2bf70a3731eccbbc08c158cd9d5";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:50378cd491b0c4526795720cd828c8ec16b8a11830c12c998f0eb1871a450096";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
