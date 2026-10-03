@@ -1,0 +1,152 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-03T01:10:45.577Z",
+  "records": [
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-defect",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-defect",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-defect",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-defect",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-clean",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-clean",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-clean",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-small-clean",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-defect",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-defect",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-defect",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-defect",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-clean",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-clean",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-clean",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-adjacent-clean",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-defect",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-defect",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-defect",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-defect",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-clean",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-clean",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-clean",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "moderation-decision-large-separated-clean",
+      "candidate": "hapsland",
+      "pass": 1
+    }
+  ],
+  "attempts": 132,
+  "hostUncachedPlusOutputTokens": 0
+}

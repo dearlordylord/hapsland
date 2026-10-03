@@ -1,0 +1,80 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-03T01:23:12.257Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "large-map-camera-small-defect",
+      "candidate": "baseline",
+      "blindId": "455c209e25a5"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-small-defect",
+      "candidate": "hapsland",
+      "blindId": "c31e3ea16f74"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-small-defect",
+      "candidate": "abide",
+      "blindId": "8005161587cd"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-small-clean",
+      "candidate": "hapsland",
+      "blindId": "702f4615f27e"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-small-clean",
+      "candidate": "abide",
+      "blindId": "04f210e73408"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-small-clean",
+      "candidate": "baseline",
+      "blindId": "d25f34eb5d52"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-large-separated-defect",
+      "candidate": "abide",
+      "blindId": "deaf31d05cbc"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-large-separated-defect",
+      "candidate": "baseline",
+      "blindId": "d849fbb6191f"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-large-separated-defect",
+      "candidate": "hapsland",
+      "blindId": "4cbcc69aa56e"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-large-separated-clean",
+      "candidate": "baseline",
+      "blindId": "99e764e82127"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-large-separated-clean",
+      "candidate": "abide",
+      "blindId": "94f3c81da9a8"
+    },
+    {
+      "stage": "B",
+      "id": "large-map-camera-large-separated-clean",
+      "candidate": "hapsland",
+      "blindId": "862534da99a8"
+    }
+  ],
+  "attempts": 162,
+  "hostUncachedPlusOutputTokens": 174396
+}

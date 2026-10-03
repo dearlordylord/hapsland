@@ -99,20 +99,23 @@ See [supported languages and limits](#supported-languages) before setup.
 
 ## A contextual comparison with Abide
 
-Our [readable examples and comparative study](./docs/abide-contextual-review-study.md)
-cover all nine bundled Noul rules. Native sessions used **Codex CLI 0.155.1,
-model `gpt-6-luna`, reasoning `max`**, with experimental feedback-receipt tracking.
+Our [large-declaration study](./docs/abide-large-declaration-study.md) compares six
+selected synthetic domains during a maintenance rename, using **Codex CLI 0.155.1,
+model `gpt-6-luna`, reasoning `max`**. Both reviewers used Jev and the same target
+Noul concerns; Abide 0.0.7 used an active custom rubric. All conditions included
+equal diagnostic reporting of feedback receipt.
 
-Four selected cross-file duplicate-fact designs produced **12/12 checked repairs
-with Hapsland and 1/12 with Abide configured with the same Noul concern**.
-**Hapsland also warned on all six clean-control observations.**
+The larger separated inputs produced **6/6 independently checked repairs in
+Hapsland sessions and 0/6 in Abide sessions**. Including compact inputs, the counts
+were **11/12 and 2/12**. Hapsland also produced **one false warning in 36 clean
+detection observations**, versus zero for Abide. Each native cell was one session.
 
-The other eight rules produced **6/16 Hapsland repairs and 3/16 Abide repairs**
-in one native session per defective case and arm. The resource rule was rerun
-with corrected review configuration; seven rules
-retain their existing measurements. Across the two matrices, results include
-local examples and false warnings; they do not establish general
-review superiority. The report links starting and final code for inspection.
+The report links every starting example and actual final code, separates feedback
+receipt from correct repair, and records the methodology and limitations. Gaps
+also appeared on compact inputs; these results do not establish that size caused
+the difference or that either product is generally superior.
+[Additional compact examples cover all nine rules](./docs/abide-contextual-review-study.md)
+in separate matrices.
 
 ## Installation
 

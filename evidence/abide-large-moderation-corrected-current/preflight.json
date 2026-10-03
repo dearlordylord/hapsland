@@ -1,0 +1,942 @@
+{
+  "version": 1,
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "offline": true,
+  "providerRequests": 0,
+  "records": [
+    {
+      "caseId": "moderation-decision-small-defect",
+      "candidateId": "moderation-decision",
+      "layout": "small",
+      "gold": true,
+      "fixtureDigest": "ea0ac447f040ec69dad697f0339d647b911a5372b228e665a0ffefb6e6c1e4c6",
+      "compiledBeforeAndAfter": true,
+      "prepared": {
+        "status": "incomplete",
+        "ready": 1,
+        "pathReasons": [
+          {
+            "status": "observed",
+            "reason": null,
+            "analysisStatus": "incomplete",
+            "analysisReason": null,
+            "analysisFailures": [
+              {
+                "reason": "missing-evidence",
+                "root": "CaseState"
+              }
+            ]
+          }
+        ],
+        "unitSummaries": [
+          {
+            "root": "CaseState",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "omissions": [
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "displayLabel.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.rawText.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "normalizedText.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.blockedTerms.some"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term => comparable.includes(term.toLowerCase())"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "comparable.includes"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "appendAudit",
+                "path": "support.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "auditEntries.push"
+                }
+              },
+              {
+                "declaration": "appendAudit",
+                "path": "support.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "auditEntries"
+                }
+              }
+            ]
+          }
+        ],
+        "preparedUnits": [
+          {
+            "declaration": "CaseState",
+            "contract": "direct-event/function/v1",
+            "completeness": "incomplete-irrelevant",
+            "inputSha256": "9463852af7b3c30bdd63a42b0a4be6ddc2f2c42933c443ac599b8c9d965c495d",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "ruleIds": [
+              "r9_body_reaches_undeclared"
+            ]
+          }
+        ],
+        "evaluations": []
+      },
+      "sourceLines": 15,
+      "patch": {
+        "totalLines": 13,
+        "contextLines": 5,
+        "addedLines": 2,
+        "removedLines": 2,
+        "hunks": 1
+      }
+    },
+    {
+      "caseId": "moderation-decision-small-clean",
+      "candidateId": "moderation-decision",
+      "layout": "small",
+      "gold": false,
+      "fixtureDigest": "77ab70b12b5027dfe2067d942642a696a5c388670c30af97b30beba807c6ac92",
+      "compiledBeforeAndAfter": true,
+      "prepared": {
+        "status": "incomplete",
+        "ready": 1,
+        "pathReasons": [
+          {
+            "status": "observed",
+            "reason": null,
+            "analysisStatus": "incomplete",
+            "analysisReason": null,
+            "analysisFailures": [
+              {
+                "reason": "missing-evidence",
+                "root": "CaseState"
+              }
+            ]
+          }
+        ],
+        "unitSummaries": [
+          {
+            "root": "CaseState",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "omissions": [
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "displayLabel.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.rawText.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "normalizedText.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.blockedTerms.some"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term => comparable.includes(term.toLowerCase())"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "comparable.includes"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "audit.append"
+                }
+              }
+            ]
+          }
+        ],
+        "preparedUnits": [
+          {
+            "declaration": "CaseState",
+            "contract": "direct-event/function/v1",
+            "completeness": "incomplete-irrelevant",
+            "inputSha256": "17c3b5da4cc7ce8bd5e9ccce6d600dcdbe5a476e423f286a48f6b5f9b17df1a6",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "ruleIds": [
+              "r9_body_reaches_undeclared"
+            ]
+          }
+        ],
+        "evaluations": []
+      },
+      "sourceLines": 15,
+      "patch": {
+        "totalLines": 13,
+        "contextLines": 5,
+        "addedLines": 2,
+        "removedLines": 2,
+        "hunks": 1
+      }
+    },
+    {
+      "caseId": "moderation-decision-large-adjacent-defect",
+      "candidateId": "moderation-decision",
+      "layout": "large-adjacent",
+      "gold": true,
+      "fixtureDigest": "97587950a1b6497e5a353dcc1d9e5995d63da5ff0b3f873dbf377b0dae43dc75",
+      "compiledBeforeAndAfter": true,
+      "prepared": {
+        "status": "incomplete",
+        "ready": 1,
+        "pathReasons": [
+          {
+            "status": "observed",
+            "reason": null,
+            "analysisStatus": "incomplete",
+            "analysisReason": null,
+            "analysisFailures": [
+              {
+                "reason": "missing-evidence",
+                "root": "CaseState"
+              }
+            ]
+          }
+        ],
+        "unitSummaries": [
+          {
+            "root": "CaseState",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "omissions": [
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "displayLabel.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.rawText.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "normalizedText.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.blockedTerms.some"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term => comparable.includes(term.toLowerCase())"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "comparable.includes"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "appendAudit",
+                "path": "support.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "auditEntries.push"
+                }
+              },
+              {
+                "declaration": "appendAudit",
+                "path": "support.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "auditEntries"
+                }
+              }
+            ]
+          }
+        ],
+        "preparedUnits": [
+          {
+            "declaration": "CaseState",
+            "contract": "direct-event/function/v1",
+            "completeness": "incomplete-irrelevant",
+            "inputSha256": "739a2841ef84638a7160786c586339ccef674c74f8663c7253ab2a6598a29b9a",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "ruleIds": [
+              "r9_body_reaches_undeclared"
+            ]
+          }
+        ],
+        "evaluations": []
+      },
+      "sourceLines": 18,
+      "patch": {
+        "totalLines": 16,
+        "contextLines": 8,
+        "addedLines": 2,
+        "removedLines": 2,
+        "hunks": 1
+      }
+    },
+    {
+      "caseId": "moderation-decision-large-adjacent-clean",
+      "candidateId": "moderation-decision",
+      "layout": "large-adjacent",
+      "gold": false,
+      "fixtureDigest": "b051f6c7ab873c3df02e4dd56e1c2dac370a37c1a250fb77dc1d30853e39d9e9",
+      "compiledBeforeAndAfter": true,
+      "prepared": {
+        "status": "incomplete",
+        "ready": 1,
+        "pathReasons": [
+          {
+            "status": "observed",
+            "reason": null,
+            "analysisStatus": "incomplete",
+            "analysisReason": null,
+            "analysisFailures": [
+              {
+                "reason": "missing-evidence",
+                "root": "CaseState"
+              }
+            ]
+          }
+        ],
+        "unitSummaries": [
+          {
+            "root": "CaseState",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "omissions": [
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "displayLabel.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.rawText.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "normalizedText.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.blockedTerms.some"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term => comparable.includes(term.toLowerCase())"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "comparable.includes"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "audit.append"
+                }
+              }
+            ]
+          }
+        ],
+        "preparedUnits": [
+          {
+            "declaration": "CaseState",
+            "contract": "direct-event/function/v1",
+            "completeness": "incomplete-irrelevant",
+            "inputSha256": "df7d144f11b09bcae68d4cc63a695a0e2b5d22cbc85705219d6a20ceecf95f80",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "ruleIds": [
+              "r9_body_reaches_undeclared"
+            ]
+          }
+        ],
+        "evaluations": []
+      },
+      "sourceLines": 19,
+      "patch": {
+        "totalLines": 17,
+        "contextLines": 9,
+        "addedLines": 2,
+        "removedLines": 2,
+        "hunks": 1
+      }
+    },
+    {
+      "caseId": "moderation-decision-large-separated-defect",
+      "candidateId": "moderation-decision",
+      "layout": "large-separated",
+      "gold": true,
+      "fixtureDigest": "9424750a148b0d69eac838cf04fe4fe70bdff24cd57cd5e652e2e9a1c6904c46",
+      "compiledBeforeAndAfter": true,
+      "prepared": {
+        "status": "incomplete",
+        "ready": 1,
+        "pathReasons": [
+          {
+            "status": "observed",
+            "reason": null,
+            "analysisStatus": "incomplete",
+            "analysisReason": null,
+            "analysisFailures": [
+              {
+                "reason": "missing-evidence",
+                "root": "CaseState"
+              }
+            ]
+          }
+        ],
+        "unitSummaries": [
+          {
+            "root": "CaseState",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "omissions": [
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "displayLabel.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.rawText.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "normalizedText.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.blockedTerms.some"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term => comparable.includes(term.toLowerCase())"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "comparable.includes"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "appendAudit",
+                "path": "support.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "auditEntries.push"
+                }
+              },
+              {
+                "declaration": "appendAudit",
+                "path": "support.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "auditEntries"
+                }
+              }
+            ]
+          }
+        ],
+        "preparedUnits": [
+          {
+            "declaration": "CaseState",
+            "contract": "direct-event/function/v1",
+            "completeness": "incomplete-irrelevant",
+            "inputSha256": "101478d1febef5b7d396c1d4b036fee30f9e7fcdf4e977d9a927013d2b489148",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "ruleIds": [
+              "r9_body_reaches_undeclared"
+            ]
+          }
+        ],
+        "evaluations": []
+      },
+      "sourceLines": 21,
+      "patch": {
+        "totalLines": 16,
+        "contextLines": 8,
+        "addedLines": 2,
+        "removedLines": 2,
+        "hunks": 1
+      }
+    },
+    {
+      "caseId": "moderation-decision-large-separated-clean",
+      "candidateId": "moderation-decision",
+      "layout": "large-separated",
+      "gold": false,
+      "fixtureDigest": "4e3ff8c4f2285554478e5e64411c68525cd43c5cccf390b5351e2d9038d15961",
+      "compiledBeforeAndAfter": true,
+      "prepared": {
+        "status": "incomplete",
+        "ready": 1,
+        "pathReasons": [
+          {
+            "status": "observed",
+            "reason": null,
+            "analysisStatus": "incomplete",
+            "analysisReason": null,
+            "analysisFailures": [
+              {
+                "reason": "missing-evidence",
+                "root": "CaseState"
+              }
+            ]
+          }
+        ],
+        "unitSummaries": [
+          {
+            "root": "CaseState",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "omissions": [
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "displayLabel.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.rawText.trim"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "normalizedText.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "input.blockedTerms.some"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term => comparable.includes(term.toLowerCase())"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "comparable.includes"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term.toLowerCase"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "term"
+                }
+              },
+              {
+                "declaration": "CaseState",
+                "path": "subject.ts",
+                "reason": "unsupported",
+                "target": {
+                  "kind": "unresolved",
+                  "symbol": "audit.append"
+                }
+              }
+            ]
+          }
+        ],
+        "preparedUnits": [
+          {
+            "declaration": "CaseState",
+            "contract": "direct-event/function/v1",
+            "completeness": "incomplete-irrelevant",
+            "inputSha256": "27005c11c59c680dada55597c277e62f8a45106e07ce64861f853e84b214b3ff",
+            "sourcePaths": [
+              "subject.ts",
+              "support.ts"
+            ],
+            "ruleIds": [
+              "r9_body_reaches_undeclared"
+            ]
+          }
+        ],
+        "evaluations": []
+      },
+      "sourceLines": 22,
+      "patch": {
+        "totalLines": 17,
+        "contextLines": 9,
+        "addedLines": 2,
+        "removedLines": 2,
+        "hunks": 1
+      }
+    }
+  ]
+}

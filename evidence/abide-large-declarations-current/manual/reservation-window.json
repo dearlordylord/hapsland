@@ -1,0 +1,3786 @@
+{
+  "version": 1,
+  "blinded": true,
+  "rows": [
+    {
+      "blindId": "19cec6505450",
+      "caseId": "reservation-window-small-clean",
+      "sourceDigest": "8ae86d67f8a1cdf87d584cc291aa96bad7de7d7b28e0783abd67d936b33d20ca",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "clean-preserved",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/19cec6505450/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "4374c4ec9a8b",
+      "caseId": "reservation-window-small-defect",
+      "sourceDigest": "a0e5a55224bd4018d2282aa30c88b489e999637f73155be2ac0c9b84c52582c8",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "remaining",
+      "rationale": "The renamed declaration still has only presentation text and request parameters; its readServiceTime helper calls Date.now. The original domain behavior passes all runtime probes, but the time dependency remains hidden and the frozen resource-declaration requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": false,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "No clock/time parameter; included helper reads Date.now()"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/4374c4ec9a8b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "53a86c6f2c49",
+      "caseId": "reservation-window-small-clean",
+      "sourceDigest": "8ae86d67f8a1cdf87d584cc291aa96bad7de7d7b28e0783abd67d936b33d20ca",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "clean-preserved",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/53a86c6f2c49/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "572a424b2193",
+      "caseId": "reservation-window-small-defect",
+      "sourceDigest": "a0e5a55224bd4018d2282aa30c88b489e999637f73155be2ac0c9b84c52582c8",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "remaining",
+      "rationale": "The renamed declaration still has only presentation text and request parameters; its readServiceTime helper calls Date.now. The original domain behavior passes all runtime probes, but the time dependency remains hidden and the frozen resource-declaration requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": false,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "No clock/time parameter; included helper reads Date.now()"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/572a424b2193/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "8a34f2bfa8de",
+      "caseId": "reservation-window-large-separated-clean",
+      "sourceDigest": "49f96c5cd7bd57739bab85bb713c46285349ec07767e23c71a7c0690aba00edc",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "clean-preserved",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/8a34f2bfa8de/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "aa670314cf4b",
+      "caseId": "reservation-window-large-separated-defect",
+      "sourceDigest": "49f96c5cd7bd57739bab85bb713c46285349ec07767e23c71a7c0690aba00edc",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "repaired",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/aa670314cf4b/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "b1d80e80fc35",
+      "caseId": "reservation-window-small-clean",
+      "sourceDigest": "8ae86d67f8a1cdf87d584cc291aa96bad7de7d7b28e0783abd67d936b33d20ca",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "clean-preserved",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/b1d80e80fc35/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "cff9268f656d",
+      "caseId": "reservation-window-small-defect",
+      "sourceDigest": "8ae86d67f8a1cdf87d584cc291aa96bad7de7d7b28e0783abd67d936b33d20ca",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "repaired",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/cff9268f656d/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "d3a5c67039b1",
+      "caseId": "reservation-window-large-separated-defect",
+      "sourceDigest": "8a4043a50b27aa4f85a64e501c50138f1a1d7828718a02e766796fca5351e925",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "remaining",
+      "rationale": "The renamed declaration still has only presentation text and request parameters; its readServiceTime helper calls Date.now. The original domain behavior passes all runtime probes, but the time dependency remains hidden and the frozen resource-declaration requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": false,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "No clock/time parameter; included helper reads Date.now()"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/d3a5c67039b1/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "db43a3206bef",
+      "caseId": "reservation-window-large-separated-clean",
+      "sourceDigest": "49f96c5cd7bd57739bab85bb713c46285349ec07767e23c71a7c0690aba00edc",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "clean-preserved",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/db43a3206bef/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "f31a729e290e",
+      "caseId": "reservation-window-large-separated-defect",
+      "sourceDigest": "8a4043a50b27aa4f85a64e501c50138f1a1d7828718a02e766796fca5351e925",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "remaining",
+      "rationale": "The renamed declaration still has only presentation text and request parameters; its readServiceTime helper calls Date.now. The original domain behavior passes all runtime probes, but the time dependency remains hidden and the frozen resource-declaration requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": false,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "No clock/time parameter; included helper reads Date.now()"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "actual": {
+            "suppliedClockCalls": 0,
+            "hiddenClockCalls": 1
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f31a729e290e/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    },
+    {
+      "blindId": "f79a6afe8710",
+      "caseId": "reservation-window-large-separated-clean",
+      "sourceDigest": "49f96c5cd7bd57739bab85bb713c46285349ec07767e23c71a7c0690aba00edc",
+      "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+      "status": "clean-preserved",
+      "rationale": "The inspected declaration takes a Clock argument and uses that supplied clock exactly once. Independent runtime probes with hidden Date.now deliberately set to a different value confirm deadline boundaries, closure/expiry/inventory precedence, reference and trimmed presentation preservation, and inventory decrement only for available reservations.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "compiler-and-presentation-rename",
+          "passed": true,
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED",
+          "evidence": "reservation-window/native/blind-scores.json"
+        },
+        {
+          "label": "explicit-usable-clock-dependency",
+          "passed": true,
+          "sourceClass": "SRC",
+          "verificationState": "SOURCE-INSPECTED",
+          "observed": "clock: Clock parameter supplies clock.now(), helper import unused/removed"
+        },
+        {
+          "label": "before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "at-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "after-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "closed",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "closed-dominates-expired-and-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "expired",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "expired-dominates-unavailable-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "unavailable",
+            "seatsAfterBooking": 4
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "unavailable-before-deadline-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available",
+          "expected": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "actual": {
+            "description": "Demo reservation",
+            "reference": "r-α/27",
+            "status": "available",
+            "seatsAfterBooking": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "exact-inventory-available-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description",
+          "expected": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "actual": {
+            "description": "arbitrary presentation Ω",
+            "reference": "any reference: 空白",
+            "status": "available",
+            "seatsAfterBooking": 2
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        },
+        {
+          "label": "arbitrary-reference-and-description-resource-use",
+          "expected": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "actual": {
+            "suppliedClockCalls": 1,
+            "hiddenClockCalls": 0
+          },
+          "passed": true,
+          "probe": "manual/probes/reservation-window/f79a6afe8710/runtime.json",
+          "typescriptVersion": "5.9.3",
+          "sourceClass": "RUN",
+          "verificationState": "RUNTIME-TESTED"
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,8 @@ The four selected cross-file duplicate-fact designs produced **12/12 checked rep
 
 Across seven retained rule families plus the replacement resource-rule batch, with two constructed defects per rule and one native session per case and arm, the current results are **6/16 checked repairs with Hapsland and 3/16 with Abide**. Results by rule, including ties and failures, are below. Detection and native repair are different measurements; their denominators differ. Some examples are local and do not need cross-file context.
 
+A separate [larger-declaration and layout study](./abide-large-declaration-study.md) tests six selected domains with compact and expanded inputs. Its matrix is reported separately and is not pooled with the counts here.
+
 ## Start with one example
 
 A stored audio track has one native encoding rate, but this type permits two copies to disagree:
