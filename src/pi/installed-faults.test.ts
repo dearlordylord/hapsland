@@ -182,6 +182,57 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     await freshAdvice(f);
   });
 
+  // Competing handlers can mutate these API objects after Pi produces a valid
+  // native edit shape. These values are refusal cases, not supported profiles.
+  const invalidSerializable = (variant: string, base: object = {}): unknown => {
+    if (variant === "undefined") return undefined;
+    if (variant === "bigint") return { ...base, nativeMutation: 1n };
+    const cyclic: Record<string, unknown> = { ...base };
+    cyclic.nativeMutation = cyclic;
+    return cyclic;
+  };
+  it.each(["undefined", "cyclic", "bigint"])("mutated %s before input stays quiet without registering a permit", async variant => {
+    const f = fixture();
+    expect(await f.call("tool_call", { ...before, input: invalidSerializable(variant, before.input) })).toBeUndefined();
+    expect(existsSync(join(f.root, "runtime/owner.json"))).toBe(false);
+    writeFileSync(join(f.root, "type.ts"), source);
+    expect(await f.call("tool_result", result)).toBeUndefined();
+    expect(existsSync(f.capturePath)).toBe(false);
+    await freshAdvice(f);
+  });
+
+  it.each([
+    ["input", "undefined"], ["input", "cyclic"], ["input", "bigint"],
+    ["details", "cyclic"], ["details", "bigint"],
+    ["content", "undefined"], ["content", "object"],
+    ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
+  ])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
+    const f = fixture();
+    await f.call("tool_call", before);
+    writeFileSync(join(f.root, "type.ts"), source);
+    const values: Record<string, unknown> = { object: { competingExtension: true }, "null-item": [null], "missing-text": [{ type: "text" }], "bad-image": [{ type: "image", data: 42, mimeType: "image/png" }] };
+    const value = Object.hasOwn(values, variant) ? values[variant] : invalidSerializable(variant, field === "input" ? result.input : result.details);
+    expect(await f.call("tool_result", { ...result, [field]: value })).toBeUndefined();
+    expect(await f.call("tool_result", result)).toBeUndefined();
+    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+    expect(existsSync(f.capturePath)).toBe(false);
+    await freshAdvice(f);
+  });
+
+  it("valid competing image content preserves native output while admitting review", async () => {
+    const f = fixture();
+    const image = { type: "image", data: "aW1hZ2U=", mimeType: "image/png" };
+    const content = [...result.content, image];
+    await f.call("tool_call", before);
+    writeFileSync(join(f.root, "type.ts"), source);
+    const native = await f.call("tool_result", { ...result, content });
+    const finish = await f.call("agent_before_settle", settle);
+    expect(existsSync(f.capturePath)).toBe(true);
+    expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
+    expect(content).toEqual([...result.content, image]);
+    if (native !== undefined) expect(native.content.slice(0, content.length)).toEqual(content);
+  });
+
   it.each(["arguments", "patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
     const f = fixture();
     const native = structuredClone(before);
