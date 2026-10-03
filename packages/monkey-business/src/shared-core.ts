@@ -1,3 +1,5 @@
+import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canonical/simulation-adapter.ts";
+import { encodeFreshnessScope, encodeFreshnessSource, type FreshnessScope, type FreshnessSource } from "./freshness-codec.ts";
 import { replaceSharedCallbacks } from "../../../src/canonical/simulation-adapter.ts";
 import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSharedNotice } from "../../../src/canonical/simulation-adapter.ts";
 import { issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
@@ -74,6 +76,12 @@ export class SharedCore {
     });
     return { changed, cleanup, events };
   }
+  admitFreshness(scope: FreshnessScope, source: FreshnessSource, index: number) {
+    const transition = admitSharedFreshness(this.state, encodeFreshnessScope(scope), encodeFreshnessSource(source), index);
+    this.state = transition.state;
+    return transition.actions;
+  }
+  freshnessChecks(scope: FreshnessScope) { return sharedFreshnessChecks(this.state, encodeFreshnessScope({ partition: scope.partition, lifetime: scope.lifetime, round: scope.round, operation: scope.operation })); }
   issuePermit(capture: unknown, issuanceNow: number) { return issueSharedPermit(this.state, capture, issuanceNow); }
   issuedPermit(capture: unknown, token: number) { return issuedSharedPermit(this.state, capture, token); }
   consumedPermit(index: number, partition: number, lifetime: number) { return consumedSharedPermit(this.state, index, partition, lifetime); }

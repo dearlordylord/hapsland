@@ -260,9 +260,6 @@ const defaults = {
 export class Run {
   private core: SharedCore;
   private nextTool = 1;
-  private revisionGenerations = new Map<string, number>();
-  private operationRevisions = new Map<number, { subject: number; input: number; generation: number }>();
-  private staleOperations = new Set<number>();
   private resourceScenarios?: ResourceScenarios;
   private get candidateOutputBytes(): number | undefined { return this.config.lifecycles?.encodedOutputBytes ?? (this.config.resourceScenarios?.outputBytes ?? (this.resourceScenarios?.config.outputFit ? this.resourceScenarios.config.outputBytes : undefined)); }
   private identityIds = new Map<string, number>();
@@ -280,12 +277,14 @@ export class Run {
   private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
   private annotate(fields: Partial<Pick<Scheduled, "reuseOperation" | "reuseOutcome" | "cacheId" | "cacheBytes" | "cacheOutcome">>) { Object.assign(this.queue.find(item => item.order === this.order - 1)!, fields); }
   private supplyReuse(operation: number, outcome: "clear" | "finding") {
-    const revision = this.operationRevisions.get(operation);
-    if (revision) {
-      const owner = this.projection.work.find(work => work.operation === operation);
-      if (!owner) return;
-      this.event(owner.partition, { kind: "revisionCurrentCheck", ...revision });
-      this.annotate({ reuseOperation: operation, reuseOutcome: outcome });
+    const owner = this.projection.work.find(work => work.operation === operation);
+    if (!owner) return;
+    const checks = decodeDriver({ handled: true, actions: this.core.freshnessChecks(owner) }).actions;
+    if (checks.length) {
+      for (const check of checks) {
+        this.event(owner.partition, check.event, check.delay);
+        this.annotate({ reuseOperation: operation, reuseOutcome: outcome });
+      }
       return;
     }
     this.observeReuse(operation, outcome, this.environment.currentWork);
@@ -842,7 +841,6 @@ export class Run {
     let event = item.input.event;
     if (item.generated && ["jevRequestSettled", "jevRequestReady", "finalCandidateCheck"].includes(event.kind)) {
       const context = this.driverContext(event, item, "clear");
-      if (event.kind === "jevRequestSettled" && this.staleOperations.has(event.operation)) context.current_work = false;
       event = decodeDriverEvent(this.core.fence(event, true, context));
     }
     if (event.kind === "cachePrepare" || event.kind === "cacheCommit") Object.assign(this.metadata, { reuse: { entryLimit: event.entryLimit, byteLimit: event.byteLimit } });
@@ -929,7 +927,13 @@ export class Run {
             throw new Error("unhandled required command: observationAdmitted");
           this.jobs.set(command.id, item.job);
           if (this.config.lifecycles?.quietWindowMs) emit({ kind: "quietRoundReset", ...scope });
-          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) emit({ kind: "revisionRegister", subject: this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject])), input: this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput])), addMember: false });
+          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
+            const actions = this.core.admitFreshness({ ...scope, operation: command.id }, {
+              subject: this.identity(JSON.stringify(["revision-subject-label", item.job.revisionSubject])),
+              input: this.identity(JSON.stringify(["revision-input-label", item.job.revisionInput])),
+            }, commandIndex);
+            for (const action of decodeDriver({ handled: true, actions }).actions) emit(action.event, action.delay);
+          }
           if (!driven) throw new Error("unhandled shared observation dispatch");
           break;
         }
@@ -986,13 +990,6 @@ export class Run {
               "unhandled required command: unitAdmitted lacks job",
             );
           this.jobs.set(command.operation, item.job);
-          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
-            const subject = this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject]));
-            const input = this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput]));
-            const entry = this.projection.revision.entries.find(entry => entry.subject === subject);
-            const generation = this.revisionGenerations.get(`${subject}:${input}`) ?? entry?.generation;
-            if (generation) this.operationRevisions.set(command.operation, { subject, input, generation });
-          }
           const inputs = "evaluationInputs" in item.job ? item.job.evaluationInputs : undefined;
           if (this.config.lifecycles?.reuse && inputs) {
             const id = this.identity(JSON.stringify([scope.partition, "evaluation", inputs[command.position - 1]]));
@@ -1004,13 +1001,11 @@ export class Run {
         }
         case "revisionReused":
         case "revisionReplaced":
-          if (event.kind === "revisionRegister") this.revisionGenerations.set(`${event.subject}:${event.input}`, command.generation);
           break;
         case "revisionStale":
         case "revisionCurrent":
           if (item.reuseOperation !== undefined) {
             if (item.reuseOutcome) this.observeReuse(item.reuseOperation, item.reuseOutcome, command.kind === "revisionCurrent" && this.environment.currentWork);
-            else if (command.kind === "revisionStale") this.staleOperations.add(item.reuseOperation);
           }
           break;
         case "reuseOwn":
@@ -1094,9 +1089,8 @@ export class Run {
             break;
           }
           if (selectedOutcome === "interrupted") emit({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
-          const revision = this.operationRevisions.get(command.operation);
-          if (revision) {
-            emit({ kind: "revisionCurrentCheck", ...revision }, this.jevDelay);
+          for (const check of decodeDriver({ handled: true, actions: this.core.freshnessChecks(binding) }).actions) {
+            emit(check.event, this.jevDelay);
             this.annotate({ reuseOperation: command.operation });
           }
           emit(
@@ -1256,8 +1250,6 @@ export class Run {
               emit({ kind: "reuseRelease", id: evaluation.id });
               this.evaluationWaiters.delete(evaluation.id);
               this.evaluations.delete(event.operation);
-              this.operationRevisions.delete(event.operation);
-              this.staleOperations.delete(event.operation);
             }
           }
           if (event.kind === "jevRequestReady" && before.dispatch.running.some(entry => entry.operation === event.operation)) {
@@ -1433,8 +1425,6 @@ export class Run {
         this.enqueue(input);
     if (event.kind === "reviewObserved" || event.kind === "reviewCompleted" || event.kind === "retireReview") {
       this.evaluations.delete(event.operation);
-      this.operationRevisions.delete(event.operation);
-      this.staleOperations.delete(event.operation);
       if (!this.projection.pendingFindings.some(f => f.operation === event.operation)) this.jobs.delete(event.operation);
     }
     if (event.kind === "preparationCompleted") {
@@ -1462,8 +1452,6 @@ export class Run {
         this.evaluationWaiters.delete(evaluation.id);
         this.evaluations.delete(event.operation);
       }
-      this.operationRevisions.delete(event.operation);
-      this.staleOperations.delete(event.operation);
       this.issuedRequests.delete(event.request);
       if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
         this.jobs.delete(event.operation);

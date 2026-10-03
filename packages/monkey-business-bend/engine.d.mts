@@ -9,6 +9,9 @@ declare const Engine: {
  notice_failure(state: EngineState,scope: unknown,now: bigint,key: bigint,sequence: bigint): unknown;
  notice_lease(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
  notice_acknowledge(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
+ freshness_admitted(state: EngineState,scope: unknown,source: unknown,command: unknown): {state: EngineState; source: unknown; actions: unknown};
+ freshness_current(state: EngineState,scope: unknown): unknown;
+ freshness_checks(state: EngineState,scope: unknown): unknown;
  callback_replaced(state: EngineState,orders: unknown): EngineState;
  callback_owner(state: EngineState, event: unknown): unknown;
  callback_issue(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown): EngineState;
