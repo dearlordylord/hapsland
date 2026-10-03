@@ -32,6 +32,9 @@ function originalInput(value: unknown) {
   return traces[0]?.input;
 }
 
+// Finite aggregate allowance: C30s + clang30s + native5s + two independent
+// (JS emission15s + execution5s) runs =105s, plus15s process cleanup.
+// Each maintained runner phase retains its own limit; runtime remains5s.
 it("compares original waiting Stop full native/emitted/public/replay boundaries", () => {
   const fixture = new URL("../../monkey-business-bend/conformance/stop-original-waiting.bend", import.meta.url);
   const expected = originalWaitingStopPublic();
