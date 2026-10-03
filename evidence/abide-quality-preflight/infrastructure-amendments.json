@@ -1,7 +1,0 @@
-{
-  "failedSmokeAbideSetup": "Invalid init flags corrected to positional init codex before scored execution; no Abide session started in failed smoke.",
-  "nativeSmokeExternalJevAttempts": 0,
-  "initialPrompt": "First smoke allowed combined rename and repair; restricted first edit to rename before scored runs.",
-  "tokenCeilings": "Raised observed ceilings to 100000 per session and1000000 cumulative before scored calls.",
-  "controlledResponses": "Corrected smoke used finding on first request, clear thereafter; not part of quality scoring."
-}

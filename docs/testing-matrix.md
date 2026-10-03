@@ -23,12 +23,38 @@
 | Source-checkout native integration | `node scripts/run-native-crossfile-current.mjs --host=HOST --language=LANGUAGE --scenario=SCENARIO` | Real Codex CLI or Claude Code on disposable TypeScript, Rust, or Bend projects | Selected hook → review → delivery observations; see the scenario table below |
 | Full native fault matrix | `node scripts/run-native-negative-matrix.mjs` | All 24 controlled negative cells, at most three real host sessions at once | Per-cell declarations, results, and batch summary; no Jev requests |
 | Paid source-checkout adoption | Same runner with `--scenario=adoption --live --execute-paid` | Real agent plus real Jev; six HTTP attempts maximum per invocation | Bounded selected live path, with each run's outcome retained separately |
+| Source-checkout Abide coexistence | Same runner with `--host=HOST --language=typescript --coexistence=CASE --abide-prefix=PREFIX --hook-order=ORDER` | Real Codex/Claude, released Abide 0.0.7 handlers, controlled reviewers; `both` additionally accepts `--live --execute-paid` | Selected delivery, independent reviewer failure and file-exclusion cases; no general installed-package or native-trust declaration |
+| Abide installer coexistence | `node scripts/run-abide-installation-witness.mjs --abide-prefix=PREFIX` | Real source Hapsland and released Abide installers in isolated profiles; both orders, repeat init and each uninstall | Registration preservation only; no native agent session or Jev call |
 
 `HOST` is `codex` or `claude`; `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
 The selected adoption observations include six controlled offline passes and six live Jev passes. One earlier controlled Claude Bend session received a finding but did not repair; its separately declared follow-up session passed. The live and offline records stay distinct in the language index.
 
-The [feedback delivery investigation](../evidence/feedback-delivery-debug/investigation.json)
+The [Abide coexistence index](https://github.com/dearlordylord/hapsland-research/blob/master/evidence/native-coexistence/index.json) records
+14 native attempts on Linux arm64 with Codex 0.155.1 and Claude 2.1.218:
+13 demonstrated and one incomplete Claude follow-up preparation. The failed
+attempt remains separate from the later run whose prompt limited the repair
+to the declaration and which passed. Eleven demonstrated sessions use controlled reviewers; two use
+live Jev, making ten external requests in total. Four additional offline
+installer cells passed. `PREFIX` contains an isolated npm install of
+`@coldtea/abide@0.0.7` with lifecycle scripts disabled. `CASE` is `hapsland`,
+`both`, `abide-unavailable`, `hapsland-unavailable`, or `privacy`; `ORDER` is
+`hapsland-first` or `abide-first`. Claude additionally accepts
+`--claude-feedback=advisory` for the separately observed default feedback case.
+These source-checkout native runs use declared trust/sandbox bypasses and a
+hand-authored rubric. They do not test current packed Hapsland or ordinary
+interactive native trust. Installation order and runtime hook execution order
+are distinct checks; not every scenario was run in both orders.
+
+File exclusions remain tool-specific: in the observed `privacy` cases Hapsland
+made no review request, while Abide independently reviewed the same synthetic
+file. Abide task persistence and Git source objects were observed; exact source
+markers were absent from the scanned Hapsland resident/activity files. These
+checks do not establish a universal no-disk or no-read guarantee. The
+[three separate research reports](https://github.com/dearlordylord/hapsland-research#hapsland-и-abide)
+explain the approach, technical boundaries and exact coexistence evidence.
+
+The [feedback delivery investigation](https://github.com/dearlordylord/hapsland-research/blob/master/evidence/feedback-delivery-debug/investigation.json)
 retains five separate rendering diagnostics and per-run harness snapshots.
 The archived runner sources record their opt-in `--delivery-debug` mode. The two corrected-path validations declare
 `--debug-edit-delay-ms=1500 --debug-stop-delay-ms=6000`: these are injected faults,

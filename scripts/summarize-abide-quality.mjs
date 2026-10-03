@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-const root = resolve(process.argv[2] ?? 'evidence/abide-quality');
+const root = resolve(process.argv[2] ?? resolve(import.meta.dirname, '../../hapsland-research/evidence/abide-quality'));
 const frozen = JSON.parse(readFileSync(join(root, 'fixtures.json')));
 const files = readdirSync(root).filter(x => /^A-.*\.json$/.test(x));
 const all = files.map(x => JSON.parse(readFileSync(join(root, x))));

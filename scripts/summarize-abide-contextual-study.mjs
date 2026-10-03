@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
-const root=path.resolve(process.argv[2]??'evidence/abide-contextual-confirmation');
+const root=path.resolve(process.argv[2]??path.resolve(import.meta.dirname, '../../hapsland-research/evidence/abide-contextual-confirmation'));
 const read=p=>JSON.parse(fs.readFileSync(p));
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const ledger=p=>fs.readFileSync(p,'utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
@@ -52,6 +52,6 @@ const caseResults=Object.fromEntries(declaration.cases.map(c=>[c.id,Object.fromE
 const flowGaps=rows.filter(r=>r.candidate!=='baseline'&&r.underlyingGold&&r.positiveReviewerAnswer&&(!r.ruleBearingOutput||!r.receiptVerified||r.status!=='repaired')).map(r=>({repeat:r.repeat,file:r.file,candidate:r.candidate,caseId:r.caseId,gold:r.underlyingGold,positiveReviewerAnswer:r.positiveReviewerAnswer,ruleBearingOutput:r.ruleBearingOutput,receiptVerified:r.receiptVerified,reportedApplication:r.reportedApplication,status:r.status}));
 const attemptCount=ledger(path.join(root,'attempts.jsonl')).length,requestCount=rows.reduce((n,r)=>n+r.requests,0)+detection.reduce((n,r)=>n+r.requests,0);assert.equal(attemptCount,requestCount);assert(attemptCount<=declaration.sharedPhysicalRequestCap);
 const result={version:1,generatedAt:new Date().toISOString(),sourceClass:'RUN',verificationState:'RUNTIME-TESTED',physicalRequests:requestCount,detectionGroups,nativeGroups,perRepeat,caseResults,flowGaps,detection,rows,
- limitations:'Four deliberately selected contextual duplicate-encoding flaw cases, two clean independent-fact controls, three repeated sessions; repeats are not independent case samples. Identical ordinary maintenance tasks without extra repair policy, custom active rubric, source checkout and instrumented cooperative nonce receipt. Different native tool feedback instructions are part of the comparison; no causal wording-only effect claim. No general superiority, installed-release or causal context-only effect claim.'};
+ limitations:'Four deliberately selected contextual duplicate-encoding flaw cases, two clean independent-fact controls, three repeated sessions; repeats are not independent case samples. Same artificial feedback protocol, custom active rubric, source checkout and cooperative nonce receipt. No general superiority, installed-release or causal context-only effect claim.'};
 fs.writeFileSync(path.join(root,'comparison.json'),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
 console.log(JSON.stringify({physicalRequests:requestCount,detectionGroups,nativeGroups,flowGaps,output:path.join(root,'comparison.json')}));
