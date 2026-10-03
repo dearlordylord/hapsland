@@ -29,7 +29,9 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
         decodeCanonicalConstructor(item,tag);
         result[key] = tag === "Canonical.Finding" ? "finding" : "clear";
       } else {
-        const entry = Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`);
+        const entry = event.$ === "Canonical.FinishTerminal"
+          ? Object.entries({ acknowledged: "Acknowledged", failed: "Failed", unknown: "Unknown" }).find(([, name]) => tag === `Canonical.${name}`)
+          : Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`);
         if (!entry) throw new TypeError("invalid driver outcome");
         result[key] = entry[0];
       }
@@ -52,7 +54,7 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
     } else if (key === "minimum_started") result.minimumStarted = readNat(item);
     else if (key === "deadline_reached") result.deadlineReached = readBool(item);
     else if (key === "surface") result[key] = surface(item);
-    else if (["fingerprints", "units", "unit_bytes", "operations", "allowed"].includes(key)) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, 1024);
+    else if ((["fingerprints", "units", "unit_bytes", "operations", "allowed"].includes(key) || (key === "selected" && ["Canonical.FinishReserve", "Canonical.FinishAuthorize", "Canonical.FinishTerminal"].includes(event.$)))) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, key === "selected" ? 2048 : 1024);
     else result[names[key] ?? key] = typeof item === "boolean" ? readBool(item) : readNat(item);
   }
   return freezeCanonicalData(readEvent(result));

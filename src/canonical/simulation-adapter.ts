@@ -1,4 +1,6 @@
-import { decodeDriverEvent } from "../../packages/monkey-business/src/driver-codec.ts";
+import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "../../packages/monkey-business/src/output-controls.ts";
+import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
+import { decodeDriver, decodeDriverEvent } from "../../packages/monkey-business/src/driver-codec.ts";
 import SharedEngine, { type EngineState } from "../../packages/monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
 import { decoder, readRecord, readBendList, readNat, readBool, Nat } from "./boundary-schema.ts";
@@ -334,18 +336,31 @@ export const sharedPreparationActive = (state: EngineState, partition: number, l
 // Only original shared issuance can mint a receipt. Retained observations own
 // these small immutable facts; no state ancestry or completed-callback archive.
 const callbackReceipts = new WeakSet<object>();
-export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number) => {
+const callbackReceiptResidents = new WeakMap<object, object>();
+export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number, capture?: unknown) => {
   sharedCheck(state);
+  const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
   const encoded = encodeSharedValue(encodeCanonicalEvent(event));
   const owner = SharedEngine.callback_owner(state, encoded);
   if (readRecord(owner).$ === "None") return { state, receipt: undefined };
   const action = { $: "Driver.Action", event: encodeCanonicalEvent(event), delay: 0, candidate: { $: "None" }, job: false, expiry_advice: { $: "None" } };
-  const next = SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action));
-  const original = readList(SharedEngine.callback_originals(next), readRecord)[0];
-  if (!original) throw new Error("missing original callback issuance");
-  const receipt = freezeCanonicalData(readRecord(original.fact));
+  const issued = checkedCapture === undefined
+    ? SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action))
+    : SharedEngine.callback_issue_output(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action), encodeSharedValue(encodeOutputCapture(checkedCapture)));
+  const captured = readRecord(issued.receipt);
+  if (captured.$ === "None") {
+    if (issued.state !== state) throw new TypeError("refused callback issuance changed original state");
+    return { state, receipt: undefined };
+  }
+  if (captured.$ !== "Some") throw new TypeError("invalid callback issuance receipt");
+  const next = issued.state;
+  const receipt = freezeCanonicalData(readRecord(captured.value));
+  const resident = sharedResidents.get(state);
+  if (resident === undefined) throw new TypeError("missing receipt resident provenance");
+  const published = retain(state, next);
   callbackReceipts.add(receipt);
-  return { state: retain(state, next), receipt };
+  callbackReceiptResidents.set(receipt, resident);
+  return { state: published, receipt };
 };
 export const sharedCallbackOriginals = (state: EngineState) => {
   sharedCheck(state);
@@ -362,6 +377,39 @@ export const actSharedCallback = (state: EngineState, target: unknown, action: u
     receipt === undefined ? { $: "None" } : { $: "Some", value: receipt }, BigInt(readNat(at)), BigInt(readNat(order)));
   return { state: retain(state, transition.state), result: decodeSharedValue(transition.result),
     cancel: readList(decodeSharedValue(transition.cancel), readNat), schedule: readList(decodeSharedValue(transition.schedule), readRecord) };
+};
+
+export const interveneSharedOutput = (state: EngineState, target: unknown, outcome: unknown, receipt?: object) => {
+  sharedCheck(state);
+  const checked = validateOutputAttemptControl({ kind: "outputAttempt", target, outcome });
+  if (receipt !== undefined && (!callbackReceipts.has(receipt) || callbackReceiptResidents.get(receipt) !== sharedResidents.get(state)))
+    throw new TypeError("foreign output receipt");
+  const transition = SharedEngine.output_intervene(state, encodeSharedValue(encodeCallbackTarget(checked.target)),
+    { $: `OutputScenario.${checked.outcome === "certain" ? "Certain" : checked.outcome === "uncertain" ? "Uncertain" : "Failed"}` }, receipt === undefined ? { $: "None" } : { $: "Some", value: receipt });
+  // Decode every public component before publishing either state or provenance.
+  const result = decodeSharedValue(transition.result);
+  const cancel = readList(decodeSharedValue(transition.cancel), readNat);
+  const scheduled = decoder(Schema.Struct({ $: Schema.Literal("Callbacks.Scheduled"), at: Nat, order: Nat, action: Schema.Unknown }));
+  const schedule = readList(decodeSharedValue(transition.schedule), value => {
+    const item = scheduled(value);
+    decodeDriver({ handled: true, actions: { $: "Con", head: item.action, tail: { $: "Nil" } } });
+    return freezeCanonicalData(item);
+  });
+  const fact = readRecord(transition.receipt);
+  if (fact.$ !== "Some" && fact.$ !== "None") throw new TypeError("invalid output intervention receipt");
+  const changedReceipt = fact.$ === "Some" ? freezeCanonicalData(readRecord(fact.value)) : undefined;
+  const resident = sharedResidents.get(state);
+  if (resident === undefined) throw new TypeError("missing receipt resident provenance");
+  const next = retain(state, transition.state);
+  if (changedReceipt !== undefined) {
+    callbackReceipts.add(changedReceipt);
+    callbackReceiptResidents.set(changedReceipt, resident);
+  }
+  return { state: next, result, cancel, schedule, receipt: changedReceipt };
+};
+export const deliverSharedOutput = (receipt: object, now: number) => {
+  if (!callbackReceipts.has(receipt)) throw new TypeError("foreign callback receipt");
+  return decodeSharedValue(SharedEngine.output_deliver(receipt, BigInt(readNat(now))));
 };
 
 export const sharedNoticeExercise = (scope: unknown) => readList(decodeSharedValue(SharedEngine.notice_exercise(encodeSharedValue(scope))), readRecord);

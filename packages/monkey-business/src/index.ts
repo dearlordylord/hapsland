@@ -1,3 +1,5 @@
+import { decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
+export * from "./output-controls.ts";
 import type { SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
 import { captureSharingIdentityFacts, encodeSharingKey, sharingIdentityLabel, type SharingIdentityFacts } from "./sharing-controls.ts";
 export * from "./sharing-controls.ts";
@@ -128,7 +130,7 @@ export type EffectObservation =
       readonly phase: "supplied";
       readonly operation: number;
     };
-export type CallbackReceipt = { readonly target: CallbackTarget };
+export type CallbackReceipt = { readonly target: CallbackTarget; readonly issuedAt: number; readonly dueAt: number; readonly outputCapture?: OutputCapture };
 export type Observation = {
   readonly callbackReceipt?: CallbackReceipt;
   readonly noticeDiagnostic?: OperationalNoticeKind;
@@ -155,6 +157,8 @@ export type Observation = {
 export type RunObservation = {
   readonly callbackTargets: readonly CallbackTarget[];
   readonly callbackReports: readonly CallbackReport[];
+  readonly outputReports: readonly OutputAttemptReport[];
+  readonly outputAttempts: readonly OutputAttemptObservation[];
   readonly adviceeLifecycles: readonly AdviceeLifecycleEntry[];
   readonly interventions: readonly JevInterventionReport[];
   readonly now: number;
@@ -283,6 +287,21 @@ export class Run {
   private readonly callbackFacts = new WeakMap<CallbackReceipt, object>();
   private readonly callbackSources = new WeakMap<CallbackReceipt, Scheduled>();
   private readonly callbackReports: CallbackReport[] = [];
+  private readonly outputReports: OutputAttemptReport[] = [];
+  private get outputAttempts(): readonly OutputAttemptObservation[] {
+    return this.core.callbackOriginals.flatMap(original => {
+      const fact = readRecord(original.fact);
+      const completion = readRecord(fact.completion);
+      if (completion.$ === "None") return [];
+      if (completion.$ !== "Some") throw new TypeError("invalid retained output capture");
+      const capture = decodeOutputCapture(completion.value);
+      const status = readRecord(original.status).$;
+      if (!["Callbacks.Queued", "Callbacks.Held", "Callbacks.Dropped"].includes(String(status))) throw new TypeError("invalid output delivery state");
+      return [{ target: decodeCallbackTarget(fact.target), capture, issuedAt: capture.started, dueAt: readNat(fact.at),
+        scheduledOrder: readNat(original.scheduled_order), delivery: status === "Callbacks.Queued" ? "scheduled" as const : status === "Callbacks.Held" ? "held" as const : "dropped" as const }];
+    });
+  }
+
   private callbackTargetKey(target: CallbackTarget) { return JSON.stringify(target); }
   private get callbackTargets(): readonly CallbackTarget[] {
     const targets = this.core.callbackOriginals.map(original => decodeCallbackTarget(readRecord(original.fact).target));
@@ -320,7 +339,17 @@ export class Run {
     this.scheduled.delete(entry.order);
     // Delivery consumes an authentic issued queue receipt independently of the
     // Canonical result or whether the transition emits any commands.
-    if (item.callbackReceipt) this.core.deliverCallback(entry.order);
+    if (item.callbackReceipt) {
+      const fact = this.callbackFacts.get(item.callbackReceipt);
+      if (!fact) throw new Error("issued callback lost trusted fact");
+      const delivered = readRecord(this.core.outputDeliver(fact, this.clock));
+      if (delivered.$ === "Some" && item.input.kind === "canonical") {
+        const action = decodeDriver({ handled: true, actions: { $: "Con", head: delivered.value, tail: { $: "Nil" } } }).actions[0];
+        if (!action) throw new Error("shared callback lost completion action");
+        item.input = { ...item.input, event: action.event };
+      }
+      this.core.deliverCallback(entry.order);
+    }
     return item;
   }
   private order = 0;
@@ -473,7 +502,7 @@ export class Run {
   observe(): RunObservation {
     return freezeCanonicalData({ adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
       projection: this.projection, observations: [...this.history],
-      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions, callbackTargets: this.callbackTargets, callbackReports: [...this.callbackReports] });
+      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions, callbackTargets: this.callbackTargets, callbackReports: [...this.callbackReports], outputReports: [...this.outputReports], outputAttempts: this.outputAttempts });
   }
   subscribe(listener: (o: Observation) => void) {
     this.listeners.add(listener);
@@ -507,14 +536,19 @@ export class Run {
     delay = 0,
     job?: Extract<RunInput, { kind: "edit" }>,
     expiryAdvice?: number,
+    provenance: "environment" | "canonicalFeedback" = "environment",
+    capture?: OutputCapture,
   ) {
+    const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
     this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
     const scheduled = this.queue.find(item => item.order === this.order - 1)!;
     scheduled.generated = true;
     scheduled.partition = partition;
-    const rawReceipt = this.core.issueCallback(event, scheduled.order, scheduled.at);
+    const rawReceipt = provenance === "environment"
+      ? this.core.issueCallback(event, scheduled.order, scheduled.at, checkedCapture) : undefined;
     if (rawReceipt) {
-      const receipt = freezeCanonicalData({ target: decodeCallbackTarget(readRecord(decodeSharedValue(rawReceipt)).target) });
+      const receipt = freezeCanonicalData({ target: decodeCallbackTarget(readRecord(decodeSharedValue(rawReceipt)).target),
+        issuedAt: this.clock, dueAt: scheduled.at, ...(checkedCapture === undefined ? {} : { outputCapture: checkedCapture }) });
       const payload = { ...scheduled, callbackReceipt: receipt } as Scheduled;
       scheduled.callbackReceipt = receipt;
       this.callbackFacts.set(receipt, rawReceipt);
@@ -567,6 +601,27 @@ export class Run {
       const result = readRecord(transition.result).$;
       this.callbackReports.push({ at: this.clock, controlSequence: this.timelineOrder, control: value,
         result: result === "Callbacks.Applied" ? "applied" : result === "Callbacks.NotQueued" ? "notQueued" : result === "Callbacks.NotHeld" ? "notHeld" : "missing" });
+    } else if (value.kind === "outputAttempt") {
+      const key = this.callbackTargetKey(value.target);
+      const source = [...this.callbackPayloads.values()].find(item => this.callbackTargetKey(item.receipt.target) === key)
+        ?? this.history.flatMap(frame => frame.callbackReceipt ? [{ receipt: frame.callbackReceipt, payload: this.callbackSources.get(frame.callbackReceipt) }] : []).find(item => this.callbackTargetKey(item.receipt.target) === key);
+      const transition = this.core.outputIntervene(value.target, value.outcome, source ? this.callbackFacts.get(source.receipt) : undefined);
+      for (const order of transition.cancel) { this.core.cancel(order); this.scheduled.delete(order); }
+      for (const scheduled of transition.schedule) {
+        if (!source?.payload || !transition.receipt || source.payload.input.kind !== "canonical" || source.payload.candidate !== undefined)
+          throw new Error("shared output intervention lost original receipt");
+        const at = readNat(scheduled.at), order = readNat(scheduled.order);
+        const action = decodeDriver({ handled: true, actions: { $: "Con", head: scheduled.action, tail: { $: "Nil" } } }).actions[0];
+        if (!action) throw new Error("shared output intervention lost completion action");
+        const payload: Scheduled = { ...source.payload, at, order, input: { ...source.payload.input, at, event: action.event } };
+        this.callbackFacts.set(source.receipt, transition.receipt);
+        this.callbackSources.set(source.receipt, payload);
+        this.callbackPayloads.set(source.receipt.target.originalOrder, { receipt: source.receipt, payload });
+        this.queuePush(payload);
+      }
+      const result = readRecord(transition.result).$;
+      this.outputReports.push({ at: this.clock, controlSequence: this.timelineOrder, control: value,
+        result: result === "Callbacks.Applied" ? "applied" : result === "Callbacks.NotQueued" ? "notQueued" : "missing" });
     } else if (value.kind === "adviceeLifecycle") {
       const scope = this.scopes.find(scope => scope.agent === value.agent);
       if (!scope) throw new RangeError("unknown advicee lifecycle target");
@@ -705,7 +760,10 @@ export class Run {
     if (!handled.handled) return { handled: false, outcome: undefined };
     for (const action of handled.actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event, partition);
-      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice);
+      const output = (command.kind === "submissionAuthorized" || (command.kind === "submissionBegun" && event.kind === "submissionBegin" && event.authorizeNow))
+        && (action.event.kind === "submissionTerminal" || action.event.kind === "submissionExpiryCheck")
+        ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
+      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, "environment", output);
       if (action.candidate) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared driver action lost source facts");
@@ -743,7 +801,7 @@ export class Run {
     if (item.activityScope !== undefined && (item.input.kind === "canonical" ? item.generated && !this.core.activityEventValid(item.input.event, partition, item.activityScope) : item.input.kind !== "preparationGraph" && !this.core.activityValid(partition, item.activityScope))) {
       return this.step(untilTime);
     }
-    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number) => this.event(partition, event, delay, job, expiryAdvice);
+    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
       const before = this.projection;
@@ -1127,6 +1185,7 @@ export class Run {
             advices: [event.advice],
           });
           const profile = this.outputProfile;
+          const capture: OutputCapture = { attempt: { kind: "individual", advice: event.advice, token: event.token }, started: this.clock, profile: { ...profile } };
           if (driven) break;
           if (profile.outcome === "failed") {
             emit({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
@@ -1141,9 +1200,9 @@ export class Run {
               emit({ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, profile.delayMs);
             if (profile.delayMs >= profile.leaseMs)
               emit({ kind: "submissionExpiryCheck", advice: event.advice, token: event.token,
-                elapsed: profile.leaseMs, lifetime: profile.leaseMs }, due);
+                elapsed: profile.leaseMs, lifetime: profile.leaseMs }, due, undefined, undefined, capture);
             else emit({ kind: "submissionTerminal", advice: event.advice, token: event.token,
-              certain: profile.outcome === "certain" }, due);
+              certain: profile.outcome === "certain" }, due, undefined, undefined, capture);
             emit({ kind: "collectionLeaseCheck", advice: event.advice, token: event.token,
               expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
               reofferable: false }, due);
@@ -1162,7 +1221,8 @@ export class Run {
         }
         case "submissionExpired":
           if (event.kind === "submissionExpiryCheck")
-            emit({ kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false });
+            this.event(partition, { kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false },
+              0, undefined, undefined, "canonicalFeedback");
           break;
         case "submissionUnsuppressed":
           if (driven) break;
@@ -1306,6 +1366,7 @@ export class Run {
           if (!f) break;
           effects.push({ kind: "output", phase: "started", advices: [...f.selected] });
           const profile = this.outputProfile;
+          const capture: OutputCapture = { attempt: { kind: "finish", group: partition, round: f.round, attempt: f.attempt, token: f.token, selected: [...f.selected] }, started: this.clock, profile: { ...profile } };
           if (profile.outcome === "failed") {
             emit({ kind: "finishTerminal", group: partition, round: f.round,
               attempt: f.attempt, token: f.token, selected: f.selected, outcome: "failed" }, profile.delayMs);
@@ -1320,7 +1381,7 @@ export class Run {
             emit({ kind: "finishTerminal", group: partition, round: f.round,
               attempt: f.attempt, token: f.token, selected: f.selected,
               outcome: profile.delayMs >= profile.leaseMs || profile.outcome === "uncertain"
-                ? "unknown" : "acknowledged" }, due);
+                ? "unknown" : "acknowledged" }, due, undefined, undefined, capture);
             for (const advice of f.selected) {
               emit({ kind: "collectionLeaseCheck", advice, token: f.token,
                 expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,

@@ -16386,6 +16386,144 @@ function $ScopedRevision$retain$(_state_0, _canonical_0, _bindings_0) {
   return {$: "ScopedRevision.State", "keys": ($ScopedRevision$retained_keys$(_keys_0, _canonical_0, _bindings_0)), "next": _next_0};
 }
 
+function $OutputScenario$action$(_event_0, _delay_0) {
+  return {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
+}
+
+function $OutputScenario$write$(_outcome_0, _expired_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return {$: "Canonical.Failed"};
+  } else if (_outcome_0.$ === "OutputScenario.Certain") {
+    if (!_expired_0) {
+      return {$: "Canonical.Acknowledged"};
+    } else {
+      return {$: "Canonical.Unknown"};
+    }
+  } else {
+    return {$: "Canonical.Unknown"};
+  }
+}
+
+function $OutputScenario$individual_terminal$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    if (_expired_0) {
+      return $OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0);
+    } else {
+      return $OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0);
+    }
+  } else if (_outcome_0.$ === "OutputScenario.Certain") {
+    if (_expired_0) {
+      return $OutputScenario$action$({$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _lease_0, "lifetime": _lease_0}, _due_0);
+    } else {
+      return $OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": true}, _due_0);
+    }
+  } else {
+    if (_expired_0) {
+      return $OutputScenario$action$({$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _lease_0, "lifetime": _lease_0}, _due_0);
+    } else {
+      return $OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, _due_0);
+    }
+  }
+}
+
+function $OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0) {
+  return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionLeaseCheck", "advice": _advice_0, "token": _token_0, "expired": _expired_0, "stop_collector": false, "same_group": true, "reofferable": false}, _due_0)), "tail": {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Nil"}}};
+}
+
+function $OutputScenario$member_release$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Nil"}}};
+  } else {
+    return $OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0);
+  }
+}
+
+function $OutputScenario$individual$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return $OutputScenario$member_release$({$: "OutputScenario.Failed"}, false, _advice_0, _token_0, _due_0);
+  } else {
+    return {$: "Con", "head": ($OutputScenario$individual_terminal$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0)), "tail": ($OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0))};
+  }
+}
+
+function $OutputScenario$members$(_selected_0, _outcome_0, _expired_0, _token_0, _due_0, _lease_0) {
+  if (_selected_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _advice_0 = _selected_0["head"];
+    const _tail_0 = _selected_0["tail"];
+    return $List$append$(($OutputScenario$member_release$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0)), ($OutputScenario$members$(_tail_0, _outcome_0, _expired_0, _token_0, _due_0, _lease_0)));
+  }
+}
+
+function $OutputScenario$terminal$(_attempt_0, _outcome_0, _expired_0, _due_0, _lease_0) {
+  if (_attempt_0.$ === "OutputScenario.Individual") {
+    const _advice_0 = _attempt_0["advice"];
+    const _token_0 = _attempt_0["token"];
+    return $OutputScenario$individual$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0);
+  } else {
+    const _group_0 = _attempt_0["group"];
+    const _round_0 = _attempt_0["round"];
+    const _id_0 = _attempt_0["attempt"];
+    const _token_1 = _attempt_0["token"];
+    const _selected_0 = _attempt_0["selected"];
+    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.FinishTerminal", "group": _group_0, "round": _round_0, "attempt": _id_0, "token": _token_1, "selected": _selected_0, "outcome": ($OutputScenario$write$(_outcome_0, _expired_0))}, _due_0)), "tail": ($OutputScenario$members$(_selected_0, _outcome_0, _expired_0, _token_1, _due_0, _lease_0))};
+  }
+}
+
+function $OutputScenario$selected_count$(_attempt_0) {
+  if (_attempt_0.$ === "OutputScenario.Individual") {
+    return 1;
+  } else {
+    const _selected_0 = _attempt_0["selected"];
+    return $List$length$(_selected_0);
+  }
+}
+
+function $OutputScenario$late_ack$(_late_0, _count_0, _delay_0, _actions_0) {
+  if (!_late_0) {
+    return _actions_0;
+  } else {
+    return $List$append$(_actions_0, {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.DeliveryAcknowledgeCheck", "items": _count_0, "any_expired": true}, _delay_0)), "tail": {$: "Nil"}});
+  }
+}
+
+function $OutputScenario$due$(_outcome_0, _delay_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return _delay_0;
+  } else {
+    return (_delay_0 < _lease_0 ? _delay_0 : _lease_0);
+  }
+}
+
+function $OutputScenario$expired$(_outcome_0, _delay_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return false;
+  } else {
+    return $Nat$is_le$(_lease_0, _delay_0);
+  }
+}
+
+function $OutputScenario$late$(_outcome_0, _delay_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return false;
+  } else {
+    return $Nat$is_gt$(_delay_0, _lease_0);
+  }
+}
+
+function $OutputScenario$issued$(_capture_0) {
+  const _attempt_0 = _capture_0["attempt"];
+  const _outcome_0 = _capture_0["outcome"];
+  const _delay_0 = _capture_0["delay"];
+  const _lease_0 = _capture_0["lease"];
+  return $OutputScenario$late_ack$(($OutputScenario$late$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$selected_count$(_attempt_0)), _delay_0, ($OutputScenario$terminal$(_attempt_0, _outcome_0, ($OutputScenario$expired$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$due$(_outcome_0, _delay_0, _lease_0)), _lease_0)));
+}
+
+function $OutputScenario$captured_failure_is_release$(_advice_0, _token_0, _started_0, _delay_0, _lease_0) {
+  return null;
+}
+
 function $Callbacks$owner_equal$(_a_0, _b_0) {
   const _p_0 = _a_0["partition"];
   const _l_0 = _a_0["lifetime"];
@@ -16429,13 +16567,39 @@ function $Callbacks$effect_equal$(_a_0, _b_0) {
     } else {
       return false;
     }
-  } else {
+  } else if (_a_0.$ === "Callbacks.OutputTerminal") {
     const _a_1 = _a_0["advice"];
     const _t_0 = _a_0["token"];
     if (_b_0.$ === "Callbacks.OutputTerminal") {
       const _b_1 = _b_0["advice"];
       const _u_0 = _b_0["token"];
       return $Bool$and$(($Nat$is_eq$(_a_1, _b_1)), ($Nat$is_eq$(_t_0, _u_0)));
+    } else {
+      return false;
+    }
+  } else if (_a_0.$ === "Callbacks.OutputExpiry") {
+    const _a_2 = _a_0["advice"];
+    const _t_1 = _a_0["token"];
+    if (_b_0.$ === "Callbacks.OutputExpiry") {
+      const _b_2 = _b_0["advice"];
+      const _u_1 = _b_0["token"];
+      return $Bool$and$(($Nat$is_eq$(_a_2, _b_2)), ($Nat$is_eq$(_t_1, _u_1)));
+    } else {
+      return false;
+    }
+  } else {
+    const _g_0 = _a_0["group"];
+    const _r_3 = _a_0["round"];
+    const _a_3 = _a_0["attempt"];
+    const _t_2 = _a_0["token"];
+    const _selected_0 = _a_0["selected"];
+    if (_b_0.$ === "Callbacks.FinishTerminal") {
+      const _og_0 = _b_0["group"];
+      const _oround_0 = _b_0["round"];
+      const _oa_0 = _b_0["attempt"];
+      const _ot_0 = _b_0["token"];
+      const _other_3 = _b_0["selected"];
+      return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_g_0, _og_0)), ($Nat$is_eq$(_r_3, _oround_0)))), ($Nat$is_eq$(_a_3, _oa_0)))), ($Nat$is_eq$(_t_2, _ot_0)))), ($$$$047agent$045flow$045bend$047DeliveryState$same_selected$(_selected_0, _other_3)));
     } else {
       return false;
     }
@@ -16490,6 +16654,17 @@ function $Callbacks$fact_target$(_owner_0, _order_0, _event_0) {
     const _advice_0 = _event_0["advice"];
     const _token_0 = _event_0["token"];
     return {$: "Some", "value": {$: "Callbacks.Target", "owner": _owner_0, "effect": {$: "Callbacks.OutputTerminal", "advice": _advice_0, "token": _token_0}, "original_order": _order_0}};
+  } else if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
+    const _advice_1 = _event_0["advice"];
+    const _token_1 = _event_0["token"];
+    return {$: "Some", "value": {$: "Callbacks.Target", "owner": _owner_0, "effect": {$: "Callbacks.OutputExpiry", "advice": _advice_1, "token": _token_1}, "original_order": _order_0}};
+  } else if (_event_0.$ === "Canonical.FinishTerminal") {
+    const _group_0 = _event_0["group"];
+    const _round_0 = _event_0["round"];
+    const _attempt_0 = _event_0["attempt"];
+    const _token_2 = _event_0["token"];
+    const _selected_0 = _event_0["selected"];
+    return {$: "Some", "value": {$: "Callbacks.Target", "owner": _owner_0, "effect": {$: "Callbacks.FinishTerminal", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_2, "selected": _selected_0}, "original_order": _order_0}};
   } else {
     return {$: "None"};
   }
@@ -16500,12 +16675,12 @@ function $Callbacks$order_of$(_target_0) {
   return _order_0;
 }
 
-function $Callbacks$captured$(_target_0, _originals_0, _at_0, _action_0) {
-  if (_target_0.$ === "None") {
-    return {$: "Callbacks.State", "originals": _originals_0};
-  } else {
+function $Callbacks$captured$(_target_0, _at_0, _action_0) {
+  if (_target_0.$ === "Some") {
     const _target_1 = _target_0["value"];
-    return {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_1, "at": _at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": ($Callbacks$order_of$(_target_1))}, "tail": _originals_0}};
+    return {$: "Some", "value": {$: "Callbacks.Fact", "target": _target_1, "at": _at_0, "action": _action_0, "completion": {$: "None"}}};
+  } else {
+    return {$: "None"};
   }
 }
 
@@ -16514,9 +16689,76 @@ function $Callbacks$event_of$(_action_0) {
   return _event_0;
 }
 
-function $Callbacks$issue$(_state_0, _owner_0, _order_0, _at_0, _action_0) {
+function $Callbacks$issue$(_owner_0, _order_0, _at_0, _action_0) {
+  return $Callbacks$captured$(($Callbacks$fact_target$(_owner_0, _order_0, ($Callbacks$event_of$(_action_0)))), _at_0, _action_0);
+}
+
+function $Callbacks$output_capture_matches$(_capture_0, _target_0) {
+  const _t_0 = _capture_0["attempt"];
+  if (_t_0.$ === "OutputScenario.Individual") {
+    const _a_0 = _t_0["advice"];
+    const _t_1 = _t_0["token"];
+    const _t_2 = _target_0["effect"];
+    if (_t_2.$ === "Callbacks.OutputTerminal") {
+      const _b_0 = _t_2["advice"];
+      const _u_0 = _t_2["token"];
+      return $Bool$and$(($Nat$is_eq$(_a_0, _b_0)), ($Nat$is_eq$(_t_1, _u_0)));
+    } else if (_t_2.$ === "Callbacks.OutputExpiry") {
+      const _b_1 = _t_2["advice"];
+      const _u_1 = _t_2["token"];
+      return $Bool$and$(($Nat$is_eq$(_a_0, _b_1)), ($Nat$is_eq$(_t_1, _u_1)));
+    } else {
+      return false;
+    }
+  } else {
+    const _g_0 = _t_0["group"];
+    const _r_0 = _t_0["round"];
+    const _a_1 = _t_0["attempt"];
+    const _t_3 = _t_0["token"];
+    const _members_0 = _t_0["selected"];
+    const _t_4 = _target_0["effect"];
+    if (_t_4.$ === "Callbacks.FinishTerminal") {
+      const _og_0 = _t_4["group"];
+      const _oround_0 = _t_4["round"];
+      const _oa_0 = _t_4["attempt"];
+      const _ot_0 = _t_4["token"];
+      const _other_0 = _t_4["selected"];
+      return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_g_0, _og_0)), ($Nat$is_eq$(_r_0, _oround_0)))), ($Nat$is_eq$(_a_1, _oa_0)))), ($Nat$is_eq$(_t_3, _ot_0)))), ($$$$047agent$045flow$045bend$047DeliveryState$same_selected$(_members_0, _other_0)));
+    } else {
+      return false;
+    }
+  }
+}
+
+function $Callbacks$output_fact$(_matches_0, _target_0, _at_0, _action_0, _capture_0) {
+  if (_matches_0) {
+    return {$: "Some", "value": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": {$: "Some", "value": _capture_0}}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $Callbacks$output_target$(_target_0, _at_0, _action_0, _capture_0) {
+  if (_target_0.$ === "Some") {
+    const _target_1 = _target_0["value"];
+    return $Callbacks$output_fact$(($Callbacks$output_capture_matches$(_capture_0, _target_1)), _target_1, _at_0, _action_0, _capture_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $Callbacks$issue_output$(_owner_0, _order_0, _at_0, _action_0, _capture_0) {
+  return $Callbacks$output_target$(($Callbacks$fact_target$(_owner_0, _order_0, ($Callbacks$event_of$(_action_0)))), _at_0, _action_0, _capture_0);
+}
+
+function $Callbacks$fact_order$(_fact_0) {
+  const _target_0 = _fact_0["target"];
+  return $Callbacks$order_of$(_target_0);
+}
+
+function $Callbacks$append_fact$(_state_0, _fact_0) {
   const _originals_0 = _state_0["originals"];
-  return $Callbacks$captured$(($Callbacks$fact_target$(_owner_0, _order_0, ($Callbacks$event_of$(_action_0)))), _originals_0, _at_0, _action_0);
+  return {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": _fact_0, "status": {$: "Callbacks.Queued"}, "scheduled_order": ($Callbacks$fact_order$(_fact_0))}, "tail": _originals_0}};
 }
 
 function $Callbacks$initial$() {
@@ -16528,37 +16770,38 @@ function $Callbacks$update_one$(_original_0, _control_0, _at_0, _fresh_order_0) 
   const _target_0 = _t_0["target"];
   const _original_at_0 = _t_0["at"];
   const _action_0 = _t_0["action"];
+  const _completion_0 = _t_0["completion"];
   const _t_1 = _original_0["status"];
   if (_t_1.$ === "Callbacks.Queued") {
     const _order_0 = _original_0["scheduled_order"];
     if (_control_0.$ === "Callbacks.Hold") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Nil"}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Nil"}};
     } else if (_control_0.$ === "Callbacks.Drop") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Nil"}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Nil"}};
     } else if (_control_0.$ === "Callbacks.Duplicate") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Reorder") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
   } else if (_t_1.$ === "Callbacks.Held") {
     const _order_1 = _original_0["scheduled_order"];
     if (_control_0.$ === "Callbacks.Release") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Duplicate") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
   } else {
     const _order_2 = _original_0["scheduled_order"];
     if (_control_0.$ === "Callbacks.Duplicate") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Release") {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     } else {
-      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
   }
 }
@@ -16645,7 +16888,8 @@ function $Callbacks$receipt_duplicate$(_state_0, _target_0, _receipt_0, _at_0, _
   const _recorded_0 = _receipt_0["target"];
   const _original_at_0 = _receipt_0["at"];
   const _action_0 = _receipt_0["action"];
-  return $Callbacks$receipt_schedule$(($Callbacks$target_equal$(_target_0, _recorded_0)), _state_0, {$: "Callbacks.Fact", "target": _recorded_0, "at": _original_at_0, "action": _action_0}, _at_0, _order_0);
+  const _completion_0 = _receipt_0["completion"];
+  return $Callbacks$receipt_schedule$(($Callbacks$target_equal$(_target_0, _recorded_0)), _state_0, {$: "Callbacks.Fact", "target": _recorded_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, _at_0, _order_0);
 }
 
 function $Callbacks$receipt_control$(_state_0, _target_0, _control_0, _receipt_0, _at_0, _order_0) {
@@ -16719,6 +16963,14 @@ function $Callbacks$output_owned$(_collection_0, _owner_0, _advice_0, _token_0) 
   return (_x_0 || _x_1);
 }
 
+function $Callbacks$finish_owned$(_collection_0, _owner_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const _t_0 = _collection_0["delivery"];
+  const _slots_0 = _t_0["slots"];
+  const _p_0 = _owner_0["partition"];
+  const _r_0 = _owner_0["round"];
+  return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _group_0)), ($Nat$is_eq$(_r_0, _round_0)))), ($$$$047agent$045flow$045bend$047DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)));
+}
+
 function $Callbacks$physical_owned$(_effect_0, _owner_0, _dispatch_0, _collection_0) {
   if (_effect_0.$ === "Callbacks.JevStarted") {
     const _request_0 = _effect_0["request"];
@@ -16754,10 +17006,42 @@ function $Callbacks$physical_owned$(_effect_0, _owner_0, _dispatch_0, _collectio
     const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _p_3, _l_3, _r_3, _o_3));
     const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _p_3, _l_3, _r_3, _o_3));
     return (_x_0 || _x_1);
-  } else {
+  } else if (_effect_0.$ === "Callbacks.OutputTerminal") {
     const _advice_0 = _effect_0["advice"];
     const _token_0 = _effect_0["token"];
     return $Callbacks$output_owned$(_collection_0, _owner_0, _advice_0, _token_0);
+  } else if (_effect_0.$ === "Callbacks.OutputExpiry") {
+    const _advice_1 = _effect_0["advice"];
+    const _token_1 = _effect_0["token"];
+    return $Callbacks$output_owned$(_collection_0, _owner_0, _advice_1, _token_1);
+  } else {
+    const _group_0 = _effect_0["group"];
+    const _round_0 = _effect_0["round"];
+    const _attempt_0 = _effect_0["attempt"];
+    const _token_2 = _effect_0["token"];
+    const _selected_0 = _effect_0["selected"];
+    return $Callbacks$finish_owned$(_collection_0, _owner_0, _group_0, _round_0, _attempt_0, _token_2, _selected_0);
+  }
+}
+
+function $Callbacks$authoritative_target$(_work_0, _dispatch_0, _collection_0, _target_0) {
+  const _t_0 = _target_0["owner"];
+  const _p_0 = _t_0["partition"];
+  const _l_0 = _t_0["lifetime"];
+  const _r_0 = _t_0["round"];
+  const _o_0 = _t_0["operation"];
+  const _t_1 = _target_0["effect"];
+  if (_t_1.$ === "Callbacks.FinishTerminal") {
+    const _group_0 = _t_1["group"];
+    const _round_0 = _t_1["round"];
+    const _attempt_0 = _t_1["attempt"];
+    const _token_0 = _t_1["token"];
+    const _selected_0 = _t_1["selected"];
+    return $Callbacks$finish_owned$(_collection_0, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, _group_0, _round_0, _attempt_0, _token_0, _selected_0);
+  } else {
+    const _x_0 = ($Callbacks$work_owned$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, _l_0, _r_0, _o_0, _work_0))));
+    const _x_1 = ($Callbacks$physical_owned$(_t_1, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, _dispatch_0, _collection_0));
+    return (_x_0 || _x_1);
   }
 }
 
@@ -16765,15 +17049,7 @@ function $Callbacks$authoritative_owner$(_canonical_0, _target_0) {
   const _work_0 = _canonical_0["work"];
   const _dispatch_0 = _canonical_0["dispatch"];
   const _collection_0 = _canonical_0["collection"];
-  const _t_0 = _target_0["owner"];
-  const _p_0 = _t_0["partition"];
-  const _l_0 = _t_0["lifetime"];
-  const _r_0 = _t_0["round"];
-  const _o_0 = _t_0["operation"];
-  const _effect_0 = _target_0["effect"];
-  const _x_0 = ($Callbacks$work_owned$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, _l_0, _r_0, _o_0, _work_0))));
-  const _x_1 = ($Callbacks$physical_owned$(_effect_0, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, _dispatch_0, _collection_0));
-  return (_x_0 || _x_1);
+  return $Callbacks$authoritative_target$(_work_0, _dispatch_0, _collection_0, _target_0);
 }
 
 function $Callbacks$retained_original$(_original_0, _canonical_0, _rest_0) {
@@ -16781,13 +17057,14 @@ function $Callbacks$retained_original$(_original_0, _canonical_0, _rest_0) {
   const _target_0 = _t_0["target"];
   const _at_0 = _t_0["at"];
   const _action_0 = _t_0["action"];
+  const _completion_0 = _t_0["completion"];
   const _t_1 = _original_0["status"];
   if (_t_1.$ === "Callbacks.Dropped") {
     const _order_0 = _original_0["scheduled_order"];
-    return $Callbacks$delivery_keep$(($Bool$not$(($Callbacks$authoritative_owner$(_canonical_0, _target_0)))), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0}, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0}, _rest_0);
+    return $Callbacks$delivery_keep$(($Bool$not$(($Callbacks$authoritative_owner$(_canonical_0, _target_0)))), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0}, _rest_0);
   } else {
     const _order_1 = _original_0["scheduled_order"];
-    return {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0}, "status": _t_1, "scheduled_order": _order_1}, "tail": _rest_0};
+    return {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_1}, "tail": _rest_0};
   }
 }
 
@@ -16806,11 +17083,11 @@ function $Callbacks$retain$(_state_0, _canonical_0) {
   return {$: "Callbacks.State", "originals": ($Callbacks$retained_list$(_originals_0, _canonical_0))};
 }
 
-function $Callbacks$hold_publishes_no_callback$(_target_0, _original_at_0, _action_0, _order_0, _at_0, _fresh_0) {
+function $Callbacks$hold_publishes_no_callback$(_target_0, _original_at_0, _action_0, _completion_0, _order_0, _at_0, _fresh_0) {
   return null;
 }
 
-function $Callbacks$duplicate_keeps_original_fact$(_target_0, _original_at_0, _action_0, _status_0, _order_0, _at_0, _fresh_0) {
+function $Callbacks$duplicate_keeps_original_fact$(_target_0, _original_at_0, _action_0, _completion_0, _status_0, _order_0, _at_0, _fresh_0) {
   if (_status_0.$ === "Callbacks.Queued") {
     return null;
   } else if (_status_0.$ === "Callbacks.Held") {
@@ -16820,7 +17097,7 @@ function $Callbacks$duplicate_keeps_original_fact$(_target_0, _original_at_0, _a
   }
 }
 
-function $Callbacks$drop_only_cancels_delivery$(_target_0, _original_at_0, _action_0, _order_0, _at_0, _fresh_0) {
+function $Callbacks$drop_only_cancels_delivery$(_target_0, _original_at_0, _action_0, _completion_0, _order_0, _at_0, _fresh_0) {
   return null;
 }
 
@@ -16869,6 +17146,488 @@ function $Callbacks$replaced_list$(_originals_0, _orders_0) {
 function $Callbacks$replaced$(_state_0, _orders_0) {
   const _originals_0 = _state_0["originals"];
   return {$: "Callbacks.State", "originals": ($Callbacks$replaced_list$(_originals_0, _orders_0))};
+}
+
+function $Scheduler$precedes$(_a_0, _b_0) {
+  const _at_0 = _a_0["at"];
+  const _order_0 = _a_0["order"];
+  const _bt_0 = _b_0["at"];
+  const _other_0 = _b_0["order"];
+  const _x_0 = (_at_0 < _bt_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_at_0, _bt_0)), ($Nat$is_le$(_order_0, _other_0))));
+  return (_x_0 || _x_1);
+}
+
+function $Scheduler$inserted$(_before_0, _entry_0, _head_0, _tail_0, _rest_0) {
+  if (_before_0) {
+    return {$: "Con", "head": _entry_0, "tail": {$: "Con", "head": _head_0, "tail": _tail_0}};
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _rest_0};
+  }
+}
+
+function $Scheduler$insert$(_queue_0, _entry_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "Con", "head": _entry_0, "tail": {$: "Nil"}};
+  } else {
+    const _head_0 = _queue_0["head"];
+    const _tail_0 = _queue_0["tail"];
+    return $Scheduler$inserted$(($Scheduler$precedes$(_entry_0, _head_0)), _entry_0, _head_0, _tail_0, ($Scheduler$insert$(_tail_0, _entry_0)));
+  }
+}
+
+function $Scheduler$initial$() {
+  return {$: "Scheduler.State", "queue": {$: "Nil"}, "now": 0};
+}
+
+function $Scheduler$enqueue$(_state_0, _at_0, _order_0) {
+  const _queue_0 = _state_0["queue"];
+  const _now_0 = _state_0["now"];
+  return {$: "Scheduler.State", "queue": ($Scheduler$insert$(_queue_0, {$: "Scheduler.Entry", "at": _at_0, "order": _order_0})), "now": _now_0};
+}
+
+function $Scheduler$take_queue$(_queue_0, _now_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": {$: "Nil"}, "now": _now_0}, "entry": {$: "None"}};
+  } else {
+    const _t_0 = _queue_0["head"];
+    const _at_0 = _t_0["at"];
+    const _order_0 = _t_0["order"];
+    const _tail_0 = _queue_0["tail"];
+    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": _tail_0, "now": _at_0}, "entry": {$: "Some", "value": {$: "Scheduler.Entry", "at": _at_0, "order": _order_0}}};
+  }
+}
+
+function $Scheduler$take$(_state_0) {
+  const _queue_0 = _state_0["queue"];
+  const _now_0 = _state_0["now"];
+  return $Scheduler$take_queue$(_queue_0, _now_0);
+}
+
+function $Scheduler$peek$(_state_0) {
+  const _t_0 = _state_0["queue"];
+  if (_t_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _t_0["head"];
+    return {$: "Some", "value": _head_0};
+  }
+}
+
+function $Scheduler$entries$(_state_0) {
+  const _queue_0 = _state_0["queue"];
+  return _queue_0;
+}
+
+function $Scheduler$retain$(_remove_0, _entry_0, _rest_0) {
+  if (_remove_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _entry_0, "tail": _rest_0};
+  }
+}
+
+function $Scheduler$cancel_one$(_entry_0, _rest_0, _order_0) {
+  const _at_0 = _entry_0["at"];
+  const _id_0 = _entry_0["order"];
+  return $Scheduler$retain$(($Nat$is_eq$(_id_0, _order_0)), {$: "Scheduler.Entry", "at": _at_0, "order": _id_0}, _rest_0);
+}
+
+function $Scheduler$cancel_queue$(_queue_0, _order_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _queue_0["head"];
+    const _tail_0 = _queue_0["tail"];
+    return $Scheduler$cancel_one$(_head_0, ($Scheduler$cancel_queue$(_tail_0, _order_0)), _order_0);
+  }
+}
+
+function $Scheduler$cancel$(_state_0, _order_0) {
+  const _queue_0 = _state_0["queue"];
+  const _now_0 = _state_0["now"];
+  return {$: "Scheduler.State", "queue": ($Scheduler$cancel_queue$(_queue_0, _order_0)), "now": _now_0};
+}
+
+function $Scheduler$clock$(_state_0) {
+  const _now_0 = _state_0["now"];
+  return _now_0;
+}
+
+function $OutputCompletion$elapsed$(_started_0, _now_0) {
+  return (_now_0 < _started_0 ? 0 : _now_0 - _started_0);
+}
+
+function $OutputCompletion$expired$(_capture_0, _now_0) {
+  const _started_0 = _capture_0["started"];
+  const _lease_0 = _capture_0["lease"];
+  return $$$$047agent$045flow$045bend$047Delivery$expired$({$: "Delivery.Authorized"}, ($OutputCompletion$elapsed$(_started_0, _now_0)), _lease_0);
+}
+
+function $OutputCompletion$certain$(_outcome_0) {
+  if (_outcome_0.$ === "OutputScenario.Certain") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $OutputCompletion$finish_outcome$(_outcome_0, _expired_0) {
+  if (_outcome_0.$ === "OutputScenario.Certain") {
+    if (!_expired_0) {
+      return {$: "Canonical.Acknowledged"};
+    } else {
+      return {$: "Canonical.Unknown"};
+    }
+  } else {
+    return {$: "Canonical.Unknown"};
+  }
+}
+
+function $OutputCompletion$individual_event$(_matches_0, _expired_0, _advice_0, _token_0, _elapsed_0, _lease_0, _outcome_0) {
+  if (_matches_0) {
+    if (_expired_0) {
+      return {$: "Some", "value": {$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _elapsed_0, "lifetime": _lease_0}};
+    } else {
+      return {$: "Some", "value": {$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": ($OutputCompletion$certain$(_outcome_0))}};
+    }
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$expiry_event$(_matches_0, _advice_0, _token_0, _elapsed_0, _lifetime_0) {
+  if (_matches_0) {
+    return {$: "Some", "value": {$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _elapsed_0, "lifetime": _lifetime_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$finish_event$(_matches_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _outcome_0, _expired_0) {
+  if (_matches_0) {
+    return {$: "Some", "value": {$: "Canonical.FinishTerminal", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "outcome": ($OutputCompletion$finish_outcome$(_outcome_0, _expired_0))}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$rewrite_event$(_capture_0, _event_0, _outcome_0, _now_0) {
+  const _t_0 = _capture_0["attempt"];
+  if (_t_0.$ === "OutputScenario.Individual") {
+    const _advice_0 = _t_0["advice"];
+    const _token_0 = _t_0["token"];
+    const _started_0 = _capture_0["started"];
+    const _original_outcome_0 = _capture_0["outcome"];
+    const _delay_0 = _capture_0["delay"];
+    const _lease_0 = _capture_0["lease"];
+    if (_event_0.$ === "Canonical.SubmissionTerminal") {
+      const _other_0 = _event_0["advice"];
+      const _other_token_0 = _event_0["token"];
+      return $OutputCompletion$individual_event$(($Bool$and$(($Nat$is_eq$(_advice_0, _other_0)), ($Nat$is_eq$(_token_0, _other_token_0)))), ($OutputCompletion$expired$({$: "OutputScenario.Capture", "attempt": {$: "OutputScenario.Individual", "advice": _advice_0, "token": _token_0}, "started": _started_0, "outcome": _original_outcome_0, "delay": _delay_0, "lease": _lease_0}, _now_0)), _advice_0, _token_0, ($OutputCompletion$elapsed$(_started_0, _now_0)), _lease_0, _outcome_0);
+    } else if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
+      const _other_1 = _event_0["advice"];
+      const _other_token_1 = _event_0["token"];
+      const _elapsed_0 = _event_0["elapsed"];
+      const _lifetime_0 = _event_0["lifetime"];
+      return $OutputCompletion$expiry_event$(($Bool$and$(($Nat$is_eq$(_advice_0, _other_1)), ($Nat$is_eq$(_token_0, _other_token_1)))), _advice_0, _token_0, _elapsed_0, _lifetime_0);
+    } else {
+      return {$: "None"};
+    }
+  } else {
+    const _group_0 = _t_0["group"];
+    const _round_0 = _t_0["round"];
+    const _attempt_0 = _t_0["attempt"];
+    const _token_1 = _t_0["token"];
+    const _selected_0 = _t_0["selected"];
+    const _started_1 = _capture_0["started"];
+    const _original_outcome_1 = _capture_0["outcome"];
+    const _delay_1 = _capture_0["delay"];
+    const _lease_1 = _capture_0["lease"];
+    if (_event_0.$ === "Canonical.FinishTerminal") {
+      const _owner_0 = _event_0["group"];
+      const _other_round_0 = _event_0["round"];
+      const _other_attempt_0 = _event_0["attempt"];
+      const _other_token_2 = _event_0["token"];
+      const _members_0 = _event_0["selected"];
+      return $OutputCompletion$finish_event$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_group_0, _owner_0)), ($Nat$is_eq$(_round_0, _other_round_0)))), ($Nat$is_eq$(_attempt_0, _other_attempt_0)))), ($Nat$is_eq$(_token_1, _other_token_2)))), ($$$$047agent$045flow$045bend$047DeliveryState$same_selected$(_selected_0, _members_0)))), _group_0, _round_0, _attempt_0, _token_1, _selected_0, _outcome_0, ($OutputCompletion$expired$({$: "OutputScenario.Capture", "attempt": {$: "OutputScenario.Finish", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_1, "selected": _selected_0}, "started": _started_1, "outcome": _original_outcome_1, "delay": _delay_1, "lease": _lease_1}, _now_0)));
+    } else {
+      return {$: "None"};
+    }
+  }
+}
+
+function $OutputCompletion$action_result$(_result_0, _delay_0, _candidate_0, _job_0, _expiry_0) {
+  if (_result_0.$ === "Some") {
+    const _event_0 = _result_0["value"];
+    return {$: "Some", "value": {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$rewrite_environment$(_capture_0, _action_0, _outcome_0, _now_0) {
+  const _event_0 = _action_0["event"];
+  const _delay_0 = _action_0["delay"];
+  const _candidate_0 = _action_0["candidate"];
+  const _job_0 = _action_0["job"];
+  const _expiry_0 = _action_0["expiry_advice"];
+  return $OutputCompletion$action_result$(($OutputCompletion$rewrite_event$(_capture_0, _event_0, _outcome_0, _now_0)), _delay_0, _candidate_0, _job_0, _expiry_0);
+}
+
+function $OutputCompletion$rewrite$(_capture_0, _action_0, _outcome_0, _now_0, _provenance_0) {
+  if (_provenance_0.$ === "OutputCompletion.EnvironmentCompletion") {
+    return $OutputCompletion$rewrite_environment$(_capture_0, _action_0, _outcome_0, _now_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$deliver$(_capture_0, _action_0, _outcome_0, _now_0, _provenance_0) {
+  if (_provenance_0.$ === "OutputCompletion.EnvironmentCompletion") {
+    return $OutputCompletion$rewrite_environment$(_capture_0, _action_0, _outcome_0, _now_0);
+  } else {
+    return {$: "Some", "value": _action_0};
+  }
+}
+
+function $OutputCompletion$fact_result$(_result_0, _target_0, _at_0, _completion_0) {
+  if (_result_0.$ === "Some") {
+    const _action_0 = _result_0["value"];
+    return {$: "Some", "value": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": _completion_0}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$replace_matching$(_matches_0, _fact_0, _capture_0, _outcome_0, _provenance_0) {
+  if (_matches_0) {
+    const _original_0 = _fact_0["target"];
+    const _at_0 = _fact_0["at"];
+    const _action_0 = _fact_0["action"];
+    const _completion_0 = _fact_0["completion"];
+    return $OutputCompletion$fact_result$(($OutputCompletion$rewrite$(_capture_0, _action_0, _outcome_0, _at_0, _provenance_0)), _original_0, _at_0, _completion_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $OutputCompletion$replace$(_fact_0, _capture_0, _target_0, _outcome_0, _provenance_0) {
+  const _original_0 = _fact_0["target"];
+  const _at_0 = _fact_0["at"];
+  const _action_0 = _fact_0["action"];
+  const _completion_0 = _fact_0["completion"];
+  return $OutputCompletion$replace_matching$(($Callbacks$target_equal$(_original_0, _target_0)), {$: "Callbacks.Fact", "target": _original_0, "at": _at_0, "action": _action_0, "completion": _completion_0}, _capture_0, _outcome_0, _provenance_0);
+}
+
+function $OutputCompletion$keep$(_result_0, _original_0) {
+  if (_result_0.$ === "Some") {
+    const _action_0 = _result_0["value"];
+    return _action_0;
+  } else {
+    return _original_0;
+  }
+}
+
+function $OutputCompletion$rewrite_actions$(_actions_0, _capture_0, _outcome_0, _started_0) {
+  if (_actions_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _actions_0["head"];
+    const _event_0 = _t_0["event"];
+    const _delay_0 = _t_0["delay"];
+    const _candidate_0 = _t_0["candidate"];
+    const _job_0 = _t_0["job"];
+    const _expiry_0 = _t_0["expiry_advice"];
+    const _tail_0 = _actions_0["tail"];
+    return {$: "Con", "head": ($OutputCompletion$keep$(($OutputCompletion$rewrite$(_capture_0, {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0}, _outcome_0, nat_chk(_started_0 + _delay_0), {$: "OutputCompletion.EnvironmentCompletion"})), {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0})), "tail": ($OutputCompletion$rewrite_actions$(_tail_0, _capture_0, _outcome_0, _started_0))};
+  }
+}
+
+function $OutputCompletion$refused$(_originals_0, _result_0) {
+  return {$: "OutputCompletion.Intervention", "state": {$: "Callbacks.State", "originals": _originals_0}, "result": _result_0, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}, "receipt": {$: "None"}};
+}
+
+function $OutputCompletion$replaced_fact$(_result_0, _original_0, _tail_0, _order_0, _queued_at_0) {
+  if (_result_0.$ === "Some") {
+    const _t_0 = _result_0["value"];
+    const _target_0 = _t_0["target"];
+    const _at_0 = _t_0["at"];
+    const _action_0 = _t_0["action"];
+    const _capture_0 = _t_0["completion"];
+    return {$: "OutputCompletion.Intervention", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": _capture_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": _tail_0}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _queued_at_0, "order": _order_0, "action": _action_0}, "tail": {$: "Nil"}}, "receipt": {$: "Some", "value": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": _capture_0}}};
+  } else {
+    return $OutputCompletion$refused$({$: "Con", "head": _original_0, "tail": _tail_0}, {$: "Callbacks.Missing"});
+  }
+}
+
+function $OutputCompletion$scheduled_match$(_matches_0, _at_0, _now_0, _rest_0) {
+  if (_matches_0) {
+    return {$: "Some", "value": (_at_0 > _now_0 ? _at_0 : _now_0)};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $OutputCompletion$scheduled_at$(_queue_0, _order_0, _now_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _queue_0["head"];
+    const _at_0 = _t_0["at"];
+    const _id_0 = _t_0["order"];
+    const _tail_0 = _queue_0["tail"];
+    return $OutputCompletion$scheduled_match$(($Nat$is_eq$(_id_0, _order_0)), _at_0, _now_0, ($OutputCompletion$scheduled_at$(_tail_0, _order_0, _now_0)));
+  }
+}
+
+function $OutputCompletion$queued_replacement$(_original_0, _tail_0, _outcome_0, _scheduled_0) {
+  const _t_0 = _original_0["fact"];
+  const _target_0 = _t_0["target"];
+  const _at_0 = _t_0["at"];
+  const _action_0 = _t_0["action"];
+  const _t_1 = _t_0["completion"];
+  if (_t_1.$ === "Some") {
+    const _capture_0 = _t_1["value"];
+    const _t_2 = _original_0["status"];
+    if (_t_2.$ === "Callbacks.Queued") {
+      const _order_0 = _original_0["scheduled_order"];
+      if (_scheduled_0.$ === "Some") {
+        const _queued_at_0 = _scheduled_0["value"];
+        return $OutputCompletion$replaced_fact$(($OutputCompletion$fact_result$(($OutputCompletion$rewrite$(_capture_0, _action_0, _outcome_0, _queued_at_0, {$: "OutputCompletion.EnvironmentCompletion"})), _target_0, _at_0, {$: "Some", "value": _capture_0})), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": {$: "Some", "value": _capture_0}}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, _tail_0, _order_0, _queued_at_0);
+      } else {
+        return $OutputCompletion$refused$({$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": {$: "Some", "value": _capture_0}}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": _tail_0}, {$: "Callbacks.NotQueued"});
+      }
+    } else {
+      const _order_1 = _original_0["scheduled_order"];
+      return $OutputCompletion$refused$({$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": {$: "Some", "value": _capture_0}}, "status": _t_2, "scheduled_order": _order_1}, "tail": _tail_0}, {$: "Callbacks.NotQueued"});
+    }
+  } else {
+    const _29_0 = _original_0["status"];
+    const _order_2 = _original_0["scheduled_order"];
+    return $OutputCompletion$refused$({$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _at_0, "action": _action_0, "completion": _t_1}, "status": _29_0, "scheduled_order": _order_2}, "tail": _tail_0}, {$: "Callbacks.NotQueued"});
+  }
+}
+
+function $OutputCompletion$queued_original$(_original_0, _tail_0, _outcome_0, _queue_0, _now_0) {
+  const __0 = _original_0["fact"];
+  const _t_0 = _original_0["status"];
+  if (_t_0.$ === "Callbacks.Queued") {
+    const _order_0 = _original_0["scheduled_order"];
+    return $OutputCompletion$queued_replacement$({$: "Callbacks.Original", "fact": __0, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, _tail_0, _outcome_0, ($OutputCompletion$scheduled_at$(_queue_0, _order_0, _now_0)));
+  } else {
+    const _order_1 = _original_0["scheduled_order"];
+    return $OutputCompletion$refused$({$: "Con", "head": {$: "Callbacks.Original", "fact": __0, "status": _t_0, "scheduled_order": _order_1}, "tail": _tail_0}, {$: "Callbacks.NotQueued"});
+  }
+}
+
+function $OutputCompletion$prepend_original$(_head_0, _result_0) {
+  const _t_0 = _result_0["state"];
+  const _tail_0 = _t_0["originals"];
+  const _result_1 = _result_0["result"];
+  const _cancel_0 = _result_0["cancel"];
+  const _schedule_0 = _result_0["schedule"];
+  const _receipt_0 = _result_0["receipt"];
+  return {$: "OutputCompletion.Intervention", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": _head_0, "tail": _tail_0}}, "result": _result_1, "cancel": _cancel_0, "schedule": _schedule_0, "receipt": _receipt_0};
+}
+
+function $OutputCompletion$selected_original$(_matches_0, _head_0, _tail_0, _outcome_0, _rest_0, _queue_0, _now_0) {
+  if (_matches_0) {
+    return $OutputCompletion$queued_original$(_head_0, _tail_0, _outcome_0, _queue_0, _now_0);
+  } else {
+    return $OutputCompletion$prepend_original$(_head_0, _rest_0);
+  }
+}
+
+function $OutputCompletion$intervene_list$(_originals_0, _target_0, _outcome_0, _queue_0, _now_0) {
+  if (_originals_0.$ === "Nil") {
+    return $OutputCompletion$refused$({$: "Nil"}, {$: "Callbacks.Missing"});
+  } else {
+    const _head_0 = _originals_0["head"];
+    const _tail_0 = _originals_0["tail"];
+    return $OutputCompletion$selected_original$(($Callbacks$target_equal$(($Callbacks$target_of$(_head_0)), _target_0)), _head_0, _tail_0, _outcome_0, ($OutputCompletion$intervene_list$(_tail_0, _target_0, _outcome_0, _queue_0, _now_0)), _queue_0, _now_0);
+  }
+}
+
+function $OutputCompletion$intervene$(_state_0, _target_0, _outcome_0, _queue_0, _now_0) {
+  const _originals_0 = _state_0["originals"];
+  return $OutputCompletion$intervene_list$(_originals_0, _target_0, _outcome_0, _queue_0, _now_0);
+}
+
+function $OutputCompletion$receipt_refusal$(_matches_0, _state_0) {
+  if (_matches_0) {
+    return {$: "OutputCompletion.Intervention", "state": _state_0, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}, "receipt": {$: "None"}};
+  } else {
+    return {$: "OutputCompletion.Intervention", "state": _state_0, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}, "receipt": {$: "None"}};
+  }
+}
+
+function $OutputCompletion$known_receipt$(_state_0, _target_0, _receipt_0) {
+  if (_receipt_0.$ === "Some") {
+    const _t_0 = _receipt_0["value"];
+    const _original_0 = _t_0["target"];
+    const _t_1 = _t_0["completion"];
+    if (_t_1.$ === "Some") {
+      return $OutputCompletion$receipt_refusal$(($Callbacks$target_equal$(_original_0, _target_0)), _state_0);
+    } else {
+      return {$: "OutputCompletion.Intervention", "state": _state_0, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}, "receipt": {$: "None"}};
+    }
+  } else {
+    return {$: "OutputCompletion.Intervention", "state": _state_0, "result": {$: "Callbacks.Missing"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}, "receipt": {$: "None"}};
+  }
+}
+
+function $OutputCompletion$known_intervention$(_changed_0, _target_0, _receipt_0) {
+  const _state_0 = _changed_0["state"];
+  const _t_0 = _changed_0["result"];
+  if (_t_0.$ === "Callbacks.Missing") {
+    return $OutputCompletion$known_receipt$(_state_0, _target_0, _receipt_0);
+  } else {
+    const __3 = _changed_0["cancel"];
+    const __4 = _changed_0["schedule"];
+    const __5 = _changed_0["receipt"];
+    return {$: "OutputCompletion.Intervention", "state": _state_0, "result": _t_0, "cancel": __3, "schedule": __4, "receipt": __5};
+  }
+}
+
+function $OutputCompletion$intervene_receipt$(_state_0, _target_0, _outcome_0, _receipt_0, _queue_0, _now_0) {
+  return $OutputCompletion$known_intervention$(($OutputCompletion$intervene$(_state_0, _target_0, _outcome_0, _queue_0, _now_0)), _target_0, _receipt_0);
+}
+
+function $OutputCompletion$completion_outcome$(_event_0) {
+  if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    const _t_0 = _event_0["certain"];
+    if (_t_0) {
+      return {$: "OutputScenario.Certain"};
+    } else {
+      return {$: "OutputScenario.Uncertain"};
+    }
+  } else if (_event_0.$ === "Canonical.FinishTerminal") {
+    const _t_1 = _event_0["outcome"];
+    if (_t_1.$ === "Canonical.Acknowledged") {
+      return {$: "OutputScenario.Certain"};
+    } else {
+      return {$: "OutputScenario.Uncertain"};
+    }
+  } else {
+    return {$: "OutputScenario.Uncertain"};
+  }
+}
+
+function $OutputCompletion$delivered_fact$(_fact_0, _now_0) {
+  const _t_0 = _fact_0["action"];
+  const _event_0 = _t_0["event"];
+  const _delay_0 = _t_0["delay"];
+  const _candidate_0 = _t_0["candidate"];
+  const _job_0 = _t_0["job"];
+  const _expiry_0 = _t_0["expiry_advice"];
+  const _t_1 = _fact_0["completion"];
+  if (_t_1.$ === "Some") {
+    const _capture_0 = _t_1["value"];
+    return $OutputCompletion$deliver$(_capture_0, {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0}, ($OutputCompletion$completion_outcome$(_event_0)), _now_0, {$: "OutputCompletion.EnvironmentCompletion"});
+  } else {
+    return {$: "Some", "value": {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": _candidate_0, "job": _job_0, "expiry_advice": _expiry_0}};
+  }
 }
 
 function $NoticeScenario$initial$() {
@@ -21314,112 +22073,6 @@ function $FaultTargets$callback$(_event_0, _target_0) {
   }
 }
 
-function $Scheduler$precedes$(_a_0, _b_0) {
-  const _at_0 = _a_0["at"];
-  const _order_0 = _a_0["order"];
-  const _bt_0 = _b_0["at"];
-  const _other_0 = _b_0["order"];
-  const _x_0 = (_at_0 < _bt_0);
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(_at_0, _bt_0)), ($Nat$is_le$(_order_0, _other_0))));
-  return (_x_0 || _x_1);
-}
-
-function $Scheduler$inserted$(_before_0, _entry_0, _head_0, _tail_0, _rest_0) {
-  if (_before_0) {
-    return {$: "Con", "head": _entry_0, "tail": {$: "Con", "head": _head_0, "tail": _tail_0}};
-  } else {
-    return {$: "Con", "head": _head_0, "tail": _rest_0};
-  }
-}
-
-function $Scheduler$insert$(_queue_0, _entry_0) {
-  if (_queue_0.$ === "Nil") {
-    return {$: "Con", "head": _entry_0, "tail": {$: "Nil"}};
-  } else {
-    const _head_0 = _queue_0["head"];
-    const _tail_0 = _queue_0["tail"];
-    return $Scheduler$inserted$(($Scheduler$precedes$(_entry_0, _head_0)), _entry_0, _head_0, _tail_0, ($Scheduler$insert$(_tail_0, _entry_0)));
-  }
-}
-
-function $Scheduler$initial$() {
-  return {$: "Scheduler.State", "queue": {$: "Nil"}, "now": 0};
-}
-
-function $Scheduler$enqueue$(_state_0, _at_0, _order_0) {
-  const _queue_0 = _state_0["queue"];
-  const _now_0 = _state_0["now"];
-  return {$: "Scheduler.State", "queue": ($Scheduler$insert$(_queue_0, {$: "Scheduler.Entry", "at": _at_0, "order": _order_0})), "now": _now_0};
-}
-
-function $Scheduler$take_queue$(_queue_0, _now_0) {
-  if (_queue_0.$ === "Nil") {
-    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": {$: "Nil"}, "now": _now_0}, "entry": {$: "None"}};
-  } else {
-    const _t_0 = _queue_0["head"];
-    const _at_0 = _t_0["at"];
-    const _order_0 = _t_0["order"];
-    const _tail_0 = _queue_0["tail"];
-    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": _tail_0, "now": _at_0}, "entry": {$: "Some", "value": {$: "Scheduler.Entry", "at": _at_0, "order": _order_0}}};
-  }
-}
-
-function $Scheduler$take$(_state_0) {
-  const _queue_0 = _state_0["queue"];
-  const _now_0 = _state_0["now"];
-  return $Scheduler$take_queue$(_queue_0, _now_0);
-}
-
-function $Scheduler$peek$(_state_0) {
-  const _t_0 = _state_0["queue"];
-  if (_t_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _t_0["head"];
-    return {$: "Some", "value": _head_0};
-  }
-}
-
-function $Scheduler$entries$(_state_0) {
-  const _queue_0 = _state_0["queue"];
-  return _queue_0;
-}
-
-function $Scheduler$retain$(_remove_0, _entry_0, _rest_0) {
-  if (_remove_0) {
-    return _rest_0;
-  } else {
-    return {$: "Con", "head": _entry_0, "tail": _rest_0};
-  }
-}
-
-function $Scheduler$cancel_one$(_entry_0, _rest_0, _order_0) {
-  const _at_0 = _entry_0["at"];
-  const _id_0 = _entry_0["order"];
-  return $Scheduler$retain$(($Nat$is_eq$(_id_0, _order_0)), {$: "Scheduler.Entry", "at": _at_0, "order": _id_0}, _rest_0);
-}
-
-function $Scheduler$cancel_queue$(_queue_0, _order_0) {
-  if (_queue_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _head_0 = _queue_0["head"];
-    const _tail_0 = _queue_0["tail"];
-    return $Scheduler$cancel_one$(_head_0, ($Scheduler$cancel_queue$(_tail_0, _order_0)), _order_0);
-  }
-}
-
-function $Scheduler$cancel$(_state_0, _order_0) {
-  const _queue_0 = _state_0["queue"];
-  const _now_0 = _state_0["now"];
-  return {$: "Scheduler.State", "queue": ($Scheduler$cancel_queue$(_queue_0, _order_0)), "now": _now_0};
-}
-
-function $Scheduler$clock$(_state_0) {
-  const _now_0 = _state_0["now"];
-  return _now_0;
-}
-
 function $Workload$partition$(_advicee_0) {
   const _partition_0 = _advicee_0["partition"];
   return _partition_0;
@@ -23022,8 +23675,42 @@ function $with_callbacks$(_state_0, _callbacks_0) {
   return $with_scenarios$(_state_0, ($RuntimeScenarios$with_callbacks$(($scenarios$(_state_0)), _callbacks_0)));
 }
 
+function $callback_issued$(_state_0, _receipt_0) {
+  if (_receipt_0.$ === "Some") {
+    const _fact_0 = _receipt_0["value"];
+    return {$: "CallbackIssued", "state": ($with_callbacks$(_state_0, ($Callbacks$append_fact$(($callback_state$(_state_0)), _fact_0)))), "receipt": {$: "Some", "value": _fact_0}};
+  } else {
+    return {$: "CallbackIssued", "state": _state_0, "receipt": {$: "None"}};
+  }
+}
+
 function $callback_issue$(_state_0, _owner_0, _order_0, _at_0, _action_0) {
-  return $with_callbacks$(_state_0, ($Callbacks$issue$(($callback_state$(_state_0)), _owner_0, _order_0, _at_0, _action_0)));
+  return $callback_issued$(_state_0, ($Callbacks$issue$(_owner_0, _order_0, _at_0, _action_0)));
+}
+
+function $callback_issue_output$(_state_0, _owner_0, _order_0, _at_0, _action_0, _capture_0) {
+  return $callback_issued$(_state_0, ($Callbacks$issue_output$(_owner_0, _order_0, _at_0, _action_0, _capture_0)));
+}
+
+function $output_intervened$(_state_0, _changed_0) {
+  const _callbacks_0 = _changed_0["state"];
+  const _t_0 = _changed_0["result"];
+  if (_t_0.$ === "Callbacks.Applied") {
+    const _cancel_0 = _changed_0["cancel"];
+    const _schedule_0 = _changed_0["schedule"];
+    const _receipt_0 = _changed_0["receipt"];
+    return {$: "OutputIntervention", "state": ($with_callbacks$(_state_0, _callbacks_0)), "result": {$: "Callbacks.Applied"}, "cancel": _cancel_0, "schedule": _schedule_0, "receipt": _receipt_0};
+  } else {
+    return {$: "OutputIntervention", "state": _state_0, "result": _t_0, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}, "receipt": {$: "None"}};
+  }
+}
+
+function $output_intervene$(_state_0, _target_0, _outcome_0, _receipt_0) {
+  return $output_intervened$(_state_0, ($OutputCompletion$intervene_receipt$(($callback_state$(_state_0)), _target_0, _outcome_0, _receipt_0, ($queued$(_state_0)), ($clock$(_state_0)))));
+}
+
+function $output_deliver$(_receipt_0, _now_0) {
+  return $OutputCompletion$delivered_fact$(_receipt_0, _now_0);
 }
 
 function $callback_delivered$(_state_0, _order_0) {
@@ -23068,6 +23755,33 @@ function $callback_output_owner$(_canonical_0, _advice_0) {
   return $callback_work_owner$(_work_0, _advice_0);
 }
 
+function $callback_finish_owner$(_state_0, _selected_0) {
+  if (_selected_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _advice_0 = _selected_0["head"];
+    return $callback_output_owner$(($canonical$(_state_0)), _advice_0);
+  }
+}
+
+function $callback_finish_checked$(_valid_0, _owner_0) {
+  if (_valid_0) {
+    return {$: "Some", "value": _owner_0};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $callback_finish_slot$(_canonical_0, _found_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
+  const _collection_0 = _canonical_0["collection"];
+  if (_found_0.$ === "Some") {
+    const _owner_0 = _found_0["value"];
+    return $callback_finish_checked$(($Callbacks$finish_owned$(_collection_0, _owner_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0)), _owner_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
 function $callback_owner$(_state_0, _event_0) {
   if (_event_0.$ === "Canonical.JevRequestStarted") {
     const _p_0 = _event_0["partition"];
@@ -23096,6 +23810,16 @@ function $callback_owner$(_state_0, _event_0) {
   } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
     const _advice_0 = _event_0["advice"];
     return $callback_output_owner$(($canonical$(_state_0)), _advice_0);
+  } else if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
+    const _advice_1 = _event_0["advice"];
+    return $callback_output_owner$(($canonical$(_state_0)), _advice_1);
+  } else if (_event_0.$ === "Canonical.FinishTerminal") {
+    const _group_0 = _event_0["group"];
+    const _round_0 = _event_0["round"];
+    const _attempt_0 = _event_0["attempt"];
+    const _token_0 = _event_0["token"];
+    const _selected_0 = _event_0["selected"];
+    return $callback_finish_slot$(($canonical$(_state_0)), ($callback_finish_owner$(_state_0, _selected_0)), _group_0, _round_0, _attempt_0, _token_0, _selected_0);
   } else {
     return {$: "None"};
   }
@@ -23773,7 +24497,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:45644783d0731025b025a5583dfc5bc7fe42b526c000bbabd1fdab61a39f3db4";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:9e6c8ed86dc682b517675f534ab7b6dc29894b2625b07f02aa1dd4b46d34b586";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -23815,6 +24539,9 @@ export default {
  callback_replaced: (state,orders) => run_loop($callback_replaced$(state,facts(orders))),
  callback_owner: (state,event) => run_loop($callback_owner$(state,facts(event))),
  callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
+ callback_issue_output: (state,owner,order,at,action,capture) => run_loop($callback_issue_output$(state,facts(owner),facts(order),facts(at),facts(action),facts(capture))),
+ output_intervene: (state,target,outcome,receipt) => run_loop($output_intervene$(state,facts(target),facts(outcome),facts(receipt))),
+ output_deliver: (receipt,now) => run_loop($output_deliver$(facts(receipt),facts(now))),
  callback_delivered: (state,order) => run_loop($callback_delivered$(state,facts(order))),
  callback_originals: (state) => run_loop($callback_originals$(state)),
  callback_action: (state,target,control,receipt,at,order) => run_loop($callback_action$(state,facts(target),facts(control),facts(receipt),facts(at),facts(order))),

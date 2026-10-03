@@ -7,6 +7,8 @@ import ./FreshnessContext.bend as FreshnessContext
 import ./FreshnessScenario.bend as FreshnessScenario
 import ./ScopedRevision.bend as ScopedRevision
 import ./Callbacks.bend as Callbacks
+import ./OutputScenario.bend as OutputScenario
+import ./OutputCompletion.bend as OutputCompletion
 import ./NoticeScenario.bend as NoticeScenario
 import ./RuntimeScenarios.bend as RuntimeScenarios
 import ./AdviceeLifecycle.bend as AdviceeLifecycle
@@ -613,8 +615,37 @@ def callback_state(state: Types.State) -> Callbacks.State:
 def with_callbacks(+state: Types.State, callbacks: Callbacks.State) -> Types.State:
   with_scenarios(state, RuntimeScenarios.with_callbacks(scenarios(state), callbacks))
 
-def callback_issue(+state: Types.State, owner: Callbacks.Owner, order: Nat, at: Nat, action: Driver.Action) -> Types.State:
-  with_callbacks(state, Callbacks.issue(callback_state(state), owner, order, at, action))
+type CallbackIssued is Data:
+  CallbackIssued{state: Types.State, receipt: Maybe<&2,Callbacks.Fact>}
+
+def callback_issued(+state: Types.State, receipt: Maybe<&2,Callbacks.Fact>) -> CallbackIssued:
+  match receipt:
+    case Some{+fact}: CallbackIssued{with_callbacks(state,Callbacks.append_fact(callback_state(state),fact)),Some{fact}}
+    case None{}: CallbackIssued{state,None{}}
+
+def callback_issue(state: Types.State, owner: Callbacks.Owner, order: Nat, at: Nat, action: Driver.Action) -> CallbackIssued:
+  callback_issued(state,Callbacks.issue(owner,order,at,action))
+
+def callback_issue_output(state: Types.State, owner: Callbacks.Owner, order: Nat, at: Nat,
+    action: Driver.Action, capture: OutputScenario.Capture) -> CallbackIssued:
+  callback_issued(state,Callbacks.issue_output(owner,order,at,action,capture))
+
+type OutputIntervention is Data:
+  OutputIntervention{state: Types.State, result: Callbacks.Applicability,
+    cancel: List<&2,Nat>, schedule: List<&2,Callbacks.Scheduled>, receipt: Maybe<&2,Callbacks.Fact>}
+
+def output_intervened(state: Types.State, changed: OutputCompletion.Intervention) -> OutputIntervention:
+  match changed:
+    case OutputCompletion.Intervention{callbacks,Callbacks.Applied{},cancel,schedule,receipt}:
+      OutputIntervention{with_callbacks(state,callbacks),Callbacks.Applied{},cancel,schedule,receipt}
+    case OutputCompletion.Intervention{_,result,_,_,_}:
+      OutputIntervention{state,result,Nil{},Nil{},None{}}
+
+def output_intervene(+state: Types.State, target: Callbacks.Target, outcome: OutputScenario.Outcome, receipt: Maybe<&2,Callbacks.Fact>) -> OutputIntervention:
+  output_intervened(state,OutputCompletion.intervene_receipt(callback_state(state),target,outcome,receipt,queued(state),clock(state)))
+
+def output_deliver(receipt: Callbacks.Fact, now: Nat) -> Maybe<&2,Driver.Action>:
+  OutputCompletion.delivered_fact(receipt,now)
 
 def callback_delivered(+state: Types.State, order: Nat) -> Types.State:
   with_callbacks(state, Callbacks.delivered(callback_state(state), order))
@@ -645,6 +676,25 @@ def callback_output_owner(canonical: Canonical.State, advice: Nat) -> Maybe<&2,C
   match canonical:
     case Canonical.State{_,_,work,_,_,_,_,_,_}: callback_work_owner(work,advice)
 
+# Capture the original member owner while the authorized slot is issued. The
+# receipt retains that owner; delivery never asks a later lifetime to adopt it.
+def callback_finish_owner(state: Types.State, selected: List<&2,Nat>) -> Maybe<&2,Callbacks.Owner>:
+  match selected:
+    case Nil{}: None{}
+    case advice <> _: callback_output_owner(canonical(state),advice)
+
+def callback_finish_checked(valid: Bool, owner: Callbacks.Owner) -> Maybe<&2,Callbacks.Owner>:
+  match valid:
+    case True{}: Some{owner}
+    case False{}: None{}
+
+def callback_finish_slot(canonical: Canonical.State, found: Maybe<&2,Callbacks.Owner>,
+    group: Nat, round: Nat, attempt: Nat, token: Nat, selected: List<&2,Nat>) -> Maybe<&2,Callbacks.Owner>:
+  match canonical found:
+    case Canonical.State{_,_,_,_,_,_,_,collection,_} Some{+owner}:
+      callback_finish_checked(Callbacks.finish_owned(collection,owner,group,round,attempt,token,selected),owner)
+    case _ None{}: None{}
+
 def callback_owner(+state: Types.State, event: Canonical.CanonicalEvent) -> Maybe<&2,Callbacks.Owner>:
   match event:
     case Canonical.JevRequestStarted{p,l,r,o,_}: Some{Callbacks.Owner{p,l,r,o}}
@@ -652,6 +702,9 @@ def callback_owner(+state: Types.State, event: Canonical.CanonicalEvent) -> Mayb
     case Canonical.JevRequestSettled{p,l,r,o,_,_,_}: Some{Callbacks.Owner{p,l,r,o}}
     case Canonical.PreparationCompleted{p,l,r,o,_}: Some{Callbacks.Owner{p,l,r,o}}
     case Canonical.SubmissionTerminal{advice,_,_}: callback_output_owner(canonical(state),advice)
+    case Canonical.SubmissionExpiryCheck{advice,_,_,_}: callback_output_owner(canonical(state),advice)
+    case Canonical.FinishTerminal{group,round,attempt,token,+selected,_}:
+      callback_finish_slot(canonical(state),callback_finish_owner(state,selected),group,round,attempt,token,selected)
     case _: None{}
 
 type NoticeTransition is Data:

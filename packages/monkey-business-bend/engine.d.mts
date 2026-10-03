@@ -29,7 +29,10 @@ declare const Engine: {
  freshness_checks(state: EngineState,scope: unknown): unknown;
  callback_replaced(state: EngineState,orders: unknown): EngineState;
  callback_owner(state: EngineState, event: unknown): unknown;
- callback_issue(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown): EngineState;
+ callback_issue(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown): {state:EngineState;receipt:unknown};
+ callback_issue_output(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown, capture: unknown): {state:EngineState;receipt:unknown};
+ output_intervene(state: EngineState,target:unknown,outcome:unknown,receipt:unknown): {state:EngineState;result:unknown;cancel:unknown;schedule:unknown;receipt:unknown};
+ output_deliver(receipt:unknown,now:bigint):unknown;
  callback_delivered(state: EngineState, order: bigint): EngineState;
  callback_originals(state: EngineState): unknown;
  callback_action(state: EngineState, target: unknown, control: unknown, receipt: unknown, at: bigint, order: bigint): {state: EngineState; result: unknown; cancel: unknown; schedule: unknown};

@@ -3,7 +3,7 @@ import { validateCallbackControl, type CallbackControl, type CallbackReport, typ
 
 const labels = { hold: "Hold", release: "Release", drop: "Drop", duplicate: "Repeat", reorder: "Move to now" } as const;
 const effects = { jevStarted: "Jev request starts", jevInterrupted: "Jev request is interrupted", jevSettled: "Jev request completes",
-  preparationCompleted: "Preparation completes", outputTerminal: "Advice delivery completes" } as const;
+  preparationCompleted: "Preparation completes", outputTerminal: "Advice delivery completes", outputExpiry: "Advice delivery lease expires", finishTerminal: "Stop advice batch completes" } as const;
 const results = { applied: "Applied", missing: "Refused: original completion is unavailable",
   notQueued: "Refused: completion is not queued", notHeld: "Refused: completion is not held" } as const;
 

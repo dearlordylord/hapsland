@@ -14,8 +14,13 @@ def target() -> Callbacks.Target:
 def action() -> Driver.Action:
   Driver.Action{Canonical.JevRequestSettled{1n, 2n, 3n, 4n, 5n, Canonical.RequestClear{}, True{}}, 7n, None{}, False{}, None{}}
 
+def issued_state(found: Maybe<&2,Callbacks.Fact>) -> Callbacks.State:
+  match found:
+    case Some{fact}: Callbacks.append_fact(Callbacks.initial(),fact)
+    case None{}: Callbacks.initial()
+
 def state() -> Callbacks.State:
-  Callbacks.issue(Callbacks.initial(), owner(), 6n, 7n, action())
+  issued_state(Callbacks.issue(owner(),6n,7n,action()))
 
 def state_of(changed: Callbacks.Changed) -> Callbacks.State:
   match changed:
@@ -30,7 +35,7 @@ def status_code(status: Callbacks.Status) -> Nat:
 def originals(items: List<&2, Callbacks.Original>) -> List<&2, Nat>:
   match items:
     case Nil{}: Nil{}
-    case Callbacks.Original{Callbacks.Fact{Callbacks.Target{_, _, issued}, at, _}, status, order} <> tail:
+    case Callbacks.Original{Callbacks.Fact{Callbacks.Target{_, _, issued}, at, _, _}, status, order} <> tail:
       issued <> at <> status_code(status) <> order <> originals(tail)
 
 def retained(state: Callbacks.State) -> List<&2, Nat>:
@@ -64,7 +69,7 @@ def scenarios() -> List<&2, List<&2, Nat>>:
     row(Callbacks.apply(state(), target(), Callbacks.Drop{}, 8n, 9n)),
     row(Callbacks.apply(state(), target(), Callbacks.Reorder{}, 8n, 9n)),
     row(Callbacks.apply_receipt(Callbacks.delivered(state(), 6n), target(), Callbacks.Duplicate{},
-      Some{Callbacks.Fact{target(), 7n, action()}}, 10n, 11n)),
+      Some{Callbacks.Fact{target(), 7n, action(),None{}}}, 10n, 11n)),
     row(Callbacks.apply_receipt(Callbacks.delivered(state(), 6n), target(), Callbacks.Duplicate{}, None{}, 10n, 11n)),
     row(Callbacks.apply(state(), Callbacks.Target{Callbacks.Owner{1n, 9n, 3n, 4n}, Callbacks.JevSettled{5n}, 6n}, Callbacks.Hold{}, 8n, 9n)),
     row(Callbacks.apply(state(), target(), Callbacks.Release{}, 8n, 9n))]

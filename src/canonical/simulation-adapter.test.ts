@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, beginSharedCache, stepSharedCache } from "./simulation-adapter.ts";
+import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, beginSharedCache, stepSharedCache, issueSharedCallback, sharedCallbackOriginals, interveneSharedOutput } from "./simulation-adapter.ts";
 import { encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts";
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 };
@@ -50,6 +50,36 @@ describe("trusted simulation composition boundary", () => {
     expect(() => beginSharedCache(retained, structuredClone(event))).toThrow(/cache result provenance/);
     expect(projectSharedCanonical(retained)).toBe(projection);
     expect(queuedShared(retained)).toEqual([{ at: 10, order: 1 }]);
+  });
+  it("refuses a mismatched output capture without minting the preexisting receipt", () => {
+    const original = initialSharedCanonical(limits);
+    const existing = issueSharedCallback(original, { kind: "jevRequestStarted", partition: 2, lifetime: 3, round: 4, operation: 5, request: 6 }, 7, 2);
+    expect(existing.receipt).toBeDefined();
+    const before = sharedCallbackOriginals(existing.state);
+    const refused = issueSharedCallback(existing.state, { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, 8, 3,
+      { attempt: { kind: "individual", advice: 7, token: 9 }, started: 0, profile: { outcome: "certain", delayMs: 3, leaseMs: 10 } });
+    expect(refused.state).toBe(existing.state);
+    expect(refused.receipt).toBeUndefined();
+    expect(sharedCallbackOriginals(refused.state)).toEqual(before);
+    expect(projectSharedCanonical(refused.state)).toBe(projectSharedCanonical(existing.state));
+  });
+  it("validates exact output domains before touching shared state or receipt provenance", () => {
+    const state = initialSharedCanonical(limits);
+    const event = { kind: "preparationCompleted" as const, partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] };
+    const capture = { attempt: { kind: "individual", advice: 7, token: 9 }, started: 0, profile: { outcome: "certain", delayMs: 3, leaseMs: 10 } };
+    const target = { owner: { partition: 1, lifetime: 2, round: 3, operation: 4 }, effect: { kind: "outputTerminal", advice: 7, token: 9 }, originalOrder: 8 };
+    for (const value of [{ ...capture, extra: true }, { ...capture, profile: { ...capture.profile, extra: true } },
+      { ...capture, profile: { ...capture.profile, outcome: { $: "OutputScenario.Certain", extra: true } } },
+      { ...capture, attempt: { ...capture.attempt, advice: 0 } }, { ...capture, started: 2 ** 48 }]) {
+      expect(() => issueSharedCallback(state, event, 8, 3, value)).toThrow();
+    }
+    for (const [scope, outcome] of [[{ ...target, extra: true }, "certain"],
+      [{ ...target, effect: { ...target.effect, extra: true } }, "certain"],
+      [target, { $: "OutputScenario.Certain", extra: true }], [target, "unrecognized"]]) {
+      expect(() => interveneSharedOutput(state, scope, outcome)).toThrow();
+    }
+    expect(sharedCallbackOriginals(state)).toEqual([]);
+    expect(queuedShared(state)).toEqual([]);
   });
   it("rejects numeric narrowing and foreign namespaces while preserving U32 words", () => {
     expect(() => decodeSharedValue(281474976710656n)).toThrow();

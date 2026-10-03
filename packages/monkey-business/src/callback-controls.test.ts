@@ -9,6 +9,21 @@ describe("callback control syntax", () => {
     expect(Object.isFrozen(value.target.owner)).toBe(true);
     expect(Object.isFrozen(value.target.effect)).toBe(true);
   });
+  it("preserves expiry identity and the complete ordered Finish membership", () => {
+    const expiry = { ...target, effect: { kind: "outputExpiry" as const, advice: 7, token: 8 } };
+    expect(decodeCallbackTarget(encodeCallbackTarget(expiry))).toEqual(expiry);
+    const selected = [9, 7];
+    const finish = { ...target, effect: { kind: "finishTerminal" as const, group: 1, round: 3, attempt: 10, token: 8, selected } };
+    const encoded = encodeCallbackTarget(finish);
+    expect(encoded.effect.selected).toEqual({ $: "Con", head: 9, tail: { $: "Con", head: 7, tail: { $: "Nil" } } });
+    const decoded = decodeCallbackTarget(encoded);
+    selected.reverse();
+    expect(decoded.effect).toEqual({ kind: "finishTerminal", group: 1, round: 3, attempt: 10, token: 8, selected: [9, 7] });
+    expect(decoded.effect.kind === "finishTerminal" && Object.isFrozen(decoded.effect.selected)).toBe(true);
+    for (const members of [[], [7, 7], Array.from({ length: 2049 }, (_, index) => index + 1)]) {
+      expect(() => encodeCallbackTarget({ ...finish, effect: { ...finish.effect, selected: members } })).toThrow();
+    }
+  });
   it("rejects forged fields, missing identities, fractions, overflow and unrelated effects", () => {
     for (const value of [ { kind: "callback", action: "hold", target, extra: true },
       { kind: "callback", action: "hold", target: { ...target, owner: { ...target.owner, round: 0 } } },

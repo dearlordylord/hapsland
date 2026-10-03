@@ -1,5 +1,6 @@
 import Base
 import ./Driver.bend as Driver
+import ./OutputScenario.bend as Output
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/Dispatch.bend as Dispatch
 import ../agent-flow-bend/CollectionState.bend as CollectionState
@@ -15,12 +16,14 @@ type Effect is Data:
   JevSettled{request: Nat}
   PreparationCompleted{}
   OutputTerminal{advice: Nat, token: Nat}
+  OutputExpiry{advice: Nat, token: Nat}
+  FinishTerminal{group: Nat, round: Nat, attempt: Nat, token: Nat, selected: List<&2, Nat>}
 
 type Target is Data:
   Target{owner: Owner, effect: Effect, original_order: Nat}
 
 type Fact is Data:
-  Fact{target: Target, at: Nat, action: Driver.Action}
+  Fact{target: Target, at: Nat, action: Driver.Action, completion: Maybe<&2,Output.Capture>}
 
 type Status is Data:
   Queued{}
@@ -64,6 +67,9 @@ def effect_equal(a: Effect, b: Effect) -> Bool:
     case JevSettled{r} JevSettled{other}: Nat.is_eq(r, other)
     case PreparationCompleted{} PreparationCompleted{}: True{}
     case OutputTerminal{a, t} OutputTerminal{b, u}: Nat.is_eq(a, b) && Nat.is_eq(t, u)
+    case OutputExpiry{a, t} OutputExpiry{b, u}: Nat.is_eq(a, b) && Nat.is_eq(t, u)
+    case FinishTerminal{g, r, a, t, selected} FinishTerminal{og, oround, oa, ot, other}:
+      Nat.is_eq(g, og) && Nat.is_eq(r, oround) && Nat.is_eq(a, oa) && Nat.is_eq(t, ot) && DeliveryState.same_selected(selected, other)
     case _ _: False{}
 
 def target_equal(a: Target, b: Target) -> Bool:
@@ -73,7 +79,7 @@ def target_equal(a: Target, b: Target) -> Bool:
 
 def target_of(original: Original) -> Target:
   match original:
-    case Original{Fact{target, _, _}, _, _}: target
+    case Original{Fact{target, _, _, _}, _, _}: target
 
 def fact_target(owner: Owner, order: Nat, event: Canonical.CanonicalEvent) -> Maybe<&2, Target>:
   match event:
@@ -87,27 +93,58 @@ def fact_target(owner: Owner, order: Nat, event: Canonical.CanonicalEvent) -> Ma
       Bool.pick(Maybe<&2, Target>, owner_equal(owner, Owner{p, l, r, o}), Some{Target{Owner{p, l, r, o}, PreparationCompleted{}, order}}, None{})
     case Canonical.SubmissionTerminal{advice, token, _}:
       Some{Target{owner, OutputTerminal{advice, token}, order}}
+    case Canonical.SubmissionExpiryCheck{advice, token, _, _}:
+      Some{Target{owner, OutputExpiry{advice, token}, order}}
+    case Canonical.FinishTerminal{group, round, attempt, token, selected, _}:
+      Some{Target{owner, FinishTerminal{group, round, attempt, token, selected}, order}}
     case _: None{}
 
 def order_of(target: Target) -> Nat:
   match target:
     case Target{_, _, order}: order
 
-def captured(target: Maybe<&2, Target>, originals: List<&2, Original>, at: Nat, action: Driver.Action) -> State:
+def captured(target: Maybe<&2,Target>, at: Nat, action: Driver.Action) -> Maybe<&2,Fact>:
   match target:
-    case None{}: State{originals}
-    case Some{+target}: State{Original{Fact{target, at, action}, Queued{}, order_of(target)} <> originals}
+    case Some{target}: Some{Fact{target,at,action,None{}}}
+    case None{}: None{}
 
-# Called once at actual issuance, with the original owner and scheduler order.
-# This is provenance capture, never permission to invent a callback.
+# Pure exact fact capture. The composition owner appends only Some, returning
+# both its new state and this original receipt; refusal cannot expose an old head.
 def event_of(action: Driver.Action) -> Canonical.CanonicalEvent:
   match action:
-    case Driver.Action{event, _, _, _, _}: event
+    case Driver.Action{event,_,_,_,_}: event
 
-def issue(state: State, owner: Owner, order: Nat, at: Nat, +action: Driver.Action) -> State:
+def issue(owner: Owner, order: Nat, at: Nat, +action: Driver.Action) -> Maybe<&2,Fact>:
+  captured(fact_target(owner,order,event_of(action)),at,action)
+
+def output_capture_matches(capture: Output.Capture, target: Target) -> Bool:
+  match capture target:
+    case Output.Capture{Output.Individual{a,t},_,_,_,_} Target{_,OutputTerminal{b,u},_}: Nat.is_eq(a,b) && Nat.is_eq(t,u)
+    case Output.Capture{Output.Individual{a,t},_,_,_,_} Target{_,OutputExpiry{b,u},_}: Nat.is_eq(a,b) && Nat.is_eq(t,u)
+    case Output.Capture{Output.Finish{g,r,a,t,members},_,_,_,_} Target{_,FinishTerminal{og,oround,oa,ot,other},_}:
+      Nat.is_eq(g,og) && Nat.is_eq(r,oround) && Nat.is_eq(a,oa) && Nat.is_eq(t,ot) && DeliveryState.same_selected(members,other)
+    case _ _: False{}
+
+def output_fact(matches: Bool, target: Target, at: Nat, action: Driver.Action, capture: Output.Capture) -> Maybe<&2,Fact>:
+  match matches:
+    case True{}: Some{Fact{target,at,action,Some{capture}}}
+    case False{}: None{}
+
+def output_target(target: Maybe<&2,Target>, at: Nat, action: Driver.Action, +capture: Output.Capture) -> Maybe<&2,Fact>:
+  match target:
+    case Some{+target}: output_fact(output_capture_matches(capture,target),target,at,action,capture)
+    case None{}: None{}
+
+def issue_output(owner: Owner, order: Nat, at: Nat, +action: Driver.Action, capture: Output.Capture) -> Maybe<&2,Fact>:
+  output_target(fact_target(owner,order,event_of(action)),at,action,capture)
+
+def fact_order(fact: Fact) -> Nat:
+  match fact:
+    case Fact{target,_,_,_}: order_of(target)
+
+def append_fact(state: State, +fact: Fact) -> State:
   match state:
-    case State{originals}:
-      captured(fact_target(owner, order, event_of(action)), originals, at, action)
+    case State{originals}: State{Original{fact,Queued{},fact_order(fact)} <> originals}
 
 def initial() -> State:
   State{Nil{}}
@@ -116,14 +153,14 @@ def update_one(original: Original, control: Control, at: Nat, +fresh_order: Nat)
   match original control:
     case Original{+fact, Queued{}, order} Hold{}:
       Changed{State{[Original{fact, Held{}, order}]}, Applied{}, [order], Nil{}}
-    case Original{Fact{target, original_at, +action}, Held{}, _} Release{}:
-      Changed{State{[Original{Fact{target, original_at, action}, Queued{}, fresh_order}]}, Applied{}, Nil{}, [Scheduled{at, fresh_order, action}]}
+    case Original{Fact{target, original_at, +action, completion}, Held{}, _} Release{}:
+      Changed{State{[Original{Fact{target, original_at, action, completion}, Queued{}, fresh_order}]}, Applied{}, Nil{}, [Scheduled{at, fresh_order, action}]}
     case Original{fact, Queued{}, +order} Drop{}:
       Changed{State{[Original{fact, Dropped{}, order}]}, Applied{}, [order], Nil{}}
-    case Original{Fact{target, original_at, +action}, status, order} Duplicate{}:
-      Changed{State{[Original{Fact{target, original_at, action}, status, order}]}, Applied{}, Nil{}, [Scheduled{at, fresh_order, action}]}
-    case Original{Fact{target, original_at, +action}, Queued{}, order} Reorder{}:
-      Changed{State{[Original{Fact{target, original_at, action}, Queued{}, fresh_order}]}, Applied{}, [order], [Scheduled{at, fresh_order, action}]}
+    case Original{Fact{target, original_at, +action, completion}, status, order} Duplicate{}:
+      Changed{State{[Original{Fact{target, original_at, action, completion}, status, order}]}, Applied{}, Nil{}, [Scheduled{at, fresh_order, action}]}
+    case Original{Fact{target, original_at, +action, completion}, Queued{}, order} Reorder{}:
+      Changed{State{[Original{Fact{target, original_at, action, completion}, Queued{}, fresh_order}]}, Applied{}, [order], [Scheduled{at, fresh_order, action}]}
     case +original Release{}: Changed{State{[original]}, NotHeld{}, Nil{}, Nil{}}
     case +original _: Changed{State{[original]}, NotQueued{}, Nil{}, Nil{}}
 
@@ -175,15 +212,15 @@ def delivered(state: State, order: Nat) -> State:
 
 def receipt_schedule(matches: Bool, state: State, fact: Fact, at: Nat, order: Nat) -> Changed:
   match matches fact:
-    case True{} Fact{_, _, action}:
+    case True{} Fact{_, _, action, _}:
       Changed{state, Applied{}, Nil{}, [Scheduled{at, order, action}]}
     case False{} _:
       Changed{state, Missing{}, Nil{}, Nil{}}
 
 def receipt_duplicate(state: State, target: Target, receipt: Fact, at: Nat, order: Nat) -> Changed:
   match receipt:
-    case Fact{+recorded, original_at, action}:
-      receipt_schedule(target_equal(target, recorded), state, Fact{recorded, original_at, action}, at, order)
+    case Fact{+recorded, original_at, action, completion}:
+      receipt_schedule(target_equal(target, recorded), state, Fact{recorded, original_at, action, completion}, at, order)
 
 def receipt_control(state: State, target: Target, control: Control, receipt: Maybe<&2, Fact>, at: Nat, order: Nat) -> Changed:
   match control receipt:
@@ -225,6 +262,12 @@ def output_batches(collection: CollectionState.State) -> List<&2, SubmissionStat
 def output_owned(+collection: CollectionState.State, +owner: Owner, +advice: Nat, +token: Nat) -> Bool:
   CollectionState.owns_lease(collection, advice, token) || output_batch_owned(SubmissionState.find_batch(advice, token, output_batches(collection)), owner)
 
+def finish_owned(collection: CollectionState.State, owner: Owner, +group: Nat, +round: Nat,
+    attempt: Nat, token: Nat, selected: List<&2,Nat>) -> Bool:
+  match collection owner:
+    case CollectionState.State{_,_,_,DeliveryState.State{slots,_,_},_,_,_} Owner{p,_,r,_}:
+      Nat.is_eq(p,group) && Nat.is_eq(r,round) && DeliveryState.terminal_owned(group,round,attempt,token,selected,slots)
+
 def physical_owned(effect: Effect, owner: Owner, dispatch: Dispatch.State, collection: CollectionState.State) -> Bool:
   match effect owner dispatch:
     case JevStarted{request} Owner{p, l, r, o} Dispatch.State{_, _, _, _, requests}:
@@ -236,16 +279,25 @@ def physical_owned(effect: Effect, owner: Owner, dispatch: Dispatch.State, colle
     case PreparationCompleted{} Owner{+p, +l, +r, +o} Dispatch.State{queued, running, _, _, _}:
       Dispatch.contains(queued, p, l, r, o) || Dispatch.contains(running, p, l, r, o)
     case OutputTerminal{advice, token} owner _: output_owned(collection, owner, advice, token)
+    case OutputExpiry{advice, token} owner _: output_owned(collection, owner, advice, token)
+    case FinishTerminal{group, round, attempt, token, selected} owner _: finish_owned(collection,owner,group,round,attempt,token,selected)
+
+def authoritative_target(work: List<&2,Canonical.Work>, dispatch: Dispatch.State,
+    collection: CollectionState.State, target: Target) -> Bool:
+  match target:
+    case Target{owner,FinishTerminal{group,round,attempt,token,selected},_}:
+      finish_owned(collection,owner,group,round,attempt,token,selected)
+    case Target{Owner{+p,+l,+r,+o},effect,_}:
+      work_owned(Canonical.find_work(p,l,r,o,work)) || physical_owned(effect,Owner{p,l,r,o},dispatch,collection)
 
 def authoritative_owner(canonical: Canonical.State, target: Target) -> Bool:
-  match canonical target:
-    case Canonical.State{_, _, work, _, _, _, dispatch, collection, _} Target{Owner{+p, +l, +r, +o}, effect, _}:
-      work_owned(Canonical.find_work(p, l, r, o, work)) || physical_owned(effect, Owner{p, l, r, o}, dispatch, collection)
+  match canonical:
+    case Canonical.State{_,_,work,_,_,_,dispatch,collection,_}: authoritative_target(work,dispatch,collection,target)
 
 def retained_original(original: Original, +canonical: Canonical.State, rest: List<&2, Original>) -> List<&2, Original>:
   match original:
-    case Original{Fact{+target, at, action}, Dropped{}, order}:
-      delivery_keep(Bool.not(authoritative_owner(canonical, target)), Original{Fact{target, at, action}, Dropped{}, order}, rest)
+    case Original{Fact{+target, at, action, completion}, Dropped{}, order}:
+      delivery_keep(Bool.not(authoritative_owner(canonical, target)), Original{Fact{target, at, action, completion}, Dropped{}, order}, rest)
     case _: original <> rest
 
 def retained_list(originals: List<&2, Original>, +canonical: Canonical.State) -> List<&2, Original>:
@@ -266,13 +318,14 @@ law hold_publishes_no_callback:
   for +target: Target
   for +original_at: Nat
   for +action: Driver.Action
+  for +completion: Maybe<&2,Output.Capture>
   for +order: Nat
   for at: Nat
   for fresh: Nat
-  {update_one(Original{Fact{target, original_at, action}, Queued{}, order}, Hold{}, at, fresh) ==
-    Changed{State{[Original{Fact{target, original_at, action}, Held{}, order}]}, Applied{}, [order], Nil{}} : Changed}
+  {update_one(Original{Fact{target, original_at, action, completion}, Queued{}, order}, Hold{}, at, fresh) ==
+    Changed{State{[Original{Fact{target, original_at, action, completion}, Held{}, order}]}, Applied{}, [order], Nil{}} : Changed}
 
-def hold_publishes_no_callback(target, original_at, action, order, at, fresh):
+def hold_publishes_no_callback(target, original_at, action, completion, order, at, fresh):
   {==}
 
 # Repetition retains the original event and identity, not a fresh owner's tuple.
@@ -280,14 +333,15 @@ law duplicate_keeps_original_fact:
   for +target: Target
   for +original_at: Nat
   for +action: Driver.Action
+  for +completion: Maybe<&2,Output.Capture>
   for +status: Status
   for +order: Nat
   for at: Nat
   for fresh: Nat
-  {update_one(Original{Fact{target, original_at, action}, status, order}, Duplicate{}, at, fresh) ==
-    Changed{State{[Original{Fact{target, original_at, action}, status, order}]}, Applied{}, Nil{}, [Scheduled{at, fresh, action}]} : Changed}
+  {update_one(Original{Fact{target, original_at, action, completion}, status, order}, Duplicate{}, at, fresh) ==
+    Changed{State{[Original{Fact{target, original_at, action, completion}, status, order}]}, Applied{}, Nil{}, [Scheduled{at, fresh, action}]} : Changed}
 
-def duplicate_keeps_original_fact(target, original_at, action, status, order, at, fresh):
+def duplicate_keeps_original_fact(target, original_at, action, completion, status, order, at, fresh):
   match status:
     case Queued{}: {==}
     case Held{}: {==}
@@ -298,13 +352,14 @@ law drop_only_cancels_delivery:
   for +target: Target
   for +original_at: Nat
   for +action: Driver.Action
+  for +completion: Maybe<&2,Output.Capture>
   for +order: Nat
   for at: Nat
   for fresh: Nat
-  {update_one(Original{Fact{target, original_at, action}, Queued{}, order}, Drop{}, at, fresh) ==
-    Changed{State{[Original{Fact{target, original_at, action}, Dropped{}, order}]}, Applied{}, [order], Nil{}} : Changed}
+  {update_one(Original{Fact{target, original_at, action, completion}, Queued{}, order}, Drop{}, at, fresh) ==
+    Changed{State{[Original{Fact{target, original_at, action, completion}, Dropped{}, order}]}, Applied{}, [order], Nil{}} : Changed}
 
-def drop_only_cancels_delivery(target, original_at, action, order, at, fresh):
+def drop_only_cancels_delivery(target, original_at, action, completion, order, at, fresh):
   {==}
 
 # A targeted environment intervention replaces actual queued deliveries. Copies

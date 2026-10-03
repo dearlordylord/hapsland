@@ -4,7 +4,7 @@ import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canoni
 import { encodeFreshnessScope, encodeFreshnessSource, type FreshnessScope, type FreshnessSource } from "./freshness-codec.ts";
 import { replaceSharedCallbacks } from "../../../src/canonical/simulation-adapter.ts";
 import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSharedNotice } from "../../../src/canonical/simulation-adapter.ts";
-import { issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
+import { interveneSharedOutput, deliverSharedOutput, issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
 import { encodePreparationGraphLimits } from "./file-trees.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
 import { type EngineState } from "../../monkey-business-bend/engine.mjs";
@@ -41,11 +41,17 @@ export class SharedCore {
   }
   noticeFailure(scope: unknown, now: number, key: number, sequence: number) { return suppliedSharedNotice(this.state, scope, now, key, sequence); }
   noticeOwned(partition: number, group: number, key: number, action: "lease" | "acknowledge") { return ownedSharedNotice(this.state, partition, group, key, action); }
-  issueCallback(event: CanonicalEvent, order: number, at: number) {
-    const issued = issueSharedCallback(this.state, event, order, at);
+  issueCallback(event: CanonicalEvent, order: number, at: number, capture?: unknown) {
+    const issued = issueSharedCallback(this.state, event, order, at, capture);
     this.state = issued.state;
     return issued.receipt;
   }
+  outputIntervene(target: unknown, outcome: unknown, receipt?: object) {
+    const result = interveneSharedOutput(this.state, target, outcome, receipt);
+    this.state = result.state;
+    return result;
+  }
+  outputDeliver(receipt: object, now: number) { return deliverSharedOutput(receipt, now); }
   get callbackOriginals() { return sharedCallbackOriginals(this.state); }
   replaceCallbacks(orders: readonly number[]) { this.state = replaceSharedCallbacks(this.state, orders); }
   deliverCallback(order: number) { this.state = deliverSharedCallback(this.state, order); }
