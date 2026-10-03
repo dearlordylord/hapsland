@@ -58,7 +58,7 @@ const plan = (input: Input, operation: "install" | "update" | "uninstall") => {
   if (before !== undefined && (owner === undefined || hash(before) !== owner.extensionDigest) && (journal === undefined || before !== journal.content))
     throw new Error("Pi extension path is occupied or locally modified; preserve it before retrying");
   const content = operation === "uninstall" ? undefined :
-    `// Hapsland-owned Pi extension. Restart Pi after lifecycle changes.\nexport { default } from ${JSON.stringify(pathToFileURL(input.extension).href)};\n`;
+    `// Hapsland-owned Pi extension. Restart Pi after lifecycle changes.\nimport { createPiExtension } from ${JSON.stringify(pathToFileURL(input.extension).href)};\nexport default createPiExtension({ command: ${JSON.stringify([input.runtime, input.entrypoint])} });\n`;
   const ownership = content === undefined ? undefined : JSON.stringify({ version: 1, adapter: "pi", home: input.home,
     extensionDigest: hash(content), runtime: input.runtime, entrypoint: input.entrypoint }) + "\n";
   const changes = [[input.paths.extension, before, content, "owned Pi extension"],

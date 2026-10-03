@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import { ConfigProvider, Effect } from "effect";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -84,4 +86,16 @@ it("resumes an interrupted owned write and preserves unexpected files during rec
   writeFileSync(t.extension, "unrecognized edit");
   expect((await t.run(previewPiUpdate(t.request))).status).toBe("conflict");
   expect(readFileSync(t.extension, "utf8")).toBe("unrecognized edit");
+});
+
+it("loads the owned wrapper with the verified retained runtime and entrypoint", async () => {
+  const t = fixture();
+  writeFileSync(join(t.root, "release", "pi", "extension.js"), "export const createPiExtension = options => options;\n");
+  const preview = await t.run(previewPiInstallation(t.request));
+  expect((await t.run(installPiIntegration({ ...t.request, proposalDigest: digest(preview) }))).status).toBe("complete");
+  const loaded = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e",
+    "const module = await import(process.argv[1]); process.stdout.write(JSON.stringify(module.default));",
+    pathToFileURL(t.extension).href,
+  ], { encoding: "utf8" })) as { command: string[] };
+  expect(loaded.command).toEqual([t.runtime, t.entrypoint]);
 });

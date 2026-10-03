@@ -16,7 +16,7 @@ const supported = (event: Event): boolean => event.toolName === "edit" && typeof
 /** Hooks use one bounded command call; source and review state belong to the resident. */
 const command = (options: Options, value: unknown): Promise<Event> => new Promise(resolve => {
   const env = { ...process.env, ...options.env };
-  const argv = options.command ?? [process.execPath, fileURLToPath(new URL("../cli.js", import.meta.url))];
+  const argv = options.command ?? [fileURLToPath(new URL("../../bin/launch.sh", import.meta.url))];
   const args = [...argv.slice(1), "--pi-hook", ...(env.REVIEW_CONTROL_JSON === undefined ? [] : ["--controlled-reviewer"])];
   const child = spawn(argv[0]!, args, { env, stdio: ["pipe", "pipe", "ignore"] });
   let output = "";
