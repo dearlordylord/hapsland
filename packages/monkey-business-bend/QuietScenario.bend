@@ -76,7 +76,7 @@ def generated_tick(canonical: Canonical.State, event: Canonical.CanonicalEvent, 
 
 def command_actions(command: Canonical.Command, event: Canonical.CanonicalEvent, now: Nat) -> List<&2,Driver.Action>:
   match command event:
-    case Canonical.QuietRoundExpired{} Canonical.QuietRoundTick{+p,+l,+r,_,_,_}:
+    case Canonical.QuietRoundExpired{_} Canonical.QuietRoundTick{+p,+l,+r,_,_,_}:
       [Driver.immediate(Canonical.ClosePermitRound{p,l,r,now},False{}),Driver.immediate(Canonical.RetirePartition{p,l,r},False{})]
     case Canonical.QuietRoundWaiting{+since} Canonical.QuietRoundTick{p,l,r,_,+window,facts}:
       [Driver.Action{Canonical.QuietRoundTick{p,l,r,Nat.add(since,window),window,facts},(Nat.add(since,window) - now : Nat),None{},False{},None{}}]
