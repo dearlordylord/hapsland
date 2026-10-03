@@ -104,7 +104,7 @@ def writers(state: State) -> WriterScenario.State:
   match state:
     case State{_,_,_,_,_,_,_,_,writers,background_collection,stop}: writers
 
-def with_writers(state: State, writers: WriterScenario.State, background_collection: CollectorScenario.State) -> State:
+def with_writers(state: State, writers: WriterScenario.State) -> State:
   match state:
     case State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,_,background_collection,stop}:
       State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}
