@@ -17,7 +17,7 @@ collect(join(root, "Engine.bend"));
 const sourceHash = hash([...consumed].sort(([a], [b]) => a.localeCompare(b)).map(([path, source]) => `${relative(root, path)}\0${source}\0`).join(""));
 const declarationHash = hash(readFileSync(join(root, "engine.d.mts")));
 const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)));
-const hostPaths = ["index.ts", "shared-core.ts", "driver-codec.ts", "controls.ts", "outcomes.ts", "file-trees.ts", "preparation.ts", "session.ts", "lifecycle-profile.ts", "resource-scenarios.ts", "sizes.ts", "numeric-codec.ts", "jev-interventions.ts", "advicee-lifecycle.ts", "permit-controls.ts"].map(name => `../monkey-business/src/${name}`).concat(["../../src/canonical/simulation-adapter.ts", "../../src/canonical/simulation-codec.ts", "../../src/canonical/canonical-boundary.ts", "../../src/canonical/graph-adapter.ts"]);
+const hostPaths = ["index.ts", "shared-core.ts", "driver-codec.ts", "controls.ts", "outcomes.ts", "file-trees.ts", "preparation.ts", "session.ts", "lifecycle-profile.ts", "resource-scenarios.ts", "sizes.ts", "numeric-codec.ts", "jev-interventions.ts", "advicee-lifecycle.ts", "permit-controls.ts", "callback-controls.ts", "notice-controls.ts"].map(name => `../monkey-business/src/${name}`).concat(["../../src/canonical/simulation-adapter.ts", "../../src/canonical/simulation-codec.ts", "../../src/canonical/canonical-boundary.ts", "../../src/canonical/graph-adapter.ts"]);
 const hostHash = hash(hostPaths.map(path => `${path}\0${readFileSync(join(root, path))}\0`).join(""));
 const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`);
 const preparationHash = hash(["../../src/canonical/import-graph.generated.js", "../monkey-business/src/preparation.ts", "../monkey-business/src/file-trees.ts"].map(path => readFileSync(join(root, path))).join(""));
@@ -32,7 +32,7 @@ if (process.argv.includes("--check")) {
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";
     const offset = compiled.lastIndexOf(marker);
-    const names = ["activity_event_valid", "lifecycle_entries", "lifecycle_entry", "lifecycle_action", "activity_scope", "activity_valid", "activity_lifetime", "activity_edit", "permit_issue", "permit_issued", "permit_consumed", "preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "session_delay"];
+    const names = ["notice_after", "notice_exercise", "notice_failure", "notice_lease", "notice_acknowledge", "callback_owner", "callback_issue", "callback_delivered", "callback_originals", "callback_action", "activity_event_valid", "lifecycle_entries", "lifecycle_entry", "lifecycle_action", "activity_scope", "activity_valid", "activity_lifetime", "activity_edit", "permit_issue", "permit_issued", "permit_consumed", "preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "session_delay"];
     if (offset < 0 || names.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
     // Same immediate-Nat ABI convention as agent-flow-bend's checked builds.
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
@@ -56,6 +56,16 @@ const facts = value => {
   return value;
 };
 export default {
+ notice_after: (before,state,scope,event,commands,now) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now))),
+ notice_exercise: (scope) => run_loop($notice_exercise$(facts(scope))),
+ notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),
+ notice_lease: (state,partition,group,key) => run_loop($notice_lease$(state,facts(partition),facts(group),facts(key))),
+ notice_acknowledge: (state,partition,group,key) => run_loop($notice_acknowledge$(state,facts(partition),facts(group),facts(key))),
+ callback_owner: (state,event) => run_loop($callback_owner$(state,facts(event))),
+ callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
+ callback_delivered: (state,order) => run_loop($callback_delivered$(state,facts(order))),
+ callback_originals: (state) => run_loop($callback_originals$(state)),
+ callback_action: (state,target,control,receipt,at,order) => run_loop($callback_action$(state,facts(target),facts(control),facts(receipt),facts(at),facts(order))),
  activity_event_valid: (state, event, partition, incarnation) => run_loop($activity_event_valid$(state, facts(event), facts(partition), facts(incarnation))),
  lifecycle_entries: (state) => run_loop($lifecycle_entries$(state)),
  lifecycle_entry: (state, partition) => run_loop($lifecycle_entry$(state, facts(partition))),

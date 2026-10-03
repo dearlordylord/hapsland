@@ -313,3 +313,54 @@ export const sharedPreparationActive = (state: EngineState, partition: number, l
   sharedCheck(state);
   return SharedEngine.preparation_active(state, BigInt(readNat(partition)), BigInt(readNat(lifetime)), BigInt(readNat(round)), BigInt(readNat(operation)));
 };
+
+// Only original shared issuance can mint a receipt. Retained observations own
+// these small immutable facts; no state ancestry or completed-callback archive.
+const callbackReceipts = new WeakSet<object>();
+export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number) => {
+  sharedCheck(state);
+  const encoded = encodeSharedValue(encodeCanonicalEvent(event));
+  const owner = SharedEngine.callback_owner(state, encoded);
+  if (readRecord(owner).$ === "None") return { state, receipt: undefined };
+  const action = { $: "Driver.Action", event: encodeCanonicalEvent(event), delay: 0, candidate: { $: "None" }, job: false, expiry_advice: { $: "None" } };
+  const next = SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action));
+  const original = readList(SharedEngine.callback_originals(next), readRecord)[0];
+  if (!original) throw new Error("missing original callback issuance");
+  const receipt = freezeCanonicalData(readRecord(original.fact));
+  callbackReceipts.add(receipt);
+  return { state: retain(state, next), receipt };
+};
+export const sharedCallbackOriginals = (state: EngineState) => {
+  sharedCheck(state);
+  return readList(decodeSharedValue(SharedEngine.callback_originals(state)), readRecord);
+};
+export const deliverSharedCallback = (state: EngineState, order: number) => {
+  sharedCheck(state);
+  return retain(state, SharedEngine.callback_delivered(state, BigInt(readNat(order))));
+};
+export const actSharedCallback = (state: EngineState, target: unknown, action: unknown, receipt: object | undefined, at: number, order: number) => {
+  sharedCheck(state);
+  if (receipt !== undefined && !callbackReceipts.has(receipt)) throw new TypeError("foreign callback receipt");
+  const transition = SharedEngine.callback_action(state, encodeSharedValue(target), encodeSharedValue(action),
+    receipt === undefined ? { $: "None" } : { $: "Some", value: receipt }, BigInt(readNat(at)), BigInt(readNat(order)));
+  return { state: retain(state, transition.state), result: decodeSharedValue(transition.result),
+    cancel: readList(decodeSharedValue(transition.cancel), readNat), schedule: readList(decodeSharedValue(transition.schedule), readRecord) };
+};
+
+export const sharedNoticeExercise = (scope: unknown) => readList(decodeSharedValue(SharedEngine.notice_exercise(encodeSharedValue(scope))), readRecord);
+export const afterSharedNotice = (state: EngineState, scope: unknown, event: CanonicalEvent, now: number) => {
+  sharedCheck(state);
+  const before = sharedPredecessors.get(state), commands = sharedCommands.get(state);
+  if (!before || !commands) throw new TypeError("missing actual notice feedback");
+  const transition = SharedEngine.notice_after(before, state, encodeSharedValue(scope), encodeSharedValue(encodeCanonicalEvent(event)),
+    commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" }), BigInt(readNat(now)));
+  return { state: retain(state, transition.state), events: readList(decodeSharedValue(transition.events), x => x) };
+};
+export const suppliedSharedNotice = (state: EngineState, scope: unknown, now: number, key: number, sequence: number) => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.notice_failure(state, encodeSharedValue(scope), BigInt(readNat(now)), BigInt(readNat(key)), BigInt(readNat(sequence))));
+};
+export const ownedSharedNotice = (state: EngineState, partition: number, group: number, key: number, action: "lease" | "acknowledge") => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine[action === "lease" ? "notice_lease" : "notice_acknowledge"](state, BigInt(readNat(partition)), BigInt(readNat(group)), BigInt(readNat(key))));
+};

@@ -1,4 +1,5 @@
 import Base
+import ./RuntimeScenarios.bend as RuntimeScenarios
 import ./AdviceeLifecycle.bend as AdviceeLifecycle
 import ./AdviceeLifecycleCleanup.bend as AdviceeLifecycleCleanup
 import ./AdviceeActivity.bend as AdviceeActivity
@@ -43,8 +44,8 @@ def install(key: Types.GraphKey, position: Nat, graph: ImportGraph.Bounded) -> T
 
 def settle(state: Types.State, +key: Types.GraphKey, position: Nat, +before: ImportGraph.Bounded, +result: ImportGraph.BoundedStep) -> Types.GraphTransition:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes}:
-      Types.GraphTransition{Types.State{canonical, install(key, position, ImportGraph.bounded_state(result)) <> remove(graphs, key), scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes}, before, result}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}:
+      Types.GraphTransition{Types.State{canonical, install(key, position, ImportGraph.bounded_state(result)) <> remove(graphs, key), scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}, before, result}
 
 def expected(found: Maybe<&2, Types.GraphEntry>) -> Nat:
   match found:
@@ -58,9 +59,9 @@ def checked(valid: Bool, state: Types.State, key: Types.GraphKey, position: Nat,
 
 def step(+state: Types.State, +key: Types.GraphKey, +position: Nat, limits: ImportGraph.Limits, event: ImportGraph.GraphEvent) -> Types.GraphTransition:
   match state:
-    case Types.State{canonical, +graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes}:
+    case Types.State{canonical, +graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}:
       +found = {find(graphs, key) : Maybe<&2, Types.GraphEntry>}
-      checked(Nat.is_eq(position, expected(found)), Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes}, key, position, graph(found, limits), event)
+      checked(Nat.is_eq(position, expected(found)), Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}, key, position, graph(found, limits), event)
 
 # Graph facts belong only to the exact retained preparing work identity.
 def preparing(found: Maybe<&2, Canonical.Work>) -> Bool:

@@ -1,3 +1,5 @@
+import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSharedNotice } from "../../../src/canonical/simulation-adapter.ts";
+import { issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
 import { encodePreparationGraphLimits } from "./file-trees.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
 import { type EngineState } from "../../monkey-business-bend/engine.mjs";
@@ -25,6 +27,26 @@ export class SharedCore {
     const declared = declareSharedAdvicee(this.state, identity, seed);
     this.state = declared.state;
     return declared.scope;
+  }
+  noticeExercise(scope: unknown) { return sharedNoticeExercise(scope); }
+  noticeAfter(scope: unknown, event: CanonicalEvent, now: number) {
+    const result = afterSharedNotice(this.state, scope, event, now);
+    this.state = result.state;
+    return result.events;
+  }
+  noticeFailure(scope: unknown, now: number, key: number, sequence: number) { return suppliedSharedNotice(this.state, scope, now, key, sequence); }
+  noticeOwned(partition: number, group: number, key: number, action: "lease" | "acknowledge") { return ownedSharedNotice(this.state, partition, group, key, action); }
+  issueCallback(event: CanonicalEvent, order: number, at: number) {
+    const issued = issueSharedCallback(this.state, event, order, at);
+    this.state = issued.state;
+    return issued.receipt;
+  }
+  get callbackOriginals() { return sharedCallbackOriginals(this.state); }
+  deliverCallback(order: number) { this.state = deliverSharedCallback(this.state, order); }
+  callback(target: unknown, action: unknown, receipt: object | undefined, at: number, order: number) {
+    const result = actSharedCallback(this.state, target, action, receipt, at, order);
+    this.state = result.state;
+    return result;
   }
   commandScope(index: number, provided?: number) { return sharedCommandScope(this.state, index, provided); }
   get adviceeLifecycles() { return decodeAdviceeLifecycles(sharedLifecycleEntries(this.state)); }

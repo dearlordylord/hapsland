@@ -1,4 +1,4 @@
-import type { CanonicalEvent, CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter.ts";
+import type { CanonicalEvent } from "../../../src/canonical/adapter.ts";
 
 /** Selectable source-free diagnostic and output-fit exercises, not native serialization. */
 export type ResourceScenarioConfig = {
@@ -31,8 +31,6 @@ export const demoResourceLimits = (agents: number) => {
 
 export class ResourceScenarios {
   readonly config: Required<ResourceScenarioConfig>;
-  private readonly pendingKeys: number[] = [];
-  private readonly base = 900_000;
   constructor(config: ResourceScenarioConfig = {}) {
     this.config = { notices: false, outputFit: false, startAt: 0,
       noticeMaximumKeys: 8, noticeReservationBytes: 128,
@@ -49,44 +47,10 @@ export class ResourceScenarios {
   inputs(): ResourceScenarioInput[] {
     const events: ResourceScenarioInput[] = [];
     const emit = (offset: number, event: CanonicalEvent) => events.push({ at: this.config.startAt + offset, kind: "canonical", event });
-    if (this.config.notices) {
-      emit(0, this.advance(this.base));
-      emit(1, this.advance(this.base, this.config.cooldownMs));
-      emit(this.config.cooldownMs + 2, this.advance(this.base, 0));
-      emit(this.config.cooldownMs + 3, this.advance(this.base + 1));
-      emit(this.config.cooldownMs + 4, { kind: "noticeSelect", partition: this.config.partition, group: this.config.group, composed: false, authorityBound: false, allowed: [] });
-      emit(this.config.cooldownMs + 5, { kind: "noticeLease", key: this.base, leased: true });
-      emit(this.config.cooldownMs + 6, this.advance(this.base, 0));
-      emit(2 * this.config.cooldownMs + 7, { kind: "noticePrune", key: this.base, leaseExpired: true, pendingExpired: true, excepted: false, cooldownExpired: true });
-      emit(2 * this.config.cooldownMs + 8, this.advance(this.base + 1));
-      emit(3 * this.config.cooldownMs + 9, { kind: "noticePrune", key: this.base + 1, leaseExpired: true, pendingExpired: true, excepted: false, cooldownExpired: true });
-    }
     if (this.config.outputFit) for (const bytes of [10_240, 10_241]) {
       emit(0, { kind: "collectionFitCheck", items: 1, bytes });
       emit(0, { kind: "collectionNoticeCheck", items: 1, bytes, skipUnfitting: true });
     }
     return events.sort((a, b) => a.at - b.at);
-  }
-  private advance(key: number, remaining?: number): CanonicalEvent {
-    return { kind: "noticeAdvance", key, ...(remaining === undefined ? {} : { remaining }), maximumKeys: this.config.noticeMaximumKeys, proposed: key, sequence: key, maxCount: 2 ** 48 - 1 };
-  }
-  /** Follow only checked commands. The caller sends returned events through its shared state. */
-  handle(event: CanonicalEvent, commands: readonly CanonicalCommand[], before: CanonicalProjection): CanonicalEvent[] {
-    if (!this.config.notices) return [];
-    if (event.kind === "noticeAdvance" && event.key >= this.base && commands.some(c => c.kind === "noticeCreateKey")) {
-      this.pendingKeys.push(event.key);
-      return [{ kind: "reserveCapacity", partition: this.config.partition, bytes: this.config.noticeReservationBytes, purpose: "operationalNotice" }];
-    }
-    if (event.kind === "reserveCapacity" && event.partition === this.config.partition && event.purpose === "operationalNotice" && this.pendingKeys.length > 0) {
-      const key = this.pendingKeys.shift()!;
-      const granted = commands.find(c => c.kind === "capacityGranted");
-      return granted?.kind === "capacityGranted" ? [{ kind: "noticeCommit", key, partition: this.config.partition, group: this.config.group, reservation: granted.id, pending: key, sequence: key, maximumKeys: this.config.noticeMaximumKeys }] : [];
-    }
-    if (event.kind === "noticeCommit" && commands.some(c => c.kind === "noticeRefused")) return [{ kind: "releaseCapacity", reservation: event.reservation }];
-    if (event.kind === "noticePrune" && commands.some(c => c.kind === "noticePruned" && c.dropKey)) {
-      const notice = before.notices.find(n => n.id === event.key);
-      return notice ? [{ kind: "releaseCapacity", reservation: notice.reservation }] : [];
-    }
-    return [];
   }
 }

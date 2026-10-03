@@ -1,3 +1,5 @@
+import { validateNoticeControl, type NoticeControl } from "./notice-controls.ts";
+import { validateCallbackControl, type CallbackControl } from "./callback-controls.ts";
 import { validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 import { validateJevIntervention, type JevInterventionControl } from "./jev-interventions.ts";
 import { validateFileTreeProfile, type FileTreeProfile } from "./file-trees.ts";
@@ -12,7 +14,7 @@ export type OutputProfile = { readonly outcome: "certain" | "uncertain" | "faile
 export type OutcomeChoice =
   | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
   | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights };
-export type LiveControl = AdviceeLifecycleControl | PermitControl | { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
+export type LiveControl = NoticeControl | CallbackControl | AdviceeLifecycleControl | PermitControl | { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
 /** Bounds protect finite synthetic workload; they are not empirical Jev limits. */
 export const validateLiveControl = (control: LiveControl): LiveControl => {
   if (!control || typeof control !== "object") throw new TypeError("invalid live control");
@@ -20,6 +22,11 @@ export const validateLiveControl = (control: LiveControl): LiveControl => {
     if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new RangeError(`${name} must be an integer in [${minimum}, ${maximum}]`);
   };
   switch (control.kind) {
+    case "noticeFailure":
+    case "noticeCollect":
+    case "noticeLease":
+    case "noticeAcknowledge": return validateNoticeControl(control);
+    case "callback": return validateCallbackControl(control);
     case "adviceeLifecycle": return validateAdviceeLifecycle(control);
     case "editPermitLimits":
     case "permitProfile": return validatePermitControl(control);

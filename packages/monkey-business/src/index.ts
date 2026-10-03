@@ -1,3 +1,8 @@
+import { encodeNoticeScope, type OperationalNoticeKind } from "./notice-controls.ts";
+export * from "./notice-controls.ts";
+import { decodeCallbackTarget, encodeCallbackTarget, encodeCallbackAction, type CallbackTarget, type CallbackReport } from "./callback-controls.ts";
+import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
+export * from "./callback-controls.ts";
 import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
 import { readRecord, readBool, readNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
@@ -118,7 +123,10 @@ export type EffectObservation =
       readonly phase: "supplied";
       readonly operation: number;
     };
+export type CallbackReceipt = { readonly target: CallbackTarget };
 export type Observation = {
+  readonly callbackReceipt?: CallbackReceipt;
+  readonly noticeDiagnostic?: OperationalNoticeKind;
   readonly partition?: number;
   readonly agent?: string;
   readonly sequence: number;
@@ -140,6 +148,8 @@ export type Observation = {
 };
 /** One synchronous viewing boundary; presentation never owns simulator state. */
 export type RunObservation = {
+  readonly callbackTargets: readonly CallbackTarget[];
+  readonly callbackReports: readonly CallbackReport[];
   readonly adviceeLifecycles: readonly AdviceeLifecycleEntry[];
   readonly interventions: readonly JevInterventionReport[];
   readonly now: number;
@@ -196,6 +206,9 @@ export type Replay = {
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
+  noticeScope?: ReturnType<typeof encodeNoticeScope>;
+  noticeDiagnostic?: OperationalNoticeKind;
+  callbackReceipt?: CallbackReceipt;
   activityScope?: number;
   permitCapture?: { readonly capture: ReturnType<typeof encodePermitCapture>; readonly started: number };
   partition?: number;
@@ -295,6 +308,16 @@ export class Run {
     return metadata;
   }
   private canonicalAllowed = true;
+  private readonly callbackPayloads = new Map<number, { receipt: CallbackReceipt; payload: Scheduled }>();
+  private readonly callbackFacts = new WeakMap<CallbackReceipt, object>();
+  private readonly callbackSources = new WeakMap<CallbackReceipt, Scheduled>();
+  private readonly callbackReports: CallbackReport[] = [];
+  private callbackTargetKey(target: CallbackTarget) { return JSON.stringify(target); }
+  private get callbackTargets(): readonly CallbackTarget[] {
+    const targets = this.core.callbackOriginals.map(original => decodeCallbackTarget(readRecord(original.fact).target));
+    for (const frame of this.history) if (frame.callbackReceipt && !targets.some(target => this.callbackTargetKey(target) === this.callbackTargetKey(frame.callbackReceipt!.target))) targets.push(frame.callbackReceipt.target);
+    return targets;
+  }
   private scheduled = new Map<number, Scheduled>();
   private get queue(): Scheduled[] {
     return this.core.queued.map(entry => {
@@ -445,7 +468,20 @@ export class Run {
     for (const generator of this.generators.values())
       for (const input of generator.next(0)) this.enqueue(input);
     for (const input of this.config.inputs!) this.enqueue(input);
-    if (config.resourceScenarios) { this.resourceScenarios = new ResourceScenarios(config.resourceScenarios); for (const input of this.resourceScenarios.inputs()) this.enqueue(input); }
+    if (config.resourceScenarios) {
+      this.resourceScenarios = new ResourceScenarios(config.resourceScenarios);
+      for (const input of this.resourceScenarios.inputs()) this.enqueue(input);
+      if (this.resourceScenarios.config.notices) {
+        const c = this.resourceScenarios.config;
+        const scope = encodeNoticeScope({ partition: c.partition, group: c.group, key: 900000, maximumKeys: c.noticeMaximumKeys,
+          reservationBytes: c.noticeReservationBytes, cooldownMs: c.cooldownMs, startAt: c.startAt });
+        for (const fact of this.core.noticeExercise(scope)) {
+          const at = c.startAt + readNat(fact.offset);
+          this.enqueue({ at, kind: "canonical", event: decodeDriverEvent(fact.event) });
+          this.scheduled.get(this.order - 1)!.noticeScope = scope;
+        }
+      }
+    }
   }
   get now() {
     return this.clock;
@@ -462,7 +498,7 @@ export class Run {
   observe(): RunObservation {
     return freezeCanonicalData({ adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
       projection: this.projection, observations: [...this.history],
-      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions });
+      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions, callbackTargets: this.callbackTargets, callbackReports: [...this.callbackReports] });
   }
   subscribe(listener: (o: Observation) => void) {
     this.listeners.add(listener);
@@ -501,6 +537,15 @@ export class Run {
     const scheduled = this.queue.find(item => item.order === this.order - 1)!;
     scheduled.generated = true;
     scheduled.partition = partition;
+    const rawReceipt = this.core.issueCallback(event, scheduled.order, scheduled.at);
+    if (rawReceipt) {
+      const receipt = freezeCanonicalData({ target: decodeCallbackTarget(decodeSharedValue(rawReceipt).target) });
+      const payload = { ...scheduled, callbackReceipt: receipt } as Scheduled;
+      scheduled.callbackReceipt = receipt;
+      this.callbackFacts.set(receipt, rawReceipt);
+      this.callbackSources.set(receipt, payload);
+      this.callbackPayloads.set(receipt.target.originalOrder, { receipt, payload });
+    }
   }
   applyControl(control: Control): ControlRecord {
     const value: Control = validateLiveControl(control);
@@ -508,7 +553,38 @@ export class Run {
       throw new RangeError("unknown agent control target");
     if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
-    if (value.kind === "adviceeLifecycle") {
+    if (value.kind === "noticeCollect") {
+      this.event(value.partition, { kind: "noticeSelect", partition: value.partition, group: value.group,
+        composed: value.composed, authorityBound: value.authorityBound, allowed: [...value.allowed] });
+    } else if (value.kind === "noticeFailure" || value.kind === "noticeLease" || value.kind === "noticeAcknowledge") {
+      const c = this.resourceScenarios?.config;
+      const scope = encodeNoticeScope({ ...value.target, maximumKeys: c?.noticeMaximumKeys ?? 8,
+        reservationBytes: c?.noticeReservationBytes ?? 128, cooldownMs: c?.cooldownMs ?? 60000, startAt: this.clock });
+      const raw = readRecord(value.kind === "noticeFailure" ? this.core.noticeFailure(scope,this.clock,value.target.key,this.timelineOrder)
+        : this.core.noticeOwned(value.target.partition,value.target.group,value.target.key,value.kind === "noticeLease" ? "lease" : "acknowledge"));
+      if (raw.$ === "Some") {
+        this.event(value.target.partition,decodeDriverEvent(raw.value));
+        const item = this.scheduled.get(this.order - 1)!;
+        item.noticeScope = scope;
+        if (value.kind === "noticeFailure") item.noticeDiagnostic = value.diagnostic;
+      }
+    } else if (value.kind === "callback") {
+      const key = this.callbackTargetKey(value.target);
+      const source = [...this.callbackPayloads.values()].find(item => this.callbackTargetKey(item.receipt.target) === key)
+        ?? this.history.flatMap(frame => frame.callbackReceipt ? [{ receipt: frame.callbackReceipt, payload: this.callbackSources.get(frame.callbackReceipt) }] : []).find(item => this.callbackTargetKey(item.receipt.target) === key);
+      const transition = this.core.callback(encodeCallbackTarget(value.target), encodeCallbackAction(value.action), source ? this.callbackFacts.get(source.receipt) : undefined, this.clock, this.order);
+      for (const order of transition.cancel) { this.core.cancel(order); this.scheduled.delete(order); }
+      for (const scheduled of transition.schedule) {
+        if (!source?.payload) throw new Error("shared callback lost original source payload");
+        const at = readNat(scheduled.at), order = readNat(scheduled.order);
+        const original = source.payload;
+        this.queuePush({ ...original, at, order, input: { ...original.input, at } } as Scheduled);
+        this.order = Math.max(this.order, order + 1);
+      }
+      const result = readRecord(transition.result).$;
+      this.callbackReports.push({ at: this.clock, controlSequence: this.timelineOrder, control: value,
+        result: result === "Callbacks.Applied" ? "applied" : result === "Callbacks.NotQueued" ? "notQueued" : result === "Callbacks.NotHeld" ? "notHeld" : "missing" });
+    } else if (value.kind === "adviceeLifecycle") {
       const scope = this.scopes.find(scope => scope.agent === value.agent);
       if (!scope) throw new RangeError("unknown advicee lifecycle target");
       const transition = this.core.lifecycle(scope.partition, scope.agent, value.action);
@@ -614,6 +690,9 @@ export class Run {
       }
   }
   private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
+    if (item.callbackReceipt) {
+      this.core.deliverCallback(item.order);
+    }
     const partition = this.inputPartition(item);
     const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: partition, lifetime: 1, round: 0 };
     const automaticReview = !this.config.lifecycles?.reuse && !(this.config.lifecycles?.cancellation === "suppressed") && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
@@ -781,6 +860,7 @@ export class Run {
     // Callback identity is checked against issued work, before the product's stale-result fence.
     if (
       event.kind === "jevRequestSettled" &&
+      !(item.callbackReceipt && this.callbackFacts.has(item.callbackReceipt)) &&
       ![...this.issuedRequests.values()].some(
         (r) =>
           r.request === event.request &&
@@ -800,7 +880,10 @@ export class Run {
       const command = result.commands.find(c => c.kind === "collectionFits" || c.kind === "collectionLimited");
       if (command) Object.assign(this.metadata, { encodedOutput: { ...this.metadata.encodedOutput!, decision: command.kind === "collectionFits" ? "fits" : "limited" } });
     }
-    for (const followup of this.resourceScenarios?.handle(event, result.commands, before) ?? []) emit(followup);
+    if (item.noticeScope) for (const followup of this.core.noticeAfter(item.noticeScope,event,this.clock)) {
+      emit(decodeDriverEvent(followup));
+      this.scheduled.get(this.order - 1)!.noticeScope = item.noticeScope;
+    }
     const effects: EffectObservation[] = [];
     const scope =
       "round" in event && "partition" in event && "lifetime" in event
@@ -1401,6 +1484,8 @@ export class Run {
         window: this.config.lifecycles.quietWindowMs, facts: { nativeWorkIdle: !this.jobs.size, adviceEmpty: !this.projection.work.some(f => f.partition === round.partition && f.kind === "pendingFinding"), handoffIdle: !this.projection.collection.claims.some(c => c.group === round.partition), stopAbsent: !this.finishes.has(round.partition) } });
     }
     const observation: Observation = {
+      ...(item.callbackReceipt ? { callbackReceipt: item.callbackReceipt } : {}),
+      ...(item.noticeDiagnostic ? { noticeDiagnostic: item.noticeDiagnostic } : {}),
       ...(partition === 0 ? {} : { partition, agent: this.agentName(partition) }),
       sequence: this.count++,
       time: this.clock,
@@ -1439,6 +1524,8 @@ export class Run {
     return item.partition ?? 1;
   }
   private record(observation: Observation): Observation {
+    const live = new Set(this.core.callbackOriginals.map(original => decodeCallbackTarget(readRecord(original.fact).target).originalOrder));
+    for (const order of this.callbackPayloads.keys()) if (!live.has(order)) this.callbackPayloads.delete(order);
     freezeCanonicalData(observation);
     this.history.push(observation);
     const retention = this.config.retention ?? 1000;

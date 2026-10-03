@@ -4,6 +4,16 @@ export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unk
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ notice_after(before: EngineState,state: EngineState,scope: unknown,event: unknown,commands: unknown,now: bigint): {state: EngineState; events: unknown};
+ notice_exercise(scope: unknown): unknown;
+ notice_failure(state: EngineState,scope: unknown,now: bigint,key: bigint,sequence: bigint): unknown;
+ notice_lease(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
+ notice_acknowledge(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
+ callback_owner(state: EngineState, event: unknown): unknown;
+ callback_issue(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown): EngineState;
+ callback_delivered(state: EngineState, order: bigint): EngineState;
+ callback_originals(state: EngineState): unknown;
+ callback_action(state: EngineState, target: unknown, control: unknown, receipt: unknown, at: bigint, order: bigint): {state: EngineState; result: unknown; cancel: unknown; schedule: unknown};
  activity_event_valid(state: EngineState, event: unknown, partition: bigint, incarnation: bigint): boolean;
  lifecycle_entries(state: EngineState): unknown;
  lifecycle_entry(state: EngineState, partition: bigint): unknown;
