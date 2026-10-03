@@ -110,7 +110,7 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
 describe("compact native terminal recovery", () => {
   let native: readonly number[] = [];
   // Compile and execute once in a separately bounded setup phase. The runner
-  // retains its 5s Bend emission/execution and 15s external C compilation bounds.
+  // keeps compilation allowances separate from its 5s execution bound.
   beforeAll(() => {
     native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-terminal-native.bend", import.meta.url)) as number[];
   }, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
