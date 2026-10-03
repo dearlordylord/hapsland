@@ -97,8 +97,18 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
  expect(newEntry.id).not.toBe(oldEntry.id);
  const eviction = frames.find(frame => frame.event.kind === "cachePrepare" && frame.event.id === newEntry.id)!;
  expect(eviction.commands).toContainEqual({ kind: "cachePrepared", evicted: [oldEntry.id] });
- expect(newCommit.before.charges).toContainEqual({ id: oldEntry.reservation, partition: 1, bytes: 5, purpose: "storedResult" });
- expect(newCommit.after.charges.some(charge => charge.id === oldEntry.reservation)).toBe(false);
+ expect(eviction.before.charges).toContainEqual({ id: oldEntry.reservation, partition: 1, bytes: 5, purpose: "storedResult" });
+ // Actual CachePrepared feedback releases the evicted entry's original
+ // reservation before committing the replacement (CacheScenario.feedback).
+ const released = frames.find(frame => frame.event.kind === "releaseCapacity" && frame.event.reservation === oldEntry.reservation)!;
+ expect(frames.indexOf(released)).toBeGreaterThan(frames.indexOf(eviction));
+ expect(frames.indexOf(released)).toBeLessThan(frames.indexOf(newCommit));
+ expect(released.commands).toContainEqual({ kind: "reservationReleased", id: oldEntry.reservation });
+ expect(released.before.charges).toContainEqual({ id: oldEntry.reservation, partition: 1, bytes: 5, purpose: "storedResult" });
+ expect(released.after.charges).toEqual(released.before.charges.filter(charge => charge.id !== oldEntry.reservation));
+ expect(released.after.pendingFindings).toEqual(released.before.pendingFindings);
+ expect(newCommit.before.charges.some(charge => charge.id === oldEntry.reservation)).toBe(false);
+ expect(newCommit.after.charges).toContainEqual({ id: newEntry.reservation, partition: 1, bytes: 5, purpose: "storedResult" });
  // Evicting the cache payload must preserve independently retained live advice.
  expect(newCommit.after.pendingFindings).toEqual([{ operation: original.operation, count: 1 }, { operation: changed.operation, count: 1 }]);
  expect(run.projection.reuse).toEqual({ claims: [], cache: [{ id: newEntry.id, partition: 1, bytes: 5, reservation: newEntry.reservation }] });
