@@ -532,7 +532,7 @@ def callback_delivered(+state: Types.State, order: Nat) -> Types.State:
 
 def callback_originals(state: Types.State) -> List<&2, Callbacks.Original>:
   match state:
-    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _}}: originals
+    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _, _}}: originals
 
 type CallbackTransition is Data:
   CallbackTransition{state: Types.State, result: Callbacks.Applicability, cancel: List<&2,Nat>, schedule: List<&2,Callbacks.Scheduled>}
@@ -570,18 +570,18 @@ type NoticeTransition is Data:
 
 def notice_followed(state: Types.State, followup: NoticeScenario.Followup) -> NoticeTransition:
   match state followup:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing}} NoticeScenario.Followup{notices,events}:
-      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing}},events}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing,cache}} NoticeScenario.Followup{notices,events}:
+      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache}},events}
 
 def notice_clocked(state: Types.State, scope: NoticeScenario.Scope, key: Nat, now: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing,cache}}
 
 def notice_pruned(state: Types.State, key: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing,cache}}
 
 # Called with this event's actual accepted commands and captured exercise scope.
 # The before state is required for releasing only a genuinely dropped key.
@@ -603,15 +603,15 @@ def notice_exercise(scope: NoticeScenario.Scope) -> List<&2,NoticeScenario.Sched
 
 def notice_failure(state: Types.State, scope: NoticeScenario.Scope, now: Nat, key: Nat, sequence: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
 
 def notice_lease(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
 
 def notice_acknowledge(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
 
 def callback_replaced(+state: Types.State, orders: List<&2,Nat>) -> Types.State:
   with_callbacks(state,Callbacks.replaced(callback_state(state),orders))
