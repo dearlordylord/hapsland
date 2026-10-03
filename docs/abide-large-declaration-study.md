@@ -6,6 +6,10 @@
 **Expected use:** Inspect the examples and their domain obligations, compare measured conditions, and assess relevance to your own maintenance edits.
 **Lifecycle:** Review when fixtures, source selection, rule wording, feedback or scoring change. Replace the measured account when its evidence is superseded; retain only evidence supporting current claims and update inbound links.
 
+[Studies and examples](./review-studies.md) → Full larger-declaration report
+
+Read the [scenario explanations](./review-studies.md#choose-a-scenario) for a guided code walkthrough; this report owns the complete methodology and measured matrix.
+
 A routine rename changes a few lines. Can the reviewer still identify a design problem elsewhere in the declaration, and does the agent fix it without losing valid behavior?
 
 ## Scope and selection
@@ -24,12 +28,12 @@ The [fixture collection](../scripts/abide-large-declaration-fixtures.mjs) owns t
 
 | Domain and rule | Concrete problem | Compact input | Larger input | Valid counterpart |
 | --- | --- | --- | --- | --- |
-| Report delivery — conditional facts (`r2`) | An email report can omit recipients; a downloaded report can carry them. | [Type](./examples/large-declarations/report-delivery/small/defect.ts) | [Type](./examples/large-declarations/report-delivery/large-separated/defect.ts) | [Tagged delivery](./examples/large-declarations/report-delivery/large-separated/clean.ts) |
-| Map camera — related facts (`r3`) | Latitude can be provided without longitude. | [Type](./examples/large-declarations/map-camera/small/defect.ts) | [Type](./examples/large-declarations/map-camera/large-separated/defect.ts) | [Complete optional center](./examples/large-declarations/map-camera/large-separated/clean.ts) |
-| Attachment manifest — duplicated fact (`r4`) | A separately stored count can disagree with the attachments. | [Type](./examples/large-declarations/attachment-manifest/small/defect.ts) | [Type](./examples/large-declarations/attachment-manifest/large-separated/defect.ts) | [Attachments as the source](./examples/large-declarations/attachment-manifest/large-separated/clean.ts) |
-| Render pool — precise values (`r7`) | A numeric worker count accepts values outside the documented `1`, `2`, `4`. | [Type](./examples/large-declarations/render-pool/small/defect.ts) | [Type](./examples/large-declarations/render-pool/large-separated/defect.ts) | [Allowed counts](./examples/large-declarations/render-pool/large-separated/clean.ts) |
-| Reservation window — declared resources (`r9`) | The function's signature hides its use of the service clock. | [Function](./examples/large-declarations/reservation-window/small/defect.ts) | [Function](./examples/large-declarations/reservation-window/large-separated/defect.ts) and [helper](./examples/large-declarations/reservation-window/large-separated/support.ts) | [Explicit clock](./examples/large-declarations/reservation-window/large-separated/clean.ts) |
-| Moderation decision — declared resources (`r9`) | The function's signature hides writing an audit entry. | [Function](./examples/large-declarations/moderation-decision/small/defect.ts) | [Function](./examples/large-declarations/moderation-decision/large-separated/defect.ts) and [helper](./examples/large-declarations/moderation-decision/large-separated/support.ts) | [Explicit audit writer](./examples/large-declarations/moderation-decision/large-separated/clean.ts) |
+| [Report delivery](./examples/large-declarations/report-delivery/README.md) — conditional facts (`r2`) | An email report can omit recipients; a downloaded report can carry them. | [Type](./examples/large-declarations/report-delivery/small/defect.ts) | [Type](./examples/large-declarations/report-delivery/large-separated/defect.ts) | [Tagged delivery](./examples/large-declarations/report-delivery/large-separated/clean.ts) |
+| [Map camera](./examples/large-declarations/map-camera/README.md) — related facts (`r3`) | Latitude can be provided without longitude. | [Type](./examples/large-declarations/map-camera/small/defect.ts) | [Type](./examples/large-declarations/map-camera/large-separated/defect.ts) | [Complete optional center](./examples/large-declarations/map-camera/large-separated/clean.ts) |
+| [Attachment manifest](./examples/large-declarations/attachment-manifest/README.md) — duplicated fact (`r4`) | A separately stored count can disagree with the attachments. | [Type](./examples/large-declarations/attachment-manifest/small/defect.ts) | [Type](./examples/large-declarations/attachment-manifest/large-separated/defect.ts) | [Attachments as the source](./examples/large-declarations/attachment-manifest/large-separated/clean.ts) |
+| [Render pool](./examples/large-declarations/render-pool/README.md) — precise values (`r7`) | A numeric worker count accepts values outside the documented `1`, `2`, `4`. | [Type](./examples/large-declarations/render-pool/small/defect.ts) | [Type](./examples/large-declarations/render-pool/large-separated/defect.ts) | [Allowed counts](./examples/large-declarations/render-pool/large-separated/clean.ts) |
+| [Reservation window](./examples/large-declarations/reservation-window/README.md) — declared resources (`r9`) | The function's signature hides its use of the service clock. | [Function](./examples/large-declarations/reservation-window/small/defect.ts) | [Function](./examples/large-declarations/reservation-window/large-separated/defect.ts) and [helper](./examples/large-declarations/reservation-window/large-separated/support.ts) | [Explicit clock](./examples/large-declarations/reservation-window/large-separated/clean.ts) |
+| [Moderation decision](./examples/large-declarations/moderation-decision/README.md) — declared resources (`r9`) | The function's signature hides writing an audit entry. | [Function](./examples/large-declarations/moderation-decision/small/defect.ts) | [Function](./examples/large-declarations/moderation-decision/large-separated/defect.ts) and [helper](./examples/large-declarations/moderation-decision/large-separated/support.ts) | [Explicit audit writer](./examples/large-declarations/moderation-decision/large-separated/clean.ts) |
 
 For the functions, the stakes are observable: the same booking arguments can produce a different decision as time passes, and moderation must write exactly one audit record per decision after repair. Declaring the clock or writer makes that dependency visible to callers.
 
@@ -53,12 +57,12 @@ The current matrix combines five retained source-pinned domains with the declare
 
 | Domain | Compact Hapsland | Compact Abide | Larger separated Hapsland | Larger separated Abide | Actual larger final source |
 | --- | --- | --- | --- | --- | --- |
-| Report delivery | 1/1 | 1/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/report-delivery/native/blind/b4a5c1940d82/subject.ts) · [Abide](../evidence/abide-large-declarations-current/report-delivery/native/blind/01c6af6912e4/subject.ts) |
-| Map camera | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/map-camera/native/blind/4cbcc69aa56e/subject.ts) · [Abide](../evidence/abide-large-declarations-current/map-camera/native/blind/deaf31d05cbc/subject.ts) |
-| Attachment manifest | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/attachment-manifest/native/blind/a6c9cdc9b41d/subject.ts) · [Abide](../evidence/abide-large-declarations-current/attachment-manifest/native/blind/ec3b87db5603/subject.ts) |
-| Render pool | 0/1 | 1/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/render-pool/native/blind/0f671dd507ad/subject.ts) · [Abide](../evidence/abide-large-declarations-current/render-pool/native/blind/8e2039fa640a/subject.ts) |
-| Reservation window | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/reservation-window/native/blind/aa670314cf4b/subject.ts) · [Abide](../evidence/abide-large-declarations-current/reservation-window/native/blind/f31a729e290e/subject.ts) |
-| Moderation decision | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-moderation-corrected-current/moderation-decision/native/blind/f364f24e44ac/subject.ts) · [Abide](../evidence/abide-large-moderation-corrected-current/moderation-decision/native/blind/d93f27ef8d6c/subject.ts) |
+| [Report delivery](./examples/large-declarations/report-delivery/README.md) | 1/1 | 1/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/report-delivery/native/blind/b4a5c1940d82/subject.ts) · [Abide](../evidence/abide-large-declarations-current/report-delivery/native/blind/01c6af6912e4/subject.ts) |
+| [Map camera](./examples/large-declarations/map-camera/README.md) | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/map-camera/native/blind/4cbcc69aa56e/subject.ts) · [Abide](../evidence/abide-large-declarations-current/map-camera/native/blind/deaf31d05cbc/subject.ts) |
+| [Attachment manifest](./examples/large-declarations/attachment-manifest/README.md) | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/attachment-manifest/native/blind/a6c9cdc9b41d/subject.ts) · [Abide](../evidence/abide-large-declarations-current/attachment-manifest/native/blind/ec3b87db5603/subject.ts) |
+| [Render pool](./examples/large-declarations/render-pool/README.md) | 0/1 | 1/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/render-pool/native/blind/0f671dd507ad/subject.ts) · [Abide](../evidence/abide-large-declarations-current/render-pool/native/blind/8e2039fa640a/subject.ts) |
+| [Reservation window](./examples/large-declarations/reservation-window/README.md) | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-declarations-current/reservation-window/native/blind/aa670314cf4b/subject.ts) · [Abide](../evidence/abide-large-declarations-current/reservation-window/native/blind/f31a729e290e/subject.ts) |
+| [Moderation decision](./examples/large-declarations/moderation-decision/README.md) | 1/1 | 0/1 | 1/1 | 0/1 | [Hapsland](../evidence/abide-large-moderation-corrected-current/moderation-decision/native/blind/f364f24e44ac/subject.ts) · [Abide](../evidence/abide-large-moderation-corrected-current/moderation-decision/native/blind/d93f27ef8d6c/subject.ts) |
 
 All 72 current sessions completed and compiled. Hapsland preserved 12/12 clean controls; Abide preserved 12/12. There were 0 Hapsland and 0 Abide unassessed native outcomes.
 
@@ -68,12 +72,12 @@ Each cell below contains two repeats of the same defect input. A positive answer
 
 | Domain | Compact positives Hapsland / Abide | Larger adjacent positives Hapsland / Abide | Larger separated positives Hapsland / Abide | False positives across six clean observations Hapsland / Abide |
 | --- | --- | --- | --- | --- |
-| Report delivery | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
-| Map camera | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 1/6 · 0/6 |
-| Attachment manifest | 2/2 · 1/2 | 2/2 · 1/2 | 2/2 · 0/2 | 0/6 · 0/6 |
-| Render pool | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
-| Reservation window | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
-| Moderation decision | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
+| [Report delivery](./examples/large-declarations/report-delivery/README.md) | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
+| [Map camera](./examples/large-declarations/map-camera/README.md) | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 1/6 · 0/6 |
+| [Attachment manifest](./examples/large-declarations/attachment-manifest/README.md) | 2/2 · 1/2 | 2/2 · 1/2 | 2/2 · 0/2 | 0/6 · 0/6 |
+| [Render pool](./examples/large-declarations/render-pool/README.md) | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
+| [Reservation window](./examples/large-declarations/reservation-window/README.md) | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
+| [Moderation decision](./examples/large-declarations/moderation-decision/README.md) | 2/2 · 0/2 | 2/2 · 0/2 | 2/2 · 0/2 | 0/6 · 0/6 |
 
 Across all layouts, Hapsland detected 36/36 defect observations with 1/36 false-positive clean observations; Abide detected 2/36 with 0/36. Unchecked observations: Hapsland 0, Abide 0. Repeat cells are not independent code examples.
 

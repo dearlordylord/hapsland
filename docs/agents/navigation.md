@@ -31,6 +31,7 @@ Paths in the implementation column are entry points, not a complete module inven
 | Reducer-to-diagram projection | [Projection package](../../packages/agent-flow-projection/README.md), [projection implementation](../../packages/agent-flow-projection/src/index.ts). This derives display evidence from checked transitions; layout belongs to the visualization package. |
 | Simulated agent activity | [Monkey Business](../../packages/monkey-business/README.md). Simulation supplies events to the checked reducer; it does not establish native runtime behavior. |
 | Approved brand artwork and README animation | [Brand assets](../../assets/brand/), [review animation](../../assets/review-flow.gif). |
+| Reader-facing comparison studies and code examples | [Studies overview](../review-studies.md) routes to scenario pages, [larger-declaration methodology](../abide-large-declaration-study.md) and [nine-rule coverage](../abide-contextual-review-study.md). Generate or check the six scenario pages with [the documentation generator](../../scripts/generate-abide-scenario-pages.mjs); fixtures and frozen comparisons own code and results. |
 | Research, video sources, and rendered presentation | [Sibling research repository](https://github.com/dearlordylord/hapsland-research). In this workspace it is `../hapsland-research`, with video source and render commands under `marketing/video/` and rendered output under `marketing/video/output/`. It is a separate Git checkout; `../research` is not its directory name. |
 
 ## Decisions and evidence

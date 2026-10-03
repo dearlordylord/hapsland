@@ -6,6 +6,8 @@
 **Expected use:** Review the comparison and rationale before adopting them in public documentation.
 **Lifecycle:** When this comparison is accepted for publication, consolidate the approved text into README.md or a maintained comparison page, update inbound links, and delete this draft. Move any adopted product requirement to its existing contract owner. Recheck claims against the compared implementations before publication.
 
+[Studies and examples](./review-studies.md) → Architectural comparison draft
+
 This comparison concerns review inputs and data boundaries. Rule origins, loading mechanisms, and easily added configuration features do not justify a separate product. Abide observations refer to version 0.0.7 and upstream commit `533a3d25d5d537bf9005f2f48ce5b18837fd5c74`; Hapsland observations have the implementation and validation limits recorded in the research below.
 
 | Architectural question | Hapsland | Abide |

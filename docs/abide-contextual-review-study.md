@@ -6,6 +6,10 @@
 **Expected use:** Read the code, inspect measured differences and limitations, and assess relevance to your workflow.
 **Lifecycle:** Review when rules, review inputs, feedback policy or scoring change. Replace this account when its supporting validation is superseded; update inbound links and delete obsolete narrative and uncited snapshots. Retain evidence supporting current claims.
 
+[Studies and examples](./review-studies.md) → Compact nine-rule coverage
+
+This report covers all nine rules through two separate matrices: duplicate-fact rule `r4`, and the eight other rules. The [larger-declaration scenario pages](./review-studies.md#choose-a-scenario) belong to a separate five-rule study.
+
 ## What this comparison establishes
 
 All native sessions used **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning effort `max`**. Each product supplied its own response instructions during the same maintenance task. Abide 0.0.7 used a custom active rubric expressing the same target Noul concern; both reviewers used Jev.

@@ -99,23 +99,21 @@ See [supported languages and limits](#supported-languages) before setup.
 
 ## A contextual comparison with Abide
 
-Our [large-declaration study](./docs/abide-large-declaration-study.md) compares six
-selected synthetic domains during a maintenance rename, using **Codex CLI 0.155.1,
-model `gpt-6-luna`, reasoning `max`**. Both reviewers used Jev and the same target
-Noul concerns; Abide 0.0.7 used an active custom rubric. All conditions included
-equal diagnostic reporting of feedback receipt.
+[Explore the studies, examples and evidence](./docs/review-studies.md).
+Our larger-declaration comparison covers **six scenarios: four types and two
+functions**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**.
+Both reviewers used Jev and the same target Noul concerns; Abide 0.0.7 used an
+active custom rubric. All conditions included equal diagnostic feedback reporting.
 
-The larger separated inputs produced **6/6 independently checked repairs in
-Hapsland sessions and 0/6 in Abide sessions**. Including compact inputs, the counts
-were **11/12 and 2/12**. Hapsland also produced **one false warning in 36 clean
-detection observations**, versus zero for Abide. Each native cell was one session.
+With **one larger defective input per scenario**, Hapsland sessions produced
+**6/6 independently checked repairs**, versus **0/6 in Abide sessions**. Including
+one compact input per scenario, the counts were **11/12 and 2/12**. Hapsland also
+produced one false warning in 36 clean detection observations, versus zero for
+Abide. Each native cell was one session.
 
-The report links every starting example and actual final code, separates feedback
-receipt from correct repair, and records the methodology and limitations. Gaps
-also appeared on compact inputs; these results do not establish that size caused
-the difference or that either product is generally superior.
-[Additional compact examples cover all nine rules](./docs/abide-contextual-review-study.md)
-in separate matrices.
+The overview links readable scenario pages, starting and final code, methodology
+and detailed checks. Gaps also appeared on compact inputs; these results do not
+establish that size caused the difference or general review superiority.
 
 ## Installation
 
