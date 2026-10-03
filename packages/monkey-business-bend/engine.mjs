@@ -12077,6 +12077,178 @@ function $JevEffects$started_never_sent_refused$(_p_0, _l_0, _r_0, _o_0, _id_0, 
   }
 }
 
+function $OutputScenario$action$(_event_0, _delay_0) {
+  return {$: "OutputScenario.Scheduled", "event": _event_0, "delay": _delay_0};
+}
+
+function $OutputScenario$write$(_outcome_0, _expired_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return {$: "Canonical.Failed"};
+  } else if (_outcome_0.$ === "OutputScenario.Certain") {
+    if (!_expired_0) {
+      return {$: "Canonical.Acknowledged"};
+    } else {
+      return {$: "Canonical.Unknown"};
+    }
+  } else {
+    return {$: "Canonical.Unknown"};
+  }
+}
+
+function $OutputScenario$individual_terminal$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    if (_expired_0) {
+      return $OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0);
+    } else {
+      return $OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0);
+    }
+  } else if (_outcome_0.$ === "OutputScenario.Certain") {
+    if (_expired_0) {
+      return $OutputScenario$action$({$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _lease_0, "lifetime": _lease_0}, _due_0);
+    } else {
+      return $OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": true}, _due_0);
+    }
+  } else {
+    if (_expired_0) {
+      return $OutputScenario$action$({$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _lease_0, "lifetime": _lease_0}, _due_0);
+    } else {
+      return $OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, _due_0);
+    }
+  }
+}
+
+function $OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0) {
+  return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionLeaseCheck", "advice": _advice_0, "token": _token_0, "expired": _expired_0, "stop_collector": false, "same_group": true, "reofferable": false}, _due_0)), "tail": {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Nil"}}};
+}
+
+function $OutputScenario$member_release$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Nil"}}};
+  } else {
+    return $OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0);
+  }
+}
+
+function $OutputScenario$individual$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return $OutputScenario$member_release$({$: "OutputScenario.Failed"}, false, _advice_0, _token_0, _due_0);
+  } else {
+    return {$: "Con", "head": ($OutputScenario$individual_terminal$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0)), "tail": ($OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0))};
+  }
+}
+
+function $OutputScenario$members$(_selected_0, _outcome_0, _expired_0, _token_0, _due_0, _lease_0) {
+  if (_selected_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _advice_0 = _selected_0["head"];
+    const _tail_0 = _selected_0["tail"];
+    return $List$append$(($OutputScenario$member_release$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0)), ($OutputScenario$members$(_tail_0, _outcome_0, _expired_0, _token_0, _due_0, _lease_0)));
+  }
+}
+
+function $OutputScenario$terminal$(_attempt_0, _outcome_0, _expired_0, _due_0, _lease_0) {
+  if (_attempt_0.$ === "OutputScenario.Individual") {
+    const _advice_0 = _attempt_0["advice"];
+    const _token_0 = _attempt_0["token"];
+    return $OutputScenario$individual$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0);
+  } else {
+    const _group_0 = _attempt_0["group"];
+    const _round_0 = _attempt_0["round"];
+    const _id_0 = _attempt_0["attempt"];
+    const _token_1 = _attempt_0["token"];
+    const _selected_0 = _attempt_0["selected"];
+    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.FinishTerminal", "group": _group_0, "round": _round_0, "attempt": _id_0, "token": _token_1, "selected": _selected_0, "outcome": ($OutputScenario$write$(_outcome_0, _expired_0))}, _due_0)), "tail": ($OutputScenario$members$(_selected_0, _outcome_0, _expired_0, _token_1, _due_0, _lease_0))};
+  }
+}
+
+function $OutputScenario$selected_count$(_attempt_0) {
+  if (_attempt_0.$ === "OutputScenario.Individual") {
+    return 1;
+  } else {
+    const _selected_0 = _attempt_0["selected"];
+    return $List$length$(_selected_0);
+  }
+}
+
+function $OutputScenario$late_ack$(_late_0, _count_0, _delay_0, _actions_0) {
+  if (!_late_0) {
+    return _actions_0;
+  } else {
+    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.DeliveryAcknowledgeCheck", "items": _count_0, "any_expired": true}, _delay_0)), "tail": _actions_0};
+  }
+}
+
+function $OutputScenario$due$(_outcome_0, _delay_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return _delay_0;
+  } else {
+    return (_delay_0 < _lease_0 ? _delay_0 : _lease_0);
+  }
+}
+
+function $OutputScenario$expired$(_outcome_0, _delay_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return false;
+  } else {
+    return $Nat$is_le$(_lease_0, _delay_0);
+  }
+}
+
+function $OutputScenario$late$(_outcome_0, _delay_0, _lease_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return false;
+  } else {
+    return $Nat$is_gt$(_delay_0, _lease_0);
+  }
+}
+
+function $OutputScenario$issued$(_capture_0) {
+  const _attempt_0 = _capture_0["attempt"];
+  const _outcome_0 = _capture_0["outcome"];
+  const _delay_0 = _capture_0["delay"];
+  const _lease_0 = _capture_0["lease"];
+  return $OutputScenario$late_ack$(($OutputScenario$late$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$selected_count$(_attempt_0)), _delay_0, ($OutputScenario$terminal$(_attempt_0, _outcome_0, ($OutputScenario$expired$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$due$(_outcome_0, _delay_0, _lease_0)), _lease_0)));
+}
+
+function $OutputScenario$finish_terminal_tail$(_action_0, _tail_0) {
+  const _t_0 = _action_0["event"];
+  if (_t_0.$ === "Canonical.FinishTerminal") {
+    const __0 = _t_0["group"];
+    const __1 = _t_0["round"];
+    const __2 = _t_0["attempt"];
+    const __3 = _t_0["token"];
+    const __4 = _t_0["selected"];
+    const __5 = _t_0["outcome"];
+    const __6 = _action_0["delay"];
+    return {$: "Con", "head": {$: "OutputScenario.Scheduled", "event": {$: "Canonical.FinishTerminal", "group": __0, "round": __1, "attempt": __2, "token": __3, "selected": __4, "outcome": __5}, "delay": __6}, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $OutputScenario$finish_terminals$(_actions_0) {
+  if (_actions_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _action_0 = _actions_0["head"];
+    const _tail_0 = _actions_0["tail"];
+    return $OutputScenario$finish_terminal_tail$(_action_0, ($OutputScenario$finish_terminals$(_tail_0)));
+  }
+}
+
+function $OutputScenario$initial_actions$(_capture_0, _terminal_only_0) {
+  if (!_terminal_only_0) {
+    return $OutputScenario$issued$(_capture_0);
+  } else {
+    return $OutputScenario$finish_terminals$(($OutputScenario$issued$(_capture_0)));
+  }
+}
+
+function $OutputScenario$captured_failure_is_release$(_advice_0, _token_0, _started_0, _delay_0, _lease_0) {
+  return null;
+}
+
 function $Driver$immediate$(_event_0, _job_0) {
   return {$: "Driver.Action", "event": _event_0, "delay": 0, "candidate": {$: "None"}, "job": _job_0, "expiry_advice": {$: "None"}};
 }
@@ -12190,8 +12362,32 @@ function $Driver$reserve$(_candidate_0) {
   }
 }
 
+function $Driver$output_action$(_scheduled_0) {
+  const _event_0 = _scheduled_0["event"];
+  const _delay_0 = _scheduled_0["delay"];
+  return {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
+}
+
+function $Driver$output_actions$(_scheduled_0) {
+  if (_scheduled_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _scheduled_0["head"];
+    const _tail_0 = _scheduled_0["tail"];
+    return {$: "Con", "head": ($Driver$output_action$(_head_0)), "tail": ($Driver$output_actions$(_tail_0))};
+  }
+}
+
+function $Driver$output_outcome$(_certain_0) {
+  if (_certain_0) {
+    return {$: "OutputScenario.Certain"};
+  } else {
+    return {$: "OutputScenario.Uncertain"};
+  }
+}
+
 function $Driver$output$(_p_0, _advice_0, _token_0, _certain_0, _delay_0, _lease_0) {
-  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": _certain_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionLeaseCheck", "advice": _advice_0, "token": _token_0, "expired": false, "stop_collector": false, "same_group": true, "reofferable": false}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}}}};
+  return {$: "Driver.Handled", "handled": true, "actions": ($Driver$output_actions$(($OutputScenario$issued$({$: "OutputScenario.Capture", "attempt": {$: "OutputScenario.Individual", "advice": _advice_0, "token": _token_0}, "started": 0, "outcome": ($Driver$output_outcome$(_certain_0)), "delay": _delay_0, "lease": _lease_0}))))};
 }
 
 function $Driver$work_list$(_state_0) {
@@ -17541,181 +17737,6 @@ function $ScopedRevision$retain$(_state_0, _canonical_0, _bindings_0) {
   return {$: "ScopedRevision.State", "keys": ($ScopedRevision$retained_keys$(_keys_0, _canonical_0, _bindings_0)), "next": _next_0};
 }
 
-function $OutputScenario$action$(_event_0, _delay_0) {
-  return {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
-}
-
-function $OutputScenario$write$(_outcome_0, _expired_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    return {$: "Canonical.Failed"};
-  } else if (_outcome_0.$ === "OutputScenario.Certain") {
-    if (!_expired_0) {
-      return {$: "Canonical.Acknowledged"};
-    } else {
-      return {$: "Canonical.Unknown"};
-    }
-  } else {
-    return {$: "Canonical.Unknown"};
-  }
-}
-
-function $OutputScenario$individual_terminal$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    if (_expired_0) {
-      return $OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0);
-    } else {
-      return $OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0);
-    }
-  } else if (_outcome_0.$ === "OutputScenario.Certain") {
-    if (_expired_0) {
-      return $OutputScenario$action$({$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _lease_0, "lifetime": _lease_0}, _due_0);
-    } else {
-      return $OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": true}, _due_0);
-    }
-  } else {
-    if (_expired_0) {
-      return $OutputScenario$action$({$: "Canonical.SubmissionExpiryCheck", "advice": _advice_0, "token": _token_0, "elapsed": _lease_0, "lifetime": _lease_0}, _due_0);
-    } else {
-      return $OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, _due_0);
-    }
-  }
-}
-
-function $OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0) {
-  return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionLeaseCheck", "advice": _advice_0, "token": _token_0, "expired": _expired_0, "stop_collector": false, "same_group": true, "reofferable": false}, _due_0)), "tail": {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Nil"}}};
-}
-
-function $OutputScenario$member_release$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.SubmissionRelease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, _due_0)), "tail": {$: "Nil"}}};
-  } else {
-    return $OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0);
-  }
-}
-
-function $OutputScenario$individual$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    return $OutputScenario$member_release$({$: "OutputScenario.Failed"}, false, _advice_0, _token_0, _due_0);
-  } else {
-    return {$: "Con", "head": ($OutputScenario$individual_terminal$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0)), "tail": ($OutputScenario$release$(_advice_0, _token_0, _due_0, _expired_0))};
-  }
-}
-
-function $OutputScenario$members$(_selected_0, _outcome_0, _expired_0, _token_0, _due_0, _lease_0) {
-  if (_selected_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _advice_0 = _selected_0["head"];
-    const _tail_0 = _selected_0["tail"];
-    return $List$append$(($OutputScenario$member_release$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0)), ($OutputScenario$members$(_tail_0, _outcome_0, _expired_0, _token_0, _due_0, _lease_0)));
-  }
-}
-
-function $OutputScenario$terminal$(_attempt_0, _outcome_0, _expired_0, _due_0, _lease_0) {
-  if (_attempt_0.$ === "OutputScenario.Individual") {
-    const _advice_0 = _attempt_0["advice"];
-    const _token_0 = _attempt_0["token"];
-    return $OutputScenario$individual$(_outcome_0, _expired_0, _advice_0, _token_0, _due_0, _lease_0);
-  } else {
-    const _group_0 = _attempt_0["group"];
-    const _round_0 = _attempt_0["round"];
-    const _id_0 = _attempt_0["attempt"];
-    const _token_1 = _attempt_0["token"];
-    const _selected_0 = _attempt_0["selected"];
-    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.FinishTerminal", "group": _group_0, "round": _round_0, "attempt": _id_0, "token": _token_1, "selected": _selected_0, "outcome": ($OutputScenario$write$(_outcome_0, _expired_0))}, _due_0)), "tail": ($OutputScenario$members$(_selected_0, _outcome_0, _expired_0, _token_1, _due_0, _lease_0))};
-  }
-}
-
-function $OutputScenario$selected_count$(_attempt_0) {
-  if (_attempt_0.$ === "OutputScenario.Individual") {
-    return 1;
-  } else {
-    const _selected_0 = _attempt_0["selected"];
-    return $List$length$(_selected_0);
-  }
-}
-
-function $OutputScenario$late_ack$(_late_0, _count_0, _delay_0, _actions_0) {
-  if (!_late_0) {
-    return _actions_0;
-  } else {
-    return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.DeliveryAcknowledgeCheck", "items": _count_0, "any_expired": true}, _delay_0)), "tail": _actions_0};
-  }
-}
-
-function $OutputScenario$due$(_outcome_0, _delay_0, _lease_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    return _delay_0;
-  } else {
-    return (_delay_0 < _lease_0 ? _delay_0 : _lease_0);
-  }
-}
-
-function $OutputScenario$expired$(_outcome_0, _delay_0, _lease_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    return false;
-  } else {
-    return $Nat$is_le$(_lease_0, _delay_0);
-  }
-}
-
-function $OutputScenario$late$(_outcome_0, _delay_0, _lease_0) {
-  if (_outcome_0.$ === "OutputScenario.Failed") {
-    return false;
-  } else {
-    return $Nat$is_gt$(_delay_0, _lease_0);
-  }
-}
-
-function $OutputScenario$issued$(_capture_0) {
-  const _attempt_0 = _capture_0["attempt"];
-  const _outcome_0 = _capture_0["outcome"];
-  const _delay_0 = _capture_0["delay"];
-  const _lease_0 = _capture_0["lease"];
-  return $OutputScenario$late_ack$(($OutputScenario$late$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$selected_count$(_attempt_0)), _delay_0, ($OutputScenario$terminal$(_attempt_0, _outcome_0, ($OutputScenario$expired$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$due$(_outcome_0, _delay_0, _lease_0)), _lease_0)));
-}
-
-function $OutputScenario$finish_terminal_tail$(_action_0, _tail_0) {
-  const _t_0 = _action_0["event"];
-  if (_t_0.$ === "Canonical.FinishTerminal") {
-    const __0 = _t_0["group"];
-    const __1 = _t_0["round"];
-    const __2 = _t_0["attempt"];
-    const __3 = _t_0["token"];
-    const __4 = _t_0["selected"];
-    const __5 = _t_0["outcome"];
-    const __6 = _action_0["delay"];
-    const __7 = _action_0["candidate"];
-    const __8 = _action_0["job"];
-    const __9 = _action_0["expiry_advice"];
-    return {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.FinishTerminal", "group": __0, "round": __1, "attempt": __2, "token": __3, "selected": __4, "outcome": __5}, "delay": __6, "candidate": __7, "job": __8, "expiry_advice": __9}, "tail": _tail_0};
-  } else {
-    return _tail_0;
-  }
-}
-
-function $OutputScenario$finish_terminals$(_actions_0) {
-  if (_actions_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _action_0 = _actions_0["head"];
-    const _tail_0 = _actions_0["tail"];
-    return $OutputScenario$finish_terminal_tail$(_action_0, ($OutputScenario$finish_terminals$(_tail_0)));
-  }
-}
-
-function $OutputScenario$initial_actions$(_capture_0, _terminal_only_0) {
-  if (!_terminal_only_0) {
-    return $OutputScenario$issued$(_capture_0);
-  } else {
-    return $OutputScenario$finish_terminals$(($OutputScenario$issued$(_capture_0)));
-  }
-}
-
-function $OutputScenario$captured_failure_is_release$(_advice_0, _token_0, _started_0, _delay_0, _lease_0) {
-  return null;
-}
-
 function $Callbacks$owner_equal$(_a_0, _b_0) {
   const _p_0 = _a_0["partition"];
   const _l_0 = _a_0["lifetime"];
@@ -18451,7 +18472,7 @@ function $OutputCompletion$feedback$(_command_0, _event_0) {
     if (_event_0.$ === "Canonical.SubmissionExpiryCheck") {
       const _advice_0 = _event_0["advice"];
       const _token_0 = _event_0["token"];
-      return {$: "Con", "head": ($OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, 0)), "tail": {$: "Nil"}};
+      return {$: "Con", "head": ($Driver$output_action$(($OutputScenario$action$({$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": false}, 0)))), "tail": {$: "Nil"}};
     } else {
       return {$: "Nil"};
     }
@@ -24739,7 +24760,7 @@ function $output_intervene$(_state_0, _target_0, _outcome_0, _receipt_0) {
 }
 
 function $output_initial$(_capture_0, _terminal_only_0) {
-  return $OutputScenario$initial_actions$(_capture_0, _terminal_only_0);
+  return $Driver$output_actions$(($OutputScenario$initial_actions$(_capture_0, _terminal_only_0)));
 }
 
 function $output_deliver$(_receipt_0, _now_0) {
@@ -25624,7 +25645,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:aee5fa8607a8c0c0b62d5f38c9d5797c807efc0ebbbd2462caea2ae1f333cda4";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:fb932ffc0531d7d062a4fe29da5ecb2ac19656b9356adad3f0e15de34aba04c5";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
