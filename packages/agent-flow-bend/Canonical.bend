@@ -1441,42 +1441,6 @@ def reviewed(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
       reviewed_found(state, operation, outcome,
         find_work(partition, lifetime, round, operation, work))
 
-# Genuine scoped logical cancellation, independent of physical Jev outcome.
-# Dispatch.discard preserves issued requests and marks only this running owner
-# canceled; a real original terminal will later release the physical request.
-def cancel_review_dispatched(original: State, updated: State, +operation: Nat, charge: Nat, result: Dispatch.DispatchResult) -> Step:
-  match updated result:
-    case State{ledger,rounds,work,next_round,next_operation,admissions,_,collection,history} Dispatch.Advanced{dispatch,commands}:
-      Advanced{State{ledger,rounds,work,next_round,next_operation,admissions,dispatch,collection,history},
-        ReservationReleased{charge} <> CancelWork{operation} <> dispatch_commands(commands)}
-    case _ Dispatch.Denied{_}: Rejected{original,StaleOperation{}}
-
-def cancel_review_released(+state: State, +operation: Nat, charge: Nat, result: Ledger.LedgerResult) -> Step:
-  match state result:
-    case State{_,+rounds,work,+next_round,+next_operation,+admissions,+dispatch,+collection,+history} Ledger.Granted{ledger,_}:
-      cancel_review_dispatched(state,State{ledger,rounds,remove_work(operation,work),next_round,next_operation,admissions,dispatch,collection,history},operation,charge,Dispatch.discard(dispatch,[operation]))
-    case _ Ledger.Rejected{_}: Rejected{state,InconsistentLedger{}}
-
-def cancel_review_kind(+state: State, operation: Nat, charge: Nat, kind: WorkKind) -> Step:
-  match kind:
-    case Reviewing{}:
-      match state:
-        case State{ledger,_,_,_,_,_,_,_,_}: cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
-    case AtJev{}:
-      match state:
-        case State{ledger,_,_,_,_,_,_,_,_}: cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
-    case _: Rejected{state,StaleOperation{}}
-
-def cancel_review_found(state: State, operation: Nat, found: Maybe<&2,Work>) -> Step:
-  match found:
-    case Some{Work{_,_,_,_,charge,kind,_}}: cancel_review_kind(state,operation,charge,kind)
-    case None{}: Rejected{state,StaleOperation{}}
-
-def cancel_review(+state: State, partition: Nat, lifetime: Nat, round: Nat, +operation: Nat) -> Step:
-  match state:
-    case State{_,_,work,_,_,_,_,_,_}:
-      cancel_review_found(state,operation,find_work(partition,lifetime,round,operation,work))
-
 def retire_review_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
@@ -2280,6 +2244,40 @@ def dispatch_commands(items: List<&2, Dispatch.Command>) -> List<&2, Command>:
       DispatchStarted{operation, sequence} <> dispatch_commands(rest)
     case Dispatch.Discarded{operation, running} <> rest:
       DispatchDiscarded{operation, running} <> dispatch_commands(rest)
+
+# Genuine scoped logical cancellation, independent of physical Jev outcome.
+# Dispatch.discard preserves issued requests and marks only this running owner
+# canceled; a real original terminal will later release the physical request.
+def cancel_review_dispatched(original: State, updated: State, +operation: Nat, charge: Nat, result: Dispatch.DispatchResult) -> Step:
+  match updated result:
+    case State{ledger,rounds,work,next_round,next_operation,admissions,_,collection,history} Dispatch.Advanced{dispatch,commands}:
+      Advanced{State{ledger,rounds,work,next_round,next_operation,admissions,dispatch,collection,history},
+        ReservationReleased{charge} <> CancelWork{operation} <> dispatch_commands(commands)}
+    case _ Dispatch.Denied{_}: Rejected{original,StaleOperation{}}
+
+def cancel_review_released(+state: State, +operation: Nat, charge: Nat, result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_,+rounds,work,+next_round,+next_operation,+admissions,+dispatch,+collection,+history} Ledger.Granted{ledger,_}:
+      cancel_review_dispatched(state,State{ledger,rounds,remove_work(operation,work),next_round,next_operation,admissions,dispatch,collection,history},operation,charge,Dispatch.discard(dispatch,[operation]))
+    case _ Ledger.Rejected{_}: Rejected{state,InconsistentLedger{}}
+
+def cancel_review_kind(+state: State, operation: Nat, +charge: Nat, kind: WorkKind) -> Step:
+  match state kind:
+    case State{ledger,_,_,_,_,_,_,_,_} Reviewing{}:
+      cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
+    case State{ledger,_,_,_,_,_,_,_,_} AtJev{}:
+      cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
+    case _ _: Rejected{state,StaleOperation{}}
+
+def cancel_review_found(state: State, operation: Nat, found: Maybe<&2,Work>) -> Step:
+  match found:
+    case Some{Work{_,_,_,_,charge,kind,_}}: cancel_review_kind(state,operation,charge,kind)
+    case None{}: Rejected{state,StaleOperation{}}
+
+def cancel_review(+state: State, partition: Nat, lifetime: Nat, round: Nat, +operation: Nat) -> Step:
+  match state:
+    case State{_,_,work,_,_,_,_,_,_}:
+      cancel_review_found(state,operation,find_work(partition,lifetime,round,operation,work))
 
 def dispatch_result(state: State, result: Dispatch.DispatchResult) -> Step:
   match state result:
