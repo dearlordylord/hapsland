@@ -1030,15 +1030,14 @@ export class Run {
     }
     const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
     const emitDriver = (action: DriverAction, sourceJob?: Extract<RunInput, { kind: "edit" }>) => {
-      const outcome = sourceJob?.outcome ?? this.outcome;
-      const context = outcome === undefined ? undefined : this.driverContext(action.event, item, outcome, sourceJob);
+      const context = item.driverContext ?? (sourceJob?.outcome === undefined ? undefined
+        : this.driverContext(action.event, item, sourceJob.outcome, sourceJob));
       this.event(partition, action.event, action.delay, action.job ? sourceJob : undefined,
         action.expiryAdvice, "environment", undefined, action, context);
-      if (sourceJob && context) {
+      if (item.driverSourceJob) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared Driver emission lost original source job");
-        scheduled.driverSourceJob = freezeCanonicalData(copy({ partition: context.partition, lifetime: context.lifetime,
-          bytes: sourceJob.bytes, units: sourceJob.unitBytes, outcome: context.outcome }));
+        scheduled.driverSourceJob = item.driverSourceJob;
       }
     };
     const emitInitialOutput = (capture: OutputCapture, terminalOnly = false) => {
