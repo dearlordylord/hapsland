@@ -16,6 +16,18 @@ gate unless the user explicitly requests it or an accepted release contract
 requires it. Report any known GitHub CI status separately, and make validation
 claims only for checks actually run.
 
+## TypeScript quality gate
+
+After changing TypeScript or TSX under `src`, run `npm run quality:check`.
+The pinned crap4ts tool regenerates Istanbul coverage by running the full
+deterministic test and boundary suite, then enforces `crap4ts.json`.
+Inspect flagged functions and improve behavioral tests or simplify branching
+while preserving behavior. Exit 2 means a threshold breach; exit 1 means a
+test, configuration, analysis, or coverage failure. Resolve either before
+claiming the gate passes. Keep source selection, strict missing-evidence
+handling, and thresholds intact; do not relax policy to make a change pass.
+Report failures outside the task scope explicitly. CI runs the same gate.
+
 ## Review requests and acceptance decisions
 
 When requesting owner review of a diagram or other visual artifact, present the

@@ -34,7 +34,7 @@ jobs:
         run: npm run docs:check
       - name: Typecheck
         run: npm run typecheck
-      - name: Run deterministic tests and boundary checks
-        run: npm test
+      - name: Run deterministic tests, boundary checks, and CRAP quality gate
+        run: npm run quality:check
       - name: Build distributable source
         run: npm run build

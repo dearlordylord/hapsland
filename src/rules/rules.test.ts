@@ -347,3 +347,77 @@ describe("bounded rule selection combinations", () => {
     }
   });
 });
+
+describe("rule-pack reference validation", () => {
+  it("rejects malformed references with their exact configuration origin before reading files", async () => {
+    const root = mkdtempSync(join(tmpdir(), "rule-reference-validation-"));
+    const source = join(root, "review.jsonc");
+    try {
+      for (const [value, field] of [
+        ["", "packs[0]"], [null, "packs[0]"], [42, "packs[0]"], [[], "packs[0]"],
+        [{}, "packs[0]"], [{ path: "missing.json", id: "noul" }, "packs[0]"],
+        [{ path: "" }, "packs[0].path"], [{ path: 42 }, "packs[0].path"],
+        [{ id: "" }, "packs[0].id"], [{ id: 42 }, "packs[0].id"],
+        [{ id: "noul", enabled: "yes" }, "packs[0].enabled"],
+        [{ id: "noul", extra: true }, "packs[0].extra"],
+      ] as const) {
+        const result = await Effect.runPromise(loadRulePacks({
+          root,
+          layers: [{ name: "project", source, document: JSON.parse(JSON.stringify({ version: 1, packs: [value] })) }],
+        }).pipe(Effect.result));
+        expect(result._tag).toBe("Failure");
+        if (result._tag === "Failure") {
+          expect(result.failure).toBeInstanceOf(ConfigurationError);
+          expect(result.failure).toMatchObject({ source, field });
+        }
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves omitted enablement when the same file is redeclared in a higher layer", async () => {
+    const root = mkdtempSync(join(tmpdir(), "rule-reference-redeclaration-"));
+    const path = join(root, "team.jsonc");
+    writeFileSync(path, packText());
+    try {
+      for (const enabled of [undefined, true, false]) {
+        const packs = await Effect.runPromise(loadRulePacks({ root, includeBundled: false, layers: [
+          { name: "user", source: join(root, "user.jsonc"), document: { version: 1, packs: [{ path, enabled: false }] } },
+          { name: "project", source: join(root, "project.jsonc"), document: { version: 1, packs: [
+            { path, ...(enabled === undefined ? {} : { enabled }) },
+          ] } },
+        ] }));
+        expect(packs).toHaveLength(1);
+        expect(packs[0]?.enabled).toBe(enabled ?? false);
+        expect(packs[0]?.origin.layer).toBe("project");
+        expect(packs[0]?.path).toBe(path);
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("inherits pack enablement across layers and rejects an undeclared identity", async () => {
+    const root = mkdtempSync(join(tmpdir(), "rule-reference-inheritance-"));
+    const source = join(root, "review.jsonc");
+    try {
+      for (const enabled of [undefined, true, false]) {
+        const packs = await Effect.runPromise(loadRulePacks({ root, layers: [
+          { name: "project", source, document: { version: 1, packs: [{ id: BUNDLED_NOUL_PACK.id, enabled: false }] } },
+          { name: "user", source: join(root, "user.jsonc"), document: { version: 1, packs: [
+            { id: BUNDLED_NOUL_PACK.id, ...(enabled === undefined ? {} : { enabled }) },
+          ] } },
+        ] }));
+        expect(packs.find(pack => pack.id === BUNDLED_NOUL_PACK.id)?.enabled).toBe(enabled ?? false);
+      }
+      const result = await Effect.runPromise(loadRulePacks({ root, layers: [
+        { name: "project", source, document: { version: 1, packs: [{ id: "undeclared" }] } },
+      ] }).pipe(Effect.result));
+      expect(result._tag).toBe("Failure");
+      if (result._tag === "Failure") expect(result.failure).toMatchObject({ source, field: "packs" });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

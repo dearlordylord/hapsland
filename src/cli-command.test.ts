@@ -16,6 +16,16 @@ const cli = (args: ReadonlyArray<string>, input = "") => {
 };
 
 describe("declarative CLI subprocess contracts", () => {
+  it("previews agent feedback without stdin, credentials, or persisted activity", () => {
+    const result = cli(["--feedback-preview"], "not JSON");
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Synthetic example; no review was run.");
+    expect(result.stdout).toContain("Hapsland");
+    expect(result.stdout).toContain("example.ts :: ExampleState:");
+    expect(result.files).toEqual([]);
+  });
+
   it.each([
     ["unknown"], ["--unknown"], ["update", "--chanel=next"], ["setup", "--claude-home="],
     ["setup", "--claude-home", ""], ["setup", "--host"], ["update", "--host", "--channel=next"],
@@ -23,7 +33,7 @@ describe("declarative CLI subprocess contracts", () => {
     ["update", "--host=claude", "--host", "codex"], ["update", "--channel=next", "--channel", "latest"],
     ["update", "--target=/tmp/x", "--version=0.1.0"], ["update", "--tarball=/tmp/x", "--channel=next"],
     ["update", "--channel=other"], ["doctor", "--tarball=/tmp/x"], ["uninstall", "--target=/tmp/x"],
-    ["--pilot", "--json"], ["--login", "--logout"], ["--login", "--login"], ["--status", "--explain"], ["--credential-stdin"],
+    ["--pilot", "--json"], ["--login", "--logout"], ["--login", "--login"], ["--status", "--explain"], ["--feedback-preview", "--status"], ["--credential-stdin"],
     ["--login", "doctor"], ["--target=/tmp/x", "setup"],
   ])("rejects invalid arguments before reading stdin or changing files: %j", (...args) => {
     const result = cli(args, "not JSON");
@@ -108,4 +118,35 @@ describe("declarative CLI subprocess contracts", () => {
     expect(result.stderr).toBe("");
     expect(result.files).toEqual([]);
   });
+});
+
+
+it.each(["repair", "reinstall", "uninstall"])("rejects interactive %s without a terminal", command => {
+  const result = cli([command, "codex"]);
+  expect(result.status).toBe(6);
+  expect(result.stderr).toContain(`${command} needs a terminal`);
+  expect(result.files).toEqual([]);
+});
+
+
+it.each([
+  { host: "claude", homeField: "claudeHome", executableField: "claudeExecutable" },
+  { host: "opencode", homeField: "opencodeConfigHome", executableField: "opencodeExecutable" },
+])("routes the version-one $host installation preview to the selected profile", ({ host, homeField, executableField }) => {
+  const profile = mkdtempSync(join(tmpdir(), "hapsland-preview-profile-"));
+  try {
+    const result = cli(["--install-preview"], JSON.stringify({ version: 1, operation: "install-preview", host,
+      [homeField]: profile, [executableField]: join(profile, "missing-client"),
+    }));
+    const output = JSON.parse(result.stdout);
+    expect(output.operation).toBe("install-preview");
+    expect(output.error?.code).not.toBe("invalid_request");
+    if (host === "opencode") {
+      expect(output.status).toBe("unsupported");
+      expect(output.host.adapter).toBe("opencode");
+    } else {
+      expect(JSON.stringify(output)).toContain(profile);
+    }
+    expect(readdirSync(profile)).toEqual([]);
+  } finally { rmSync(profile, { recursive: true, force: true }); }
 });

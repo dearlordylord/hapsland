@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "protectedSourcesUnchanged": true,
+  "credentialScanPassed": true,
+  "filesScanned": 99,
+  "oracleSelfChecksPassed": 67,
+  "independentRuntimeProbesPassed": 27,
+  "detectionCells": 18,
+  "nativeSessions": 9,
+  "physicalRequestsReconciled": 30,
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "scope": "R9 replacement only. Seven unchanged families retained separately; no larger declaration experiments."
+}

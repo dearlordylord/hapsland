@@ -137,6 +137,16 @@ describe("installed-product first-review demo", () => {
     expect(existsSync(test.demoStatePath)).toBe(false);
   });
 
+  it("checks the selected installation before creating a disposable project", async () => {
+    const test = fixture();
+    const result = await run(test, runFirstReviewDemo({
+      version: 1, operation: "demo", selection: "preview",
+      codexHome: join(test.root, "missing-home"), codexExecutable: join(test.root, "missing-codex"),
+    }, { statePath: test.demoStatePath }));
+    expect(result).toMatchObject({ status: "conflict", providerCalls: 0, paidVerificationPerformed: false });
+    expect(existsSync(test.demoStatePath)).toBe(false);
+  });
+
   it("keeps preview offline and discloses the synthetic input and exact budgets", async () => {
     const test = fixture();
     const result = await preview(test);

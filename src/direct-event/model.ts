@@ -1,3 +1,4 @@
+import type { ProviderIdentity } from "../review-providers/catalog.ts";
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
 import type { ReviewTarget } from "../rules/targets.ts";
@@ -191,6 +192,7 @@ export type FrozenRule = {
 };
 
 export type ReviewInput = {
+  readonly providerIdentity: ProviderIdentity;
   readonly contract: string;
   readonly graphLimits?: GraphLimits;
   /** Complete graph projection uses the type/function renderer. */

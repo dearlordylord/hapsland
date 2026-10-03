@@ -32,6 +32,17 @@ describe("direct-event Codex Add adapter", () => {
       expect(await Effect.runPromise(adaptComposedHookIdentity({ ...edit, hook_event_name: "Stop" }, host, "Stop"))).toBeUndefined();
     }
   });
+  it("uses Codex Bash only as a background delivery opportunity", async () => {
+    const root = await makeGitFixture();
+    const event = { hook_event_name: "PostToolUse", tool_name: "Bash", cwd: root,
+      session_id: "codex", turn_id: "turn", tool_use_id: "check" };
+    expect(await Effect.runPromise(adaptComposedHookIdentity(event, "codex-cli", "PostToolUse")))
+      .toMatchObject({ root, advicee: { host: "codex-cli", sessionId: "codex", toolUseId: "check" } });
+    expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, hook_event_name: "PreToolUse" },
+      "codex-cli", "PreToolUse"))).toBeUndefined();
+    expect(await Effect.runPromise(adaptCodexAdd(event))).toBeUndefined();
+    expect(await Effect.runPromise(adaptComposedHookIdentity(event, "claude-code", "PostToolUse"))).toBeUndefined();
+  });
   it("requires an explicit child identity on SubagentStop for both hosts", async () => {
     const root = await makeGitFixture();
     for (const host of ["codex-cli", "claude-code"] as const) {

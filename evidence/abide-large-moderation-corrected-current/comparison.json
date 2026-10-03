@@ -1,0 +1,1207 @@
+{
+  "version": 1,
+  "completedAt": "2026-10-03T01:58:40.871Z",
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "plannedDetectionCells": 24,
+  "plannedNativeSessions": 12,
+  "physicalRequests": 38,
+  "domains": [
+    {
+      "candidateId": "moderation-decision",
+      "ruleId": "r9_body_reaches_undeclared",
+      "stratum": "function-layout",
+      "detection": {
+        "small": {
+          "hapsland": {
+            "observations": 4,
+            "flawedObservations": 2,
+            "cleanObservations": 2,
+            "truePositives": 2,
+            "falsePositives": 0,
+            "trueNegatives": 2,
+            "falseNegativesAmongEvaluated": 0,
+            "uncheckedFlaws": 0,
+            "uncheckedClean": 0,
+            "middleBand": 0,
+            "emittedRuleBearingOutputs": 2,
+            "transportErrors": 0
+          },
+          "abide": {
+            "observations": 4,
+            "flawedObservations": 2,
+            "cleanObservations": 2,
+            "truePositives": 0,
+            "falsePositives": 0,
+            "trueNegatives": 2,
+            "falseNegativesAmongEvaluated": 2,
+            "uncheckedFlaws": 0,
+            "uncheckedClean": 0,
+            "middleBand": 0,
+            "emittedRuleBearingOutputs": 0,
+            "transportErrors": 0
+          }
+        },
+        "large-adjacent": {
+          "hapsland": {
+            "observations": 4,
+            "flawedObservations": 2,
+            "cleanObservations": 2,
+            "truePositives": 2,
+            "falsePositives": 0,
+            "trueNegatives": 2,
+            "falseNegativesAmongEvaluated": 0,
+            "uncheckedFlaws": 0,
+            "uncheckedClean": 0,
+            "middleBand": 0,
+            "emittedRuleBearingOutputs": 2,
+            "transportErrors": 0
+          },
+          "abide": {
+            "observations": 4,
+            "flawedObservations": 2,
+            "cleanObservations": 2,
+            "truePositives": 0,
+            "falsePositives": 0,
+            "trueNegatives": 2,
+            "falseNegativesAmongEvaluated": 2,
+            "uncheckedFlaws": 0,
+            "uncheckedClean": 0,
+            "middleBand": 0,
+            "emittedRuleBearingOutputs": 0,
+            "transportErrors": 0
+          }
+        },
+        "large-separated": {
+          "hapsland": {
+            "observations": 4,
+            "flawedObservations": 2,
+            "cleanObservations": 2,
+            "truePositives": 2,
+            "falsePositives": 0,
+            "trueNegatives": 2,
+            "falseNegativesAmongEvaluated": 0,
+            "uncheckedFlaws": 0,
+            "uncheckedClean": 0,
+            "middleBand": 0,
+            "emittedRuleBearingOutputs": 2,
+            "transportErrors": 0
+          },
+          "abide": {
+            "observations": 4,
+            "flawedObservations": 2,
+            "cleanObservations": 2,
+            "truePositives": 0,
+            "falsePositives": 0,
+            "trueNegatives": 2,
+            "falseNegativesAmongEvaluated": 2,
+            "uncheckedFlaws": 0,
+            "uncheckedClean": 0,
+            "middleBand": 0,
+            "emittedRuleBearingOutputs": 0,
+            "transportErrors": 0
+          }
+        }
+      },
+      "native": {
+        "small": {
+          "baseline": {
+            "sessions": 2,
+            "flawedSessions": 1,
+            "repaired": 0,
+            "completedRepaired": 0,
+            "remaining": 1,
+            "cleanSessions": 1,
+            "cleanPreserved": 1,
+            "newDomainRestriction": 0,
+            "unassessed": 0,
+            "verifiedReceipts": 0,
+            "receiptLinkedRepairs": 0,
+            "positiveReviewerAnswers": 0,
+            "ruleBearingOutputs": 0,
+            "successfulSessions": 2,
+            "compiled": 2,
+            "timeouts": 0,
+            "transportErrors": 0,
+            "budgetStops": 0,
+            "requests": 0
+          },
+          "hapsland": {
+            "sessions": 2,
+            "flawedSessions": 1,
+            "repaired": 1,
+            "completedRepaired": 1,
+            "remaining": 0,
+            "cleanSessions": 1,
+            "cleanPreserved": 1,
+            "newDomainRestriction": 0,
+            "unassessed": 0,
+            "verifiedReceipts": 1,
+            "receiptLinkedRepairs": 1,
+            "positiveReviewerAnswers": 1,
+            "ruleBearingOutputs": 1,
+            "successfulSessions": 2,
+            "compiled": 2,
+            "timeouts": 0,
+            "transportErrors": 0,
+            "budgetStops": 0,
+            "requests": 3
+          },
+          "abide": {
+            "sessions": 2,
+            "flawedSessions": 1,
+            "repaired": 0,
+            "completedRepaired": 0,
+            "remaining": 1,
+            "cleanSessions": 1,
+            "cleanPreserved": 1,
+            "newDomainRestriction": 0,
+            "unassessed": 0,
+            "verifiedReceipts": 0,
+            "receiptLinkedRepairs": 0,
+            "positiveReviewerAnswers": 0,
+            "ruleBearingOutputs": 0,
+            "successfulSessions": 2,
+            "compiled": 2,
+            "timeouts": 0,
+            "transportErrors": 0,
+            "budgetStops": 0,
+            "requests": 4
+          }
+        },
+        "large-separated": {
+          "baseline": {
+            "sessions": 2,
+            "flawedSessions": 1,
+            "repaired": 0,
+            "completedRepaired": 0,
+            "remaining": 1,
+            "cleanSessions": 1,
+            "cleanPreserved": 1,
+            "newDomainRestriction": 0,
+            "unassessed": 0,
+            "verifiedReceipts": 0,
+            "receiptLinkedRepairs": 0,
+            "positiveReviewerAnswers": 0,
+            "ruleBearingOutputs": 0,
+            "successfulSessions": 2,
+            "compiled": 2,
+            "timeouts": 0,
+            "transportErrors": 0,
+            "budgetStops": 0,
+            "requests": 0
+          },
+          "hapsland": {
+            "sessions": 2,
+            "flawedSessions": 1,
+            "repaired": 1,
+            "completedRepaired": 1,
+            "remaining": 0,
+            "cleanSessions": 1,
+            "cleanPreserved": 1,
+            "newDomainRestriction": 0,
+            "unassessed": 0,
+            "verifiedReceipts": 1,
+            "receiptLinkedRepairs": 1,
+            "positiveReviewerAnswers": 1,
+            "ruleBearingOutputs": 1,
+            "successfulSessions": 2,
+            "compiled": 2,
+            "timeouts": 0,
+            "transportErrors": 0,
+            "budgetStops": 0,
+            "requests": 3
+          },
+          "abide": {
+            "sessions": 2,
+            "flawedSessions": 1,
+            "repaired": 0,
+            "completedRepaired": 0,
+            "remaining": 1,
+            "cleanSessions": 1,
+            "cleanPreserved": 1,
+            "newDomainRestriction": 0,
+            "unassessed": 0,
+            "verifiedReceipts": 0,
+            "receiptLinkedRepairs": 0,
+            "positiveReviewerAnswers": 0,
+            "ruleBearingOutputs": 0,
+            "successfulSessions": 2,
+            "compiled": 2,
+            "timeouts": 0,
+            "transportErrors": 0,
+            "budgetStops": 0,
+            "requests": 4
+          }
+        }
+      },
+      "cells": [
+        {
+          "caseId": "moderation-decision-small-defect",
+          "layout": "small",
+          "gold": true,
+          "candidate": "baseline",
+          "blindId": "59222341baa9",
+          "finalStatus": "remaining",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "59222341baa9",
+            "caseId": "moderation-decision-small-defect",
+            "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "remaining",
+            "rationale": "The signature still declares only displayLabel and ModerationInput, while the body invokes imported appendAudit. All original results and exact raw audit remain correct, but the supplied writer is unused and imported auditEntries changes. The audit dependency remains undeclared.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": false,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": false,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": null,
+          "uniquePatchShapes": []
+        },
+        {
+          "caseId": "moderation-decision-small-defect",
+          "layout": "small",
+          "gold": true,
+          "candidate": "hapsland",
+          "blindId": "c047cb5dd785",
+          "finalStatus": "repaired",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "732193b6a9ce64892551bc913caf2d1e8c17138969371cceb57602cb579b8995",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "c047cb5dd785",
+            "caseId": "moderation-decision-small-defect",
+            "sourceDigest": "732193b6a9ce64892551bc913caf2d1e8c17138969371cceb57602cb579b8995",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "repaired",
+            "rationale": "The callable now declares a usable AuditWriter parameter and calls its append method. Independent compiler/runtime probes preserve all original input/output facts, exact raw-text audit once, trimming and status precedence. Two distinct supplied writers capture every invocation and imported auditEntries remains unchanged. The parameter has an explicit default writer; that default does not prevent callers from supplying and using a different writer, as tested.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": true,
+          "reportedApplication": "APPLIED",
+          "firstPatch": {
+            "characters": 344,
+            "totalLines": 8,
+            "hunks": 1,
+            "contextLines": 0,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 344,
+              "totalLines": 8,
+              "hunks": 1,
+              "contextLines": 0,
+              "addedLines": 2,
+              "removedLines": 2
+            },
+            {
+              "characters": 391,
+              "totalLines": 13,
+              "hunks": 2,
+              "contextLines": 0,
+              "addedLines": 6,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-small-defect",
+          "layout": "small",
+          "gold": true,
+          "candidate": "abide",
+          "blindId": "6bb2d2c54732",
+          "finalStatus": "remaining",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "6bb2d2c54732",
+            "caseId": "moderation-decision-small-defect",
+            "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "remaining",
+            "rationale": "The signature still declares only displayLabel and ModerationInput, while the body invokes imported appendAudit. All original results and exact raw audit remain correct, but the supplied writer is unused and imported auditEntries changes. The audit dependency remains undeclared.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": false,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": false,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": {
+            "characters": 344,
+            "totalLines": 8,
+            "hunks": 1,
+            "contextLines": 0,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 344,
+              "totalLines": 8,
+              "hunks": 1,
+              "contextLines": 0,
+              "addedLines": 2,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-small-clean",
+          "layout": "small",
+          "gold": false,
+          "candidate": "hapsland",
+          "blindId": "83d276c74031",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "83d276c74031",
+            "caseId": "moderation-decision-small-clean",
+            "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "clean-preserved",
+            "rationale": "The explicit AuditWriter and all original public fields remain. Independent compiler/runtime probes preserve arbitrary inputs, trimmed description, submission ID, normalized text, status precedence and exact raw-text audit once. Distinct supplied writers capture every invocation; imported auditEntries stays empty.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": {
+            "characters": 384,
+            "totalLines": 8,
+            "hunks": 1,
+            "contextLines": 0,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 384,
+              "totalLines": 8,
+              "hunks": 1,
+              "contextLines": 0,
+              "addedLines": 2,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-small-clean",
+          "layout": "small",
+          "gold": false,
+          "candidate": "abide",
+          "blindId": "5ae7ea589a5f",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "5ae7ea589a5f",
+            "caseId": "moderation-decision-small-clean",
+            "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "clean-preserved",
+            "rationale": "The explicit AuditWriter and all original public fields remain. Independent compiler/runtime probes preserve arbitrary inputs, trimmed description, submission ID, normalized text, status precedence and exact raw-text audit once. Distinct supplied writers capture every invocation; imported auditEntries stays empty.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": {
+            "characters": 384,
+            "totalLines": 8,
+            "hunks": 1,
+            "contextLines": 0,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 384,
+              "totalLines": 8,
+              "hunks": 1,
+              "contextLines": 0,
+              "addedLines": 2,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-small-clean",
+          "layout": "small",
+          "gold": false,
+          "candidate": "baseline",
+          "blindId": "04e27477badb",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "04e27477badb",
+            "caseId": "moderation-decision-small-clean",
+            "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "clean-preserved",
+            "rationale": "The explicit AuditWriter and all original public fields remain. Independent compiler/runtime probes preserve arbitrary inputs, trimmed description, submission ID, normalized text, status precedence and exact raw-text audit once. Distinct supplied writers capture every invocation; imported auditEntries stays empty.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": null,
+          "uniquePatchShapes": []
+        },
+        {
+          "caseId": "moderation-decision-large-separated-defect",
+          "layout": "large-separated",
+          "gold": true,
+          "candidate": "abide",
+          "blindId": "d93f27ef8d6c",
+          "finalStatus": "remaining",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "d93f27ef8d6c",
+            "caseId": "moderation-decision-large-separated-defect",
+            "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "remaining",
+            "rationale": "The signature still declares only displayLabel and ModerationInput, while the body invokes imported appendAudit. All original results and exact raw audit remain correct, but the supplied writer is unused and imported auditEntries changes. The audit dependency remains undeclared.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": false,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": false,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": {
+            "characters": 284,
+            "totalLines": 11,
+            "hunks": 1,
+            "contextLines": 3,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 284,
+              "totalLines": 11,
+              "hunks": 1,
+              "contextLines": 3,
+              "addedLines": 2,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-large-separated-defect",
+          "layout": "large-separated",
+          "gold": true,
+          "candidate": "baseline",
+          "blindId": "a63229ad3c24",
+          "finalStatus": "remaining",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "a63229ad3c24",
+            "caseId": "moderation-decision-large-separated-defect",
+            "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "remaining",
+            "rationale": "The signature still declares only displayLabel and ModerationInput, while the body invokes imported appendAudit. All original results and exact raw audit remain correct, but the supplied writer is unused and imported auditEntries changes. The audit dependency remains undeclared.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": false,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": false,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": null,
+          "uniquePatchShapes": []
+        },
+        {
+          "caseId": "moderation-decision-large-separated-defect",
+          "layout": "large-separated",
+          "gold": true,
+          "candidate": "hapsland",
+          "blindId": "f364f24e44ac",
+          "finalStatus": "repaired",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "ccb32f35acbafa1de0adefa65a6929e245dd693c73ebd6534fe72e08e44e0ebe",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "f364f24e44ac",
+            "caseId": "moderation-decision-large-separated-defect",
+            "sourceDigest": "ccb32f35acbafa1de0adefa65a6929e245dd693c73ebd6534fe72e08e44e0ebe",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "repaired",
+            "rationale": "The callable now declares a usable AuditWriter parameter and calls its append method. Independent compiler/runtime probes preserve all original input/output facts, exact raw-text audit once, trimming and status precedence. Two distinct supplied writers capture every invocation and imported auditEntries remains unchanged.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": true,
+          "reportedApplication": "APPLIED",
+          "firstPatch": {
+            "characters": 284,
+            "totalLines": 11,
+            "hunks": 1,
+            "contextLines": 3,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 284,
+              "totalLines": 11,
+              "hunks": 1,
+              "contextLines": 3,
+              "addedLines": 2,
+              "removedLines": 2
+            },
+            {
+              "characters": 474,
+              "totalLines": 15,
+              "hunks": 3,
+              "contextLines": 4,
+              "addedLines": 3,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-large-separated-clean",
+          "layout": "large-separated",
+          "gold": false,
+          "candidate": "baseline",
+          "blindId": "410c471ff5d3",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "410c471ff5d3",
+            "caseId": "moderation-decision-large-separated-clean",
+            "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "clean-preserved",
+            "rationale": "The explicit AuditWriter and all original public fields remain. Independent compiler/runtime probes preserve arbitrary inputs, trimmed description, submission ID, normalized text, status precedence and exact raw-text audit once. Distinct supplied writers capture every invocation; imported auditEntries stays empty.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": null,
+          "uniquePatchShapes": []
+        },
+        {
+          "caseId": "moderation-decision-large-separated-clean",
+          "layout": "large-separated",
+          "gold": false,
+          "candidate": "abide",
+          "blindId": "306825441761",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "306825441761",
+            "caseId": "moderation-decision-large-separated-clean",
+            "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "clean-preserved",
+            "rationale": "The explicit AuditWriter and all original public fields remain. Independent compiler/runtime probes preserve arbitrary inputs, trimmed description, submission ID, normalized text, status precedence and exact raw-text audit once. Distinct supplied writers capture every invocation; imported auditEntries stays empty.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": {
+            "characters": 307,
+            "totalLines": 12,
+            "hunks": 1,
+            "contextLines": 4,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 307,
+              "totalLines": 12,
+              "hunks": 1,
+              "contextLines": 4,
+              "addedLines": 2,
+              "removedLines": 2
+            }
+          ]
+        },
+        {
+          "caseId": "moderation-decision-large-separated-clean",
+          "layout": "large-separated",
+          "gold": false,
+          "candidate": "hapsland",
+          "blindId": "f24cdce6fbc6",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+          "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+          "adjudication": {
+            "blindId": "f24cdce6fbc6",
+            "caseId": "moderation-decision-large-separated-clean",
+            "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+            "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+            "status": "clean-preserved",
+            "rationale": "The explicit AuditWriter and all original public fields remain. Independent compiler/runtime probes preserve arbitrary inputs, trimmed description, submission ID, normalized text, status precedence and exact raw-text audit once. Distinct supplied writers capture every invocation; imported auditEntries stays empty.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "checks": [
+              {
+                "label": "compiled-and-maintenance-rename",
+                "passed": true,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "explicit-writer-in-signature",
+                "passed": true,
+                "sourceClass": "SRC",
+                "verificationState": "SOURCE-INSPECTED"
+              },
+              {
+                "label": "full-original-input-output-compiler-contract",
+                "passed": true,
+                "diagnosticCodes": [],
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "all-returned-facts-and-status-boundaries",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "exact-original-text-audit-once",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              },
+              {
+                "label": "supplied-writer-used-without-hidden-audit",
+                "passed": true,
+                "invocations": 26,
+                "sourceClass": "RUN",
+                "verificationState": "RUNTIME-TESTED"
+              }
+            ]
+          },
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "firstPatch": {
+            "characters": 207,
+            "totalLines": 9,
+            "hunks": 2,
+            "contextLines": 0,
+            "addedLines": 2,
+            "removedLines": 2
+          },
+          "uniquePatchShapes": [
+            {
+              "characters": 207,
+              "totalLines": 9,
+              "hunks": 2,
+              "contextLines": 0,
+              "addedLines": 2,
+              "removedLines": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Exploratory selected synthetic domains. Two detection repeats, one native session per input/arm. Type and function treatments differ. Controlled localized detection patches; actual native patches retained. No general or isolated context-causality claim."
+}

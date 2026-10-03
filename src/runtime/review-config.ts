@@ -7,6 +7,7 @@ import {
 import { ConfigurationError } from "../configuration/errors.ts";
 import {
   resolveConfiguration,
+  effectiveReviewBackend,
 } from "../configuration/resolve.ts";
 import type { ConfigurationCapture } from "../configuration/types.ts";
 import { DEFAULT_CREDENTIAL_ENV_VAR } from "../configuration/types.ts";
@@ -21,6 +22,8 @@ import {
   type Destination,
 } from "./backend.ts";
 
+import { providerIdentity, providerApiBase, type ProviderIdentity } from "../review-providers/catalog.ts";
+
 export const DEFAULT_BACKEND = JEV_BACKEND;
 export const DEFAULT_API_BASE = JEV_API_BASE;
 export const DEFAULT_DESTINATION = JEV_DESTINATION;
@@ -34,7 +37,8 @@ export class ReviewConfigError extends Schema.TaggedError<ReviewConfigError>()(
 
 export interface ReviewSettings {
   readonly backend: BackendId;
-  readonly apiBase: typeof DEFAULT_API_BASE;
+  readonly apiBase: string;
+  readonly providerIdentity: ProviderIdentity;
   readonly destination: Destination;
   readonly credentialEnvVar: string;
   /** Captured once for the event and shared by explanation and runtime selection. */
@@ -53,15 +57,21 @@ const settingsFrom = (
   rules: ReadonlyArray<CompiledRule> = configuredRules,
 ): ReviewSettings => {
   const policy = capture.policy;
+  const identity = providerIdentity(effectiveReviewBackend(policy));
   return {
-    backend: DEFAULT_BACKEND,
-    apiBase: DEFAULT_API_BASE,
-    destination: DEFAULT_DESTINATION,
+    backend: identity.provider,
+    providerIdentity: identity,
+    apiBase: providerApiBase(identity),
+    destination: identity.destination,
     credentialEnvVar: policy.credentialEnvVar.value,
     configuration: capture,
     rules,
   };
 };
+
+const compilationErrorField = (error: unknown, field: string, fallback: string): string =>
+  typeof error === "object" && error !== null && field in error
+    ? String(Reflect.get(error, field)) : fallback;
 
 export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
   root: string,
@@ -92,21 +102,11 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
   );
   const rules = yield* Effect.try({
     try: () => compileRules({ packs, layers: capture.policy.layers }),
-    catch: (error) =>
-      new ReviewConfigError({
-        source:
-          typeof error === "object" && error !== null && "source" in error
-            ? String(error.source)
-            : root,
-        field:
-          typeof error === "object" && error !== null && "field" in error
-            ? String(error.field)
-            : "ruleOverrides",
-        reason:
-          typeof error === "object" && error !== null && "reason" in error
-            ? String(error.reason)
-            : "rule-pack compilation failed",
-      }),
+    catch: (error) => new ReviewConfigError({
+      source: compilationErrorField(error, "source", root),
+      field: compilationErrorField(error, "field", "ruleOverrides"),
+      reason: compilationErrorField(error, "reason", "rule-pack compilation failed"),
+    }),
   });
   return settingsFrom(capture, rules);
 });

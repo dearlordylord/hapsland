@@ -104,6 +104,7 @@ export const SimulationModel = Schema.Struct({
   suspended: Schema.Boolean,
   revision: Schema.Number,
   selected: Schema.Number,
+  activityFrom: Schema.Number,
   feedback: Schema.String,
 });
 export type SimulationModel = typeof SimulationModel.Type;
@@ -179,6 +180,7 @@ export const initialSimulation: SimulationModel = {
   suspended: false,
   revision: 0,
   selected: -1,
+  activityFrom: -1,
   feedback: "Start a seeded source-free session. Jev effects are simulated.",
 };
 let run: ReturnType<typeof createRun> | undefined;
@@ -394,6 +396,7 @@ export const actSimulation = (
   model: SimulationModel,
   action: string,
 ): SimulationModel => {
+  model = { ...model, activityFrom: -1 };
   try {
     const exported = () => ({ ...run!.exportReplay(), dashboard: { bookmark: model.bookmark } });
     if (action === "replay-start" && run) {
@@ -742,6 +745,7 @@ export const tickSimulation = (
       Math.min(deltaMs, 100) * model.appliedSpeed;
     if (wallBudget < 50) return model;
     const beforeTime = run.now;
+    const activityFrom = run.eventCount;
     const result = run.advance({
       untilTime: beforeTime + Math.floor(wallBudget),
       maxEvents: replayEndpoint ? Math.min(100, replayEndpoint.eventCount - run.eventCount) : 100,
@@ -756,6 +760,7 @@ export const tickSimulation = (
     return {
       ...model,
       selected: -1,
+      activityFrom,
       suspended: (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId))?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined)?.suspended ?? model.suspended,
       revision: model.revision + 1,
       playing: !completed && (result.reason !== "idle" || model.suspended) && (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
@@ -960,7 +965,8 @@ export const simulationView = <Message>(
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} confirmed host submissions · ${totals.uncertain} uncertain advice submissions · ${totals.released} released output attempts. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
       h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editIntervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · simulated edit duration ${latestControl("editDuration")?.durationMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editDurationMs ?? activeReplay.config.session?.editDurationMs ?? activeReplay.config.permitProfile?.durationMs ?? 1} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.bytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
       ...(run && showDiagram
-        ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)]
+        ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers, false, undefined, undefined, undefined, undefined, undefined,
+          model.selected < 0 && model.activityFrom >= 0 ? observations.filter(frame => frame.sequence >= model.activityFrom).map(frame => ({ ...frame, origin: "manual" as const })) : undefined)]
         : []),
       ...(run && showDiagram ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
       h.p([h.Class("simulation-active-effects")], [activeReplay ? `Active facts: work ${(latestControl("environment")?.currentWork ?? activeReplay.config.environment?.currentWork ?? true) ? "current" : "stale"} · credential ${(latestControl("environment")?.credentialReady ?? activeReplay.config.environment?.credentialReady ?? true) ? "ready" : "unavailable"} (generation ${latestControl("environment")?.credentialGeneration ?? activeReplay.config.environment?.credentialGeneration ?? 1}) · source ${(latestControl("environment")?.sourceReadable ?? activeReplay.config.environment?.sourceReadable ?? true) ? "readable" : "unreadable"}. Future host output: ${latestControl("outputProfile")?.outcome ?? activeReplay.config.outputProfile?.outcome ?? "certain"} · delay ${latestControl("outputProfile")?.delayMs ?? activeReplay.config.outputProfile?.delayMs ?? 0} ms · lease ${latestControl("outputProfile")?.leaseMs ?? activeReplay.config.outputProfile?.leaseMs ?? 30000} ms. In-flight output keeps its captured profile.` : "No active synthetic environment."]),

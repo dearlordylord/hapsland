@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "model": "gpt-6-luna",
+  "agentRuntimeVersion": "0.155.1",
+  "reasoning": "max",
+  "backend": "controlled clear; zero real Jev requests",
+  "completed": true,
+  "compiled": true,
+  "patchStats": [
+    {
+      "characters": 123,
+      "totalLines": 6,
+      "hunks": 1,
+      "contextLines": 0,
+      "addedLines": 1,
+      "removedLines": 1
+    },
+    {
+      "characters": 123,
+      "totalLines": 6,
+      "hunks": 1,
+      "contextLines": 0,
+      "addedLines": 1,
+      "removedLines": 1
+    },
+    {
+      "characters": 123,
+      "totalLines": 6,
+      "hunks": 1,
+      "contextLines": 0,
+      "addedLines": 1,
+      "removedLines": 1
+    }
+  ]
+}

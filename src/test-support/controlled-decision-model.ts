@@ -13,9 +13,7 @@ export type ControlledDecisionModelOptions = {
   /** Test-only failure for one prepared unit selected by its declaration source. */
   readonly failureOnSourceIncludes?: string;
   readonly onRequest?: Effect.Effect<void>;
-  readonly inspectRequest?: (
-    request: DecisionModel.ProviderOptions,
-  ) => Effect.Effect<void>;
+  readonly inspectRequest?: (request: DecisionModel.ProviderOptions) => Effect.Effect<void>;
   /** Injected after provider normalization to exercise consumer exact-key checks. */
   readonly extraDecisionKey?: string;
   /** Test-only subprocess transcript path; never enabled by the live layer. */
@@ -33,106 +31,151 @@ export type ControlledDecisionModelOptions = {
 const syntheticBefore = "type OrderCount = number";
 const syntheticAfter = 'type OrderCount = number & { readonly __brand: "OrderCount" }';
 const exactLine = (source: unknown, line: string): boolean =>
-  typeof source === "string" &&
-  (source === line || source === `${line}\n` || source === `${line}\r\n`);
+  typeof source === "string" && (source === line || source === `${line}\n` || source === `${line}\r\n`);
 
+const objectRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const requestArtifact = (request: DecisionModel.ProviderOptions): Readonly<Record<string, unknown>> | undefined => {
+  if (!objectRecord(request.state)) return undefined;
+  return objectRecord(request.state.artifact) ? request.state.artifact : undefined;
+};
+const syntheticDomain = (artifact: Readonly<Record<string, unknown>> | undefined): boolean =>
+  artifact?.domain === "order-count.ts";
+const syntheticSourceExpected = (source: unknown, scenario: "control" | "finding", before: boolean): boolean =>
+  before || (scenario === "finding" && exactLine(source, syntheticAfter));
 const syntheticAnswers = (
   request: DecisionModel.ProviderOptions,
   scenario: "control" | "finding",
 ): Effect.Effect<Readonly<Record<string, DecisionModel.ProviderAnswer>>, AiError.AiError> => {
-  const state = request.state;
-  const artifact = typeof state === "object" && state !== null && !Array.isArray(state)
-    ? (state as Record<string, unknown>).artifact : undefined;
-  const artifactRecord = typeof artifact === "object" && artifact !== null && !Array.isArray(artifact)
-    ? artifact as Record<string, unknown> : undefined;
+  const artifactRecord = requestArtifact(request);
   const source = artifactRecord?.source;
   const before = exactLine(source, syntheticBefore);
-  const expected = artifactRecord?.domain === "order-count.ts" &&
-    (before || (scenario === "finding" && exactLine(source, syntheticAfter)));
+  const expected = syntheticDomain(artifactRecord) && syntheticSourceExpected(source, scenario, before);
   if (!expected || !Object.hasOwn(request.decisions, "r6_bare_domain_value")) {
-    return Effect.fail(AiError.make({
-      module: "ControlledDecisionModel",
-      method: "decide",
-      reason: new AiError.InvalidOutputError({ description: "unknown synthetic review snapshot" }),
-    }));
+    return Effect.fail(
+      AiError.make({
+        module: "ControlledDecisionModel",
+        method: "decide",
+        reason: new AiError.InvalidOutputError({ description: "unknown synthetic review snapshot" }),
+      }),
+    );
   }
-  return Effect.succeed(Object.fromEntries(Object.keys(request.decisions).map((key) => [
-    key, { _tag: "Probability", probability: scenario === "finding" &&
-      before && key === "r6_bare_domain_value" ? 0.9 : 0 },
-  ])));
+  return Effect.succeed(
+    Object.fromEntries(
+      Object.keys(request.decisions).map((key) => [
+        key,
+        {
+          _tag: "Probability",
+          probability: scenario === "finding" && before && key === "r6_bare_domain_value" ? 0.9 : 0,
+        },
+      ]),
+    ),
+  );
 };
 
-export const controlledDecisionModelLayer = (
+type ProviderAnswers = Readonly<Record<string, DecisionModel.ProviderAnswer>>;
+const nonemptySourceMarker = (value: unknown): value is string => typeof value === "string" && value.length > 0;
+const controlledSourceFinding = (options: ControlledDecisionModelOptions, source: unknown): boolean =>
+  nonemptySourceMarker(options.findingOnSourceIncludes) &&
+  typeof source === "string" &&
+  source.includes(options.findingOnSourceIncludes);
+const controlledFailure = (
   options: ControlledDecisionModelOptions,
-) =>
+  request: DecisionModel.ProviderOptions,
+): string | undefined => {
+  if (options.failure !== undefined) return options.failure;
+  return options.failureOnSourceIncludes !== undefined &&
+    JSON.stringify(request).includes(options.failureOnSourceIncludes)
+    ? "controlled unit failure"
+    : undefined;
+};
+const sourceFindingAnswers = (request: DecisionModel.ProviderOptions): ProviderAnswers =>
+  Object.fromEntries(
+    Object.keys(request.decisions).map((key) => [
+      key,
+      { _tag: "Probability" as const, probability: key === "r2_meaningless_combinations" ? 0.91 : 0 },
+    ]),
+  );
+const defaultAnswers = (request: DecisionModel.ProviderOptions): ProviderAnswers =>
+  Object.fromEntries(
+    Object.keys(request.decisions).map((key) => [key, { _tag: "Probability" as const, probability: 0 }]),
+  );
+const controlledAnswers = (
+  request: DecisionModel.ProviderOptions,
+  options: ControlledDecisionModelOptions,
+  sourceFinding: boolean,
+): Effect.Effect<ProviderAnswers, AiError.AiError> => {
+  if (options.syntheticR6BrandedRepair !== undefined)
+    return syntheticAnswers(request, options.syntheticR6BrandedRepair);
+  return Effect.succeed(sourceFinding ? sourceFindingAnswers(request) : (options.answers ?? defaultAnswers(request)));
+};
+const controlledResult = (answers: Effect.Effect<ProviderAnswers, AiError.AiError>, failure: string | undefined) =>
+  failure === undefined
+    ? answers.pipe(Effect.map((answers) => ({ answers, usage: { inputTokens: 0, outputTokens: 0 } })))
+    : Effect.fail(
+        AiError.make({
+          module: "ControlledDecisionModel",
+          method: "decide",
+          reason: new AiError.UnknownError({ description: failure }),
+        }),
+      );
+const delayedResult = <A, E, R>(result: Effect.Effect<A, E, R>, delayMs: number | undefined) =>
+  delayMs === undefined || delayMs === 0 ? result : result.pipe(Effect.delay(`${delayMs} millis`));
+const captureRequest = (capturePath: string | undefined) => {
+  if (capturePath === undefined) return Effect.succeed(undefined);
+  return Effect.tryPromise({
+    try: () => appendFile(capturePath, "called\n", "utf8"),
+    catch: () => new Error("capture unavailable"),
+  }).pipe(Effect.catch(() => Effect.succeed(undefined)));
+};
+const controlledRequestSummary = (
+  request: DecisionModel.ProviderOptions,
+  options: ControlledDecisionModelOptions,
+  sourceFinding: boolean,
+) => {
+  return options.requestSummaryPath === undefined
+    ? Effect.void
+    : Effect.tryPromise({
+        try: () => {
+          const state = request.state as
+            | {
+                artifact?: { kind?: unknown };
+                evidence?: {
+                  nodes?: unknown[];
+                  edges?: { kind?: unknown }[];
+                };
+              }
+            | undefined;
+          const edges = state?.evidence?.edges ?? [];
+          return appendFile(
+            options.requestSummaryPath!,
+            `${JSON.stringify({
+              rootKind: state?.artifact?.kind ?? "unknown",
+              conditionalFindingSourceMatched: sourceFinding,
+              evidenceNodes: state?.evidence?.nodes?.length ?? 0,
+              expandedEdges: edges.filter((edge) => edge.kind === "expanded").length,
+              includedEdges: edges.filter((edge) => edge.kind === "included").length,
+              omittedEdges: edges.filter((edge) => edge.kind === "omitted").length,
+            })}\n`,
+            "utf8",
+          );
+        },
+        catch: () => new Error("request summary unavailable"),
+      }).pipe(Effect.catch(() => Effect.void));
+};
+export const controlledDecisionModelLayer = (options: ControlledDecisionModelOptions) =>
   Layer.effect(
     DecisionModel.DecisionModel,
     DecisionModel.make({
       decide: (request) => {
-        const state = request.state as { artifact?: { source?: unknown } } | undefined;
-        const source = state?.artifact?.source;
-        const sourceFinding = options.findingOnSourceIncludes !== undefined &&
-          options.findingOnSourceIncludes.length > 0 &&
-          typeof source === "string" && source.includes(options.findingOnSourceIncludes);
-        const failure = options.failure ?? (options.failureOnSourceIncludes !== undefined &&
-          JSON.stringify(request).includes(options.failureOnSourceIncludes)
-          ? "controlled unit failure" : undefined);
-        const answers = options.syntheticR6BrandedRepair === undefined
-          ? Effect.succeed(sourceFinding
-            ? Object.fromEntries(Object.keys(request.decisions).map((key) => [key, {
-                _tag: "Probability" as const,
-                probability: key === "r2_meaningless_combinations" ? 0.91 : 0,
-              }]))
-            : options.answers ?? Object.fromEntries(
-            Object.keys(request.decisions).map((key) => [
-              key,
-              { _tag: "Probability" as const, probability: 0 },
-            ]),
-          ))
-          : syntheticAnswers(request, options.syntheticR6BrandedRepair);
-        const result =
-          failure === undefined
-            ? answers.pipe(Effect.map((answers) => ({
-                answers,
-                usage: { inputTokens: 0, outputTokens: 0 },
-              })))
-            : Effect.fail(
-                AiError.make({
-                  module: "ControlledDecisionModel",
-                  method: "decide",
-                  reason: new AiError.UnknownError({ description: failure }),
-                }),
-              );
-        const delayed =
-          options.delayMs === undefined || options.delayMs === 0
-            ? result
-            : result.pipe(Effect.delay(`${options.delayMs} millis`));
-        const capturePath = options.capturePath;
-        const capture =
-          capturePath === undefined
-            ? Effect.succeed(undefined)
-            : Effect.tryPromise({
-                try: () => appendFile(capturePath, "called\n", "utf8"),
-                catch: () => new Error("capture unavailable"),
-              }).pipe(Effect.catch(() => Effect.succeed(undefined)));
-        const requestSummary = options.requestSummaryPath === undefined
-          ? Effect.void
-          : Effect.tryPromise({
-              try: () => {
-                const state = request.state as { artifact?: { kind?: unknown }; evidence?: {
-                  nodes?: unknown[]; edges?: { kind?: unknown }[] } } | undefined;
-                const edges = state?.evidence?.edges ?? [];
-                return appendFile(options.requestSummaryPath!, `${JSON.stringify({
-                  rootKind: state?.artifact?.kind ?? "unknown",
-                  conditionalFindingSourceMatched: sourceFinding,
-                  evidenceNodes: state?.evidence?.nodes?.length ?? 0,
-                  expandedEdges: edges.filter((edge) => edge.kind === "expanded").length,
-                  includedEdges: edges.filter((edge) => edge.kind === "included").length,
-                  omittedEdges: edges.filter((edge) => edge.kind === "omitted").length,
-                })}\n`, "utf8");
-              },
-              catch: () => new Error("request summary unavailable"),
-            }).pipe(Effect.catch(() => Effect.void));
+        const source = requestArtifact(request)?.source;
+        const sourceFinding = controlledSourceFinding(options, source);
+        const failure = controlledFailure(options, request);
+        const answers = controlledAnswers(request, options, sourceFinding);
+        const result = controlledResult(answers, failure);
+        const delayed = delayedResult(result, options.delayMs);
+        const capture = captureRequest(options.capturePath);
+        const requestSummary = controlledRequestSummary(request, options, sourceFinding);
         return (options.onRequest ?? Effect.succeed(undefined)).pipe(
           Effect.andThen(options.inspectRequest?.(request) ?? Effect.void),
           Effect.andThen(capture),

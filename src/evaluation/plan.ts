@@ -14,23 +14,10 @@ import {
   type RendererAdapterIdentity as RendererAdapterIdentityType,
   strictParseOptions,
 } from "./model.ts";
-import {
-  digestValue,
-  makeFixtureReference,
-  makeRuleReference,
-} from "./digest.ts";
-import type {
-  ConfigurationCase,
-  Expectation,
-  Fixture,
-  ReleaseAcceptance,
-  RuleDefinition,
-} from "./model.ts";
+import { digestValue, makeFixtureReference, makeRuleReference } from "./digest.ts";
+import type { ConfigurationCase, Expectation, Fixture, ReleaseAcceptance, RuleDefinition } from "./model.ts";
 
-const decode = <S extends Schema.ConstraintDecoder<unknown>>(
-  schema: S,
-  value: unknown,
-): S["Type"] =>
+const decode = <S extends Schema.ConstraintDecoder<unknown>>(schema: S, value: unknown): S["Type"] =>
   Schema.decodeUnknownSync(schema, strictParseOptions)(value);
 
 const scenarioRequestCount = (scenario: EvaluationScenarioType): number =>
@@ -64,6 +51,26 @@ export const estimatePlanRequests = (
  * Produce a deterministic, source-free execution plan.  Over-budget plans are
  * returned as rejected plans so callers can report the reason without dispatching.
  */
+const livePlanRejection = (
+  run: EvaluationRunType,
+  credentialPresent: boolean | undefined,
+): EvaluationPlanType["rejectionReason"] => {
+  if (!run.liveOptIn) return "live-opt-in-required";
+  if (credentialPresent === false) return "live-credential-required";
+  const remaining = run.budget.authorizedRemainingCalls;
+  if (remaining === undefined) return "live-authorization-required";
+  return remaining > LIVE_CALL_AUTHORIZATION_LIMIT ? "live-authorization-exceeds-limit" : undefined;
+};
+const planRejection = (
+  run: EvaluationRunType,
+  budgetExceeded: boolean,
+  hasLiveScenario: boolean,
+  credentialPresent: boolean | undefined,
+): EvaluationPlanType["rejectionReason"] => {
+  if (budgetExceeded) return "budget-exceeded";
+  return hasLiveScenario ? livePlanRejection(run, credentialPresent) : undefined;
+};
+
 export const planEvaluation = (
   run: EvaluationRunType,
   scenarios: ReadonlyArray<EvaluationScenarioType>,
@@ -74,27 +81,12 @@ export const planEvaluation = (
 ): EvaluationPlanType => {
   const estimates = estimatePlanRequests(run, scenarios);
   const hasLiveScenario = scenarios.some(
-    (scenario) =>
-      run.scenarioIds.includes(scenario.id) && scenario.backend.mode === "live",
+    (scenario) => run.scenarioIds.includes(scenario.id) && scenario.backend.mode === "live",
   );
   const budgetExceeded =
     estimates.worstCaseRequests >
-    Math.min(
-      run.budget.maximumRequests,
-      run.budget.authorizedRemainingCalls ?? run.budget.maximumRequests,
-    );
-  const remainingAuthorization = run.budget.authorizedRemainingCalls;
-  const rejectionReason = budgetExceeded
-    ? "budget-exceeded"
-    : hasLiveScenario && !run.liveOptIn
-      ? "live-opt-in-required"
-      : hasLiveScenario && options.liveCredentialPresent === false
-        ? "live-credential-required"
-        : hasLiveScenario && remainingAuthorization === undefined
-          ? "live-authorization-required"
-          : hasLiveScenario && remainingAuthorization !== undefined && remainingAuthorization > LIVE_CALL_AUTHORIZATION_LIMIT
-            ? "live-authorization-exceeds-limit"
-            : undefined;
+    Math.min(run.budget.maximumRequests, run.budget.authorizedRemainingCalls ?? run.budget.maximumRequests);
+  const rejectionReason = planRejection(run, budgetExceeded, hasLiveScenario, options.liveCredentialPresent);
   const planWithoutDigest = {
     runId: run.id,
     scenarioIds: run.scenarioIds,
@@ -123,17 +115,11 @@ export interface BudgetDecision {
 }
 
 /** Enforce the declared maximum against actual attempts without changing ordering. */
-export const enforceCallBudget = (
-  plan: EvaluationPlanType,
-  observedRequests: number,
-): BudgetDecision => {
+export const enforceCallBudget = (plan: EvaluationPlanType, observedRequests: number): BudgetDecision => {
   const boundedObserved = Number.isFinite(observedRequests)
     ? Math.max(0, Math.trunc(observedRequests))
     : Number.POSITIVE_INFINITY;
-  const remainingRequests = Math.max(
-    0,
-    plan.budgetMaximumRequests - boundedObserved,
-  );
+  const remainingRequests = Math.max(0, plan.budgetMaximumRequests - boundedObserved);
   const exceeded = boundedObserved > plan.budgetMaximumRequests;
   return {
     permitted: plan.permitted && !exceeded,
@@ -177,16 +163,12 @@ export interface ScenarioInput {
   readonly requestCount?: number;
 }
 
-export const makeEvaluationScenario = (
-  input: ScenarioInput,
-): EvaluationScenarioType => {
+export const makeEvaluationScenario = (input: ScenarioInput): EvaluationScenarioType => {
   const withoutDigest = {
     id: input.id,
     name: input.name,
     interaction: input.interaction,
-    ...(input.interactionName === undefined
-      ? {}
-      : { interactionName: input.interactionName }),
+    ...(input.interactionName === undefined ? {} : { interactionName: input.interactionName }),
     fixtures: input.fixtures.map(makeFixtureReference),
     ruleSet: input.ruleDefinitions.map(makeRuleReference),
     configurationCaseId: input.configurationCaseId,
@@ -225,6 +207,23 @@ export interface RunInput {
   readonly liveOptIn: boolean;
 }
 
+const configurationRunEvidence = (input: RunInput) => ({
+  configurationCaseIds: (input.configurationCases ?? []).map((configuration) => configuration.id),
+  configurationCaseDigests: (input.configurationCases ?? []).map((configuration) => configuration.caseDigest),
+});
+const datasetRunEvidence = (input: RunInput) => ({
+  fixtureDigests: (input.fixtures ?? []).map((fixture) => fixture.fixtureDigest),
+  ruleDefinitionDigests: (input.ruleDefinitions ?? []).map((definition) => definition.definitionDigest),
+  expectationDigests: (input.expectations ?? []).map((expectation) => expectation.expectationDigest),
+});
+const runAcceptance = (input: RunInput): ReleaseAcceptance =>
+  input.acceptance ?? {
+    requireTransportAvailable: true,
+    requireConformance: true,
+    requireSemanticPass: false,
+    requireNoUnchecked: false,
+  };
+
 export const makeEvaluationRun = (input: RunInput): EvaluationRunType => {
   const withoutDigest = {
     id: input.id,
@@ -232,30 +231,14 @@ export const makeEvaluationRun = (input: RunInput): EvaluationRunType => {
     suiteId: input.suiteId,
     scenarioIds: input.scenarios.map((scenario) => scenario.id),
     scenarioDigests: input.scenarios.map((scenario) => scenario.scenarioDigest),
-    configurationCaseIds: (input.configurationCases ?? []).map(
-      (configuration) => configuration.id,
-    ),
-    configurationCaseDigests: (input.configurationCases ?? []).map(
-      (configuration) => configuration.caseDigest,
-    ),
-    fixtureDigests: (input.fixtures ?? []).map((fixture) => fixture.fixtureDigest),
-    ruleDefinitionDigests: (input.ruleDefinitions ?? []).map(
-      (definition) => definition.definitionDigest,
-    ),
-    expectationDigests: (input.expectations ?? []).map(
-      (expectation) => expectation.expectationDigest,
-    ),
+    ...configurationRunEvidence(input),
+    ...datasetRunEvidence(input),
     backend: input.backend,
     inputContract: input.inputContract,
     rendererAdapter: input.rendererAdapter,
     repetitions: input.repetitions,
     budget: input.budget,
-    acceptance: input.acceptance ?? {
-      requireTransportAvailable: true,
-      requireConformance: true,
-      requireSemanticPass: true,
-      requireNoUnchecked: true,
-    },
+    acceptance: runAcceptance(input),
     liveOptIn: input.liveOptIn,
   };
   return decode(EvaluationRun, {
@@ -264,11 +247,9 @@ export const makeEvaluationRun = (input: RunInput): EvaluationRunType => {
   });
 };
 
+const validRequestMaximum = (count: number): boolean => Number.isInteger(count) && count > 0;
+const validRetryMaximum = (count: number): boolean => Number.isInteger(count) && count >= 0;
 export const isCallBudgetValid = (budget: {
   readonly maximumRequests: number;
   readonly maximumRetriesPerRequest: number;
-}): boolean =>
-  Number.isInteger(budget.maximumRequests) &&
-  budget.maximumRequests > 0 &&
-  Number.isInteger(budget.maximumRetriesPerRequest) &&
-  budget.maximumRetriesPerRequest >= 0;
+}): boolean => validRequestMaximum(budget.maximumRequests) && validRetryMaximum(budget.maximumRetriesPerRequest);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initialCanonical, probabilityWords, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
-import { findingFromProbability } from "./decision.ts";
+import { findingFromProbability, compareAdviceOrder } from "./decision.ts";
 
 const initial = initialCanonical({ globalItems: 1, globalBytes: 1, partitionItems: 1, partitionBytes: 1 });
 
@@ -23,4 +23,15 @@ describe("canonical probability words", () => {
       expect(() => stepCanonical(initial, event)).toThrow();
     }
   });
+});
+
+it("orders equal-probability advice by path and then rule identity", () => {
+  const first = { probability: 0.8, path: "a.ts", ruleId: "r1" };
+  const second = { probability: 0.8, path: "a.ts", ruleId: "r2" };
+  const third = { probability: 0.8, path: "b.ts", ruleId: "r1" };
+  expect([third, second, first].sort(compareAdviceOrder)).toEqual([first, second, third]);
+  expect(compareAdviceOrder(first, first)).toBe(0);
+  expect(compareAdviceOrder(first, third)).toBeLessThan(0);
+  expect(compareAdviceOrder(third, first)).toBeGreaterThan(0);
+  expect(compareAdviceOrder(second, first)).toBeGreaterThan(0);
 });

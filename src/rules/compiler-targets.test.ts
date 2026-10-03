@@ -5,7 +5,7 @@ import { join } from "node:path";
 import * as Effect from "effect/Effect";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { BUNDLED_NOUL_PACK } from "./bundled.ts";
-import { compileRulePack, compileRules, selectApplicableRules } from "./compiler.ts";
+import { compileRulePack, compileRules, parseQualifiedRuleId, selectApplicableRules } from "./compiler.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "./targets.ts";
 
 const pack = () => ({ schemaVersion: 1, id: "team", contentVersion: "1", rules: [{
@@ -78,4 +78,16 @@ describe("explicit rule target compilation", () => {
     expect(targetChanged?.definitionDigest).not.toBe(original?.definitionDigest);
     expect(thresholdChanged?.threshold).not.toBe(original?.threshold);
   });
+});
+
+
+it.each([
+  ["team/rule", { packId: "team", ruleId: "rule" }],
+  ["team:rule", { packId: "team", ruleId: "rule" }],
+  ["team:profile/rule", { packId: "team:profile", ruleId: "rule" }],
+  ["team/rule:variant", { packId: "team", ruleId: "rule:variant" }],
+  ["rule", undefined], ["/rule", undefined], ["team/", undefined],
+  ["team/rule/other", undefined], ["team:rule:other", undefined], [":rule", undefined], ["team:", undefined],
+])("parses qualified identity %j", (value, expected) => {
+  expect(parseQualifiedRuleId(value)).toEqual(expected);
 });

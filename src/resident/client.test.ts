@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   ResidentIpcError,
+  admitAndCollectEffect,
   makeResidentDispatchContextEffect,
   ensureResidentEffect as ensureResident,
   admitObservationEffect as admitObservation,
@@ -20,11 +21,7 @@ import {
   ensureResidentEffect,
   type ResidentStartupOperations,
 } from "./client.ts";
-import {
-  prepareResidentDirectory,
-  residentPaths,
-  validateEndpointMetadata,
-} from "./paths.ts";
+import { prepareResidentDirectory, residentPaths, validateEndpointMetadata } from "./paths.ts";
 import type { DirectObservation } from "../direct-event/model.ts";
 
 const directories: Array<string> = [];
@@ -40,77 +37,104 @@ afterEach(async () => {
 });
 
 describe("resident client trust boundary", () => {
-  effectIt.effect("uses one absolute readiness deadline and caps every operation to remaining time", () => Effect.gen(function* () {
-    const paths = residentPaths("/not-used");
-    let clock = 0;
-    const launchCalls: Array<{ readonly at: number; readonly budget: number }> = [];
-    const probeBudgets: Array<number> = [];
-    const dependencies: ResidentStartupOperations = {
-      now: Effect.sync(() => clock),
-      clearDiagnostic: () => Effect.void,
-      diagnostic: () => Effect.succeed(""),
-      prepare: (_paths, timeoutMs) => Effect.sync(() => {
-        expect(timeoutMs).toBe(10_000);
-        clock += 100;
-      }),
-      probe: (_paths, timeoutMs) => Effect.try({ try: () => {
-        probeBudgets.push(timeoutMs);
-        clock += timeoutMs;
-        throw new ResidentIpcError({ message: "not ready" });
-      }, catch: () => new ResidentIpcError({ message: "not ready" }) }),
-      launch: (_paths, timeoutMs) => Effect.sync(() => { launchCalls.push({ at: clock, budget: timeoutMs }); }),
-      wait: (milliseconds) => Effect.sync(() => { clock += milliseconds; }),
-    };
-    const failure = yield* ensureResidentEffect(paths, 10_000).pipe(Effect.provide(Layer.succeed(ResidentStartup, dependencies)), Effect.flip);
-    expect(failure.message).toContain("resident did not become ready within 10 seconds");
-    expect(clock).toBe(10_000);
-    expect(launchCalls.length).toBeGreaterThan(1);
-    expect(launchCalls.every(({ at, budget }) => at < 10_000 && budget === 10_000 - at)).toBe(true);
-    expect(probeBudgets.every((budget) => budget > 0 && budget <= 250)).toBe(true);
-    expect(probeBudgets.at(-1)).toBeLessThanOrEqual(250);
-  }));
+  effectIt.effect("uses one absolute readiness deadline and caps every operation to remaining time", () =>
+    Effect.gen(function* () {
+      const paths = residentPaths("/not-used");
+      let clock = 0;
+      const launchCalls: Array<{ readonly at: number; readonly budget: number }> = [];
+      const probeBudgets: Array<number> = [];
+      const dependencies: ResidentStartupOperations = {
+        now: Effect.sync(() => clock),
+        clearDiagnostic: () => Effect.void,
+        diagnostic: () => Effect.succeed(""),
+        prepare: (_paths, timeoutMs) =>
+          Effect.sync(() => {
+            expect(timeoutMs).toBe(10_000);
+            clock += 100;
+          }),
+        probe: (_paths, timeoutMs) =>
+          Effect.try({
+            try: () => {
+              probeBudgets.push(timeoutMs);
+              clock += timeoutMs;
+              throw new ResidentIpcError({ message: "not ready" });
+            },
+            catch: () => new ResidentIpcError({ message: "not ready" }),
+          }),
+        launch: (_paths, timeoutMs) =>
+          Effect.sync(() => {
+            launchCalls.push({ at: clock, budget: timeoutMs });
+          }),
+        wait: (milliseconds) =>
+          Effect.sync(() => {
+            clock += milliseconds;
+          }),
+      };
+      const failure = yield* ensureResidentEffect(paths, 10_000).pipe(
+        Effect.provide(Layer.succeed(ResidentStartup, dependencies)),
+        Effect.flip,
+      );
+      expect(failure.message).toContain("resident did not become ready within 10 seconds");
+      expect(clock).toBe(10_000);
+      expect(launchCalls.length).toBeGreaterThan(1);
+      expect(launchCalls.every(({ at, budget }) => at < 10_000 && budget === 10_000 - at)).toBe(true);
+      expect(probeBudgets.every((budget) => budget > 0 && budget <= 250)).toBe(true);
+      expect(probeBudgets.at(-1)).toBeLessThanOrEqual(250);
+    }),
+  );
 
-  effectIt.effect("retries owner acquisition after a losing owner exits within the same deadline", () => Effect.gen(function* () {
-    const paths = residentPaths("/not-used");
-    let clock = 0;
-    let launchCount = 0;
-    let endpointReady = false;
-    let ownerPresent = true;
-    const calls: Array<{ readonly operation: string; readonly at: number; readonly budget: number }> = [];
-    const dependencies: ResidentStartupOperations = {
-      now: Effect.sync(() => clock),
-      clearDiagnostic: () => Effect.void,
-      diagnostic: () => Effect.succeed(""),
-      prepare: (_paths, timeoutMs) => Effect.sync(() => {
-        calls.push({ operation: "prepare", at: clock, budget: timeoutMs });
-      }),
-      probe: (_paths, timeoutMs) => Effect.try({ try: () => {
-        calls.push({ operation: "probe", at: clock, budget: timeoutMs });
-        clock += Math.min(100, timeoutMs);
-        if (endpointReady) return { status: "ready", lifetime: "second-owner", pid: 42 } as const;
-        throw new ResidentIpcError({ message: "not ready" });
-      }, catch: () => new ResidentIpcError({ message: "not ready" }) }),
-      launch: (_paths, timeoutMs) => Effect.sync(() => {
-        calls.push({ operation: "launch", at: clock, budget: timeoutMs });
-        launchCount += 1;
-        if (!ownerPresent) endpointReady = true;
-      }),
-      wait: (milliseconds) => Effect.sync(() => {
-        calls.push({ operation: "wait", at: clock, budget: milliseconds });
-        clock += milliseconds;
-        ownerPresent = false;
-      }),
-    };
+  effectIt.effect("retries owner acquisition after a losing owner exits within the same deadline", () =>
+    Effect.gen(function* () {
+      const paths = residentPaths("/not-used");
+      let clock = 0;
+      let launchCount = 0;
+      let endpointReady = false;
+      let ownerPresent = true;
+      const calls: Array<{ readonly operation: string; readonly at: number; readonly budget: number }> = [];
+      const dependencies: ResidentStartupOperations = {
+        now: Effect.sync(() => clock),
+        clearDiagnostic: () => Effect.void,
+        diagnostic: () => Effect.succeed(""),
+        prepare: (_paths, timeoutMs) =>
+          Effect.sync(() => {
+            calls.push({ operation: "prepare", at: clock, budget: timeoutMs });
+          }),
+        probe: (_paths, timeoutMs) =>
+          Effect.try({
+            try: () => {
+              calls.push({ operation: "probe", at: clock, budget: timeoutMs });
+              clock += Math.min(100, timeoutMs);
+              if (endpointReady) return { status: "ready", lifetime: "second-owner", pid: 42 } as const;
+              throw new ResidentIpcError({ message: "not ready" });
+            },
+            catch: () => new ResidentIpcError({ message: "not ready" }),
+          }),
+        launch: (_paths, timeoutMs) =>
+          Effect.sync(() => {
+            calls.push({ operation: "launch", at: clock, budget: timeoutMs });
+            launchCount += 1;
+            if (!ownerPresent) endpointReady = true;
+          }),
+        wait: (milliseconds) =>
+          Effect.sync(() => {
+            calls.push({ operation: "wait", at: clock, budget: milliseconds });
+            clock += milliseconds;
+            ownerPresent = false;
+          }),
+      };
 
-    expect(yield* ensureResidentEffect(paths, 10_000).pipe(Effect.provide(Layer.succeed(ResidentStartup, dependencies)))).toEqual({
-      status: "ready",
-      lifetime: "second-owner",
-      pid: 42,
-    });
-    expect(launchCount).toBe(2);
-    expect(clock).toBeGreaterThanOrEqual(350);
-    expect(calls.every(({ at, budget }) => at < 10_000 && budget > 0 && budget <= 10_000 - at)).toBe(true);
-  }));
+      expect(
+        yield* ensureResidentEffect(paths, 10_000).pipe(Effect.provide(Layer.succeed(ResidentStartup, dependencies))),
+      ).toEqual({
+        status: "ready",
+        lifetime: "second-owner",
+        pid: 42,
+      });
+      expect(launchCount).toBe(2);
+      expect(clock).toBeGreaterThanOrEqual(350);
+      expect(calls.every(({ at, budget }) => at < 10_000 && budget > 0 && budget <= 10_000 - at)).toBe(true);
+    }),
+  );
 
   it("rejects wrong ownership, unsafe mode, symlinks, and wrong endpoint types", () => {
     const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
@@ -128,7 +152,9 @@ describe("resident client trust boundary", () => {
     directories.push(parent, target);
     const link = join(parent, "runtime");
     await symlink(target, link);
-    await expect(Effect.runPromise(prepareResidentDirectory(residentPaths(link)))).rejects.toThrow("private user-owned");
+    await expect(Effect.runPromise(prepareResidentDirectory(residentPaths(link)))).rejects.toThrow(
+      "private user-owned",
+    );
   });
 
   it.each([
@@ -149,9 +175,9 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500))).rejects.toThrow(
-      "resident response was invalid",
-    );
+    await expect(
+      runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500)),
+    ).rejects.toThrow("resident response was invalid");
   });
 
   it("rejects a precreated permissive endpoint before accepting its context", async () => {
@@ -171,9 +197,9 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o666);
-    await expect(runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500))).rejects.toThrow(
-      "private user-owned socket",
-    );
+    await expect(
+      runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500)),
+    ).rejects.toThrow("private user-owned socket");
     expect(connections).toBe(0);
   });
 
@@ -184,8 +210,12 @@ describe("resident client trust boundary", () => {
     const paths = residentPaths(directory);
     let entered!: () => void;
     let closed!: () => void;
-    const requestEntered = new Promise<void>((resolve) => { entered = resolve; });
-    const connectionClosed = new Promise<void>((resolve) => { closed = resolve; });
+    const requestEntered = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const connectionClosed = new Promise<void>((resolve) => {
+      closed = resolve;
+    });
     const server = createServer((socket) => {
       sockets.push(socket);
       socket.once("data", entered);
@@ -197,8 +227,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    const request = Effect.runFork(residentRequestEffect(paths,
-      { requestRoute: "shared", operation: "hello" }, 5_000));
+    const request = Effect.runFork(residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, 5_000));
     try {
       await requestEntered;
       await Effect.runPromise(Fiber.interrupt(request));
@@ -209,51 +238,66 @@ describe("resident client trust boundary", () => {
     }
   });
 
-  effectIt.live("keeps admission IPC in its workflow and closes it on interruption", () => Effect.gen(function* () {
-    const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "resident-admit-interruption-")));
-    directories.push(directory);
-    yield* Effect.promise(() => chmod(directory, 0o700));
-    const paths = residentPaths(directory);
-    const entered = yield* Deferred.make<void>();
-    const closed = yield* Deferred.make<void>();
-    const server = createServer((socket) => {
-      sockets.push(socket);
-      socket.once("data", (chunk) => {
-        expect(JSON.parse(chunk.toString("utf8")).operation).toBe("admit");
-        Effect.runSync(Deferred.succeed(entered, undefined));
+  effectIt.live("keeps admission IPC in its workflow and closes it on interruption", () =>
+    Effect.gen(function* () {
+      const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "resident-admit-interruption-")));
+      directories.push(directory);
+      yield* Effect.promise(() => chmod(directory, 0o700));
+      const paths = residentPaths(directory);
+      const entered = yield* Deferred.make<void>();
+      const closed = yield* Deferred.make<void>();
+      const server = createServer((socket) => {
+        sockets.push(socket);
+        socket.once("data", (chunk) => {
+          expect(JSON.parse(chunk.toString("utf8")).operation).toBe("admit");
+          Effect.runSync(Deferred.succeed(entered, undefined));
+        });
+        socket.once("close", () => Effect.runSync(Deferred.succeed(closed, undefined)));
       });
-      socket.once("close", () => Effect.runSync(Deferred.succeed(closed, undefined)));
-    });
-    servers.push(server);
-    yield* Effect.promise(() => new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(paths.socket, resolve);
-    }));
-    yield* Effect.promise(() => chmod(paths.socket, 0o600));
-    const startup = ResidentStartup.of({
-      now: Effect.sync(() => performance.now()),
-      prepare: () => Effect.void,
-      probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
-      launch: () => Effect.die("an available owner must not launch"),
-      wait: (milliseconds) => Effect.sleep(milliseconds),
-      clearDiagnostic: () => Effect.void,
-      diagnostic: () => Effect.succeed(""),
-    });
-    const observation: DirectObservation = {
-      root: "/fixture",
-      rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" },
-      advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "session", turnId: "turn", toolUseId: "tool", subagentId: null },
-      candidates: [],
-    };
-    const admission = yield* admitObservationEffect(observation, true,
-      { statePath: "/fixture/state", userConfigPath: null, credential: null, controlled: {} }, paths,
-    ).pipe(Effect.provideService(ResidentStartup, startup), Effect.forkScoped);
-    yield* Deferred.await(entered);
-    expect(admission.pollUnsafe()).toBeUndefined();
-    yield* Fiber.interrupt(admission);
-    yield* Deferred.await(closed);
-    expect(sockets[0]?.destroyed).toBe(true);
-  }));
+      servers.push(server);
+      yield* Effect.promise(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            server.once("error", reject);
+            server.listen(paths.socket, resolve);
+          }),
+      );
+      yield* Effect.promise(() => chmod(paths.socket, 0o600));
+      const startup = ResidentStartup.of({
+        now: Effect.sync(() => performance.now()),
+        prepare: () => Effect.void,
+        probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
+        launch: () => Effect.die("an available owner must not launch"),
+        wait: (milliseconds) => Effect.sleep(milliseconds),
+        clearDiagnostic: () => Effect.void,
+        diagnostic: () => Effect.succeed(""),
+      });
+      const observation: DirectObservation = {
+        root: "/fixture",
+        rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" },
+        advicee: {
+          host: "codex-cli",
+          hostVersion: "0.155.1",
+          sessionId: "session",
+          turnId: "turn",
+          toolUseId: "tool",
+          subagentId: null,
+        },
+        candidates: [],
+      };
+      const admission = yield* admitObservationEffect(
+        observation,
+        true,
+        { statePath: "/fixture/state", userConfigPath: null, credential: null, controlled: {} },
+        paths,
+      ).pipe(Effect.provideService(ResidentStartup, startup), Effect.forkScoped);
+      yield* Deferred.await(entered);
+      expect(admission.pollUnsafe()).toBeUndefined();
+      yield* Fiber.interrupt(admission);
+      yield* Deferred.await(closed);
+      expect(sockets[0]?.destroyed).toBe(true);
+    }),
+  );
 
   it("bounds a collect response when the connected server never responds", async () => {
     const directory = await mkdtemp(join(tmpdir(), "resident-timeout-test-"));
@@ -268,28 +312,35 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(runClient(residentRequest(paths, {
-      requestRoute: "shared",
-      operation: "collect", composed: true,
-      lifetime: "lifetime",
-      root: "/tmp/root",
-      advicee: {
-        host: "codex-cli",
-        hostVersion: "0.155.1",
-        sessionId: "session",
-        turnId: "turn",
-        toolUseId: "tool",
-        subagentId: null,
-      },
-      dispatch: {
-        statePath: "/tmp/consent",
-        userConfigPath: null,
-        credential: null,
-        controlled: {},
-      },
-    }, 20))).rejects.toThrow(
-      "deadline exceeded",
-    );
+    await expect(
+      runClient(
+        residentRequest(
+          paths,
+          {
+            requestRoute: "shared",
+            operation: "collect",
+            composed: true,
+            lifetime: "lifetime",
+            root: "/tmp/root",
+            advicee: {
+              host: "codex-cli",
+              hostVersion: "0.155.1",
+              sessionId: "session",
+              turnId: "turn",
+              toolUseId: "tool",
+              subagentId: null,
+            },
+            dispatch: {
+              statePath: "/tmp/consent",
+              userConfigPath: null,
+              credential: null,
+              controlled: {},
+            },
+          },
+          20,
+        ),
+      ),
+    ).rejects.toThrow("deadline exceeded");
   });
 
   it("rejects an oversized request before writing advicee-bearing bytes", async () => {
@@ -298,9 +349,11 @@ describe("resident client trust boundary", () => {
     await chmod(directory, 0o700);
     const paths = residentPaths(directory);
     let received = 0;
-    const server = createServer((socket) => socket.on("data", (chunk) => {
-      received += typeof chunk === "string" ? Buffer.byteLength(chunk, "utf8") : chunk.byteLength;
-    }));
+    const server = createServer((socket) =>
+      socket.on("data", (chunk) => {
+        received += typeof chunk === "string" ? Buffer.byteLength(chunk, "utf8") : chunk.byteLength;
+      }),
+    );
     server.on("connection", (socket) => sockets.push(socket));
     servers.push(server);
     await new Promise<void>((resolve, reject) => {
@@ -308,61 +361,216 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(runClient(residentRequest(paths, {
-      requestRoute: "shared",
-      operation: "collect", composed: true,
-      lifetime: "lifetime",
-      root: "/tmp/root",
-      advicee: {
-        host: "codex-cli",
-        hostVersion: "0.155.1",
-        sessionId: "session",
-        turnId: "turn",
-        toolUseId: "tool",
-        subagentId: null,
-      },
-      dispatch: {
-        statePath: "/tmp/consent",
-        userConfigPath: null,
-        credential: {
-          name: "JEV_API_KEY",
-          environmentValue: "x".repeat(300_000),
-          environmentOnly: true,
-          generation: 0,
-          statePath: "/tmp/credential-state",
-        },
-        controlled: null,
-      },
-    }, 500))).rejects.toThrow("request exceeded frame bound");
+    await expect(
+      runClient(
+        residentRequest(
+          paths,
+          {
+            requestRoute: "shared",
+            operation: "collect",
+            composed: true,
+            lifetime: "lifetime",
+            root: "/tmp/root",
+            advicee: {
+              host: "codex-cli",
+              hostVersion: "0.155.1",
+              sessionId: "session",
+              turnId: "turn",
+              toolUseId: "tool",
+              subagentId: null,
+            },
+            dispatch: {
+              statePath: "/tmp/consent",
+              userConfigPath: null,
+              credential: {
+                name: "JEV_API_KEY",
+                environmentValue: "x".repeat(300_000),
+                environmentOnly: true,
+                generation: 0,
+                statePath: "/tmp/credential-state",
+              },
+              controlled: null,
+            },
+          },
+          500,
+        ),
+      ),
+    ).rejects.toThrow("request exceeded frame bound");
     expect(received).toBe(0);
   });
 });
 
-effectIt.effect("dispatch credentials and paths use the supplied configuration provider", () => Effect.gen(function* () {
-  const root = yield* Effect.promise(makeGitFixture);
-  directories.push(root);
-  const credentialStatePath = join(root, "credential-state.json");
-  const acquire = makeResidentDispatchContextEffect(root, join(root, "consent"), join(root, "activity"), undefined, undefined);
-  const configured = yield* acquire.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
-    TYPESAFE_API_KEY: "synthetic-fixture-credential",
-    REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
-    REVIEW_DEMO_BUDGET_PATH: join(root, "budget"),
-  }))));
-  expect(configured.credential?.environmentValue).toBe("synthetic-fixture-credential");
-  expect(configured.credential?.statePath).toBe(credentialStatePath);
-  expect(configured.demoBudgetPath).toBe(join(root, "budget"));
-  const absent = yield* acquire.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
-    REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
-  }))));
-  expect(absent.credential?.environmentValue).toBeNull();
-  expect(absent.demoBudgetPath).toBeNull();
-  for (const key of ["REVIEW_CREDENTIAL_STATE_PATH", "REVIEW_DEMO_BUDGET_PATH"]) {
-    const invalid = yield* acquire.pipe(
-      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
-        REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath, [key]: "",
-      }, { preserveEmptyStrings: true }))),
-      Effect.result,
+effectIt.effect("dispatch credentials and paths use the supplied configuration provider", () =>
+  Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    directories.push(root);
+    const credentialStatePath = join(root, "credential-state.json");
+    const acquire = makeResidentDispatchContextEffect(
+      root,
+      join(root, "consent"),
+      join(root, "activity"),
+      undefined,
+      undefined,
     );
-    expect(invalid._tag).toBe("Failure");
+    const configured = yield* acquire.pipe(
+      Effect.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromUnknown({
+            TYPESAFE_API_KEY: "synthetic-fixture-credential",
+            REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
+            REVIEW_DEMO_BUDGET_PATH: join(root, "budget"),
+          }),
+        ),
+      ),
+    );
+    expect(configured.credential?.environmentValue).toBe("synthetic-fixture-credential");
+    expect(configured.credential?.statePath).toBe(credentialStatePath);
+    expect(configured.demoBudgetPath).toBe(join(root, "budget"));
+    const absent = yield* acquire.pipe(
+      Effect.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromUnknown({
+            REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
+          }),
+        ),
+      ),
+    );
+    expect(absent.credential?.environmentValue).toBeNull();
+    expect(absent.demoBudgetPath).toBeNull();
+    for (const key of ["REVIEW_CREDENTIAL_STATE_PATH", "REVIEW_DEMO_BUDGET_PATH"]) {
+      const invalid = yield* acquire.pipe(
+        Effect.provide(
+          ConfigProvider.layer(
+            ConfigProvider.fromUnknown(
+              {
+                REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
+                [key]: "",
+              },
+              { preserveEmptyStrings: true },
+            ),
+          ),
+        ),
+        Effect.result,
+      );
+      expect(invalid._tag).toBe("Failure");
+    }
+  }),
+);
+
+effectIt.effect("serializes only portable controlled dispatch options and keeps credential opt-in", () =>
+  Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    directories.push(root);
+    const provider = ConfigProvider.layer(
+      ConfigProvider.fromUnknown({
+        REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json"),
+      }),
+    );
+    const options: import("../test-support/controlled-decision-model.ts").ControlledDecisionModelOptions = {
+      answers: { fixture: { _tag: "Probability", probability: 0.5 } },
+      delayMs: 0,
+      failure: "fixture-failure",
+      failureOnSourceIncludes: "fail-marker",
+      findingOnSourceIncludes: "finding-marker",
+      syntheticR6BrandedRepair: "control",
+      capturePath: "capture",
+      requestSummaryPath: "summary",
+      outcomePath: "outcome",
+      requireCredential: false,
+      onRequest: Effect.void,
+      inspectRequest: () => Effect.void,
+      extraDecisionKey: "not-portable",
+    };
+    const context = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, options).pipe(
+      Effect.provide(provider),
+    );
+    const { onRequest: _onRequest, inspectRequest: _inspect, extraDecisionKey: _extra, ...portable } = options;
+    expect(context.controlled).toEqual(portable);
+    expect(context.credential).toBeNull();
+    const empty = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, {}).pipe(
+      Effect.provide(provider),
+    );
+    expect(empty.controlled).toEqual({});
+    expect(empty.credential).toBeNull();
+    const required = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, {
+      requireCredential: true,
+    }).pipe(Effect.provide(provider));
+    expect(required.controlled).toEqual({ requireCredential: true });
+    expect(required.credential?.environmentValue).toBeNull();
+  }),
+);
+
+it("preserves edit polling and rejection outcomes through bounded IPC", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "resident-edit-outcomes-"));
+  directories.push(directory);
+  await chmod(directory, 0o700);
+  const paths = residentPaths(directory);
+  let reply: { readonly status: string; readonly reason?: string } = { status: "empty" };
+  const server = createServer((socket) => {
+    sockets.push(socket);
+    socket.once("data", () => socket.end(`${JSON.stringify({ version: 1, ...reply })}\n`));
+  });
+  servers.push(server);
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(paths.socket, resolve);
+  });
+  await chmod(paths.socket, 0o600);
+  const startup = Layer.succeed(
+    ResidentStartup,
+    ResidentStartup.of({
+      now: Effect.sync(() => performance.now()),
+      prepare: () => Effect.void,
+      probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
+      launch: () => Effect.die("ready owner must not launch"),
+      wait: (milliseconds) => Effect.sleep(milliseconds),
+      clearDiagnostic: () => Effect.void,
+      diagnostic: () => Effect.succeed(""),
+    }),
+  );
+  const observation: DirectObservation = {
+    root: "/fixture",
+    rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" },
+    advicee: {
+      host: "claude-code",
+      hostVersion: "2.1.218",
+      sessionId: "session",
+      turnId: null,
+      toolUseId: "tool",
+      subagentId: null,
+    },
+    candidates: [],
+  };
+  const dispatch: import("./protocol.ts").ResidentDispatchContext = {
+    statePath: "/fixture/consent",
+    activityPath: "/fixture/activity",
+    sessionAnalytics: false,
+    userConfigPath: null,
+    demoBudgetPath: null,
+    credential: null,
+    controlled: null,
+  };
+  for (const status of [
+    "pending",
+    "empty",
+    "unsupported",
+    "rejected-capacity",
+    "rejected-stale",
+    "obsolete-lifetime",
+    "unavailable",
+  ]) {
+    reply = status === "unavailable" ? { status, reason: "backend" } : { status };
+    const result = await Effect.runPromise(
+      admitAndCollectEffect(observation, dispatch, Number(process.hrtime.bigint()) / 1_000_000 + 1_000, paths).pipe(
+        Effect.provide(startup),
+      ),
+    );
+    expect(result).toEqual(
+      status === "pending" || status === "empty"
+        ? { status }
+        : status === "unavailable"
+          ? { requestRoute: "edit", status, reason: "backend" }
+          : { status: "unavailable", reason: "lost" },
+    );
   }
-}));
+});

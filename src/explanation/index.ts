@@ -1,8 +1,4 @@
-import type {
-  ConfigurationOrigin,
-  PatternOrigin,
-  ResolvedPolicy,
-} from "../configuration/types.ts";
+import type { ConfigurationOrigin, PatternOrigin, ResolvedPolicy } from "../configuration/types.ts";
 import { selectGlobalPath, type ProtectedGate, type SelectionDecision } from "../policy/file-policy.ts";
 
 export type PathExplanation = {
@@ -21,9 +17,7 @@ export type PathExplanation = {
   readonly origins: ReadonlyArray<ConfigurationOrigin>;
 };
 
-const uniqueOrigins = (
-  values: ReadonlyArray<ConfigurationOrigin>,
-): ReadonlyArray<ConfigurationOrigin> => {
+const uniqueOrigins = (values: ReadonlyArray<ConfigurationOrigin>): ReadonlyArray<ConfigurationOrigin> => {
   const seen = new Set<string>();
   return values.filter((value) => {
     const key = `${value.layer}\0${value.source}\0${value.field}`;
@@ -34,10 +28,7 @@ const uniqueOrigins = (
 };
 
 /** Explain the exact policy decision used by runtime selection. No backend is touched. */
-export const explainPath = (
-  policy: ResolvedPolicy,
-  path: string,
-): PathExplanation => {
+export const explainPath = (policy: ResolvedPolicy, path: string): PathExplanation => {
   const selection = selectGlobalPath(policy, path);
   const protectedGate = selection.reason === "protected" ? selection.gate : undefined;
   const allExcludes = [...policy.excludes, ...policy.protectedExcludes];
@@ -64,30 +55,20 @@ export const explainPath = (
   };
 };
 
-export const formatPathExplanation = (explanation: PathExplanation): string => {
-  const lines = [
-    `${explanation.path}: ${explanation.selected ? "selected" : "not selected"} (${explanation.reason})`,
+const formattedPattern = (entry: PatternOrigin): string =>
+  `  ${entry.value} [${entry.origin.layer} ${entry.origin.source}#${entry.origin.field}]`;
+const overriddenIncludeLines = (entries: ReadonlyArray<PatternOrigin>): string[] =>
+  entries.length === 0 ? [] : ["overridden includes:", ...entries.map(formattedPattern)];
+const matchingExcludeLines = (entries: ReadonlyArray<PatternOrigin>): string[] =>
+  entries.length === 0 ? ["  (none)"] : entries.map(formattedPattern);
+const pathSelectionLabel = (selected: boolean): string => (selected ? "selected" : "not selected");
+export const formatPathExplanation = (explanation: PathExplanation): string =>
+  [
+    `${explanation.path}: ${pathSelectionLabel(explanation.selected)} (${explanation.reason})`,
     `policy: ${explanation.policyDigest}`,
     "effective includes:",
-    ...explanation.effectiveIncludes.map((entry) =>
-      `  ${entry.value} [${entry.origin.layer} ${entry.origin.source}#${entry.origin.field}]`,
-    ),
-  ];
-  if (explanation.overriddenIncludes.length > 0) {
-    lines.push(
-      "overridden includes:",
-      ...explanation.overriddenIncludes.map((entry) =>
-        `  ${entry.value} [${entry.origin.layer} ${entry.origin.source}#${entry.origin.field}]`,
-      ),
-    );
-  }
-  lines.push(
+    ...explanation.effectiveIncludes.map(formattedPattern),
+    ...overriddenIncludeLines(explanation.overriddenIncludes),
     "matching excludes:",
-    ...(explanation.matchingExcludes.length === 0
-      ? ["  (none)"]
-      : explanation.matchingExcludes.map((entry) =>
-          `  ${entry.value} [${entry.origin.layer} ${entry.origin.source}#${entry.origin.field}]`,
-        )),
-  );
-  return lines.join("\n");
-};
+    ...matchingExcludeLines(explanation.matchingExcludes),
+  ].join("\n");

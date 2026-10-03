@@ -67,6 +67,26 @@ for the same hashed unit remain idempotent. Submission does not prove that the m
 `modelReaction` remains `unavailable` until separate host evidence
 exists. Missing instrumentation and silence are never reported as `clear`.
 
+## Preview the message sent to the agent
+
+Run `hapsland --feedback-preview` to display the shared feedback heading,
+response instructions, and a synthetic finding. From a source checkout, run
+`node src/cli.ts --feedback-preview`. This command does not read stdin or project
+source, resolve credentials, call a review backend, or persist activity. It is a
+format preview, not a replay of your session or a positive review result.
+
+The text is owned by [one runtime-neutral formatter](../src/feedback/message.ts).
+It names Hapsland, lists the file, declaration, and configured message for each
+finding, and asks the agent to check the findings, fix valid issues and verify,
+or explain disagreement. Rule IDs and classification probabilities remain
+internal review metadata; they are not included in the agent-facing text. Notice-only messages do not request a repair.
+Claude and Codex use this same text; their hook envelopes and optional blocking
+authority differ. Operational notices remain distinct from rule findings.
+
+For actual feedback, inspect the agent runtime's session transcript. Status
+intentionally does not retain advice text. Submission records cannot prove
+that the agent read, acknowledged, or applied a finding.
+
 ## Session status
 
 Use an explicit session ID with the status operation:

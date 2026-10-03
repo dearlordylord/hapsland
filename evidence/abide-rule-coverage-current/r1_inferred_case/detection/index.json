@@ -1,0 +1,116 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T23:13:13.295Z",
+  "records": [
+    {
+      "stage": "A",
+      "id": "retention-action",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "retention-action",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "retention-action",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "retention-action",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "retention-action",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "retention-action",
+      "candidate": "abide",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "render-destination",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "render-destination",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "render-destination",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "render-destination",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "render-destination",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "render-destination",
+      "candidate": "abide",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "clean-profile-attributes",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "clean-profile-attributes",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "clean-profile-attributes",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "clean-profile-attributes",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "clean-profile-attributes",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "clean-profile-attributes",
+      "candidate": "abide",
+      "pass": 2
+    }
+  ],
+  "attempts": 18,
+  "hostUncachedPlusOutputTokens": 0
+}

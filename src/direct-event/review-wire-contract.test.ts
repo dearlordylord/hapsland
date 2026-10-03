@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
@@ -45,7 +46,7 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
   return {
     root: "/fixture", identity: `wire-${branch}`,
     advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s", turnId: "t", toolUseId: "u", subagentId: null },
-    input: { contract, candidateProjection: true, completeness: "complete", path,
+    input: { providerIdentity: providerIdentity({ provider: "jev" }), contract, candidateProjection: true, completeness: "complete", path,
       declaration: root, unit: { root: rootNode },
       rules: freezeRules([rule], { artifactKind: isType ? "typeShape" : "function", inputContract: contract }),
       interpretation: "probability-strictly-greater-than-threshold" },

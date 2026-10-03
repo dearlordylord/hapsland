@@ -6,6 +6,8 @@
 **Expected use:** Review the comparison and rationale before adopting them in public documentation.
 **Lifecycle:** When this comparison is accepted for publication, consolidate the approved text into README.md or a maintained comparison page, update inbound links, and delete this draft. Move any adopted product requirement to its existing contract owner. Recheck claims against the compared implementations before publication.
 
+[Studies and examples](./review-studies.md) → Architectural comparison draft
+
 This comparison concerns review inputs and data boundaries. Rule origins, loading mechanisms, and easily added configuration features do not justify a separate product. Abide observations refer to version 0.0.7 and upstream commit `533a3d25d5d537bf9005f2f48ce5b18837fd5c74`; Hapsland observations have the implementation and validation limits recorded in the research below.
 
 | Architectural question | Hapsland | Abide |
@@ -33,4 +35,4 @@ The underlying advisory research separates product approaches, technical details
 - [Approaches and requirements](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-APPROACHES.md).
 - [Technical comparison](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-TECHNICAL.md).
 - [Coexistence investigation](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-COEXISTENCE.md).
-- [Quality pilot](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-QUALITY-RESULTS.md), [detection results](../evidence/abide-quality/summary.json), and [blindly scored native repairs](../evidence/abide-quality-native/repair-comparison.json). This selected synthetic pilot found different detection strengths, but no repair advantage for Hapsland over Abide in the tested Codex sessions.
+- [Contextual review and repair study](./abide-contextual-review-study.md): current selected-workflow results, comparison methodology, false warnings, and reproducible evidence.

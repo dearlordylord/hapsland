@@ -1,0 +1,525 @@
+{
+  "stage": "B",
+  "taskId": "contextual-2-audio-encoding",
+  "candidate": "abide",
+  "ordinal": 1,
+  "blindId": "ae2ba7a5a69e",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 155284,
+  "usage": {
+    "input_tokens": 147316,
+    "cached_input_tokens": 130816,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 7968,
+    "reasoning_output_tokens": 6524
+  },
+  "uncachedPlusOutputTokens": 24468,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790979513437,
+      "pid": 3788183,
+      "invocation": "86304b9aa425aec6",
+      "trace": "process-start",
+      "elapsedMs": 22.67247
+    },
+    {
+      "at": 1790979513528,
+      "pid": 3788183,
+      "invocation": "86304b9aa425aec6",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 113.38518
+    },
+    {
+      "at": 1790979513579,
+      "pid": 3788254,
+      "invocation": "9fa0f4ee0d5e6367",
+      "trace": "process-start",
+      "elapsedMs": 18.981531
+    },
+    {
+      "at": 1790979513671,
+      "pid": 3788254,
+      "invocation": "9fa0f4ee0d5e6367",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 111.115666
+    },
+    {
+      "at": 1790979633735,
+      "pid": 3794336,
+      "invocation": "0671fefcc4d1784c",
+      "trace": "process-start",
+      "elapsedMs": 15.226694
+    },
+    {
+      "at": 1790979634044,
+      "pid": 3794336,
+      "invocation": "0671fefcc4d1784c",
+      "trace": "stdout-write",
+      "bytes": 147,
+      "elapsedMs": 324.255137
+    },
+    {
+      "at": 1790979634044,
+      "pid": 3794336,
+      "invocation": "0671fefcc4d1784c",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 324.464263
+    },
+    {
+      "at": 1790979644288,
+      "pid": 3794799,
+      "invocation": "7edf091164e64e19",
+      "trace": "process-start",
+      "elapsedMs": 18.966762
+    },
+    {
+      "at": 1790979644367,
+      "pid": 3794799,
+      "invocation": "7edf091164e64e19",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 98.771923
+    },
+    {
+      "at": 1790979664957,
+      "pid": 3795492,
+      "invocation": "15de0235c7a3d696",
+      "trace": "process-start",
+      "elapsedMs": 17.284459
+    },
+    {
+      "at": 1790979665241,
+      "pid": 3795492,
+      "invocation": "15de0235c7a3d696",
+      "trace": "stdout-write",
+      "bytes": 158,
+      "elapsedMs": 301.440388
+    },
+    {
+      "at": 1790979665242,
+      "pid": 3795492,
+      "invocation": "15de0235c7a3d696",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 301.696807
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "86304b9aa425aec6",
+      "kind": "session-start",
+      "at": 1790979513409,
+      "event": "SessionStart",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "86304b9aa425aec6",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "session-start",
+      "at": 1790979513409,
+      "doneAt": 1790979513530,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "69a0351d7a9a02b121c08456a7975bbcd325b67520055ca90ddf2e72f7c38e7c"
+    },
+    {
+      "trace": "start",
+      "invocation": "9fa0f4ee0d5e6367",
+      "kind": "turn-start",
+      "at": 1790979513556,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "9fa0f4ee0d5e6367",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "turn-start",
+      "at": 1790979513556,
+      "doneAt": 1790979513674,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "69a0351d7a9a02b121c08456a7975bbcd325b67520055ca90ddf2e72f7c38e7c"
+    },
+    {
+      "trace": "start",
+      "invocation": "0671fefcc4d1784c",
+      "kind": "post-tool-use",
+      "at": 1790979633717,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "0671fefcc4d1784c",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 147,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790979633717,
+      "doneAt": 1790979634074,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [
+        "r4_duplicate_encoding"
+      ],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": true,
+      "sourceHash": "869ad8237617985a07903b098a556a7986420c7422f1862e80e7c80022bf96f6"
+    },
+    {
+      "trace": "start",
+      "invocation": "7edf091164e64e19",
+      "kind": "post-tool-use",
+      "at": 1790979644266,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "7edf091164e64e19",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790979644266,
+      "doneAt": 1790979644371,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "869ad8237617985a07903b098a556a7986420c7422f1862e80e7c80022bf96f6"
+    },
+    {
+      "trace": "start",
+      "invocation": "15de0235c7a3d696",
+      "kind": "stop",
+      "at": 1790979664936,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "15de0235c7a3d696",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 158,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790979664936,
+      "doneAt": 1790979665280,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [
+        "r4_duplicate_encoding"
+      ],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": true,
+      "sourceHash": "869ad8237617985a07903b098a556a7986420c7422f1862e80e7c80022bf96f6"
+    }
+  ],
+  "requests": [
+    {
+      "id": "ce16ebcb-ae8d-4afa-a3a7-0073df658e70",
+      "at": 1790979633826,
+      "candidate": "abide",
+      "caseId": "contextual-2-audio-encoding",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2524,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "ce16ebcb-ae8d-4afa-a3a7-0073df658e70",
+      "at": 1790979633826,
+      "candidate": "abide",
+      "caseId": "contextual-2-audio-encoding",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 215,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 916,
+        "output_tokens": 27
+      }
+    },
+    {
+      "id": "96decfa4-1417-4dc4-8d48-51e4e2a38d4a",
+      "at": 1790979665059,
+      "candidate": "abide",
+      "caseId": "contextual-2-audio-encoding",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2538,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "96decfa4-1417-4dc4-8d48-51e4e2a38d4a",
+      "at": 1790979665059,
+      "candidate": "abide",
+      "caseId": "contextual-2-audio-encoding",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 178,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 926,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "b2c26773293f1a3d5bd5f6ebbaa9cdf7cb05771c3126b7fbaa1d2be9e91a7aa4",
+    "requestedByHook": true,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "869ad8237617985a07903b098a556a7986420c7422f1862e80e7c80022bf96f6",
+  "changed": true
+}

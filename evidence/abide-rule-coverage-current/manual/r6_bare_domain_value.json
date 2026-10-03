@@ -1,0 +1,231 @@
+{
+  "version": 1,
+  "blinded": true,
+  "rows": [
+    {
+      "blindId": "0ade5800ca0a",
+      "sourceDigest": "10eca769b7c817ba7cfd9f5d2fe9606b5a99fc18bb513f2c2a9168b39a296ff8",
+      "supportingDigest": "bd8c79c2f22dedc020fee8e1cdabec39f78d0123f45805b270875d6847f29e73",
+      "caseId": "account-project-identities",
+      "status": "remaining",
+      "rationale": "AccountId and ProjectId remain aliases of string, not distinct identity types. Independent compiler probes accept both cross-kind scalar assignments and both cross-kind association fields. The account/project association and arbitrary string presentation remain, but the predeclared non-substitution requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "valid-association-A",
+          "expectedAccepted": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/0ade5800ca0a/probe-1.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Valid same-kind association remains accepted."
+        },
+        {
+          "label": "valid-association-B",
+          "expectedAccepted": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/0ade5800ca0a/probe-2.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Valid same-kind association remains accepted."
+        },
+        {
+          "label": "project-substitutes-account-type",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/0ade5800ca0a/probe-3.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "account-substitutes-project-type",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/0ade5800ca0a/probe-4.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "project-substitutes-account-field",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/0ade5800ca0a/probe-5.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "account-substitutes-project-field",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/0ade5800ca0a/probe-6.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        }
+      ],
+      "rubric": "Distinct account and project identity types or independently validated constructors must prevent cross-substitution. Prefix spelling of sample strings alone is not proof. Both identities and their association must remain.",
+      "blindnessLimitation": null,
+      "limitations": "Typed witnesses test substitution without imposing sample-prefix validation or requiring branded identities to accept raw string literals. Finite TypeScript 5.9.3 checks demonstrate these assignments, not a general proof."
+    },
+    {
+      "blindId": "9e990fc58518",
+      "sourceDigest": "29c898e417068a6db3b121a540f3c8f15350368e6997e7025af89131c96895dc",
+      "supportingDigest": "bd8c79c2f22dedc020fee8e1cdabec39f78d0123f45805b270875d6847f29e73",
+      "caseId": "account-project-identities",
+      "status": "remaining",
+      "rationale": "AccountId and ProjectId remain aliases of string, not distinct identity types. Independent compiler probes accept both cross-kind scalar assignments and both cross-kind association fields. The account/project association and arbitrary string presentation remain, but the predeclared non-substitution requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "valid-association-A",
+          "expectedAccepted": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/9e990fc58518/probe-1.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Valid same-kind association remains accepted."
+        },
+        {
+          "label": "valid-association-B",
+          "expectedAccepted": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/9e990fc58518/probe-2.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Valid same-kind association remains accepted."
+        },
+        {
+          "label": "project-substitutes-account-type",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/9e990fc58518/probe-3.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "account-substitutes-project-type",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/9e990fc58518/probe-4.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "project-substitutes-account-field",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/9e990fc58518/probe-5.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "account-substitutes-project-field",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/9e990fc58518/probe-6.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        }
+      ],
+      "rubric": "Distinct account and project identity types or independently validated constructors must prevent cross-substitution. Prefix spelling of sample strings alone is not proof. Both identities and their association must remain.",
+      "blindnessLimitation": null,
+      "limitations": "Typed witnesses test substitution without imposing sample-prefix validation or requiring branded identities to accept raw string literals. Finite TypeScript 5.9.3 checks demonstrate these assignments, not a general proof."
+    },
+    {
+      "blindId": "afd3e833bcec",
+      "sourceDigest": "10eca769b7c817ba7cfd9f5d2fe9606b5a99fc18bb513f2c2a9168b39a296ff8",
+      "supportingDigest": "bd8c79c2f22dedc020fee8e1cdabec39f78d0123f45805b270875d6847f29e73",
+      "caseId": "account-project-identities",
+      "status": "remaining",
+      "rationale": "AccountId and ProjectId remain aliases of string, not distinct identity types. Independent compiler probes accept both cross-kind scalar assignments and both cross-kind association fields. The account/project association and arbitrary string presentation remain, but the predeclared non-substitution requirement is unmet.",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "checks": [
+        {
+          "label": "valid-association-A",
+          "expectedAccepted": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/afd3e833bcec/probe-1.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Valid same-kind association remains accepted."
+        },
+        {
+          "label": "valid-association-B",
+          "expectedAccepted": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/afd3e833bcec/probe-2.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Valid same-kind association remains accepted."
+        },
+        {
+          "label": "project-substitutes-account-type",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/afd3e833bcec/probe-3.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "account-substitutes-project-type",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/afd3e833bcec/probe-4.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "project-substitutes-account-field",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/afd3e833bcec/probe-5.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        },
+        {
+          "label": "account-substitutes-project-field",
+          "expectedAccepted": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": [],
+          "probe": "manual/probes/r6_bare_domain_value/afd3e833bcec/probe-6.ts",
+          "typescriptVersion": "5.9.3",
+          "interpretation": "Cross-kind substitution is accepted, demonstrating the remaining identity defect."
+        }
+      ],
+      "rubric": "Distinct account and project identity types or independently validated constructors must prevent cross-substitution. Prefix spelling of sample strings alone is not proof. Both identities and their association must remain.",
+      "blindnessLimitation": null,
+      "limitations": "Typed witnesses test substitution without imposing sample-prefix validation or requiring branded identities to accept raw string literals. Finite TypeScript 5.9.3 checks demonstrate these assignments, not a general proof."
+    }
+  ]
+}

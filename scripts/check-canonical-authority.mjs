@@ -45,19 +45,21 @@ const schemaKinds = (source) => {
   return result;
 };
 const declaredEventKinds = schemaKinds(between(models, "export const CanonicalEventSchema =", "export type CanonicalEvent ="));
-const encoder = between(adapter, "const encodeCanonicalEvent = (input: CanonicalEvent)", "const decodeCommand =");
-const encodedEventKinds = matches(encoder, /case "([A-Za-z][A-Za-z0-9]*)":/g);
-sameSet(encodedEventKinds, declaredEventKinds, "CanonicalEvent kind and encoder case coverage");
-assert.match(encoder, /default:\s*throw new TypeError\("unknown canonical event"\)/);
+const encoder = between(adapter, "const eventEncoders:", "const encodeVariant =");
+const encodedEventKinds = matches(encoder, /^\s*"?([A-Za-z][A-Za-z0-9]*)"?:/gm);
+sameSet(encodedEventKinds, declaredEventKinds, "CanonicalEvent kind and encoder coverage");
+assert.match(adapter, /encodeVariant\(decodeEvent\(input\)\)/);
+
 
 const bendCommands = bendConstructors("Command");
-const decodedCommands = matches(between(adapter, "const decodeCommand =", "const known ="),
-  /case "Canonical\.([A-Z][A-Za-z0-9_]*)"/g);
+const decodedCommands = matches(between(adapter, "const commandDecoders:", "const decodeCommand ="),
+  /"Canonical\.([A-Z][A-Za-z0-9_]*)":/g);
 sameSet(decodedCommands, bendCommands, "Bend Command and runtime decoder coverage");
 const declaredCommandKinds = schemaKinds(between(models, "export const CanonicalCommandSchema =", "export type CanonicalCommand ="));
 const bendCommandKinds = new Set([...bendCommands].map((name) => name[0].toLowerCase() + name.slice(1)));
 sameSet(declaredCommandKinds, bendCommandKinds, "CanonicalCommand type and Bend Command coverage");
-assert.match(adapter, /default:\s*throw new TypeError\("unknown canonical command"\)/);
+assert.match(adapter, /Object\.hasOwn\(commandDecoders, name\)/);
+assert.match(adapter, /throw new TypeError\("unknown canonical command"\)/);
 for (const command of bendCommands) {
   assert.ok(generated.includes(`"Canonical.${command}"`), `compiled Bend lacks Command ${command}`);
 }
@@ -101,5 +103,5 @@ assert.deepEqual([...declaredExports].sort(), [
 assert.match(scalarSchemas, /maximum: 2 \*\* 48 - 1/);
 assert.match(adapter, /export const CANONICAL_MAX_BYTES = 2 \*\* 47 - 1;/);
 assert.match(adapter, /export const CANONICAL_MAX_UNITS = 1024;/);
-assert.match(adapter, /default: throw new TypeError\("unknown canonical step"\)/);
+assert.match(adapter, /default:\s*throw new TypeError\("unknown canonical step"\)/);
 console.log(`checked ${declaredEventKinds.size} event kinds, ${bendCommands.size} command variants, ${consumedTags.size} consumed tags, ${auditedConstructors} exact constructor schemas, and ${declaredExports.size} compiled exports`);

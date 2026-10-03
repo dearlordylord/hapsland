@@ -20,7 +20,7 @@ import {
   evaluatePrepared,
   prepareObservation,
   revalidateEvaluations,
-  reviewCodexAdd,
+  reviewCodexDirectEvent,
   reviewObservation,
   type DirectReviewContext,
 } from "./pipeline.ts";
@@ -49,7 +49,7 @@ const enabledReview = (
   modelOptions: ControlledDecisionModelOptions = { answers: findingAnswers() },
   extend: (base: DirectReviewContext) => DirectReviewContext = (base) => base,
 ) => Effect.gen(function* () {
-  return yield* reviewCodexAdd(event, extend({
+  return yield* reviewCodexDirectEvent(event, extend({
     controlledWriter: true,
     advicee: advicee(),
     settings,

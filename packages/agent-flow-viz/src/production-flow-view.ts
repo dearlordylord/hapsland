@@ -199,6 +199,7 @@ export const productionFlowView = <Message>(
   partition?: number,
   selected?: { readonly group?: number; readonly round?: number },
   agents?: readonly AgentScope[],
+  activitySteps?: readonly ReplayStep[],
 ) => {
   if (selected?.group !== undefined && ![...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)].includes(selected.group)) selected = { ...selected, group: undefined };
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
@@ -282,13 +283,18 @@ export const productionFlowView = <Message>(
       return `Stop result recorded as ${last.event.outcome}; agent use of advice is not observed.`;
     return undefined;
   })();
-  const changedStages = last?.preparation ? ["preparation", ...flow.changedStages] : flow.changedStages;
+  // A playback batch can contain transient records absent from its endpoint.
+  const activity = activitySteps ? activitySteps.map(step => ({
+    step, flow: projectFlowStep(step.event.kind !== "preparationGraph" ? { ...step, event: step.event } : undefined, numbers),
+  })) : last ? [{ step: last, flow }] : [];
+  const changedStages = activity.flatMap(({ step, flow }) => step.preparation ? ["preparation" as const, ...flow.changedStages] : flow.changedStages);
+  const activityEvidence = activity.flatMap(({ flow }) => flow.evidence);
   const declaredRoutes = new Set(CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
   if (declaredRoutes.size !== CONNECTIONS.length) throw new Error("duplicate dashboard arrow route");
   const unmapped = flow.evidence.filter(item => !declaredRoutes.has(`${item.from}:${item.to}`));
   const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection, numbers), facets: SQUARES[id].facets(projection, numbers) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
-    const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
+    const evidence = activityEvidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
       linked: "relation" in connection && connection.relation === "linked record",
       evidence: evidence.map((item) => `${item.relation ?? item.source}: ${item.description}`).join("; ") };
@@ -309,7 +315,7 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"]),
+    ...(!infrastructure ? [h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"])] : []),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role(inspect ? "group" : "img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
@@ -455,6 +461,7 @@ export const productionFlowView = <Message>(
         ])) : []),
       ]),
     ]),
+    ...(!infrastructure ? [
     ...(stepCaption === undefined ? [] : [h.p([h.Class("topology-current-step")], [stepCaption])]),
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
@@ -504,5 +511,6 @@ export const productionFlowView = <Message>(
       ...(unmapped.length ? [h.p([h.Class("topology-unmapped-relations")], [`Checked relations outside drawn connections: ${unmapped.map(item => `${SQUARES[item.from].title} → ${SQUARES[item.to].title}: ${item.description}`).join("; ")}.`])] : []),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
+    ] : []),
   ]);
 };

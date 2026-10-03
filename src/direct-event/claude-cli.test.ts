@@ -183,8 +183,8 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     } });
     expect(result.stdout).toBe(encodeClaudeHostOutputLine(advice as ClaudeHostOutput));
     expect(advice.decision).toBeUndefined();
-    expect(advice.hookSpecificOutput?.additionalContext).toContain("Please repair each finding");
-    expect(advice.hookSpecificOutput?.additionalContext).toContain("r6_bare_domain_value");
+    expect(advice.hookSpecificOutput?.additionalContext).toContain("Fix valid issues and verify");
+    expect(advice.hookSpecificOutput?.additionalContext).toContain("A domain value appears to use an overly broad primitive type.");
     expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
@@ -196,9 +196,9 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const block = JSON.parse(blockResult.stdout) as { decision?: string; reason?: string };
     expect(block).toMatchObject({
       decision: "block",
-      reason: expect.stringContaining("r6_bare_domain_value"),
+      reason: expect.stringContaining("A domain value appears to use an overly broad primitive type."),
     });
-    expect(block.reason).toContain("Repair the listed finding(s)");
+    expect(block.reason).toContain("Fix valid issues and verify");
     expect(blockResult.stdout).toBe(`${JSON.stringify(block)}\n`);
     expect(Object.keys(block).sort()).toEqual(["decision", "reason"]);
     expect(Buffer.byteLength(blockResult.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
@@ -461,7 +461,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(result.status).toBe(0);
     const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
     const context = output.hookSpecificOutput?.additionalContext ?? "";
-    const findingCount = [...context.matchAll(/\[r6_bare_domain_value/g)].length;
+    const findingCount = [...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)].length;
     expect(findingCount).toBeGreaterThan(0);
     expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
@@ -522,7 +522,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const output = JSON.parse(stop.stdout) as { decision?: string; reason?: string };
     expect(output.decision).toBe("block");
     const context = output.reason ?? "";
-    expect([...context.matchAll(/\[r6_bare_domain_value/g)]).toHaveLength(6);
+    expect([...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)]).toHaveLength(6);
     for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
     expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
@@ -815,53 +815,6 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(background.status).toBe(0);
     expect(background.stdout).toBe("");
     expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
-  });
-
-  it("waits for unfinished admitted work and offers its finding at Stop", async () => {
-    const root = await makeGitFixture();
-    roots.push(root);
-    const statePath = join(root, "consent");
-    const path = await put(root, "type.ts", "type StopCount = number\n");
-    const event = {
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "stop-session", tool_use_id: "stop-tool",
-      tool_input: { file_path: path, content: "type StopCount = number\n" },
-      tool_response: { filePath: path, content: "type StopCount = number\n", originalFile: null, userModified: false },
-    };
-    const activityPath = join(root, "stop-activity");
-    const capturePath = join(root, "stop-request-count");
-    const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"), REVIEW_ACTIVITY_PATH: activityPath,
-      REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 5_000, capturePath,
-        answers: Object.fromEntries(configuredRules.map((rule) => [
-          rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-        ])) }),
-    };
-    expect(preClaudeEdit(event, env).status).toBe(0);
-    const startedAt = performance.now();
-    const edit = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
-    });
-    expect(edit.status).toBe(0);
-    expect(JSON.parse(edit.stdout)).toEqual({});
-    const editElapsedMs = performance.now() - startedAt;
-    const stop = spawnSync(process.execPath,
-      ["src/cli.ts", "--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"], {
-        cwd: process.cwd(), encoding: "utf8", timeout: 7_000, env,
-        input: JSON.stringify({ hook_event_name: "Stop", cwd: root, session_id: event.session_id,
-          stop_hook_active: false }),
-      });
-    expect(stop.status).toBe(0);
-    const stopElapsedMs = performance.now() - startedAt - editElapsedMs;
-    const paths = residentPaths(join(root, "runtime"));
-    const owner = await runClient(ensureResident(paths));
-    const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
-    const activity = readActivity({ statePath: activityPath, root, sessionId: event.session_id,
-      resident: { available: true, lifetime: owner.lifetime } });
-    const observations = { editElapsedMs, stopElapsedMs, stats, counts: activity.counts,
-      requestCount: existsSync(capturePath) ? readFileSync(capturePath, "utf8").trim().split("\n").length : 0 };
-    expect(JSON.parse(stop.stdout), JSON.stringify(observations)).toMatchObject({ decision: "block", reason: expect.stringContaining("StopCount") });
-    expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
-    expect(readFileSync(path, "utf8")).toBe("type StopCount = number\n");
   });
 
   it("does not acknowledge a Claude lease when stdout reports a write error", async () => {

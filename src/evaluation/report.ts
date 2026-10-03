@@ -18,10 +18,8 @@ import {
 import { digestValue } from "./digest.ts";
 import { enforceCallBudget } from "./plan.ts";
 
-const decode = <S extends Schema.ConstraintDecoder<unknown>>(
-  schema: S,
-  value: unknown,
-): S["Type"] => Schema.decodeUnknownSync(schema, strictParseOptions)(value);
+const decode = <S extends Schema.ConstraintDecoder<unknown>>(schema: S, value: unknown): S["Type"] =>
+  Schema.decodeUnknownSync(schema, strictParseOptions)(value);
 
 const emptyCounts = (): AggregateCountsType => ({
   total: 0,
@@ -48,9 +46,7 @@ const percentile = (sorted: ReadonlyArray<number>, quantile: number): number => 
 
 /** Keep provider timing useful for milestone evidence without retaining a
  * duration for any individual paid response. */
-const aggregateTiming = (
-  observations: ReadonlyArray<import("./model.ts").Observation>,
-): EvaluationTimingEvidence => {
+const aggregateTiming = (observations: ReadonlyArray<import("./model.ts").Observation>): EvaluationTimingEvidence => {
   const durations = observations
     .map((observation) => observation.transport.durationMs)
     .sort((left, right) => left - right);
@@ -68,9 +64,7 @@ const aggregateTiming = (
   });
 };
 
-const summarizeComparison = (
-  result: ComparisonResult,
-): ComparisonSummaryType =>
+const summarizeComparison = (result: ComparisonResult): ComparisonSummaryType =>
   decode(ComparisonSummary, {
     id: result.comparisonId,
     relation: result.relation,
@@ -93,20 +87,41 @@ export interface ReportInput {
   readonly comparisonInputs?: ReadonlyArray<import("./model.ts").Comparison>;
 }
 
+const semanticCountsPassed = (counts: AggregateCountsType): boolean =>
+  counts.failed === 0 && counts.unchecked === 0 && counts.ambiguous === 0;
+const acceptedTransport = (required: boolean, counts: AggregateCountsType): boolean => !required || counts.failed === 0;
+const acceptedConformance = (required: boolean, counts: AggregateCountsType): boolean =>
+  !required || (counts.failed === 0 && counts.unchecked === 0);
+const acceptedSemantics = (
+  required: boolean,
+  semantic: AggregateCountsType,
+  crossBatch: AggregateCountsType,
+): boolean => !required || (semanticCountsPassed(semantic) && semanticCountsPassed(crossBatch));
+const acceptedUnchecked = (required: boolean, counts: AggregateCountsType): boolean =>
+  !required || (counts.unchecked === 0 && counts.ambiguous === 0);
+
+const reportAcceptancePermitted = (
+  acceptance: EvaluationRun["acceptance"],
+  transport: AggregateCountsType,
+  conformance: AggregateCountsType,
+  semantic: AggregateCountsType,
+  crossBatch: AggregateCountsType,
+  unchecked: AggregateCountsType,
+): boolean =>
+  acceptedTransport(acceptance.requireTransportAvailable, transport) &&
+  acceptedConformance(acceptance.requireConformance, conformance) &&
+  acceptedSemantics(acceptance.requireSemanticPass, semantic, crossBatch) &&
+  acceptedUnchecked(acceptance.requireNoUnchecked, unchecked);
+
 /**
  * Build the source-free aggregate report.  This function never copies fixture source,
  * provider responses, messages, or individual probabilities into the returned report.
  */
-export const buildEvaluationReport = (
-  input: ReportInput,
-): EvaluationReportType => {
+export const buildEvaluationReport = (input: ReportInput): EvaluationReportType => {
   let transport = emptyCounts();
   let conformance = emptyCounts();
   for (const observation of input.observations) {
-    transport = increment(
-      transport,
-      observation.transport.status === "available" ? "passed" : "failed",
-    );
+    transport = increment(transport, observation.transport.status === "available" ? "passed" : "failed");
     conformance = increment(conformance, observation.conformance.status);
   }
 
@@ -135,24 +150,18 @@ export const buildEvaluationReport = (
       (observation) => `${observation.scenarioId}:${observation.fixtureId}:${observation.repetition}`,
     ),
   );
-  const observedScenarioIds = new Set(
-    input.observations.map((observation) => observation.scenarioId),
-  );
+  const observedScenarioIds = new Set(input.observations.map((observation) => observation.scenarioId));
   const plannedFixtures = input.scenarios.reduce(
     (total, scenario) => total + scenario.fixtures.length * input.run.repetitions,
     0,
   );
   const comparisonInputs = input.comparisonInputs ?? [];
   const expectationEntries: Array<readonly [string, Expectation]> = comparisonInputs.flatMap((comparison) => {
-      const expectation = comparison.expectation;
-      return expectation === undefined
-        ? []
-        : [[`${expectation.fixtureId}:${expectation.ruleId}`, expectation] as const];
-    });
+    const expectation = comparison.expectation;
+    return expectation === undefined ? [] : [[`${expectation.fixtureId}:${expectation.ruleId}`, expectation] as const];
+  });
   const expectationByKey = new Map<string, Expectation>(expectationEntries);
-  const observedExpectations = comparisonInputs.filter(
-    (comparison) => comparison.expectation !== undefined,
-  ).length;
+  const observedExpectations = comparisonInputs.filter((comparison) => comparison.expectation !== undefined).length;
   const uncheckedExpectations = [...expectationByKey.values()].filter(
     (expectation) => expectation.result.kind === "unchecked",
   ).length;
@@ -164,15 +173,9 @@ export const buildEvaluationReport = (
     observedScenarios: observedScenarioIds.size,
     plannedFixtures,
     observedFixtures: observedScenarioKeys.size,
-    isolatedScenarios: input.scenarios.filter(
-      (scenario) => scenario.interaction === "isolated",
-    ).length,
-    fullBatchScenarios: input.scenarios.filter(
-      (scenario) => scenario.interaction === "full",
-    ).length,
-    namedInteractionScenarios: input.scenarios.filter(
-      (scenario) => scenario.interaction === "named",
-    ).length,
+    isolatedScenarios: input.scenarios.filter((scenario) => scenario.interaction === "isolated").length,
+    fullBatchScenarios: input.scenarios.filter((scenario) => scenario.interaction === "full").length,
+    namedInteractionScenarios: input.scenarios.filter((scenario) => scenario.interaction === "named").length,
     plannedComparisons: input.comparisons.length,
     observedComparisons: input.comparisons.length,
     plannedExpectations: input.run.expectationDigests.length,
@@ -181,35 +184,22 @@ export const buildEvaluationReport = (
     ambiguousExpectations,
   });
 
-  const observedRequests = input.observations.reduce(
-    (total, observation) => total + observation.transport.attempts,
-    0,
-  );
+  const observedRequests = input.observations.reduce((total, observation) => total + observation.transport.attempts, 0);
   const budgetDecision = enforceCallBudget(input.plan, observedRequests);
   const budget = {
     declaredMaximumRequests: input.plan.budgetMaximumRequests,
     plannedRequests: input.plan.plannedRequests,
     worstCaseRequests: input.plan.worstCaseRequests,
     observedRequests,
-    withinBudget: !budgetDecision.exceeded &&
-      input.plan.worstCaseRequests <= input.plan.budgetMaximumRequests,
+    withinBudget: !budgetDecision.exceeded && input.plan.worstCaseRequests <= input.plan.budgetMaximumRequests,
     planPermitted: input.plan.permitted,
-    ...(input.plan.rejectionReason === undefined
-      ? {}
-      : { rejectionReason: input.plan.rejectionReason }),
+    ...(input.plan.rejectionReason === undefined ? {} : { rejectionReason: input.plan.rejectionReason }),
   };
   const acceptance = input.run.acceptance;
   const releaseAccepted =
     input.plan.permitted &&
     budget.withinBudget &&
-    (!acceptance.requireTransportAvailable || transport.failed === 0) &&
-    (!acceptance.requireConformance ||
-      (conformance.failed === 0 && conformance.unchecked === 0)) &&
-    (!acceptance.requireSemanticPass ||
-      (semantic.failed === 0 && semantic.unchecked === 0 && semantic.ambiguous === 0 &&
-        crossBatch.failed === 0 && crossBatch.unchecked === 0 && crossBatch.ambiguous === 0)) &&
-    (!acceptance.requireNoUnchecked ||
-      (unchecked.unchecked === 0 && unchecked.ambiguous === 0));
+    reportAcceptancePermitted(acceptance, transport, conformance, semantic, crossBatch, unchecked);
   const reportWithoutDigest = {
     runId: input.run.id,
     suiteId: input.run.suiteId,
@@ -272,13 +262,9 @@ export const isReportDigestValid = (report: EvaluationReportType): boolean =>
 export const reportIsConformant = (report: EvaluationReportType): boolean =>
   report.conformance.failed === 0 && report.conformance.unchecked === 0;
 
-export const reportHasTransportAvailability = (
-  report: EvaluationReportType,
-): boolean => report.transport.failed === 0 && report.transport.unchecked === 0;
+export const reportHasTransportAvailability = (report: EvaluationReportType): boolean =>
+  report.transport.failed === 0 && report.transport.unchecked === 0;
 
-export const reportHasSemanticFailures = (report: EvaluationReportType): boolean =>
-  report.semantic.failed > 0;
+export const reportHasSemanticFailures = (report: EvaluationReportType): boolean => report.semantic.failed > 0;
 
-export const reportHasCrossBatchFailures = (
-  report: EvaluationReportType,
-): boolean => report.crossBatch.failed > 0;
+export const reportHasCrossBatchFailures = (report: EvaluationReportType): boolean => report.crossBatch.failed > 0;

@@ -5,7 +5,7 @@ import { reviewCapacityView } from "./review-capacity-view";
 import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./fleet-simulation";
 import { Option, Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
-import type { Document, HtmlBuilder } from "foldkit/html";
+import { createLazy, type Document, type HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
 import { IMPORT_GRAPH_SCENARIOS, importGraphView } from "./import-graph-view";
 import { TIMELINE_CASES } from "./timeline";
@@ -192,7 +192,16 @@ const commandLabel = (command: CanonicalCommand, numbers: RecordNumbers): string
   return [command.kind, ...details].join(" · ");
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+const lazyExamples = createLazy();
+const simulationAction = (action: string) => Message.SimulationAction({ action });
+const simulationChanged = (field: string, raw: string) => Message.SimulationChanged({ field, raw });
+const examplesView = (
+  historyInput: Model["history"], position: number, frameInput: number, scenarioInput: number,
+  draft: string, feedback: string, flowStageInput: string, importScenario: number, importCursor: number,
+  timeline: number, h: HtmlBuilder<Message>,
+) => {
+  const model = { history: historyInput, position, frame: frameInput, scenario: scenarioInput,
+    draft, feedback, flowStage: flowStageInput, importScenario, importCursor, timeline };
   const history = model.history as readonly ReplayEvent[];
   const replay = replayCanonical(history, model.position, CANONICAL_SCENARIOS[model.scenario].limits);
   const projection = replay.projection;
@@ -214,15 +223,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     ? { ...last, before: actionSteps[0].before, commands: actionSteps.flatMap((step) => step.commands) } : last;
   const timelineLength = historyTimelineLength(history, model.scenario);
   const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage);
-  return {
-    title: "Hapsland · guided replay",
-    body: h.main([h.Class("page")], [
-      h.header([h.Class("page-header")], [
-        h.p([h.Class("eyebrow product-brand")], [h.img([h.Src(productIcon), h.Alt(""), h.Width("40"), h.Height("40")]), "HAPSLAND"]),
-        h.h1([], ["From agent edit to Jev and back"]),
-        h.p([h.Class("intro")], ["Run the simulator or step through a guided replay."]),
-      ]),
-      simulationView(model.simulation, h, action => Message.SimulationAction({ action }), (field, raw) => Message.SimulationChanged({ field, raw })),
+  return h.div([h.Class("dashboard-examples")], [
       h.section([h.Id("canonical-replay"), h.Class("card chart-panel production-flow canonical-replay")], [
         h.h2([], ["Guided replay"]),
         h.div([h.Class("canonical-controls")], [
@@ -325,6 +326,21 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       importGraphView(h, model.importScenario, model.importCursor,
         (index) => Message.SelectedImportScenario({ index }), (cursor) => Message.MovedImportCursor({ cursor })),
       timelineView(h, model.timeline, (index) => Message.SelectedTimeline({ index })),
+  ]);
+};
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  return {
+    title: "Hapsland · guided replay",
+    body: h.main([h.Class("page")], [
+      h.header([h.Class("page-header")], [
+        h.p([h.Class("eyebrow product-brand")], [h.img([h.Src(productIcon), h.Alt(""), h.Width("40"), h.Height("40")]), "HAPSLAND"]),
+        h.h1([], ["From agent edit to Jev and back"]),
+        h.p([h.Class("intro")], ["Run the simulator or step through a guided replay."]),
+      ]),
+      simulationView(model.simulation, h, simulationAction, simulationChanged),
+      lazyExamples(examplesView, [model.history, model.position, model.frame, model.scenario,
+        model.draft, model.feedback, model.flowStage, model.importScenario, model.importCursor, model.timeline, h]),
     ]),
   };
 };

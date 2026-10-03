@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "declaredAt": "2026-10-02T21:49:58.797Z",
+  "timing": "Predeclared before any live execution or anonymous scoring; not a post-execution amendment.",
+  "adjudicatorSha256": "f75a1eb7bae2c0780f9f6ccd653837edcd57dd8b18053cd5991bdb9fb937d171",
+  "scope": "All clean artifacts, all arms, canonical or explicit requested-prefixed independent names; no change to defect scoring."
+}

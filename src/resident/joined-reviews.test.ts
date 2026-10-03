@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit, type TypeDeclaration } from "../direct-event/model.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { it } from "@effect/vitest";
@@ -9,7 +10,7 @@ import { advicee } from "../direct-event/test-fixtures.ts";
 const measure = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 const prepare = (source: string): PreparedUnit => {
   const declaration: TypeDeclaration = { id: "type.ts::Count", kind: "type-alias", name: "Count", source, sourceHash: source };
-  const input = freezeInput({ contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "type.ts", declaration,
+  const input = freezeInput({ providerIdentity: providerIdentity({ provider: "jev" }), contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "type.ts", declaration,
     unit: { root: { artifact: declaration, references: [] } }, rules: freezeRules([]),
     interpretation: "probability-strictly-greater-than-threshold" });
   return { root: "/fixture", advicee: advicee(), input, identity: semanticIdentity(input) };

@@ -26,25 +26,49 @@ The animation starts with a small edit, expands to the declaration and related
 code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
 undo it or guarantee a repair. Delivery and optional blocking feedback depend on
 the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
-for the flow and its boundaries.
+for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
+shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose what leaves your repository
 
 Sending source to a review service is a data-sharing decision. Your task prompt
-and conversation with the agent are not sent to Jev.
+and conversation with the agent are not sent to the review backend.
 
 You control which files are eligible through includes, exclusions, and privacy
 exclusions. Every supporting file passes the same selection checks before its
 source is read; project includes cannot restore a user exclusion. Limits bound
 the files explored and the code included in the review tree.
 
-Selected source code and rule questions are sent to [Jev](https://typesafe.ai),
-the external classifier. It sees that code and those questions, not the agent’s
+Selected source code and rule questions are sent to the selected external
+classifier: [Jev](https://typesafe.ai) by default, or Cloudflare Clef/Clef-flash. It sees that code and those questions, not the agent’s
 task or conversation. Hapsland maps its results to configured feedback messages.
 The review input excludes the full file, edit diff, agent conversation, and
-unrelated source. With Jev credentials and no
+unrelated source. With review credentials and no
 file settings, all otherwise eligible files are selected. Set an explicit scope
 when you want a narrower boundary. See [configuration](./docs/configuration.md).
+
+## Choose a review backend
+
+Jev is the default. To use Cloudflare, set `reviewBackend` in your user
+configuration (project configuration cannot choose the backend):
+
+```jsonc
+{
+  "version": 1,
+  "reviewBackend": {
+    "provider": "cloudflare",
+    "model": "clef",
+    "accountId": "0123456789abcdef0123456789abcdef"
+  }
+}
+```
+
+Use your Cloudflare account ID and make `CLOUDFLARE_API_TOKEN` available to the
+installed runtime. The model can also be `clef-flash`; `hapsland --login` manages
+Jev credentials. A shared limit catalog checks request bytes and question counts
+where documented, including Clef's 64-question limit. Token limits are recorded
+but require a tokenizer before they can be enforced. See
+[provider configuration and limits](./docs/review-providers.md) for details.
 
 ## A formally checked core
 
@@ -72,6 +96,24 @@ questions about the supplied type or function and its related code. See [custom 
 and the [type-design rules](./TYPE-DESIGN-RULES.md).
 
 See [supported languages and limits](#supported-languages) before setup.
+
+## A contextual comparison with Abide
+
+[Explore the studies, examples and evidence](./docs/review-studies.md).
+Our larger-declaration comparison covers **six scenarios: four types and two
+functions**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**.
+Both reviewers used Jev and the same target Noul concerns; Abide 0.0.7 used an
+active custom rubric. All conditions included equal diagnostic feedback reporting.
+
+With **one larger defective input per scenario**, Hapsland sessions produced
+**6/6 independently checked repairs**, versus **0/6 in Abide sessions**. Including
+one compact input per scenario, the counts were **11/12 and 2/12**. Hapsland also
+produced one false warning in 36 clean detection observations, versus zero for
+Abide. Each native cell was one session.
+
+The overview links readable scenario pages, starting and final code, methodology
+and detailed checks. Gaps also appeared on compact inputs; these results do not
+establish that size caused the difference or general review superiority.
 
 ## Installation
 
@@ -256,8 +298,8 @@ terminal input with the platform's native credential store;
 `hapsland --login --credential-stdin` is the explicit headless form, and
 `hapsland --logout` removes the owned saved item. Project configuration refers to a
 credential environment-variable name; secret values and environment files are never
-stored in project files or printed. The Jev backend and `/v1/systemone` destination are
-fixed in this phase; arbitrary endpoint routing is not supported. Hooks do not prompt.
+stored in project files or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
+[provider selection and limits](docs/review-providers.md). Arbitrary endpoint routing is not supported. Hooks do not prompt.
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
 
@@ -266,8 +308,8 @@ The supported Codex event boundary is documented in the
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
 hooks invoke the packed `dist/cli.js` entry and never depend on this source path.
-Live use reads `TYPESAFE_API_KEY` through
-the Effect provider configuration. Run the live integration checks only with explicit
+Live use reads `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
+through the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`.
 The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
 device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts

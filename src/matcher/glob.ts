@@ -33,12 +33,10 @@ export const normalizeRepositoryPath = (value: string): string | undefined => {
   return segments.join("/") || ".";
 };
 
-export const validateGlobPattern = (pattern: string): string => {
+const normalizeGlobPattern = (pattern: string): string => {
   if (pattern.length === 0) throw new GlobPatternError("glob pattern is empty");
   if (pattern.includes("\0")) throw new GlobPatternError("glob pattern contains NUL");
-  if (pattern.startsWith("!")) {
-    throw new GlobPatternError("negated re-inclusion patterns are not supported");
-  }
+  if (pattern.startsWith("!")) throw new GlobPatternError("negated re-inclusion patterns are not supported");
   const normalized = pattern.replaceAll("\\", "/");
   if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) {
     throw new GlobPatternError("glob patterns must be repository-relative");
@@ -46,78 +44,90 @@ export const validateGlobPattern = (pattern: string): string => {
   if (normalized.split("/").some((segment) => segment === "..")) {
     throw new GlobPatternError("glob patterns cannot traverse the repository root");
   }
-  const canonical = normalized === "." ? "" : normalized.replace(/^\.\//, "");
-  if (canonical.length > GLOB_COMPLEXITY_LIMITS.maxPatternLength) {
+  return normalized === "." ? "" : normalized.replace(/^\.\//, "");
+};
+
+const validateClassRange = (content: string, index: number) => {
+  const left = content[index - 1];
+  const right = content[index + 1];
+  if (left === undefined || right === undefined || right === "-") return;
+  if ((left.codePointAt(0) ?? 0) > (right.codePointAt(0) ?? 0)) {
+    throw new GlobPatternError("glob character class range is reversed");
+  }
+};
+
+const validateCharacterClass = (pattern: string, start: number): number => {
+  const close = pattern.indexOf("]", start + 1);
+  if (close < 0) throw new GlobPatternError("glob character class is not closed");
+  const body = pattern.slice(start + 1, close);
+  const { content } = classContent(body);
+  if (content.length === 0 || content.includes("[")) {
+    throw new GlobPatternError("glob character class is empty or nested");
+  }
+  for (let index = 0; index < content.length; index += 1) {
+    if (content[index] === "-") validateClassRange(content, index);
+  }
+  return close;
+};
+
+const braceChoices = (pattern: string, start: number) => {
+  const close = pattern.indexOf("}", start + 1);
+  if (close < 0) throw new GlobPatternError("glob brace alternative is not closed");
+  const choices = pattern.slice(start + 1, close).split(",");
+  if (choices.length < 2 || choices.some((choice) => choice.length === 0 || choice.includes("{"))) {
+    throw new GlobPatternError("glob brace alternative must contain non-empty choices");
+  }
+  return { close, count: choices.length };
+};
+
+const validateExpansionBudget = (groups: number, expansions: number, choices: number) => {
+  if (groups > GLOB_COMPLEXITY_LIMITS.maxBraceGroups) {
+    throw new GlobPatternError(`glob pattern exceeds the ${GLOB_COMPLEXITY_LIMITS.maxBraceGroups}-group limit`);
+  }
+  if (choices > GLOB_COMPLEXITY_LIMITS.maxBraceChoices) {
     throw new GlobPatternError(
-      `glob pattern exceeds the ${GLOB_COMPLEXITY_LIMITS.maxPatternLength}-character limit`,
+      `glob brace alternatives exceed the ${GLOB_COMPLEXITY_LIMITS.maxBraceChoices}-choice limit`,
     );
   }
-  let braceGroups = 0;
-  let expansionCount = 1;
-  for (let index = 0; index < canonical.length; index += 1) {
-    const current = canonical[index];
-    if (current === "[") {
-      const close = canonical.indexOf("]", index + 1);
-      if (close < 0) throw new GlobPatternError("glob character class is not closed");
-      const body = canonical.slice(index + 1, close);
-      const content = body.startsWith("!") || body.startsWith("^") ? body.slice(1) : body;
-      if (content.length === 0 || content.includes("[")) {
-        throw new GlobPatternError("glob character class is empty or nested");
+  if (expansions > GLOB_COMPLEXITY_LIMITS.maxExpansions / choices) {
+    throw new GlobPatternError(
+      `glob brace expansion exceeds the ${GLOB_COMPLEXITY_LIMITS.maxExpansions}-expansion limit`,
+    );
+  }
+};
+
+const validateGlobStructure = (pattern: string) => {
+  let groups = 0;
+  let expansions = 1;
+  for (let index = 0; index < pattern.length; index += 1) {
+    switch (pattern[index]) {
+      case "[":
+        index = validateCharacterClass(pattern, index);
+        break;
+      case "]":
+        throw new GlobPatternError("glob character class closes without opening");
+      case "{": {
+        const choices = braceChoices(pattern, index);
+        groups += 1;
+        validateExpansionBudget(groups, expansions, choices.count);
+        expansions *= choices.count;
+        index = choices.close;
+        break;
       }
-      for (let bodyIndex = 0; bodyIndex < content.length; bodyIndex += 1) {
-        if (content[bodyIndex] !== "-") continue;
-        const left = content[bodyIndex - 1];
-        const right = content[bodyIndex + 1];
-        if (left !== undefined && right !== undefined && right !== "-") {
-          const leftCode = left.codePointAt(0) ?? 0;
-          const rightCode = right.codePointAt(0) ?? 0;
-          if (leftCode > rightCode) {
-            throw new GlobPatternError("glob character class range is reversed");
-          }
-        }
-      }
-      index = close;
-      continue;
-    }
-    if (current === "]") {
-      throw new GlobPatternError("glob character class closes without opening");
-    }
-    if (current === "{") {
-      const close = canonical.indexOf("}", index + 1);
-      if (close < 0) throw new GlobPatternError("glob brace alternative is not closed");
-      const body = canonical.slice(index + 1, close);
-      const choices = body.split(",");
-      if (choices.length < 2 || choices.some((choice) => choice.length === 0 || choice.includes("{"))) {
-        throw new GlobPatternError("glob brace alternative must contain non-empty choices");
-      }
-      braceGroups += 1;
-      if (braceGroups > GLOB_COMPLEXITY_LIMITS.maxBraceGroups) {
-        throw new GlobPatternError(
-          `glob pattern exceeds the ${GLOB_COMPLEXITY_LIMITS.maxBraceGroups}-group limit`,
-        );
-      }
-      if (choices.length > GLOB_COMPLEXITY_LIMITS.maxBraceChoices) {
-        throw new GlobPatternError(
-          `glob brace alternatives exceed the ${GLOB_COMPLEXITY_LIMITS.maxBraceChoices}-choice limit`,
-        );
-      }
-      if (expansionCount > GLOB_COMPLEXITY_LIMITS.maxExpansions / choices.length) {
-        throw new GlobPatternError(
-          `glob brace expansion exceeds the ${GLOB_COMPLEXITY_LIMITS.maxExpansions}-expansion limit`,
-        );
-      }
-      expansionCount *= choices.length;
-      index = close;
-      continue;
-    }
-    if (current === "}") {
-      throw new GlobPatternError("glob brace alternative closes without opening");
+      case "}":
+        throw new GlobPatternError("glob brace alternative closes without opening");
     }
   }
+};
+
+export const validateGlobPattern = (pattern: string): string => {
+  const canonical = normalizeGlobPattern(pattern);
+  if (canonical.length > GLOB_COMPLEXITY_LIMITS.maxPatternLength) {
+    throw new GlobPatternError(`glob pattern exceeds the ${GLOB_COMPLEXITY_LIMITS.maxPatternLength}-character limit`);
+  }
+  validateGlobStructure(canonical);
   try {
-    // Exercise the exact regexp compiler at the decode boundary as well. This
-    // catches engine-level classes such as `[a--]` that a structural scan alone
-    // cannot characterize safely.
+    // Compile at the decode boundary to catch engine-level invalid classes.
     expandBraces(canonical).forEach((expanded) => compile(expanded));
   } catch {
     throw new GlobPatternError("glob pattern contains invalid regular-expression syntax");
@@ -125,8 +135,7 @@ export const validateGlobPattern = (pattern: string): string => {
   return canonical;
 };
 
-const escapeRegex = (value: string): string =>
-  value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+const escapeRegex = (value: string): string => value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
 
 const expandBraces = (pattern: string): ReadonlyArray<string> => {
   const start = pattern.indexOf("{");
@@ -138,32 +147,40 @@ const expandBraces = (pattern: string): ReadonlyArray<string> => {
     .split(",")
     .filter((choice) => choice.length > 0);
   if (choices.length === 0) return [pattern];
-  return choices.flatMap((choice) =>
-    expandBraces(`${pattern.slice(0, start)}${choice}${pattern.slice(end + 1)}`),
-  );
+  return choices.flatMap((choice) => expandBraces(`${pattern.slice(0, start)}${choice}${pattern.slice(end + 1)}`));
+};
+
+const classContent = (body: string) => {
+  const negated = body.startsWith("!") || body.startsWith("^");
+  return { negated, content: negated ? body.slice(1) : body };
+};
+
+const compileCharacterClass = (segment: string, index: number) => {
+  const close = segment.indexOf("]", index + 1);
+  if (close <= index + 1) return { expression: "\\[", end: index };
+  const { negated, content } = classContent(segment.slice(index + 1, close));
+  return { expression: `[${negated ? "^" : ""}${content.replaceAll("\\", "\\\\")}]`, end: close };
 };
 
 const segmentRegex = (segment: string): string => {
   let result = "";
   for (let index = 0; index < segment.length; index += 1) {
     const current = segment[index];
-    if (current === "*") {
-      result += "[^/]*";
-    } else if (current === "?") {
-      result += "[^/]";
-    } else if (current === "[") {
-      const close = segment.indexOf("]", index + 1);
-      if (close > index + 1) {
-        const body = segment.slice(index + 1, close);
-        const negated = body.startsWith("!") || body.startsWith("^");
-        const content = negated ? body.slice(1) : body;
-        result += `[${negated ? "^" : ""}${content.replaceAll("\\", "\\\\")}]`;
-        index = close;
-      } else {
-        result += "\\[";
+    switch (current) {
+      case "*":
+        result += "[^/]*";
+        break;
+      case "?":
+        result += "[^/]";
+        break;
+      case "[": {
+        const compiled = compileCharacterClass(segment, index);
+        result += compiled.expression;
+        index = compiled.end;
+        break;
       }
-    } else {
-      result += escapeRegex(current ?? "");
+      default:
+        result += escapeRegex(current ?? "");
     }
   }
   return result;
@@ -227,8 +244,7 @@ export const matchesGlob = (pattern: string, path: string): boolean => {
   const candidate = normalizedPath === "." ? "" : normalizedPath;
   try {
     return expandBraces(validated).some(
-      (expanded) =>
-        dotSegmentsAllowed(expanded, normalizedPath) && compile(expanded).test(candidate),
+      (expanded) => dotSegmentsAllowed(expanded, normalizedPath) && compile(expanded).test(candidate),
     );
   } catch {
     // RegExp syntax must never escape from this boundary, even if a future
@@ -237,13 +253,8 @@ export const matchesGlob = (pattern: string, path: string): boolean => {
   }
 };
 
-export const matchesAnyGlob = (
-  patterns: ReadonlyArray<string>,
-  path: string,
-): boolean => patterns.some((pattern) => matchesGlob(pattern, path));
+export const matchesAnyGlob = (patterns: ReadonlyArray<string>, path: string): boolean =>
+  patterns.some((pattern) => matchesGlob(pattern, path));
 
-export const globPatternsEqual = (
-  left: ReadonlyArray<string>,
-  right: ReadonlyArray<string>,
-): boolean =>
+export const globPatternsEqual = (left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean =>
   left.length === right.length && left.every((pattern, index) => pattern === right[index]);

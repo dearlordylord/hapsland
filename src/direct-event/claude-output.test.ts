@@ -10,10 +10,10 @@ describe("Claude selected host output", () => {
   it("serializes a selected block object as one exact JSONL line", () => {
     const output: ClaudeBlockOutput = {
       decision: "block",
-      reason: "Hapsland found a current rule finding.\n[r6_bare_domain_value, p=0.91]: Repair it.",
+      reason: "Hapsland\ntype.ts :: Example: Repair it.",
     };
     expect(encodeClaudeHostOutputLine(output)).toBe(
-      '{"decision":"block","reason":"Hapsland found a current rule finding.\\n[r6_bare_domain_value, p=0.91]: Repair it."}\n',
+      '{"decision":"block","reason":"Hapsland\\ntype.ts :: Example: Repair it."}\n',
     );
     expect(claudeHostOutputText(output)).toBe(output.reason);
   });
@@ -22,11 +22,11 @@ describe("Claude selected host output", () => {
     const output: ClaudeHostOutput = {
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
-        additionalContext: "Advisory: Edit succeeded. Please repair each finding.\nOperational notice: Review unavailable.",
+        additionalContext: "Hapsland\nOperational notice: Review unavailable.",
       },
     };
     expect(encodeClaudeHostOutputLine(output)).toBe(
-      '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Advisory: Edit succeeded. Please repair each finding.\\nOperational notice: Review unavailable."}}\n',
+      '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Hapsland\\nOperational notice: Review unavailable."}}\n',
     );
     expect(claudeHostOutputText(output)).toBe(output.hookSpecificOutput.additionalContext);
   });

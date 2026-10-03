@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { formatReviewFeedback } from "./feedback/message.ts";
+import { credentialDiagnostic } from "./onboarding/credential-diagnostics.ts";
+import { maintainClients } from "./onboarding/maintenance.ts";
 import { isHookInvocation, parseInvocation, type ClientArguments } from "./cli-command.ts";
 import { hookMonotonicMillis, monotonicNow } from "./resident/hook-clock.ts";
 import { readMaskedCredential } from "./credentials/masked-input.ts";
@@ -20,11 +23,7 @@ import { askConfirmation } from "./onboarding/confirmation.ts";
 import { fileURLToPath } from "node:url";
 import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts";
 import { selectFile } from "./configuration/decision.ts";
-import {
-  DEFAULT_CREDENTIAL_ENV_VAR,
-  loadReviewSettings,
-  type ReviewSettings,
-} from "./runtime/review-config.ts";
+import { DEFAULT_CREDENTIAL_ENV_VAR, loadReviewSettings, type ReviewSettings } from "./runtime/review-config.ts";
 import { explainPath, formatPathExplanation } from "./explanation/index.ts";
 import type { ControlledDecisionModelOptions } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
@@ -36,9 +35,7 @@ import {
 } from "./direct-event/adapter.ts";
 import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.ts";
 import type { DirectObservation } from "./direct-event/model.ts";
-import {
-  type ClaudeHostOutput,
-} from "./direct-event/claude-output.ts";
+import { type ClaudeHostOutput } from "./direct-event/claude-output.ts";
 import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts";
 import {
   admitObservationEffect,
@@ -51,7 +48,12 @@ import {
   type CollectedAdvice,
 } from "./resident/client.ts";
 import { HookOutput, hookOutputLayer } from "./resident/hook-output.ts";
-import { composedHookRuntimeLayer, runComposedHookEffect, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
+import {
+  composedHookRuntimeLayer,
+  runComposedHookEffect,
+  type ComposedHookKind,
+  type ComposedHookHost,
+} from "./resident/composed-hook.ts";
 import {
   installCodexIntegration,
   inspectCodexInstallation,
@@ -62,12 +64,22 @@ import {
   updateCodexIntegration,
 } from "./onboarding/codex-installation.ts";
 import {
-  previewClaudeInstallation, inspectClaudeInstallation, hasClaudeRegistration, installClaudeIntegration, previewClaudeUpdate,
-  updateClaudeIntegration, uninstallClaudeIntegration, diagnoseClaudeIntegration,
+  previewClaudeInstallation,
+  inspectClaudeInstallation,
+  hasClaudeRegistration,
+  installClaudeIntegration,
+  previewClaudeUpdate,
+  updateClaudeIntegration,
+  uninstallClaudeIntegration,
+  diagnoseClaudeIntegration,
 } from "./onboarding/claude-installation.ts";
 import {
-  previewOpenCodeInstallation, installOpenCodeIntegration, previewOpenCodeUpdate,
-  updateOpenCodeIntegration, uninstallOpenCodeIntegration, diagnoseOpenCodeIntegration,
+  previewOpenCodeInstallation,
+  installOpenCodeIntegration,
+  previewOpenCodeUpdate,
+  updateOpenCodeIntegration,
+  uninstallOpenCodeIntegration,
+  diagnoseOpenCodeIntegration,
 } from "./onboarding/opencode-installation.ts";
 import {
   logoutCredential,
@@ -80,15 +92,67 @@ import { readActivity, formatActivityHuman, recordActivity } from "./activity/st
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 import { selectSetupClients, type ClientChoice, type SetupClient } from "./onboarding/client-selection.ts";
 import { stageRelease, type ReleaseSelection } from "./onboarding/distribution.ts";
-import { activateCurrentPackage, activatePackage, dispatchActivePackage, dispatchSelectedPackage, formatCompatibility, formatDoctor, formatFailure, formatProposal, invokeLifecycle, profileFields, registeredClients } from "./onboarding/client-lifecycle.ts";
+import {
+  activateCurrentPackage,
+  activatePackage,
+  dispatchActivePackage,
+  dispatchSelectedPackage,
+  formatCompatibility,
+  formatDoctor,
+  formatFailure,
+  formatProposal,
+  invokeLifecycle,
+  profileFields,
+  registeredClients,
+} from "./onboarding/client-lifecycle.ts";
 import { runSetup } from "./onboarding/setup.ts";
 import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
 import { recordDemoTrace } from "./onboarding/demo-trace.ts";
 
+const statusExitCodes = new Map<string, number>([
+  ["unsupported", 3],
+  ["conflict", 4],
+  ["proposal-mismatch", 4],
+  ["partial", 5],
+  ...[
+    "deletion-failed",
+    "needs-user-action",
+    "locked",
+    "interaction-required",
+    "unavailable",
+    "timed-out",
+    "indeterminate",
+    "busy",
+    "cancelled",
+    "invalid",
+    "incomplete",
+    "inconclusive",
+  ].map((status): [string, number] => [status, 6]),
+]);
+const exitCodeForResult = (record: object): number => {
+  const status = "status" in record ? record.status : undefined;
+  const statusCode = typeof status === "string" ? statusExitCodes.get(status) : undefined;
+  return statusCode ?? ("error" in record ? 2 : 0);
+};
+
+const assignResultExitCode = (output: unknown): void => {
+  if (
+    composedKind === undefined &&
+    !isCodexHook &&
+    !isClaudeHook &&
+    !isOpenCodeHook &&
+    typeof output === "object" &&
+    output !== null
+  ) {
+    process.exitCode = exitCodeForResult(output);
+  }
+};
+
 const directHookStartedAt = monotonicNow();
 let invocation: Awaited<ReturnType<typeof parseInvocation>>;
-try { invocation = await parseInvocation(process.argv.slice(2)); }
-catch (cause) {
+try {
+  invocation = await parseInvocation(process.argv.slice(2));
+} catch (cause) {
   // Invalid native hook invocations must never emit generic CLI output.
   if (isHookInvocation(process.argv.slice(2))) process.exit(0);
   process.stderr.write(`${(cause instanceof Error ? cause.message : "Invalid CLI arguments").slice(0, 1400)}\n`);
@@ -96,7 +160,8 @@ catch (cause) {
 }
 if (invocation === undefined) process.exit(0);
 const cliOptions = invocation.kind === "automation" ? invocation.options : undefined;
-const cliSwitch = (name: string): boolean => cliOptions !== undefined && name in cliOptions && cliOptions[name as keyof typeof cliOptions] === true;
+const cliSwitch = (name: string): boolean =>
+  cliOptions !== undefined && name in cliOptions && cliOptions[name as keyof typeof cliOptions] === true;
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -179,23 +244,36 @@ const ReviewOperation = Schema.Union([
 ]);
 type ReviewOperation = typeof ReviewOperation.Type;
 
-const installationOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) => Schema.Union([
-  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("doctor"), cwd: Schema.String, ...fields }),
-  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("install-preview"), reinstall: Schema.optionalKey(Schema.Boolean), ...fields }),
-  Schema.Struct({
-    version: Schema.Literal(1), operation: Schema.Literal("install"), reinstall: Schema.optionalKey(Schema.Boolean), ...fields,
-    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
-  }),
-  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("update-preview"), ...fields }),
-  Schema.Struct({
-    version: Schema.Literal(1), operation: Schema.Literal("update"), ...fields,
-    proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
-  }),
-  Schema.Struct({
-    version: Schema.Literal(1), operation: Schema.Literal("uninstall"), ...fields,
-    proposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
-  }),
-]);
+const installationOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) =>
+  Schema.Union([
+    Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("doctor"), cwd: Schema.String, ...fields }),
+    Schema.Struct({
+      version: Schema.Literal(1),
+      operation: Schema.Literal("install-preview"),
+      reinstall: Schema.optionalKey(Schema.Boolean),
+      ...fields,
+    }),
+    Schema.Struct({
+      version: Schema.Literal(1),
+      operation: Schema.Literal("install"),
+      reinstall: Schema.optionalKey(Schema.Boolean),
+      ...fields,
+      proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+    }),
+    Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("update-preview"), ...fields }),
+    Schema.Struct({
+      version: Schema.Literal(1),
+      operation: Schema.Literal("update"),
+      ...fields,
+      proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+    }),
+    Schema.Struct({
+      version: Schema.Literal(1),
+      operation: Schema.Literal("uninstall"),
+      ...fields,
+      proposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+    }),
+  ]);
 
 const InstallationOperation = Schema.Union([
   installationOperationsFor({
@@ -216,18 +294,27 @@ const InstallationOperation = Schema.Union([
 ]);
 type InstallationOperation = typeof InstallationOperation.Type;
 
-const setupOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) => Schema.Struct({
-  version: Schema.Literal(1),
-  operation: Schema.Literal("setup"),
-  scope: Schema.Struct({ cwd: Schema.NonEmptyString, review: Schema.Literals(["enabled", "disabled"]) }),
-  credential: Schema.Literals(["saved", "environment", "skip"]),
-  installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
-  interactive: Schema.optionalKey(Schema.Boolean),
-  ...fields,
-});
+const setupOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) =>
+  Schema.Struct({
+    version: Schema.Literal(1),
+    operation: Schema.Literal("setup"),
+    scope: Schema.Struct({ cwd: Schema.NonEmptyString, review: Schema.Literals(["enabled", "disabled"]) }),
+    credential: Schema.Literals(["saved", "environment", "skip"]),
+    installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
+    interactive: Schema.optionalKey(Schema.Boolean),
+    ...fields,
+  });
 const SetupOperation = Schema.Union([
-  setupOperationsFor({ host: Schema.Literal("codex"), codexHome: Schema.optionalKey(Schema.NonEmptyString), codexExecutable: Schema.optionalKey(Schema.NonEmptyString) }),
-  setupOperationsFor({ host: Schema.Literal("claude"), claudeHome: Schema.optionalKey(Schema.NonEmptyString), claudeExecutable: Schema.optionalKey(Schema.NonEmptyString) }),
+  setupOperationsFor({
+    host: Schema.Literal("codex"),
+    codexHome: Schema.optionalKey(Schema.NonEmptyString),
+    codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
+  setupOperationsFor({
+    host: Schema.Literal("claude"),
+    claudeHome: Schema.optionalKey(Schema.NonEmptyString),
+    claudeExecutable: Schema.optionalKey(Schema.NonEmptyString),
+  }),
 ]);
 type SetupOperation = typeof SetupOperation.Type;
 
@@ -243,12 +330,15 @@ const FirstReviewDemoOperation = Schema.Struct({
 type FirstReviewDemoOperation = typeof FirstReviewDemoOperation.Type;
 
 const statePathConfig = Config.option(Config.NonEmptyString("REVIEW_STATE_PATH")).pipe(
-  Config.flatMap(Option.match({
-    onSome: Config.succeed,
-    onNone: () => Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
-      Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
-    ),
-  })),
+  Config.flatMap(
+    Option.match({
+      onSome: Config.succeed,
+      onNone: () =>
+        Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
+          Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+        ),
+    }),
+  ),
 );
 
 const activityPathConfig = Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
@@ -281,23 +371,16 @@ const forcedInstallationOperation = (): InstallationOperation["operation"] | und
 };
 
 const decodeSetupOperation = (input: string) =>
-  decodeJson(input).pipe(
-    Effect.flatMap(Schema.decodeUnknownEffect(SetupOperation, { onExcessProperty: "error" })),
-  );
+  decodeJson(input).pipe(Effect.flatMap(Schema.decodeUnknownEffect(SetupOperation, { onExcessProperty: "error" })));
 
 const decodeFirstReviewDemoOperation = (input: string) =>
   decodeJson(input).pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(FirstReviewDemoOperation, { onExcessProperty: "error" })),
   );
 
-const decodeInstallationOperation = (
-  input: string,
-  forced: InstallationOperation["operation"] | undefined,
-) =>
+const decodeInstallationOperation = (input: string, forced: InstallationOperation["operation"] | undefined) =>
   decodeJson(input).pipe(
-    Effect.flatMap(
-      Schema.decodeUnknownEffect(InstallationOperation, { onExcessProperty: "error" }),
-    ),
+    Effect.flatMap(Schema.decodeUnknownEffect(InstallationOperation, { onExcessProperty: "error" })),
     Effect.flatMap((operation) =>
       forced !== undefined && operation.operation !== forced
         ? Effect.fail(new Error("installation operation flag does not match the request"))
@@ -314,10 +397,7 @@ const forcedEvaluationOperation = (): EvaluationOperationName | undefined => {
   return undefined;
 };
 
-const forcedStatusFormat = (): "human" | undefined =>
-  cliSwitch("human")
-    ? "human"
-    : undefined;
+const forcedStatusFormat = (): "human" | undefined => (cliSwitch("human") ? "human" : undefined);
 
 const decodeOperation = (input: string, forced: ReviewOperation["operation"] | undefined) =>
   decodeJson(input).pipe(
@@ -339,11 +419,11 @@ const assertNever = (value: never): never => {
 
 const fileSelectionReadiness = (settings: ReviewSettings) => {
   const includesEmpty = settings.configuration.policy.includes.length === 0;
-  const userExcludeAll = settings.configuration.policy.excludes.some((entry) =>
-    entry.origin.layer === "user" && entry.value === "**/*");
+  const userExcludeAll = settings.configuration.policy.excludes.some(
+    (entry) => entry.origin.layer === "user" && entry.value === "**/*",
+  );
   const excludeAll = settings.configuration.policy.excludes.some((entry) => entry.value === "**/*");
-  const selected = selectFile({ protected: false, excluded: excludeAll,
-    includesEmpty, included: true }) === "selected";
+  const selected = selectFile({ protected: false, excluded: excludeAll, includesEmpty, included: true }) === "selected";
   return {
     selected,
     observed: includesEmpty
@@ -352,7 +432,7 @@ const fileSelectionReadiness = (settings: ReviewSettings) => {
         ? "user file settings exclude all files"
         : excludeAll
           ? "effective file settings exclude all files"
-        : "effective file settings loaded",
+          : "effective file settings loaded",
   };
 };
 
@@ -361,15 +441,23 @@ const isClaudeHook = cliSwitch("claude-hook");
 const isOpenCodeHook = cliSwitch("opencode-hook");
 const isComposedEditHook = cliSwitch("composed-edit-hook");
 const composedKind: ComposedHookKind | undefined = cliSwitch("composed-before-edit-hook")
-  ? "before-edit" : cliSwitch("composed-background-hook")
-  ? "background" : cliSwitch("composed-stop-hook")
-    ? "stop" : cliSwitch("composed-prompt-hook") ? "prompt" : undefined;
-const composedHost: ComposedHookHost = cliOptions?.["composed-host"] === "claude-code"
-  ? "claude-code" : "codex-cli";
-const directHookDeadline = directHookStartedAt +
-  (isCodexHook && isComposedEditHook ? 9_000 : 3_900);
+  ? "before-edit"
+  : cliSwitch("composed-background-hook")
+    ? "background"
+    : cliSwitch("composed-stop-hook")
+      ? "stop"
+      : cliSwitch("composed-prompt-hook")
+        ? "prompt"
+        : undefined;
+const composedHost: ComposedHookHost = cliOptions?.["composed-host"] === "claude-code" ? "claude-code" : "codex-cli";
+const directHookDeadline = directHookStartedAt + (isCodexHook && isComposedEditHook ? 9_000 : 3_900);
 const requestedHookVersion = cliOptions?.["codex-version"];
-if (isCodexHook && (isComposedEditHook || composedKind !== undefined) && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
+if (
+  isCodexHook &&
+  (isComposedEditHook || composedKind !== undefined) &&
+  requestedHookVersion !== undefined &&
+  !isCodexHostVersion(requestedHookVersion)
+) {
   process.exit(0);
 }
 const codexHookVersion: CodexHostVersion = isCodexHostVersion(requestedHookVersion) ? requestedHookVersion : "0.155.1";
@@ -379,10 +467,41 @@ const requestedOperation = forcedOperation();
 const requestedInstallationOperation = forcedInstallationOperation();
 const requestedEvaluationOperation = forcedEvaluationOperation();
 
-type DirectHookDispatch =
-  | { readonly handled: false }
-  | { readonly handled: true; readonly output: unknown };
+type DirectHookDispatch = { readonly handled: false } | { readonly handled: true; readonly output: unknown };
 
+const recordCodexHookActivity = (
+  subject: Pick<DirectObservation, "root" | "advicee"> | undefined,
+  statePath: string,
+  lifetime: string,
+  stage: "unavailable" | "incomplete",
+): void => {
+  if (subject === undefined) return;
+  recordActivity({ statePath, root: subject.root, advicee: subject.advicee, lifetime, stage });
+};
+const recordCodexObservationTrace = Effect.fn("CodexHook.recordEditTrace")(function* (
+  observation: DirectObservation | undefined,
+) {
+  if (observation === undefined) return;
+  const path = yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"));
+  recordDemoTrace(Option.getOrUndefined(path), observation.root, observation.advicee, { kind: "edit" });
+});
+const admitCodexHookObservation = Effect.fn("CodexHook.admitObservation")(function* (
+  observation: DirectObservation,
+  dispatch: Effect.Success<ReturnType<typeof makeResidentDispatchContextEffect>> | undefined,
+  activityPath: string,
+  lifetime: string,
+) {
+  if (dispatch === undefined || !isControlledWriter) {
+    recordCodexHookActivity(observation, activityPath, lifetime, "unavailable");
+    return;
+  }
+  yield* admitObservationEffect(observation, true, dispatch, undefined, isComposedEditHook).pipe(
+    Effect.catch(() => {
+      recordCodexHookActivity(observation, activityPath, lifetime, "unavailable");
+      return Effect.void;
+    }),
+  );
+});
 const runDirectCodexHook = (
   nativeEvent: unknown,
   hostVersion: CodexHostVersion,
@@ -396,47 +515,30 @@ const runDirectCodexHook = (
     const reply = yield* adaptCodexReply(nativeEvent, hostVersion);
     const owner = yield* ensureResidentEffect().pipe(Effect.option);
     if (Option.isNone(owner)) {
-      if (reply !== undefined) {
-        recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: "resident-unavailable", stage: "unavailable" });
-      }
+      recordCodexHookActivity(reply, activityPath, "resident-unavailable", "unavailable");
       return { handled: true, output: {} } as const;
     }
-    const dispatch = reply === undefined
-      ? undefined
-      : yield* makeResidentDispatchContextEffect(
-          reply.root,
-          statePath,
-          activityPath,
-          userConfigPath,
-          controlled,
-        ).pipe(Effect.catch(() => Effect.succeed(undefined)));
+    const dispatch =
+      reply === undefined
+        ? undefined
+        : yield* makeResidentDispatchContextEffect(
+            reply.root,
+            statePath,
+            activityPath,
+            userConfigPath,
+            controlled,
+          ).pipe(Effect.catch(() => Effect.succeed(undefined)));
     const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion);
-    if (observation !== undefined) {
-      const demoBudgetPath = yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"));
-      recordDemoTrace(Option.getOrUndefined(demoBudgetPath), observation.root, observation.advicee, { kind: "edit" });
-    }
+    yield* recordCodexObservationTrace(observation);
     // The direct dispatcher owns every native apply_patch event. Unsupported
     // shapes remain quiet and can never create review work.
     if (observation === undefined) {
-      if (reply !== undefined) {
-        recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: owner.value.lifetime, stage: "incomplete" });
-      }
+      recordCodexHookActivity(reply, activityPath, owner.value.lifetime, "incomplete");
       return { handled: true, output: {} } as const;
     }
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
-    if (dispatch === undefined) {
-      recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
-    } else if (!isControlledWriter) {
-      recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
-    } else {
-      yield* admitObservationEffect(observation, true, dispatch, undefined, isComposedEditHook).pipe(
-        Effect.catch(() => {
-          recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
-          return Effect.void;
-        }),
-      );
-    }
+    yield* admitCodexHookObservation(observation, dispatch, activityPath, owner.value.lifetime);
     return { handled: true, output: {} } as const;
   });
 
@@ -458,9 +560,9 @@ const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
         Effect.catch(() => Effect.succeed(undefined)),
       );
     });
-  const dispatch = yield* bounded(makeResidentDispatchContextEffect(
-    observation.root, statePath, activityPath, userConfigPath, controlled,
-  ));
+  const dispatch = yield* bounded(
+    makeResidentDispatchContextEffect(observation.root, statePath, activityPath, userConfigPath, controlled),
+  );
   if (dispatch === undefined) return {};
   const outcome = yield* bounded(admitAndCollectEffect(observation, dispatch, deadline - 150));
   return outcome?.status === "advice"
@@ -481,387 +583,424 @@ const isDirectEventReady = (
   value._tag === "DirectEventReady" &&
   "value" in value;
 
+type StatusOperation = Extract<ReviewOperation, { readonly operation: "status" }>;
+type StatusCredential = Effect.Success<ReturnType<typeof resolveCredential>>;
+const statusFileSelection = (settings: ReviewSettings | undefined): string =>
+  settings === undefined ? "unavailable" : fileSelectionReadiness(settings).selected ? "configured" : "none";
+const statusReadiness = (settings: ReviewSettings | undefined, credential: StatusCredential) => {
+  const configuration = settings === undefined ? "invalid" : "ready";
+  const fileSelection = statusFileSelection(settings);
+  const present = credential.status === "present";
+  return {
+    status: configuration === "ready" && present && fileSelection === "configured" ? "ready" : "not-ready",
+    configuration,
+    fileSelection,
+    credentials: {
+      envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
+      present,
+      source: credential.source,
+      status: credential.status,
+    },
+  };
+};
+const statusCredential = Effect.fn("Cli.statusCredential")(function* (settings: ReviewSettings | undefined) {
+  return yield* resolveCredential({
+    envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
+    environmentOnly:
+      settings !== undefined && settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+  });
+});
+const statusConfiguration = Effect.fn("Cli.statusConfiguration")(function* (
+  root: string,
+  userConfigPath: string | undefined,
+) {
+  const configuration = yield* loadReviewSettings(root, userConfigPath === undefined ? {} : { userConfigPath }).pipe(
+    Effect.result,
+  );
+  return configuration._tag === "Success" ? configuration.success : undefined;
+});
+const humanStatusReceipt = (operation: StatusOperation, output: ReturnType<typeof statusOutput>) =>
+  `readiness: ${output.readiness.status} (configuration=${output.readiness.configuration}, files=${output.readiness.fileSelection}, credentials=${output.readiness.credentials.present ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", output.activity)}\n${formatAnalyticsHuman(output.analytics)}`;
+const statusOutput = (
+  operation: StatusOperation,
+  root: string,
+  readiness: ReturnType<typeof statusReadiness>,
+  residentActivity: ReturnType<typeof readActivity>,
+  analytics: ReturnType<typeof readAnalytics>,
+) => ({
+  version: 1,
+  operation: "status",
+  repository: { canonicalRoot: root },
+  ...(operation.sessionId === undefined ? {} : { sessionId: operation.sessionId }),
+  readiness,
+  activity: residentActivity,
+  analytics,
+  activitySource: "resident-v1",
+});
+const runStatusOperation = Effect.fn("Cli.runStatusOperation")(function* (
+  operation: StatusOperation,
+  root: string,
+  activityPath: string,
+  userConfigPath: string | undefined,
+) {
+  const settings = yield* statusConfiguration(root, userConfigPath);
+  const credential = yield* statusCredential(settings);
+  const readiness = statusReadiness(settings, credential);
+  const resident = yield* inspectResidentEffect();
+  const residentActivity = readActivity({
+    statePath: activityPath,
+    root,
+    sessionId: operation.sessionId ?? "",
+    resident,
+  });
+  const analytics = readAnalytics({
+    enabled: settings !== undefined && effectiveSessionAnalytics(settings.configuration.policy),
+    statePath: activityPath,
+    root,
+    sessionId: operation.sessionId ?? "",
+  });
+  const output = statusOutput(operation, root, readiness, residentActivity, analytics);
+  return operation.format === "human" ? humanStatusReceipt(operation, output) : output;
+});
 
-const runOperation = (
+const runOperation = Effect.fn("Cli.runOperation")(function* (
   operation: ReviewOperation,
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-) =>
-  Effect.gen(function* () {
-    const cwd = operation.cwd;
-    const root = yield* discoverWorkingTreeRoot(cwd);
-    /**
-     * Status is observational: a malformed current configuration must be
-     * reported as readiness state, not prevent an explicit session receipt
-     * from being read.  It also deliberately stops before constructing any
-     * review/backend layer.
-     */
-    if (operation.operation === "status") {
-      const configuration = yield* loadReviewSettings(
-        root,
-        userConfigPath === undefined ? {} : { userConfigPath },
-      ).pipe(Effect.result);
-      const settings = configuration._tag === "Success" ? configuration.success : undefined;
-      const credentialEnvVar = settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR;
-      const credentialResolution = yield* resolveCredential({
+) {
+  const cwd = operation.cwd;
+  const root = yield* discoverWorkingTreeRoot(cwd);
+  /**
+   * Status is observational: a malformed current configuration must be
+   * reported as readiness state, not prevent an explicit session receipt
+   * from being read.  It also deliberately stops before constructing any
+   * review/backend layer.
+   */
+  if (operation.operation === "status") return yield* runStatusOperation(operation, root, activityPath, userConfigPath);
+
+  const settings = yield* loadReviewSettings(root, userConfigPath === undefined ? {} : { userConfigPath });
+  const credentialEnvVar = settings.credentialEnvVar;
+  switch (operation.operation) {
+    case "credentials": {
+      const resolution = yield* resolveCredential({
         envVar: credentialEnvVar,
-        environmentOnly: settings !== undefined &&
-          settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+        environmentOnly: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
       });
-      const credentials = credentialResolution.status === "present";
-      const configurationStatus = settings === undefined ? "invalid" : "ready";
-      const selectionOff = settings !== undefined && !fileSelectionReadiness(settings).selected;
-      const readinessStatus =
-        configurationStatus === "ready" &&
-        credentials && !selectionOff
-          ? "ready"
-          : "not-ready";
-      const resident = yield* inspectResidentEffect();
-      const residentActivity = readActivity({
-        statePath: activityPath,
-        root,
-        sessionId: operation.sessionId ?? "",
-        resident,
-      });
-      const analytics = readAnalytics({
-        enabled: settings !== undefined && effectiveSessionAnalytics(settings.configuration.policy),
-        statePath: activityPath, root, sessionId: operation.sessionId ?? "",
-      });
-      const output = {
-        version: 1,
-        operation: "status",
-        repository: { canonicalRoot: root },
-        ...(operation.sessionId === undefined ? {} : { sessionId: operation.sessionId }),
-        readiness: {
-          status: readinessStatus,
-          configuration: configurationStatus,
-          fileSelection: settings === undefined ? "unavailable" :
-            selectionOff ? "none" : "configured",
-          credentials: {
-            envVar: credentialEnvVar,
-            present: credentials,
-            source: credentialResolution.source,
-            status: credentialResolution.status,
-          },
-        },
-        activity: residentActivity,
-        analytics,
-        activitySource: "resident-v1",
-      };
-      return operation.format === "human"
-        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}\n${formatAnalyticsHuman(analytics)}`
-        : output;
-    }
-    const settings = yield* loadReviewSettings(
-      root,
-      userConfigPath === undefined ? {} : { userConfigPath },
-    );
-    const backend = settings.backend;
-    const destination = settings.destination;
-    const credentialEnvVar = settings.credentialEnvVar;
-    switch (operation.operation) {
-      case "credentials": {
-        const resolution = yield* resolveCredential({
-          envVar: credentialEnvVar,
-          environmentOnly:
-            settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
-        });
-        return {
-          version: 1,
-          operation: "credentials",
-          credentialEnvVar,
-          present: resolution.status === "present",
-          source: resolution.source,
-          status: resolution.status,
-        };
-      }
-      case "explain": {
-        const relativePath = rootRelativePath(root, cwd, operation.path);
-        const policy = settings.configuration.policy;
-        const explanation = explainPath(policy, relativePath ?? operation.path);
-        return {
-          version: 1,
-          operation: "explain",
-          repository: { canonicalRoot: root },
-          explanation,
-          text: formatPathExplanation(explanation),
-        };
-      }
-      default:
-        return assertNever(operation);
-    }
-  });
-
-const program = Effect.gen(function* () {
-  // Retired entry points cannot decode events, start a resident, or dispatch work.
-  if (isOpenCodeHook || (isCodexHook && !isComposedEditHook && composedKind === undefined)) return {};
-  const input = yield* readStdin;
-  const statePath = yield* statePathConfig;
-  const activityPath = yield* activityPathConfig;
-  const userConfigPathOption = yield* userConfigPathConfig;
-  const userConfigPath = Option.isSome(userConfigPathOption)
-    ? userConfigPathOption.value
-    : undefined;
-
-  if (composedKind !== undefined) {
-    let event: unknown;
-    try { event = JSON.parse(input); } catch { event = undefined; }
-    const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
-    yield* runComposedHookEffect({
-      kind: composedKind,
-      host: composedHost,
-      event,
-      codexVersion: codexHookVersion,
-      statePath,
-      activityPath,
-      ...(userConfigPath === undefined ? {} : { userConfigPath }),
-      ...(controlled === undefined ? {} : { controlled }),
-    });
-    return undefined;
-  }
-
-  const inputRequestsOperation = /"operation"\s*:\s*"(?:credentials|status|explain)"/.test(
-    input,
-  );
-  const inputRequestsInstallation = /"operation"\s*:\s*"(?:doctor|install-preview|install|update-preview|update|uninstall)"/.test(input);
-  const inputRequestsSetup = /"operation"\s*:\s*"setup"/.test(input);
-  const inputRequestsFirstReviewDemo = /"operation"\s*:\s*"demo"/.test(input);
-  const inputRequestsEvaluation = /"operation"\s*:\s*"(?:plan|run|report)"/.test(input);
-  if (requestedEvaluationOperation !== undefined || inputRequestsEvaluation) {
-    const evaluationInput = yield* decodeJson(input);
-    if (
-      typeof evaluationInput !== "object" ||
-      evaluationInput === null ||
-      !("operation" in evaluationInput) ||
-      (requestedEvaluationOperation !== undefined &&
-        evaluationInput.operation !== requestedEvaluationOperation)
-    ) {
       return {
         version: 1,
-        error: {
-          code: "invalid_request",
-          message: "evaluation operation flag does not match the version-1 evaluation contract",
-        },
+        operation: "credentials",
+        credentialEnvVar,
+        present: resolution.status === "present",
+        source: resolution.source,
+        status: resolution.status,
       };
     }
-    return yield* runEvaluationCommand(evaluationInput, {
-      allowLive: cliSwitch("evaluation-live"),
-      credentialEnvVar: yield* Config.NonEmptyString("EVALUATION_CREDENTIAL_ENV").pipe(Config.withDefault("TYPESAFE_API_KEY")),
-      ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {}),
-    });
-  }
-  if (cliSwitch("setup") || inputRequestsSetup) {
-    const operation: SetupOperation = yield* decodeSetupOperation(input);
-    return yield* runSetup(operation, {
-      statePath,
-      ...(userConfigPath === undefined ? {} : { userConfigPath }),
-      ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {}),
-    });
-  }
-  if (cliSwitch("demo") || inputRequestsFirstReviewDemo) {
-    const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
-    const demoStatePath = yield* Config.NonEmptyString("REVIEW_DEMO_STATE_PATH").pipe(
-      Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "demos")),
-    );
-    return yield* runFirstReviewDemo(operation, { statePath: demoStatePath });
-  }
-  if (requestedInstallationOperation !== undefined || inputRequestsInstallation) {
-    const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
-    if (operation.host === "claude") {
-      const claudeRequest = {
-        ...("reinstall" in operation && operation.reinstall === true ? { reinstall: true } : {}),
-        ...(operation.claudeHome === undefined ? {} : { claudeHome: operation.claudeHome }),
-        ...(!("claudeExecutable" in operation) || operation.claudeExecutable === undefined
-          ? {} : { claudeExecutable: operation.claudeExecutable }),
-        ...(!("proposalDigest" in operation) || operation.proposalDigest === undefined
-          ? {} : { proposalDigest: operation.proposalDigest }),
+    case "explain": {
+      const relativePath = rootRelativePath(root, cwd, operation.path);
+      const policy = settings.configuration.policy;
+      const explanation = explainPath(policy, relativePath ?? operation.path);
+      return {
+        version: 1,
+        operation: "explain",
+        repository: { canonicalRoot: root },
+        explanation,
+        text: formatPathExplanation(explanation),
       };
-      switch (operation.operation) {
-        case "doctor": return yield* diagnoseClaudeIntegration(claudeRequest);
-        case "install-preview": return yield* previewClaudeInstallation(claudeRequest);
-        case "install": return yield* installClaudeIntegration(claudeRequest);
-        case "update-preview": return yield* previewClaudeUpdate(claudeRequest);
-        case "update": return yield* updateClaudeIntegration(claudeRequest);
-        case "uninstall": return yield* uninstallClaudeIntegration(claudeRequest);
-      }
     }
-    if (operation.host === "opencode") {
-      const opencodeRequest = {
-        ...(operation.opencodeConfigHome === undefined ? {} : { opencodeConfigHome: operation.opencodeConfigHome }),
-        ...(!("opencodeExecutable" in operation) || operation.opencodeExecutable === undefined
-          ? {} : { opencodeExecutable: operation.opencodeExecutable }),
-        ...(!("proposalDigest" in operation) || operation.proposalDigest === undefined
-          ? {} : { proposalDigest: operation.proposalDigest }),
-      };
-      switch (operation.operation) {
-        case "doctor": return yield* diagnoseOpenCodeIntegration(opencodeRequest);
-        case "install-preview": return previewOpenCodeInstallation(opencodeRequest);
-        case "install": return yield* installOpenCodeIntegration(opencodeRequest);
-        case "update-preview": return previewOpenCodeUpdate(opencodeRequest);
-        case "update": return yield* updateOpenCodeIntegration(opencodeRequest);
-        case "uninstall": return yield* uninstallOpenCodeIntegration(opencodeRequest);
-      }
-    }
-    const request = {
-      ...("reinstall" in operation && operation.reinstall === true ? { reinstall: true } : {}),
-      ...(operation.codexHome === undefined ? {} : { codexHome: operation.codexHome }),
-      ...(!("codexExecutable" in operation) || operation.codexExecutable === undefined
-        ? {}
-        : { codexExecutable: operation.codexExecutable }),
-      ...(!("proposalDigest" in operation) || operation.proposalDigest === undefined
-        ? {}
-        : { proposalDigest: operation.proposalDigest }),
-    };
-    switch (operation.operation) {
-      case "doctor": {
-        const repositoryResult = yield* Effect.gen(function* () {
-          const rootResult = yield* discoverWorkingTreeRoot(operation.cwd).pipe(Effect.result);
-          if (rootResult._tag === "Failure") {
-            return {
-              repository: {
-                stage: "file-selection",
-                status: "unsupported",
-                observed: "working tree could not be discovered",
-                action: "run doctor from a supported Git working tree",
-              } satisfies DoctorCheck,
-              credential: {
-                stage: "credential-accessibility",
-                status: "unknown",
-                observed: {
-                  inspectedContext: "doctor-process",
-                  configuredEnvironmentVariable: "unknown",
-                  doctorProcessEnvironment: "unknown-not-inspected",
-                  actualHookAccessibility: "unknown",
-                  savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
-                  reason: "repository configuration is unavailable",
-                },
-                action: "fix repository discovery, then rerun doctor without passing any secret",
-              } satisfies DoctorCheck,
-            };
-          }
-          const settingsResult = yield* loadReviewSettings(
-            rootResult.success,
-            userConfigPath === undefined ? {} : { userConfigPath },
-          ).pipe(Effect.result);
-          if (settingsResult._tag === "Failure") {
-            return {
-              repository: {
-                stage: "file-selection",
-                status: "conflict",
-                observed: "review configuration is invalid",
-                action: "repair the reported review configuration, then rerun doctor",
-              } satisfies DoctorCheck,
-              credential: {
-                stage: "credential-accessibility",
-                status: "unknown",
-                observed: {
-                  inspectedContext: "doctor-process",
-                  configuredEnvironmentVariable: "unknown",
-                  doctorProcessEnvironment: "unknown-not-inspected",
-                  actualHookAccessibility: "unknown",
-                  savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
-                  reason: "credential selection could not be resolved",
-                },
-                action: "repair review configuration, then rerun doctor without passing any secret",
-              } satisfies DoctorCheck,
-            };
-          }
-          const settings = settingsResult.success;
-          const doctorEnvironmentCredential = yield* Config.option(Config.Redacted(settings.credentialEnvVar)).pipe(
-            Effect.map((value) => Option.isSome(value) && Redacted.value(value.value).length > 0),
-          );
-          const credential = yield* resolveCredential({
-            envVar: settings.credentialEnvVar,
-            environmentOnly:
-              settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
-          });
-          const credentialReady = credential.status === "present";
-          const credentialAction = credentialReady
-            ? undefined
-            : credential.source === "environment"
-              ? `make ${settings.credentialEnvVar} available to the installed hook environment, then rerun doctor`
-              : credential.status === "locked" || credential.status === "interaction-required"
-                ? "run hapsland --login in a user terminal and unlock or approve native credential access; background hooks never prompt"
-                : credential.status === "timed-out"
-                  ? "repair or unlock the native credential store; its noninteractive lookup exceeded the 750 ms deadline"
-                  : credential.status === "suspended"
-                    ? "reconcile the suspended credential with hapsland --login or hapsland --logout before review"
-                    : credential.status === "unavailable"
-                      ? "reinstall an archive containing the native helper for this platform if it is missing, or restore native credential access; then rerun doctor"
-                      : "store a credential with hapsland --login, then rerun doctor";
-          const credentialStatus = credentialReady
-            ? "ready" as const
-            : credential.status === "invalid" || credential.status === "suspended"
-              ? "conflict" as const
-              : "missing" as const;
-          const fileSelection = fileSelectionReadiness(settings);
-          return {
-            repository: {
-              stage: "file-selection",
-              status: fileSelection.selected ? "ready" : "missing",
-              observed: fileSelection.observed,
-              ...(!fileSelection.selected ? { action: "adjust user file includes or excludes to select the files you want reviewed" } : {}),
-            } satisfies DoctorCheck,
-            credential: {
-              stage: "credential-accessibility",
-              status: credentialStatus,
-              observed: {
-                inspectedContext: "doctor-process",
-                configuredEnvironmentVariable: settings.credentialEnvVar,
-                doctorProcessEnvironment: doctorEnvironmentCredential ? "present" : "absent",
-                actualHookAccessibility: credential.source === "saved" && credentialReady
-                  ? "available-via-noninteractive-native-lookup"
-                  : credential.source === "environment" && credentialReady
-                    ? "requires-host-environment-verification"
-                    : "unavailable",
-                savedCredentialAccessibility: credential.source === "saved"
-                  ? credential.status
-                  : "not-selected-environment-precedence",
-                selectedSource: credential.source,
-              },
-              ...(credentialAction === undefined ? {} : { action: credentialAction }),
-            } satisfies DoctorCheck,
-          };
-        });
-        return yield* diagnoseInstalledIntegration({
-          installation: request,
-          repository: repositoryResult.repository,
-          credential: repositoryResult.credential,
-        });
-      }
-      case "install-preview":
-        return yield* previewCodexInstallation(request);
-      case "install":
-        return yield* installCodexIntegration(request);
-      case "update-preview":
-        return yield* previewCodexUpdate(request);
-      case "update":
-        return yield* updateCodexIntegration(request);
-      case "uninstall":
-        return yield* uninstallCodexIntegration(request);
-    }
+    default:
+      return assertNever(operation);
   }
-  if (requestedOperation !== undefined || inputRequestsOperation) {
-    const decodedOperation = yield* decodeOperation(input, requestedOperation);
-    const operation =
-      forcedStatusFormat() !== undefined && decodedOperation.operation === "status"
-        ? { ...decodedOperation, format: "human" as const }
-        : decodedOperation;
-    if (operation.operation !== undefined) {
-      return yield* runOperation(operation, statePath, activityPath, userConfigPath);
-    }
-  }
+});
 
+const installationReinstall = (operation: InstallationOperation) =>
+  "reinstall" in operation && operation.reinstall === true ? { reinstall: true } : {};
+const installationDigest = (operation: InstallationOperation) =>
+  "proposalDigest" in operation && operation.proposalDigest !== undefined
+    ? { proposalDigest: operation.proposalDigest }
+    : {};
+
+const doctorRepositoryChecks = Effect.fn("Cli.doctorRepositoryChecks")(function* (
+  cwd: string,
+  userConfigPath: string | undefined,
+) {
+  const rootResult = yield* discoverWorkingTreeRoot(cwd).pipe(Effect.result);
+  if (rootResult._tag === "Failure") {
+    return {
+      repository: {
+        stage: "file-selection",
+        status: "unsupported",
+        observed: "working tree could not be discovered",
+        action: "run doctor from a supported Git working tree",
+      } satisfies DoctorCheck,
+      credential: {
+        stage: "credential-accessibility",
+        status: "unknown",
+        observed: {
+          inspectedContext: "doctor-process",
+          configuredEnvironmentVariable: "unknown",
+          doctorProcessEnvironment: "unknown-not-inspected",
+          actualHookAccessibility: "unknown",
+          savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+          reason: "repository configuration is unavailable",
+        },
+        action: "fix repository discovery, then rerun doctor without passing any secret",
+      } satisfies DoctorCheck,
+    };
+  }
+  const settingsResult = yield* loadReviewSettings(
+    rootResult.success,
+    userConfigPath === undefined ? {} : { userConfigPath },
+  ).pipe(Effect.result);
+  if (settingsResult._tag === "Failure") {
+    return {
+      repository: {
+        stage: "file-selection",
+        status: "conflict",
+        observed: "review configuration is invalid",
+        action: "repair the reported review configuration, then rerun doctor",
+      } satisfies DoctorCheck,
+      credential: {
+        stage: "credential-accessibility",
+        status: "unknown",
+        observed: {
+          inspectedContext: "doctor-process",
+          configuredEnvironmentVariable: "unknown",
+          doctorProcessEnvironment: "unknown-not-inspected",
+          actualHookAccessibility: "unknown",
+          savedCredentialAccessibility: "unknown-not-inspected-by-this-version",
+          reason: "credential selection could not be resolved",
+        },
+        action: "repair review configuration, then rerun doctor without passing any secret",
+      } satisfies DoctorCheck,
+    };
+  }
+  const settings = settingsResult.success;
+  const doctorEnvironmentCredential = yield* Config.option(Config.Redacted(settings.credentialEnvVar)).pipe(
+    Effect.map((value) => Option.isSome(value) && Redacted.value(value.value).length > 0),
+  );
+  const credential = yield* resolveCredential({
+    envVar: settings.credentialEnvVar,
+    environmentOnly: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
+  });
+  const fileSelection = fileSelectionReadiness(settings);
+  return {
+    repository: {
+      stage: "file-selection",
+      status: fileSelection.selected ? "ready" : "missing",
+      observed: fileSelection.observed,
+      ...(!fileSelection.selected
+        ? { action: "adjust user file includes or excludes to select the files you want reviewed" }
+        : {}),
+    } satisfies DoctorCheck,
+    credential: credentialDiagnostic(credential, settings.credentialEnvVar, doctorEnvironmentCredential),
+  };
+});
+
+const claudeInstallationRequest = (operation: Extract<InstallationOperation, { host: "claude" }>) => {
+  return {
+    ...installationReinstall(operation),
+    ...(operation.claudeHome === undefined ? {} : { claudeHome: operation.claudeHome }),
+    ...(!("claudeExecutable" in operation) || operation.claudeExecutable === undefined
+      ? {}
+      : { claudeExecutable: operation.claudeExecutable }),
+    ...installationDigest(operation),
+  };
+};
+
+const claudeInstallationHandlers = {
+  doctor: diagnoseClaudeIntegration,
+  "install-preview": previewClaudeInstallation,
+  install: installClaudeIntegration,
+  "update-preview": previewClaudeUpdate,
+  update: updateClaudeIntegration,
+  uninstall: uninstallClaudeIntegration,
+};
+const dispatchClaudeInstallation = Effect.fn("Cli.dispatchClaudeInstallation")(function* (
+  operation: Extract<InstallationOperation, { host: "claude" }>,
+) {
+  return yield* claudeInstallationHandlers[operation.operation](claudeInstallationRequest(operation));
+});
+
+const opencodeInstallationRequest = (operation: Extract<InstallationOperation, { host: "opencode" }>) => {
+  return {
+    ...(operation.opencodeConfigHome === undefined ? {} : { opencodeConfigHome: operation.opencodeConfigHome }),
+    ...(!("opencodeExecutable" in operation) || operation.opencodeExecutable === undefined
+      ? {}
+      : { opencodeExecutable: operation.opencodeExecutable }),
+    ...installationDigest(operation),
+  };
+};
+
+const opencodeInstallationHandlers = {
+  doctor: diagnoseOpenCodeIntegration,
+  "install-preview": (request: ReturnType<typeof opencodeInstallationRequest>) =>
+    Effect.succeed(previewOpenCodeInstallation(request)),
+  install: installOpenCodeIntegration,
+  "update-preview": (request: ReturnType<typeof opencodeInstallationRequest>) =>
+    Effect.succeed(previewOpenCodeUpdate(request)),
+  update: updateOpenCodeIntegration,
+  uninstall: uninstallOpenCodeIntegration,
+};
+const dispatchOpencodeInstallation = Effect.fn("Cli.dispatchOpencodeInstallation")(function* (
+  operation: Extract<InstallationOperation, { host: "opencode" }>,
+) {
+  return yield* opencodeInstallationHandlers[operation.operation](opencodeInstallationRequest(operation));
+});
+
+type CodexInstallationOperation = Exclude<InstallationOperation, { host: "claude" | "opencode" }>;
+const codexInstallationRequest = (operation: CodexInstallationOperation) => {
+  return {
+    ...installationReinstall(operation),
+    ...(operation.codexHome === undefined ? {} : { codexHome: operation.codexHome }),
+    ...(!("codexExecutable" in operation) || operation.codexExecutable === undefined
+      ? {}
+      : { codexExecutable: operation.codexExecutable }),
+    ...installationDigest(operation),
+  };
+};
+
+const dispatchCodexInstallation = Effect.fn("Cli.dispatchCodexInstallation")(function* (
+  operation: CodexInstallationOperation,
+  userConfigPath: string | undefined,
+) {
+  const request = codexInstallationRequest(operation);
+  switch (operation.operation) {
+    case "doctor": {
+      const repositoryResult = yield* doctorRepositoryChecks(operation.cwd, userConfigPath);
+      return yield* diagnoseInstalledIntegration({
+        installation: request,
+        repository: repositoryResult.repository,
+        credential: repositoryResult.credential,
+      });
+    }
+    case "install-preview":
+      return yield* previewCodexInstallation(request);
+    case "install":
+      return yield* installCodexIntegration(request);
+    case "update-preview":
+      return yield* previewCodexUpdate(request);
+    case "update":
+      return yield* updateCodexIntegration(request);
+    case "uninstall":
+      return yield* uninstallCodexIntegration(request);
+  }
+});
+
+const dispatchInstallation = Effect.fn("Cli.dispatchInstallation")(function* (
+  operation: InstallationOperation,
+  userConfigPath: string | undefined,
+) {
+  if (operation.host === "claude") return yield* dispatchClaudeInstallation(operation);
+  if (operation.host === "opencode") return yield* dispatchOpencodeInstallation(operation);
+  return yield* dispatchCodexInstallation(operation, userConfigPath);
+});
+
+const evaluationFlagMatches = (value: unknown): boolean => {
+  if (typeof value !== "object" || value === null || !("operation" in value)) return false;
+  return requestedEvaluationOperation === undefined || value.operation === requestedEvaluationOperation;
+};
+
+const runComposedInput = Effect.fn("Cli.runComposedInput")(function* (
+  kind: ComposedHookKind,
+  input: string,
+  statePath: string,
+  activityPath: string,
+  userConfigPath: string | undefined,
+) {
+  let event: unknown;
+  try {
+    event = JSON.parse(input);
+  } catch {
+    event = undefined;
+  }
+  const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
+  yield* runComposedHookEffect({
+    kind,
+    host: composedHost,
+    event,
+    codexVersion: codexHookVersion,
+    statePath,
+    activityPath,
+    ...(userConfigPath === undefined ? {} : { userConfigPath }),
+    ...(controlled === undefined ? {} : { controlled }),
+  });
+  return undefined;
+});
+
+const runJsonEvaluation = Effect.fn("Cli.runJsonEvaluation")(function* (input: string) {
+  const evaluationInput = yield* decodeJson(input);
+  if (!evaluationFlagMatches(evaluationInput)) {
+    return {
+      version: 1,
+      error: {
+        code: "invalid_request",
+        message: "evaluation operation flag does not match the version-1 evaluation contract",
+      },
+    };
+  }
+  return yield* runEvaluationCommand(evaluationInput, {
+    allowLive: cliSwitch("evaluation-live"),
+    credentialEnvVar: yield* Config.NonEmptyString("EVALUATION_CREDENTIAL_ENV").pipe(
+      Config.withDefault("TYPESAFE_API_KEY"),
+    ),
+    ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {}),
+  });
+});
+
+const runJsonSetup = Effect.fn("Cli.runJsonSetup")(function* (
+  input: string,
+  statePath: string,
+  userConfigPath: string | undefined,
+) {
+  const operation: SetupOperation = yield* decodeSetupOperation(input);
+  return yield* runSetup(operation, {
+    statePath,
+    ...(userConfigPath === undefined ? {} : { userConfigPath }),
+    ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {}),
+  });
+});
+
+const runJsonDemo = Effect.fn("Cli.runJsonDemo")(function* (input: string) {
+  const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
+  const demoStatePath = yield* Config.NonEmptyString("REVIEW_DEMO_STATE_PATH").pipe(
+    Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "demos")),
+  );
+  return yield* runFirstReviewDemo(operation, { statePath: demoStatePath });
+});
+
+const runAdministrativeOperation = Effect.fn("Cli.runAdministrativeOperation")(function* (
+  input: string,
+  statePath: string,
+  activityPath: string,
+  userConfigPath: string | undefined,
+) {
+  const decodedOperation = yield* decodeOperation(input, requestedOperation);
+  const operation =
+    forcedStatusFormat() !== undefined && decodedOperation.operation === "status"
+      ? { ...decodedOperation, format: "human" as const }
+      : decodedOperation;
+  return yield* runOperation(operation, statePath, activityPath, userConfigPath);
+});
+
+const runNativeInput = Effect.fn("Cli.runNativeInput")(function* (
+  input: string,
+  statePath: string,
+  activityPath: string,
+  userConfigPath: string | undefined,
+) {
   const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
 
   if (isClaudeHook) {
     if (!isComposedEditHook) return {};
     const nativeEvent = yield* decodeJson(input);
-    const observation = yield* adaptClaudeDirectEvent(nativeEvent, userConfigPath === undefined ? {} : { userConfigPath });
-    return yield* runDirectBoundedHook(
-      observation, controlled, statePath, activityPath, userConfigPath,
-    ).pipe(Effect.catch(() => Effect.succeed({})));
+    const observation = yield* adaptClaudeDirectEvent(
+      nativeEvent,
+      userConfigPath === undefined ? {} : { userConfigPath },
+    );
+    return yield* runDirectBoundedHook(observation, controlled, statePath, activityPath, userConfigPath).pipe(
+      Effect.catch(() => Effect.succeed({})),
+    );
   }
 
   if (isCodexHook) {
@@ -879,79 +1018,154 @@ const program = Effect.gen(function* () {
   }
 
   return { version: 1, error: { code: "invalid_request", message: "unsupported command" } };
+});
+
+const retiredHook = (): boolean => isOpenCodeHook || (isCodexHook && !isComposedEditHook && composedKind === undefined);
+const readProgramInput = Effect.fn("Cli.readProgramInput")(function* () {
+  const input = yield* readStdin;
+  const statePath = yield* statePathConfig;
+  const activityPath = yield* activityPathConfig;
+  const userConfigPath = Option.getOrUndefined(yield* userConfigPathConfig);
+  return { input, statePath, activityPath, userConfigPath };
+});
+type ProgramInput = Effect.Success<ReturnType<typeof readProgramInput>>;
+
+const jsonRoute = (input: string) => {
+  const routes = [
+    {
+      kind: "evaluation",
+      requested: requestedEvaluationOperation !== undefined || /"operation"\s*:\s*"(?:plan|run|report)"/.test(input),
+    },
+    { kind: "setup", requested: cliSwitch("setup") || /"operation"\s*:\s*"setup"/.test(input) },
+    { kind: "demo", requested: cliSwitch("demo") || /"operation"\s*:\s*"demo"/.test(input) },
+    {
+      kind: "installation",
+      requested:
+        requestedInstallationOperation !== undefined ||
+        /"operation"\s*:\s*"(?:doctor|install-preview|install|update-preview|update|uninstall)"/.test(input),
+    },
+    {
+      kind: "administrative",
+      requested: requestedOperation !== undefined || /"operation"\s*:\s*"(?:credentials|status|explain)"/.test(input),
+    },
+  ] as const;
+  return routes.find((route) => route.requested)?.kind ?? "native";
+};
+const runJsonInstallation = Effect.fn("Cli.runJsonInstallation")(function* (context: ProgramInput) {
+  const operation = yield* decodeInstallationOperation(context.input, requestedInstallationOperation);
+  return yield* dispatchInstallation(operation, context.userConfigPath);
+});
+const jsonHandlers = {
+  evaluation: (context: ProgramInput) => runJsonEvaluation(context.input),
+  setup: (context: ProgramInput) => runJsonSetup(context.input, context.statePath, context.userConfigPath),
+  demo: (context: ProgramInput) => runJsonDemo(context.input),
+  installation: runJsonInstallation,
+  administrative: (context: ProgramInput) =>
+    runAdministrativeOperation(context.input, context.statePath, context.activityPath, context.userConfigPath),
+  native: (context: ProgramInput) =>
+    runNativeInput(context.input, context.statePath, context.activityPath, context.userConfigPath),
+};
+const dispatchJsonInput = Effect.fn("Cli.dispatchJsonInput")(function* (context: ProgramInput) {
+  return yield* jsonHandlers[jsonRoute(context.input)](context);
+});
+
+const program = Effect.gen(function* () {
+  // Retired entry points cannot decode events, start a resident, or dispatch work.
+  if (retiredHook()) return {};
+  const context = yield* readProgramInput();
+  const { input, statePath, activityPath, userConfigPath } = context;
+
+  if (composedKind !== undefined)
+    return yield* runComposedInput(composedKind, input, statePath, activityPath, userConfigPath);
+
+  return yield* dispatchJsonInput(context);
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(
-      composedKind !== undefined ? undefined : isClaudeHook || isOpenCodeHook ? {} : isCodexHook
-        ? {
-            systemMessage:
-              "Review unavailable: invalid or unsupported Codex PostToolUse input.",
-          }
-        : {
-            version: 1,
-            error: {
-              code: "invalid_request",
-              message: "input does not satisfy a supported command contract",
-            },
-          },
+      composedKind !== undefined
+        ? undefined
+        : isClaudeHook || isOpenCodeHook
+          ? {}
+          : isCodexHook
+            ? {
+                systemMessage: "Review unavailable: invalid or unsupported Codex PostToolUse input.",
+              }
+            : {
+                version: 1,
+                error: {
+                  code: "invalid_request",
+                  message: "input does not satisfy a supported command contract",
+                },
+              },
     ),
   ),
 );
 
-const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
-  if (cliSwitch("login")) {
-    const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
-    if (probe.status !== "available") {
-      return {
-        version: 1,
-        operation: "login",
-        status: probe.status,
-        action: probe.status === "locked"
-          ? "unlock the native credential store in the desktop session, then retry"
-          : probe.status === "interaction-required"
-            ? "approve native credential access from this explicit login command, then retry"
-            : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry",
-      };
-    }
-    const inputTask: Effect.Effect<string, unknown> = cliSwitch("credential-stdin")
-      ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
-      : readMaskedCredential();
-    const input = yield* inputTask.pipe(Effect.result);
-    if (input._tag === "Failure") {
-      return {
-        version: 1,
-        operation: "login",
-        status: "cancelled",
-        preservedPreviousCredential: true,
-        action: "retry in a terminal or explicitly use --credential-stdin",
-      };
-    }
-    let value = input.success;
-    const result = yield* saveCredential(value);
-    value = "";
+const savedCredentialAction = (status: Effect.Success<ReturnType<typeof saveCredential>>["status"]) => ({
+  ...(status === "indeterminate"
+    ? { action: "credential replacement may have committed; retry login or logout before review" }
+    : status === "busy"
+      ? { action: "another credential change is still running; retry" }
+      : {}),
+});
+const savedCredentialOutput = (result: Effect.Success<ReturnType<typeof saveCredential>>) => {
+  return {
+    version: 1,
+    operation: "login",
+    status: result.status,
+    stored: result.status === "stored",
+    paidVerificationPerformed: false,
+    previousCredentialPreserved: result.status !== "stored" && result.status !== "indeterminate",
+    replacementOutcome: result.status,
+    savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "active",
+    stateLock: result.stateLock,
+    ...savedCredentialAction(result.status),
+    generation: result.state.generation,
+  };
+};
+const loginProbeAction = (status: string): string => {
+  return status === "locked"
+    ? "unlock the native credential store in the desktop session, then retry"
+    : status === "interaction-required"
+      ? "approve native credential access from this explicit login command, then retry"
+      : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry";
+};
+const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
+  const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
+  if (probe.status !== "available") {
     return {
       version: 1,
       operation: "login",
-      status: result.status,
-      stored: result.status === "stored",
-      paidVerificationPerformed: false,
-      previousCredentialPreserved: result.status !== "stored" && result.status !== "indeterminate",
-      replacementOutcome: result.status === "indeterminate" ? "indeterminate" : result.status,
-      savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "active",
-      stateLock: result.stateLock,
-      ...(result.status === "indeterminate"
-        ? { action: "credential replacement may have committed; retry login or logout before review" }
-        : result.status === "busy"
-          ? { action: "another credential change is still running; retry" }
-          : {}),
-      generation: result.state.generation,
+      status: probe.status,
+      action: loginProbeAction(probe.status),
     };
   }
-  const result = yield* logoutCredential();
+  const inputTask: Effect.Effect<string, unknown> = cliSwitch("credential-stdin")
+    ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
+    : readMaskedCredential();
+  const input = yield* inputTask.pipe(Effect.result);
+  if (input._tag === "Failure") {
+    return {
+      version: 1,
+      operation: "login",
+      status: "cancelled",
+      preservedPreviousCredential: true,
+      action: "retry in a terminal or explicitly use --credential-stdin",
+    };
+  }
+  let value = input.success;
+  const result = yield* saveCredential(value);
+  value = "";
+  return savedCredentialOutput(result);
+});
+const credentialEnvironmentName = Effect.fn("Cli.credentialEnvironmentName")(function* () {
   let environmentName: string = DEFAULT_CREDENTIAL_ENV_VAR;
   try {
     const repository = yield* execFileClosedStdin("git", ["rev-parse", "--show-toplevel"], {
-      cwd: process.cwd(), env: process.env, timeout: 1_000, maxBuffer: 1024 * 1024,
+      cwd: process.cwd(),
+      env: process.env,
+      timeout: 1_000,
+      maxBuffer: 1024 * 1024,
     });
     const root = repository.succeeded ? repository.stdout.trim() : "";
     if (root.length > 0) {
@@ -960,7 +1174,28 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
         Effect.catch(() => Effect.succeed(DEFAULT_CREDENTIAL_ENV_VAR)),
       );
     }
-  } catch { /* The global default remains the only known environment override. */ }
+  } catch {
+    /* The global default remains the only known environment override. */
+  }
+  return environmentName;
+});
+const logoutStatus = (status: Effect.Success<ReturnType<typeof logoutCredential>>["status"]) => {
+  return status === "busy" || status === "indeterminate"
+    ? status
+    : status === "deleted" || status === "missing"
+      ? "logged-out"
+      : "deletion-failed";
+};
+const logoutAction = (status: Effect.Success<ReturnType<typeof logoutCredential>>["status"]) => ({
+  ...(status === "busy"
+    ? { action: "another credential change is still running; retry" }
+    : status === "indeterminate"
+      ? { action: "saved credential deletion may have committed; retry logout to reconcile suspended saved use" }
+      : {}),
+});
+const logoutSavedCredential = Effect.fn("Cli.logoutSavedCredential")(function* () {
+  const result = yield* logoutCredential();
+  const environmentName = yield* credentialEnvironmentName();
   const environmentActive = yield* Config.option(Config.Redacted(environmentName)).pipe(
     Effect.map((value) => Option.isSome(value) && Redacted.value(value.value).length > 0),
     Effect.catch(() => Effect.succeed(false)),
@@ -968,21 +1203,13 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
   return {
     version: 1,
     operation: "logout",
-    status: result.status === "busy" || result.status === "indeterminate"
-      ? result.status
-      : result.status === "deleted" || result.status === "missing"
-      ? "logged-out"
-      : "deletion-failed",
+    status: logoutStatus(result.status),
     stateLock: result.stateLock,
     savedCredentialUse: result.state.savedUseSuspended ? "suspended" : "absent",
     generation: result.state.generation,
     grantsPreserved: true,
     sentRequestsRecalled: false,
-    ...(result.status === "busy"
-      ? { action: "another credential change is still running; retry" }
-      : result.status === "indeterminate"
-        ? { action: "saved credential deletion may have committed; retry logout to reconcile suspended saved use" }
-        : {}),
+    ...logoutAction(result.status),
     environmentOverride: {
       envVar: environmentName,
       active: environmentActive,
@@ -991,6 +1218,9 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
         : undefined,
     },
   };
+});
+const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
+  return cliSwitch("login") ? yield* loginCredential() : yield* logoutSavedCredential();
 });
 
 const isCredentialCommand = cliSwitch("login") || cliSwitch("logout");
@@ -1002,132 +1232,102 @@ const positionalHost = () => clientArguments?.host;
 const selectedHost = (): SetupClient => clientArguments?.host ?? "codex";
 const hostFields = (host: SetupClient) => profileFields(host, clientArguments?.flags ?? new Map());
 
-const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
-  const hostName = host === "claude" ? "Claude Code" : "Codex";
-  if (!process.stdin.isTTY || !process.stderr.isTTY) {
-    process.stderr.write("Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n");
-    process.exitCode = 6;
-    return;
-  }
+const pilotConfiguration = Effect.fn("InteractiveSetup.configuration")(function* () {
   const configuredStatePath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_STATE_PATH")));
-  const statePath = configuredStatePath ?? (yield* Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
-    Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent"))));
+  const statePath =
+    configuredStatePath ??
+    (yield* Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
+      Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+    ));
   const userConfigPath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")));
+  return { statePath, ...(userConfigPath === undefined ? {} : { userConfigPath }) };
+});
+const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
+  const { runPilotSetup } = yield* Effect.promise(() => import("./onboarding/pilot.ts"));
+  const terminal = Boolean(process.stdin.isTTY && process.stderr.isTTY);
+  // Configuration is read only for an actual terminal setup, as in the direct CLI path.
+  const configuration = terminal ? yield* pilotConfiguration() : undefined;
   const cwd = process.cwd();
-  let request: SetupOperation = {
-    version: 1,
-    operation: "setup",
-    ...hostFields(host),
-    scope: { cwd, review: "enabled" },
-    credential: "saved",
-  };
-  let credentialEntered = false;
-  const run = (step: SetupOperation) => runSetup(step, {
-    statePath,
-    ...(userConfigPath === undefined ? {} : { userConfigPath }),
-    readCredential: () => readMaskedCredential().pipe(Effect.tap(() => Effect.sync(() => { credentialEntered = true; }))),
-  });
-  const stage = (result: Effect.Success<ReturnType<typeof run>>, name: string) =>
-    result.stages.find((item) => item.stage === name);
-  const action = (result: Effect.Success<ReturnType<typeof run>>, code: string) =>
-    result.actions.find((item) => item.code === code);
-    process.stderr.write(`${hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. No Jev call is made during setup.\n`);
-    let result = yield* run(request);
-    process.stderr.write(`Compatibility: ${stage(result, "compatibility")?.summary ?? "unavailable"}.\n`);
-    for (const line of formatCompatibility(stage(result, "compatibility")?.observed)) process.stderr.write(`${line}\n`);
-    if (stage(result, "compatibility")?.status !== "complete") {
-      process.stderr.write(`${result.actions[0]?.action ?? `Use a declared ${hostName} profile.`}\n`);
-      process.exitCode = 3;
-      return;
-    }
-    if (!["complete", "pending", "partial"].includes(stage(result, "installation")?.status ?? "")) {
-      process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
-      for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
-      process.exitCode = result.status === "partial" ? 5 : 4;
-      return;
-    }
-    const install = action(result, "approve-installation") ?? action(result, "resume-installation");
-    if (install !== undefined) {
-      const observed = stage(result, "installation")?.observed as { proposal?: unknown } | undefined;
-      process.stderr.write(`Installation preview:\n${formatProposal(observed?.proposal).join("\n")}\n`);
-      if (!(yield* askConfirmation(`Install these entries in the selected ${hostName} profile?`))) {
-        process.stderr.write(`Installation was not changed. Run hapsland setup ${host} to resume.\n`);
-        return;
-      }
-      const digest = install.authorization?.installProposalDigest;
-      if (digest === undefined) throw new Error("installation preview omitted its approval digest");
-      request = { ...request, installProposalDigest: digest };
-    }
-    result = yield* run({ ...request, interactive: true });
-    process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
-    if (["complete", "partial"].includes(stage(result, "installation")?.status ?? "")) yield* activateCurrentPackage(fileURLToPath(import.meta.url));
-    if (credentialEntered && stage(result, "credential")?.status === "complete") {
-      process.stderr.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
-    }
-    process.stderr.write(`Credential: ${stage(result, "credential")?.summary ?? "unavailable"}. No paid verification or review was sent.\n`);
-    if (stage(result, "installation")?.status !== "complete" || stage(result, "credential")?.status !== "complete") {
-      for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
-      process.exitCode = result.status === "partial" ? 5 : 6;
-      return;
-    }
-    process.stderr.write(`Repository: ${stage(result, "repository")?.summary ?? "unavailable"}.\n`);
-    if (stage(result, "repository")?.status !== "complete") {
-      for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
-      process.exitCode = 6;
-      return;
-    }
-    const doctor = yield* execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
-      cwd, env: process.env, maxBuffer: 1024 * 1024,
-      input: JSON.stringify({ version: 1, operation: "doctor", cwd, ...hostFields(host) }),
-      timeout: 10_000,
-    });
-    if (!doctor.succeeded) {
-      process.stderr.write(`Readiness check could not complete. Run hapsland setup ${host} again or hapsland doctor ${host}.\n`);
-      process.exitCode = 6;
-      return;
-    }
-    const diagnosisResult = yield* Effect.try(() => JSON.parse(doctor.stdout)).pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({
-        status: Schema.String,
-        nextSteps: Schema.optionalKey(Schema.Array(Schema.Struct({ action: Schema.String }))),
-        checks: Schema.optionalKey(Schema.Array(Schema.Struct({ stage: Schema.String, status: Schema.String }))),
-      }))),
-      Effect.result,
-    );
-    if (diagnosisResult._tag === "Failure") {
-      process.stderr.write(`Readiness result was unreadable. Rerun hapsland setup ${host} or hapsland doctor ${host}.\n`);
-      process.exitCode = 6;
-      return;
-    }
-    const diagnosis = diagnosisResult.success;
-    process.stderr.write(`Offline readiness: ${diagnosis.status}.\n`);
-    for (const next of diagnosis.nextSteps ?? []) process.stderr.write(`Next: ${next.action}.\n`);
-    for (const check of diagnosis.checks ?? []) if (check.status !== "ready") process.stderr.write(`${check.stage}: ${check.status}.\n`);
-    process.stderr.write(`After native ${hostName} repository and hook trust, make an ordinary supported edit and inspect review activity.\n`);
+  return yield* runPilotSetup(
+    { terminal, host, fields: hostFields(host), cwd, platform: process.platform },
+    {
+      run: (request, entered) => {
+        if (configuration === undefined) return Effect.fail(new Error("setup configuration unavailable"));
+        return runSetup(request, {
+          ...configuration,
+          readCredential: () => readMaskedCredential().pipe(Effect.tap(() => Effect.sync(entered))),
+        });
+      },
+      activate: activateCurrentPackage(fileURLToPath(import.meta.url)),
+      doctor: execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+        cwd,
+        env: process.env,
+        maxBuffer: 1024 * 1024,
+        input: JSON.stringify({ version: 1, operation: "doctor", cwd, ...hostFields(host) }),
+        timeout: 10_000,
+      }),
+      confirm: askConfirmation,
+      write: (text) => {
+        process.stderr.write(text);
+      },
+      exitCode: (code) => {
+        process.exitCode = code;
+      },
+    },
+  );
 });
 
+const initialClientStatus = (inspection: {
+  readonly status: string;
+  readonly installed?: boolean;
+}): ClientChoice["status"] =>
+  inspection.installed === true
+    ? "installed"
+    : ["conflict", "partial"].includes(inspection.status)
+      ? "needs attention"
+      : "not installed";
+const codexClientStatus = Effect.fn("InteractiveSetup.codexStatus")(function* (
+  fields: Extract<ReturnType<typeof hostFields>, { host: "codex" }>,
+  status: ClientChoice["status"],
+) {
+  if (status !== "not installed") return status;
+  const target = yield* previewCodexUpdate(fields);
+  // An owned registration may point to a different retained package.
+  if (target.status === "preview") return "installed" as const;
+  return target.status === "unsupported" ? ("unavailable" as const) : status;
+});
+const claudeClientStatus = Effect.fn("InteractiveSetup.claudeStatus")(function* (
+  fields: Extract<ReturnType<typeof hostFields>, { host: "claude" }>,
+  status: ClientChoice["status"],
+) {
+  if (status !== "not installed") return status;
+  return (yield* previewClaudeInstallation(fields)).status === "unsupported" ? ("unavailable" as const) : status;
+});
+const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (host: SetupClient) {
+  const fields = hostFields(host);
+  const inspection =
+    fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
+  const decoded = Schema.decodeUnknownSync(
+    Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }),
+  )(inspection);
+  const initial = initialClientStatus(decoded);
+  const status =
+    fields.host === "claude" ? yield* claudeClientStatus(fields, initial) : yield* codexClientStatus(fields, initial);
+  return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
+});
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
-  if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
-  const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex"] as const, Effect.fn("InteractiveSetup.clientChoice")(function* (host) {
-    const fields = hostFields(host);
-    const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
-    const decoded = Schema.decodeUnknownSync(Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }))(inspection);
-    let status: ClientChoice["status"] = decoded.installed === true ? "installed"
-      : ["conflict", "partial"].includes(decoded.status) ? "needs attention" : "not installed";
-    if (fields.host === "codex" && status === "not installed") {
-      const target = yield* previewCodexUpdate(fields);
-      // An owned registration may point to a different retained package.
-      if (target.status === "preview") status = "installed";
-      else if (target.status === "unsupported") status = "unavailable";
-    }
-    if (fields.host === "claude" && status === "not installed" && (yield* previewClaudeInstallation(fields)).status === "unsupported") status = "unavailable";
-    return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
-  }));
+  if (!process.stdin.isTTY || !process.stderr.isTTY)
+    throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
+  const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex"] as const, setupClientChoice);
   const hosts = yield* selectSetupClients(choices);
-  if (hosts.length === 0) { process.stderr.write("No clients selected. No changes made.\n"); return; }
+  if (hosts.length === 0) {
+    process.stderr.write("No clients selected. No changes made.\n");
+    return;
+  }
   for (const host of hosts) {
     const result = yield* pilotSetup(host).pipe(
-      Effect.catchDefect((cause) => Effect.fail(cause)), Effect.result,
+      Effect.catchDefect((cause) => Effect.fail(cause)),
+      Effect.result,
     );
     if (result._tag === "Failure") {
       process.stderr.write(`${host}: ${result.failure instanceof Error ? result.failure.message : "Setup failed"}\n`);
@@ -1136,150 +1336,107 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
   }
 });
 
-const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
-  if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.");
-  const explicitHost = flagValue("--host") !== undefined || positionalHost() !== undefined;
-  const hosts: SetupClient[] = [];
-  const outcomes = new Map<SetupClient, "updated" | "already current" | "skipped" | "failed">();
-  const failed = (host: SetupClient, cause: unknown) => {
-    process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "Update failed"}\n`);
-    outcomes.set(host, "failed"); process.exitCode = 6;
-  };
-  if (explicitHost) hosts.push(selectedHost());
-  else hosts.push(...registeredClients(clientArguments?.flags ?? new Map(), failed));
-  if (hosts.length === 0) {
-    process.stderr.write(outcomes.size === 0 ? "No Hapsland integrations found. Run hapsland setup first.\n" : "No client registrations could be selected for update. Resolve the reported discovery errors.\n");
-    return;
-  }
-  process.stderr.write(`Update clients: ${hosts.join(", ")}.\n`);
+const validateArchiveSelection = (archive: string | undefined, version: string | undefined): void => {
+  if (archive !== undefined && (version !== undefined || flagValue("--channel") !== undefined))
+    throw new Error("select either --tarball or a registry channel/version");
+};
+const selectedRelease = (): ReleaseSelection => {
+  const channel = flagValue("--channel") ?? "latest";
+  if (channel !== "latest" && channel !== "next") throw new Error("--channel must be latest or next");
+  const archive = flagValue("--tarball");
+  const version = flagValue("--version");
+  validateArchiveSelection(archive, version);
+  return archive === undefined
+    ? { kind: "registry", channel, ...(version === undefined ? {} : { version }) }
+    : { kind: "archive", path: archive };
+};
+const releaseSelectionLabel = (selection: ReleaseSelection): string =>
+  selection.kind === "archive" ? selection.path : `@hapsland/hapsland@${selection.version ?? selection.channel}`;
+const updateExecutable = Effect.fn("InteractiveUpdate.target")(function* () {
   const target = flagValue("--target");
-  if (target !== undefined && ["--tarball", "--version", "--channel"].some(flag => flagValue(flag) !== undefined)) {
-    throw new Error("--target cannot be combined with --tarball, --version, or --channel");
+  if (target !== undefined) {
+    if (["--tarball", "--version", "--channel"].some((flag) => flagValue(flag) !== undefined))
+      throw new Error("--target cannot be combined with --tarball, --version, or --channel");
+    return target;
   }
-  let executable: string;
-  if (target !== undefined) executable = target;
-  else {
-    const channel = flagValue("--channel") ?? "latest";
-    if (channel !== "latest" && channel !== "next") throw new Error("--channel must be latest or next");
-    const archive = flagValue("--tarball");
-    const version = flagValue("--version");
-    if (archive !== undefined && (version !== undefined || flagValue("--channel") !== undefined)) throw new Error("select either --tarball or a registry channel/version");
-    const selection: ReleaseSelection = archive === undefined
-      ? { kind: "registry", channel, ...(version === undefined ? {} : { version }) }
-      : { kind: "archive", path: archive };
-    process.stderr.write(`Select ${archive ?? `@hapsland/hapsland@${version ?? channel}`}; reuse a verified package when available. The previous package is retained.\n`);
-    const staged = yield* stageRelease(selection);
-    executable = staged.executable;
-    process.stderr.write(`Target ${staged.packageVersion}: ${executable}\n`);
-  }
-  const childEnvironment = { ...process.env };
-  delete childEnvironment.REVIEW_INSTALL_RUNTIME;
-  delete childEnvironment.REVIEW_INSTALL_ENTRYPOINT;
-  const invoke = Effect.fn("InteractiveUpdate.invoke")(function* (host: SetupClient, operation: "update-preview" | "update", proposalDigest?: string) {
-    const output = yield* invokeLifecycle(executable, [`--${operation}`], host, { version: 1, operation, ...hostFields(host), ...(proposalDigest === undefined ? {} : { proposalDigest }) }, childEnvironment);
-    for (const line of formatProposal(output.proposal)) process.stderr.write(`${line}\n`);
-    return output;
-  });
-  const proposals: Array<{ host: SetupClient; digest: string }> = [];
-  for (const host of hosts) {
-    try {
-      process.stderr.write(`Preview ${host}:\n`);
-      const previewResult = yield* invoke(host, "update-preview").pipe(Effect.result);
-      if (previewResult._tag === "Failure") { failed(host, previewResult.failure); continue; }
-      const preview = previewResult.success;
-      if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error("target did not return an applicable update preview");
-      if (preview.alreadyCurrent === true || preview.proposal.changes?.length === 0) { outcomes.set(host, "already current"); const activation = yield* activatePackage(executable).pipe(Effect.result); if (activation._tag === "Failure") failed(host, activation.failure); }
-      else proposals.push({ host, digest: preview.proposal.digest });
-    } catch (cause) { failed(host, cause); }
-  }
-  if (proposals.length > 0) {
-    const apply = yield* askConfirmation(`Apply these changes to ${proposals.map(proposal => proposal.host).join(", ")} profiles?`);
-    for (const proposal of proposals) {
-      if (!apply) { outcomes.set(proposal.host, "skipped"); continue; }
-      try {
-        const invocation = yield* invoke(proposal.host, "update", proposal.digest).pipe(Effect.result);
-        if (invocation._tag === "Failure") { failed(proposal.host, invocation.failure); continue; }
-        const result = invocation.success;
-        if (result.status === "partial") {
-          const activation = yield* activatePackage(executable).pipe(Effect.result);
-          if (activation._tag === "Failure") { failed(proposal.host, activation.failure); continue; }
-          throw new Error(`${formatFailure(result, proposal.host)} Next: hapsland repair ${proposal.host}. The selected package is retained for recovery.`);
-        }
-        if (!["updated", "complete", "already-current"].includes(result.status)) throw new Error(formatFailure(result, proposal.host));
-        outcomes.set(proposal.host, result.status === "already-current" ? "already current" : "updated");
-        const activation = yield* activatePackage(executable).pipe(Effect.result);
-        if (activation._tag === "Failure") failed(proposal.host, activation.failure);
-      } catch (cause) { failed(proposal.host, cause); }
-    }
-  }
-  for (const [host, status] of outcomes) {
-    process.stderr.write(`${host}: ${status}.\n`);
-    if (status === "updated") process.stderr.write(`Finish current work, restart ${host}, and review native trust prompts.\n`);
-  }
-  process.stderr.write("Retain previous packages until their hooks and active sessions no longer depend on them.\n");
+  const selection = selectedRelease();
+  process.stderr.write(
+    `Select ${releaseSelectionLabel(selection)}; reuse a verified package when available. The previous package is retained.\n`,
+  );
+  const staged = yield* stageRelease(selection);
+  process.stderr.write(`Target ${staged.packageVersion}: ${staged.executable}\n`);
+  return staged.executable;
+});
+const explicitUpdateHost = (): SetupClient | undefined =>
+  flagValue("--host") !== undefined || positionalHost() !== undefined ? selectedHost() : undefined;
+const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
+  process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "Update failed"}\n`);
+  process.exitCode = 6;
+};
+const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
+  const { updateClients } = yield* Effect.promise(() => import("./onboarding/update.ts"));
+  return yield* updateClients(
+    {
+      terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
+      host: explicitUpdateHost(),
+      flags: clientArguments?.flags ?? new Map(),
+      environment: process.env,
+    },
+    {
+      fields: hostFields,
+      registered: registeredClients,
+      target: updateExecutable(),
+      invoke: (executable, host, request, environment) =>
+        invokeLifecycle(executable, [`--${request.operation}`], host, request, environment),
+      activate: activatePackage,
+      confirm: askConfirmation,
+      write: (text) => {
+        process.stderr.write(text);
+      },
+      reportFailure: reportUpdateFailure,
+    },
+  );
 });
 
-const reportClientFailure = (host: SetupClient, cause: unknown) => { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; };
+const reportClientFailure = (host: SetupClient, cause: unknown) => {
+  process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`);
+  process.exitCode = 6;
+};
 
-const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function* (command: "repair" | "reinstall" | "uninstall") {
-  if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error(`${command} needs a terminal. Use the version-one installation JSON interface for automation.`);
-  const hosts = clientArguments?.host === undefined ? registeredClients(clientArguments?.flags ?? new Map(), reportClientFailure) : [selectedHost()];
-  if (hosts.length === 0) {
-    if (command === "reinstall") yield* activateCurrentPackage(fileURLToPath(import.meta.url));
-    process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n"); return;
-  }
-  for (const host of hosts) {
-    try {
-      const fields = hostFields(host);
-      const reinstall = command === "reinstall";
-      const installed = fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields);
-      const inspectionResult = fields.host === "claude" ? yield* inspectClaudeInstallation(fields).pipe(Effect.result) : yield* inspectCodexInstallation(fields).pipe(Effect.result);
-      if (inspectionResult._tag === "Failure") { reportClientFailure(host, inspectionResult.failure); continue; }
-      const inspection = inspectionResult.success;
-      const recovered = Schema.decodeUnknownSync(Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) }))(inspection).recovery?.operation;
-      const operation = command === "repair" && (recovered === "install" || recovered === "update" || recovered === "uninstall") ? recovered : command === "uninstall" ? "uninstall" : fields.host === "claude" && installed && !reinstall ? "update" : "install";
-      const invoke = (digest?: string) => {
-        const request = { version: 1, ...fields, operation: digest === undefined && operation !== "uninstall" ? `${operation}-preview` : operation, ...(reinstall && operation === "install" ? { reinstall: true } : {}), ...(digest === undefined ? {} : { proposalDigest: digest }) };
-        const output = invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request);
-        return output;
-      };
-      const previewResult = yield* invoke().pipe(Effect.result);
-      if (previewResult._tag === "Failure") { reportClientFailure(host, previewResult.failure); continue; }
-      const preview = previewResult.success;
-      if (preview.status === "already-uninstalled") { process.stderr.write(`${host}: already removed.\n`); continue; }
-      if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error(formatFailure(preview, host));
-      if (preview.proposal.changes?.length === 0) { process.stderr.write(`${host}: ${command === "uninstall" ? "already removed" : "integration intact"}.\n`); continue; }
-      if (recovered !== undefined && command === "repair") process.stderr.write(`Resume interrupted ${operation}; after completion rerun hapsland repair ${host} if needed.\n`);
-      process.stderr.write(`${host} ${command} preview:\n${formatProposal(preview.proposal).join("\n")}\n`);
-      if (reinstall) process.stderr.write("Replace marked Hapsland handlers; preserve independent hooks, review settings and saved credentials.\n");
-      const confirmation = yield* askConfirmation(`Apply ${command} to ${host}?`).pipe(Effect.result);
-      if (confirmation._tag === "Failure") {
-        reportClientFailure(host, confirmation.failure);
-        continue;
-      }
-      if (!confirmation.success) { process.stderr.write(`${host}: skipped.\n`); continue; }
-      const invocation = yield* invoke(preview.proposal.digest).pipe(Effect.result);
-      if (invocation._tag === "Failure") { reportClientFailure(host, invocation.failure); continue; }
-      const result = invocation.success;
-      if (result.status === "partial" && operation !== "uninstall") {
-        const activation = yield* activateCurrentPackage(fileURLToPath(import.meta.url)).pipe(Effect.result);
-        if (activation._tag === "Failure") { reportClientFailure(host, activation.failure); continue; }
-      }
-      if (!["complete", "installed", "already-installed", "updated", "already-current", "uninstalled", "already-uninstalled", "removed", "already-removed"].includes(result.status)) throw new Error(formatFailure(result, host));
-      if (operation !== "uninstall") {
-        const activation = yield* activateCurrentPackage(fileURLToPath(import.meta.url)).pipe(Effect.result);
-        if (activation._tag === "Failure") { reportClientFailure(host, activation.failure); continue; }
-      }
-      process.stderr.write(`${host}: ${operation === "uninstall" ? "removed" : "restored"}. User settings and credentials preserved.\n`);
-      process.stderr.write(`Finish current work and restart ${host}${operation === "uninstall" ? "." : "; review native trust prompts."}\n`);
-    } catch (cause) { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; }
-  }
-});
+const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(
+  (command: "repair" | "reinstall" | "uninstall") =>
+    maintainClients(
+      command,
+      {
+        terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
+        host: clientArguments?.host,
+        flags: clientArguments?.flags ?? new Map(),
+        registered: registeredClients,
+      },
+      {
+        fields: hostFields,
+        installed: (fields) =>
+          fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields),
+        inspect: (fields) =>
+          fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields),
+        invoke: (host, request) =>
+          invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request),
+        activate: activateCurrentPackage(fileURLToPath(import.meta.url)),
+        confirm: askConfirmation,
+        write: (text) => {
+          process.stderr.write(text);
+        },
+        reportFailure: reportClientFailure,
+      },
+    ),
+);
 
 const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* (host: SetupClient) {
   const result = yield* execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
     input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(host) }),
-    env: process.env, timeout: 10_000, maxBuffer: 1024 * 1024,
+    env: process.env,
+    timeout: 10_000,
+    maxBuffer: 1024 * 1024,
   });
   if (result.timedOut) return yield* Effect.fail(new Error("doctor request deadline exceeded"));
   const diagnosis: unknown = yield* Effect.try(() => JSON.parse(result.stdout));
@@ -1287,93 +1444,106 @@ const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* 
   return { diagnosis, status: checked.status, exitCode: result.exitCode };
 });
 
-if (cliSwitch("package-identity")) {
-  process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", runtime: process.execPath, entrypoint: fileURLToPath(import.meta.url) }) + "\n");
+if (cliSwitch("feedback-preview")) {
+  process.stdout.write("Synthetic example; no review was run.\n\n" + formatReviewFeedback([{
+    path: "example.ts", declaration: "ExampleState",
+    message: "This is a sample finding. Actual messages come from the configured rule.",
+  }]) + "\n");
+} else if (cliSwitch("package-identity")) {
+  process.stdout.write(
+    JSON.stringify({
+      name: "@hapsland/hapsland",
+      runtime: process.execPath,
+      entrypoint: fileURLToPath(import.meta.url),
+    }) + "\n",
+  );
 } else if (cliSwitch("pilot") || invocation.kind === "lifecycle") {
   try {
     const command = invocation.kind === "lifecycle" ? invocation.command : "setup";
     clientArguments = invocation.client;
     const selectedPackage = clientArguments.flags.get("--target");
-    const dispatched = selectedPackage !== undefined && command !== "update"
-      ? await Effect.runPromise(dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags).pipe(Effect.provide(processConfigurationLayer)))
-      : await Effect.runPromise(dispatchActivePackage([command, ...(clientArguments.host === undefined ? [] : [clientArguments.host]), ...[...clientArguments.flags].filter(([name]) => name !== "--host").flatMap(([name, value]) => [name, value])]).pipe(Effect.provide(processConfigurationLayer)));
+    const dispatched =
+      selectedPackage !== undefined && command !== "update"
+        ? await Effect.runPromise(
+            dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags).pipe(
+              Effect.provide(processConfigurationLayer),
+            ),
+          )
+        : await Effect.runPromise(
+            dispatchActivePackage([
+              command,
+              ...(clientArguments.host === undefined ? [] : [clientArguments.host]),
+              ...[...clientArguments.flags]
+                .filter(([name]) => name !== "--host")
+                .flatMap(([name, value]) => [name, value]),
+            ]).pipe(Effect.provide(processConfigurationLayer)),
+          );
     if (dispatched !== undefined) process.exitCode = dispatched;
     else if (command === "doctor") {
-      const hosts = clientArguments.host === undefined ? registeredClients(clientArguments.flags, reportClientFailure) : [selectedHost()];
+      const hosts =
+        clientArguments.host === undefined
+          ? registeredClients(clientArguments.flags, reportClientFailure)
+          : [selectedHost()];
       if (hosts.length === 0) process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n");
       for (const host of hosts) {
         try {
-          const result = await Effect.runPromise(diagnoseClientProcess(host).pipe(Effect.provide(processConfigurationLayer)));
+          const result = await Effect.runPromise(
+            diagnoseClientProcess(host).pipe(Effect.provide(processConfigurationLayer)),
+          );
           process.stdout.write(formatDoctor(result.diagnosis, host).join("\n") + "\n");
           if (result.exitCode !== 0 || result.status === "not-ready") process.exitCode = result.exitCode || 6;
-        } catch (cause) { reportClientFailure(host, cause); }
+        } catch (cause) {
+          reportClientFailure(host, cause);
+        }
       }
-    } else if (command === "update") await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
-    else if (command === "repair" || command === "reinstall" || command === "uninstall") await Effect.runPromise(maintenanceInteractive(command).pipe(Effect.provide(processConfigurationLayer)));
-    else if (clientArguments.host === undefined) await Effect.runPromise(chooseSetupClients().pipe(Effect.provide(processConfigurationLayer)));
+    } else if (command === "update")
+      await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
+    else if (command === "repair" || command === "reinstall" || command === "uninstall")
+      await Effect.runPromise(maintenanceInteractive(command).pipe(Effect.provide(processConfigurationLayer)));
+    else if (clientArguments.host === undefined)
+      await Effect.runPromise(chooseSetupClients().pipe(Effect.provide(processConfigurationLayer)));
     else await Effect.runPromise(pilotSetup(selectedHost()).pipe(Effect.provide(processConfigurationLayer)));
   } catch (cause) {
     process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`);
     process.exitCode = 6;
   }
 } else {
-const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
-  const watchdog = isClaudeHook || isOpenCodeHook
-    ? yield* Effect.sleep(Math.max(0, directHookStartedAt + 4_500 - (yield* hookMonotonicMillis))).pipe(
-        Effect.andThen(Effect.sync(() => { process.exit(0); })),
-        Effect.forkScoped,
-      )
-    : undefined;
-  const output = yield* program;
-  const writeResult = isDirectEventReady(output)
-    ? yield* submitDirectHookOutput(output, { composed: isComposedEditHook, claude: isClaudeHook, deadlineAt: directHookDeadline })
-    : composedKind === undefined && (isClaudeHook || isCodexHook)
-      ? yield* (yield* HookOutput).writeEncoded(
-          typeof output === "string" ? output : `${JSON.stringify(output)}\n`, directHookDeadline,
-        )
-    : undefined;
-  const timedOut = writeResult === "timed-out";
-  if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog);
-  return output;
-}, Effect.scoped);
-const output = isCredentialCommand
-  ? await Effect.runPromise(runCredentialCommand().pipe(Effect.provide(processConfigurationLayer)))
-  : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(processConfigurationLayer), Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer), Effect.provide(residentStartupLayer)));
-if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
-  const record = output as Readonly<Record<string, unknown>>;
-  process.exitCode = record.status === "unsupported"
-    ? 3
-    : record.status === "conflict" || record.status === "proposal-mismatch"
-      ? 4
-      : record.status === "partial"
-        ? 5
-        : record.status === "deletion-failed" ||
-            record.status === "needs-user-action" ||
-            record.status === "locked" ||
-            record.status === "interaction-required" ||
-            record.status === "unavailable" ||
-            record.status === "timed-out" ||
-            record.status === "indeterminate" ||
-            record.status === "busy" ||
-            record.status === "cancelled" ||
-            record.status === "invalid" ||
-            record.status === "incomplete" ||
-            record.status === "inconclusive"
-          ? 6
-        : "error" in record
-          ? 2
-          : 0;
-}
-if (!isDirectEventReady(output)) {
-  if (isOpenCodeHook || isClaudeHook || isCodexHook || composedKind !== undefined) {
-    // The plugin treats empty stdout as a quiet skip.
-  } else
-  if (isCredentialCommand && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY) {
-    const result = output as Readonly<Record<string, unknown>>;
-    if (result.operation === "login" && result.status === "stored") {
-      process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: run hapsland setup claude or hapsland setup codex, then complete client sign-in and native trust.\n`);
-    } else {
-      const next = result.action ?? (result.operation === "logout"
+  const writeReviewOutput = Effect.fn("ReviewCli.writeOutput")(function* (output: unknown) {
+    return isDirectEventReady(output)
+      ? yield* submitDirectHookOutput(output, {
+          composed: isComposedEditHook,
+          claude: isClaudeHook,
+          deadlineAt: directHookDeadline,
+        })
+      : composedKind === undefined && (isClaudeHook || isCodexHook)
+        ? yield* (yield* HookOutput).writeEncoded(
+            typeof output === "string" ? output : `${JSON.stringify(output)}\n`,
+            directHookDeadline,
+          )
+        : undefined;
+  });
+  const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
+    const watchdog =
+      isClaudeHook || isOpenCodeHook
+        ? yield* Effect.sleep(Math.max(0, directHookStartedAt + 4_500 - (yield* hookMonotonicMillis))).pipe(
+            Effect.andThen(
+              Effect.sync(() => {
+                process.exit(0);
+              }),
+            ),
+            Effect.forkScoped,
+          )
+        : undefined;
+    const output = yield* program;
+    const writeResult = yield* writeReviewOutput(output);
+    const timedOut = writeResult === "timed-out";
+    if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog);
+    return output;
+  }, Effect.scoped);
+  const credentialNextAction = (result: Readonly<Record<string, unknown>>) => {
+    return (
+      result.action ??
+      (result.operation === "logout"
         ? "Use user file exclusions to stop future review dispatches if needed."
         : result.status === "invalid"
           ? "Enter a nonempty Jev key and retry hapsland --login. The previous saved key was preserved."
@@ -1381,15 +1551,53 @@ if (!isDirectEventReady(output)) {
             ? "No key was changed. Run hapsland --login again when ready."
             : result.status === "locked" || result.status === "interaction-required"
               ? "Unlock or approve the native credential store in this session, then retry hapsland --login."
-              : "Check native credential storage in this user session, then retry hapsland --login.");
-      process.stdout.write(`${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`);
-      if (result.operation === "logout") {
-        const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined;
-        if (environment?.active === true) process.stdout.write(`${environment.envVar ?? "The selected environment credential"} remains active; set user excludes to ["**/*"] to stop dispatch.\n`);
-      }
+              : "Check native credential storage in this user session, then retry hapsland --login.")
+    );
+  };
+  const writeLogoutEnvironmentWarning = (result: Readonly<Record<string, unknown>>): void => {
+    if (result.operation === "logout") {
+      const environment = result.environmentOverride as { envVar?: string; active?: boolean } | undefined;
+      if (environment?.active === true)
+        process.stdout.write(
+          `${environment.envVar ?? "The selected environment credential"} remains active; set user excludes to ["**/*"] to stop dispatch.\n`,
+        );
     }
-  } else {
+  };
+  const writeCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
+    if (result.operation === "login" && result.status === "stored") {
+      process.stdout.write(
+        `Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: run hapsland setup claude or hapsland setup codex, then complete client sign-in and native trust.\n`,
+      );
+    } else {
+      const next = credentialNextAction(result);
+      process.stdout.write(
+        `${result.operation === "logout" ? "Logout" : "Login"}: ${String(result.status)}. ${String(next)}\n`,
+      );
+      writeLogoutEnvironmentWarning(result);
+    }
+  };
+  const quietHookOutput = (): boolean => isOpenCodeHook || isClaudeHook || isCodexHook || composedKind !== undefined;
+  const interactiveCredentialOutput = (): boolean =>
+    isCredentialCommand && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY;
+  const writeResultOutput = (output: unknown): void => {
+    if (isDirectEventReady(output) || quietHookOutput()) return;
+    if (interactiveCredentialOutput()) {
+      writeCredentialSummary(output as Readonly<Record<string, unknown>>);
+      return;
+    }
     process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
-  }
-}
+  };
+  const output = isCredentialCommand
+    ? await Effect.runPromise(runCredentialCommand().pipe(Effect.provide(processConfigurationLayer)))
+    : await Effect.runPromise(
+        runReviewProgram().pipe(
+          Effect.provide(processConfigurationLayer),
+          Effect.provide(directHookSubmissionLayer),
+          Effect.provide(composedHookRuntimeLayer),
+          Effect.provide(hookOutputLayer),
+          Effect.provide(residentStartupLayer),
+        ),
+      );
+  assignResultExitCode(output);
+  writeResultOutput(output);
 }

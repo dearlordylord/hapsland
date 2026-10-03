@@ -11,10 +11,7 @@ describe("repository glob validation", () => {
       new URL("../configuration/fixtures/malformed-glob-z-a.jsonc", import.meta.url),
       "utf8",
     );
-    expect(() => decodeConfigurationText(
-      persisted,
-      "malformed-glob-z-a.jsonc",
-    )).toThrowError(ConfigurationError);
+    expect(() => decodeConfigurationText(persisted, "malformed-glob-z-a.jsonc")).toThrowError(ConfigurationError);
     try {
       decodeConfigurationText('{"version":1,"includes":["[z-a]"]}', "malformed-glob-z-a.jsonc");
     } catch (error) {
@@ -34,7 +31,8 @@ describe("repository glob validation", () => {
       fc.constant("[z-a]"),
       fc.constant("[a--]"),
       fc.constant("src/[unterminated"),
-      fc.array(fc.constantFrom("a", "!", "[", "-"), { minLength: 0, maxLength: 8 })
+      fc
+        .array(fc.constantFrom("a", "!", "[", "-"), { minLength: 0, maxLength: 8 })
         .map((parts) => `src/[${parts.join("")}`),
     );
     fc.assert(
@@ -62,4 +60,41 @@ describe("repository glob validation", () => {
     expect(() => validateGlobPattern("a".repeat(1_025))).toThrow(/character limit/);
     expect(matchesGlob(tooManyExpansions, "abc")).toBe(false);
   });
+});
+
+it.each([
+  ["", "empty"],
+  ["a\0b", "NUL"],
+  ["!src/**", "negated"],
+  ["/src/**", "repository-relative"],
+  ["C:/src/**", "repository-relative"],
+  ["src/../**", "traverse"],
+  ["[]", "empty or nested"],
+  ["[!a[b]", "empty or nested"],
+  ["]", "without opening"],
+  ["{a,b", "not closed"],
+  ["{a}", "non-empty choices"],
+  ["{a,}", "non-empty choices"],
+  ["{{a,b}", "non-empty choices"],
+  ["}", "without opening"],
+])("rejects %j with its specific syntax error", (pattern, message) => {
+  expect(() => validateGlobPattern(pattern)).toThrow(message);
+  expect(matchesGlob(pattern, "src/a.ts")).toBe(false);
+});
+
+it.each([
+  ["src/{a,b}.[tj]s", "src/a.ts", true],
+  ["src/?.[!x]s", "src/a.ts", true],
+  ["src/?.[^t]s", "src/a.ts", false],
+  ["**/*.ts", ".hidden/a.ts", false],
+  ["**/.hidden/*.ts", "src/.hidden/a.ts", true],
+  ["**/.hidden/*.ts", "src/.other/a.ts", false],
+  ["./src/**", "src/a.ts", true],
+  [".", ".", false],
+  ["**", "../a.ts", false],
+  ["**", "/a.ts", false],
+  ["**", "C:/a.ts", false],
+  ["**", "a\0.ts", false],
+])("matches %j against %j as %s", (pattern, path, expected) => {
+  expect(matchesGlob(pattern, path)).toBe(expected);
 });

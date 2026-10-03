@@ -70,7 +70,7 @@ The narrative order is:
 2. GIF showing one possible feedback cycle, with no promise that every agent repairs.
 3. Setup using built-in rules; a visible sentence that teams can add their own rules.
 4. Source controls: user/project exclusions, no read of an excluded supporting path,
-   context size limits, and the fixed current Jev recipient.
+   context size limits, and the user-selected review recipient.
 5. Short “what is checked” paragraph with precise proof scope and links.
 6. Links to the interactive example, configuration, and technical architecture.
 
@@ -227,7 +227,7 @@ its checks.
 | “You control which files are eligible for review.” | [Configuration](configuration.md): exclusions accumulate; without file settings otherwise eligible files are selected; no per-request confirmation |
 | “Review context follows related definitions.” | [Input contract](review-contract-compatibility.md): selected source is included, with omissions and limits; does not establish better judgment accuracy |
 | “Use built-in rules or add your own.” | [Configuration](configuration.md): local JSONC packs and declared supported targets; rule matching still respects input capabilities |
-| “Jev evaluates the selected code.” | [Architecture](architecture.md): current destination is fixed Jev; provider-neutral Effect integration does not mean configurable alternative deciders exist today |
+| “The selected review backend evaluates the selected code.” | [Provider boundary](review-providers.md): user configuration selects Jev or Cloudflare Clef/Clef-flash; offline adapter checks do not establish live Cloudflare quality or latency |
 
 Proposed compact assurance copy: “Formally checked core logic: proven context limits
 and checked access-refusal cases.*” Put the scope beside the claim, not only in a

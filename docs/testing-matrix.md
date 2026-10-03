@@ -11,8 +11,11 @@
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
+| Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
+| TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
+| Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
 | Package setup | `npm run conformance:package`; `npm run conformance:setup-package` | Clean install and first-review setup | Packaging and installation paths; run only when those paths change |
@@ -24,13 +27,24 @@
 
 The selected adoption observations include six controlled offline passes and six live Jev passes. One earlier controlled Claude Bend session received a finding but did not repair; its separately declared follow-up session passed. The live and offline records stay distinct in the language index.
 
+The [feedback delivery investigation](../evidence/feedback-delivery-debug/investigation.json)
+retains five separate rendering diagnostics and per-run harness snapshots.
+The archived runner sources record their opt-in `--delivery-debug` mode. The two corrected-path validations declare
+`--debug-edit-delay-ms=1500 --debug-stop-delay-ms=6000`: these are injected faults,
+not ordinary runtime observations. One controlled and one live Jev session delivered
+through a Codex Bash background hook, confirmed receipt and passed finite-domain
+repair probes despite a lost first background opportunity and a native Stop timeout.
+These source-checkout diagnostics do not amend the original comparison cell or
+establish a general delivery guarantee. The investigation made four physical Jev
+requests across its two live runs.
+
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
 `master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.34
 and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
 tooling step, then runs documentation links,
-typecheck, `npm test`, and build. It does not invoke live Jev or native agent
+typecheck, `npm run quality:check`, and build. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
 
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
@@ -43,6 +57,42 @@ Run the installer once and add its printed bin directories to `PATH` for local
 proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation
 installs do not download Bend or Lean. Updating either pin requires proof
 validation and digest review.
+
+The [crap4ts configuration](../crap4ts.json) selects all TypeScript under `src`
+(the tool excludes conventional tests and declarations) and enforces a CRAP
+threshold of **8** with missing evidence treated as an error.
+[`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
+to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
+release as Vitest and emits Istanbul JSON, not raw V8 coverage.
+Subprocess coverage is enabled so CLI and resident tests contribute evidence
+from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
+uses the pinned V8 provider while keeping Vite and native Node offsets separate
+until source remapping, then combines counters for the same original function
+body. It also normalizes uniquely identified multiline callback signatures
+and zero-count entries for uncovered files, preserving their counters and
+leaving ambiguous mappings for strict rejection. This avoids Vitest 5.0.1
+mixing incompatible offset spaces or emitting
+duplicate function entries. Its [regression test](../scripts/coverage-provider.test.mts)
+checks separation of execution contexts and combination of source-map aliases
+without a nested test runner. The full quality gate validates the emitted
+Istanbul counters through strict crap4ts analysis.
+Review this adapter against upstream behavior whenever Vitest is updated.
+`npm run quality:check` regenerates coverage through
+`npm run test:coverage`, which includes the existing boundary checks and tests.
+The tool removes the previous JSON artifact before running that command and
+stops if tests fail, so stale coverage cannot produce a passing CI result.
+For machine-readable feedback, run
+`npm run --silent quality:check -- --format json > crap-report.json`;
+generated test output goes to stderr. Exit **2** means a score exceeded its threshold;
+exit **1** means invalid inputs, missing coverage, analysis failure, or a failed
+coverage command. Coverage reports and `crap-report.json` stay ignored.
+Coverage is also written on test failures for diagnosis, but the gate stops
+on the failed command and does not analyze it as a successful run.
+A failing existing function
+needs meaningful tests or simpler branching; do not raise thresholds or switch
+to report-only mode to hide a failure. Separate packages and JavaScript/Bend
+sources are outside this gate's current `src` scope. Review this policy when
+the production source roots, test runner, or pinned analysis tool change.
 
 The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
 (`DEPEND ON`), selected because it checks Markdown and raw HTML links and images

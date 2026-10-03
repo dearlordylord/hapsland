@@ -28,6 +28,10 @@ capabilities. A rule shared by type and function review names both targets.
 Unknown versions, targets, capabilities, or fields fail the selected pack.
 Invalid or unsupported pack versions fail configuration before source capture.
 Bundled Noul rules target type review; its body rule also targets function review.
+The function target of the body rule requires the exact signature and body, not
+complete call/type closure. It reviews resource use visible in included source
+with omissions retained explicitly; missing references alone are not findings.
+Other targets retain their declared closure requirements.
 Rule IDs, enablement,
 path filters, probability thresholds, and authored messages retain their
 configured meanings. Choice and Score result forms remain separate decisions.
@@ -38,7 +42,12 @@ The active input contracts are direct-event/type-shape/v1 and
 direct-event/function/v1. Each request carries one changed root and its
 bounded evidence tree with marked omissions. Supporting declarations can come from other
 selected files through supported local imports. They do not become separate
-edited roots. The request contains neither a whole file nor an edit diff,
+edited roots. Omitted reference sites may contain opaque expression text, such
+as an anonymous callback or dynamic call, rather than a named binding. This
+text remains a bounded JSON string with its omission reason; it neither adds
+a resolved node nor makes the graph complete. Resolved edges retain their
+named-reference grammar, and the aggregate evidence-size limit still applies.
+The request contains neither a whole file nor an edit diff,
 agent transcript, absolute path, or unrelated source.
 
 Hapsland selects each rule only when its declared evidence needs are met. A
@@ -50,7 +59,10 @@ themselves change semantic identity when an unrelated comment moves. Before
 dispatch, Hapsland requires the captured files to match exactly. Before
 advice, it rereads contributing files and rebuilds the unit; changed review
 input, rules, file selection, attribution, or working root retires the result.
-Only a still-current matching unit may reuse a successful Jev result.
+Only a still-current matching unit may reuse a successful review-backend result.
+The prepared identity includes the selected provider, model selector, and full
+destination; a change to any of these invalidates reuse. See the
+[provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
 `apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply

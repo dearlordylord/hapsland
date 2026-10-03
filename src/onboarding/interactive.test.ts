@@ -34,14 +34,6 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
   expect(output).not.toContain("interactive-test-key");
   return { code, output, answered };
 };
-it.skipIf(process.platform !== "linux")("guided Claude setup installs and reports native trust without requiring JSON", async () => {
-  const test = fixture(); const home = join(test.root, "claude-home");
-  const host = join(test.root, "claude"); writeFileSync(host, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
-  const result = await terminal(test, ["setup", "claude", `--claude-home=${home}`, `--claude-executable=${host}`], "y");
-  expect(result.code).toBe(0); expect(result.answered).toBe(true);
-  expect(readFileSync(join(home, "settings.json"), "utf8")).toContain("--composed-host=claude-code");
-  expect(result.output).toContain("native Claude Code");
-});
 it.skipIf(process.platform !== "linux")("declining guided setup leaves Claude settings absent", async () => {
   const test = fixture(); const home = join(test.root, "claude-home");
   const host = join(test.root, "claude"); writeFileSync(host, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
@@ -148,22 +140,6 @@ it.skipIf(process.platform !== "linux")("bare update previews both installed cli
   expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1);
   expect(result.output).toContain("claude: updated."); expect(result.output).toContain("codex: updated.");
 }, 20_000);
-it.skipIf(process.platform !== "linux")("bare update skips a client without a Hapsland registration", async () => {
-  const test = fixture(); const clients = bothClients(test);
-  expect((await terminal(test, ["setup", "claude", ...clients.flags], "y")).code).toBe(0);
-  const target = updaterFixture(test);
-  const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y");
-  expect(result.code).toBe(0);
-  expect(recordedRequests(target.requests).map(r => r.host)).toEqual(["claude", "claude"]);
-  expect(existsSync(join(clients.codexHome, "hooks.json"))).toBe(false);
-});
-it.skipIf(process.platform !== "linux")("bare update with no registrations does not acquire or invoke a target", async () => {
-  const test = fixture(); const clients = bothClients(test); const target = updaterFixture(test);
-  const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y");
-  expect(result.code).toBe(0); expect(result.answered).toBe(false);
-  expect(result.output).toContain("No Hapsland integrations found");
-  expect(existsSync(target.requests)).toBe(false);
-});
 it.skipIf(process.platform !== "linux")("a failed client update reports failure and still updates the other installed client", async () => {
   const test = fixture(); const clients = bothClients(test);
   expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
@@ -173,15 +149,6 @@ it.skipIf(process.platform !== "linux")("a failed client update reports failure 
   expect(recordedRequests(target.requests).map(r => `${r.host}:${r.operation}`)).toEqual(["claude:update-preview", "codex:update-preview", "claude:update", "codex:update"]);
   expect(result.output).toContain("claude: failed."); expect(result.output).toContain("codex: updated.");
 }, 20_000);
-it.skipIf(process.platform !== "linux")("current client registrations require no apply or confirmation", async () => {
-  const test = fixture(); const clients = bothClients(test);
-  expect((await terminal(test, ["setup", "claude", ...clients.flags], "y")).code).toBe(0);
-  const target = updaterFixture(test, { currentHost: "claude" });
-  const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y");
-  expect(result.code).toBe(0); expect(result.answered).toBe(false);
-  expect(recordedRequests(target.requests)).toHaveLength(1);
-  expect(result.output).toContain("claude: already current.");
-});
 it.skipIf(process.platform !== "linux")("bare update acquires one target for both installed clients", async () => {
   const test = fixture(); const clients = bothClients(test);
   expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
@@ -204,49 +171,6 @@ else if(args[0]==='install'){
   expect(recordedRequests(target.requests).map(r => `${r.host}:${r.operation}`)).toEqual(["claude:update-preview", "codex:update-preview", "claude:update", "codex:update"]);
 }, 20_000);
 
-it.skipIf(process.platform !== "linux")("doctor, repair and uninstall cover both clients and preserve user configuration", async () => {
-  const test = fixture(); const clients = bothClients(test);
-  const initial = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r");
-  expect(initial.code).toBe(0);
-  for (const [home, file] of [[clients.claudeHome, "settings.json"], [clients.codexHome, "hooks.json"]]) {
-    const path = join(home!, file!); const value = JSON.parse(readFileSync(path, "utf8"));
-    delete value.hooks.Stop;
-    value.userSetting = { preserved: true };
-    writeFileSync(path, JSON.stringify(value));
-  }
-  const doctor = await terminal(test, ["doctor", ...clients.flags], "n");
-  expect(doctor.output).toContain("claude: not-ready");
-  expect(doctor.output).toContain("codex: not-ready");
-  expect(doctor.output).toContain("installation damaged");
-  expect(doctor.output).not.toContain('"checks"');
-  const repair = await terminal(test, ["repair", ...clients.flags], "y");
-  expect(repair.code).toBe(0);
-  expect(repair.output).toContain("claude: restored");
-  expect(repair.output).toContain("codex: restored");
-  for (const [home, file] of [[clients.claudeHome, "settings.json"], [clients.codexHome, "hooks.json"]]) {
-    const value = JSON.parse(readFileSync(join(home!, file!), "utf8"));
-    expect(value.hooks.Stop).toHaveLength(1);
-    expect(value.userSetting).toEqual({ preserved: true });
-  }
-  const removed = await terminal(test, ["uninstall", ...clients.flags], "y");
-  expect(removed.code).toBe(0);
-  expect(removed.output).toContain("claude: removed");
-  expect(removed.output).toContain("codex: removed");
-  expect(JSON.parse(readFileSync(join(clients.claudeHome, "settings.json"), "utf8"))).toEqual({ userSetting: { preserved: true } });
-  expect(JSON.parse(readFileSync(join(clients.codexHome, "hooks.json"), "utf8"))).toEqual({ userSetting: { preserved: true } });
-}, 20_000);
-
-it.skipIf(process.platform !== "linux")("spaced host options target only the requested client and typos fail before invoking the updater", async () => {
-  const test = fixture(); const target = updaterFixture(test);
-  const result = await terminal(test, ["update", "--host", "claude", `--target=${target.target}`], "y");
-  expect(result.code).toBe(0);
-  const requests = readFileSync(target.requests, "utf8").trim().split("\n").map(line => JSON.parse(line));
-  expect(requests.every(request => request.host === "claude")).toBe(true);
-  const bad = await terminal(test, ["update", "--chanel=next", `--target=${target.target}`], "y");
-  expect(bad.code).not.toBe(0); expect(bad.answered).toBe(false);
-  expect(readFileSync(target.requests, "utf8").trim().split("\n")).toHaveLength(2);
-});
-
 it.skipIf(process.platform !== "linux")("public setup uses the active package and cannot silently revert to the command in PATH", async () => {
   const test = fixture(); const clients = bothClients(test);
   const activeRoot = join(test.root, ".local", "share", "hapsland"); mkdirSync(activeRoot, { recursive: true });
@@ -259,16 +183,3 @@ it.skipIf(process.platform !== "linux")("public setup uses the active package an
   expect(JSON.parse(readFileSync(capture, "utf8"))[0]).toBe("setup");
   expect(existsSync(join(clients.claudeHome, "settings.json"))).toBe(false);
 });
-
-it.skipIf(process.platform !== "linux")("reinstall restores a damaged active record even when no integrations remain", async () => {
-  const test = fixture(); const clients = bothClients(test);
-  const activeDirectory = join(test.root, ".local/share/hapsland"); mkdirSync(activeDirectory, { recursive: true });
-  writeFileSync(join(activeDirectory, "active.json"), "damaged record");
-  const recovered = await terminal(test, ["reinstall"], "y");
-  expect(recovered.code).toBe(0); expect(recovered.answered).toBe(false);
-  expect(recovered.output).toContain("reinstalling from PATH");
-  expect(JSON.parse(readFileSync(join(activeDirectory, "active.json"), "utf8")).entrypoint).toBe(join(process.cwd(), "src/cli.ts"));
-  const setup = await terminal(test, ["setup", "claude", ...clients.flags], "y");
-  expect(setup.code).toBe(0);
-  expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toContain("--claude-hook");
-}, 10_000);

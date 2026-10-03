@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import type { HtmlBuilder } from "foldkit/html";
+import { createKeyedLazy, createLazy, type HtmlBuilder } from "foldkit/html";
 import { numberRecords } from "@hapsland/agent-flow-projection";
 import { preparationSnapshot } from "./preparation-mini";
 import { productionFlowView, INFRASTRUCTURE_CONTACTS } from "./production-flow-view";
@@ -72,6 +72,73 @@ export const tickSimulation = (model: SimulationModel, deltaMs: number): Simulat
 const colors = AGENT_COLORS;
 const bounded = (raw: string, low: number, high: number, fallback: number) =>
   Number.isFinite(Number(raw)) ? Math.max(low, Math.min(high, Number(raw))) : fallback;
+// Checked snapshots are immutable; graph frames often share the same snapshot.
+// Weak keys release lenses together with retired display history.
+const agentProjections = new WeakMap<Parameters<typeof projectAgent>[0], Map<number, ReturnType<typeof projectAgent>>>();
+const agentProjection = (snapshot: Parameters<typeof projectAgent>[0], partition: number) => {
+  let partitions = agentProjections.get(snapshot);
+  if (!partitions) { partitions = new Map(); agentProjections.set(snapshot, partitions); }
+  const cached = partitions.get(partition);
+  if (cached) return cached;
+  const local = projectAgent(snapshot, partition);
+  partitions.set(partition, local);
+  return local;
+};
+
+// Only display data is cached. Run identity/count also invalidate the cache when
+// a replay is replaced or advanced independently of a renderer update.
+const buildScene = (resident: ResidentModel) => {
+  const model = { resident };
+  const run = simulationRun();
+  const observations = run?.observations ?? [];
+  const current = model.resident.selected < 0 ? observations.at(-1) : observations.find(frame => frame.sequence === model.resident.selected);
+  const eventOwner = current?.partition;
+  const history = observations.filter(frame => frame.sequence <= (current?.sequence ?? -1));
+  const projection = model.resident.selected < 0 ? current?.after ?? run?.projection : current?.after;
+  const numbers = numberRecords(observations[0]?.sequence === 0 ? history : []);
+  const scopes = displayScopes(model.resident);
+  const preparation = preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const })));
+  const layers = scopes.map((agent, index) => {
+    const local = projection ? agentProjection(projection, agent.partition) : undefined;
+    const ownedHistory = history.filter(frame => frame.partition === agent.partition);
+    const last = current?.partition === agent.partition ? {
+      ...current, before: agentProjection(current.before, agent.partition), after: agentProjection(current.after, agent.partition), origin: "manual" as const,
+    } : undefined;
+    const activity = model.resident.selected < 0 && model.resident.activityFrom >= 0
+      ? ownedHistory.filter(frame => frame.sequence >= model.resident.activityFrom).map(frame => ({
+        ...frame, before: agentProjection(frame.before, agent.partition), after: agentProjection(frame.after, agent.partition), origin: "manual" as const,
+      })) : undefined;
+    return { agent, index, local, activity, preparation, current: ownedHistory.at(-1), history: ownedHistory, numbers, last };
+  });
+  return { run, current, history, projection, numbers, scopes, layers, eventOwner,
+    metadata: current ? current.capacityMetadata : resident.selected < 0 ? run?.capacityMetadata : undefined };
+};
+let sceneCache: { resident: ResidentModel; run: ReturnType<typeof simulationRun>; count: number;
+  value: ReturnType<typeof buildScene> } | undefined;
+const sceneFor = (resident: ResidentModel) => {
+  const run = simulationRun();
+  const count = run?.eventCount ?? 0;
+  if (sceneCache?.resident === resident && sceneCache.run === run && sceneCache.count === count) return sceneCache.value;
+  const value = buildScene(resident);
+  sceneCache = { resident, run, count, value };
+  return value;
+};
+const lazyDiagrams = createKeyedLazy();
+const lazyInspector = createLazy();
+type Scene = ReturnType<typeof buildScene>;
+type Layer = Scene["layers"][number];
+const layerDiagram = <Message>(h: HtmlBuilder<Message>, layer: Layer, scene: Scene,
+  group: string, round: string, action: (action: string) => Message) => layer.local ? productionFlowView(
+    h, layer.local, layer.last, false, place => action(`fleet:inspect:${layer.index}:${place}`),
+    layer.preparation, layer.numbers, true, scene.projection, scene.metadata, layer.agent.partition,
+    { group: group === "" ? undefined : Number(group), round: round === "" ? undefined : Number(round) },
+    scene.scopes, layer.activity) : null;
+const inspectorView = <Message>(resident: ResidentModel, h: HtmlBuilder<Message>,
+  action: (action: string) => Message, changed: (field: string, raw: string) => Message, layer: Layer, scopes: Scene["scopes"]) =>
+  residentView(resident, h, action, changed, false, layer.local ? {
+    projection: layer.local, observations: layer.history, partition: layer.agent.partition, agents: scopes,
+  } : undefined);
+
 export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<Message>,
   action: (action: string) => Message, changed: (field: string, raw: string) => Message) => {
   const button = (label: string, name: string, selected = false) => h.button([
@@ -81,22 +148,8 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
   const range = (name: string, field: string, min: number, max: number, value: string) => h.label([], [name,
     h.input([h.Type("range"), h.AriaLabel(name), h.Min(String(min)), h.Max(String(max)), h.Key(`camera:${field}:${model.cameraEpoch}`), { _tag: "Prop", key: "defaultValue", value }, h.OnInput(raw => changed(field, raw))]),
   ]);
-  const run = simulationRun();
-  const observations = run?.observations ?? [];
-  const current = model.resident.selected < 0 ? observations.at(-1) : observations.find(frame => frame.sequence === model.resident.selected);
-  const eventOwner = current?.partition;
-  const history = observations.filter(frame => frame.sequence <= (current?.sequence ?? -1));
-  const projection = model.resident.selected < 0 ? current?.after ?? run?.projection : current?.after;
-  const numbers = numberRecords(observations[0]?.sequence === 0 ? history : []);
-  const scopes = displayScopes(model.resident);
-  const layers = scopes.map((agent, index) => {
-    const local = projection ? projectAgent(projection, agent.partition) : undefined;
-    const ownedHistory = history.filter(frame => frame.partition === agent.partition);
-    const last = current?.partition === agent.partition ? {
-      ...current, before: projectAgent(current.before, agent.partition), after: projectAgent(current.after, agent.partition), origin: "manual" as const,
-    } : undefined;
-    return { agent, index, local, current: ownedHistory.at(-1), history: ownedHistory, numbers, last };
-  });
+  const scene = sceneFor(model.resident);
+  const { run, current, projection, scopes, layers, eventOwner } = scene;
   const spacing = bounded(model.spacing, 70, 190, 130);
   const sceneHeight = model.flat ? 660 : 630 + Math.max(0, layers.length - 3) * 75;
   const active = layers[Math.min(model.active, layers.length - 1)];
@@ -134,15 +187,16 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
           h.div([h.Class("ensemble-scene"), h.Style({
             transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, layers.length - 3) * 30}px) scale(${bounded(model.zoom, 20, 200, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(layers.length - 1) * spacing / 2}px)`,
           })], [
-            ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, local, last, history, numbers }) => h.div([
+            ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, local }) => h.div([
               h.Class(`ensemble-layer agent-index-${index} ${index === model.active ? "is-selected" : ""}`),
               h.Style({ transform: model.flat ? "none" : `translateZ(${(layers.length - 1 - index) * spacing}px)`, borderColor: colors[index] }),
             ], [
               h.div([h.Class("ensemble-layer-title"), h.Style({ color: colors[index] })], [
                 h.strong([], [`ADVICEE ${String(index + 1).padStart(2, "0")}`]), h.span([], [`${current?.time ?? run?.now ?? 0} ms · seed ${agent.seed}`]),
               ]),
-              ...(local ? [productionFlowView(h, local, last,
-                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers, true, projection, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined, agent.partition, index === model.active ? { group: model.resident.resourceGroup === "" ? undefined : Number(model.resident.resourceGroup), round: model.resident.resourceRound === "" ? undefined : Number(model.resident.resourceRound) } : undefined, scopes)]
+              ...(local ? [lazyDiagrams(index, layerDiagram, [h, layers[index], scene,
+                index === model.active ? model.resident.resourceGroup : "",
+                index === model.active ? model.resident.resourceRound : "", action])]
                 : [h.div([h.Class("ensemble-empty")], [h.strong([], ["Your advicee diagram starts here"]), h.p([], ["Start one resident to connect independent Monkey Business generators."])])]),
             ])),
             ...(!model.flat ? layers.slice(0, -1).filter(layer => layer.local).flatMap(({ index }) => INFRASTRUCTURE_CONTACTS.map(contact => h.div([
@@ -167,6 +221,6 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
     ]),
     h.div([h.Class("ensemble-inspector-heading")], [h.h2([], [`Resident controls · ${active.agent.agent} selected`]),
       h.p([], [run && !run.agentScopes.length ? "Scripted replay: no event generator is attached. Backend/native profiles, playback, history and replay files apply to the whole resident." : `Edit pace, duration, bursts, size and suspension target ${active.agent.agent}. Backend/native profiles, playback, history and replay files apply to the whole resident.`])]),
-    residentView(model.resident, h, action, changed, false, active.local ? { projection: active.local, observations: active.history, partition: active.agent.partition, agents: scopes } : undefined),
+    lazyInspector(inspectorView, [model.resident, h, action, changed, active, scopes]),
   ]);
 };

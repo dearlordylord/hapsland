@@ -1,3 +1,4 @@
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts";
 import { runClient } from "../test-support/client-runtime.ts";
 import { reviewControlsLayer } from "../test-support/review-controls.ts";
 import { ReviewControlError } from "./review-controls.ts";
@@ -160,7 +161,8 @@ describe("canonical resident capacity", () => {
       if (response.status === "advice") {
         expect("hookSpecificOutput" in response.output).toBe(true);
         if ("hookSpecificOutput" in response.output) {
-          expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1))
+          expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(0, 2)).toEqual([REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS]);
+          expect(response.output.hookSpecificOutput.additionalContext.split("\n").filter(line => /^.+ :: .+: /.test(line)))
             .toHaveLength(configuredRules.length);
         }
         expect((await Effect.runPromise(server.beginComposedSubmission(response.token, "background"))).status).toBe("submitting");
@@ -1751,6 +1753,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     expect(Effect.runSync(server.stats()).retainedBytes).toBe((await Effect.runPromise(server.accountingMetrics())).operationalNoticeBytes);
   });
 
+
   it("bounds 16-path/64-unit preparation and accounts accepted units exactly", async () => {
     const root = await makeGitFixture();
     const paths = Array.from({ length: 16 }, (_, index) => `types-${index}.ts`);
@@ -1776,6 +1779,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       }],
     }));
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    await stageFiles(root, paths);
     const statePath = join(root, "consent");
     const capturePath = join(root, "backend-calls");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)));
@@ -2725,7 +2729,8 @@ describe("resident bounded advice batches", () => {
     const first = await Effect.runPromise(server.collect(root, advicee({ turnId: "first", toolUseId: "first" }), dispatch));
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(9);
+    expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(0, 2)).toEqual([REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS]);
+    expect(first.output.hookSpecificOutput.additionalContext.split("\n").filter(line => /^.+ :: .+: /.test(line))).toHaveLength(9);
     expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{
       pendingFindings: 9,
       deliveryFindings: 9,

@@ -80,8 +80,15 @@ const currentTypeTarget: RuleTargetContext = {
 
 /** Independent Boolean gate used by conformance tests and future orchestration. */
 export const shouldDispatchRule = (gates: RuleSelectionGates): boolean =>
-  applicableRule({ ...gates, complete: true, target: "typeShape",
-    targetDeclared: true, capabilitiesAvailable: true, sourceRung: 1, minimumRung: 1 });
+  applicableRule({
+    ...gates,
+    complete: true,
+    target: "typeShape",
+    targetDeclared: true,
+    capabilitiesAvailable: true,
+    sourceRung: 1,
+    minimumRung: 1,
+  });
 
 const qualified = (packId: string, ruleId: string): string => `${packId}/${ruleId}`;
 
@@ -92,15 +99,14 @@ export const parseQualifiedRuleId = (
 ): { readonly packId: string; readonly ruleId: string } | undefined => {
   const separator = value.indexOf("/") >= 0 ? "/" : value.indexOf(":") >= 0 ? ":" : undefined;
   if (separator === undefined) return undefined;
-  const [packId, ruleId, ...rest] = value.split(separator);
-  return packId !== undefined && packId.length > 0 && ruleId !== undefined && ruleId.length > 0 && rest.length === 0
-    ? { packId, ruleId }
-    : undefined;
+  const parts = value.split(separator);
+  if (parts.length !== 2) return undefined;
+  const [packId, ruleId] = parts;
+  if (!packId || !ruleId) return undefined;
+  return { packId, ruleId };
 };
 
-const inheritedOverrides = (
-  layers: ReadonlyArray<ConfigurationLayer>,
-): Readonly<Record<string, RuleOverride>> => {
+const inheritedOverrides = (layers: ReadonlyArray<ConfigurationLayer>): Readonly<Record<string, RuleOverride>> => {
   const result: Record<string, RuleOverride> = {};
   for (const layer of layers) {
     for (const [id, override] of Object.entries(layer.document.ruleOverrides ?? {})) {
@@ -122,11 +128,7 @@ const overrideFor = (
   overrides[`${pack.id}:${rule.id}`] ??
   (pack.id === BUNDLED_NOUL_PACK.id ? overrides[rule.id] : undefined);
 
-const validatePatterns = (
-  patterns: ReadonlyArray<string> | undefined,
-  source: string,
-  field: string,
-): void => {
+const validatePatterns = (patterns: ReadonlyArray<string> | undefined, source: string, field: string): void => {
   if (patterns === undefined) return;
   // Configuration decoding already validates these. This guard is retained for
   // callers constructing compiler inputs directly in tests.
@@ -144,10 +146,14 @@ const mergedApplicability = (
   if (override?.includes === undefined && override?.excludes === undefined) return rule.applicability;
   return {
     ...(override?.includes === undefined
-      ? rule.applicability?.includes === undefined ? {} : { includes: rule.applicability.includes }
+      ? rule.applicability?.includes === undefined
+        ? {}
+        : { includes: rule.applicability.includes }
       : { includes: override.includes }),
     ...(override?.excludes === undefined
-      ? rule.applicability?.excludes === undefined ? {} : { excludes: rule.applicability.excludes }
+      ? rule.applicability?.excludes === undefined
+        ? {}
+        : { excludes: rule.applicability.excludes }
       : { excludes: override.excludes }),
   };
 };
@@ -156,10 +162,10 @@ const pathApplicabilityFacts = (
   applicability: RuleApplicability | undefined,
   path: string | undefined,
 ): { readonly ruleIncluded: boolean; readonly ruleExcluded: boolean } => ({
-  ruleIncluded: applicability?.includes === undefined || path === undefined ||
-    matchesAnyGlob(applicability.includes, path),
-  ruleExcluded: applicability?.excludes !== undefined && path !== undefined &&
-    matchesAnyGlob(applicability.excludes, path),
+  ruleIncluded:
+    applicability?.includes === undefined || path === undefined || matchesAnyGlob(applicability.includes, path),
+  ruleExcluded:
+    applicability?.excludes !== undefined && path !== undefined && matchesAnyGlob(applicability.excludes, path),
 });
 
 const unknownOverrideIds = (
@@ -178,14 +184,96 @@ const unknownOverrideIds = (
   return Object.keys(overrides).filter((id) => !known.has(id));
 };
 
-/** Compile every enabled selected rule only after validating all overrides. */
-export const compileRules = (
-  options: RuleCompilationOptions,
-): ReadonlyArray<CompiledRule> => {
-  const overrides = {
-    ...(options.layers === undefined ? {} : inheritedOverrides(options.layers)),
-    ...(options.overrides ?? {}),
+const compilationOverrides = (options: RuleCompilationOptions): Readonly<Record<string, RuleOverride>> => ({
+  ...(options.layers === undefined ? {} : inheritedOverrides(options.layers)),
+  ...(options.overrides ?? {}),
+});
+const overridePermitsRule = (override: RuleOverride | undefined): boolean => override?.enabled !== false;
+const overrideThreshold = (override: RuleOverride | undefined): number | undefined => override?.threshold;
+const defaultedRuleThreshold = (rule: RuleDefinition): number => rule.threshold ?? DEFAULT_RULE_THRESHOLD;
+const validRuleThreshold = (threshold: number): boolean =>
+  Number.isFinite(threshold) && threshold >= 0 && threshold <= 1;
+const compiledThreshold = (
+  rule: RuleDefinition,
+  override: RuleOverride | undefined,
+  source: string,
+  qualifiedId: string,
+): number => {
+  const threshold = overrideThreshold(override) ?? defaultedRuleThreshold(rule);
+  if (!validRuleThreshold(threshold))
+    throw new ConfigurationError({
+      source,
+      field: `${qualifiedId}.threshold`,
+      reason: "must be a finite number between 0 and 1",
+    });
+  return threshold;
+};
+const compiledMessage = (
+  rule: RuleDefinition,
+  override: RuleOverride | undefined,
+  source: string,
+  qualifiedId: string,
+): string => {
+  const message = override?.message ?? rule.message;
+  if (message.length === 0)
+    throw new ConfigurationError({ source, field: `${qualifiedId}.message`, reason: "must be a non-empty string" });
+  return message;
+};
+const compiledIdentity = (pack: LoadedRulePack, rule: RuleDefinition, qualifiedId: string) => {
+  const builtIn = pack.id === BUNDLED_NOUL_PACK.id;
+  const runtimeId = builtIn ? rule.id : qualifiedId;
+  const minimumRung = builtIn ? APPLIES_FROM[rule.id] : 1;
+  if (minimumRung === undefined) throw new Error(`missing bundled Noul rung for ${rule.id}`);
+  return { runtimeId, builtIn, minimumRung };
+};
+const validateRuleApplicability = (
+  applicability: RuleApplicability | undefined,
+  source: string,
+  qualifiedId: string,
+): void => {
+  validatePatterns(applicability?.includes, source, `${qualifiedId}.applicability.includes`);
+  validatePatterns(applicability?.excludes, source, `${qualifiedId}.applicability.excludes`);
+};
+const applicabilityFields = (applicability: RuleApplicability | undefined) =>
+  applicability === undefined ? {} : { applicability };
+const compileEnabledRule = (
+  pack: LoadedRulePack,
+  rule: RuleDefinition,
+  qualifiedId: string,
+  override: RuleOverride | undefined,
+  enabled: boolean,
+  applicability: RuleApplicability | undefined,
+  rank: number,
+): CompiledRule => {
+  const threshold = compiledThreshold(rule, override, pack.source, qualifiedId);
+  const message = compiledMessage(rule, override, pack.source, qualifiedId);
+  const { runtimeId, builtIn, minimumRung } = compiledIdentity(pack, rule, qualifiedId);
+  return {
+    id: RuleId.make(runtimeId),
+    qualifiedId,
+    packId: pack.id,
+    packVersion: pack.contentVersion,
+    packDigest: pack.contentDigest,
+    ruleId: rule.id,
+    definitionDigest: digestRuleDefinition(pack, rule),
+    decision: {
+      ...Decision.probability({ instructions: rule.question, criteria: rule.criteria }),
+      criteria: rule.criteria,
+    },
+    threshold,
+    message,
+    rank,
+    ...applicabilityFields(applicability),
+    builtIn,
+    enabled,
+    source: pack.source,
+    minimumRung,
+    reviewTargets: rule.reviewTargets,
   };
+};
+/** Compile every enabled selected rule only after validating all overrides. */
+export const compileRules = (options: RuleCompilationOptions): ReadonlyArray<CompiledRule> => {
+  const overrides = compilationOverrides(options);
   const unknown = unknownOverrideIds(options.packs, overrides);
   if (unknown.length > 0) {
     throw new ConfigurationError({
@@ -198,57 +286,18 @@ export const compileRules = (
   let rank = 0;
   for (const pack of options.packs) {
     const packOverride = overrides[pack.id];
-    const packEnabled = includeRule(pack.enabled, packOverride?.enabled !== false);
+    const packEnabled = includeRule(pack.enabled, overridePermitsRule(packOverride));
     for (const rule of pack.rules) {
       const qualifiedId = qualified(pack.id, rule.id);
       const override = overrideFor(rule, pack, overrides);
-      const enabled = includeRule(packEnabled, override?.enabled !== false);
+      const enabled = includeRule(packEnabled, overridePermitsRule(override));
       const applicability = mergedApplicability(rule, override);
-      validatePatterns(applicability?.includes, pack.source, `${qualifiedId}.applicability.includes`);
-      validatePatterns(applicability?.excludes, pack.source, `${qualifiedId}.applicability.excludes`);
+      validateRuleApplicability(applicability, pack.source, qualifiedId);
       if (!enabled) {
         rank += 1;
         continue;
       }
-      const threshold = override?.threshold ?? rule.threshold ?? DEFAULT_RULE_THRESHOLD;
-      if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
-        throw new ConfigurationError({
-          source: pack.source,
-          field: `${qualifiedId}.threshold`,
-          reason: "must be a finite number between 0 and 1",
-        });
-      }
-      const message = override?.message ?? rule.message;
-      if (message.length === 0) {
-        throw new ConfigurationError({
-          source: pack.source,
-          field: `${qualifiedId}.message`,
-          reason: "must be a non-empty string",
-        });
-      }
-      const runtimeId = pack.id === BUNDLED_NOUL_PACK.id ? rule.id : qualifiedId;
-      const builtIn = pack.id === BUNDLED_NOUL_PACK.id;
-      const minimumRung = builtIn ? APPLIES_FROM[rule.id] : 1;
-      if (minimumRung === undefined) throw new Error(`missing bundled Noul rung for ${rule.id}`);
-      compiled.push({
-        id: RuleId.make(runtimeId),
-        qualifiedId,
-        packId: pack.id,
-        packVersion: pack.contentVersion,
-        packDigest: pack.contentDigest,
-        ruleId: rule.id,
-        definitionDigest: digestRuleDefinition(pack, rule),
-        decision: { ...Decision.probability({ instructions: rule.question, criteria: rule.criteria }), criteria: rule.criteria },
-        threshold,
-        message,
-        rank,
-        ...(applicability === undefined ? {} : { applicability }),
-        builtIn,
-        enabled,
-        source: pack.source,
-        minimumRung,
-        reviewTargets: rule.reviewTargets,
-      });
+      compiled.push(compileEnabledRule(pack, rule, qualifiedId, override, enabled, applicability, rank));
       rank += 1;
     }
   }
@@ -263,16 +312,21 @@ export const selectApplicableRules = (
 ): ReadonlyArray<CompiledRule> => {
   const sourceRung = levelOf(source);
   return rules.filter((rule) => {
-    const declaredTargets = rule.reviewTargets.filter((candidate) =>
-      candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract);
+    const declaredTargets = rule.reviewTargets.filter(
+      (candidate) => candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract,
+    );
     const capabilitiesAvailable = declaredTargets.some((candidate) =>
-      candidate.capabilities.every((capability) => target.capabilities?.includes(capability) === true));
+      candidate.capabilities.every((capability) => target.capabilities?.includes(capability) === true),
+    );
     return applicableRule({
       consent: true,
       complete: target.complete,
-      target: target.inputContract === FUNCTION_INPUT_CONTRACT ? "functionTarget"
-        : target.inputContract === TYPE_INPUT_CONTRACT ? "typeShape"
-        : "unsupportedTarget",
+      target:
+        target.inputContract === FUNCTION_INPUT_CONTRACT
+          ? "functionTarget"
+          : target.inputContract === TYPE_INPUT_CONTRACT
+            ? "typeShape"
+            : "unsupportedTarget",
       globalIncluded: true,
       globalExcluded: false,
       packEnabled: true,
@@ -289,6 +343,7 @@ export const selectApplicableRules = (
 /** Compile one strict current rule pack for source-free fixtures and tooling. */
 export const compileRulePack = (raw: unknown, source: string): ReadonlyArray<CompiledRule> => {
   const pack = decodeRulePackDocument(raw, source);
-  return compileRules({ packs: [{ ...pack, origin: { layer: "project", source, field: "packs" },
-    path: source, enabled: true }] });
+  return compileRules({
+    packs: [{ ...pack, origin: { layer: "project", source, field: "packs" }, path: source, enabled: true }],
+  });
 };

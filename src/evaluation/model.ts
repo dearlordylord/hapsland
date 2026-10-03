@@ -1,5 +1,4 @@
 import * as Schema from "effect/Schema";
-import type { Probability } from "../domain/contracts.ts";
 
 /**
  * The evaluation model deliberately uses opaque identities.  A name or a version
@@ -31,27 +30,19 @@ export type RulePackId = typeof RulePackId.Type;
 export const LocalRuleId = Identifier.pipe(Schema.brand("EvaluationLocalRuleId"));
 export type LocalRuleId = typeof LocalRuleId.Type;
 
-export const QualifiedRuleId = Identifier.pipe(
-  Schema.brand("EvaluationQualifiedRuleId"),
-);
+export const QualifiedRuleId = Identifier.pipe(Schema.brand("EvaluationQualifiedRuleId"));
 export type QualifiedRuleId = typeof QualifiedRuleId.Type;
 
-export const ConfigurationCaseId = Identifier.pipe(
-  Schema.brand("EvaluationConfigurationCaseId"),
-);
+export const ConfigurationCaseId = Identifier.pipe(Schema.brand("EvaluationConfigurationCaseId"));
 export type ConfigurationCaseId = typeof ConfigurationCaseId.Type;
 
 export const ScenarioId = Identifier.pipe(Schema.brand("EvaluationScenarioId"));
 export type ScenarioId = typeof ScenarioId.Type;
 
-export const ObservationId = Identifier.pipe(
-  Schema.brand("EvaluationObservationId"),
-);
+export const ObservationId = Identifier.pipe(Schema.brand("EvaluationObservationId"));
 export type ObservationId = typeof ObservationId.Type;
 
-export const ComparisonId = Identifier.pipe(
-  Schema.brand("EvaluationComparisonId"),
-);
+export const ComparisonId = Identifier.pipe(Schema.brand("EvaluationComparisonId"));
 export type ComparisonId = typeof ComparisonId.Type;
 
 export const RunId = Identifier.pipe(Schema.brand("EvaluationRunId"));
@@ -60,14 +51,10 @@ export type RunId = typeof RunId.Type;
 export const BackendId = Identifier.pipe(Schema.brand("EvaluationBackendId"));
 export type BackendId = typeof BackendId.Type;
 
-export const InputContractId = Identifier.pipe(
-  Schema.brand("EvaluationInputContractId"),
-);
+export const InputContractId = Identifier.pipe(Schema.brand("EvaluationInputContractId"));
 export type InputContractId = typeof InputContractId.Type;
 
-export const RendererAdapterId = Identifier.pipe(
-  Schema.brand("EvaluationRendererAdapterId"),
-);
+export const RendererAdapterId = Identifier.pipe(Schema.brand("EvaluationRendererAdapterId"));
 export type RendererAdapterId = typeof RendererAdapterId.Type;
 
 export const Version = Identifier.pipe(Schema.brand("EvaluationVersion"));
@@ -92,8 +79,7 @@ export const RuleApplicability = Schema.Struct({
   includePatterns: Schema.Array(Schema.String),
   excludePatterns: Schema.Array(Schema.String),
 });
-export interface RuleApplicability
-  extends Schema.Schema.Type<typeof RuleApplicability> {}
+export interface RuleApplicability extends Schema.Schema.Type<typeof RuleApplicability> {}
 
 /** Production packs use the structured Noul criteria; string criteria remain
  * accepted for small authored fixtures and backwards-compatible model data. */
@@ -136,8 +122,7 @@ export const FixtureReference = Schema.Struct({
   contentHash: EvaluationDigest,
   fixtureDigest: EvaluationDigest,
 });
-export interface FixtureReference
-  extends Schema.Schema.Type<typeof FixtureReference> {}
+export interface FixtureReference extends Schema.Schema.Type<typeof FixtureReference> {}
 
 export const RuleReference = Schema.Struct({
   qualifiedId: QualifiedRuleId,
@@ -153,10 +138,7 @@ const ExpectedBandFields = Schema.Struct({
 });
 export const ExpectedBand = ExpectedBandFields.check(
   Schema.makeFilter((band) =>
-    band.minimum < band.maximum ||
-    (band.minimum === band.maximum &&
-      band.minimumInclusive &&
-      band.maximumInclusive)
+    band.minimum < band.maximum || (band.minimum === band.maximum && band.minimumInclusive && band.maximumInclusive)
       ? undefined
       : "minimum and maximum define an empty band",
   ),
@@ -191,13 +173,10 @@ export interface Expectation extends Schema.Schema.Type<typeof Expectation> {}
 export const ConfigurationRuleOverride = Schema.Struct({
   ruleId: QualifiedRuleId,
   enabled: Schema.optionalKey(Schema.Boolean),
-  threshold: Schema.optionalKey(
-    Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
-  ),
+  threshold: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
   message: Schema.optionalKey(Schema.NonEmptyString),
 });
-export interface ConfigurationRuleOverride
-  extends Schema.Schema.Type<typeof ConfigurationRuleOverride> {}
+export interface ConfigurationRuleOverride extends Schema.Schema.Type<typeof ConfigurationRuleOverride> {}
 
 export const ConfigurationLayer = Schema.Struct({
   name: Schema.Literals(["built-in", "user", "project"] as const),
@@ -205,8 +184,7 @@ export const ConfigurationLayer = Schema.Struct({
   excludePatterns: Schema.Array(Schema.String),
   ruleOverrides: Schema.Array(ConfigurationRuleOverride),
 });
-export interface ConfigurationLayer
-  extends Schema.Schema.Type<typeof ConfigurationLayer> {}
+export interface ConfigurationLayer extends Schema.Schema.Type<typeof ConfigurationLayer> {}
 
 export const ConsentState = Schema.Struct({
   repositoryId: Schema.NonEmptyString,
@@ -221,8 +199,7 @@ export const ConfigurationProvenance = Schema.Struct({
   origin: Schema.Literals(["built-in", "user", "project"] as const),
   valueDigest: EvaluationDigest,
 });
-export interface ConfigurationProvenance
-  extends Schema.Schema.Type<typeof ConfigurationProvenance> {}
+export interface ConfigurationProvenance extends Schema.Schema.Type<typeof ConfigurationProvenance> {}
 
 export const EffectiveConfiguration = Schema.Struct({
   includePatterns: Schema.Array(Schema.String),
@@ -232,8 +209,7 @@ export const EffectiveConfiguration = Schema.Struct({
   provenance: Schema.Array(ConfigurationProvenance),
   configurationDigest: EvaluationDigest,
 });
-export interface EffectiveConfiguration
-  extends Schema.Schema.Type<typeof EffectiveConfiguration> {}
+export interface EffectiveConfiguration extends Schema.Schema.Type<typeof EffectiveConfiguration> {}
 
 export const ConfigurationCase = Schema.Struct({
   id: ConfigurationCaseId,
@@ -244,8 +220,7 @@ export const ConfigurationCase = Schema.Struct({
   expectedEffective: EffectiveConfiguration,
   caseDigest: EvaluationDigest,
 });
-export interface ConfigurationCase
-  extends Schema.Schema.Type<typeof ConfigurationCase> {}
+export interface ConfigurationCase extends Schema.Schema.Type<typeof ConfigurationCase> {}
 
 export const BackendIdentity = Schema.Struct({
   id: BackendId,
@@ -259,16 +234,14 @@ export const InputContractIdentity = Schema.Struct({
   version: Version,
   digest: EvaluationDigest,
 });
-export interface InputContractIdentity
-  extends Schema.Schema.Type<typeof InputContractIdentity> {}
+export interface InputContractIdentity extends Schema.Schema.Type<typeof InputContractIdentity> {}
 
 export const RendererAdapterIdentity = Schema.Struct({
   id: RendererAdapterId,
   version: Version,
   digest: EvaluationDigest,
 });
-export interface RendererAdapterIdentity
-  extends Schema.Schema.Type<typeof RendererAdapterIdentity> {}
+export interface RendererAdapterIdentity extends Schema.Schema.Type<typeof RendererAdapterIdentity> {}
 
 export const ScenarioAction = Schema.Struct({
   kind: Schema.Literals([
@@ -308,13 +281,10 @@ export const EvaluationScenario = EvaluationScenarioFields.check(
   Schema.makeFilter((scenario) => {
     const named = scenario.interaction === "named";
     const hasName = scenario.interactionName !== undefined;
-    return named === hasName
-      ? undefined
-      : "interactionName is required only for named scenarios";
+    return named === hasName ? undefined : "interactionName is required only for named scenarios";
   }),
 );
-export interface EvaluationScenario
-  extends Schema.Schema.Type<typeof EvaluationScenario> {}
+export interface EvaluationScenario extends Schema.Schema.Type<typeof EvaluationScenario> {}
 
 export const AssessmentEntry = Schema.Struct({
   ruleId: QualifiedRuleId,
@@ -357,23 +327,20 @@ export const TransportObservation = TransportObservationFields.check(
     return undefined;
   }),
 );
-export interface TransportObservation
-  extends Schema.Schema.Type<typeof TransportObservation> {}
+export interface TransportObservation extends Schema.Schema.Type<typeof TransportObservation> {}
 
 export const ConformanceObservation = Schema.Struct({
   status: Schema.Literals(["passed", "failed", "unchecked"] as const),
   reasons: Schema.Array(Schema.NonEmptyString),
 });
-export interface ConformanceObservation
-  extends Schema.Schema.Type<typeof ConformanceObservation> {}
+export interface ConformanceObservation extends Schema.Schema.Type<typeof ConformanceObservation> {}
 
 export const FindingObservation = Schema.Struct({
   ruleId: QualifiedRuleId,
   probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   message: Schema.NonEmptyString,
 });
-export interface FindingObservation
-  extends Schema.Schema.Type<typeof FindingObservation> {}
+export interface FindingObservation extends Schema.Schema.Type<typeof FindingObservation> {}
 
 const ObservationFields = Schema.Struct({
   id: ObservationId,
@@ -393,35 +360,42 @@ const ObservationFields = Schema.Struct({
  * Keep the existing fields for callers while rejecting combinations that could
  * make an unavailable or incomplete review look successfully assessed.
  */
-export const Observation = ObservationFields.check(
-  Schema.makeFilter((observation) => {
-    const hasAssessment = observation.assessment !== undefined;
-    switch (observation.reviewStatus) {
-      case "reviewed":
-        return observation.transport.status === "available" &&
-            observation.conformance.status === "passed" &&
-            hasAssessment
-          ? undefined
-          : "reviewed observations require available transport, passed conformance, and an assessment";
-      case "unavailable":
-        return observation.transport.status === "unavailable" &&
-            observation.conformance.status === "unchecked" &&
-            !hasAssessment
-          ? undefined
-          : "unavailable observations require unavailable transport, unchecked conformance, and no assessment";
-      case "incomplete":
-        return observation.transport.status === "available" &&
-            observation.conformance.status === "failed" &&
-            !hasAssessment
-          ? undefined
-          : "incomplete observations require available transport, failed conformance, and no assessment";
-      case "skipped":
-        return hasAssessment
-          ? "skipped observations cannot carry an assessment"
-          : undefined;
-    }
-  }),
-);
+type ObservationInput = Schema.Schema.Type<typeof ObservationFields>;
+const reviewStates = {
+  reviewed: {
+    transport: "available",
+    conformance: "passed",
+    assessment: true,
+    error: "reviewed observations require available transport, passed conformance, and an assessment",
+  },
+  unavailable: {
+    transport: "unavailable",
+    conformance: "unchecked",
+    assessment: false,
+    error: "unavailable observations require unavailable transport, unchecked conformance, and no assessment",
+  },
+  incomplete: {
+    transport: "available",
+    conformance: "failed",
+    assessment: false,
+    error: "incomplete observations require available transport, failed conformance, and no assessment",
+  },
+} as const;
+
+const observationStateError = (observation: ObservationInput) => {
+  const hasAssessment = observation.assessment !== undefined;
+  if (observation.reviewStatus === "skipped")
+    return hasAssessment ? "skipped observations cannot carry an assessment" : undefined;
+  const required = reviewStates[observation.reviewStatus];
+  return observation.transport.status === required.transport &&
+    observation.conformance.status === required.conformance &&
+    hasAssessment === required.assessment
+    ? undefined
+    : required.error;
+};
+
+export const Observation = ObservationFields.check(Schema.makeFilter(observationStateError));
+
 export interface Observation extends Schema.Schema.Type<typeof Observation> {}
 
 const ComparisonFields = Schema.Struct({
@@ -434,9 +408,7 @@ const ComparisonFields = Schema.Struct({
   ruleId: Schema.optionalKey(QualifiedRuleId),
   expectation: Schema.optionalKey(Expectation),
   fixtureRelation: Schema.optionalKey(Schema.Literals(["identical", "transformed"] as const)),
-  direction: Schema.optionalKey(
-    Schema.Literals(["increase", "decrease", "change", "no-change"] as const),
-  ),
+  direction: Schema.optionalKey(Schema.Literals(["increase", "decrease", "change", "no-change"] as const)),
   minimumDelta: Schema.optionalKey(NonNegativeFinite),
   tolerance: NonNegativeFinite,
   comparisonDigest: EvaluationDigest,
@@ -444,41 +416,57 @@ const ComparisonFields = Schema.Struct({
 /** A comparison relation has a fixed set of endpoint/semantic fields.  The
  * checked variants preserve the pre-existing flat JSON shape while preventing
  * callers from silently constructing an unusable comparison. */
+type ComparisonInput = Schema.Schema.Type<typeof ComparisonFields>;
+const comparisonOmits = (comparison: ComparisonInput, fields: ReadonlyArray<keyof ComparisonInput>) =>
+  fields.every((field) => comparison[field] === undefined);
+const hasObservationPair = (comparison: ComparisonInput) =>
+  comparison.leftObservationId !== undefined &&
+  comparison.rightObservationId !== undefined &&
+  comparison.leftObservationId !== comparison.rightObservationId;
+
+const exactComparisonError = (comparison: ComparisonInput) =>
+  hasObservationPair(comparison) &&
+  comparisonOmits(comparison, [
+    "observationId",
+    "ruleId",
+    "expectation",
+    "fixtureRelation",
+    "direction",
+    "minimumDelta",
+  ])
+    ? undefined
+    : "exact comparisons require only distinct left and right observations";
+
+const semanticComparisonError = (comparison: ComparisonInput) =>
+  comparison.observationId !== undefined &&
+  comparison.ruleId !== undefined &&
+  comparisonOmits(comparison, [
+    "leftObservationId",
+    "rightObservationId",
+    "fixtureRelation",
+    "direction",
+    "minimumDelta",
+  ]) &&
+  (comparison.expectation === undefined || comparison.ruleId === comparison.expectation.ruleId)
+    ? undefined
+    : "semantic-band comparisons require one observation and no pair fields";
+
+const measuredComparisonError = (comparison: ComparisonInput) =>
+  hasObservationPair(comparison) &&
+  comparison.ruleId !== undefined &&
+  comparisonOmits(comparison, ["observationId", "expectation"])
+    ? undefined
+    : "measured-change comparisons require left/right observations and a rule";
+
+const comparisonValidators = {
+  exact: exactComparisonError,
+  "semantic-band": semanticComparisonError,
+  "measured-change": measuredComparisonError,
+};
 export const Comparison = ComparisonFields.check(
-  Schema.makeFilter((comparison) => {
-    const hasLeft = comparison.leftObservationId !== undefined;
-    const hasRight = comparison.rightObservationId !== undefined;
-    const hasObservation = comparison.observationId !== undefined;
-    const hasRule = comparison.ruleId !== undefined;
-    switch (comparison.relation) {
-      case "exact":
-        return hasLeft && hasRight && comparison.leftObservationId !== comparison.rightObservationId &&
-            !hasObservation && !hasRule &&
-            comparison.expectation === undefined &&
-            comparison.fixtureRelation === undefined &&
-            comparison.direction === undefined &&
-            comparison.minimumDelta === undefined
-          ? undefined
-          : "exact comparisons require only distinct left and right observations";
-      case "semantic-band":
-        return hasObservation && hasRule && !hasLeft && !hasRight &&
-            comparison.fixtureRelation === undefined &&
-            comparison.direction === undefined &&
-            comparison.minimumDelta === undefined &&
-            (comparison.expectation === undefined ||
-              comparison.ruleId === undefined ||
-              comparison.ruleId === comparison.expectation.ruleId)
-          ? undefined
-          : "semantic-band comparisons require one observation and no pair fields";
-      case "measured-change":
-        return hasLeft && hasRight && comparison.leftObservationId !== comparison.rightObservationId &&
-            hasRule && !hasObservation &&
-            comparison.expectation === undefined
-          ? undefined
-          : "measured-change comparisons require left/right observations and a rule";
-    }
-  }),
+  Schema.makeFilter((comparison) => comparisonValidators[comparison.relation](comparison)),
 );
+
 export interface Comparison extends Schema.Schema.Type<typeof Comparison> {}
 
 export const CallBudget = Schema.Struct({
@@ -497,8 +485,7 @@ export const ReleaseAcceptance = Schema.Struct({
   requireSemanticPass: Schema.Boolean,
   requireNoUnchecked: Schema.Boolean,
 });
-export interface ReleaseAcceptance
-  extends Schema.Schema.Type<typeof ReleaseAcceptance> {}
+export interface ReleaseAcceptance extends Schema.Schema.Type<typeof ReleaseAcceptance> {}
 export const EvaluationRun = Schema.Struct({
   id: RunId,
   name: Schema.NonEmptyString,
@@ -568,28 +555,33 @@ const ComparisonResultFields = Schema.Struct({
   reason: Schema.optionalKey(Schema.NonEmptyString),
   delta: Schema.optionalKey(Schema.Finite),
 });
+type ComparisonStatus = Schema.Schema.Type<typeof ComparisonResultFields>;
+const comparisonRelationError = (result: ComparisonStatus, label: "results" | "summaries") => {
+  if (result.relation === "exact" && result.semantic !== "unchecked")
+    return `exact comparison ${label} cannot carry a semantic status`;
+  if (result.relation !== "exact" && result.deterministic !== "unchecked")
+    return `non-exact comparison ${label} cannot carry a deterministic status`;
+  return undefined;
+};
+const comparisonShouldPass = (result: ComparisonStatus) =>
+  result.transport === "available" &&
+  result.conformance === "passed" &&
+  (result.relation === "exact" ? result.deterministic === "passed" : result.semantic === "passed");
+const comparisonPassError = (result: ComparisonStatus) =>
+  result.passed === comparisonShouldPass(result)
+    ? undefined
+    : "passed must agree with transport, conformance, and relation status";
+const comparisonDeltaError = (result: ComparisonStatus, label: "results" | "summaries") =>
+  result.relation !== "measured-change" && result.delta !== undefined
+    ? `delta is only valid for measured-change ${label}`
+    : undefined;
+const comparisonStatusError = (result: ComparisonStatus, label: "results" | "summaries") =>
+  comparisonRelationError(result, label) ?? comparisonPassError(result) ?? comparisonDeltaError(result, label);
+
 export const ComparisonResult = ComparisonResultFields.check(
-  Schema.makeFilter((result) => {
-    if (result.relation === "exact" && result.semantic !== "unchecked") {
-      return "exact comparison results cannot carry a semantic status";
-    }
-    if (result.relation !== "exact" && result.deterministic !== "unchecked") {
-      return "non-exact comparison results cannot carry a deterministic status";
-    }
-    const expectedPassed = result.transport === "available" &&
-      result.conformance === "passed" &&
-      (result.relation === "exact"
-        ? result.deterministic === "passed"
-        : result.semantic === "passed");
-    if (result.passed !== expectedPassed) {
-      return "passed must agree with transport, conformance, and relation status";
-    }
-    if (result.relation !== "measured-change" && result.delta !== undefined) {
-      return "delta is only valid for measured-change results";
-    }
-    return undefined;
-  }),
+  Schema.makeFilter((result) => comparisonStatusError(result, "results")),
 );
+
 export interface ComparisonResult extends Schema.Schema.Type<typeof ComparisonResult> {}
 
 const AggregateCountsFields = Schema.Struct({
@@ -620,27 +612,9 @@ const ComparisonSummaryFields = Schema.Struct({
   delta: Schema.optionalKey(Schema.Finite),
 });
 export const ComparisonSummary = ComparisonSummaryFields.check(
-  Schema.makeFilter((summary) => {
-    if (summary.relation === "exact" && summary.semantic !== "unchecked") {
-      return "exact comparison summaries cannot carry a semantic status";
-    }
-    if (summary.relation !== "exact" && summary.deterministic !== "unchecked") {
-      return "non-exact comparison summaries cannot carry a deterministic status";
-    }
-    const expectedPassed = summary.transport === "available" &&
-      summary.conformance === "passed" &&
-      (summary.relation === "exact"
-        ? summary.deterministic === "passed"
-        : summary.semantic === "passed");
-    if (summary.passed !== expectedPassed) {
-      return "passed must agree with transport, conformance, and relation status";
-    }
-    if (summary.relation !== "measured-change" && summary.delta !== undefined) {
-      return "delta is only valid for measured-change summaries";
-    }
-    return undefined;
-  }),
+  Schema.makeFilter((summary) => comparisonStatusError({ ...summary, comparisonId: summary.id }, "summaries")),
 );
+
 export interface ComparisonSummary extends Schema.Schema.Type<typeof ComparisonSummary> {}
 
 export const EvaluationCoverage = Schema.Struct({
@@ -673,33 +647,35 @@ const TimingEvidenceFields = Schema.Struct({
   p50DurationMs: NonNegativeFinite,
   p95DurationMs: NonNegativeFinite,
 });
-export const EvaluationTimingEvidence = TimingEvidenceFields.check(
-  Schema.makeFilter((timing) => {
-    if (timing.sampleCount === 0) {
-      return timing.totalDurationMs === 0 &&
-          timing.minimumDurationMs === 0 &&
-          timing.maximumDurationMs === 0 &&
-          timing.meanDurationMs === 0 &&
-          timing.p50DurationMs === 0 &&
-          timing.p95DurationMs === 0
-        ? undefined
-        : "empty timing evidence must contain zero aggregates";
-    }
-    if (timing.minimumDurationMs > timing.maximumDurationMs ||
-        timing.p50DurationMs < timing.minimumDurationMs ||
-        timing.p50DurationMs > timing.maximumDurationMs ||
-        timing.p95DurationMs < timing.p50DurationMs ||
-        timing.p95DurationMs > timing.maximumDurationMs) {
-      return "timing percentiles must be ordered within the observed range";
-    }
-    return Math.abs(timing.meanDurationMs * timing.sampleCount - timing.totalDurationMs) <
-        Math.max(1e-9, timing.totalDurationMs * 1e-9)
-      ? undefined
-      : "timing mean must agree with total duration and sample count";
-  }),
-);
-export interface EvaluationTimingEvidence
-  extends Schema.Schema.Type<typeof EvaluationTimingEvidence> {}
+type TimingEvidence = Schema.Schema.Type<typeof TimingEvidenceFields>;
+const emptyTimingError = (timing: TimingEvidence) =>
+  [
+    timing.totalDurationMs,
+    timing.minimumDurationMs,
+    timing.maximumDurationMs,
+    timing.meanDurationMs,
+    timing.p50DurationMs,
+    timing.p95DurationMs,
+  ].every((value) => value === 0)
+    ? undefined
+    : "empty timing evidence must contain zero aggregates";
+const timingRangeInvalid = (timing: TimingEvidence) =>
+  timing.minimumDurationMs > timing.maximumDurationMs ||
+  timing.p50DurationMs < timing.minimumDurationMs ||
+  timing.p50DurationMs > timing.maximumDurationMs ||
+  timing.p95DurationMs < timing.p50DurationMs ||
+  timing.p95DurationMs > timing.maximumDurationMs;
+const timingEvidenceError = (timing: TimingEvidence) => {
+  if (timing.sampleCount === 0) return emptyTimingError(timing);
+  if (timingRangeInvalid(timing)) return "timing percentiles must be ordered within the observed range";
+  return Math.abs(timing.meanDurationMs * timing.sampleCount - timing.totalDurationMs) <
+    Math.max(1e-9, timing.totalDurationMs * 1e-9)
+    ? undefined
+    : "timing mean must agree with total duration and sample count";
+};
+export const EvaluationTimingEvidence = TimingEvidenceFields.check(Schema.makeFilter(timingEvidenceError));
+
+export interface EvaluationTimingEvidence extends Schema.Schema.Type<typeof EvaluationTimingEvidence> {}
 
 const RejectionReason = Schema.Literals([
   "budget-exceeded",
@@ -720,13 +696,13 @@ const EvaluationBudgetSummaryFields = Schema.Struct({
 });
 const EvaluationBudgetSummary = EvaluationBudgetSummaryFields.check(
   Schema.makeFilter((budget) => {
-    if (budget.planPermitted && budget.rejectionReason !== undefined) {
-      return "permitted reports cannot carry a rejection reason";
+    if (budget.planPermitted !== (budget.rejectionReason === undefined)) {
+      return budget.planPermitted
+        ? "permitted reports cannot carry a rejection reason"
+        : "rejected reports require a rejection reason";
     }
-    if (!budget.planPermitted && budget.rejectionReason === undefined) {
-      return "rejected reports require a rejection reason";
-    }
-    const expectedWithinBudget = budget.observedRequests <= budget.declaredMaximumRequests &&
+    const expectedWithinBudget =
+      budget.observedRequests <= budget.declaredMaximumRequests &&
       budget.worstCaseRequests <= budget.declaredMaximumRequests;
     return budget.withinBudget === expectedWithinBudget
       ? undefined
@@ -768,48 +744,14 @@ export const strictParseOptions = {
   errors: "all",
 } as const;
 
-export const decodeRuleDefinition = Schema.decodeUnknownEffect(
-  RuleDefinition,
-  strictParseOptions,
-);
+export const decodeRuleDefinition = Schema.decodeUnknownEffect(RuleDefinition, strictParseOptions);
 export const decodeFixture = Schema.decodeUnknownEffect(Fixture, strictParseOptions);
-export const decodeExpectation = Schema.decodeUnknownEffect(
-  Expectation,
-  strictParseOptions,
-);
-export const decodeConfigurationCase = Schema.decodeUnknownEffect(
-  ConfigurationCase,
-  strictParseOptions,
-);
-export const decodeEvaluationScenario = Schema.decodeUnknownEffect(
-  EvaluationScenario,
-  strictParseOptions,
-);
-export const decodeEvaluationPlan = Schema.decodeUnknownEffect(
-  EvaluationPlan,
-  strictParseOptions,
-);
-export const decodeObservation = Schema.decodeUnknownEffect(
-  Observation,
-  strictParseOptions,
-);
-export const decodeComparison = Schema.decodeUnknownEffect(
-  Comparison,
-  strictParseOptions,
-);
-export const decodeComparisonResult = Schema.decodeUnknownEffect(
-  ComparisonResult,
-  strictParseOptions,
-);
-export const decodeEvaluationRun = Schema.decodeUnknownEffect(
-  EvaluationRun,
-  strictParseOptions,
-);
-export const decodeEvaluationReport = Schema.decodeUnknownEffect(
-  EvaluationReport,
-  strictParseOptions,
-);
-
-/** A conservative check used by the pure digest functions. */
-export const isFiniteProbability = (value: number): value is Probability =>
-  Number.isFinite(value) && value >= 0 && value <= 1;
+export const decodeExpectation = Schema.decodeUnknownEffect(Expectation, strictParseOptions);
+export const decodeConfigurationCase = Schema.decodeUnknownEffect(ConfigurationCase, strictParseOptions);
+export const decodeEvaluationScenario = Schema.decodeUnknownEffect(EvaluationScenario, strictParseOptions);
+export const decodeEvaluationPlan = Schema.decodeUnknownEffect(EvaluationPlan, strictParseOptions);
+export const decodeObservation = Schema.decodeUnknownEffect(Observation, strictParseOptions);
+export const decodeComparison = Schema.decodeUnknownEffect(Comparison, strictParseOptions);
+export const decodeComparisonResult = Schema.decodeUnknownEffect(ComparisonResult, strictParseOptions);
+export const decodeEvaluationRun = Schema.decodeUnknownEffect(EvaluationRun, strictParseOptions);
+export const decodeEvaluationReport = Schema.decodeUnknownEffect(EvaluationReport, strictParseOptions);

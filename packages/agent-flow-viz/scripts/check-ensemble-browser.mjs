@@ -217,6 +217,21 @@ try {
   assert.equal(await touchPage.getByLabel("Rotation", { exact: true }).inputValue(), touchTurn, "vertical touch scroll must not rotate the scene");
   assert.equal(await touchPage.locator(".is-dragging").count(), 0);
   await touchPage.close();
+  if (await ensemble.evaluate(element => element.classList.contains("is-flat"))) await click("3D layers");
+  // Several agents transition in one playback batch. The final event alone
+  // must not erase activity from the other agents before the browser paints.
+  await page.getByLabel("Agent count", { exact: true }).fill("3");
+  await click("Start resident");
+  await inspector.getByLabel("Playback speed (virtual ms / wall ms)", { exact: true }).fill("100");
+  await click("Apply playback speed");
+  await click("Play resident");
+  await page.waitForFunction(() => [...document.querySelectorAll(".ensemble-layer")]
+    .filter(layer => layer.querySelector(".topology-node.active")).length > 1, undefined, { timeout: 10000 });
+  await click("Pause resident");
+  await click("Step resident");
+  assert.ok(await ensemble.locator(".ensemble-layer").evaluateAll(layers =>
+    layers.filter(layer => layer.querySelector(".topology-node.active")).length <= 1),
+    "single step highlights only its owning agent");
   assert.deepEqual(errors, []);
   console.log("Ensemble browser checks passed: independent generators, targeted controls, shared resident replay/resources, global playback, count validation, focus, six-layer fit, mobile layout, mouse drag, stage click preservation, touch orbit/scroll, transient layer reveal and stage-linked infrastructure contacts.");
 } finally {

@@ -327,7 +327,7 @@ export const E0 = {
       question:
         "Does `artifact` declare a callable whose body reaches for a resource or a change of state that its own parameters and return type do not mention?",
       focus:
-        "Doing work is not the finding, and neither is a shape that declares no callable at all — a record of fields has nothing to reach for. The finding is a declaration that reads as a function of its arguments while the body reads a clock, a filesystem, a network, a device, a global or an enclosing object, or writes to one. A callable that takes what it touches as an argument, or states the effect in its return type, is not a finding, however much work it does.",
+        "Doing work is not the finding, and neither is a shape that declares no callable at all — a record of fields has nothing to reach for. The finding is a declaration that reads as a function of its arguments while the body reads a clock, a filesystem, a network, a device, a global or an enclosing object, or writes to one. A callable that takes what it touches as an argument, or states the effect in its return type, is not a finding, however much work it does. Judge only dependencies visible in the supplied root body and included supporting declarations. Omitted references are unknown: do not infer their behavior or treat missing evidence alone as a hidden-resource finding. An omission does not erase a resource use that is already visible in included source.",
     },
     {
       true: {
