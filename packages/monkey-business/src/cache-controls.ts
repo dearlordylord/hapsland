@@ -15,7 +15,7 @@ export const captureCacheOffer=(value:unknown):CacheOffer=>{
 };
 export const encodeCacheOffer=(value:unknown)=>{
  const offer=captureCacheOffer(value);
- return Object.freeze({$:"CacheScenario.Offer",id:offer.id,key:Object.freeze({$:"SharingScenario.Key",...offer.key}),
+ return Object.freeze({$:"CacheScenario.Offer",id:offer.id,key:Object.freeze({$:"SharingScenario.SharingKey",...offer.key}),
  original:Object.freeze({$:"FreshnessScenario.Scope",...offer.original}),bytes:offer.bytes,outcome:encodeDriverOutcome(offer.outcome)});
 };
 // No new cache capacity setting, TTL or result-injection control is introduced.

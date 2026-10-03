@@ -5,7 +5,7 @@ const offer={id:7,key:{partition:1,prepared:23},original,bytes:5,outcome:"findin
 it("captures original cache provenance without rewriting it after supersession",()=>{
  const held=captureCacheOffer(offer);original.round=99;
  expect(held.original.round).toBe(3);expect(Object.isFrozen(held.original)).toBe(true);expect(Object.isFrozen(held.key)).toBe(true);
- expect(encodeCacheOffer({...offer,original:{...original,round:3}})).toEqual({$:"CacheScenario.Offer",id:7,key:{$:"SharingScenario.Key",partition:1,prepared:23},
+ expect(encodeCacheOffer({...offer,original:{...original,round:3}})).toEqual({$:"CacheScenario.Offer",id:7,key:{$:"SharingScenario.SharingKey",partition:1,prepared:23},
   original:{$:"FreshnessScenario.Scope",partition:1,lifetime:2,round:3,operation:4},bytes:5,outcome:{$:"Canonical.RequestFinding"}});
 });
 it("rejects cross-partition attribution, unsupported result sources and extra fields",()=>{
