@@ -1029,6 +1029,18 @@ export class Run {
       return this.step(untilTime);
     }
     const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
+    const emitDriver = (action: DriverAction, sourceJob?: Extract<RunInput, { kind: "edit" }>) => {
+      const outcome = sourceJob?.outcome ?? this.outcome;
+      const context = outcome === undefined ? undefined : this.driverContext(action.event, item, outcome, sourceJob);
+      this.event(partition, action.event, action.delay, action.job ? sourceJob : undefined,
+        action.expiryAdvice, "environment", undefined, action, context);
+      if (sourceJob && context) {
+        const scheduled = this.scheduled.get(this.order - 1);
+        if (!scheduled) throw new Error("shared Driver emission lost original source job");
+        scheduled.driverSourceJob = freezeCanonicalData(copy({ partition: context.partition, lifetime: context.lifetime,
+          bytes: sourceJob.bytes, units: sourceJob.unitBytes, outcome: context.outcome }));
+      }
+    };
     const emitInitialOutput = (capture: OutputCapture, terminalOnly = false) => {
       const actions = initialOutputActions(capture, terminalOnly);
       for (const action of actions) {
@@ -1298,7 +1310,7 @@ export class Run {
           });
           const completion = decodeDriver({ handled: true, actions: { $: "Con", head: this.core.preparationCompleted({ ...scope, operation: command.operation }, item.job.unitBytes, this.config.preparationDelay ?? 2), tail: { $: "Nil" } } }).actions[0];
           if (!completion) throw new Error("missing preparation completion action");
-          emit(completion.event, completion.delay, item.job);
+          emitDriver(completion, item.job);
           break;
         }
         case "unitAdmitted": {
@@ -1491,7 +1503,7 @@ export class Run {
       }
     }
     for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      emit(action.event, action.delay, action.job ? item.job : undefined, action.expiryAdvice);
+      emitDriver(action, item.job);
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find(w => w.operation === event.operation)?.parent;
       if (parent) this.jobs.delete(parent);
