@@ -691,66 +691,56 @@ def sharing_departed(+state: Types.State, departure: SharingRuntime.Departure) -
 def sharing_leave(+state: Types.State, scope: FreshnessScenario.Scope) -> SharingDeparture:
   sharing_departed(state,SharingRuntime.depart(sharing_runtime(state),scope))
 
-# The physical PRE callback is delivered once. Canonical offers and releases
-# its Preparing work atomically, so retained reuse route decisions must run
-# before that one completion. Each real reducer step remains observable.
+# A still-queued original callback may need source-free route decisions first.
+# One actual Canonical step per call preserves public event budgets and lets
+# controls between steps observe the current state, never a precomputed batch.
 type SharingFrame is Data:
   SharingFrame{before: Types.State, after: Types.State, event: Canonical.CanonicalEvent, result: Canonical.Step}
-type SharingPrepared is Data:
-  SharingPrepared{state: Types.State, frames: List<&2,SharingFrame>, event: Canonical.CanonicalEvent, ready: Bool}
-type SharingSteps is Data:
-  SharingSteps{state: Types.State, frames: List<&2,SharingFrame>}
+type SharingNext is Data:
+  SharingNext{state: Types.State, frame: Maybe<&2,SharingFrame>, events: List<&2,Canonical.CanonicalEvent>}
 
-def sharing_event_done(+before: Types.State, +event: Canonical.CanonicalEvent, transition: Transition) -> SharingSteps:
-  match transition:
-    case Transition{+state,result}: SharingSteps{state,[SharingFrame{before,state,event,result}]}
-
-def sharing_event(+state: Types.State, +event: Canonical.CanonicalEvent) -> SharingSteps:
-  sharing_event_done(state,event,step(state,event))
-
-def sharing_joined_steps(head: List<&2,SharingFrame>, tail: SharingSteps) -> SharingSteps:
-  match tail:
-    case SharingSteps{state,frames}: SharingSteps{state,List.append(&2,SharingFrame,head,frames)}
-
-def sharing_events_tail(steps: SharingSteps, events: List<&2,Canonical.CanonicalEvent>) -> SharingSteps:
-  match steps:
-    case SharingSteps{state,frames}: sharing_joined_steps(frames,sharing_events(state,events))
-
-def sharing_events(state: Types.State, events: List<&2,Canonical.CanonicalEvent>) -> SharingSteps:
-  match events:
-    case Nil{}: SharingSteps{state,[]}
-    case +event <> tail: sharing_events_tail(sharing_event(state,event),tail)
-
-# A route creates exactly one event. Refusal leaves its disposition Awaiting,
-# and therefore cannot manufacture a review-unit offer or claim attachment.
-def sharing_route_result(+before: Types.State, +route: SharingRuntime.Route, +event: Canonical.CanonicalEvent, transition: Transition) -> SharingSteps:
+def sharing_route_result(+before: Types.State, +route: SharingRuntime.Route, +event: Canonical.CanonicalEvent, transition: Transition) -> SharingNext:
   match transition:
     case Transition{+state,Canonical.Advanced{+canonical,+commands}}:
       match sharing_routed(state,route,commands):
-        case SharingRouted{next,events}:
-          sharing_joined_steps([SharingFrame{before,next,event,Canonical.Advanced{canonical,commands}}],sharing_events(next,events))
-    case Transition{+state,+result}: SharingSteps{state,[SharingFrame{before,state,event,result}]}
+        case SharingRouted{+next,events}:
+          SharingNext{next,Some{SharingFrame{before,next,event,Canonical.Advanced{canonical,commands}}},events}
+    case Transition{+state,+result}: SharingNext{state,Some{SharingFrame{before,state,event,result}},[]}
 
-def sharing_route_events(state: Types.State, +route: SharingRuntime.Route, events: List<&2,Canonical.CanonicalEvent>) -> SharingSteps:
+def sharing_route_events(+state: Types.State, +route: SharingRuntime.Route, events: List<&2,Canonical.CanonicalEvent>) -> SharingNext:
   match events:
-    case Nil{}: SharingSteps{state,[]}
+    case Nil{}: SharingNext{state,None{},[]}
     case +event <> Nil{}: sharing_route_result(state,route,event,step(state,event))
-    case _ <> _ <> _: SharingSteps{state,[]}
+    case _ <> _ <> _: SharingNext{state,None{},[]}
 
-def sharing_route_tail(steps: SharingSteps, routes: List<&2,SharingRuntime.Route>) -> SharingSteps:
-  match steps:
-    case SharingSteps{state,frames}: sharing_joined_steps(frames,sharing_routes(state,routes))
-
-def sharing_routes(+state: Types.State, routes: List<&2,SharingRuntime.Route>) -> SharingSteps:
+def sharing_first(+state: Types.State, routes: List<&2,SharingRuntime.Route>) -> SharingNext:
   match routes:
-    case Nil{}: SharingSteps{state,[]}
-    case +route <> tail: sharing_route_tail(sharing_route_events(state,route,sharing_route(state,route)),tail)
+    case Nil{}: SharingNext{state,None{},[]}
+    case +route <> _: sharing_route_events(state,route,sharing_route(state,route))
 
-def sharing_prepared(steps: SharingSteps, +event: Canonical.CanonicalEvent) -> SharingPrepared:
-  match steps:
-    case SharingSteps{+state,frames}:
-      match sharing_completion(state,event):
-        case SharingRuntime.Completion{completion,ready}: SharingPrepared{state,frames,completion,ready}
+def sharing_metadata_clock(state: Types.State, now: Nat) -> Types.State:
+  match state:
+    case Types.State{canonical,graphs,Scheduler.State{queue,_},workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,scenarios}:
+      Types.State{canonical,graphs,Scheduler.State{queue,now},workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,scenarios}
 
-def sharing_preprocess(+state: Types.State, +event: Canonical.CanonicalEvent) -> SharingPrepared:
-  sharing_prepared(sharing_routes(state,SharingRuntime.pending(sharing_runtime(state),event)),event)
+def sharing_within(now: Nat, horizon: Maybe<&2,Nat>) -> Bool:
+  match horizon:
+    case None{}: True{}
+    case Some{end}: Nat.is_le(now,end)
+
+def sharing_at_head(+state: Types.State, +event: Canonical.CanonicalEvent, order: Nat, horizon: Maybe<&2,Nat>, head: Maybe<&2,Scheduler.Entry>) -> SharingNext:
+  match head:
+    case None{}: SharingNext{state,None{},[]}
+    case Some{Scheduler.Entry{+at,id}}:
+      match Nat.is_eq(order,id) && sharing_within(at,horizon):
+        case False{}: SharingNext{state,None{},[]}
+        case True{}:
+          match SharingRuntime.pending(sharing_runtime(state),event):
+            case Nil{}: SharingNext{state,None{},[]}
+            case +route <> tail:
+              sharing_first(sharing_metadata_clock(state,at),route <> tail)
+
+def sharing_preprocess(+state: Types.State, event: Canonical.CanonicalEvent, order: Nat, horizon: Maybe<&2,Nat>) -> SharingNext:
+  match state:
+    case Types.State{_,_,scheduler,_,_,_,_,_,_,_,_,_,_}:
+      sharing_at_head(state,event,order,horizon,Scheduler.peek(scheduler))

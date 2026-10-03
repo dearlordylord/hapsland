@@ -57,7 +57,7 @@ const facts = value => {
 };
 export default {
  sharing_prepare: (state,scope,keys,sizes) => run_loop($sharing_prepare$(state,facts(scope),facts(keys),facts(sizes))),
- sharing_preprocess: (state,event) => run_loop($sharing_preprocess$(state,facts(event))),
+ sharing_preprocess: (state,event,order,horizon) => run_loop($sharing_preprocess$(state,facts(event),facts(order),facts(horizon))),
  sharing_leave: (state,scope) => run_loop($sharing_leave$(state,facts(scope))),
  sharing_route: (state,route) => run_loop($sharing_route$(state,facts(route))),
  sharing_routed: (state,route,commands) => run_loop($sharing_routed$(state,facts(route),facts(commands))),

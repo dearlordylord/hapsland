@@ -419,3 +419,33 @@ export const completeSharedSharing = (state: EngineState, event: CanonicalEvent)
   sharedCheck(state);
   return decodeSharedValue(SharedEngine.sharing_completion(state, encodeSharedValue(encodeCanonicalEvent(event))));
 };
+
+export const preprocessSharedSharing = (state: EngineState, event: CanonicalEvent, partition: number, order: number, horizon?: number) => {
+  sharedCheck(state);
+  const end = horizon === undefined ? { $: "None" } : { $: "Some", value: readNat(horizon) };
+  const prepared = SharedEngine.sharing_preprocess(state, encodeSharedValue(encodeCanonicalEvent(event)), BigInt(readNat(order)), encodeSharedValue(end));
+  const option = readRecord(prepared.frame);
+  if (option.$ === "None") return { state, frame: undefined, events: decodeSharedValue(prepared.events) };
+  if (option.$ !== "Some") throw new TypeError("invalid sharing preprocessing frame");
+  const frame = readRecord(option.value);
+  const beforeState = frame.before as EngineState;
+  const afterState = frame.after as EngineState;
+  const result = decodeTrustedCanonicalStep(frame.result);
+  const raw = readRecord(frame.result);
+  const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, command => command) : [];
+  sharedRegister(afterState);
+  sharedProjections.set(afterState, projectCanonical(result.state));
+  sharedCommands.set(afterState, commands);
+  sharedPredecessors.set(afterState, Object.freeze({ ...beforeState }));
+  const provided = encodeSharedValue({ $: "Some", value: readNat(partition) });
+  const commandScopes = commands.map(command => {
+    const owner = scopeOption(decodeSharedValue(SharedEngine.scope_command(beforeState, afterState, command, provided)));
+    return owner.$ === "Some" ? owner.value : undefined;
+  });
+  sharedRegister(prepared.state);
+  sharedProjections.set(prepared.state, projectCanonical(result.state));
+  sharedCommands.set(prepared.state, commands);
+  sharedPredecessors.set(prepared.state, Object.freeze({ ...beforeState }));
+  return { state: prepared.state, frame: { event: decodeSharedValue(frame.event), result,
+    before: projectionOf(state), after: projectCanonical(result.state), commandScopes }, events: decodeSharedValue(prepared.events) };
+};
