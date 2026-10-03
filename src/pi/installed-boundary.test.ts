@@ -129,7 +129,7 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
     const { root, capturePath, call } = fixture();
     const oldText = "export type OrderCount = {\n  options: {\n    timeoutMs: 1000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: \"en\",\n    region: \"eu\",\n    mode: \"safe\",\n    format: \"json\",\n    compress: true,\n    secure: true,\n    retries: 3,\n  };\n};\n";
     const newText = "export type OrderCount = {\n  options: {\n    timeoutMs: 2000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: \"en\",\n    region: \"eu\",\n    mode: \"safe\",\n    format: \"json\",\n    compress: true,\n    secure: true,\n    retries: 5,\n  };\n};\n";
-    const patch = "--- type.ts\n+++ type.ts\n@@ -1,7 +1,7 @@\n export type OrderCount = {\n   options: {\n-    timeoutMs: 1000,\n+    timeoutMs: 2000,\n     cache: true,\n     strict: true,\n     trace: false,\n     debug: false,\n@@ -10,7 +10,7 @@\n     mode: \"safe\",\n     format: \"json\",\n     compress: true,\n     secure: true,\n-    retries: 3,\n+    retries: 5,\n   };\n }\n";
+    const patch = "--- type.ts\n+++ type.ts\n@@ -1,7 +1,7 @@\n export type OrderCount = {\n   options: {\n-    timeoutMs: 1000,\n+    timeoutMs: 2000,\n     cache: true,\n     strict: true,\n     trace: false,\n     debug: false,\n@@ -10,7 +10,7 @@\n     mode: \"safe\",\n     format: \"json\",\n     compress: true,\n     secure: true,\n-    retries: 3,\n+    retries: 5,\n   };\n };\n";
     const edit = { ...before, input: { path: "type.ts", edits: [{ oldText, newText }] } };
     await call("tool_call", edit);
     writeFileSync(join(root, "type.ts"), newText);
