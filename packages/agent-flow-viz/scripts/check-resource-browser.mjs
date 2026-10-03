@@ -4,11 +4,13 @@ import { createServer } from 'vite';
 import { createRun, restoreReplay } from '../../monkey-business/src/index.ts';
 const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false } });
 let browser;
+let page;
+const errors=[];
 try {
   await server.listen();
   browser = await chromium.launch({headless:true});
-  const page = await browser.newPage({viewport:{width:1512,height:1300}});
-  const errors=[]; page.on('pageerror', e => errors.push(e.message));
+  page = await browser.newPage({viewport:{width:1512,height:1300}});
+  page.on('pageerror', e => errors.push(e.message));
   await page.goto(server.resolvedUrls.local[0]);
   const settle=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   const click=async name=>{await page.getByRole('button',{name,exact:true}).click();await settle();};
@@ -19,7 +21,7 @@ try {
   assert.match(await page.locator('.stage-preparation-total').first().textContent(),/0 \/ 8/);
   assert.equal(await page.locator('.admission-permit-global').first().getAttribute('aria-label'), 'Edit permits, all agents: 0 of 64');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
-  await click('Focus selected agent');
+  await click('Focus selected advicee');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-current-flat-1512.png'});
   await click('Step resident');
   await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Admission & capacity',exact:true}).click();await settle();
@@ -62,6 +64,7 @@ try {
   const retained = createRun({ inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['cached-example']}], outcome:'clear', lifecycles:{reuse:{entryLimit:2,byteLimit:100}}, resourceScenarios:{notices:true,noticeMaximumKeys:1,startAt:10} });
   retained.advance({untilTime:13,maxEvents:1000});
   assert.equal(retained.projection.reuse.cache.length,1);
+  const originalCacheEntry=retained.projection.reuse.cache[0];
   assert.equal(retained.projection.notices.length,1);
   await load(retained);
   const retainedText = await resident.innerText();
@@ -138,10 +141,17 @@ try {
   await load(oversized);await focus('delivery');
   assert.match(await page.locator('.stage-resource-details').innerText(),/10241 \/ 10240 · Does not fit/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-output-oversized-1512.png'});
-  for(const at of [14,15]) retained.schedule({at,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:[`cache-replacement-${at}`]});
-  retained.advance({untilTime:30,maxEvents:1000});
+  // Complete each original PRE/review before superseding its source. Adjacent
+  // PREs correctly deny the stale request at JevReady and cannot fill three entries.
+  for(const at of [14,24]) retained.schedule({at,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:[`cache-replacement-${at}`]});
+  retained.advance({untilTime:40,maxEvents:1000});
+  assert.equal(retained.observations.filter(f=>f.commands.some(c=>c.kind==='jevRequestIssued')).length,3);
   assert.equal(retained.projection.reuse.cache.length,2);
   assert.ok(retained.observations.some(f=>f.commands.some(c=>c.kind==='cachePrepared'&&c.evicted.length>0)));
+  assert.ok(retained.observations.some(f=>f.commands.some(c=>c.kind==='cachePrepared'&&c.evicted.includes(originalCacheEntry.id))));
+  assert.equal(retained.projection.charges.some(charge=>charge.id===originalCacheEntry.reservation),false);
+  assert.deepEqual(retained.projection.charges.filter(charge=>charge.purpose==='storedResult').map(charge=>[charge.id,charge.partition,charge.bytes]).sort(),retained.projection.reuse.cache.map(entry=>[entry.reservation,entry.partition,entry.bytes]).sort());
+  assert.deepEqual(restoreReplay(retained.exportReplay()).observe(),retained.observe());
   await load(retained);
   await resident.screenshot({path:'/tmp/hapsland-capacity-cache-eviction-1512.png'});
   retained.advance({untilTime:180020,maxEvents:1000});
@@ -188,4 +198,13 @@ try {
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
   assert.deepEqual(errors,[]);
   console.log('Capacity browser checks passed: retained-family omission with actual ledger and replay preservation, known/absent maxima, local Admission, candidate absence and checked fit, group slot exclusivity, distinct round budgets, optional controls, keyboard inspection, narrow viewport.');
+} catch (error) {
+  if(errors.length) console.error('Browser page errors:', errors);
+  if(page) console.error('Resident rendering:', await page.evaluate(() => ({
+    feedback: document.querySelector('.ensemble-feedback')?.textContent,
+    layers: document.querySelectorAll('.ensemble-layer').length,
+    resources: document.querySelector('[aria-label="Shared resident resources"]')?.textContent,
+    capacityRows: document.querySelectorAll('.resident-capacity-items').length,
+  })));
+  throw error;
 } finally {await browser?.close();await server.close();}
