@@ -266,10 +266,11 @@
     "agentProvider": "openai-codex",
     "agentModel": "gpt-6-luna",
     "primary": {
-      "file": "pi-typescript-adoption-controlled-offline-1791006337959.json",
-      "declaration": "pi-typescript-adoption-controlled-offline-1791006337959-declaration.json",
+      "file": "pi-typescript-adoption-controlled-offline-1791013892029.json",
+      "declaration": "pi-typescript-adoption-controlled-offline-1791013892029-declaration.json",
       "verdict": "demonstrated",
-      "providerCalls": 0
+      "providerCalls": 0,
+      "assertions": 15
     },
     "earlierAttempts": [
       {
@@ -278,6 +279,13 @@
         "verdict": "incomplete",
         "providerCalls": 0,
         "reason": "Initial settlement preview mistaken for final native continuation permission; no model-visible advice or repair."
+      },
+      {
+        "file": "pi-typescript-adoption-controlled-offline-1791006337959.json",
+        "declaration": "pi-typescript-adoption-controlled-offline-1791006337959-declaration.json",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "reason": "Earlier demonstrated candidate before final production fixes and pinned installed launch validation."
       }
     ],
     "limits": [
@@ -286,6 +294,16 @@
       "Global isolated extension trust; interactive project trust unvalidated",
       "Native write and Unicode refusal tracked separately",
       "No live Jev request or registry publication claim"
-    ]
+    ],
+    "observedArtifact": {
+      "sourceCommit": "64987460267792d48dd4a8679f6bbfad8b2b65ac",
+      "sourceWorktreeDirty": false,
+      "tarballSha256": "efa7a522c0293a932b5e5d541b9fddb0a559e3c70b36725b33fab61487384b8f",
+      "runtimeAssets": {
+        "sha256": "320cc9812f023ae72b5929c67700b2ada2826f54fb3ed4b773933c2ec3099117",
+        "files": 168
+      },
+      "laterDelta": "Evidence indexes and maintained documentation only; observed production runtime inventory remains unchanged."
+    }
   }
 }

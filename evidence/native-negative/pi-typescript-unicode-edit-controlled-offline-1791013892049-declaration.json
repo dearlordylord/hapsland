@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-03T07:51:32.049Z",
+  "host": "pi",
+  "language": "typescript",
+  "scenario": "unicode-edit",
+  "mode": "controlled-offline",
+  "declaration": {
+    "maximumProviderRequests": 0,
+    "reviewer": "controlled-offline",
+    "agentModelAuthenticated": true,
+    "model": {
+      "provider": "openai-codex",
+      "model": "gpt-6-luna"
+    },
+    "maximumSourceEditCalls": 1,
+    "hostCeilingMs": 240000,
+    "automaticHostRetries": 0,
+    "syntheticRepositoryOnly": true,
+    "runtimeVersion": "1.0.0",
+    "executionMode": "print-json-no-session",
+    "trust": "isolated global agent extension; no project-local files approved",
+    "packageInstallation": "production npm tarball with lifecycle scripts disabled",
+    "ordinaryProfileChanged": false
+  }
+}
