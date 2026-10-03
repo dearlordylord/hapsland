@@ -106,5 +106,5 @@ try {
   const piRemovalAgain = await piRun(['uninstall', 'pi']); assert.equal(piRemovalAgain.code, 0, piRemovalAgain.output); assert.equal(piRemovalAgain.confirmations, 0);
   assert.equal(readFileSync(join(piHome, 'settings.json'), 'utf8'), piSettings);
   assert.equal(readFileSync(join(piHome, 'extensions/other.ts'), 'utf8'), 'preserved unrelated extension');
-  console.log('PASS: ordinary registry update twice, one snapshot, no repeated approval, active CLI dispatch, no setup rollback, partial update resumed through public repair, both-client doctor/repair/reinstall/uninstall, missing active-package recovery, settings preserved; offline fixture only.');
+  console.log('PASS: ordinary registry update twice, one snapshot, no repeated approval, active CLI dispatch, no setup rollback, partial update resumed through public repair, both-client doctor/repair/reinstall/uninstall, missing active-package recovery; Pi custom-profile built/retained package setup/update/doctor/repair/reinstall/uninstall, repeat idempotency, modified-owned conflict and unrelated settings/extensions preserved; offline fixtures only.');
 } finally { rmSync(root,{recursive:true,force:true}); }
