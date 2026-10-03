@@ -51,7 +51,8 @@ process.stdout.write(value);
 }
 
 function checked(command, arguments_, timeout) {
-  const result = spawnSync(command, arguments_, { encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024 });
+  const result = spawnSync(command, arguments_, { encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
   if (result.error || result.status !== 0) {
     throw new Error(`${command} failed (${result.error?.code ?? result.status}): ${result.stderr}`, {
       cause: result.error,

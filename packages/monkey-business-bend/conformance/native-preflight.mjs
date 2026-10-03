@@ -19,7 +19,8 @@ const host = () => ({ platform: platform(), architecture: arch(), release: relea
 const fail = message => { throw new Error(`Native preflight: ${message}`); };
 
 function checked(command, arguments_, timeout) {
-  const result = spawnSync(command, arguments_, { encoding: "utf8", timeout });
+  const result = spawnSync(command, arguments_, { encoding: "utf8", timeout,
+    env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
   if (result.error || result.status !== 0) {
     const diagnostic = [result.stdout, result.stderr].filter(Boolean).join("\n").slice(-8192);
     throw new Error(`Native preflight: ${basename(command)} failed (${result.error?.code ?? result.status})${diagnostic ? `:\n${diagnostic}` : ""}`, { cause: result.error });

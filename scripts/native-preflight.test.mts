@@ -35,7 +35,7 @@ function fixture(failCompile = false) {
   writeFileSync(files.header, "/* original local header */\n");
   writeFileSync(files.base, 'def print() -> Nat:\n  import "./effect.c"\n');
   writeFileSync(files.effect, "/* original Base effect */\n");
-  writeFileSync(files.bend, `#!${process.execPath}\nimport { writeFileSync } from 'node:fs';\nconst args=process.argv.slice(2);\nif(args[0]==='version') console.log('Bend test tool');\nelse { writeFileSync(args[2], 'fresh C'); writeFileSync(${JSON.stringify(files.emitted)},args[2]); }\n`);
+  writeFileSync(files.bend, `#!${process.execPath}\nimport { writeFileSync } from 'node:fs';\nconst args=process.argv.slice(2);\nif(process.env.BEND_NO_TELEMETRY !== '1') throw new Error('Compiler update check must be disabled');\nif(args[0]==='version') console.log('Bend test tool');\nelse { writeFileSync(args[2], 'fresh C'); writeFileSync(${JSON.stringify(files.emitted)},args[2]); }\n`);
   const compileBody = failCompile ? "process.exit(23);"
     : `const output=args[args.indexOf('-o')+1]; writeFileSync(output, ${JSON.stringify("#!/bin/sh\nprintf '[]\\n'\n")}); chmodSync(output,0o755);`;
   writeFileSync(files.clang, `#!${process.execPath}\nimport { writeFileSync, chmodSync } from 'node:fs';\nconst args=process.argv.slice(2);\nif(args[0]==='--version') console.log('Clang test tool');\nelse { ${compileBody} }\n`);
