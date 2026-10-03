@@ -1,3 +1,4 @@
+import { nativeFindingLines, nativeFindingsSubmittedOnce } from "./package-finding-output.mjs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
@@ -951,18 +952,11 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   // This fixture awaits each installed command, so validate both supported delivery paths.
   const { configuredRules: packagedRules } = await import(pathToFileURL(join(packageDirectory, "dist/policy/rules.js")).href);
   const expectedFindingLines = packagedRules.map((rule) => `profile.ts :: Delivery: ${rule.message}`).sort();
-  const deliveredAdvice = [...postToolOutputs, ...stopOutputs].flatMap((output) => {
-    const context = output.decision === "block" ? output.reason
-      : output.hookSpecificOutput?.hookEventName === "PostToolUse"
-        ? output.hookSpecificOutput.additionalContext : undefined;
-    if (typeof context !== "string") return [];
-    const findingLines = context.split("\n").filter((line) => line.startsWith("profile.ts :: Delivery:")).sort();
-    return JSON.stringify(findingLines) === JSON.stringify(expectedFindingLines) ? [context] : [];
-  });
+  const deliveryOutputs = [...postToolOutputs, ...stopOutputs];
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
-  if (deliveredAdvice.length !== 1) {
-    throw new Error(`packaged installed hooks did not deliver the expected finding exactly once; deliveries=${deliveredAdvice.length}; outputs=${JSON.stringify([...postToolOutputs, ...stopOutputs].map((output) => ({
+  if (!nativeFindingsSubmittedOnce(deliveryOutputs, "profile.ts :: Delivery", expectedFindingLines)) {
+    throw new Error(`packaged installed hooks did not deliver the expected finding exactly once; findingLines=${nativeFindingLines(deliveryOutputs, "profile.ts :: Delivery").length}; outputs=${JSON.stringify([...postToolOutputs, ...stopOutputs].map((output) => ({
       keys: Object.keys(output), decision: output.decision ?? null,
       findingLines: String(output.reason ?? output.hookSpecificOutput?.additionalContext ?? "").split("\n").filter((line) => line.startsWith("profile.ts :: Delivery:")).length,
       noticeKinds: ["capacity", "credential", "host response limit", "Jev was unavailable"].filter((kind) => String(output.reason ?? output.hookSpecificOutput?.additionalContext ?? "").includes(kind)),
@@ -1026,15 +1020,6 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     }
     await writeFile(credentialRestartGate, "continue\n", { mode: 0o600 });
     const restartCollectionOutputs = [];
-    const hasRestartFinding = (output) => {
-      const context = output.decision === "block" ? output.reason
-        : output.hookSpecificOutput?.hookEventName === "PostToolUse"
-          ? output.hookSpecificOutput.additionalContext : undefined;
-      if (typeof context !== "string") return false;
-      const lines = context.split("\n").filter((line) => line.startsWith("restarted.ts :: Restarted:")).sort();
-      const expected = packagedRules.map((rule) => `restarted.ts :: Restarted: ${rule.message}`).sort();
-      return JSON.stringify(lines) === JSON.stringify(expected);
-    };
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
       restartCollectionOutputs.push(...await runInstalledHooks(codexHome, {
@@ -1045,10 +1030,11 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
         ...restartEvent, hook_event_name: "Stop", stop_hook_active: false,
       }, { cwd: temporary, env: credentialRestartEnvironment }));
       submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
-      if (submissions === 2 && restartCollectionOutputs.some(hasRestartFinding)) break;
+      if (submissions === 2 && nativeFindingLines(restartCollectionOutputs, "restarted.ts :: Restarted").length > 0) break;
     }
     if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent native credential");
-    if (restartCollectionOutputs.filter(hasRestartFinding).length !== 1) {
+    const expectedRestartFindingLines = packagedRules.map((rule) => `restarted.ts :: Restarted: ${rule.message}`).sort();
+    if (!nativeFindingsSubmittedOnce(restartCollectionOutputs, "restarted.ts :: Restarted", expectedRestartFindingLines)) {
       throw new Error("restarted resident did not deliver the credential-backed finding exactly once");
     }
     credentialEvidence = {
