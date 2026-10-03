@@ -47,10 +47,17 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
       result.purpose = purposes[purpose];
     } else if (key === "facts") {
       const facts = readRecord(item);
-      if (facts.$ !== "Admission.ProspectiveFacts") throw new TypeError("invalid driver permit facts");
-      result[key] = { clockValid: readBool(facts.clock_valid), hookWindow: readNat(facts.hook_window),
-        startedUpper: readNat(facts.started_upper), nowLower: readNat(facts.now_lower),
-        adviceePermitLimit: readNat(facts.advicee_permit_limit), residentPermitLimit: readNat(facts.resident_permit_limit) };
+      if (event.$ === "Canonical.QuietRoundTick") {
+        decodeCanonicalConstructor(facts,"Quiescence.Facts");
+        result[key] = { nativeWorkIdle: readBool(facts.native_work_idle), adviceEmpty: readBool(facts.advice_empty),
+          handoffIdle: readBool(facts.handoff_idle), stopAbsent: readBool(facts.stop_absent) };
+      } else {
+        if (facts.$ !== "Admission.ProspectiveFacts") throw new TypeError("invalid driver permit facts");
+        decodeCanonicalConstructor(facts,"Admission.ProspectiveFacts");
+        result[key] = { clockValid: readBool(facts.clock_valid), hookWindow: readNat(facts.hook_window),
+          startedUpper: readNat(facts.started_upper), nowLower: readNat(facts.now_lower),
+          adviceePermitLimit: readNat(facts.advicee_permit_limit), residentPermitLimit: readNat(facts.resident_permit_limit) };
+      }
     } else if (key === "minimum_started") result.minimumStarted = readNat(item);
     else if (key === "deadline_reached") result.deadlineReached = readBool(item);
     else if (key === "surface") result[key] = surface(item);

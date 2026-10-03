@@ -13,3 +13,33 @@ it("rejects unknown joined tags and malformed whole events",()=>{
  expect(()=>decodeDriverEvent({ ...member({ $: "Reuse.JoinedFinding" }), has_revision: 1 })).toThrow();
  expect(()=>decodeDriverEvent({ $: "Canonical.StartReview", partition:1,lifetime:1,round:1,operation:0 })).toThrow();
 });
+
+const quietFacts = { $: "Quiescence.Facts", native_work_idle: true, advice_empty: false, handoff_idle: true, stop_absent: false };
+const quietTick = (facts: unknown) => ({ $: "Canonical.QuietRoundTick", partition: 1, lifetime: 2, round: 3, now: 10, window: 5, facts });
+it("decodes complete quiet ownership facts without changing scope or clock", () => {
+ const event = decodeDriverEvent(quietTick(quietFacts));
+ expect(event).toEqual({ kind: "quietRoundTick", partition: 1, lifetime: 2, round: 3, now: 10, window: 5,
+  facts: { nativeWorkIdle: true, adviceEmpty: false, handoffIdle: true, stopAbsent: false } });
+ expect(Object.isFrozen(event)).toBe(true);
+ if (event.kind !== "quietRoundTick") throw new Error("wrong event");
+ expect(Object.isFrozen(event.facts)).toBe(true);
+ for (const field of ["native_work_idle", "advice_empty", "handoff_idle", "stop_absent"]) {
+  const missing: Record<string,unknown> = { ...quietFacts }; delete missing[field];
+  expect(() => decodeDriverEvent(quietTick(missing))).toThrow();
+  expect(() => decodeDriverEvent(quietTick({ ...quietFacts, [field]: 1 }))).toThrow();
+ }
+ expect(() => decodeDriverEvent(quietTick({ ...quietFacts, extra: 1 }))).toThrow();
+ expect(() => decodeDriverEvent(quietTick({ ...quietFacts, $: "Admission.ProspectiveFacts" }))).toThrow();
+});
+it("keeps permit facts distinct from quiet facts and validates the complete permit shape", () => {
+ const facts = { $: "Admission.ProspectiveFacts", clock_valid: true, hook_window: 10, started_upper: 0, now_lower: 0,
+  advicee_permit_limit: 2, resident_permit_limit: 4 };
+ const permit = (facts: unknown) => ({ $: "Canonical.IssuePermit", partition: 1, lifetime: 1, tool: 7, started: 0,
+  deadline: 10, now: 0, minimum_started: 0, facts });
+ expect(decodeDriverEvent(permit(facts))).toEqual({ kind: "issuePermit", partition: 1, lifetime: 1, tool: 7, started: 0,
+  deadline: 10, now: 0, minimumStarted: 0, facts: { clockValid: true, hookWindow: 10, startedUpper: 0, nowLower: 0,
+   adviceePermitLimit: 2, residentPermitLimit: 4 } });
+ expect(() => decodeDriverEvent(permit(quietFacts))).toThrow();
+ expect(() => decodeDriverEvent(permit({ ...facts, extra: 1 }))).toThrow();
+ expect(() => decodeDriverEvent(quietTick(facts))).toThrow();
+});
