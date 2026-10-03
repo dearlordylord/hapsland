@@ -35,7 +35,7 @@ const { fixture, repo, candidate } = spec;
 const beforeLines = fixture.before.trimEnd().split('\n'), afterLines = fixture.after.trimEnd().split('\n');
 let prefix = 0;
 while (prefix < Math.min(beforeLines.length, afterLines.length) && beforeLines[prefix] === afterLines[prefix]) prefix++;
-const command = ['*** Begin Patch', '*** Update File: subject.ts', '@@',
+const command = fixture.captureCommand ?? ['*** Begin Patch', '*** Update File: subject.ts', '@@',
   ...beforeLines.slice(0, prefix).map(x => ` ${x}`),
   ...beforeLines.slice(prefix).map(x => `-${x}`),
   ...afterLines.slice(prefix).map(x => `+${x}`), '*** End Patch'].join('\n');
