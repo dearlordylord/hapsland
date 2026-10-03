@@ -1,10 +1,9 @@
 import * as Effect from "effect/Effect";
 import { Deferred, Fiber } from "effect";
-import { execFile } from "node:child_process";
+import { execFileAsync } from "../../scripts/test-harness/process.mjs";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEMO_PROVIDER_CALL_BUDGET,
@@ -21,7 +20,6 @@ import { claimDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 import { readDemoTrace, recordDemoTrace } from "./demo-trace.ts";
 
 const roots: Array<string> = [];
-const execFileAsync = promisify(execFile);
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });

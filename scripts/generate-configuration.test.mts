@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "./test-harness/process.mjs";
 import { fileURLToPath } from "node:url";
 import { fromJSONSchema } from "zod/v4";
 import * as Schema from "effect/Schema";

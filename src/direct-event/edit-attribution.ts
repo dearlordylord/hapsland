@@ -6,6 +6,7 @@ export type PostEditSnapshot = {
   readonly source: string;
 };
 
+/** One-based lines and UTF-16 code-unit columns, matching JavaScript and the Node parser binding. */
 export type PostEditPosition = { readonly line: number; readonly column: number };
 export type PostEditLocation = { readonly start: PostEditPosition; readonly end: PostEditPosition };
 export type SupportedRootDeclaration = {

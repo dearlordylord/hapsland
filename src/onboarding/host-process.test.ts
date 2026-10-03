@@ -1,7 +1,8 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { Effect, Fiber } from "effect";
 import { it as effectIt } from "@effect/vitest";
 import { mkdtempSync, readFileSync, rmSync, watch } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "../../scripts/test-harness/process.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -111,7 +112,7 @@ it("inherited package processes preserve native stdin, output streams and exit c
   const childCode = "let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>input+=chunk);process.stdin.on('end',()=>{process.stdout.write(JSON.stringify({received:input==='synthetic input'})+'\\n');process.stderr.write('synthetic stderr');process.exitCode=7;});";
   const parentCode = `import { Effect } from 'effect';import { spawnInherited } from './src/onboarding/host-process.ts';const result=await Effect.runPromise(spawnInherited(process.execPath,['-e',${JSON.stringify(childCode)}],process.env));process.stdout.write(JSON.stringify(result)+'\\n');`;
   const result = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", parentCode], {
-    cwd: process.cwd(), input: "synthetic input", encoding: "utf8", timeout: 5_000,
+    cwd: process.cwd(), input: "synthetic input", encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
   });
   expect(result.status).toBe(0);
   expect(result.stderr).toBe("synthetic stderr");

@@ -2567,7 +2567,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
-  }, 10_000);
+  });
 });
 
 describe("resident bounded advice batches", () => {
@@ -2598,7 +2598,7 @@ describe("resident bounded advice batches", () => {
       pendingAdvice: 0,
       retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
-  }, 10_000);
+  });
 
   it("revalidates the final selection after later candidate work completes", async () => {
     const root = await makeGitFixture();
@@ -2641,7 +2641,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
-  }, 10_000);
+  });
 
   it("filters an earlier item that reaches expiry while a later final revalidation waits", async () => {
     const root = await makeGitFixture();
@@ -2690,7 +2690,7 @@ describe("resident bounded advice batches", () => {
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
-  }, 10_000);
+  });
 
   it("filters an earlier item superseded while a later final revalidation waits", async () => {
     const root = await makeGitFixture();

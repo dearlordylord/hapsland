@@ -1,8 +1,7 @@
-import { execFile } from "node:child_process";
+import { execFileAsync } from "../../scripts/test-harness/process.mjs";
 import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { readdirSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { captureStable, MAX_SOURCE_BYTES } from "./capture.ts";
@@ -10,7 +9,6 @@ import { eligibleNamedPath } from "./selection.ts";
 import { adaptCodexAdd } from "./adapter.ts";
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts";
 
-const execFileAsync = promisify(execFile);
 const required = <A>(value: A | undefined): A => {
   if (value === undefined) throw new Error("expected fixture value");
   return value;

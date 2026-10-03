@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
+import { execFileSync } from "../../../scripts/test-harness/process.mjs";
 import { SessionGenerator, type SessionConfig, type SessionControl } from "./session.ts";
 import { SessionGenerator as Reference } from "./session-reference.fixture.ts";
 

@@ -2,7 +2,8 @@ import { ConfigProvider, Effect } from "effect";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   logoutCredential,
@@ -280,7 +281,7 @@ int main(void) {
     ]));
     expect(existsSync(overlap)).toBe(false);
     expect(existsSync(`${lifecycle}.lock`)).toBe(false);
-  }, 10_000);
+  });
 
   it("reclaims an incomplete ownerless lock after its safety window", async () => {
     const ownerlessLock = `${lifecycle}.lock`;
@@ -343,7 +344,7 @@ int main(void) {
     delete process.env.TEST_SECRET_MODE;
     await expect(run(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle })))
       .resolves.toMatchObject({ status: "suspended" });
-  }, 20_000);
+  });
 
   it("maps a native create failure after possible commit to indeterminate and suspends use", async () => {
     await run(saveCredential("old-marker", lifecycle));

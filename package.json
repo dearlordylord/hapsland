@@ -73,7 +73,9 @@
     "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "test:coverage": "npm test -- --coverage",
-    "quality:check": "crap4ts"
+    "quality:check": "crap4ts",
+    "test:harness:inventory": "node scripts/test-harness/inventory.mjs",
+    "test:contention": "node scripts/test-harness/contention.mjs"
   },
   "dependencies": {
     "@effect/ai-typesafe": "4.0.0",

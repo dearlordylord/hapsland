@@ -1,7 +1,12 @@
 import { defineConfig } from "vitest/config";
+import { inventoryTestHarness } from "./scripts/test-harness/inventory.mjs";
+import { UNIT_TEST_TIMEOUT_MS } from "./scripts/test-harness/policy.mjs";
 
 export default defineConfig({
   test: {
+    testTimeout: UNIT_TEST_TIMEOUT_MS,
+    setupFiles: ["./scripts/test-harness/setup.mts"],
+    provide: { harnessInventory: inventoryTestHarness(import.meta.dirname) },
     include: [
       "src/**/*.test.ts",
       "scripts/**/*.test.mts",

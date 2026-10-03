@@ -1,11 +1,8 @@
-import { execFile } from "node:child_process";
+import { execFileAsync } from "../../scripts/test-harness/process.mjs";
 import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { promisify } from "node:util";
 import type { DirectAdvicee } from "./model.ts";
-
-const execFileAsync = promisify(execFile);
 
 export const makeGitFixture = async () => {
   // These fixtures place the resident socket under `root/runtime`. macOS

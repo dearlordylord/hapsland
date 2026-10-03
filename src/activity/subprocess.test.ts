@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
+import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -24,7 +25,7 @@ const waitFor = (predicate: () => boolean, timeoutMs = 5_000) => {
   throw new Error("timed out waiting for subprocess state");
 };
 
-describe("production resident activity subprocess", { timeout: 30_000 }, () => {
+describe("production resident activity subprocess", () => {
   it("reports a controlled native event as pending, then restarted/lost after resident death", () => {
     const root = mkdtempSync(join(tmpdir(), "resident-activity-subprocess-"));
     roots.push(root);
@@ -66,7 +67,7 @@ describe("production resident activity subprocess", { timeout: 30_000 }, () => {
       env: environment,
       input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
       encoding: "utf8",
-      timeout: 15_000,
+      timeout: DEFAULT_CHILD_TIMEOUT_MS,
     });
     expect(before.status).toBe(0);
     expect(JSON.parse(before.stdout)).toEqual({});
@@ -75,7 +76,7 @@ describe("production resident activity subprocess", { timeout: 30_000 }, () => {
       env: environment,
       input: JSON.stringify(event),
       encoding: "utf8",
-      timeout: 15_000,
+      timeout: DEFAULT_CHILD_TIMEOUT_MS,
     });
     expect(hook.status).toBe(0);
     expect(JSON.parse(hook.stdout)).toEqual({});

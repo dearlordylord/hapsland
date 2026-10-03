@@ -1,5 +1,6 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "./test-harness/policy.mjs";
 import { afterEach, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "./test-harness/process.mjs";
 import { createHash } from "node:crypto";
 import { cpSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,7 +21,7 @@ const fixture = () => {
   cpSync(resolve("native/prebuilt"), join(directory, "native/prebuilt"), { recursive: true });
   const run = () => spawnSync(process.execPath, ["--input-type=module", "-e",
     `Object.defineProperty(process, 'arch', { value: 'x64' }); await import(${JSON.stringify(pathToFileURL(join(directory, "scripts/build-capture-helper.mjs")).href)});`,
-  ], { encoding: "utf8", env: { ...process.env, PATH: "" }, timeout: 10_000 });
+  ], { encoding: "utf8", env: { ...process.env, PATH: "" }, timeout: DEFAULT_CHILD_TIMEOUT_MS });
   return { directory, run };
 };
 

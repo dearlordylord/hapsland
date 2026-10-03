@@ -1,5 +1,6 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs";
 import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "../scripts/test-harness/process.mjs";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,7 +9,7 @@ const cli = (args: ReadonlyArray<string>, input = "") => {
   const home = mkdtempSync(join(tmpdir(), "hapsland-cli-arguments-"));
   try {
     const result = spawnSync(process.execPath, ["src/cli.ts", ...args], {
-      input, encoding: "utf8", timeout: 15_000,
+      input, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
       env: { ...process.env, HOME: home, HAPSLAND_ACTIVE_DISPATCH: "1", REVIEW_USER_CONFIG_PATH: join(home, "user.json"), REVIEW_STATE_PATH: join(home, "state"), REVIEW_ACTIVITY_PATH: join(home, "activity"), TYPESAFE_API_KEY: "", REVIEW_CONTROL_JSON: "not JSON" },
     });
     return { ...result, files: readdirSync(home) };

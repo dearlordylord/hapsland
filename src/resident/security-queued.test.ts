@@ -49,7 +49,7 @@ describe("queued exclusion authority", () => {
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(1);
-  }, 30_000);
+  });
 
   it("does not call the provider for an initially excluded candidate", async () => {
     const fixture = await setup(true);
@@ -57,7 +57,7 @@ describe("queued exclusion authority", () => {
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
-  }, 30_000);
+  });
 
   it("rejects prepared work after a completed exclusion update", async () => {
     const fixture = await setup(false);
@@ -82,7 +82,7 @@ describe("queued exclusion authority", () => {
     release.resolve();
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
-  }, 30_000);
+  });
 
   it("rechecks exclusion after the credential-to-dispatch wait", async () => {
     const fixture = await setup(false);
@@ -105,7 +105,7 @@ describe("queued exclusion authority", () => {
     await Effect.runPromise(controls.release);
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
-  }, 30_000);
+  });
 });
 
 it("reports a credential failure when the configured credential changes after resolution", async () => {

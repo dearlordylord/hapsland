@@ -13,6 +13,7 @@
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
+| Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
 | Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
@@ -25,6 +26,8 @@
 | Native Pi assertion regression | `node --test scripts/native-pi-observation.test.mjs` | Planted visibility, attribution, semantic expansion, and correlated follow-up failures | Runner verdict cannot conflate submitted advice with visible advice or repair |
 | Full native fault matrix | `node scripts/run-native-negative-matrix.mjs` | All 24 controlled negative cells, at most three real host sessions at once | Per-cell declarations, results, and batch summary; no Jev requests |
 | Paid source-checkout adoption | Same runner with `--scenario=adoption --live --execute-paid` | Real agent plus real Jev; six HTTP attempts maximum per invocation | Bounded selected live path, with each run's outcome retained separately |
+| Source-checkout Abide coexistence | Same runner with `--host=HOST --language=typescript --coexistence=CASE --abide-prefix=PREFIX --hook-order=ORDER` | Real Codex/Claude, released Abide 0.0.7 handlers, controlled reviewers; `both` additionally accepts `--live --execute-paid` | Selected delivery, independent reviewer failure and file-exclusion cases; no general installed-package or native-trust declaration |
+| Abide installer coexistence | `node scripts/run-abide-installation-witness.mjs --abide-prefix=PREFIX` | Real source Hapsland and released Abide installers in isolated profiles; both orders, repeat init and each uninstall | Registration preservation only; no native agent session or Jev call |
 
 `HOST` is `codex`, `claude`, or `pi`; Pi currently accepts the controlled TypeScript profile above. Other source-checkout host/language combinations use the existing fixture table. `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
@@ -32,7 +35,31 @@ Pi native runs install a locally packed production artifact and exercise its own
 
 The selected adoption observations include six controlled offline passes and six live Jev passes. One earlier controlled Claude Bend session received a finding but did not repair; its separately declared follow-up session passed. The live and offline records stay distinct in the language index.
 
-The [feedback delivery investigation](../evidence/feedback-delivery-debug/investigation.json)
+The [Abide coexistence index](https://github.com/dearlordylord/hapsland-research/blob/master/evidence/native-coexistence/index.json) records
+14 native attempts on Linux arm64 with Codex 0.155.1 and Claude 2.1.218:
+13 demonstrated and one incomplete Claude follow-up preparation. The failed
+attempt remains separate from the later run whose prompt limited the repair
+to the declaration and which passed. Eleven demonstrated sessions use controlled reviewers; two use
+live Jev, making ten external requests in total. Four additional offline
+installer cells passed. `PREFIX` contains an isolated npm install of
+`@coldtea/abide@0.0.7` with lifecycle scripts disabled. `CASE` is `hapsland`,
+`both`, `abide-unavailable`, `hapsland-unavailable`, or `privacy`; `ORDER` is
+`hapsland-first` or `abide-first`. Claude additionally accepts
+`--claude-feedback=advisory` for the separately observed default feedback case.
+These source-checkout native runs use declared trust/sandbox bypasses and a
+hand-authored rubric. They do not test current packed Hapsland or ordinary
+interactive native trust. Installation order and runtime hook execution order
+are distinct checks; not every scenario was run in both orders.
+
+File exclusions remain tool-specific: in the observed `privacy` cases Hapsland
+made no review request, while Abide independently reviewed the same synthetic
+file. Abide task persistence and Git source objects were observed; exact source
+markers were absent from the scanned Hapsland resident/activity files. These
+checks do not establish a universal no-disk or no-read guarantee. The
+[three separate research reports](https://github.com/dearlordylord/hapsland-research#hapsland-и-abide)
+explain the approach, technical boundaries and exact coexistence evidence.
+
+The [feedback delivery investigation](https://github.com/dearlordylord/hapsland-research/blob/master/evidence/feedback-delivery-debug/investigation.json)
 retains five separate rendering diagnostics and per-run harness snapshots.
 The archived runner sources record their opt-in `--delivery-debug` mode. The two corrected-path validations declare
 `--debug-edit-delay-ms=1500 --debug-stop-delay-ms=6000`: these are injected faults,
@@ -69,6 +96,39 @@ threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
+The [harness policy](../scripts/test-harness/policy.mjs) applies a five-second per-test watchdog in ordinary unit files and a
+60-second per-test watchdog in process-capable or explicitly named bounded
+scenario files, in ordinary and coverage runs alike.
+`npm run test:harness:inventory` derives the classification from transitive
+runtime imports and reports the dependency that caused each process classification.
+Type-only imports and fixture source strings do not classify a file as process-capable.
+The classification is conservative: a process-capable file need not spawn a child
+in every test. New large pure scenarios must be named with their reason in the policy.
+
+The [child helper](../scripts/test-harness/process.mjs) supplies a finite
+30-second default for synchronous children and promise-based `execFile` fixtures;
+ordinary short child watchdogs use this shared allowance. Longer explicit
+bounds remain finite; deliberate hang probes retain their strict one-second
+child deadlines. Its timeout signal must be SIGKILL; weaker signals are rejected before spawning.
+Four Claude selection/batching fixtures confirm resident readiness in their complete
+fixture environment before invoking hooks, with a 20-second preparation bound.
+Their assertions concern findings handoff, rather than cold startup latency;
+the hooks still use their original product deadlines.
+Timeout errors name the child and execution phase; per-test runner watchdog errors name
+the test, file, class, and test or cleanup phase. Deliberately hung-child tests
+verify a finite failure and that the immediate child has been reaped.
+Asynchronous `spawn` fixtures retain their explicit lifecycle and cleanup controls.
+These scheduling allowances are harness limits, not product latency requirements;
+product runtime deadlines, retries, and supported profiles are unchanged.
+
+`npm run test:contention` runs canonical `npm test` on Linux with `taskset`:
+the runner, suite, and two busy workers share the first four allowed CPUs
+(or fewer when unavailable). Worker readiness is acknowledged through IPC.
+A 30-minute fixture bound kills the suite process group; completion or interruption
+kills and reaps the owned pressure workers. This is a bounded scheduling-pressure
+check, not a throughput benchmark or proof for arbitrary host starvation.
+No sleep is used to establish correctness or concurrency ordering.
+
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
 from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
 uses the pinned V8 provider while keeping Vite and native Node offsets separate
@@ -125,11 +185,19 @@ installation and execution have not been validated in this change.
 
 | Scenario | Reviewer | Agent action and observable assertion | Run command suffix |
 | --- | --- | --- | --- |
+| Unicode Update adoption | Controlled offline or real Jev | Real Codex/Claude edits ASCII in an existing TypeScript file with unchanged Japanese comments; review and repair are observed, both comments survive every edit | `--language=typescript --scenario=adoption --unicode-update` |
 | Advice adoption | Controlled offline or real Jev | Agent makes an edit; review receives cross-file evidence; actionable advice is delivered; agent repairs; compiler and independent invalid-construction checks pass; follow-up result appears | `--scenario=adoption` or `--scenario=adoption --live --execute-paid` |
 | Reviewer unavailable | Controlled offline error | Real agent makes one edit; review is attempted and becomes unavailable; no actionable advice is delivered and the agent leaves the draft alone | `--scenario=reviewer-unavailable` |
 | Edit hook crashes | Native hook exits with failure | Real agent makes one edit; the fault is observed; no review request or invented advice follows | `--scenario=hook-crash` |
 | Edit hook exceeds its deadline | Native hook sleeps beyond its configured timeout | Real agent makes one edit; the hook start is observed, it does not finish naturally, and no review request or invented advice follows | `--scenario=hook-timeout` |
 | Older finding after a newer edit | Controlled delayed reviewer | Real agent makes two edits without acting on advice; the old finding and newer clear both complete, but the old finding is not delivered after the newer edit | `--scenario=stale-result` |
+
+The [#211 Unicode Update observation](../evidence/native-languages/codex-typescript-adoption-unicode-update-controlled-offline-1791039023270.json)
+used Codex CLI 0.155.1 and a controlled offline reviewer. Both edits preserved
+the Japanese comments; the first Update reached review, advice was applied,
+and follow-up review was observed. All 15 runner checks passed with zero Jev
+requests. This is source-checkout evidence with declared trust/sandbox bypasses,
+not installed-package or ordinary interactive trust validation.
 
 Run `node scripts/run-native-negative-matrix.mjs` to exercise all 24 negative cells in one bounded batch. Negative scenarios use the controlled offline reviewer and make **zero Jev requests**. The runner records hook event order, source-free request shape, outcome identity hashes, compiler status, and the exact checks used for its verdict. A native run is an observed case, not a frequency estimate or proof of every interleaving. The [negative scenario index](../evidence/native-negative/index.json) records the six cells per scenario and any incomplete attempts.
 

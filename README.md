@@ -213,7 +213,7 @@ review activity.
 
 ## Development
 
-See the [draft comparison with Abide](./docs/abide-comparison-draft.md)
+See the [comparison with Abide](./docs/abide-comparison.md)
 for the main architectural differences and the rationale for a separate product.
 
 Use the [repository map](./docs/agents/navigation.md) to locate contracts,

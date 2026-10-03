@@ -2,7 +2,7 @@ import { createInstallationPackageFixture } from "../test-support/installation-p
 import { ConfigProvider, Effect } from "effect";
 import { it as effectIt } from "@effect/vitest";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";

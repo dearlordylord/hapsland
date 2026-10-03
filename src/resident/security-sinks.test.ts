@@ -46,7 +46,7 @@ const allFileContents = async (directory: string): Promise<string[]> => {
   return contents;
 };
 
-describe("security sink prototype", { timeout: 15_000 }, () => {
+describe("security sink prototype", () => {
   it("observes source-bearing ingress and a provider failure across resident file/output sinks", async () => {
     const root = await makeGitFixture();
     const temporary = await mkdtemp(join(tmpdir(), "hapsland-security-sinks-"));
