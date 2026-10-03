@@ -4,6 +4,7 @@ import { Nat, decoder } from "./boundary-schema.ts";
 // Lists and nested constructors are decoded separately, so linked tails stay stack safe.
 // Every constructor has an exact field set. Scalar domains are shared with input schemas.
 export const CanonicalConstructors = {
+  "Canonical.StopScope": Schema.Struct({ $: Schema.Literal("Canonical.StopScope"), partition: Nat, round: Nat }),
   "Reuse.JoinedPending": Schema.Struct({ $: Schema.Literal("Reuse.JoinedPending") }),
   "Reuse.JoinedClear": Schema.Struct({ $: Schema.Literal("Reuse.JoinedClear") }),
   "Reuse.JoinedFinding": Schema.Struct({ $: Schema.Literal("Reuse.JoinedFinding") }),
