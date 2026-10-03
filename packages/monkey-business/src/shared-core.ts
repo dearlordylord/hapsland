@@ -86,8 +86,8 @@ export class SharedCore {
   noticePrune(partition: number, group: number, now: number) { return pruneSharedNotices(this.state, partition, group, now); }
   noticeFailure(scope: unknown, now: number, key: number, sequence: number) { return suppliedSharedNotice(this.state, scope, now, key, sequence); }
   noticeOwned(partition: number, group: number, key: number, action: "lease" | "acknowledge") { return ownedSharedNotice(this.state, partition, group, key, action); }
-  issueCallback(event: CanonicalEvent, order: number, at: number, capture?: unknown) {
-    const issued = issueSharedCallback(this.state, event, order, at, capture);
+  issueCallback(event: CanonicalEvent, order: number, at: number, action: import("./driver-codec.ts").DriverAction, capture?: unknown) {
+    const issued = issueSharedCallback(this.state, event, order, at, action, capture);
     this.state = issued.state;
     return issued.receipt;
   }

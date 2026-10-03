@@ -1,3 +1,4 @@
+import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts";
 import { CanonicalEventSchema } from "../../../src/canonical/models.ts";
 import { decodeCanonicalConstructor } from "../../../src/canonical/constructors.ts";
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
@@ -96,4 +97,16 @@ export const decodeDriver = (value: unknown): { handled: boolean; actions: Drive
       ...(candidate ? { candidate: { partition: readNat(candidate.partition), advice: readNat(candidate.advice), round: readNat(candidate.round), token: readNat(candidate.token), surface: surface(candidate.surface), selection: readBool(candidate.selection) } } : {}) };
   }, 1024);
   return { handled: readBool(result.handled), actions };
+};
+
+export const encodeDriverAction = (value: DriverAction): unknown => {
+  const action = readRecord(value);
+  for (const key of Object.keys(action)) if (!["event","delay","job","candidate","expiryAdvice"].includes(key)) throw new TypeError("unexpected Driver action field");
+  const candidate = value.candidate;
+  if (candidate) for (const key of Object.keys(candidate)) if (!["partition","advice","round","token","surface","selection"].includes(key)) throw new TypeError("unexpected Driver candidate field");
+  const surfaces = { edit: "Edit", background: "Background", stop: "Stop" };
+  if (candidate && !Object.hasOwn(surfaces,candidate.surface)) throw new TypeError("invalid Driver candidate surface");
+  return { $: "Driver.Action", event: encodeCanonicalEvent(readEvent(value.event)), delay: readNat(value.delay), job: readBool(value.job),
+    candidate: candidate ? { $: "Some", value: { $: "Driver.Candidate", partition: readNat(candidate.partition), advice: readNat(candidate.advice), round: readNat(candidate.round), token: readNat(candidate.token), surface: { $: `Handoff.${surfaces[candidate.surface]}` }, selection: readBool(candidate.selection ?? false) } } : { $: "None" },
+    expiry_advice: value.expiryAdvice === undefined ? { $: "None" } : { $: "Some", value: readNat(value.expiryAdvice) } };
 };

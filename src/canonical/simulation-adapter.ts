@@ -4,7 +4,7 @@ import { encodeCollectorProfile } from "../../packages/monkey-business/src/colle
 import { validateCollectionResponseControl, encodeCollectionResponse, encodeCollectionResponseIdentity, decodeCollectionResponseIdentity, type CollectionResponseIdentity, type CollectionResponseControl } from "../../packages/monkey-business/src/collection-scenario.ts";
 import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "../../packages/monkey-business/src/output-controls.ts";
 import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
-import { decodeDriver, decodeDriverEvent } from "../../packages/monkey-business/src/driver-codec.ts";
+import { decodeDriver, decodeDriverEvent, encodeDriverAction, type DriverAction } from "../../packages/monkey-business/src/driver-codec.ts";
 import SharedEngine, { type EngineState } from "../../packages/monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
 import { decoder, readRecord, readBendList, readNat, readBool, Nat } from "./boundary-schema.ts";
@@ -347,16 +347,17 @@ export const sharedPreparationActive = (state: EngineState, partition: number, l
 // these small immutable facts; no state ancestry or completed-callback archive.
 const callbackReceipts = new WeakSet<object>();
 const callbackReceiptResidents = new WeakMap<object, object>();
-export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number, capture?: unknown) => {
+export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number, action: DriverAction, capture?: unknown) => {
   sharedCheck(state);
+  const encodedAction = encodeDriverAction(action);
+  if (JSON.stringify(encodeCanonicalEvent(event)) !== JSON.stringify(readRecord(encodedAction).event)) throw new TypeError("callback action event mismatch");
   const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
   const encoded = encodeSharedValue(encodeCanonicalEvent(event));
   const owner = SharedEngine.callback_owner(state, encoded);
   if (readRecord(owner).$ === "None") return { state, receipt: undefined };
-  const action = { $: "Driver.Action", event: encodeCanonicalEvent(event), delay: 0, candidate: { $: "None" }, job: false, expiry_advice: { $: "None" } };
   const issued = checkedCapture === undefined
-    ? SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action))
-    : SharedEngine.callback_issue_output(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action), encodeSharedValue(encodeOutputCapture(checkedCapture)));
+    ? SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(encodedAction))
+    : SharedEngine.callback_issue_output(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(encodedAction), encodeSharedValue(encodeOutputCapture(checkedCapture)));
   const captured = readRecord(issued.receipt);
   if (captured.$ === "None") {
     if (issued.state !== state) throw new TypeError("refused callback issuance changed original state");

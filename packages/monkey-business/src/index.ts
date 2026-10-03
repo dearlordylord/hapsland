@@ -642,7 +642,7 @@ export class Run {
     scheduled.generated = true;
     scheduled.partition = partition;
     const rawReceipt = provenance === "environment"
-      ? this.core.issueCallback(event, scheduled.order, scheduled.at, checkedCapture) : undefined;
+      ? this.core.issueCallback(event, scheduled.order, scheduled.at, scheduled.driverAction, checkedCapture) : undefined;
     if (rawReceipt) {
       const receipt = freezeCanonicalData({ target: decodeCallbackTarget(readRecord(decodeSharedValue(rawReceipt)).target),
         issuedAt: this.clock, dueAt: scheduled.at, ...(checkedCapture === undefined ? {} : { outputCapture: checkedCapture }) });
