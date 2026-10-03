@@ -1,7 +1,7 @@
 # Tower mechanisms for teaching Hapsland
 
 **Purpose:** Rank the current seven tower mechanisms as candidates for an exploratory balance laboratory.
-**Status:** Temporary advisory source-inspection report; no lineup is accepted.
+**Status:** Temporary source-inspection report; the owner selected the first three mechanisms for initial experiments on 2026-10-02. The final lineup remains open.
 **Authority:** Design advice based on implementation inspection; accepted product contracts and issues #176/#199 own architecture and migration scope. This report does not establish human learning or empirical balance.
 **Expected use:** Choose two or three provisional interventions and paired cases for the laboratory specification.
 **Lifecycle:** When the laboratory specification is accepted, consolidate useful decisions and limitations into that specification and the game design-context owner, update inbound links, and delete this report. Revisit before acceptance if #176/#199 change their simulation boundary.
@@ -11,6 +11,8 @@
 Start with **dependency-targeted acceleration (Coordinator), output batching (Packager), and launch pacing under fixed permits (Parallelizer)**. These name mechanisms, not permanent tower identities. Their current implementations can be replaced while keeping the teaching questions and observation requirements. Coordinator versus general acceleration gives a useful later comparison; Shield gives a useful negative control.
 
 This is a priority for explaining actual Hapsland ownership and causality, not a strongest-tower ranking. It is inferred from code and contracts. No new runs, user study, visual review or measurement were performed for this report.
+
+Owner decision after the assessment: use these first three mechanisms as the initial experimental set. This accepts the study selection, not the final abilities, names, balance or evidence of learning.
 
 ## Priority
 

@@ -1,7 +1,7 @@
 # Architecture teaching game: design context and next decisions
 
 **Purpose:** Preserve the owner's goals for the teaching game and balance laboratory without fixing the tower roster or abilities prematurely.
-**Status:** Active design proposal from the 2026-10-02 discussion; the roster and laboratory seam await the stated owner decisions.
+**Status:** Active design proposal from the 2026-10-02 discussion; the owner selected Coordinator, Packager and Parallelizer for initial experiments; confirmation of the laboratory testing seam remains pending.
 **Authority:** Owner-stated design intentions and proposed game decisions. Existing product contracts and shared-simulator issues own business behavior; this document neither changes them nor establishes learning outcomes.
 **Expected use:** Select a small initial set of teaching mechanisms, specify the laboratory, and evaluate replacements or wider gameplay changes against the same goals.
 **Lifecycle:** At acceptance of the first laboratory/game-design specification, **consolidate** its selected decisions into the implementation issue and enduring optional-game guide; keep unresolved roster/ability decisions in that named design owner, update inbound links, and **delete** this temporary context document. Review before changing a teaching mechanism or replacing the shared simulator consumer.
@@ -15,7 +15,7 @@ The seven existing towers and their abilities are candidates. They are not a ret
 Sequence:
 
 1. Rank current mechanisms by importance and fidelity of the architecture lesson, causal clarity and suitability for a small first experiment.
-2. Select a provisional two- or three-mechanism study set. Selection is reversible and does not require all seven towers to become useful.
+2. Use the owner-selected provisional study set: Coordinator, Packager and Parallelizer. Selection is reversible and does not require all seven towers to become useful.
 3. Build a headless laboratory for controlled comparisons and imbalance search at the highest existing simulation boundary.
 4. Investigate universal purchase plans, dead investments, context-dependent tradeoffs and problematic combinations; allow these findings to change the roster or abilities.
 5. After selecting useful mechanics, tune costs, strengths, radii, cadence and workload difficulty more precisely, using bounded development-time search where warranted.
@@ -68,7 +68,7 @@ The [laboratory specification draft](game-balance-lab-spec.md) makes these decis
 
 Outstanding decisions after the laboratory foundation:
 
-- choose the provisional mechanisms using the ranked causal cases;
+- implement the selected provisional Coordinator, Packager and Parallelizer experiments using the ranked causal cases;
 - revise or remove unsupported/misleading abilities;
 - decide the first workload contexts and finite experiment objectives;
 - establish gameplay economy/reward rules suitable for continuous workload, without importing obsolete wave rewards;
