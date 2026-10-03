@@ -2,6 +2,7 @@ import Base
 import ./Types.bend as EngineTypes
 import ./Workload.bend as Workload
 import ./Driver.bend as Driver
+import ./CacheRuntime.bend as CacheRuntime
 import ./Numeric.bend as Numeric
 import ./TreeFacts.bend as TreeFacts
 import ../agent-flow-bend/Canonical.bend as Canonical
@@ -25,6 +26,7 @@ type Input is Data:
   Arrival{emission: Workload.Emission}
   Edit{job: Job}
   Event{action: Driver.Action, job: Maybe<&2, Job>}
+  CacheFact{fact: CacheRuntime.Fact}
   FinishInput{action: Driver.Action, job: Job, attempt: Nat}
   GraphFact{key: EngineTypes.GraphKey, position: Nat, fact: ImportGraph.GraphEvent, limits: ImportGraph.Limits}
 type Item is Data:

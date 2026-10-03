@@ -69,7 +69,8 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   // A detached root carries immediate transition facts without retaining the
   // bridge key and its predecessor metadata from earlier transitions.
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
-  return { state: transition.state, result, afterActions, cacheReleases };
+  const cacheFacts: readonly SharedCacheFact[] = [];
+  return { state: transition.state, result, afterActions, cacheReleases, cacheFacts };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
   sharedCheck(state);

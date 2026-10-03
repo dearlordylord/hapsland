@@ -9,7 +9,7 @@ export type DriverAction = { event: CanonicalEvent; delay: number; candidate?: D
 const outcomeTags: Record<JevRequestOutcome, string> = { neverSent: "NeverSent", finding: "RequestFinding", clear: "RequestClear", backendFailure: "RequestBackendFailure", timeout: "RequestTimeout", interrupted: "RequestInterrupted" };
 export const encodeDriverOutcome = (outcome: JevRequestOutcome): unknown => ({ $: `Canonical.${outcomeTags[outcome]}` });
 const readEvent = decoder(CanonicalEventSchema);
-const names: Record<string, string> = { live_advice: "liveAdvice", stale_unavailable: "staleUnavailable", has_revision: "hasRevision", has_advice_id: "hasAdviceId", add_member: "addMember", maximum_keys: "maximumKeys", max_count: "maxCount", authority_bound: "authorityBound", lease_expired: "leaseExpired", pending_expired: "pendingExpired", cooldown_expired: "cooldownExpired", current_work: "currentWork", root_valid: "rootValid", configuration_valid: "configurationValid", credential_ready: "credentialReady", physical_available: "physicalAvailable", credential_generation: "credentialGeneration", credential_authorized: "credentialAuthorized", work_current: "workCurrent", owner_current: "ownerCurrent", has_findings: "hasFindings", joined_pending: "joinedPending", authorize_now: "authorizeNow", any_expired: "anyExpired", stop_collector: "stopCollector", same_group: "sameGroup" };
+const names: Record<string, string> = { entry_limit: "entryLimit", byte_limit: "byteLimit", live_advice: "liveAdvice", stale_unavailable: "staleUnavailable", has_revision: "hasRevision", has_advice_id: "hasAdviceId", add_member: "addMember", maximum_keys: "maximumKeys", max_count: "maxCount", authority_bound: "authorityBound", lease_expired: "leaseExpired", pending_expired: "pendingExpired", cooldown_expired: "cooldownExpired", current_work: "currentWork", root_valid: "rootValid", configuration_valid: "configurationValid", credential_ready: "credentialReady", physical_available: "physicalAvailable", credential_generation: "credentialGeneration", credential_authorized: "credentialAuthorized", work_current: "workCurrent", owner_current: "ownerCurrent", has_findings: "hasFindings", joined_pending: "joinedPending", authorize_now: "authorizeNow", any_expired: "anyExpired", stop_collector: "stopCollector", same_group: "sameGroup" };
 export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
   const event = readRecord(value);
   if (typeof event.$ !== "string" || !event.$.startsWith("Canonical.")) throw new TypeError("invalid driver event");
@@ -24,17 +24,25 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
       result.state = states[tag];
     } else if (key === "outcome") {
       const tag = readRecord(item).$;
-      const entry = Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`);
-      if (!entry) throw new TypeError("invalid driver outcome");
-      result[key] = entry[0];
+      if (event.$ === "Canonical.ReviewObserved") {
+        if (tag !== "Canonical.Finding" && tag !== "Canonical.Clear") throw new TypeError("invalid logical review outcome");
+        decodeCanonicalConstructor(item,tag);
+        result[key] = tag === "Canonical.Finding" ? "finding" : "clear";
+      } else {
+        const entry = Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`);
+        if (!entry) throw new TypeError("invalid driver outcome");
+        result[key] = entry[0];
+      }
     } else if (key === "remaining") {
       const remaining = readRecord(item);
       if (remaining.$ === "Some") result.remaining = readNat(remaining.value);
       else if (remaining.$ !== "None") throw new TypeError("invalid notice remaining clock");
     } else if (key === "purpose") {
       const purpose = readRecord(item).$;
-      if (purpose !== "Ledger.OperationalNotice") throw new TypeError("invalid notice reservation purpose");
-      result.purpose = "operationalNotice";
+      const purposes: Record<string,string> = { "Ledger.OperationalNotice": "operationalNotice", "Ledger.StoredResult": "storedResult", "Ledger.ObservationDispatch": "observationDispatch", "Ledger.Preparation": "preparation", "Ledger.ReviewUnit": "reviewUnit" };
+      if (typeof purpose !== "string" || !Object.hasOwn(purposes,purpose)) throw new TypeError("invalid reservation purpose");
+      decodeCanonicalConstructor(item,purpose);
+      result.purpose = purposes[purpose];
     } else if (key === "facts") {
       const facts = readRecord(item);
       if (facts.$ !== "Admission.ProspectiveFacts") throw new TypeError("invalid driver permit facts");

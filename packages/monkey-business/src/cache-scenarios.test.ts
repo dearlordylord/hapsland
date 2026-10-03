@@ -57,3 +57,76 @@ it("requires genuine advicee removal to free that owner's cached payload without
 // Explicit SameNamespaceHit/ChangedWorkMiss and controlled/authenticated capture
 // fixtures live in cache-namespace.test.ts. A credentials rotate control alone
 // does not establish the production dispatch credential capture or work cohort.
+
+it("applies an authentic cached finding as a fresh logical review without another physical Jev request",()=>{
+ const run=createRun({seed:7,retention:10000,inputs:[edit("finding-A",0)],outcome:"finding",jevDelay:2,lifecycles:{reuse:{entryLimit:8,byteLimit:128*1024}}});
+ run.advance({untilTime:9,maxEvents:1000});
+ expect(issued(run)).toHaveLength(1);
+ const stored=run.projection.reuse.cache[0];
+ expect(stored).toBeDefined();
+ const advice=run.projection.work.find(work=>work.kind==="pendingFinding");
+ expect(advice).toBeDefined();
+ if(!stored||!advice)throw new Error("original finding/cache ownership absent");
+ expect(run.projection.global).toEqual({items:2,bytes:10});
+ run.schedule({at:9,kind:"canonical",event:{kind:"retireReview",partition:advice.partition,lifetime:advice.lifetime,round:advice.round,operation:advice.operation}});
+ run.schedule(edit("finding-A",10));
+ run.advance({untilTime:20,maxEvents:1000});
+ expect(issued(run)).toHaveLength(1);
+ expect(run.observations.filter(frame=>frame.commands.some(command=>command.kind==="reuseCached"))).toHaveLength(1);
+ const logical=run.observations.find(frame=>frame.event.kind==="reviewObserved" && frame.event.operation!==advice.operation);
+ expect(logical?.event.kind).toBe("reviewObserved");
+ expect(run.projection.work.filter(work=>work.kind==="pendingFinding")).toHaveLength(1);
+ expect(run.projection.work.some(work=>work.operation===advice.operation)).toBe(false);
+ expect(run.projection.reuse.cache[0]?.reservation).toBe(stored.reservation);
+ expect(run.projection.global).toEqual({items:2,bytes:10});
+ expect(run.projection.dispatch.requests).toEqual([]);
+ expect(run.projection.collection.leases).toEqual([]);
+ // Eligible retained advice and the cache payload have separate actual owners
+ // (advicing-target-contract.md conditional progress, lines 308–315).
+ const currentAdvice=run.projection.work.find(work=>work.kind==="pendingFinding");
+ expect(currentAdvice).toBeDefined();
+ expect(run.projection.charges.map(charge=>charge.id).sort()).toEqual([stored.reservation,currentAdvice?.reservation].sort());
+ expect(run.projection.charges.find(charge=>charge.id===stored.reservation)).toMatchObject({partition:1,bytes:5,purpose:"storedResult"});
+ expect(run.projection.charges.find(charge=>charge.id===currentAdvice?.reservation)).toMatchObject({partition:1,bytes:5,purpose:"storedResult"});
+ replay(run);
+});
+
+const untilCacheStage=(run:ReturnType<typeof createRun>,stage:"prepare"|"reserve")=>{
+ for(let index=0;index<64;index++){
+  run.advance({maxEvents:1});
+  const frame=run.observations.at(-1);
+  if(stage==="prepare" && frame?.event.kind==="cachePrepare" && frame.commands.some(command=>command.kind==="cachePrepared"))return frame;
+  if(stage==="reserve" && frame?.event.kind==="reserveCapacity" && frame.event.purpose==="storedResult" && frame.commands.some(command=>command.kind==="capacityGranted"))return frame;
+ }
+ throw new Error(`original cache ${stage} stage was not reached`);
+};
+it.each(["prepare","reserve"] as const)("ends original cache publication after departure at %s without resurrecting ownership",stage=>{
+ const run=start([edit("departed",0,"a")],8,128*1024,{sessions:[{agent:"a",seed:11,editIntervalMs:1000,variationMs:0,editsPerTask:100,taskPauseMs:1000}]});
+ const frame=untilCacheStage(run,stage);
+ const reserved=frame.commands.find(command=>command.kind==="capacityGranted");
+ run.applyControl({kind:"adviceeLifecycle",agent:"a",action:"remove"});
+ run.advance({untilTime:20,maxEvents:1000});
+ expect(run.projection.reuse.cache).toEqual([]);
+ expect(run.projection.reuse.claims).toEqual([]);
+ expect(run.projection.global).toEqual({items:0,bytes:0});
+ expect(run.projection.dispatch.requests).toEqual([]);
+ const refused=run.observations.filter(observation=>observation.rejection==="StaleOperation" && (stage==="prepare"?observation.event.kind==="reserveCapacity":observation.event.kind==="cacheCommit"));
+ expect(refused).toHaveLength(1);
+ expect(refused[0]?.before).toEqual(refused[0]?.after);
+ if(reserved?.kind==="capacityGranted")expect(run.observations.filter(observation=>observation.event.kind==="releaseCapacity" && observation.event.reservation===reserved.id)).toHaveLength(1);
+ replay(run);
+});
+it("releases a completed clear claim after actual stored-capacity refusal while preserving other owners",()=>{
+ const run=start([edit("capacity",0)],8,128*1024,{preparationDelay:2,limits:{globalItems:2,globalBytes:100,partitionItems:2,partitionBytes:100}});
+ run.advance({untilTime:2,maxEvents:1000});
+ expect(issued(run)).toHaveLength(1);
+ for(let index=0;index<2;index++)run.schedule({at:4,kind:"canonical",event:{kind:"reserveCapacity",partition:2,bytes:1,purpose:"operationalNotice"}});
+ run.advance({untilTime:9,maxEvents:1000});
+ expect(run.observations.some(frame=>frame.event.kind==="reserveCapacity" && frame.event.purpose==="storedResult" && frame.commands.some(command=>command.kind==="capacityRefused"))).toBe(true);
+ expect(run.projection.reuse.claims).toEqual([]);
+ expect(run.projection.reuse.cache).toEqual([]);
+ expect(run.projection.global).toEqual({items:2,bytes:2});
+ expect(run.projection.charges.map(charge=>[charge.partition,charge.bytes,charge.purpose])).toEqual([[2,1,"operationalNotice"],[2,1,"operationalNotice"]]);
+ expect(run.projection.dispatch.requests).toEqual([]);
+ replay(run);
+});

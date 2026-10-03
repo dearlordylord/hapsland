@@ -173,7 +173,7 @@ export class SharedCore {
     const transition = cacheFact ? stepSharedCache(this.state,cacheFact) : stepSharedCanonical(this.state, event);
     const result = transition.result;
     this.state = transition.state;
-    return { ...result, afterActions: transition.afterActions, cacheReleases: transition.cacheReleases, cacheFacts: "cacheFacts" in transition ? transition.cacheFacts : [] };
+    return { ...result, afterActions: transition.afterActions, cacheReleases: transition.cacheReleases, cacheFacts: transition.cacheFacts };
   }
   graphStep(event: PreparationEvent): PreparationFrame {
     const limits = encodePreparationGraphLimits(event.graphLimits ?? GRAPH_LIMIT_CEILINGS);

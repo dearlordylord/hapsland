@@ -44,8 +44,11 @@ def key_id(state: State, key: Sharing.SharingKey) -> Maybe<&2,Nat>:
   Cache.key_id(cache(state),key)
 
 def hit(state: State, canonical: C.State, id: Nat, commands: List<&2,C.Command>) -> Maybe<&2,Cache.Payload>:
-  Cache.hit(cache(state),canonical,id,commands)
+  match state:
+    case State{cache,_,_,_}: Cache.hit(cache,canonical,id,commands)
 
+# A terminal cache attempt ends the completed evaluation claim. This does not
+# retire retained advice: its actual Canonical work/charge remains authoritative.
 def existing_feedback(pending: List<&2,Pending>, sources: List<&2,SourceCapture>, config: Config, feedback: Cache.Feedback) -> Feedback:
   match feedback:
     case Cache.Feedback{cache,releases}: Feedback{State{cache,pending,sources,config},releases}
@@ -123,10 +126,15 @@ def advanced_pending(state: State, +offer: Cache.Offer, entry_limit: Nat, byte_l
     case State{cache,pending,sources,config}:
       State{cache,Pending{offer,entry_limit,byte_limit,reservation,stage} <> remove_offer(pending,offer),sources,config}
 
+def terminal_claim(offer: Cache.Offer) -> List<&2,C.CanonicalEvent>:
+  match offer:
+    case Cache.Offer{id,_,_,_,C.RequestClear{}}: [C.ReuseRelease{id}]
+    case Cache.Offer{id,_,_,_,C.RequestFinding{}}: [C.ReuseRelease{id}]
+    case _: []
 def prepare_feedback(state: State, +offer: Cache.Offer, +entry_limit: Nat, +byte_limit: Nat, accepted: Bool) -> Published:
   match accepted:
     case True{}: Published{advanced_pending(state,offer,entry_limit,byte_limit,None{},ReserveStage{}),[Fact{offer,entry_limit,byte_limit,ReserveStage{},None{},Cache.reserve(offer)}],[]}
-    case False{}: Published{completed_pending(state,offer),[],[]}
+    case False{}: Published{completed_pending(state,offer),[],terminal_claim(offer)}
 
 def reservation(commands: List<&2,C.Command>) -> Maybe<&2,Nat>:
   match commands:
@@ -136,12 +144,12 @@ def reservation(commands: List<&2,C.Command>) -> Maybe<&2,Nat>:
 
 def reserve_feedback(state: State, +offer: Cache.Offer, +entry_limit: Nat, +byte_limit: Nat, found: Maybe<&2,Nat>) -> Published:
   match found:
-    case None{}: Published{completed_pending(state,offer),[],[]}
+    case None{}: Published{completed_pending(state,offer),[],terminal_claim(offer)}
     case Some{+id}:
       Published{advanced_pending(state,offer,entry_limit,byte_limit,Some{id},CommitStage{}),[Fact{offer,entry_limit,byte_limit,CommitStage{},Some{id},Cache.commit(offer,id,entry_limit,byte_limit)}],[]}
 
-def commit_released(state: State, offer: Cache.Offer, events: List<&2,C.CanonicalEvent>) -> Published:
-  Published{completed_pending(state,offer),[],events}
+def commit_released(state: State, +offer: Cache.Offer, events: List<&2,C.CanonicalEvent>) -> Published:
+  Published{completed_pending(state,offer),[],List.append(&2,C.CanonicalEvent,events,terminal_claim(offer))}
 
 def commit_feedback(+state: State, +before: C.State, after: C.State, +offer: Cache.Offer, +id: Nat, +commands: List<&2,C.Command>) -> Published:
   commit_released(retained(state,after,offer,id,commands),offer,Cache.refused_release(before,offer,id,commands))
@@ -195,27 +203,10 @@ def source_capture(state: State, offer: Cache.Offer, binding: Freshness.Binding)
   match state:
     case State{cache,pending,sources,config}: State{cache,pending,SourceCapture{offer,binding} <> sources,config}
 
-def source_found(items: List<&2,SourceCapture>, +offer: Cache.Offer) -> Maybe<&2,Freshness.Binding>:
-  match items:
-    case Nil{}: None{}
-    case SourceCapture{original,binding} <> tail:
-      Bool.pick(Maybe<&2,Freshness.Binding>,Cache.same_offer(original,offer),Some{binding},source_found(tail,offer))
-
-def source(state: State, offer: Cache.Offer) -> Maybe<&2,Freshness.Binding>:
-  match state:
-    case State{_,_,sources,_}: source_found(sources,offer)
-
-def fact_source(state: State, fact: Fact) -> Maybe<&2,Freshness.Binding>:
-  match fact:
-    case Fact{offer,_,_,_,_,_}: source(state,offer)
-
 def current_found(found: Maybe<&2,Bool>) -> Bool:
   match found:
     case Some{current}: current
     case None{}: False{}
-
-def source_current(state: State, canonical: C.State, fact: Fact) -> Bool:
-  current_found(Freshness.current_binding(canonical,fact_source(state,fact)))
 
 def feedback_guarded(allowed: Bool, state: State, before: C.State, after: C.State, fact: Fact, commands: List<&2,C.Command>) -> Published:
   match allowed:
@@ -236,15 +227,6 @@ def begin_source(+state: State, +offer: Cache.Offer, binding: Freshness.Binding,
 def fact_event(fact: Fact) -> C.CanonicalEvent:
   match fact:
     case Fact{_,_,_,_,_,event}: event
-
-def source_checked(found: Maybe<&2,Freshness.Binding>) -> Maybe<&2,C.CanonicalEvent>:
-  match found:
-    case Some{Freshness.Binding{_,Freshness.Source{subject,input},generation}}:
-      Some{C.RevisionCurrentCheck{subject,input,generation}}
-    case None{}: None{}
-
-def source_check(state: State, fact: Fact) -> Maybe<&2,C.CanonicalEvent>:
-  source_checked(fact_source(state,fact))
 
 def source_bindings(items: List<&2,SourceCapture>) -> List<&2,Freshness.Binding>:
   match items:
@@ -315,3 +297,44 @@ def begin_configured(+state: State, +offer: Cache.Offer, binding: Freshness.Bind
   match state:
     case State{_,_,_,Config{True{},entries,bytes}}: begin_source(state,offer,binding,entries,bytes)
     case _: Published{state,[],[]}
+
+
+type Departed is Data:
+  Departed{pending: List<&2,Pending>, releases: List<&2,C.CanonicalEvent>}
+
+def cache_entries(reuse: Reuse.State) -> List<&2,Reuse.Entry>:
+  match reuse:
+    case Reuse.State{_,entries}: entries
+def departed_release(+canonical: C.State, offer: Cache.Offer, reservation: Maybe<&2,Nat>) -> List<&2,C.CanonicalEvent>:
+  match offer reservation:
+    case Cache.Offer{_,Sharing.SharingKey{+partition,_},_,+bytes,_} Some{+id}:
+      Cache.refused_release_checked(C.cache_charge_valid(Ledger.find(id,Cache.ledger_charges(canonical)),partition,bytes) && Bool.not(Cache.owns_reservation(cache_entries(Collection.reuse_state(C.collection_of(canonical))),id)),id)
+    case _ None{}: []
+
+def departure_matches(scope: Freshness.Scope, partition: Nat, lifetime: Nat) -> Bool:
+  match scope:
+    case Freshness.Scope{p,l,_,_}: Nat.is_eq(p,partition) && Nat.is_eq(l,lifetime)
+
+def departed_selected(head: Pending, offer: Cache.Offer, reservation: Maybe<&2,Nat>, canonical: C.State, pending: List<&2,Pending>, releases: List<&2,C.CanonicalEvent>, remove: Bool) -> Departed:
+  match remove:
+    case True{}: Departed{pending,List.append(&2,C.CanonicalEvent,departed_release(canonical,offer,reservation),releases)}
+    case False{}: Departed{head <> pending,releases}
+
+def departed_item(+head: Pending, +canonical: C.State, partition: Nat, lifetime: Nat, tail: Departed) -> Departed:
+  match head tail:
+    case Pending{+offer,_,_,+reservation,_} Departed{pending,releases}:
+      departed_selected(head,offer,reservation,canonical,pending,releases,departure_matches(Cache.original(offer),partition,lifetime))
+
+def departed_pending(items: List<&2,Pending>, +canonical: C.State, +partition: Nat, +lifetime: Nat) -> Departed:
+  match items:
+    case Nil{}: Departed{[],[]}
+    case +head <> tail:
+      departed_item(head,canonical,partition,lifetime,departed_pending(tail,canonical,partition,lifetime))
+
+def departure_state(state: State, departed: Departed) -> Feedback:
+  match state departed:
+    case State{cache,_,sources,config} Departed{pending,releases}: Feedback{State{cache,pending,sources,config},releases}
+
+def departure(+state: State, canonical: C.State, partition: Nat, lifetime: Nat) -> Feedback:
+  match state:
+    case State{_,pending,_,_}: departure_state(state,departed_pending(pending,canonical,partition,lifetime))

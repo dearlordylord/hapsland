@@ -5,6 +5,7 @@ import ./Types.bend as EngineTypes
 import ./Advicees.bend as Advicees
 import ./Workload.bend as Workload
 import ./Driver.bend as Driver
+import ./CacheRuntime.bend as CacheRuntime
 import ./Numeric.bend as Numeric
 import ./PreparationScenario.bend as PreparationScenario
 import ./TreeFacts.bend as TreeFacts
@@ -679,11 +680,31 @@ def product_result(state: T.State, +event: Canonical.CanonicalEvent, action: Dri
     case Canonical.Advanced{after, commands}: advanced_product(state, event, action, job, before, after, commands, post)
     case Canonical.Rejected{after, reason}: product_frame(wake_event(issue(state, post, job), event), event, before, after, [], Some{reason})
 
+def transition_commands(result: Canonical.Step) -> List<&2,Canonical.Command>:
+  match result:
+    case Canonical.Advanced{_,commands}: commands
+    case Canonical.Rejected{_,_}: []
+
+def cache_events(events: List<&2,Canonical.CanonicalEvent>, state: T.State) -> T.State:
+  match events:
+    case Nil{}: state
+    case event <> tail: cache_events(tail,issue(state,[Driver.immediate(event,False{})],None{}))
+
+def cache_facts(facts: List<&2,CacheRuntime.Fact>, +state: T.State) -> T.State:
+  match facts:
+    case Nil{}: state
+    case fact <> tail: cache_facts(tail,enqueue(state,Engine.clock(core(state)),T.CacheFact{fact}))
+
+def cache_published_native(state: T.State, published: Engine.CachePublished, releases: List<&2,Canonical.CanonicalEvent>) -> T.State:
+  match published:
+    case Engine.CachePublished{updated,facts,extra}:
+      cache_events(List.append(&2,Canonical.CanonicalEvent,releases,extra),cache_facts(facts,replace_core(state,updated)))
+
 def product_transition(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action,
     +job: Maybe<&2, T.Job>, transition: Engine.Transition) -> T.Step:
   match transition:
-    case Engine.Transition{+updated, result}:
-      +settled = replace_core(state, updated)
+    case Engine.Transition{+updated, +result}:
+      +settled = cache_published_native(replace_core(state, updated),Engine.cache_begin(core(state),updated,event,transition_commands(result)),Engine.cache_removed(core(state),transition_commands(result)))
       product_result(settled, event, action,
         scoped_job(settled, job), Engine.canonical(core(state)), result, Engine.after(core(state), updated, event))
 
@@ -778,11 +799,20 @@ def finish_product(live: Bool, state: T.State, action: Driver.Action, job: T.Job
     case True{}: product(state, action, Some{job})
     case False{}: T.Step{state, None{}}
 
+def cache_product_applied(+state: T.State, +before: EngineTypes.State, applied: Engine.CacheApplied) -> T.Step:
+  match applied:
+    case Engine.CacheApplied{+updated,+event,+result,facts,releases,True{}}:
+      product_result(cache_events(List.append(&2,Canonical.CanonicalEvent,releases,Engine.cache_removed(before,transition_commands(result))),cache_facts(facts,replace_core(state,updated))),event,Driver.immediate(event,False{}),None{},Engine.canonical(before),result,Engine.after(before,updated,event))
+    case _: T.Step{invalid(state),None{}}
+
+def cache_product(+state: T.State, fact: CacheRuntime.Fact) -> T.Step:
+  cache_product_applied(state,core(state),Engine.cache_apply(core(state),fact))
 def input(+state: T.State, input: T.Input) -> T.Step:
   match input:
     case T.Arrival{emission}: T.Step{arrival(state, emission), None{}}
     case T.Edit{job}: T.Step{edit(state, job), None{}}
     case T.Event{action, job}: product(state, action, job)
+    case T.CacheFact{fact}: cache_product(state,fact)
     case T.FinishInput{action, +job, attempt}: finish_product(finish_live(state, job, attempt), state, action, job)
     case T.GraphFact{key, position, fact, limits}: graph(state, key, position, fact, limits)
 
@@ -885,12 +915,12 @@ def sharing_input(state: T.State, located: T.Located, order: Nat, endpoint: Nat,
     case T.Located{Some{T.FinishInput{action,_,_}},_}: sharing_action(state,action,order,endpoint,rest)
     case _: take_carrier([state],rest)
 
-def sharing_peek(+state: T.State, head: Maybe<&2, Scheduler.Entry>, endpoint: Nat,
+def sharing_peek(+value: T.State, entry: Maybe<&2, Scheduler.Entry>, endpoint: Nat,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
-  match head state:
-    case Some{Scheduler.Entry{_,+order}} T.State{core,+items,next,count,seed,environment,latest,valid,finishes,next_finish}:
+  match value entry:
+    case T.State{core,+items,next,count,seed,environment,latest,valid,finishes,next_finish} Some{Scheduler.Entry{_,+order}}:
       sharing_input(T.State{core,items,next,count,seed,environment,latest,valid,finishes,next_finish},locate(items,order),order,endpoint,rest)
-    case None{} state: take_carrier([state],rest)
+    case value None{}: take_carrier([value],rest)
 
 def sharing_carrier(states: List<&2,T.State>, endpoint: Nat,
     rest: Carrier -> List<&2,T.Step>) -> List<&2,T.Step>:
@@ -904,7 +934,7 @@ def take_allowed(allowed: Bool, states: List<&2, T.State>, endpoint: Nat,
     case True{}: sharing_carrier(states,endpoint,rest)
     case False{}: finished_step(states)
 
-def selected_state(states: List<&2, T.State>, endpoint: Nat,
+def selected_state(states: List<&2, T.State>, +endpoint: Nat,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match states:
     case +state <> _:
@@ -1054,3 +1084,6 @@ def control(+state: T.State, control: T.Control) -> T.Controlled:
       jev_supported(Nat.is_le(delay, 1000000000n) && Nat.is_eq(List.length(&2, Numeric.Words, weights), 6n) && weights_valid(weights) && weights_enabled(weights), state, delay, weights)
     case T.EnvironmentControl{current, ready, +generation, readable}:
       controlled_environment(Nat.is_gt(generation, 0n) && Nat.is_le(generation, 1000000000n), state, current, ready, generation, readable)
+
+# Private stage facts preserve the exact shared original offer. They are not
+# ordinary raw Reserve inputs and never borrow an unrelated pending offer.

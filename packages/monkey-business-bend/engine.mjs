@@ -14023,7 +14023,8 @@ function $CacheRuntime$key_id$(_state_0, _key_0) {
 }
 
 function $CacheRuntime$hit$(_state_0, _canonical_0, _id_0, _commands_0) {
-  return $CacheScenario$hit$(($CacheRuntime$cache$(_state_0)), _canonical_0, _id_0, _commands_0);
+  const _cache_0 = _state_0["cache"];
+  return $CacheScenario$hit$(_cache_0, _canonical_0, _id_0, _commands_0);
 }
 
 function $CacheRuntime$existing_feedback$(_pending_0, _sources_0, _config_0, _feedback_0) {
@@ -14160,11 +14161,23 @@ function $CacheRuntime$advanced_pending$(_state_0, _offer_0, _entry_limit_0, _by
   return {$: "CacheRuntime.State", "cache": _cache_0, "pending": {$: "Con", "head": {$: "CacheRuntime.Pending", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "reservation": _reservation_0, "stage": _stage_0}, "tail": ($CacheRuntime$remove_offer$(_pending_0, _offer_0))}, "sources": _sources_0, "config": _config_0};
 }
 
+function $CacheRuntime$terminal_claim$(_offer_0) {
+  const _id_0 = _offer_0["id"];
+  const _t_0 = _offer_0["outcome"];
+  if (_t_0.$ === "Canonical.RequestClear") {
+    return {$: "Con", "head": {$: "Canonical.ReuseRelease", "id": _id_0}, "tail": {$: "Nil"}};
+  } else if (_t_0.$ === "Canonical.RequestFinding") {
+    return {$: "Con", "head": {$: "Canonical.ReuseRelease", "id": _id_0}, "tail": {$: "Nil"}};
+  } else {
+    return {$: "Nil"};
+  }
+}
+
 function $CacheRuntime$prepare_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, _accepted_0) {
   if (_accepted_0) {
     return {$: "CacheRuntime.Published", "state": ($CacheRuntime$advanced_pending$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, {$: "None"}, {$: "CacheRuntime.ReserveStage"})), "facts": {$: "Con", "head": {$: "CacheRuntime.Fact", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "stage": {$: "CacheRuntime.ReserveStage"}, "reservation": {$: "None"}, "event": ($CacheScenario$reserve$(_offer_0))}, "tail": {$: "Nil"}}, "releases": {$: "Nil"}};
   } else {
-    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": ($CacheRuntime$terminal_claim$(_offer_0))};
   }
 }
 
@@ -14191,7 +14204,7 @@ function $CacheRuntime$reservation$($0) {
 
 function $CacheRuntime$reserve_feedback$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, _found_0) {
   if (_found_0.$ === "None") {
-    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": {$: "Nil"}};
+    return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": ($CacheRuntime$terminal_claim$(_offer_0))};
   } else {
     const _id_0 = _found_0["value"];
     return {$: "CacheRuntime.Published", "state": ($CacheRuntime$advanced_pending$(_state_0, _offer_0, _entry_limit_0, _byte_limit_0, {$: "Some", "value": _id_0}, {$: "CacheRuntime.CommitStage"})), "facts": {$: "Con", "head": {$: "CacheRuntime.Fact", "offer": _offer_0, "entry_limit": _entry_limit_0, "byte_limit": _byte_limit_0, "stage": {$: "CacheRuntime.CommitStage"}, "reservation": {$: "Some", "value": _id_0}, "event": ($CacheScenario$commit$(_offer_0, _id_0, _entry_limit_0, _byte_limit_0))}, "tail": {$: "Nil"}}, "releases": {$: "Nil"}};
@@ -14199,7 +14212,7 @@ function $CacheRuntime$reserve_feedback$(_state_0, _offer_0, _entry_limit_0, _by
 }
 
 function $CacheRuntime$commit_released$(_state_0, _offer_0, _events_0) {
-  return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": _events_0};
+  return {$: "CacheRuntime.Published", "state": ($CacheRuntime$completed_pending$(_state_0, _offer_0)), "facts": {$: "Nil"}, "releases": ($List$append$(_events_0, ($CacheRuntime$terminal_claim$(_offer_0))))};
 }
 
 function $CacheRuntime$commit_feedback$(_state_0, _before_0, _after_0, _offer_0, _id_0, _commands_0) {
@@ -14368,28 +14381,6 @@ function $CacheRuntime$source_capture$(_state_0, _offer_0, _binding_0) {
   return {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": {$: "Con", "head": {$: "CacheRuntime.SourceCapture", "offer": _offer_0, "binding": _binding_0}, "tail": _sources_0}, "config": _config_0};
 }
 
-function $CacheRuntime$source_found$(_items_0, _offer_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _original_0 = _t_0["offer"];
-    const _binding_0 = _t_0["binding"];
-    const _tail_0 = _items_0["tail"];
-    return $Bool$pick$(($CacheScenario$same_offer$(_original_0, _offer_0)), {$: "Some", "value": _binding_0}, ($CacheRuntime$source_found$(_tail_0, _offer_0)));
-  }
-}
-
-function $CacheRuntime$source$(_state_0, _offer_0) {
-  const _sources_0 = _state_0["sources"];
-  return $CacheRuntime$source_found$(_sources_0, _offer_0);
-}
-
-function $CacheRuntime$fact_source$(_state_0, _fact_0) {
-  const _offer_0 = _fact_0["offer"];
-  return $CacheRuntime$source$(_state_0, _offer_0);
-}
-
 function $CacheRuntime$current_found$(_found_0) {
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
@@ -14397,10 +14388,6 @@ function $CacheRuntime$current_found$(_found_0) {
   } else {
     return false;
   }
-}
-
-function $CacheRuntime$source_current$(_state_0, _canonical_0, _fact_0) {
-  return $CacheRuntime$current_found$(($FreshnessScenario$current_binding$(_canonical_0, ($CacheRuntime$fact_source$(_state_0, _fact_0)))));
 }
 
 function $CacheRuntime$feedback_guarded$(_allowed_0, _state_0, _before_0, _after_0, _fact_0, _commands_0) {
@@ -14434,23 +14421,6 @@ function $CacheRuntime$begin_source$(_state_0, _offer_0, _binding_0, _entries_0,
 function $CacheRuntime$fact_event$(_fact_0) {
   const _event_0 = _fact_0["event"];
   return _event_0;
-}
-
-function $CacheRuntime$source_checked$(_found_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _t_1 = _t_0["source"];
-    const _subject_0 = _t_1["subject"];
-    const _input_0 = _t_1["input"];
-    const _generation_0 = _t_0["generation"];
-    return {$: "Some", "value": {$: "Canonical.RevisionCurrentCheck", "subject": _subject_0, "input": _input_0, "generation": _generation_0}};
-  } else {
-    return {$: "None"};
-  }
-}
-
-function $CacheRuntime$source_check$(_state_0, _fact_0) {
-  return $CacheRuntime$source_checked$(($CacheRuntime$fact_source$(_state_0, _fact_0)));
 }
 
 function $CacheRuntime$source_bindings$(_items_0) {
@@ -14586,6 +14556,75 @@ function $CacheRuntime$begin_configured$(_state_0, _offer_0, _binding_0) {
     const _bytes_1 = _t_0["byte_limit"];
     return {$: "CacheRuntime.Published", "state": {$: "CacheRuntime.State", "cache": __0, "pending": __1, "sources": __2, "config": {$: "CacheRuntime.Config", "enabled": _t_1, "entry_limit": _entries_1, "byte_limit": _bytes_1}}, "facts": {$: "Nil"}, "releases": {$: "Nil"}};
   }
+}
+
+function $CacheRuntime$cache_entries$(_reuse_0) {
+  const _entries_0 = _reuse_0["cache"];
+  return _entries_0;
+}
+
+function $CacheRuntime$departed_release$(_canonical_0, _offer_0, _reservation_0) {
+  const _t_0 = _offer_0["key"];
+  const _partition_0 = _t_0["partition"];
+  const _bytes_0 = _offer_0["bytes"];
+  if (_reservation_0.$ === "Some") {
+    const _id_0 = _reservation_0["value"];
+    return $CacheScenario$refused_release_checked$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$cache_charge_valid$(($$$$047agent$045flow$045bend$047Ledger$find$(_id_0, ($CacheScenario$ledger_charges$(_canonical_0)))), _partition_0, _bytes_0)), ($Bool$not$(($CacheScenario$owns_reservation$(($CacheRuntime$cache_entries$(($$$$047agent$045flow$045bend$047CollectionState$reuse_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))))), _id_0)))))), _id_0);
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $CacheRuntime$departure_matches$(_scope_0, _partition_0, _lifetime_0) {
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  return $Bool$and$(($Nat$is_eq$(_p_0, _partition_0)), ($Nat$is_eq$(_l_0, _lifetime_0)));
+}
+
+function $CacheRuntime$departed_selected$(_head_0, _offer_0, _reservation_0, _canonical_0, _pending_0, _releases_0, _remove_0) {
+  if (_remove_0) {
+    return {$: "CacheRuntime.Departed", "pending": _pending_0, "releases": ($List$append$(($CacheRuntime$departed_release$(_canonical_0, _offer_0, _reservation_0)), _releases_0))};
+  } else {
+    return {$: "CacheRuntime.Departed", "pending": {$: "Con", "head": _head_0, "tail": _pending_0}, "releases": _releases_0};
+  }
+}
+
+function $CacheRuntime$departed_item$(_head_0, _canonical_0, _partition_0, _lifetime_0, _tail_0) {
+  const _offer_0 = _head_0["offer"];
+  const __0 = _head_0["entry_limit"];
+  const __1 = _head_0["byte_limit"];
+  const _reservation_0 = _head_0["reservation"];
+  const __2 = _head_0["stage"];
+  const _pending_0 = _tail_0["pending"];
+  const _releases_0 = _tail_0["releases"];
+  return $CacheRuntime$departed_selected$({$: "CacheRuntime.Pending", "offer": _offer_0, "entry_limit": __0, "byte_limit": __1, "reservation": _reservation_0, "stage": __2}, _offer_0, _reservation_0, _canonical_0, _pending_0, _releases_0, ($CacheRuntime$departure_matches$(($CacheScenario$original$(_offer_0)), _partition_0, _lifetime_0)));
+}
+
+function $CacheRuntime$departed_pending$(_items_0, _canonical_0, _partition_0, _lifetime_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "CacheRuntime.Departed", "pending": {$: "Nil"}, "releases": {$: "Nil"}};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CacheRuntime$departed_item$(_head_0, _canonical_0, _partition_0, _lifetime_0, ($CacheRuntime$departed_pending$(_tail_0, _canonical_0, _partition_0, _lifetime_0)));
+  }
+}
+
+function $CacheRuntime$departure_state$(_state_0, _departed_0) {
+  const _cache_0 = _state_0["cache"];
+  const _sources_0 = _state_0["sources"];
+  const _config_0 = _state_0["config"];
+  const _pending_0 = _departed_0["pending"];
+  const _releases_0 = _departed_0["releases"];
+  return {$: "CacheRuntime.Feedback", "state": {$: "CacheRuntime.State", "cache": _cache_0, "pending": _pending_0, "sources": _sources_0, "config": _config_0}, "events": _releases_0};
+}
+
+function $CacheRuntime$departure$(_state_0, _canonical_0, _partition_0, _lifetime_0) {
+  const __0 = _state_0["cache"];
+  const _pending_0 = _state_0["pending"];
+  const __1 = _state_0["sources"];
+  const __2 = _state_0["config"];
+  return $CacheRuntime$departure_state$({$: "CacheRuntime.State", "cache": __0, "pending": _pending_0, "sources": __1, "config": __2}, ($CacheRuntime$departed_pending$(_pending_0, _canonical_0, _partition_0, _lifetime_0)));
 }
 
 function $SharingRuntime$initial$() {
@@ -14893,9 +14932,12 @@ function $SharingRuntime$offered$($0) {
         if (_t_1.$ === "SharingRuntime.Owned") {
           const _tail_0 = _units_0["tail"];
           return {$: "Con", "head": _bytes_0, "tail": ($SharingRuntime$offered$(_tail_0))};
-        } else {
+        } else if (_t_1.$ === "SharingRuntime.CachedFinding") {
           const _tail_1 = _units_0["tail"];
-          $0 = _tail_1;
+          return {$: "Con", "head": _bytes_0, "tail": ($SharingRuntime$offered$(_tail_1))};
+        } else {
+          const _tail_2 = _units_0["tail"];
+          $0 = _tail_2;
           continue;
         }
       }
@@ -14953,14 +14995,25 @@ function $SharingRuntime$own_at$($0, $1) {
         if (_t_1.$ === "SharingRuntime.Owned") {
           const _tail_0 = _units_0["tail"];
           return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "SharingRuntime.PreparedUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "SharingRuntime.Owned"}}}, ($SharingRuntime$own_at$(_tail_0, (_index_0 < 1 ? 0 : _index_0 - 1))));
-        } else {
+        } else if (_t_1.$ === "SharingRuntime.CachedFinding") {
           const _tail_1 = _units_0["tail"];
-          $0 = _tail_1;
+          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "SharingRuntime.PreparedUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "SharingRuntime.CachedFinding"}}}, ($SharingRuntime$own_at$(_tail_1, (_index_0 < 1 ? 0 : _index_0 - 1))));
+        } else {
+          const _tail_2 = _units_0["tail"];
+          $0 = _tail_2;
           $1 = _index_0;
           continue;
         }
       }
     }
+  }
+}
+
+function $SharingRuntime$is_cached$(_disposition_0) {
+  if (_disposition_0.$ === "SharingRuntime.CachedFinding") {
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -14973,7 +15026,8 @@ function $SharingRuntime$bound_unit$(_state_0, _scope_0, _bytes_0, _unit_0) {
     const _t_0 = _unit_0["value"];
     const _expected_0 = _t_0["bytes"];
     const _evaluation_0 = _t_0["evaluation"];
-    return $Bool$pick$(($Nat$is_eq$(_bytes_0, _expected_0)), {$: "SharingRuntime.State", "sharing": _sharing_0, "preparations": _preparations_0, "bindings": {$: "Con", "head": {$: "SharingRuntime.Binding", "scope": _scope_0, "evaluation": _evaluation_0, "bytes": _bytes_0}, "tail": _bindings_0}, "results": _results_0}, {$: "SharingRuntime.State", "sharing": _sharing_0, "preparations": _preparations_0, "bindings": _bindings_0, "results": _results_0});
+    const _disposition_0 = _t_0["disposition"];
+    return $Bool$pick$(($Nat$is_eq$(_bytes_0, _expected_0)), {$: "SharingRuntime.State", "sharing": _sharing_0, "preparations": _preparations_0, "bindings": {$: "Con", "head": {$: "SharingRuntime.Binding", "scope": _scope_0, "evaluation": _evaluation_0, "bytes": _bytes_0, "cached": ($SharingRuntime$is_cached$(_disposition_0))}, "tail": _bindings_0}, "results": _results_0}, {$: "SharingRuntime.State", "sharing": _sharing_0, "preparations": _preparations_0, "bindings": _bindings_0, "results": _results_0});
   } else {
     return {$: "SharingRuntime.State", "sharing": _sharing_0, "preparations": _preparations_0, "bindings": _bindings_0, "results": _results_0};
   }
@@ -15020,8 +15074,9 @@ function $SharingRuntime$binding_found$(_bindings_0, _scope_0) {
     const _owner_0 = _t_0["scope"];
     const __0 = _t_0["evaluation"];
     const __1 = _t_0["bytes"];
+    const __2 = _t_0["cached"];
     const _tail_0 = _bindings_0["tail"];
-    return $Bool$pick$(($FreshnessScenario$same$(_owner_0, _scope_0)), {$: "Some", "value": {$: "SharingRuntime.Binding", "scope": _owner_0, "evaluation": __0, "bytes": __1}}, ($SharingRuntime$binding_found$(_tail_0, _scope_0)));
+    return $Bool$pick$(($FreshnessScenario$same$(_owner_0, _scope_0)), {$: "Some", "value": {$: "SharingRuntime.Binding", "scope": _owner_0, "evaluation": __0, "bytes": __1, "cached": __2}}, ($SharingRuntime$binding_found$(_tail_0, _scope_0)));
   }
 }
 
@@ -15357,8 +15412,9 @@ function $SharingRuntime$retained_bindings$(_bindings_0, _view_0) {
     const _scope_0 = _t_0["scope"];
     const _evaluation_0 = _t_0["evaluation"];
     const _bytes_0 = _t_0["bytes"];
+    const _cached_0 = _t_0["cached"];
     const _tail_0 = _bindings_0["tail"];
-    return $SharingRuntime$kept_binding$(($SharingRuntime$scope_live$(_view_0, _scope_0)), {$: "SharingRuntime.Binding", "scope": _scope_0, "evaluation": _evaluation_0, "bytes": _bytes_0}, ($SharingRuntime$retained_bindings$(_tail_0, _view_0)));
+    return $SharingRuntime$kept_binding$(($SharingRuntime$scope_live$(_view_0, _scope_0)), {$: "SharingRuntime.Binding", "scope": _scope_0, "evaluation": _evaluation_0, "bytes": _bytes_0, "cached": _cached_0}, ($SharingRuntime$retained_bindings$(_tail_0, _view_0)));
   }
 }
 
@@ -15965,6 +16021,126 @@ function $SharingRuntime$cache_offer$(_state_0, _event_0) {
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return $SharingRuntime$cache_result_evaluation$(_state_0, ($SharingRuntime$cache_result_found$(($SharingRuntime$results$(_state_0)), {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SharingRuntime$cached_disposition$(_outcome_0) {
+  if (_outcome_0.$ === "Canonical.RequestFinding") {
+    return {$: "SharingRuntime.CachedFinding"};
+  } else if (_outcome_0.$ === "Canonical.RequestClear") {
+    return {$: "SharingRuntime.Joined"};
+  } else {
+    return {$: "SharingRuntime.Awaiting"};
+  }
+}
+
+function $SharingRuntime$cached_units$(_units_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0) {
+  if (_units_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _units_0["head"];
+    const _p_0 = _t_0["position"];
+    const _size_0 = _t_0["bytes"];
+    const _original_0 = _t_0["key"];
+    const _id_0 = _t_0["evaluation"];
+    const _previous_0 = _t_0["disposition"];
+    const _tail_0 = _units_0["tail"];
+    return {$: "Con", "head": {$: "SharingRuntime.PreparedUnit", "position": _p_0, "bytes": _size_0, "key": _original_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), ($SharingScenario$same_key$(_original_0, _key_0)))), ($Nat$is_eq$(_size_0, _bytes_0)))), ($SharingRuntime$cached_disposition$(_outcome_0)), _previous_0))}, "tail": ($SharingRuntime$cached_units$(_tail_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0))};
+  }
+}
+
+function $SharingRuntime$cached_found$(_state_0, _route_0, _payload_0, _found_0) {
+  const _scope_0 = _route_0["preparation"];
+  const _position_0 = _route_0["position"];
+  const _evaluation_0 = _route_0["evaluation"];
+  const _t_0 = _payload_0["offer"];
+  const _key_0 = _t_0["key"];
+  const _bytes_0 = _t_0["bytes"];
+  const _outcome_0 = _t_0["outcome"];
+  if (_found_0.$ === "Some") {
+    const _t_1 = _found_0["value"];
+    const _original_0 = _t_1["member"];
+    const _units_0 = _t_1["units"];
+    return $SharingRuntime$prepared$(_state_0, _scope_0, _original_0, ($SharingRuntime$cached_units$(_units_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0)));
+  } else {
+    return _state_0;
+  }
+}
+
+function $SharingRuntime$preparations_of$(_state_0) {
+  const _preparations_0 = _state_0["preparations"];
+  return _preparations_0;
+}
+
+function $SharingRuntime$cached_routed$(_state_0, _route_0, _payload_0) {
+  const _scope_0 = _route_0["preparation"];
+  const __0 = _route_0["member"];
+  const __1 = _route_0["position"];
+  const __2 = _route_0["evaluation"];
+  if (_payload_0.$ === "Some") {
+    const _payload_1 = _payload_0["value"];
+    return $SharingRuntime$cached_found$(_state_0, {$: "SharingRuntime.Route", "preparation": _scope_0, "member": __0, "position": __1, "evaluation": __2}, _payload_1, ($SharingRuntime$find_preparation$(($SharingRuntime$preparations_of$(_state_0)), _scope_0)));
+  } else {
+    return _state_0;
+  }
+}
+
+function $SharingRuntime$cached_followups$(_canonical_0, _freshness_0, _route_0, _payload_0) {
+  const _member_0 = _route_0["member"];
+  if (_payload_0.$ === "Some") {
+    const _t_0 = _payload_0["value"];
+    const _t_1 = _t_0["offer"];
+    const _t_2 = _t_1["outcome"];
+    if (_t_2.$ === "Canonical.RequestClear") {
+      return $SharingRuntime$member_facts$(_canonical_0, _freshness_0, {$: "Con", "head": _member_0, "tail": {$: "Nil"}}, {$: "Canonical.RequestClear"}, {$: "None"});
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $SharingRuntime$bindings_of$(_state_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return _bindings_0;
+}
+
+function $SharingRuntime$cached_operation$($0, $1) {
+  for (;;) {
+    {
+      const _bindings_0 = $0;
+      const _operation_0 = $1;
+      if (_bindings_0.$ === "Nil") {
+        return {$: "None"};
+      } else {
+        const _t_0 = _bindings_0["head"];
+        const _t_1 = _t_0["scope"];
+        const _p_0 = _t_1["partition"];
+        const _l_0 = _t_1["lifetime"];
+        const _r_0 = _t_1["round"];
+        const _o_0 = _t_1["operation"];
+        const _t_2 = _t_0["cached"];
+        if (_t_2) {
+          const _tail_0 = _bindings_0["tail"];
+          return $Bool$pick$(($Nat$is_eq$(_o_0, _operation_0)), {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}}, ($SharingRuntime$cached_operation$(_tail_0, _operation_0)));
+        } else {
+          const _tail_1 = _bindings_0["tail"];
+          $0 = _tail_1;
+          $1 = _operation_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $SharingRuntime$cached_review$(_state_0, _command_0) {
+  if (_command_0.$ === "Canonical.UnitAdmitted") {
+    const _operation_0 = _command_0["operation"];
+    return $SharingRuntime$cached_operation$(($SharingRuntime$bindings_of$(_state_0)), _operation_0);
   } else {
     return {$: "None"};
   }
@@ -21946,8 +22122,56 @@ function $freshness_state$(_state_0) {
   return $RuntimeScenarios$freshness$(_scenarios_0);
 }
 
+function $cached_review_work$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Reviewing") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $cached_review_owned$(_state_0, _scope_0) {
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  const _o_0 = _scope_0["operation"];
+  return $Bool$and$(($cached_review_work$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, _l_0, _r_0, _o_0, ($Driver$work_list$(($canonical$(_state_0)))))))), ($CacheRuntime$current_found$(($FreshnessScenario$current$(($freshness_state$(_state_0)), ($canonical$(_state_0)), {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})))));
+}
+
+function $cached_review_handled$(_scope_0, _allowed_0) {
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  const _o_0 = _scope_0["operation"];
+  if (_allowed_0) {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.ReviewObserved", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "outcome": {$: "Canonical.Finding"}, "current_work": true}, false)), "tail": {$: "Nil"}}}};
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  }
+}
+
+function $handle_cached$(_state_0, _event_0, _command_0, _context_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _scope_0 = _found_0["value"];
+    return $cached_review_handled$(_scope_0, ($cached_review_owned$(_state_0, _scope_0)));
+  } else {
+    return $Driver$handle$(($canonical$(_state_0)), _event_0, _command_0, ($FreshnessContext$apply$(($freshness_state$(_state_0)), ($canonical$(_state_0)), _event_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)))));
+  }
+}
+
+function $scenarios$(_state_0) {
+  const _scenarios_0 = _state_0["scenarios"];
+  return _scenarios_0;
+}
+
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
-  return $Driver$handle$(($canonical$(_state_0)), _event_0, _command_0, ($FreshnessContext$apply$(($freshness_state$(_state_0)), ($canonical$(_state_0)), _event_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)))));
+  return $handle_cached$(_state_0, _event_0, _command_0, _context_0, ($SharingRuntime$cached_review$(($RuntimeScenarios$sharing$(($scenarios$(_state_0)))), _command_0)));
 }
 
 function $edit$(_state_0, _partition_0, _lifetime_0) {
@@ -22603,25 +22827,80 @@ function $lifecycle_requested$(_entries_0, _partition_0, _action_0, _scope_0) {
   }
 }
 
-function $lifecycle_action$(_state_0, _partition_0, _action_0) {
-  return $lifecycle_changed$(_state_0, _partition_0, ($lifecycle_requested$(($AdviceeActivity$synchronize$(($lifecycle_entries$(_state_0)), ($canonical$(_state_0)), _partition_0)), _partition_0, _action_0, ($activity_scope$(_state_0, _partition_0)))));
+function $departed_cache_scope$(_previous_0, _current_0, _valid_0) {
+  if (_previous_0.$ === "Some") {
+    const _t_0 = _previous_0["value"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const _t_1 = _t_0["status"];
+    if (_t_1.$ === "AdviceeLifecycle.Removed") {
+      if (_current_0.$ === "Some") {
+        const _t_2 = _current_0["value"];
+        const _t_3 = _t_2["status"];
+        if (_t_3.$ === "AdviceeLifecycle.Removed") {
+          if (_valid_0) {
+            return {$: "None"};
+          } else {
+            return {$: "None"};
+          }
+        } else {
+          return {$: "None"};
+        }
+      } else {
+        return {$: "None"};
+      }
+    } else if (_t_1.$ === "AdviceeLifecycle.Active") {
+      if (_current_0.$ === "Some") {
+        const _t_4 = _current_0["value"];
+        const _t_5 = _t_4["status"];
+        if (_t_5.$ === "AdviceeLifecycle.Disconnected") {
+          if (_valid_0) {
+            return {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": __0, "lifetime": __1, "round": 0, "operation": 0}};
+          } else {
+            return {$: "None"};
+          }
+        } else if (_t_5.$ === "AdviceeLifecycle.Removed") {
+          if (_valid_0) {
+            return {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": __0, "lifetime": __1, "round": 0, "operation": 0}};
+          } else {
+            return {$: "None"};
+          }
+        } else {
+          return {$: "None"};
+        }
+      } else {
+        return {$: "None"};
+      }
+    } else {
+      if (_current_0.$ === "Some") {
+        const _t_6 = _current_0["value"];
+        const _t_7 = _t_6["status"];
+        if (_t_7.$ === "AdviceeLifecycle.Removed") {
+          if (_valid_0) {
+            return {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": __0, "lifetime": __1, "round": 0, "operation": 0}};
+          } else {
+            return {$: "None"};
+          }
+        } else {
+          return {$: "None"};
+        }
+      } else {
+        return {$: "None"};
+      }
+    }
+  } else {
+    return {$: "None"};
+  }
 }
 
-function $permit_issue$(_capture_0, _now_0) {
-  return $PermitScenario$issue$(_capture_0, _now_0);
-}
-
-function $permit_issued$(_capture_0, _token_0) {
-  return $PermitScenario$issued$(_capture_0, _token_0);
-}
-
-function $permit_consumed$(_state_0, _command_0, _partition_0, _lifetime_0) {
-  return $PermitScenario$consumed$(($canonical$(_state_0)), _command_0, _partition_0, _lifetime_0);
-}
-
-function $scenarios$(_state_0) {
-  const _scenarios_0 = _state_0["scenarios"];
-  return _scenarios_0;
+function $cache_release_actions$(_events_0) {
+  if (_events_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _event_0 = _events_0["head"];
+    const _tail_0 = _events_0["tail"];
+    return {$: "Con", "head": ($Driver$immediate$(_event_0, false)), "tail": ($cache_release_actions$(_tail_0))};
+  }
 }
 
 function $with_scenarios$(_state_0, _scenarios_0) {
@@ -22638,6 +22917,101 @@ function $with_scenarios$(_state_0, _scenarios_0) {
   const _preparations_0 = _state_0["preparations"];
   const _activity_scopes_0 = _state_0["activity_scopes"];
   return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": _scenarios_0};
+}
+
+function $with_cache_runtime$(_state_0, _cache_0) {
+  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_cache$(($scenarios$(_state_0)), _cache_0)));
+}
+
+function $lifecycle_cache_published$(_transition_0, _partition_0, _feedback_0) {
+  const _state_0 = _transition_0["state"];
+  const _changed_0 = _transition_0["changed"];
+  const _t_0 = _transition_0["cleanup"];
+  const _actions_0 = _t_0["actions"];
+  const _operations_0 = _t_0["operations"];
+  const _preparations_0 = _t_0["preparations"];
+  const _events_0 = _transition_0["events"];
+  const _cache_0 = _feedback_0["state"];
+  const _releases_0 = _feedback_0["events"];
+  return {$: "LifecycleTransition", "state": ($with_cache_runtime$(_state_0, _cache_0)), "changed": _changed_0, "cleanup": {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": ($List$append$({$: "Con", "head": ($Driver$immediate$({$: "Canonical.CacheDiscardPartition", "partition": _partition_0}, false)), "tail": ($cache_release_actions$(_releases_0))}, _actions_0)), "operations": _operations_0, "preparations": _preparations_0}, "events": _events_0};
+}
+
+function $cache_runtime$(_state_0) {
+  return $RuntimeScenarios$cache$(($scenarios$(_state_0)));
+}
+
+function $lifecycle_sharing_departed$(_transition_0, _departure_0) {
+  const _changed_0 = _transition_0["changed"];
+  const _t_0 = _transition_0["cleanup"];
+  const _actions_0 = _t_0["actions"];
+  const _operations_0 = _t_0["operations"];
+  const _preparations_0 = _t_0["preparations"];
+  const _events_0 = _transition_0["events"];
+  const _state_0 = _departure_0["state"];
+  const _release_0 = _departure_0["events"];
+  return {$: "LifecycleTransition", "state": _state_0, "changed": _changed_0, "cleanup": {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": ($List$append$(($cache_release_actions$(_release_0)), _actions_0)), "operations": _operations_0, "preparations": _preparations_0}, "events": _events_0};
+}
+
+function $with_sharing_runtime$(_state_0, _sharing_0) {
+  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_sharing$(($scenarios$(_state_0)), _sharing_0)));
+}
+
+function $sharing_departed$(_state_0, _departure_0) {
+  const _sharing_0 = _departure_0["state"];
+  const _events_0 = _departure_0["events"];
+  const _t_0 = _departure_0["valid"];
+  if (_t_0) {
+    return {$: "SharingDeparture", "state": ($with_sharing_runtime$(_state_0, _sharing_0)), "events": _events_0, "valid": true};
+  } else {
+    return {$: "SharingDeparture", "state": _state_0, "events": {$: "Nil"}, "valid": false};
+  }
+}
+
+function $sharing_leave_all$(_state_0, _partition_0, _lifetime_0) {
+  return $sharing_departed$(_state_0, ($SharingRuntime$depart_all$(($sharing_runtime$(_state_0)), ($canonical$(_state_0)), _partition_0, _lifetime_0)));
+}
+
+function $lifecycle_cache_scope$(_transition_0, _scope_0) {
+  const _state_0 = _transition_0["state"];
+  const __0 = _transition_0["changed"];
+  const __1 = _transition_0["cleanup"];
+  const __2 = _transition_0["events"];
+  if (_scope_0.$ === "Some") {
+    const _t_0 = _scope_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    return $lifecycle_cache_published$(($lifecycle_sharing_departed$({$: "LifecycleTransition", "state": _state_0, "changed": __0, "cleanup": __1, "events": __2}, ($sharing_leave_all$(_state_0, _p_0, _l_0)))), _p_0, ($CacheRuntime$departure$(($cache_runtime$(_state_0)), ($canonical$(_state_0)), _p_0, _l_0)));
+  } else {
+    return {$: "LifecycleTransition", "state": _state_0, "changed": __0, "cleanup": __1, "events": __2};
+  }
+}
+
+function $lifecycle_cache_removed$(_transition_0, _partition_0) {
+  const __0 = _transition_0["state"];
+  const _t_0 = _transition_0["changed"];
+  const __1 = _t_0["entries"];
+  const _previous_0 = _t_0["previous"];
+  const _current_0 = _t_0["current"];
+  const _valid_0 = _t_0["valid"];
+  const __2 = _transition_0["cleanup"];
+  const __3 = _transition_0["events"];
+  return $lifecycle_cache_scope$({$: "LifecycleTransition", "state": __0, "changed": {$: "AdviceeLifecycle.Changed", "entries": __1, "previous": _previous_0, "current": _current_0, "valid": _valid_0}, "cleanup": __2, "events": __3}, ($departed_cache_scope$(_previous_0, _current_0, _valid_0)));
+}
+
+function $lifecycle_action$(_state_0, _partition_0, _action_0) {
+  return $lifecycle_cache_removed$(($lifecycle_changed$(_state_0, _partition_0, ($lifecycle_requested$(($AdviceeActivity$synchronize$(($lifecycle_entries$(_state_0)), ($canonical$(_state_0)), _partition_0)), _partition_0, _action_0, ($activity_scope$(_state_0, _partition_0)))))), _partition_0);
+}
+
+function $permit_issue$(_capture_0, _now_0) {
+  return $PermitScenario$issue$(_capture_0, _now_0);
+}
+
+function $permit_issued$(_capture_0, _token_0) {
+  return $PermitScenario$issued$(_capture_0, _token_0);
+}
+
+function $permit_consumed$(_state_0, _command_0, _partition_0, _lifetime_0) {
+  return $PermitScenario$consumed$(($canonical$(_state_0)), _command_0, _partition_0, _lifetime_0);
 }
 
 function $callback_state$(_state_0) {
@@ -22914,10 +23288,6 @@ function $freshness_checks$(_state_0, _scope_0) {
   return $FreshnessScenario$checks$(($freshness_state$(_state_0)), _scope_0);
 }
 
-function $with_sharing_runtime$(_state_0, _sharing_0) {
-  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_sharing$(($scenarios$(_state_0)), _sharing_0)));
-}
-
 function $sharing_captured$(_state_0, _capture_0) {
   const _sharing_0 = _capture_0["state"];
   const _routes_0 = _capture_0["routes"];
@@ -22959,8 +23329,16 @@ function $sharing_route$(_state_0, _route_0) {
   return $SharingRuntime$route_event$(($canonical$(_state_0)), ($freshness_state$(_state_0)), ($sharing_runtime$(_state_0)), _route_0);
 }
 
+function $sharing_cached_route$(_state_0, _route_0, _commands_0, _payload_0) {
+  return {$: "SharingRouted", "state": ($with_sharing_runtime$(_state_0, ($SharingRuntime$cached_routed$(($SharingRuntime$routed$(($sharing_runtime$(_state_0)), _route_0, _commands_0)), _route_0, _payload_0)))), "events": ($List$append$(($SharingRuntime$route_followups$(($sharing_runtime$(_state_0)), _route_0, _commands_0)), ($SharingRuntime$cached_followups$(($canonical$(_state_0)), ($freshness_state$(_state_0)), _route_0, _payload_0))))};
+}
+
 function $sharing_routed$(_state_0, _route_0, _commands_0) {
-  return {$: "SharingRouted", "state": ($with_sharing_runtime$(_state_0, ($SharingRuntime$routed$(($sharing_runtime$(_state_0)), _route_0, _commands_0)))), "events": ($SharingRuntime$route_followups$(($sharing_runtime$(_state_0)), _route_0, _commands_0))};
+  const __0 = _route_0["preparation"];
+  const __1 = _route_0["member"];
+  const __2 = _route_0["position"];
+  const _evaluation_0 = _route_0["evaluation"];
+  return $sharing_cached_route$(_state_0, {$: "SharingRuntime.Route", "preparation": __0, "member": __1, "position": __2, "evaluation": _evaluation_0}, _commands_0, ($CacheRuntime$hit$(($RuntimeScenarios$cache$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _evaluation_0, _commands_0)));
 }
 
 function $sharing_completion$(_state_0, _event_0) {
@@ -22973,17 +23351,6 @@ function $sharing_binding$(_state_0, _scope_0) {
 
 function $sharing_result$(_state_0, _evaluation_0) {
   return $SharingRuntime$result$(($sharing_runtime$(_state_0)), _evaluation_0);
-}
-
-function $sharing_departed$(_state_0, _departure_0) {
-  const _sharing_0 = _departure_0["state"];
-  const _events_0 = _departure_0["events"];
-  const _t_0 = _departure_0["valid"];
-  if (_t_0) {
-    return {$: "SharingDeparture", "state": ($with_sharing_runtime$(_state_0, _sharing_0)), "events": _events_0, "valid": true};
-  } else {
-    return {$: "SharingDeparture", "state": _state_0, "events": {$: "Nil"}, "valid": false};
-  }
 }
 
 function $sharing_leave$(_state_0, _scope_0) {
@@ -23120,18 +23487,6 @@ function $sharing_after$(_before_0, _after_0, _event_0, _commands_0) {
   return $SharingRuntime$fanout$(($sharing_runtime$(_before_0)), ($sharing_runtime$(_after_0)), ($canonical$(_after_0)), ($freshness_state$(_after_0)), _event_0, _commands_0);
 }
 
-function $sharing_leave_all$(_state_0, _partition_0, _lifetime_0) {
-  return $sharing_departed$(_state_0, ($SharingRuntime$depart_all$(($sharing_runtime$(_state_0)), ($canonical$(_state_0)), _partition_0, _lifetime_0)));
-}
-
-function $cache_runtime$(_state_0) {
-  return $RuntimeScenarios$cache$(($scenarios$(_state_0)));
-}
-
-function $with_cache_runtime$(_state_0, _cache_0) {
-  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_cache$(($scenarios$(_state_0)), _cache_0)));
-}
-
 function $cache_published$(_state_0, _published_0) {
   const _cache_0 = _published_0["state"];
   const _facts_0 = _published_0["facts"];
@@ -23193,8 +23548,29 @@ function $cache_begin_checked$(_before_0, _state_0, _event_0, _allowed_0) {
   }
 }
 
+function $cache_original_found$(_found_0) {
+  if (_found_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $cache_original_request$(_state_0, _event_0) {
+  if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    const _request_0 = _event_0["request"];
+    return $cache_original_found$(($FaultTargets$request$(_state_0, {$: "FaultTargets.Target", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0})));
+  } else {
+    return false;
+  }
+}
+
 function $cache_begin$(_before_0, _state_0, _event_0, _commands_0) {
-  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($recorded_cache_result$(_commands_0)));
+  return $cache_begin_checked$(_before_0, _state_0, _event_0, ($Bool$and$(($recorded_cache_result$(_commands_0)), ($cache_original_request$(($canonical$(_before_0)), _event_0)))));
 }
 
 function $cache_removed_result$(_feedback_0) {
@@ -23231,7 +23607,7 @@ function $cache_applied_feedback$(_before_0, _state_0, _event_0, _fact_0, _trans
 
 function $cache_apply_checked$(_state_0, _fact_0, _allowed_0) {
   if (!_allowed_0) {
-    return {$: "CacheApplied", "state": _state_0, "event": ($CacheRuntime$fact_event$(_fact_0)), "result": {$: "Canonical.Rejected", "state": ($canonical$(_state_0)), "reason": {$: "Canonical.StaleOperation"}}, "facts": {$: "Nil"}, "releases": {$: "Nil"}, "valid": false};
+    return {$: "CacheApplied", "state": _state_0, "event": ($CacheRuntime$fact_event$(_fact_0)), "result": {$: "Canonical.Rejected", "state": ($canonical$(_state_0)), "reason": {$: "Canonical.StaleOperation"}}, "facts": {$: "Nil"}, "releases": {$: "Nil"}, "valid": true};
   } else {
     return $cache_applied_feedback$(_state_0, _state_0, ($CacheRuntime$fact_event$(_fact_0)), _fact_0, ($step$(_state_0, ($CacheRuntime$fact_event$(_fact_0)))));
   }
@@ -23397,7 +23773,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:393243c9c6b6e1de7872650279b1544271f6d6bebd74b67dfb7354ff399b5982";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:45644783d0731025b025a5583dfc5bc7fe42b526c000bbabd1fdab61a39f3db4";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {

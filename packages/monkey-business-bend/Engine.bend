@@ -40,6 +40,9 @@ import ../agent-flow-bend/Dispatch.bend as Dispatch
 type Transition is Data:
   Transition{state: Types.State, result: Canonical.Step}
 
+type SharingDeparture is Data:
+  SharingDeparture{state: Types.State, events: List<&2,Canonical.CanonicalEvent>, valid: Bool}
+
 def initial(limits: Ledger.Limits) -> Types.State:
   Types.State{Canonical.initial(limits), Nil{}, Scheduler.initial(), Nil{}, Random.streams(1n), Advicees.initial(), CredentialFacts.initial(), Nil{}, Nil{}, Nil{}, Nil{}, Nil{}, RuntimeScenarios.initial()}
 
@@ -130,8 +133,33 @@ def freshness_state(state: Types.State) -> FreshnessScenario.State:
   match state:
     case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,scenarios}: RuntimeScenarios.freshness(scenarios)
 
-def handle(+state: Types.State, +event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
-  Driver.handle(canonical(state), event, command, FreshnessContext.apply(freshness_state(state),canonical(state),event,CredentialContext.apply(credential_state(state), event, context)))
+def cached_review_work(found: Maybe<&2,Canonical.Work>) -> Bool:
+  match found:
+    case Some{Canonical.Work{_,_,_,_,_,Canonical.Reviewing{},_}}: True{}
+    case _: False{}
+
+def cached_review_owned(+state: Types.State, +scope: FreshnessScenario.Scope) -> Bool:
+  match scope:
+    case FreshnessScenario.Scope{p,l,r,o}:
+      cached_review_work(Canonical.find_work(p,l,r,o,Driver.work_list(canonical(state)))) && CacheRuntime.current_found(FreshnessScenario.current(freshness_state(state),canonical(state),scope))
+
+def cached_review_handled(scope: FreshnessScenario.Scope, allowed: Bool) -> Driver.Handled:
+  match scope allowed:
+    case FreshnessScenario.Scope{+p,+l,+r,+o} True{}:
+      Driver.Handled{True{},[Driver.immediate(Canonical.StartReview{p,l,r,o},False{}),Driver.immediate(Canonical.ReviewObserved{p,l,r,o,Canonical.Finding{},True{}},False{})]}
+    case _ False{}: Driver.Handled{True{},[]}
+
+def handle_cached(+state: Types.State, +event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context, found: Maybe<&2,FreshnessScenario.Scope>) -> Driver.Handled:
+  match found:
+    case Some{+scope}: cached_review_handled(scope,cached_review_owned(state,scope))
+    case None{}: Driver.handle(canonical(state),event,command,FreshnessContext.apply(freshness_state(state),canonical(state),event,CredentialContext.apply(credential_state(state),event,context)))
+
+def scenarios(state: Types.State) -> RuntimeScenarios.State:
+  match state:
+    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, scenarios}: scenarios
+
+def handle(+state: Types.State, +event: Canonical.CanonicalEvent, +command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
+  handle_cached(state,event,command,context,SharingRuntime.cached_review(RuntimeScenarios.sharing(scenarios(state)),command))
 
 def edit(state: Types.State, partition: Nat, lifetime: Nat) -> Driver.EditPlan:
   Driver.edit(canonical(state), partition, lifetime)
@@ -498,8 +526,76 @@ def lifecycle_requested(entries: List<&2, AdviceeLifecycle.Entry>, partition: Na
     case AdviceeLifecycle.Resume{}: lifecycle_resume(AdviceeActivity.resumable(scope), entries, partition)
     case _: AdviceeLifecycle.change(entries, partition, action)
 
+def departed_cache_scope(previous: Maybe<&2,AdviceeLifecycle.Entry>, current: Maybe<&2,AdviceeLifecycle.Entry>, valid: Bool) -> Maybe<&2,FreshnessScenario.Scope>:
+  match previous current valid:
+    case Some{AdviceeLifecycle.Entry{_,_,AdviceeLifecycle.Removed{}}} _ _: None{}
+    case Some{AdviceeLifecycle.Entry{p,l,AdviceeLifecycle.Active{}}} Some{AdviceeLifecycle.Entry{_,_,AdviceeLifecycle.Disconnected{}}} True{}: Some{FreshnessScenario.Scope{p,l,0n,0n}}
+    case Some{AdviceeLifecycle.Entry{p,l,_}} Some{AdviceeLifecycle.Entry{_,_,AdviceeLifecycle.Removed{}}} True{}: Some{FreshnessScenario.Scope{p,l,0n,0n}}
+    case _ _ _: None{}
+
+def cache_release_actions(events: List<&2,Canonical.CanonicalEvent>) -> List<&2,Driver.Action>:
+  match events:
+    case Nil{}: []
+    case event <> tail: Driver.immediate(event,False{}) <> cache_release_actions(tail)
+
+def with_scenarios(state: Types.State, scenarios: RuntimeScenarios.State) -> Types.State:
+  match state:
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, _}:
+      Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}
+
+def with_cache_runtime(+state: Types.State, cache: CacheRuntime.State) -> Types.State:
+  with_scenarios(state,RuntimeScenarios.with_cache(scenarios(state),cache))
+
+def lifecycle_cache_published(transition: LifecycleTransition, partition: Nat, feedback: CacheRuntime.Feedback) -> LifecycleTransition:
+  match transition feedback:
+    case LifecycleTransition{state,changed,AdviceeLifecycleCleanup.CleanupPlan{actions,operations,preparations},events} CacheRuntime.Feedback{cache,releases}:
+      LifecycleTransition{with_cache_runtime(state,cache),changed,AdviceeLifecycleCleanup.CleanupPlan{List.append(&2,Driver.Action,Driver.immediate(Canonical.CacheDiscardPartition{partition},False{}) <> cache_release_actions(releases),actions),operations,preparations},events}
+
+def cache_runtime(state: Types.State) -> CacheRuntime.State:
+  RuntimeScenarios.cache(scenarios(state))
+
+def lifecycle_sharing_departed(transition: LifecycleTransition, departure: SharingDeparture) -> LifecycleTransition:
+  match transition departure:
+    case LifecycleTransition{_,changed,AdviceeLifecycleCleanup.CleanupPlan{actions,operations,preparations},events} SharingDeparture{state,release,_}:
+      LifecycleTransition{state,changed,AdviceeLifecycleCleanup.CleanupPlan{List.append(&2,Driver.Action,cache_release_actions(release),actions),operations,preparations},events}
+
+def with_sharing_runtime(+state: Types.State, sharing: SharingRuntime.State) -> Types.State:
+  with_scenarios(state,RuntimeScenarios.with_sharing(scenarios(state),sharing))
+
+type SharingCapture is Data:
+  SharingCapture{state: Types.State, routes: List<&2,SharingRuntime.Route>, valid: Bool}
+
+def sharing_departed(+state: Types.State, departure: SharingRuntime.Departure) -> SharingDeparture:
+  match departure:
+    case SharingRuntime.Departure{sharing,events,True{}}:
+      SharingDeparture{with_sharing_runtime(state,sharing),events,True{}}
+    case SharingRuntime.Departure{_,_,False{}}: SharingDeparture{state,[],False{}}
+
+def sharing_leave_all(+state: Types.State, partition: Nat, lifetime: Nat) -> SharingDeparture:
+  sharing_departed(state,SharingRuntime.depart_all(sharing_runtime(state),canonical(state),partition,lifetime))
+
+# The private metadata context is created only from an accepted original
+# physical result and its before-transition source capture. Canonical formats
+# and public raw reservation events have no cache continuation capability.
+type CachePublished is Data:
+  CachePublished{state: Types.State, facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>}
+type CacheApplied is Data:
+  CacheApplied{state: Types.State, event: Canonical.CanonicalEvent, result: Canonical.Step,
+    facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>, valid: Bool}
+
+def lifecycle_cache_scope(+transition: LifecycleTransition, scope: Maybe<&2,FreshnessScenario.Scope>) -> LifecycleTransition:
+  match transition scope:
+    case LifecycleTransition{+state,_,_,_} Some{FreshnessScenario.Scope{+p,+l,_,_}}:
+      lifecycle_cache_published(lifecycle_sharing_departed(transition,sharing_leave_all(state,p,l)),p,CacheRuntime.departure(cache_runtime(state),canonical(state),p,l))
+    case _ None{}: transition
+
+def lifecycle_cache_removed(+transition: LifecycleTransition, partition: Nat) -> LifecycleTransition:
+  match transition:
+    case LifecycleTransition{_,AdviceeLifecycle.Changed{_,previous,current,valid},_,_}:
+      lifecycle_cache_scope(transition,departed_cache_scope(previous,current,valid))
+
 def lifecycle_action(+state: Types.State, +partition: Nat, action: AdviceeLifecycle.Action) -> LifecycleTransition:
-  lifecycle_changed(state, partition, lifecycle_requested(AdviceeActivity.synchronize(lifecycle_entries(state), canonical(state), partition), partition, action, activity_scope(state, partition)))
+  lifecycle_cache_removed(lifecycle_changed(state, partition, lifecycle_requested(AdviceeActivity.synchronize(lifecycle_entries(state), canonical(state), partition), partition, action, activity_scope(state, partition))),partition)
 
 def permit_issue(capture: PermitScenario.Capture, now: Nat) -> Canonical.CanonicalEvent:
   PermitScenario.issue(capture, now)
@@ -511,15 +607,6 @@ def permit_consumed(state: Types.State, command: Canonical.Command, partition: N
   PermitScenario.consumed(canonical(state), command, partition, lifetime)
 
 # Scenario owners retain source-free issuance facts inside the same engine.
-def scenarios(state: Types.State) -> RuntimeScenarios.State:
-  match state:
-    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, scenarios}: scenarios
-
-def with_scenarios(state: Types.State, scenarios: RuntimeScenarios.State) -> Types.State:
-  match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, _}:
-      Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}
-
 def callback_state(state: Types.State) -> Callbacks.State:
   RuntimeScenarios.callbacks(scenarios(state))
 
@@ -665,12 +752,6 @@ def freshness_current(+state: Types.State, scope: FreshnessScenario.Scope) -> Ma
 def freshness_checks(state: Types.State, scope: FreshnessScenario.Scope) -> List<&2,Driver.Action>:
   FreshnessScenario.checks(freshness_state(state),scope)
 
-def with_sharing_runtime(+state: Types.State, sharing: SharingRuntime.State) -> Types.State:
-  with_scenarios(state,RuntimeScenarios.with_sharing(scenarios(state),sharing))
-
-type SharingCapture is Data:
-  SharingCapture{state: Types.State, routes: List<&2,SharingRuntime.Route>, valid: Bool}
-
 def sharing_captured(+state: Types.State, capture: SharingRuntime.Captured) -> SharingCapture:
   match capture:
     case SharingRuntime.Captured{sharing,routes,True{}}: SharingCapture{with_sharing_runtime(state,sharing),routes,True{}}
@@ -693,8 +774,14 @@ def sharing_route(+state: Types.State, route: SharingRuntime.Route) -> List<&2,C
 type SharingRouted is Data:
   SharingRouted{state: Types.State, events: List<&2,Canonical.CanonicalEvent>}
 
+def sharing_cached_route(+state: Types.State, +route: SharingRuntime.Route, +commands: List<&2,Canonical.Command>, +payload: Maybe<&2,CacheScenario.Payload>) -> SharingRouted:
+  SharingRouted{with_sharing_runtime(state,SharingRuntime.cached_routed(SharingRuntime.routed(sharing_runtime(state),route,commands),route,payload)),
+    List.append(&2,Canonical.CanonicalEvent,SharingRuntime.route_followups(sharing_runtime(state),route,commands),SharingRuntime.cached_followups(canonical(state),freshness_state(state),route,payload))}
+
 def sharing_routed(+state: Types.State, +route: SharingRuntime.Route, +commands: List<&2,Canonical.Command>) -> SharingRouted:
-  SharingRouted{with_sharing_runtime(state,SharingRuntime.routed(sharing_runtime(state),route,commands)),SharingRuntime.route_followups(sharing_runtime(state),route,commands)}
+  match route:
+    case SharingRuntime.Route{_,_,_,evaluation}:
+      sharing_cached_route(state,route,commands,CacheRuntime.hit(RuntimeScenarios.cache(scenarios(state)),canonical(state),evaluation,commands))
 
 def sharing_completion(state: Types.State, event: Canonical.CanonicalEvent) -> SharingRuntime.Completion:
   SharingRuntime.completion(sharing_runtime(state),event)
@@ -706,14 +793,6 @@ def sharing_result(state: Types.State, evaluation: Nat) -> Maybe<&2,Canonical.Re
   SharingRuntime.result(sharing_runtime(state),evaluation)
 
 
-type SharingDeparture is Data:
-  SharingDeparture{state: Types.State, events: List<&2,Canonical.CanonicalEvent>, valid: Bool}
-
-def sharing_departed(+state: Types.State, departure: SharingRuntime.Departure) -> SharingDeparture:
-  match departure:
-    case SharingRuntime.Departure{sharing,events,True{}}:
-      SharingDeparture{with_sharing_runtime(state,sharing),events,True{}}
-    case SharingRuntime.Departure{_,_,False{}}: SharingDeparture{state,[],False{}}
 
 def sharing_leave(+state: Types.State, scope: FreshnessScenario.Scope) -> SharingDeparture:
   sharing_departed(state,SharingRuntime.depart_canonical(sharing_runtime(state),canonical(state),scope))
@@ -790,24 +869,6 @@ def sharing_after(before: Types.State, +after: Types.State, event: Canonical.Can
   SharingRuntime.fanout(sharing_runtime(before),sharing_runtime(after),canonical(after),freshness_state(after),event,commands)
 
 
-def sharing_leave_all(+state: Types.State, partition: Nat, lifetime: Nat) -> SharingDeparture:
-  sharing_departed(state,SharingRuntime.depart_all(sharing_runtime(state),canonical(state),partition,lifetime))
-
-# The private metadata context is created only from an accepted original
-# physical result and its before-transition source capture. Canonical formats
-# and public raw reservation events have no cache continuation capability.
-type CachePublished is Data:
-  CachePublished{state: Types.State, facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>}
-type CacheApplied is Data:
-  CacheApplied{state: Types.State, event: Canonical.CanonicalEvent, result: Canonical.Step,
-    facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>, valid: Bool}
-
-def cache_runtime(state: Types.State) -> CacheRuntime.State:
-  RuntimeScenarios.cache(scenarios(state))
-
-def with_cache_runtime(+state: Types.State, cache: CacheRuntime.State) -> Types.State:
-  with_scenarios(state,RuntimeScenarios.with_cache(scenarios(state),cache))
-
 def cache_published(state: Types.State, published: CacheRuntime.Published) -> CachePublished:
   match published:
     case CacheRuntime.Published{cache,facts,releases}: CachePublished{with_cache_runtime(state,cache),facts,releases}
@@ -839,8 +900,18 @@ def cache_begin_checked(before: Types.State, +state: Types.State, event: Canonic
     case True{}: cache_begin_offer(before,state,SharingRuntime.cache_offer(sharing_runtime(state),event))
     case False{}: CachePublished{state,[],[]}
 
-def cache_begin(before: Types.State, state: Types.State, event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> CachePublished:
-  cache_begin_checked(before,state,event,recorded_cache_result(commands))
+def cache_original_found(found: Maybe<&2,Dispatch.Request>) -> Bool:
+  match found:
+    case Some{_}: True{}
+    case None{}: False{}
+
+def cache_original_request(state: Canonical.State, event: Canonical.CanonicalEvent) -> Bool:
+  match event:
+    case Canonical.JevRequestSettled{p,l,r,o,request,_,_}: cache_original_found(FaultTargets.request(state,FaultTargets.Target{p,l,r,o,request}))
+    case _: False{}
+
+def cache_begin(+before: Types.State, state: Types.State, +event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> CachePublished:
+  cache_begin_checked(before,state,event,recorded_cache_result(commands) && cache_original_request(canonical(before),event))
 
 def cache_removed_result(feedback: CacheRuntime.Feedback) -> List<&2,Canonical.CanonicalEvent>:
   match feedback:
@@ -865,7 +936,7 @@ def cache_applied_feedback(+before: Types.State, state: Types.State, +event: Can
 
 def cache_apply_checked(+state: Types.State, +fact: CacheRuntime.Fact, allowed: Bool) -> CacheApplied:
   match allowed:
-    case False{}: CacheApplied{state,CacheRuntime.fact_event(fact),Canonical.Rejected{canonical(state),Canonical.StaleOperation{}},[],[],False{}}
+    case False{}: CacheApplied{state,CacheRuntime.fact_event(fact),Canonical.Rejected{canonical(state),Canonical.StaleOperation{}},[],[],True{}}
     case True{}: cache_applied_feedback(state,state,CacheRuntime.fact_event(fact),fact,step(state,CacheRuntime.fact_event(fact)))
 
 def cache_apply(+state: Types.State, +fact: CacheRuntime.Fact) -> CacheApplied:

@@ -1,3 +1,4 @@
+import type { SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
 import { captureSharingIdentityFacts, encodeSharingKey, sharingIdentityLabel, type SharingIdentityFacts } from "./sharing-controls.ts";
 export * from "./sharing-controls.ts";
 import { encodeNoticeScope, type OperationalNoticeKind } from "./notice-controls.ts";
@@ -222,9 +223,7 @@ type Scheduled = {
   fitFinish?: number;
   expiryAdvice?: number;
   generated?: boolean;
-  cacheId?: number;
-  cacheBytes?: number;
-  cacheOutcome?: "clear" | "finding";
+  cacheFact?: SharedCacheFact;
   job?: Extract<RunInput, { kind: "edit" }>;
 } & ({ input: RunInput; candidate?: never } | {
   input: { kind: "canonical"; at: number; event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" | "collectionFitCheck" }>; generation?: number };
@@ -266,9 +265,7 @@ export class Run {
   private get candidateOutputBytes(): number | undefined { return this.config.lifecycles?.encodedOutputBytes ?? (this.config.resourceScenarios?.outputBytes ?? (this.resourceScenarios?.config.outputFit ? this.resourceScenarios.config.outputBytes : undefined)); }
   private identityIds = new Map<string, number>();
   private nextIdentity = 1;
-  private cachedOutcomes = new Map<number, "clear" | "finding">();
   private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
-  private annotate(fields: Partial<Pick<Scheduled, "cacheId" | "cacheBytes" | "cacheOutcome">>) { Object.assign(this.queue.find(item => item.order === this.order - 1)!, fields); }
   private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
   private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
   get capacityMetadata(): CapacityMetadata {
@@ -395,6 +392,7 @@ export class Run {
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
     this.core = new SharedCore(config.limits ?? defaults, config.seed ?? 1);
+    if (config.lifecycles?.reuse) this.core.configureCache(config.lifecycles.reuse.entryLimit, config.lifecycles.reuse.byteLimit);
     this.core.configureCredentials(this.environment.credentialReady, this.environment.credentialGeneration ?? 1);
     if (config.session && config.sessions) throw new TypeError("choose session or sessions");
     const sessions = config.sessions ?? (config.session ? [config.session] : []);
@@ -883,11 +881,16 @@ export class Run {
       if (!readBool(completion.ready)) throw new Error("unresolved shared preparation route");
       event = decodeDriverEvent(completion.event);
     }
-    const result = this.core.step(event);
-    if (item.generated && event.kind === "cacheCommit" && !result.commands.some(command => command.kind === "cacheCommitted")) {
-      emit({ kind: "releaseCapacity", reservation: event.reservation });
-      if (!this.projection.reuse.cache.some(entry => entry.id === event.id)) this.cachedOutcomes.delete(event.id);
+    const result = this.core.step(event, item.cacheFact);
+    const cachePublished = this.config.lifecycles?.reuse && event.kind === "jevRequestSettled"
+      ? this.core.beginCache(event) : undefined;
+    for (const fact of [...result.cacheFacts, ...(cachePublished?.facts ?? [])]) {
+      this.event(fact.partition, fact.event);
+      const scheduled = this.scheduled.get(this.order - 1);
+      if (!scheduled) throw new Error("cache fact lost its original scheduled context");
+      scheduled.cacheFact = fact;
     }
+    for (const release of [...result.cacheReleases, ...(cachePublished?.releases ?? [])]) emit(release);
     if (event.kind === "collectionFitCheck") {
       const command = result.commands.find(c => c.kind === "collectionFits" || c.kind === "collectionLimited");
       if (command) Object.assign(this.metadata, { encodedOutput: { ...this.metadata.encodedOutput!, decision: command.kind === "collectionFits" ? "fits" : "limited" } });
@@ -1030,38 +1033,11 @@ export class Run {
         case "reuseCached":
           break;
         case "cacheDiscarded":
-          for (const id of command.ids) {
-            this.cachedOutcomes.delete(id);
-            const discarded = before.reuse.cache.find(entry => entry.id === id);
-            if (discarded) emit({ kind: "releaseCapacity", reservation: discarded.reservation });
-          }
-          break;
         case "cachePrepared":
-          if (event.kind === "cachePrepare") {
-            for (const id of command.evicted) {
-              this.cachedOutcomes.delete(id);
-              const evicted = before.reuse.cache.find(entry => entry.id === id);
-              if (evicted) emit({ kind: "releaseCapacity", reservation: evicted.reservation });
-            }
-            const owner = partition;
-            emit({ kind: "reserveCapacity", partition: owner, bytes: event.bytes, purpose: "storedResult" });
-            this.annotate({ cacheId: event.id, cacheBytes: event.bytes, ...(item.cacheOutcome ? { cacheOutcome: item.cacheOutcome } : {}) });
-          }
-          break;
         case "cacheRejected":
-          if (event.kind === "cachePrepare" && !this.projection.reuse.cache.some(entry => entry.id === event.id)) this.cachedOutcomes.delete(event.id);
-          break;
         case "capacityRefused":
-          if (item.cacheId !== undefined && !this.projection.reuse.cache.some(entry => entry.id === item.cacheId)) this.cachedOutcomes.delete(item.cacheId);
-          break;
         case "capacityGranted":
-          if (item.cacheId !== undefined && this.config.lifecycles?.reuse) {
-            emit({ kind: "cacheCommit", id: item.cacheId, partition: partition, bytes: item.cacheBytes!, reservation: command.id, entryLimit: this.config.lifecycles.reuse.entryLimit, byteLimit: this.config.lifecycles.reuse.byteLimit });
-            if (item.cacheOutcome) this.annotate({ cacheOutcome: item.cacheOutcome });
-          }
-          break;
         case "cacheCommitted":
-          if (event.kind === "cacheCommit" && item.cacheOutcome) this.cachedOutcomes.set(event.id, item.cacheOutcome);
           break;
         case "jevRequestIssued": {
           this.issuedRequests.set(command.request, command);
