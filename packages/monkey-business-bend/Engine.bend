@@ -141,6 +141,10 @@ def preparation_running(state: Canonical.State) -> List<&2,Dispatch.Entry>:
   match state:
     case Canonical.State{_,_,_,_,_,_,Dispatch.State{_,running,_,_,_},_,_}: running
 
+def sharing_runtime(state: Types.State) -> SharingRuntime.State:
+  match state:
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,scenarios}: RuntimeScenarios.sharing(scenarios)
+
 def sharing_actions(events: List<&2,Canonical.CanonicalEvent>) -> List<&2,Driver.Action>:
   match events:
     case Nil{}: []
@@ -659,9 +663,6 @@ def freshness_current(+state: Types.State, scope: FreshnessScenario.Scope) -> Ma
 def freshness_checks(state: Types.State, scope: FreshnessScenario.Scope) -> List<&2,Driver.Action>:
   FreshnessScenario.checks(freshness_state(state),scope)
 
-def sharing_runtime(state: Types.State) -> SharingRuntime.State:
-  RuntimeScenarios.sharing(scenarios(state))
-
 def with_sharing_runtime(+state: Types.State, sharing: SharingRuntime.State) -> Types.State:
   with_scenarios(state,RuntimeScenarios.with_sharing(scenarios(state),sharing))
 
@@ -723,12 +724,15 @@ type SharingFrame is Data:
 type SharingNext is Data:
   SharingNext{state: Types.State, frame: Maybe<&2,SharingFrame>, events: List<&2,Canonical.CanonicalEvent>}
 
+def sharing_route_published(before: Types.State, event: Canonical.CanonicalEvent, canonical: Canonical.State, commands: List<&2,Canonical.Command>, routed: SharingRouted) -> SharingNext:
+  match routed:
+    case SharingRouted{+next,events}:
+      SharingNext{next,Some{SharingFrame{before,next,event,Canonical.Advanced{canonical,commands}}},events}
+
 def sharing_route_result(+before: Types.State, +route: SharingRuntime.Route, +event: Canonical.CanonicalEvent, transition: Transition) -> SharingNext:
   match transition:
     case Transition{+state,Canonical.Advanced{+canonical,+commands}}:
-      match sharing_routed(state,route,commands):
-        case SharingRouted{+next,events}:
-          SharingNext{next,Some{SharingFrame{before,next,event,Canonical.Advanced{canonical,commands}}},events}
+      sharing_route_published(before,event,canonical,commands,sharing_routed(state,route,commands))
     case Transition{+state,+result}: SharingNext{state,Some{SharingFrame{before,state,event,result}},[]}
 
 def sharing_route_events(+state: Types.State, +route: SharingRuntime.Route, events: List<&2,Canonical.CanonicalEvent>) -> SharingNext:
@@ -758,17 +762,21 @@ def sharing_preparation_live(+state: Types.State, event: Canonical.CanonicalEven
       preparation_active(state,p,l,r,o) && AdviceeLifecycle.permits_activity(lifecycle_entries(state),p,l)
     case _: False{}
 
+def sharing_head_pending(+state: Types.State, at: Nat, routes: List<&2,SharingRuntime.Route>) -> SharingNext:
+  match routes:
+    case Nil{}: SharingNext{state,None{},[]}
+    case route <> tail: sharing_first(sharing_metadata_clock(state,at),route <> tail)
+
+def sharing_head_checked(+state: Types.State, +event: Canonical.CanonicalEvent, at: Nat, allowed: Bool) -> SharingNext:
+  match allowed:
+    case False{}: SharingNext{state,None{},[]}
+    case True{}: sharing_head_pending(state,at,SharingRuntime.pending(sharing_runtime(state),event))
+
 def sharing_at_head(+state: Types.State, +event: Canonical.CanonicalEvent, order: Nat, horizon: Maybe<&2,Nat>, head: Maybe<&2,Scheduler.Entry>) -> SharingNext:
   match head:
     case None{}: SharingNext{state,None{},[]}
     case Some{Scheduler.Entry{+at,id}}:
-      match Nat.is_eq(order,id) && sharing_within(at,horizon) && sharing_preparation_live(state,event):
-        case False{}: SharingNext{state,None{},[]}
-        case True{}:
-          match SharingRuntime.pending(sharing_runtime(state),event):
-            case Nil{}: SharingNext{state,None{},[]}
-            case +route <> tail:
-              sharing_first(sharing_metadata_clock(state,at),route <> tail)
+      sharing_head_checked(state,event,at,Nat.is_eq(order,id) && sharing_within(at,horizon) && sharing_preparation_live(state,event))
 
 def sharing_preprocess(+state: Types.State, event: Canonical.CanonicalEvent, order: Nat, horizon: Maybe<&2,Nat>) -> SharingNext:
   match state:
