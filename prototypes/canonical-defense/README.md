@@ -6,6 +6,36 @@
 **Expected use:** Play the finite workload, build spatial towers, inspect their effects, and compare how the maps explain preparation, review, sibling waiting and output.
 **Lifecycle:** At the owner's game-layout selection, consolidate accepted layout/mechanic decisions into the game specification or implementation issue, update inbound links, and delete rejected variants and temporary evidence. Review whenever the canonical state/event/command interface changes.
 
+## Earlier game index
+
+This is the latest game implementation. Earlier games remain available as
+temporary references for selecting mechanics to carry into the shared Monkey
+Business game/dashboard implementation. Their policies and tests do not establish
+current production behavior. Extract a chosen mechanic into the current owner
+rather than making a new runtime dependency on an older prototype.
+
+| Earlier implementation | Source entry points | What to inspect before removal |
+| --- | --- | --- |
+| Road/building architecture defense | [Guide](../bend-tower-defense/README.md#current-direction-roads-buildings-and-construction), [RoadGame.bend](../bend-tower-defense/RoadGame.bend), [RoadScenario.bend](../bend-tower-defense/RoadScenario.bend) | Safe approach queues, separate storage and worker resources, per-edit sibling readiness, output batching, tower placement and dynamic effect previews. This uses its own teaching engine, not `Canonical.step`. |
+| Automatic road-game scheduling | [RoadAuto.bend](../bend-tower-defense/RoadAuto.bend), [auto checks](../bend-tower-defense/RoadAutoHeadless.bend) | Direct reuse of `Session.bend` task timing, pause/resume, manual consumption of a pending task and terminal guards. Auto mode starts finite waves; within-wave arrivals remain in `RoadGame.bend`. |
+| Queue-board flow lab | [Guide](../bend-tower-defense/README.md#play-the-flow-game), [FlowGame.bend](../bend-tower-defense/FlowGame.bend), [FlowScenario.bend](../bend-tower-defense/FlowScenario.bend) | Capture/review/advice bottleneck comparisons, worker allocation, queue and holding rules, and source-free scenario configuration. |
+| Original combat experiment | [Guide](../bend-tower-defense/README.md#play-the-original-combat-experiment), [Game.bend](../bend-tower-defense/Game.bend), [Model.bend](../bend-tower-defense/Model.bend) | Basic monster spawning, combat, construction and upgrades. Its wave/HP rules are authored game mechanics. |
+
+The retained source bundles are checkpoints for comparison, not separate current
+entry points: [combat](../bend-tower-defense-source.tar.gz),
+[flow lab](../bend-flow-game-source.tar.gz),
+[architecture backbone](../bend-architecture-defense-source.tar.gz),
+[road increment](../bend-architecture-defense-increment-source.tar.gz),
+[support towers](../bend-architecture-defense-towers-source.tar.gz), and
+[automatic waves](../bend-architecture-defense-auto-source.tar.gz).
+
+Cleanup trigger: when the owner removes the earlier games during the shared
+Monkey Business game/dashboard migration, **consolidate** selected mechanics and
+their necessary checks into the new shared simulator or current game owner,
+update inbound links, and **delete** the rejected prototypes, obsolete bundles
+and this temporary index. Review this index whenever an earlier source moves or
+is selected for transfer; no source removal is performed by adding the index.
+
 ## Run
 
 With Bend and native graphics prerequisites installed:
