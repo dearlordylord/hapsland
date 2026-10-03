@@ -66,9 +66,11 @@ destination; a change to any of these invalidates reuse. See the
 
 Update attribution currently requires an exact verified post-edit span. Codex
 `apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply
-one. Source containing non-ASCII characters currently fails this coordinate
-check closed for both Add and Update, so the path produces no review unit.
-[#151](https://github.com/dearlordylord/hapsland/issues/151) tracks this limit.
+one. Attribution compares one-based UTF-16 code-unit columns from the pinned
+Node parser binding and verified edit spans. Unicode comments and strings do
+not prevent Add or verified Update selection. Missing or uncertain spans still
+produce no Update review unit; OpenCode Update currently supplies no verified
+span, while its Add path selects eligible declarations.
 
 The previous compatibility assessment for the one-file input remains in Git
 history. Its old prospective gates do not govern the 2026-09-29 decision.

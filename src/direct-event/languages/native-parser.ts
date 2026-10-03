@@ -34,6 +34,7 @@ export const { default: Parser } = await import("tree-sitter");
 export const { default: TypeScript } = await import("tree-sitter-typescript");
 export const { default: Rust } = await import("tree-sitter-rust");
 
+/** The pinned Node binding exposes indices and columns in UTF-16 code units. */
 export type SyntaxNode = {
   readonly type: string;
   readonly startIndex: number;
