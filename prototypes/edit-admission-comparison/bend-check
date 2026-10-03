@@ -1,0 +1,5 @@
+#!/bin/sh
+TO=timeout
+command -v timeout >/dev/null || TO=gtimeout
+command -v "$TO" >/dev/null || exit 127
+"$TO" 5 bend "$@"

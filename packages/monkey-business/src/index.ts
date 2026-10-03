@@ -1,3 +1,6 @@
+import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
+export * from "./resource-scenarios.ts";
+export { projectAgent } from "./agent-projection.ts";
 import { generateFileTree, validateFileTreeProfile, DEFAULT_FILE_TREE_PROFILE, type FileTreeProfile } from "./file-trees.ts";
 export * from "./file-trees.ts";
 import { PreparationReplay, type PreparationEvent, type PreparationFrame } from "./preparation.ts";
@@ -34,7 +37,9 @@ export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
   "canonical-source-sha256:c75c63f1c243f7df350237464e217d89518a9b0366e468b2a18ba782a9d4c061";
-export const PREPARATION_IDENTITY = "import-preparation-sha256:812ca7a89d0f7b39ea4b4aa68e220b744bc0f6c2a7e1c1dcf2e5374919ca11ae";
+export const PREPARATION_IDENTITY = "import-preparation-sha256:c85f59d667624daf084d024fab190a3e372bd1d0bdcd669d7241967ad3c497fa";
+import type { LifecycleProfile, CapacityMetadata } from "./lifecycle-profile.ts";
+export * from "./lifecycle-profile.ts";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
@@ -44,10 +49,18 @@ export type RunInput =
           readonly bytes: number;
           readonly unitBytes: readonly number[];
           readonly outcome?: JevRequestOutcome;
+          readonly tool?: number;
+          readonly editDurationMs?: number;
+          /** Exact source-free prepared evaluation identities, one per review unit. */
+          readonly evaluationInputs?: readonly string[];
+          readonly evaluationTreeIdentity?: number;
+          readonly evaluationTreeProfile?: FileTreeProfile;
+          readonly revisionSubject?: string;
+          readonly revisionInput?: string;
         }
       | { readonly kind: "finish" }
     ));
-export type Control = LiveControl;
+export type Control = LiveControl & { readonly agent?: string };
 export type ControlRecord = {
   readonly control: Control;
   readonly time: number;
@@ -95,6 +108,8 @@ export type EffectObservation =
       readonly operation: number;
     };
 export type Observation = {
+  readonly partition?: number;
+  readonly agent?: string;
   readonly sequence: number;
   readonly time: number;
   readonly event: CanonicalEvent | PreparationEvent;
@@ -109,9 +124,14 @@ export type Observation = {
     readonly repair?: boolean;
   };
   readonly effects: readonly EffectObservation[];
+  readonly capacityMetadata: CapacityMetadata;
 };
 export type RunConfig = {
   readonly seed?: number;
+  readonly lifecycles?: LifecycleProfile;
+  readonly resourceScenarios?: ResourceScenarioConfig;
+  /** Explicit demo provenance; never a native capacity policy. */
+  readonly demoAgentCount?: number;
   readonly limits?: Parameters<typeof initialCanonical>[0];
   readonly inputs?: readonly RunInput[];
   readonly preparationDelay?: number;
@@ -124,6 +144,7 @@ export type RunConfig = {
   readonly jevDelay?: number;
   readonly retention?: number;
   readonly session?: SessionConfig;
+  readonly sessions?: readonly SessionConfig[];
 } & OutcomeChoice;
 export type Replay = {
   readonly endpoint: { readonly eventCount: number; readonly now: number };
@@ -141,16 +162,23 @@ export type Replay = {
     input: RunInput;
   }[];
 };
-type CandidateContext = { advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
+type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
+  partition?: number;
   at: number;
   order: number;
   finishAttempt?: number;
+  fitFinish?: number;
   expiryAdvice?: number;
   generated?: boolean;
+  reuseOperation?: number;
+  reuseOutcome?: "clear" | "finding";
+  cacheId?: number;
+  cacheBytes?: number;
+  cacheOutcome?: "clear" | "finding";
   job?: Extract<RunInput, { kind: "edit" }>;
 } & ({ input: RunInput; candidate?: never } | {
-  input: { kind: "canonical"; at: number; event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>; generation?: number };
+  input: { kind: "canonical"; at: number; event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" | "collectionFitCheck" }>; generation?: number };
   candidate: CandidateContext;
 } | {
   input: { kind: "preparationGraph"; at: number; event: PreparationEvent };
@@ -163,6 +191,17 @@ const integer = (n: number, name: string) => {
 };
 const copy = <T>(x: T): T => structuredClone(x);
 const restoreEndpoint = Symbol("restore replay endpoint");
+type Finish = {
+  round: number;
+  attempt: number;
+  token: number;
+  deadline: number;
+  recurring: boolean;
+  selected: number[];
+  waiting: boolean;
+  validating: number;
+  fitPending?: boolean;
+};
 const defaults = {
   globalItems: 32,
   globalBytes: 100000,
@@ -172,6 +211,52 @@ const defaults = {
 /** Equal-time items follow insertion order; effects appended by a transition follow already queued items. */
 export class Run {
   private state: unknown;
+  private nextTool = 1;
+  private revisionGenerations = new Map<string, number>();
+  private operationRevisions = new Map<number, { subject: number; input: number; generation: number }>();
+  private staleOperations = new Set<number>();
+  private resourceScenarios?: ResourceScenarios;
+  private get candidateOutputBytes(): number | undefined { return this.config.lifecycles?.encodedOutputBytes ?? (this.config.resourceScenarios?.outputBytes ?? (this.resourceScenarios?.config.outputFit ? this.resourceScenarios.config.outputBytes : undefined)); }
+  private identityIds = new Map<string, number>();
+  private nextIdentity = 1;
+  private evaluations = new Map<number, { id: number; bytes: number }>();
+  private evaluationWaiters = new Map<number, number[]>();
+  /** A fulfilled native promise remains joinable while Bend still retains its pending claim. */
+  private fulfilledEvaluations = new Map<number, "clear" | "finding" | "unavailable">();
+  private supplyEvaluation(operation: number, outcome: "clear" | "finding" | "unavailable") {
+    if (outcome !== "unavailable") { this.supplyReuse(operation, outcome); return; }
+    const work = this.projection.work.find(work => work.operation === operation);
+    if (work) this.event({ kind: "reviewCompleted", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome });
+  }
+  private cachedOutcomes = new Map<number, "clear" | "finding">();
+  private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
+  private annotate(fields: Partial<Pick<Scheduled, "reuseOperation" | "reuseOutcome" | "cacheId" | "cacheBytes" | "cacheOutcome">>) { Object.assign(this.queue.find(item => item.order === this.order - 1)!, fields); }
+  private supplyReuse(operation: number, outcome: "clear" | "finding") {
+    const revision = this.operationRevisions.get(operation);
+    if (revision) {
+      this.event({ kind: "revisionCurrentCheck", ...revision });
+      this.annotate({ reuseOperation: operation, reuseOutcome: outcome });
+      return;
+    }
+    this.observeReuse(operation, outcome, this.environment.currentWork);
+  }
+  private observeReuse(operation: number, outcome: "clear" | "finding", currentWork: boolean) {
+    const work = this.projection.work.find(w => w.operation === operation);
+    if (!work) return;
+    this.event({ kind: "reviewObserved", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome, currentWork });
+  }
+  private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
+  private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
+  get capacityMetadata(): CapacityMetadata {
+    const metadata = copy(this.metadata);
+    if (metadata.demoAgentCount !== undefined) {
+      const limits = demoResourceLimits(metadata.demoAgentCount);
+      if (metadata.reuse?.entryLimit !== limits.entryLimit || metadata.reuse.byteLimit !== limits.byteLimit
+        || (metadata.notices !== undefined && metadata.notices.maximumKeys !== limits.noticeMaximumKeys))
+        delete (metadata as { demoAgentCount?: number }).demoAgentCount;
+    }
+    return metadata;
+  }
   private preparation = new PreparationReplay();
   private canonicalAllowed = true;
   private queue: Scheduled[] = [];
@@ -188,25 +273,27 @@ export class Run {
     input: RunInput;
   }[] = [];
   private timelineOrder = 0;
-  private finish:
-    | {
-        round: number;
-        attempt: number;
-        token: number;
-        deadline: number;
-        recurring: boolean;
-        selected: number[];
-        waiting: boolean;
-        validating: number;
-      }
-    | undefined;
+  private finishes = new Map<number, Finish>();
+  private nextFinishIdentity = 100000;
+  private partition = 1;
+  private get finish() { return this.finishes.get(this.partition); }
+  private set finish(value: Finish | undefined) {
+    if (value) this.finishes.set(this.partition, value);
+    else this.finishes.delete(this.partition);
+  }
   private issuedRequests = new Map<
     number,
     Extract<CanonicalCommand, { kind: "jevRequestIssued" }>
   >();
   private jobs = new Map<number, Extract<RunInput, { kind: "edit" }>>();
   private readonly config: RunConfig;
-  private readonly session?: SessionGenerator;
+  private readonly editDurations = new Map<number, number>();
+  private readonly generators = new Map<number, SessionGenerator>();
+  private readonly scopes: { agent: string; partition: number; seed: number }[] = [];
+  private get session() { return this.generators.get(this.partition); }
+  get agentScopes(): readonly { readonly agent: string; readonly partition: number; readonly seed: number }[] {
+    return copy(this.scopes);
+  }
   private jevDelay: number;
   private outcome: JevRequestOutcome | undefined;
   private outcomeWeights: OutcomeWeights;
@@ -217,16 +304,44 @@ export class Run {
   private outputProfile: OutputProfile;
   private fileTrees: FileTreeProfile;
   constructor(config: RunConfig = {}) {
+    if (config.lifecycles?.permits?.lifetimeMs !== undefined && integer(config.lifecycles.permits.lifetimeMs, "permit lifetime") === 0) throw new RangeError("permit lifetime must be positive");
+    if (config.lifecycles?.permits?.terminal !== undefined && !["consume", "release", "expire"].includes(config.lifecycles.permits.terminal)) throw new TypeError("invalid permit terminal");
+    if (config.lifecycles?.cancellation !== undefined && !["lateCallback", "suppressed"].includes(config.lifecycles.cancellation)) throw new TypeError("invalid cancellation outcome");
+    if (config.lifecycles?.reuse) for (const [name, value] of Object.entries(config.lifecycles.reuse)) if (integer(value, name) === 0) throw new RangeError(`${name} must be positive`);
+    if (config.lifecycles?.encodedOutputBytes !== undefined) integer(config.lifecycles.encodedOutputBytes, "encoded output bytes");
+    if (config.lifecycles?.collectors?.lifetimeMs !== undefined && integer(config.lifecycles.collectors.lifetimeMs, "collector lifetime") === 0) throw new RangeError("collector lifetime must be positive");
+    for (const [name, value] of Object.entries(config.lifecycles?.permits ?? {})) if (typeof value === "number") { integer(value, name); if (name.endsWith("Limit") && value === 0) throw new RangeError(`${name} must be positive`); }
+    if (config.lifecycles?.collectors && integer(config.lifecycles.collectors.capacity, "collector capacity") === 0) throw new RangeError("collector capacity must be positive");
+    if (config.lifecycles?.quietWindowMs !== undefined && integer(config.lifecycles.quietWindowMs, "quiet window") === 0) throw new RangeError("quiet window must be positive");
+    if (config.lifecycles?.permits) Object.assign(this.metadata, { permits: { adviceeLimit: config.lifecycles.permits.adviceeLimit, residentLimit: config.lifecycles.permits.residentLimit } });
+    if (config.lifecycles?.reuse) Object.assign(this.metadata, { reuse: { entryLimit: config.lifecycles.reuse.entryLimit, byteLimit: config.lifecycles.reuse.byteLimit } });
+    const demoLimits = demoResourceLimits(config.sessions?.length ?? 1);
+    if (config.demoAgentCount !== undefined) {
+      const advertised = demoResourceLimits(config.demoAgentCount);
+      if (config.lifecycles?.reuse?.entryLimit === advertised.entryLimit && config.lifecycles.reuse.byteLimit === advertised.byteLimit
+        && (config.resourceScenarios?.noticeMaximumKeys ?? demoLimits.noticeMaximumKeys) === advertised.noticeMaximumKeys)
+        Object.assign(this.metadata, { demoAgentCount: config.demoAgentCount });
+    }
+    if (config.resourceScenarios) config = { ...config, resourceScenarios: { noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
+    if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 8 } });
+    if (config.lifecycles?.collectors) Object.assign(this.metadata, { collectors: { capacity: config.lifecycles.collectors.capacity } });
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
     this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
-    if (config.session)
-      this.session = new SessionGenerator({
-        ...config.session,
-        seed: config.session.seed ?? config.seed ?? 1,
-      });
+    if (config.session && config.sessions) throw new TypeError("choose session or sessions");
+    const sessions = config.sessions ?? (config.session ? [config.session] : []);
+    if (config.sessions && (!sessions.length || sessions.length > 64)) throw new RangeError("sessions requires 1..64 agents");
+    sessions.forEach((settings, index) => {
+      const agent = settings.agent ?? `agent-${index + 1}`;
+      if (this.scopes.some(scope => scope.agent === agent)) throw new TypeError("duplicate session agent");
+      const seed = settings.seed ?? ((config.seed ?? 1) + Math.imul(index, 2654435761)) >>> 0;
+      const partition = index + 1;
+      this.generators.set(partition, new SessionGenerator({ ...settings, agent, seed }));
+      if (settings.editDurationMs !== undefined) this.editDurations.set(partition, settings.editDurationMs);
+      this.scopes.push({ agent, partition, seed });
+    });
     if (config.outcome !== undefined && config.outcomeWeights !== undefined) throw new TypeError("choose explicit outcome or outcome weights");
     this.outcome = config.outcome;
     this.outcomeWeights = validateOutcomeWeights(config.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS);
@@ -239,7 +354,7 @@ export class Run {
       ...(config.outcome === undefined ? { outcomeWeights: this.outcomeWeights } : { outcome: config.outcome }),
       inputs:
         config.inputs ??
-        (config.session
+        ((config.session || config.sessions)
           ? []
           : [
               {
@@ -251,6 +366,9 @@ export class Run {
               { at: 20, kind: "finish" },
             ]),
     });
+    const deliveryGroups = this.scopes.map(scope => ({ partition: scope.partition, group: scope.partition }));
+    if (!deliveryGroups.length && this.config.inputs!.some(input => input.kind === "edit" || input.kind === "finish")) deliveryGroups.push({ partition: 1, group: 1 });
+    if (deliveryGroups.length) Object.assign(this.metadata, { deliveryGroups });
     integer(this.config.seed!, "seed");
     this.jevDelay = integer(config.jevDelay ?? 5, "Jev delay");
     integer(config.preparationDelay ?? 2, "preparation delay");
@@ -259,9 +377,10 @@ export class Run {
       throw new RangeError("advice lifetime must be positive");
     integer(config.retention ?? 1000, "retention");
     this.state = initialCanonical(config.limits ?? defaults);
-    if (this.session)
-      for (const input of this.session.next(0)) this.enqueue(input);
+    for (const generator of this.generators.values())
+      for (const input of generator.next(0)) this.enqueue(input);
     for (const input of this.config.inputs!) this.enqueue(input);
+    if (config.resourceScenarios) { this.resourceScenarios = new ResourceScenarios(config.resourceScenarios); for (const input of this.resourceScenarios.inputs()) this.enqueue(input); }
   }
   get now() {
     return this.clock;
@@ -308,10 +427,16 @@ export class Run {
     expiryAdvice?: number,
   ) {
     this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
-    this.queue.find(item => item.order === this.order - 1)!.generated = true;
+    const scheduled = this.queue.find(item => item.order === this.order - 1)!;
+    scheduled.generated = true;
+    scheduled.partition = this.partition;
   }
   applyControl(control: Control): ControlRecord {
-    const value = validateLiveControl(control);
+    const value: Control = validateLiveControl(control);
+    if (value.agent !== undefined && !this.scopes.some(scope => scope.agent === value.agent))
+      throw new RangeError("unknown agent control target");
+    if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees"].includes(value.kind))
+      throw new TypeError("resident controls cannot target one agent");
     if (value.kind === "fileTrees") {
       this.fileTrees = validateFileTreeProfile(value.profile);
     } else if (value.kind === "environment") {
@@ -319,16 +444,21 @@ export class Run {
         credentialGeneration: value.credentialGeneration ?? this.environment.credentialGeneration ?? 1,
         sourceReadable: value.sourceReadable ?? this.environment.sourceReadable ?? true };
       for (const work of this.projection.work) if (work.kind === "pendingFinding")
-        this.validateAdvice(work.operation, work.round, work.operation, this.session ? "background" : "edit");
+        this.validateAdvice(work.operation, work.round, work.operation, this.generators.has(work.partition) ? "background" : "edit");
     } else if (value.kind === "outputProfile") {
       this.outputProfile = { outcome: value.outcome, delayMs: value.delayMs, leaseMs: value.leaseMs };
     } else if (value.kind === "jevProfile") {
       this.jevDelay = value.delayMs;
       if (value.outcome !== undefined) this.outcome = value.outcome;
       if (value.outcomeWeights !== undefined) { this.outcome = undefined; this.outcomeWeights = validateOutcomeWeights(value.outcomeWeights); }
-    } else if (this.session) {
-      for (const input of this.session.apply(value, this.clock))
-        this.enqueue(input);
+    } else if (value.kind === "editDuration") {
+      if (!this.generators.size) throw new Error("edit duration requires a session generator");
+      for (const scope of this.scopes) if (value.agent === undefined || value.agent === scope.agent) this.editDurations.set(scope.partition, value.durationMs);
+    } else if (this.generators.size) {
+      for (const scope of this.scopes) {
+        if (value.agent !== undefined && value.agent !== scope.agent) continue;
+        for (const input of this.generators.get(scope.partition)!.apply(value, this.clock)) this.enqueue(input);
+      }
     } else throw new Error(`unsupported control: ${value.kind}`);
     const record = {
       control: value,
@@ -351,6 +481,7 @@ export class Run {
     const item = this.queue.shift();
     if (!item) return;
     this.clock = item.at;
+    this.partition = this.inputPartition(item);
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
       const before = this.projection;
@@ -360,7 +491,7 @@ export class Run {
       }
       const preparation = this.preparation.step(event);
       return this.record({ sequence: this.count++, time: this.clock, event,
-        preparation, before, after: before, commands: [], effects: [] });
+        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, partition: this.partition, agent: this.agentName(this.partition) });
     }
     if (this.session && !this.session.valid(item.input))
       return this.step(untilTime);
@@ -378,14 +509,15 @@ export class Run {
       )
         for (const input of this.session.next(this.clock)) this.enqueue(input);
       if (item.input.kind === "task") return this.step(untilTime);
-      const scope = this.projection.rounds.find((r) => r.partition === 1);
+      const scope = this.projection.rounds.find((r) => r.partition === this.partition);
       const round = scope?.id;
       if (item.input.kind === "finish") {
         if (round && !this.finish) {
+          const identity = this.nextFinishIdentity++;
           this.finish = {
             round,
-            attempt: 100000 + this.count,
-            token: 100000 + this.count,
+            attempt: identity,
+            token: identity,
             deadline: this.clock + (this.config.finishDeadline ?? 200),
             recurring: "recurring" in item.input && item.input.recurring,
             selected: [],
@@ -404,30 +536,62 @@ export class Run {
             this.enqueue(input);
         return this.step(untilTime);
       }
-      if (!round) {
-        if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound"))
-          this.event({ kind: "openRound", partition: 1, lifetime: 1 });
+      const permits = this.config.lifecycles?.permits;
+      if (!round && !permits) {
+        if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound" && item.input.event.partition === this.partition))
+          this.event({ kind: "openRound", partition: this.partition, lifetime: 1 });
         this.enqueue(
           {
             ...item.input,
-            at: this.clock,
+            at: this.clock + (this.config.lifecycles?.permits && this.clock === 0 ? 1 : 0),
             ...("recurring" in item.input ? { recurring: false } : {}),
           },
           item.input,
         );
         return this.step(untilTime);
       }
-      this.event(
-        { kind: "admitObservation", partition: 1, lifetime: 1, round },
-        0,
-        item.input,
-      );
+      if (this.config.lifecycles?.reuse && "revision" in item.input && !("evaluationInputs" in item.input)) {
+        // Source-free generated prepared fixture: pairs share every evaluation fact;
+        // the next pair changes the input, and partitions remain isolated.
+        const fixture = Math.floor(Math.max(0, item.input.revision - 1) / 2) % 2;
+        item.input = { ...item.input, evaluationInputs: item.input.unitBytes.map((bytes, unit) => JSON.stringify({ fixture, unit, prepared: { bytes, rules: "synthetic-noul", tree: { fixture, seed: this.config.seed, profile: this.fileTrees } } })), evaluationTreeIdentity: fixture + 1, evaluationTreeProfile: copy(this.fileTrees), revisionSubject: "generated-root", revisionInput: JSON.stringify({ fixture, bytes: item.input.bytes, unitBytes: item.input.unitBytes, seed: this.config.seed, profile: this.fileTrees }) } as Extract<RunInput, { kind: "edit" }>;
+      }
+      if ("evaluationInputs" in item.input && item.input.evaluationInputs) {
+        if (item.input.evaluationInputs.length !== item.input.unitBytes.length || item.input.evaluationInputs.some(input => typeof input !== "string" || !input.length)) throw new TypeError("evaluationInputs must identify every prepared review unit");
+      }
+      if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
+      if (permits) {
+        const duration = item.input.editDurationMs ?? this.editDurations.get(this.partition) ?? permits.holdMs ?? 0;
+        validateLiveControl({ kind: "editDuration", durationMs: duration });
+        item.input = { ...item.input, editDurationMs: duration };
+        const tool = "tool" in item.input && item.input.tool !== undefined ? item.input.tool : this.nextTool++;
+        const lifetime = permits.lifetimeMs ?? 30000;
+        const started = Math.max(1, this.clock);
+        this.event({ kind: "issuePermit", partition: this.partition, lifetime: 1, tool,
+          started, deadline: started + lifetime, now: started, minimumStarted: 0,
+          facts: { clockValid: true, hookWindow: lifetime, startedUpper: started, nowLower: started,
+            adviceePermitLimit: permits.adviceeLimit, residentPermitLimit: permits.residentLimit } }, started - this.clock, item.input);
+      } else this.event({ kind: "admitObservation", partition: this.partition, lifetime: 1, round: round! }, 0, item.input);
       return this.step(untilTime);
     }
     let event = item.input.event;
-    if (item.generated && event.kind === "jevRequestSettled") event = { ...event, currentWork: this.environment.currentWork };
+    if (item.generated && event.kind === "jevRequestSettled") event = { ...event, currentWork: this.environment.currentWork && !this.staleOperations.has(event.operation) };
     if (item.generated && event.kind === "jevRequestReady") event = { ...event, currentWork: this.environment.currentWork, credentialReady: this.environment.credentialReady };
+    if (event.kind === "cachePrepare" || event.kind === "cacheCommit") Object.assign(this.metadata, { reuse: { entryLimit: event.entryLimit, byteLimit: event.byteLimit } });
+    if (event.kind === "noticeAdvance" || event.kind === "noticeCommit") Object.assign(this.metadata, { notices: { maximumKeys: event.maximumKeys } });
+    if (event.kind === "collectionFitCheck") Object.assign(this.metadata, { encodedOutput: { bytes: event.bytes, items: event.items, maximumBytes: 10240, synthetic: true } });
+    if (event.kind === "issuePermit") {
+      const configured = this.metadata.permits?.adviceeLimit;
+      const partition = event.partition;
+      const adviceeLimits = [...(this.metadata.permits?.adviceeLimits ?? []).filter(scope => scope.partition !== partition), { partition, limit: event.facts.adviceePermitLimit }].sort((a, b) => a.partition - b.partition);
+      Object.assign(this.metadata, { permits: { ...(configured === undefined ? {} : { adviceeLimit: configured }), residentLimit: event.facts.residentPermitLimit, adviceeLimits } });
+    }
+    if (event.kind === "collectionClaimBackground") Object.assign(this.metadata, { collectors: { capacity: event.capacity } });
     const before = this.projection;
+    if (item.generated && event.kind === "quietRoundTick") { const quiet = event; event = { ...quiet, facts: {
+      nativeWorkIdle: !before.work.some(w => w.partition === quiet.partition && w.kind !== "pendingFinding"),
+      adviceEmpty: !before.work.some(w => w.partition === quiet.partition && w.kind === "pendingFinding"),
+      handoffIdle: !before.collection.claims.some(c => c.group === quiet.partition) && !before.collection.leases.some(l => before.work.some(w => w.operation === l.advice && w.partition === quiet.partition)) && !before.delivery.submissions.batches.some(s => s.group === quiet.partition), stopAbsent: !this.finishes.has(quiet.partition) } }; }
     if (item.generated && item.candidate && event.kind === "finalCandidateCheck") event = { ...event,
       ownerCurrent: before.pendingFindings.some(finding => finding.operation === item.candidate!.advice),
       credentialGeneration: (this.adviceCredentials.get(item.candidate.advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
@@ -448,6 +612,15 @@ export class Run {
       throw new Error("mismatched completion identity");
     const result = stepCanonical(this.state, event);
     this.state = result.state;
+    if (item.generated && event.kind === "cacheCommit" && !result.commands.some(command => command.kind === "cacheCommitted")) {
+      this.event({ kind: "releaseCapacity", reservation: event.reservation });
+      if (!this.projection.reuse.cache.some(entry => entry.id === event.id)) this.cachedOutcomes.delete(event.id);
+    }
+    if (event.kind === "collectionFitCheck") {
+      const command = result.commands.find(c => c.kind === "collectionFits" || c.kind === "collectionLimited");
+      if (command) Object.assign(this.metadata, { encodedOutput: { ...this.metadata.encodedOutput!, decision: command.kind === "collectionFits" ? "fits" : "limited" } });
+    }
+    for (const followup of this.resourceScenarios?.handle(event, result.commands, before) ?? []) this.event(followup);
     const effects: EffectObservation[] = [];
     const scope =
       "round" in event && "partition" in event && "lifetime" in event
@@ -459,10 +632,42 @@ export class Run {
         : undefined;
     for (const command of result.commands) {
       switch (command.kind) {
+        case "permitIssued": {
+          if (event.kind !== "issuePermit" || !item.job) break;
+          const terminal = this.config.lifecycles?.permits?.terminal ?? "consume";
+          const binding = { partition: event.partition, lifetime: event.lifetime, token: command.token };
+          const duration = item.job.editDurationMs ?? this.config.lifecycles?.permits?.holdMs ?? 0;
+          if (terminal !== "expire" && duration > event.deadline - this.clock) this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
+          if (terminal === "consume") this.event({ kind: "consumePermit", ...binding, tool: event.tool,
+            now: this.clock + duration }, duration, item.job);
+          else if (terminal === "release") this.event({ kind: "releasePermit", ...binding }, duration);
+          else this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
+          break;
+        }
+        case "permitConsumed":
+          if (event.kind === "consumePermit" && item.job) {
+            // Permit round is the advicee's admission generation; canonical round IDs
+            // are resident-wide identities and may differ for another partition.
+            const accepted = this.projection.rounds.find(round => round.partition === event.partition && round.lifetime === event.lifetime);
+            if (!accepted) throw new Error("consumed permit lacks its checked canonical round");
+            this.event({ kind: "admitObservation", partition: event.partition, lifetime: event.lifetime, round: accepted.id }, 0, item.job);
+          }
+          break;
+        case "quietRoundExpired":
+          if (event.kind === "quietRoundTick") {
+            this.event({ kind: "closePermitRound", partition: event.partition, lifetime: event.lifetime, round: event.round, at: this.clock });
+            this.event({ kind: "retirePartition", partition: event.partition, lifetime: event.lifetime, round: event.round });
+          }
+          break;
+        case "quietRoundWaiting":
+          if (event.kind === "quietRoundTick") this.event({ ...event, now: command.since + event.window }, Math.max(0, command.since + event.window - this.clock));
+          break;
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
           this.jobs.set(command.id, item.job);
+          if (this.config.lifecycles?.quietWindowMs) this.event({ kind: "quietRoundReset", ...scope });
+          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) this.event({ kind: "revisionRegister", subject: this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject])), input: this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput])), addMember: false });
           this.event({ kind: "queueDispatch", ...scope, operation: command.id });
           break;
         }
@@ -505,8 +710,9 @@ export class Run {
             operation: command.operation,
             due: this.clock + (this.config.preparationDelay ?? 2),
           });
-          const facts = item.job.unitBytes.flatMap((_bytes, unit) => {
-            const tree = generateFileTree(this.config.seed!, command.operation, unit, this.fileTrees);
+          const preparingJob = item.job;
+          const facts = preparingJob.unitBytes.flatMap((_bytes, unit) => {
+            const tree = generateFileTree(this.config.seed!, "evaluationTreeIdentity" in preparingJob && preparingJob.evaluationTreeIdentity !== undefined ? preparingJob.evaluationTreeIdentity : command.operation, unit, "evaluationTreeProfile" in preparingJob && preparingJob.evaluationTreeProfile ? preparingJob.evaluationTreeProfile : this.fileTrees);
             return tree.facts.map((fact, step): PreparationEvent => ({
               kind: "preparationGraph", example: "generated", ...scope, operation: command.operation, unit, step, fact,
               generatedTree: { targetNames: tree.targetNames, files: tree.files.length, depth: tree.depth },
@@ -515,7 +721,7 @@ export class Run {
           facts.forEach((preparation, index) => {
             // Inner facts share the operation's virtual interval, including zero-delay cases.
             const at = this.clock + Math.floor((this.config.preparationDelay ?? 2) * index / Math.max(1, facts.length));
-            this.queue.push({ at, order: this.order++, input: { kind: "preparationGraph", at, event: preparation }, generated: true });
+            this.queue.push({ at, order: this.order++, input: { kind: "preparationGraph", at, event: preparation }, generated: true, partition: scope.partition });
           });
           this.event(
             {
@@ -535,9 +741,93 @@ export class Run {
               "unhandled required command: unitAdmitted lacks job",
             );
           this.jobs.set(command.operation, item.job);
-          this.event({ kind: "queueDispatch", ...scope, operation: command.operation });
+          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
+            const subject = this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject]));
+            const input = this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput]));
+            const entry = this.projection.revision.entries.find(entry => entry.subject === subject);
+            const generation = this.revisionGenerations.get(`${subject}:${input}`) ?? entry?.generation;
+            if (generation) this.operationRevisions.set(command.operation, { subject, input, generation });
+          }
+          const inputs = "evaluationInputs" in item.job ? item.job.evaluationInputs : undefined;
+          if (this.config.lifecycles?.reuse && inputs) {
+            const id = this.identity(JSON.stringify([scope.partition, "evaluation", inputs[command.position - 1]]));
+            this.evaluations.set(command.operation, { id, bytes: command.bytes });
+            this.event({ kind: "reuseRoute", id, liveAdvice: false });
+            this.annotate({ reuseOperation: command.operation });
+          } else this.event({ kind: "queueDispatch", ...scope, operation: command.operation });
           break;
         }
+        case "revisionReused":
+        case "revisionReplaced":
+          if (event.kind === "revisionRegister") this.revisionGenerations.set(`${event.subject}:${event.input}`, command.generation);
+          break;
+        case "revisionStale":
+        case "revisionCurrent":
+          if (item.reuseOperation !== undefined) {
+            if (item.reuseOutcome) this.observeReuse(item.reuseOperation, item.reuseOutcome, command.kind === "revisionCurrent" && this.environment.currentWork);
+            else if (command.kind === "revisionStale") this.staleOperations.add(item.reuseOperation);
+          }
+          break;
+        case "reuseOwn":
+          if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
+            this.fulfilledEvaluations.delete(event.id);
+            const work = this.projection.work.find(w => w.operation === item.reuseOperation)!;
+            this.event({ kind: "reuseAttach", id: event.id });
+            this.event({ kind: "queueDispatch", partition: work.partition, lifetime: work.lifetime, round: work.round, operation: work.operation });
+          }
+          break;
+        case "reuseJoinPending":
+        case "reuseJoinClaimed":
+          if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
+            const fulfilled = this.fulfilledEvaluations.get(event.id);
+            if (fulfilled) this.supplyEvaluation(item.reuseOperation, fulfilled);
+            else this.evaluationWaiters.set(event.id, [...(this.evaluationWaiters.get(event.id) ?? []), item.reuseOperation]);
+          }
+          break;
+        case "reuseReleased":
+          if (event.kind === "reuseRelease") this.fulfilledEvaluations.delete(event.id);
+          break;
+        case "reuseCached":
+          if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
+            const outcome = this.cachedOutcomes.get(event.id);
+            if (!outcome) throw new Error("cached evaluation lacks supplied result");
+            this.supplyReuse(item.reuseOperation, outcome);
+          }
+          break;
+        case "cacheDiscarded":
+          for (const id of command.ids) {
+            this.cachedOutcomes.delete(id);
+            const discarded = before.reuse.cache.find(entry => entry.id === id);
+            if (discarded) this.event({ kind: "releaseCapacity", reservation: discarded.reservation });
+          }
+          break;
+        case "cachePrepared":
+          if (event.kind === "cachePrepare") {
+            for (const id of command.evicted) {
+              this.cachedOutcomes.delete(id);
+              const evicted = before.reuse.cache.find(entry => entry.id === id);
+              if (evicted) this.event({ kind: "releaseCapacity", reservation: evicted.reservation });
+            }
+            const owner = this.partition;
+            this.event({ kind: "reserveCapacity", partition: owner, bytes: event.bytes, purpose: "storedResult" });
+            this.annotate({ cacheId: event.id, cacheBytes: event.bytes, ...(item.cacheOutcome ? { cacheOutcome: item.cacheOutcome } : {}) });
+          }
+          break;
+        case "cacheRejected":
+          if (event.kind === "cachePrepare" && !this.projection.reuse.cache.some(entry => entry.id === event.id)) this.cachedOutcomes.delete(event.id);
+          break;
+        case "capacityRefused":
+          if (item.cacheId !== undefined && !this.projection.reuse.cache.some(entry => entry.id === item.cacheId)) this.cachedOutcomes.delete(item.cacheId);
+          break;
+        case "capacityGranted":
+          if (item.cacheId !== undefined && this.config.lifecycles?.reuse) {
+            this.event({ kind: "cacheCommit", id: item.cacheId, partition: this.partition, bytes: item.cacheBytes!, reservation: command.id, entryLimit: this.config.lifecycles.reuse.entryLimit, byteLimit: this.config.lifecycles.reuse.byteLimit });
+            if (item.cacheOutcome) this.annotate({ cacheOutcome: item.cacheOutcome });
+          }
+          break;
+        case "cacheCommitted":
+          if (event.kind === "cacheCommit" && item.cacheOutcome) this.cachedOutcomes.set(event.id, item.cacheOutcome);
+          break;
         case "jevRequestIssued": {
           this.issuedRequests.set(command.request, command);
           this.requestCredentials.set(command.operation, this.environment.credentialGeneration ?? 1);
@@ -553,7 +843,17 @@ export class Run {
           });
           // Synthetic outcomes supply the same lifecycle facts required by native callbacks.
           if (outcome !== "neverSent") this.event({ kind: "jevRequestStarted", ...binding });
+          if (outcome === "interrupted" && this.config.lifecycles?.cancellation === "suppressed") {
+            this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+            this.event({ kind: "jevRequestSettled", ...binding, outcome: "interrupted", currentWork: false }, this.jevDelay);
+            break;
+          }
           if (outcome === "interrupted") this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+          const revision = this.operationRevisions.get(command.operation);
+          if (revision) {
+            this.event({ kind: "revisionCurrentCheck", ...revision }, this.jevDelay);
+            this.annotate({ reuseOperation: command.operation });
+          }
           this.event(
             {
               kind: "jevRequestSettled",
@@ -579,10 +879,29 @@ export class Run {
           break;
         }
         case "collectionEligible": {
-          if (event.kind === "collectionReady" && !this.finish)
-            this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
+          if (event.kind === "collectionReady" && !this.finishes.has(event.partition)) {
+            if (this.config.lifecycles?.collectors) {
+              this.collectorCandidates.set(event.advice, { advice: event.advice, round: event.round, token: event.advice });
+              this.event({ kind: "collectionClaimBackground", group: event.partition, token: event.advice, active: true, capacity: this.config.lifecycles.collectors.capacity });
+            } else this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
+          }
           break;
         }
+        case "collectionBackgroundClaimed":
+          if (event.kind === "collectionClaimBackground" && this.config.lifecycles?.collectors) {
+            const candidate = this.collectorCandidates.get(event.token);
+            if (candidate) this.validateAdvice(candidate.advice, candidate.round, candidate.token, "background");
+            const lifetime = this.config.lifecycles?.collectors?.lifetimeMs ?? 30000;
+            this.event({ kind: "collectionExpireBackground", group: event.group, token: event.token, elapsed: lifetime, lifetime }, lifetime);
+          }
+          break;
+        case "collectionBackgroundReleased":
+          for (const [token, candidate] of this.collectorCandidates) {
+            const owner = this.projection.work.find(w => w.operation === candidate.advice);
+            if (!owner) { this.collectorCandidates.delete(token); continue; }
+            this.event({ kind: "collectionClaimBackground", group: owner.partition, token, active: true, capacity: this.config.lifecycles!.collectors!.capacity });
+          }
+          break;
         case "submissionBegun":
           if (event.kind === "submissionBegin" && this.outputProfile.outcome === "failed") {
             this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
@@ -606,7 +925,7 @@ export class Run {
             this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
             this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, profile.delayMs);
             if (this.finish && event.token === this.finish.token)
-              this.event({ kind: "finishTerminal", group: 1, round: this.finish.round,
+              this.event({ kind: "finishTerminal", group: this.partition, round: this.finish.round,
                 attempt: this.finish.attempt, token: event.token, selected: this.finish.selected,
                 outcome: "failed" }, profile.delayMs);
           } else {
@@ -637,7 +956,13 @@ export class Run {
           if (event.kind === "submissionExpiryCheck")
             this.event({ kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false });
           break;
-        case "submissionUnsuppressed": {
+        case "submissionUnsuppressed":
+          if (item.candidate && !item.candidate.selection && this.candidateOutputBytes !== undefined) {
+            this.candidateEvent({ kind: "collectionFitCheck", items: 1, bytes: this.candidateOutputBytes! }, item.candidate);
+            break;
+          }
+        case "collectionFits": {
+          if (!item.candidate && this.finish?.fitPending && item.fitFinish === this.finish.attempt) { this.finish.fitPending = false; this.finishBudget(true); break; }
           if (item.candidate) {
             const c = item.candidate;
             if (c.selection && this.finish) {
@@ -648,13 +973,22 @@ export class Run {
             }
             {
               this.event({ kind: "collectionReserveLease", advice: c.advice, token: c.token });
-              this.event({ kind: "submissionBegin", advice: c.advice, group: 1, round: c.round,
+              this.event({ kind: "submissionBegin", advice: c.advice, group: c.partition, round: c.round,
                 token: c.token, surface: c.surface, authorizeNow: c.surface !== "stop" && this.outputProfile.outcome !== "failed",
                 fingerprints: [c.advice], units: [c.advice] });
             }
           }
           break;
         }
+        case "collectionLimited":
+          if (!item.candidate && this.finish?.fitPending && item.fitFinish === this.finish.attempt) { this.finish.fitPending = false; this.finish.selected = []; this.finishBudget(true); break; }
+          if (item.candidate) {
+            const c = item.candidate;
+            this.collectorCandidates.delete(c.token);
+            if (this.projection.collection.claims.some(claim => claim.group === c.partition && claim.owner === c.token)) this.event({ kind: "collectionReleaseBackground", group: c.partition, token: c.token });
+            if (c.selection && this.finish) { this.finish.validating--; if (!this.finish.validating) this.finishBudget(); }
+          }
+          break;
         case "retireCandidate":
           if (item.candidate) this.retireAdvice(item.candidate.advice);
         case "releaseCandidate":
@@ -666,6 +1000,18 @@ export class Run {
           }
           break;
         case "jevRequestUnavailable":
+          if (event.kind === "jevRequestReady") {
+            const evaluation = this.evaluations.get(event.operation);
+            if (evaluation) {
+              this.fulfilledEvaluations.set(evaluation.id, "unavailable");
+              for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyEvaluation(operation, "unavailable");
+              this.event({ kind: "reuseRelease", id: evaluation.id });
+              this.evaluationWaiters.delete(evaluation.id);
+              this.evaluations.delete(event.operation);
+              this.operationRevisions.delete(event.operation);
+              this.staleOperations.delete(event.operation);
+            }
+          }
           if (event.kind === "jevRequestReady" && before.dispatch.running.some(entry => entry.operation === event.operation)) {
             this.event({ kind: "dispatchSettled", partition: event.partition, lifetime: event.lifetime,
               round: event.round, operation: event.operation });
@@ -689,7 +1035,7 @@ export class Run {
           f.waiting = false;
           f.selected = [];
           const candidates = command.kind === "finishLimit" ? [] : this.projection.work.filter(work =>
-            work.partition === 1 && work.round === f.round && work.kind === "pendingFinding");
+            work.partition === this.partition && work.round === f.round && work.kind === "pendingFinding");
           f.validating = candidates.length;
           if (!f.validating) this.finishBudget();
           for (const work of candidates) this.validateAdvice(work.operation, f.round, f.token, "stop", true);
@@ -702,7 +1048,7 @@ export class Run {
           if (command.kind === "roundContinuationExhausted") f.selected = [];
           this.event({
             kind: "finishReserve",
-            group: 1,
+            group: this.partition,
             lifetime: 1,
             round: f.round,
             attempt: f.attempt,
@@ -733,7 +1079,7 @@ export class Run {
             this.event({
               kind: "submissionBegin",
               advice,
-              group: 1,
+              group: this.partition,
               round: f.round,
               token: f.token,
               surface: "stop",
@@ -743,12 +1089,12 @@ export class Run {
             });
           }
           if (this.outputProfile.outcome === "failed") {
-            this.event({ kind: "finishRelease", group: 1, round: f.round, attempt: f.attempt, token: f.token }, this.outputProfile.delayMs);
+            this.event({ kind: "finishRelease", group: this.partition, round: f.round, attempt: f.attempt, token: f.token }, this.outputProfile.delayMs);
             break;
           }
           this.event({
             kind: "finishAuthorize",
-            group: 1,
+            group: this.partition,
             round: f.round,
             attempt: f.attempt,
             token: f.token,
@@ -762,7 +1108,7 @@ export class Run {
           effects.push({ kind: "output", phase: "started", advices: [...f.selected] });
           const profile = this.outputProfile;
           if (profile.outcome === "failed") {
-            this.event({ kind: "finishTerminal", group: 1, round: f.round,
+            this.event({ kind: "finishTerminal", group: this.partition, round: f.round,
               attempt: f.attempt, token: f.token, selected: f.selected, outcome: "failed" }, profile.delayMs);
             for (const advice of f.selected) {
               this.event({ kind: "submissionRelease", advice, token: f.token }, profile.delayMs);
@@ -772,7 +1118,7 @@ export class Run {
             const due = Math.min(profile.delayMs, profile.leaseMs);
             if (profile.delayMs > profile.leaseMs)
               this.event({ kind: "deliveryAcknowledgeCheck", items: f.selected.length, anyExpired: true }, profile.delayMs);
-            this.event({ kind: "finishTerminal", group: 1, round: f.round,
+            this.event({ kind: "finishTerminal", group: this.partition, round: f.round,
               attempt: f.attempt, token: f.token, selected: f.selected,
               outcome: profile.delayMs >= profile.leaseMs || profile.outcome === "uncertain"
                 ? "unknown" : "acknowledged" }, due);
@@ -790,12 +1136,12 @@ export class Run {
           if (f) {
             this.event({
               kind: "continuationConsume",
-              group: 1,
+              group: this.partition,
               round: f.round,
             });
             this.event({
               kind: "finishEnd",
-              group: 1,
+              group: this.partition,
               round: f.round,
               attempt: f.attempt,
               token: f.token,
@@ -838,22 +1184,26 @@ export class Run {
     }
     if (["completeObservation", "jevRequestSettled", "reviewCompleted", "interruptObservation",
       "interruptPreparation", "stopPolled"].includes(event.kind)) this.refreshAdviceReadiness();
-    if (
-      this.finish?.waiting &&
-      [
-        "preparationCompleted",
-        "jevRequestSettled",
-        "submissionTerminal",
-        "collectionReleaseLease",
-      ].includes(event.kind)
-    )
-      this.pollFinish();
+    if (["preparationCompleted", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease"].includes(event.kind)) {
+      const owner = this.partition;
+      for (const [partition, finish] of this.finishes) if (finish.waiting) {
+        this.partition = partition;
+        this.pollFinish();
+      }
+      this.partition = owner;
+    }
     if (!result.rejection && this.session && (
       event.kind === "submissionTerminal" && result.commands.some((c) => c.kind === "submissionRecorded") ||
       event.kind === "finishTerminal" && event.outcome === "acknowledged" &&
         result.commands.some((c) => c.kind === "finishRecorded")))
       for (const input of this.session.onAdvice(this.clock))
         this.enqueue(input);
+    if (event.kind === "reviewObserved" || event.kind === "reviewCompleted" || event.kind === "retireReview") {
+      this.evaluations.delete(event.operation);
+      this.operationRevisions.delete(event.operation);
+      this.staleOperations.delete(event.operation);
+      if (!this.projection.pendingFindings.some(f => f.operation === event.operation)) this.jobs.delete(event.operation);
+    }
     if (event.kind === "preparationCompleted") {
       this.preparation.retire(event.operation);
       this.jobs.delete(event.operation);
@@ -864,20 +1214,52 @@ export class Run {
       });
     }
     if (event.kind === "jevRequestSettled") {
+      const evaluation = this.evaluations.get(event.operation);
+      if (evaluation) {
+        if (["clear", "finding"].includes(event.outcome) && !result.rejection && event.currentWork) {
+          const outcome = event.outcome as "clear" | "finding";
+          this.fulfilledEvaluations.set(evaluation.id, outcome);
+          this.event({ kind: "cachePrepare", id: evaluation.id, bytes: evaluation.bytes, entryLimit: this.config.lifecycles!.reuse!.entryLimit, byteLimit: this.config.lifecycles!.reuse!.byteLimit });
+          this.annotate({ cacheOutcome: outcome });
+          for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyReuse(operation, outcome);
+        } else {
+          this.fulfilledEvaluations.set(evaluation.id, "unavailable");
+          for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyEvaluation(operation, "unavailable");
+        }
+        this.event({ kind: "reuseRelease", id: evaluation.id });
+        this.evaluationWaiters.delete(evaluation.id);
+        this.evaluations.delete(event.operation);
+      }
+      this.operationRevisions.delete(event.operation);
+      this.staleOperations.delete(event.operation);
       if (before.dispatch.running.some(entry => entry.operation === event.operation))
         this.event({ kind: "dispatchSettled", partition: event.partition, lifetime: event.lifetime, round: event.round, operation: event.operation });
       this.issuedRequests.delete(event.request);
       this.requestCredentials.delete(event.operation);
       if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
         this.jobs.delete(event.operation);
-      effects.push({
+      if (this.config.lifecycles?.cancellation === "suppressed" && event.outcome === "interrupted") effects.push({ kind: "cancellation", phase: "supplied", operation: event.operation });
+      else effects.push({
         kind: "jev",
         phase: "supplied",
         operation: event.operation,
         request: event.request,
       });
     }
+    if (this.config.lifecycles?.collectors && (event.kind === "submissionTerminal" || event.kind === "submissionRelease" || event.kind === "collectionRetireAdvice")) {
+      const token = event.kind === "collectionRetireAdvice" ? event.advice : event.token;
+      const claim = this.projection.collection.claims.find(c => c.owner === token);
+      this.collectorCandidates.delete(token);
+      if (claim) this.event({ kind: "collectionReleaseBackground", group: claim.group, token });
+    }
+    if (this.config.lifecycles?.quietWindowMs && ["completeObservation", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease", "releasePermit", "expirePermit", "collectionRetireAdvice", "submissionForget", "retireReview", "collectionReleaseBackground", "collectionExpireBackground"].includes(event.kind)) {
+      const round = this.projection.rounds.find(round => round.partition === this.partition);
+      if (round) this.event({ kind: "quietRoundTick", partition: round.partition, lifetime: round.lifetime, round: round.id, now: this.clock,
+        window: this.config.lifecycles.quietWindowMs, facts: { nativeWorkIdle: !this.jobs.size, adviceEmpty: !this.projection.work.some(f => f.partition === round.partition && f.kind === "pendingFinding"), handoffIdle: !this.projection.collection.claims.some(c => c.group === round.partition), stopAbsent: !this.finishes.has(round.partition) } });
+    }
     const observation: Observation = {
+      partition: this.partition,
+      agent: this.agentName(this.partition),
       sequence: this.count++,
       time: this.clock,
       event: copy(event),
@@ -895,8 +1277,30 @@ export class Run {
         : {}),
       ...(result.rejection ? { rejection: result.rejection } : {}),
       effects,
+      capacityMetadata: this.capacityMetadata,
     };
     return this.record(observation);
+  }
+  private agentName(partition: number): string {
+    return this.scopes.find(scope => scope.partition === partition)?.agent ?? `agent-${partition}`;
+  }
+  private inputPartition(item: Scheduled): number {
+    const input = item.input;
+    if ("agent" in input) {
+      const scope = this.scopes.find(scope => scope.agent === input.agent);
+      if (!scope) throw new RangeError("unknown input agent");
+      return scope.partition;
+    }
+    if (input.kind === "canonical" || input.kind === "preparationGraph") {
+      const event = input.event;
+      if ("partition" in event) return event.partition;
+      if ("group" in event) return event.group;
+      if (item.partition !== undefined) return item.partition;
+      const operation = "operation" in event ? event.operation : "advice" in event ? event.advice : undefined;
+      const owner = operation === undefined ? undefined : this.projection.work.find(work => work.operation === operation);
+      if (owner) return owner.partition;
+    }
+    return item.partition ?? 1;
   }
   private record(observation: Observation): Observation {
     this.history.push(observation);
@@ -906,11 +1310,18 @@ export class Run {
     for (const listener of this.listeners) listener(observation);
     return observation;
   }
-  private finishBudget() {
+  private finishBudget(fitted = false) {
     const f = this.finish;
     if (!f) return;
+    const bytes = this.candidateOutputBytes;
+    if (!fitted && bytes !== undefined && f.selected.length) {
+      f.fitPending = true;
+      this.event({ kind: "collectionFitCheck", items: f.selected.length, bytes });
+      this.queue.find(item => item.order === this.order - 1)!.fitFinish = f.attempt;
+      return;
+    }
     this.event({ kind: "roundContinuationBudgetCheck", active: true,
-      count: this.projection.delivery.counters.find(counter => counter.group === 1 && counter.round === f.round)?.used ?? 0 });
+      count: this.projection.delivery.counters.find(counter => counter.group === this.partition && counter.round === f.round)?.used ?? 0 });
   }
   private refreshAdviceReadiness() {
     const projection = this.projection;
@@ -923,16 +1334,16 @@ export class Run {
         observation: work.parent, joinedPending: false });
     }
   }
-  private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>, candidate: CandidateContext) {
+  private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" | "collectionFitCheck" }>, candidate: CandidateContext) {
     this.queue.push({ at: this.clock, order: this.order++, generated: true,
-      input: { at: this.clock, kind: "canonical", event }, candidate });
+      input: { at: this.clock, kind: "canonical", event }, candidate, partition: candidate.partition });
     this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
   }
   private validateAdvice(advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
     this.candidateEvent({ kind: "finalCandidateCheck", ownerCurrent: true,
       credentialGeneration: (this.adviceCredentials.get(advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
       credentialAuthorized: this.environment.credentialReady, expired: false,
-      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { advice, round, token, surface, selection });
+      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { partition: this.projection.work.find(work => work.operation === advice)?.partition ?? this.partition, advice, round, token, surface, selection });
   }
   private retireAdvice(advice: number) {
     const retained = this.projection.work.find(work =>
@@ -949,16 +1360,19 @@ export class Run {
   private pollFinish(delay = 0) {
     const f = this.finish;
     if (!f) return;
+    const at = this.clock + delay;
+    if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === this.partition && item.at === at)) return;
     this.queue.push({
-      at: this.clock + delay,
+      at,
       order: this.order++,
       finishAttempt: f.attempt,
+      partition: this.partition,
       input: {
         at: this.clock + delay,
         kind: "canonical",
         event: {
           kind: "stopPolled",
-          partition: 1,
+          partition: this.partition,
           lifetime: 1,
           round: f.round,
           deadline: this.clock + delay >= f.deadline,
@@ -972,23 +1386,23 @@ export class Run {
     if (!f) return;
     this.event({
       kind: "stopGroupEnded",
-      group: 1,
+      group: this.partition,
       lifetime: 1,
       round: f.round,
-      scopes: [{ partition: 1, round: f.round }],
+      scopes: [{ partition: this.partition, round: f.round }],
     });
     if (!continuation) {
       for (const work of this.projection.work)
-        if (work.partition === 1 && work.round === f.round && work.kind === "pendingFinding")
+        if (work.partition === this.partition && work.round === f.round && work.kind === "pendingFinding")
           this.retireAdvice(work.operation);
       this.event({
         kind: "retirePartition",
-        partition: 1,
+        partition: this.partition,
         lifetime: 1,
         round: f.round,
       });
     }
-    this.queue = this.queue.filter((item) => item.finishAttempt !== f.attempt);
+    this.queue = this.queue.filter(item => item.finishAttempt !== f.attempt || item.partition !== this.partition);
     this.finish = undefined;
     if (f.recurring && this.session)
       for (const input of this.session.onFinish(this.clock, continuation))

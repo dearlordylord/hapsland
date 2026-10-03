@@ -43,10 +43,17 @@ try {
   const imports = await server.ssrLoadModule("/src/import-graph-view.ts");
   const timeline = await server.ssrLoadModule("/src/timeline.ts");
   const send = (model, message) => main.update(model, message).model;
+  // Lazy views need the same render frame as the app (dispatch and ownership).
+  const rendered = (model) => {
+    let html;
+    Scene.scene({ update: main.update, view: main.view }, Scene.given(model),
+      Scene.tap(state => { html = state.html; }));
+    return html;
+  };
   const text = (model) => {
     const read = (node) => typeof node === "string" ? node : node == null ? "" :
       [node.text ?? "", ...(node.children ?? []).map(read)].join(" ");
-    return read(main.view(model, inertHtml).body);
+    return read(rendered(model));
   };
   const initial = main.init().model;
   for (const source of ["src/entry.ts", "src/production-main.ts", "src/canonical-replay.ts"]) {
@@ -95,7 +102,7 @@ try {
   assert.match(text(initial), /Jev request attempt/);
   assert.match(text(initial), /Awaiting Jev result/);
   const descendants = (node) => node == null ? [] : [node, ...(node.children ?? []).flatMap(descendants)];
-  const elements = (model, name) => descendants(main.view(model, inertHtml).body)
+  const elements = (model, name) => descendants(rendered(model))
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
   const visibleLabels = (node) => (node.children ?? []).slice(1).map(labels).join(" "); // SVG title is first child.
@@ -111,7 +118,7 @@ try {
     while (step.event.kind === "preparationGraph") {
       assert.deepEqual(step.before, step.after, "inner graph steps must preserve canonical state");
       assert.equal(elements(showcase, "topology-route").filter(node => node.data.class.active).length, 0);
-      assert.match(labels(main.view(showcase, inertHtml).body), /tree [12]/);
+      assert.match(labels(rendered(showcase)), /tree [12]/);
       assert.equal(elements(showcase, "preparation-mini").length, 1);
       assert.equal(elements(showcase, "preparation-subprocess").length, 0, "the main diagram must not duplicate the large graph panel");
       if (step.preparation.after.phase === "capturing")
@@ -127,14 +134,14 @@ try {
     for (const route of active) showcasedRoutes.add(labels(route));
     if (index === 0) {
       assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
-      assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: Permit #1/);
-      assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
-      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity"))), /NOW · Permit #1 issued/);
+      assert.match(labels(rendered(showcase)), /1 edit permit: Permit #1/);
+      assert.match(labels(rendered(showcase)), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity"))), /NOW: Permit #1 issued/);
     }
     if (index === 1) {
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
-      assert.match(labels(main.view(showcase, inertHtml).body), /0 edit permits/);
-      assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
+      assert.match(labels(rendered(showcase)), /0 edit permits/);
+      assert.match(labels(rendered(showcase)), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
       assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Round state"))), /NOW · Round #1 opened with edit #1/);
     }
     if (index === 2) assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Awaiting source read"))),
@@ -142,7 +149,7 @@ try {
     if (index === 5) {
       const nodes = elements(showcase, "topology-node");
       assert.match(labels(nodes.find((node) => labels(node).includes("Agent edit"))), /NOW · edit #2 accepted/);
-      assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW · permit #2 used/);
+      assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW: Permit #2 used/);
       assert.match(labels(nodes.find((node) => labels(node).includes("Round state"))), /NOW · edit #2 joined Round #1/);
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
       assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
@@ -211,7 +218,7 @@ try {
         /CMD · retain finding for Review item #1/);
       const admission = labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity")));
       assert.match(admission, /1 stored result charge: Stored result charge #1/);
-      assert.match(admission, /NOW · Unit charge #1 → stored/);
+      assert.match(admission, /NOW: Unit charge #1 → stored/);
     }
     if (index === 27) {
       assert.deepEqual(step.after.collection.ready, [4], "Bend links ready advice to its finding work and edit");
@@ -260,7 +267,7 @@ try {
       [46, /2 advice submissions and one Stop result recorded together as acknowledged; agent use of advice is not observed/],
     ]).get(index);
     if (stopCaption !== undefined) assert.match(labels(elements(showcase, "topology-current-step")[0]), stopCaption);
-    if (index === 44) assert.ok(labels(main.view(showcase, inertHtml).body).includes("Advice output authorized"));
+    if (index === 44) assert.ok(labels(rendered(showcase)).includes("Advice output authorized"));
     if (index === 43) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
       /2 records · #1:reserved, #2:reserved/);
     if (index === 44) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),

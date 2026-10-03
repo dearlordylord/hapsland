@@ -3,7 +3,7 @@ import { runClient } from "../src/test-support/client-runtime.ts";
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { residentRequestEffect as residentRequest } from "../src/resident/client.ts";
@@ -17,13 +17,17 @@ import { configuredRules } from "../src/policy/rules.ts";
 import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts";
 import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.ts";
 
+import { faultProfile, assessPreFault } from './native-hook-faults.mjs';
+
 const project = resolve(import.meta.dirname, "..");
 const host = process.argv.find((arg) => arg.startsWith("--host="))?.slice(7);
 const language = process.argv.find(arg => arg.startsWith('--language='))?.slice(11) ?? 'typescript';
 if (!['typescript','rust','bend'].includes(language)) throw new Error('Choose a supported source language');
 const scenario = process.argv.find(arg => arg.startsWith('--scenario='))?.slice(11) ?? 'adoption';
-if (!['adoption','reviewer-unavailable','hook-crash','hook-timeout','stale-result'].includes(scenario))
-  throw new Error('Choose adoption, reviewer-unavailable, hook-crash, hook-timeout, or stale-result');
+if (!['adoption','reviewer-unavailable','hook-crash','hook-timeout','stale-result','pre-delay','pre-timeout','pre-crash'].includes(scenario))
+  throw new Error('Choose an adoption, reviewer, POST-hook or PRE-hook scenario');
+const fault = faultProfile(scenario);
+const preFault = fault?.phase === 'pre';
 const suppliedStaleDelay = process.argv.find(arg => arg.startsWith('--controlled-delay-ms='))?.slice(22);
 if (suppliedStaleDelay !== undefined && scenario !== 'stale-result') throw new Error('Controlled delay override requires stale-result');
 const staleDelayMs = suppliedStaleDelay === undefined ? 9000 : Number(suppliedStaleDelay);
@@ -55,11 +59,18 @@ const outcomes = join(temp, "outcomes.jsonl");
 const nativeEvents = join(temp, "native-edits.jsonl");
 const rootFile = join(repo, fixture.entry), supportFile = join(repo, fixture.support);
 const started = Date.now();
+const startedMono = Number(process.hrtime.bigint()) / 1_000_000;
+let firstMutation;
+let mutationWatcher;
+let observerArmedMono;
 const runId = `${host}-${language}-${scenario}-${mode}-${started}`;
 const evidenceRoot = join(project, 'evidence', scenario === 'adoption' ? 'native-languages' : 'native-negative');
 const declaration = {scenario,maximumProviderRequests:mode === 'live-jev' ? 6 : 0,automaticHostRetries:0,
   hostCeilingMs:240000,syntheticRepositoryOnly:true,maximumSourceEditCalls:scenario === 'stale-result' || scenario === 'adoption' ? 2 : 1,
   sourceProfile:'bounded local cross-file types',runtimeVersion:version,
+  ...(preFault ? {hookPhase:'PRE',injectedDelayMs:fault.delayMs,nativePreHookDeadlineMs:fault.timeoutSeconds*1000,
+    permitRegistrationBypassed:true,productionPreAdmissionConformance:false,maximumReviewerRequests:0,
+    actualNativeToolStartObservable:false,holdSampleIntervalMs:50,onePersistentFixtureCreation:true,mutationLandmark:'filesystem observer proxy'} : {}),
   ...(scenario === 'hook-timeout' ? {nativeEditHookDeadlineMs:2000,injectedHookSleepMs:10000} : {}),
   ...(scenario === 'stale-result' ? {controlledReviewDelayMs:staleDelayMs,oldResult:'finding',newResult:'clear'} : {})};
 mkdirSync(evidenceRoot,{recursive:true});
@@ -106,22 +117,29 @@ try {
   writeFileSync(hookScript, `import { readFileSync, appendFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { observeHold } from ${JSON.stringify(new URL('./native-hook-faults.mjs',import.meta.url).href)};
 const kind=process.argv[2], input=readFileSync(0,'utf8');
 let native; try { native=JSON.parse(input) } catch {}
-const at=Date.now();
-if((kind==='edit'||kind==='background') && ${JSON.stringify(scenario === 'hook-crash' || scenario === 'hook-timeout')}) {
+const at=Date.now(), entryMono=Number(process.hrtime.bigint())/1000000;
+const digest=value=>typeof value==='string'?createHash('sha256').update(value).digest('hex'):null;
+const identity={sessionHash:digest(native?.session_id),rootHash:digest(${JSON.stringify(repo)})};
+const fault=${JSON.stringify(fault ?? null)};
+const mono=()=>Number(process.hrtime.bigint())/1000000;
+if(fault && (fault.phase==='pre'?kind==='before-edit':kind==='edit'||kind==='background')) {
   const faultSource=${JSON.stringify(rootFile)};
   const faultValue=existsSync(faultSource)?readFileSync(faultSource,'utf8'):'';
-  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,doneAt:null,
-    event:native?.hook_event_name??null,tool:native?.tool_name??null,
-    toolUseHash:native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null,
+  const toolUseHash=native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null;
+  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,...identity,monoMs:mono(),pid:process.pid,doneAt:null,
+    event:native?.hook_event_name??null,tool:native?.tool_name??null,toolUseHash,
     injectedFault:${JSON.stringify(scenario)},initial:faultValue===${JSON.stringify(initial)},
     sourceBytes:Buffer.byteLength(faultValue)})+'\\n',{mode:0o600});
-  if(${JSON.stringify(scenario === 'hook-crash')})process.exit(42);
-  await new Promise(resolve=>setTimeout(resolve,10000));
-  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind:'fault-completed',at:Date.now(),doneAt:Date.now(),
-    targetKind:kind,injectedFault:${JSON.stringify(scenario)}})+'\\n',{mode:0o600});
-  process.exit(42);
+  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind:'hold-ready',at:Date.now(),monoMs:mono(),pid:process.pid,targetKind:kind,toolUseHash})+'\\n',{mode:0o600});
+  const hold=await observeHold(faultSource,fault.delayMs);
+
+  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind:'fault-completed',at:Date.now(),monoMs:mono(),pid:process.pid,doneAt:Date.now(),
+    targetKind:kind,toolUseHash,hold,injectedFault:${JSON.stringify(scenario)},exitCode:fault.exitCode})+'\\n',{mode:0o600});
+  if(fault.exitCode===0)process.stdout.write('{}\\n');
+  process.exit(fault.exitCode);
 }
 const flags=kind==='edit' ? ['--${host === "codex" ? "codex" : "claude"}-hook','--controlled-writer','--composed-edit-hook']
   : ['--composed-'+kind+'-hook','--composed-host=${host === "codex" ? "codex-cli" : "claude-code"}'];
@@ -134,7 +152,7 @@ const ruleIds=[...message.matchAll(/\\[([a-z0-9_]+), p=/g)].map(match=>match[1])
 const source=${JSON.stringify(rootFile)};
 const value=existsSync(source)?readFileSync(source,'utf8'):'';
 if(kind==='edit' && native)appendFileSync(process.env.HAPSLAND_NATIVE_EDITS,JSON.stringify(native)+'\\n',{mode:0o600});
-appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,doneAt:Date.now(),
+appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,...identity,monoMs:entryMono,doneAt:Date.now(),
   event:native?.hook_event_name??null,tool:native?.tool_name??null,exitCode:result.status,
   toolUseHash:native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null,
   decision:output?.decision??null, finding:ruleIds.length>0, ruleIds,
@@ -144,13 +162,17 @@ if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `, { mode: 0o600 });
 
+  if(spawnSync(process.execPath,['--check',hookScript],{encoding:'utf8'}).status!==0)
+    throw new Error('Generated native hook failed syntax validation before host execution');
+
   writeFileSync(observer, `import {appendFileSync,readFileSync} from 'node:fs';
 const original=globalThis.fetch;
+appendFileSync(process.env.HAPSLAND_NATIVE_CALLS,JSON.stringify({at:Date.now(),kind:'observer-ready'})+'\\n',{mode:0o600});
 globalThis.fetch=async (...args)=>{
   const url=String(args[0]?.url??args[0]);
   if(!url.includes('/v1/systemone'))return original(...args);
   const path=process.env.HAPSLAND_NATIVE_CALLS;
-  let count=0;try{count=readFileSync(path,'utf8').trim().split('\\n').filter(Boolean).length}catch{}
+  let count=0;try{count=readFileSync(path,'utf8').trim().split('\\n').filter(Boolean).map(line=>JSON.parse(line)).filter(item=>item.kind==='request'||item.kind==='blocked-attempt').length}catch{}
   if(count>=${mode === 'live-jev' ? 6 : 0}){
     appendFileSync(path,JSON.stringify({at:Date.now(),kind:'blocked-attempt'})+'\\n',{mode:0o600});
     throw new Error('native milestone provider ceiling reached');
@@ -164,10 +186,10 @@ globalThis.fetch=async (...args)=>{
 };
 `, { mode: 0o600 });
 
-  const command = (kind) => `${quote(process.execPath)} ${quote(hookScript)} ${kind}`;
+  const command = (kind) => `${kind === 'before-edit' ? 'exec ' : ''}${quote(process.execPath)} ${quote(hookScript)} ${kind}`;
   const editTools = host === "codex" ? "apply_patch" : "Edit|Write";
   const settings = { hooks: {
-    PreToolUse: [{ matcher: editTools, hooks: [{ type: "command", command: command("before-edit"), timeout: 5 }] }],
+    PreToolUse: [{ matcher: editTools, hooks: [{ type: "command", command: command("before-edit"), timeout: preFault ? fault.timeoutSeconds : 5 }] }],
     PostToolUse: [{ matcher: editTools, hooks: [
       { type: "command", command: command("edit"), timeout: scenario === 'hook-timeout' ? 2 : 10 },
       { type: "command", command: command("background"), timeout: scenario === 'hook-timeout' ? 2 : 25, async: true },
@@ -222,12 +244,28 @@ globalThis.fetch=async (...args)=>{
     : ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
       "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt];
   const runnerHash = createHash("sha256").update(readFileSync(new URL(import.meta.url))).digest("hex");
+  if (preFault) mutationWatcher = watch(join(repo, language === 'rust' ? 'src' : '.'), () => {
+    if (firstMutation || !existsSync(rootFile)) return;
+    const pending = safeLines(log).filter(e=>e.kind==='before-edit'&&e.injectedFault===scenario);
+    firstMutation = {at:Date.now(),monoMs:Number(process.hrtime.bigint())/1_000_000,
+      preProcessAlive:pending.some(e=>{try{process.kill(e.pid,0);return true}catch{return false}})};
+  });
+  if(preFault)observerArmedMono=Number(process.hrtime.bigint())/1_000_000;
   const result = await run(binary, args, env, repo);
+  // Observe natural completion independently. Timeout does not imply process death.
+  if (preFault && fault.delayMs>0) {
+    const until=Date.now()+fault.delayMs+1500;
+    while(Date.now()<until && safeLines(log).some(e=>e.kind==='before-edit'&&e.injectedFault===scenario) &&
+      !safeLines(log).some(e=>e.kind==='fault-completed'&&e.targetKind==='before-edit'))
+      await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  mutationWatcher?.close();
   const native = safeLines(log);
   const requestShapes = safeLines(summaries);
   const outcomeSummaries = safeLines(outcomes).map((item) => ({ outcome: item.outcome,
     toolUseHash: typeof item.toolUseId === 'string' ? createHash('sha256').update(item.toolUseId).digest('hex') : null }));
-  const providerCalls = safeLines(calls).length;
+  const providerCalls = safeLines(calls).filter(item=>item.kind==='request'||item.kind==='blocked-attempt').length;
+  const providerObserverInstalled=safeLines(calls).some(item=>item.kind==='observer-ready');
   const messages = result.stdout.split("\n").filter(Boolean).flatMap((line) => {
     try {
       const item = JSON.parse(line);
@@ -340,7 +378,8 @@ globalThis.fetch=async (...args)=>{
     sourceCompiles: check.status === 0, missingReceiptRejected: invalid.status === 0,
     followupObserved: !!repair && stages.some((item) => item.atMs > repair.at - started && (item.stage === 'clear' || item.stage === 'findings')),
   };
-  const checks = scenario === 'adoption' ? positiveChecks
+  const checks = preFault ? {...assessPreFault({scenario,events:native,mutation:firstMutation,reviewerRequests:requestShapes.length,providerRequests:providerCalls,fixtureMatches:source===initial,observerInstalled:providerObserverInstalled}),noAdviceDelivered,agentDidNotApplyAdvice}
+    : scenario === 'adoption' ? positiveChecks
     : scenario === 'reviewer-unavailable' ? {
         initialDraftObserved: nativeEdits.some((item) => item.initial),
         reviewAttempted: requestShapes.length > 0,
@@ -367,8 +406,7 @@ globalThis.fetch=async (...args)=>{
         injectedFaultObserved: faultEvents.some((item) => item.kind === 'edit'),
         noReviewRequest: requestShapes.length === 0,
         noAdviceDelivered, agentDidNotApplyAdvice,
-        ...(scenario === 'hook-timeout' ? { editHookDidNotCompleteNaturally: !native.some((item) =>
-          item.kind === 'fault-completed' && item.targetKind === 'edit') } : {}),
+
       };
   const resultChecks = scenario === 'adoption' ? checks : { ...checks, noProviderRequests: providerCalls === 0 };
   const record = { schemaVersion: 1, recordedAt: new Date().toISOString(), commit: spawnSync("git", ["-C", project, "rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim(),
@@ -377,12 +415,19 @@ globalThis.fetch=async (...args)=>{
     declaration,
     hostDiagnostics, hostExitCode: result.code, hostSignal: result.signal, elapsedMs: Date.now() - started, providerCalls,
     requestShapes, outcomeSummaries, postEditPreparation, nativeUpdatePreparation, nativeResponseShape,
+    ...(fault ? {faultObservation:{phase:fault.phase,configuredDeadlineMs:fault.timeoutSeconds*1000,
+      naturalCompletionObserved:native.some(e=>e.kind==='fault-completed'),
+      naturallyCompletedKinds:native.filter(e=>e.kind==='fault-completed').map(e=>e.targetKind),
+      processTermination:'not inferred from hook deadline or missing log'}} : {}),
+    ...(preFault ? {preObservation:{actualNativeToolStart:'not observed',permitRegistrationBypassed:true,
+      observerArmedMonoMs:observerArmedMono-startedMono,transientWriteRevertAbsenceNotProven:true,
+      firstMutation:firstMutation?{atMs:firstMutation.at-started,monoMs:firstMutation.monoMs-startedMono,preProcessAlive:firstMutation.preProcessAlive}:null}} : {}),
     activityStages: stages, hookEvents: native.map((item) => ({
-      kind: item.kind, atMs: item.at - started, durationMs: item.doneAt === null ? null : item.doneAt - item.at, event: item.event,
+      kind: item.kind, monoMs:item.monoMs===undefined?null:item.monoMs-startedMono, atMs: item.at - started, durationMs: item.doneAt === null ? null : item.doneAt - item.at, event: item.event,
       tool: item.tool, exitCode: item.exitCode, decision: item.decision, finding: item.finding,
       ruleIds: item.ruleIds, initial: item.initial, sourceBytes: item.sourceBytes,
-      toolUseHash: item.toolUseHash ?? null, injectedFault: item.injectedFault ?? null,
-      targetKind: item.targetKind ?? null,
+      sessionHash:item.sessionHash??null,rootHash:item.rootHash??null,toolUseHash: item.toolUseHash ?? null, injectedFault: item.injectedFault ?? null,
+      targetKind: item.targetKind ?? null, hold:item.hold ?? null,
     })),
     checks: resultChecks,
     rawHostStreamRetained: false, sourceRetained: false, providerBodyRetained: false, credentialsRetained: false,
@@ -395,6 +440,7 @@ globalThis.fetch=async (...args)=>{
   console.log(JSON.stringify({ evidence: output, verdict: record.verdict, checks: record.checks, providerCalls }));
   if (record.verdict !== "demonstrated") process.exitCode = 1;
 } finally {
+  mutationWatcher?.close();
   try {
     owner = JSON.parse(readFileSync(residentPaths(runtime).owner, "utf8"));
     await runClient(residentRequest(residentPaths(runtime), { requestRoute: "shared", operation: "cleanup", lifetime: owner.lifetime })).catch(() => {});

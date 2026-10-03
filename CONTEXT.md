@@ -11,12 +11,18 @@ material only beside the plain-language meaning it represents.
 | Jev | TypeSafe's external tool used by the product for typed, realtime review judgments. Jev is not the product name. |
 | Review integration | The product's integration boundary around agent runtimes, rules, findings, and review backends. |
 | Flow stage | A conceptual location in the observed Hapsland review and advice process, such as preparation or pending advice. A stage groups checked state and facts for explanation; it is not a state in the reducer. |
-| Runtime installation | The product integration made available to a particular agent runtime for a user. When the runtime executes it and Jev credentials are available, review can run for files allowed by file selection. |
+| Runtime installation | The product integration made available to a particular agent runtime for a user. When the runtime executes it and review credentials are available, review can run for files allowed by file selection. |
 | Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from Hapsland's file selection and credential availability. |
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
+| Hook event | An agent-runtime event at which an installed handler may run. |
+| Hook handler | An installed integration that responds to a hook event. |
+| Hook invocation | One execution of a hook handler; an event may invoke zero or more handlers, and repeated events create new invocations. |
+| Edit hook | A hook handler invoked before or after an edit; edits may recur many times within a virtual round. |
+| Stop hook | A hook handler invoked for a finish attempt, following zero or more edits; continuation may lead to more edits and another attempt. |
+| Edit permit | An expiring resident pre-edit record linking an advicee and tool invocation to its start boundary. Its matching post-edit report consumes it to admit the edit for review; the permit does not authorize the native edit itself. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
-| Resident | Hapsland's local background process. An agent runtime starts a short Hapsland command when an edit or Stop event occurs. That command sends the event to the resident. The resident schedules review work, calls Jev, and holds temporary review state in its own memory. |
+| Resident | Hapsland's local background process. An agent runtime starts a short Hapsland command when an edit or Stop event occurs. That command sends the event to the resident. The resident schedules review work, calls the selected review backend, and holds temporary review state in its own memory. |
 | Resident connection directory | A filesystem directory that contains the resident's local connection socket and ownership files. It does not contain the agents' source files or the capacity ledger. By default, Hapsland uses one such directory per operating-system user, outside Git worktrees. `REVIEW_RESIDENT_DIR` can select a different directory. Commands that select the same directory reach the same resident. |
 | Virtual round | One advicee's period of review and advice in Hapsland. It begins with the first accepted attributed edit, not with a pre-edit permit. At a finish attempt, Hapsland holds the response while unfinished reviews can still become advice, until they settle or the safe deadline arrives; it can decide sooner when no continuation remains. A continue-with-advice response keeps the virtual round open; an allow-finish response closes it. A round can also close after its configured period of full quiescence without a Stop. A later eligible edit starts a new virtual round only after the prior one has closed. |
 | Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match a virtual round; one runtime turn may contain multiple virtual rounds. |
@@ -57,6 +63,7 @@ material only beside the plain-language meaning it represents.
 | Source fingerprint | A deterministic fingerprint of an artifact's exact source, used as equality evidence rather than as the identity of an observation. |
 | Review projection fingerprint | A deterministic fingerprint of the canonical evidence projection evaluated for a review unit. |
 | Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review backend. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
+| Review provider limit catalog | The declared input constraints of each supported review model, with measurement units and provenance. It distinguishes provider constraints from Hapsland's own collection and capacity bounds. |
 | Review input | The exact semantic payload rendered from one review unit under a review input contract for backend evaluation. |
 | Evidence completeness | Whether the evidence required for a checked rule expectation is present. Missing required evidence is incomplete, not evidence that the source is clear. |
 | Review capacity limit | A bound on how many resident records and measured bytes Hapsland can retain. The resident checks a shared bound and a bound for the identified agent's scope. These are four checks: item count and bytes at each of two scopes. They are not four kinds of work. This is distinct from Jev request concurrency and process RAM. |

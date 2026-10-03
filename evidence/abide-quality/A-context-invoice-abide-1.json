@@ -1,0 +1,64 @@
+{
+  "stage": "A",
+  "caseId": "context-invoice",
+  "candidate": "abide",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": null,
+    "hookExit": 0,
+    "finding": false
+  },
+  "requests": [
+    {
+      "id": "0e10510e-a8fd-4ee9-a7dc-370b223ee130",
+      "at": 1790961813715,
+      "candidate": "abide",
+      "caseId": "context-invoice",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1582,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "0e10510e-a8fd-4ee9-a7dc-370b223ee130",
+      "at": 1790961813715,
+      "candidate": "abide",
+      "caseId": "context-invoice",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 234,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 635,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

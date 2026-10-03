@@ -1,0 +1,44 @@
+[
+  {
+    "name": "core",
+    "expected_exit": 0,
+    "observed_exit": 0,
+    "pass": true
+  },
+  {
+    "name": "spec",
+    "expected_exit": 0,
+    "observed_exit": 0,
+    "pass": true
+  },
+  {
+    "name": "open-laws",
+    "expected_exit": 1,
+    "observed_exit": 1,
+    "pass": true
+  },
+  {
+    "name": "traces",
+    "expected_exit": 0,
+    "observed_exit": 0,
+    "pass": true
+  },
+  {
+    "name": "false-current-coverage",
+    "expected_exit": 1,
+    "observed_exit": 1,
+    "pass": true
+  },
+  {
+    "name": "baseline-control",
+    "expected_exit": 0,
+    "observed_exit": 0,
+    "pass": true
+  },
+  {
+    "name": "retention-boundaries",
+    "expected_exit": 0,
+    "observed_exit": 0,
+    "pass": true
+  }
+]

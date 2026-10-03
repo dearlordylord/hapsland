@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { Decision } from "effect/ai";
@@ -29,7 +30,7 @@ describe("complete Jev request measurement", () => {
       root: "/fixture", advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s",
         turnId: "t", toolUseId: "u", subagentId: null },
       identity: "fixture",
-      input: { contract: TYPE_INPUT_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
+      input: { providerIdentity: providerIdentity({ provider: "jev" }), contract: TYPE_INPUT_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
         declaration: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" },
         unit: { root: { artifact: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",

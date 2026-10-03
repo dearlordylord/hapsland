@@ -1,0 +1,77 @@
+{
+  "stage": "A",
+  "caseId": "clean-note",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r5_absence_confusion"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "f81451e5-f1b4-425e-8bd4-373220c2f4b4",
+      "at": 1790961875031,
+      "candidate": "hapsland",
+      "caseId": "clean-note",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1857,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r5_absence_confusion"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "f81451e5-f1b4-425e-8bd4-373220c2f4b4",
+      "at": 1790961875031,
+      "candidate": "hapsland",
+      "caseId": "clean-note",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 174,
+      "answers": {
+        "r5_absence_confusion": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 827,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

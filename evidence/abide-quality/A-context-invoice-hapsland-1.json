@@ -1,0 +1,79 @@
+{
+  "stage": "A",
+  "caseId": "context-invoice",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r4_duplicate_encoding"
+        ],
+        "findingIds": [
+          "r4_duplicate_encoding"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "a3b3040b-f02e-4897-b465-a15f37cfe33e",
+      "at": 1790961822851,
+      "candidate": "hapsland",
+      "caseId": "context-invoice",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2057,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r4_duplicate_encoding"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "a3b3040b-f02e-4897-b465-a15f37cfe33e",
+      "at": 1790961822851,
+      "candidate": "hapsland",
+      "caseId": "context-invoice",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 257,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 953,
+        "output_tokens": 23
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

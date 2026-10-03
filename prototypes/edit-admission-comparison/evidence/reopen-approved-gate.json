@@ -1,0 +1,92 @@
+{
+  "slice": "Positive Current POST reopening after actual fresh PRE registration",
+  "sources": {
+    "authority": "User approved positive Current fresh PRE/POST reopening after a completed round; parent delegated this slice.",
+    "meaning": "A reachable completed closed round, new fresh successful PRE registration and timely matching POST yield count+1, successor round and active status.",
+    "law_sha256": "f85ea551b88bf7ec8accc615d6027194d9b224865f4c8ea7164d13ffc3148d85",
+    "core_sha256": "217f1e8ae8de2c6f054cd0bb5b5540ba7a20336298c36685190b0e1e89e55577",
+    "registration": "Actual C.pre output linked to independent exact newly-created permit state; no POST acceptance used as a premise. Closed pendingNil and retained-unseen identity prevent deadline renewal of an existing duplicate.",
+    "exclusions": [
+      "duplicate POST",
+      "refusal policy",
+      "native host ordering",
+      "intervening expiry/release/closure/restart"
+    ],
+    "approval_time": "not separately captured",
+    "cleanup": {
+      "previous_core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+      "reason": "Owner requested deletion of rejected Receipt/A experiments; Current branch expressions and approved law/proof statements unchanged."
+    }
+  },
+  "proof_sha256": "f5ae95e8b425c0f125a64ba71be51ccd50599e741ff01981c4dd1e2d4a55ca97",
+  "checks": [
+    {
+      "name": "reopen-proof",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-excluded-boundary-controls",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-kernel-disabled",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "prior-two-current-slices-preserved",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-mirror-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-at-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reject-reopening-mutant-compiles",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-mutant-support-facts",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-mutant-actual-refusal",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "reopen-at-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "reopen-proof-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    }
+  ],
+  "mutant": "Reject all Current POSTs when old round >0; first completed-round setup and fresh PRE success preserved. All law/proof files unchanged. Global reject-all PRE remains outside the conditional success law.",
+  "all_pass": true
+}

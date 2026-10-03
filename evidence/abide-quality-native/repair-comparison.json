@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "unblindedAt": "2026-10-02T17:52:46.840Z",
+  "frozenScoresSha256": "5f4981c62b65e2b4a616d9e67b860c18060411326ae9d859aac1d61ae2d9aae8",
+  "rows": [
+    {
+      "file": "B-repair-1-context-invoice-abide.json",
+      "blindId": "cb14264a21b4",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-1-context-invoice-baseline.json",
+      "blindId": "3dde2e2baa22",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-1-context-invoice-hapsland.json",
+      "blindId": "61930a0810eb",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-2-context-rendering-abide.json",
+      "blindId": "4affacbfb866",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-2-context-rendering-baseline.json",
+      "blindId": "991dda7e8246",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-2-context-rendering-hapsland.json",
+      "blindId": "3eac7254ddab",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-3-local-payment-abide.json",
+      "blindId": "32e8a98c1042",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-3-local-payment-baseline.json",
+      "blindId": "2237c7d7bcd5",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-3-local-payment-hapsland.json",
+      "blindId": "a73ab085dd7a",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-4-clean-payment-abide.json",
+      "blindId": "0d44b940d741",
+      "status": "clean-preserved"
+    },
+    {
+      "file": "B-repair-4-clean-payment-baseline.json",
+      "blindId": "3144463c1a37",
+      "status": "clean-preserved"
+    },
+    {
+      "file": "B-repair-4-clean-payment-hapsland.json",
+      "blindId": "d7c8209c41dc",
+      "status": "clean-preserved"
+    },
+    {
+      "file": "B-repair-5-clean-currencies-abide.json",
+      "blindId": "b3d9c8a8f43a",
+      "status": "clean-preserved"
+    },
+    {
+      "file": "B-repair-5-clean-currencies-baseline.json",
+      "blindId": "099b8db2469a",
+      "status": "clean-preserved"
+    },
+    {
+      "file": "B-repair-5-clean-currencies-hapsland.json",
+      "blindId": "ebfca7b61172",
+      "status": "clean-preserved"
+    },
+    {
+      "file": "B-repair-6-excluded-support-abide.json",
+      "blindId": "774dddfd3e9e",
+      "status": "repaired"
+    },
+    {
+      "file": "B-repair-6-excluded-support-baseline.json",
+      "blindId": "112a51eb7f01",
+      "status": "remaining"
+    },
+    {
+      "file": "B-repair-6-excluded-support-hapsland.json",
+      "blindId": "d3e5d7365710",
+      "status": "repaired"
+    }
+  ]
+}

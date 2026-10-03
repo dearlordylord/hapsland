@@ -14,6 +14,7 @@
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
+| Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
 | Package setup | `npm run conformance:package`; `npm run conformance:setup-package` | Clean install and first-review setup | Packaging and installation paths; run only when those paths change |
@@ -24,6 +25,17 @@
 `HOST` is `codex` or `claude`; `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
 The selected adoption observations include six controlled offline passes and six live Jev passes. One earlier controlled Claude Bend session received a finding but did not repair; its separately declared follow-up session passed. The live and offline records stay distinct in the language index.
+
+The [feedback delivery investigation](../evidence/feedback-delivery-debug/investigation.json)
+retains five separate rendering diagnostics and per-run harness snapshots.
+The archived runner sources record their opt-in `--delivery-debug` mode. The two corrected-path validations declare
+`--debug-edit-delay-ms=1500 --debug-stop-delay-ms=6000`: these are injected faults,
+not ordinary runtime observations. One controlled and one live Jev session delivered
+through a Codex Bash background hook, confirmed receipt and passed finite-domain
+repair probes despite a lost first background opportunity and a native Stop timeout.
+These source-checkout diagnostics do not amend the original comparison cell or
+establish a general delivery guarantee. The investigation made four physical Jev
+requests across its two live runs.
 
 ## Pull request checks
 

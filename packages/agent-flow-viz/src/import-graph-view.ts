@@ -31,7 +31,6 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
     h.div([h.Class("import-graph-facts")], states.map((state, index) => h.div([], [
       h.strong([], [`${scenario.units[index]} · ${state.phase}${state.reason ? ` (${state.reason})` : ""}`]),
       h.span([], [`Pending edges: ${ids(state.pending)} · visited targets: ${ids(state.visited)}`]),
-      h.span([], [`Files read: ${state.files}/${state.limits.files} · read bytes: ${state.readBytes}/${state.limits.readBytes} · accepted tree bytes: ${state.treeBytes}/${state.limits.treeBytes} · work: ${state.work}/${state.limits.work}`]),
       h.span([], [`Import skipped for remaining tree budget: ${state.skippedTree ? "yes" : "no"}`]),
       h.span([], [`Import skipped for denied permission: ${state.skippedExcluded ? "yes" : "no"}`]),
       h.span([], [`Import skipped for unavailable source or another cap: ${state.skippedOther ? "yes" : "no"}`]),

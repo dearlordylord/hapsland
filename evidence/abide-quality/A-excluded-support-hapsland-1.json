@@ -1,0 +1,26 @@
+{
+  "stage": "A",
+  "caseId": "excluded-support",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "incomplete",
+    "ready": 0,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": []
+  },
+  "requests": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

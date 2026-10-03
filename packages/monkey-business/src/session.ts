@@ -8,6 +8,7 @@ export interface SessionConfig {
   readonly seed?: number;
   readonly agent?: string;
   readonly editIntervalMs?: number;
+  readonly editDurationMs?: number;
   readonly variationMs?: number;
   readonly editsPerTask?: number;
   readonly taskPauseMs?: number;
@@ -25,7 +26,7 @@ export type SessionInput = {
   readonly at: number; readonly generation: number; readonly agent: string; readonly recurring: boolean;
 } & (
   | { readonly kind: "task"; readonly task: number }
-  | { readonly kind: "edit"; readonly bytes: number; readonly unitBytes: readonly number[]; readonly revision: number; readonly repair?: boolean; readonly outcome?: JevRequestOutcome }
+  | { readonly kind: "edit"; readonly bytes: number; readonly unitBytes: readonly number[]; readonly revision: number; readonly editDurationMs?: number; readonly repair?: boolean; readonly outcome?: JevRequestOutcome }
   | { readonly kind: "finish" }
 );
 const integer = (value: number, name: string, minimum = 0, maximum = 1_000_000_000): number => {
@@ -47,6 +48,7 @@ export class SessionGenerator {
     this.agent = config.agent ?? "agent-1";
     if (!this.agent.length) throw new RangeError("agent must be nonempty");
     const seed = integer(config.seed ?? 1, "seed", 0, 0xffffffff);
+    if (config.editDurationMs !== undefined) integer(config.editDurationMs, "editDurationMs");
     const interval = integer(config.editIntervalMs ?? 100, "editIntervalMs", 1);
     const variation = integer(config.variationMs ?? 15, "variationMs");
     const edits = integer(config.editsPerTask ?? 5, "editsPerTask", 1, 1024);

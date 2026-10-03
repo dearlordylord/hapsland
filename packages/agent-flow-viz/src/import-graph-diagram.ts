@@ -39,7 +39,7 @@ export const projectFileGraphs = (unitCount: number, history: readonly HistorySt
             if (existing === undefined) graph.nodes.set(event.target, { target: event.target, status: "discovered" });
             else if (command.kind === "none") edge.visited = true;
           }
-          if (command.kind === "unitIncomplete") edge.reason = command.reason;
+          if (command.kind === "unitIncomplete" || command.kind === "skipImport") edge.reason = command.reason;
         }
         if (command.kind === "checkPath") graph.checking = command.target;
         break;
@@ -63,7 +63,7 @@ export const projectFileGraphs = (unitCount: number, history: readonly HistorySt
         }
         break;
       case "captureFailed":
-        if (command.kind === "unitIncomplete" && graph.reading !== undefined) {
+        if ((command.kind === "unitIncomplete" || command.kind === "skipImport") && graph.reading !== undefined) {
           graph.nodes.set(graph.reading, { target: graph.reading, status: "blocked", reason: command.reason });
         }
         break;
@@ -75,6 +75,36 @@ export const projectFileGraphs = (unitCount: number, history: readonly HistorySt
 };
 
 const treeSize = (bytes: number) => bytes % 1024 === 0 ? `${bytes / 1024} KiB` : `${bytes} B`;
+
+/** Capacity display uses checked per-artifact totals, never fixture completion. */
+export const importBudgetMeters = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
+  history: readonly HistoryStep[], states: readonly ImportGraphProjection[]) =>
+  h.div([h.Class("import-budget-meters")], states.map((state, unit) => {
+    const fact = history.filter(entry => entry.unit === unit && (entry.event.kind === "root" || entry.event.kind === "captured")).at(-1)?.event;
+    const captured = fact?.kind === "root" || fact?.kind === "captured" ? fact : undefined;
+    const gate = (label: string, value: number | undefined, max: number) => h.p([], [
+      `${label}: ${value === undefined ? "Fact not recorded" : `${value} / ${max} · ${value <= max ? "At or below limit" : "Above limit"}`}${value === undefined ? ` · limit ${max}` : ""}`,
+    ]);
+    return h.div([h.Style({ minWidth: "0", display: "grid", gap: "6px" })], [
+      h.strong([], [`${units[unit] ?? `Artifact ${unit}`} · checked import budgets`]),
+      ...([
+        ["Files read", state.files, state.limits.files],
+        ["Source bytes read", state.readBytes, state.limits.readBytes],
+        ["Accepted tree bytes", state.treeBytes, state.limits.treeBytes],
+        ["Traversal work", state.work, state.limits.work],
+      ] as const).map(([label, used, max]) => h.div([], [
+        h.span([], [`${label}: ${used} / ${max}`]),
+        h.div([h.Role("img"), h.AriaLabel(`${units[unit] ?? `Artifact ${unit}`} ${label}: ${used} of ${max}`),
+          h.Style({ height: "7px", width: "100%", background: "#edf1f6", borderRadius: "4px", overflow: "hidden" })], [
+          h.div([h.Style({ height: "100%", width: `${Math.min(100, used / max * 100)}%`, background: "#527cc4" })], []),
+        ]),
+      ])),
+      gate("Latest supplied source bytes", captured?.sourceBytes, state.limits.sourceBytes),
+      gate("Latest supplied outgoing edges", captured?.edges.length, state.limits.outgoingEdges),
+      gate("Depth", undefined, state.limits.depth),
+      h.p([], [`Checked outcome: ${state.phase}${state.reason ? ` · ${state.reason}` : ""}`]),
+    ]);
+  }));
 
 export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
   names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[]) =>
@@ -89,6 +119,7 @@ export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: re
     const contributions = accepted.map((node) => `${name(node)}: ${treeSize(node.treeBytes!)} accepted; cumulative ${treeSize(node.acceptedTotal!)}`);
     const summary = `${units[unit]} tree budget: ${treeSize(used)} of ${treeSize(treeLimitBytes)} accepted; ${treeSize(remaining)} remaining`;
     return h.div([h.Class("import-tree-budget")], [
+      importBudgetMeters(h, [units[unit]!], history.filter(entry => entry.unit === unit).map(entry => ({ ...entry, unit: 0 })), [states[unit]!]),
       h.h3([], [summary]),
       h.div([h.Class("import-tree-bar"), h.Role("img"), h.AriaLabel([summary, ...contributions].join(". "))], [
         ...accepted.map((node) => h.span([h.Class("import-tree-segment"), h.Style({ width: `${node.treeBytes! / treeLimitBytes * 100}%` })], [node.treeBytes! / treeLimitBytes >= 0.08 ? (names[node.target] ?? `File #${node.target}`).replace(/\.ts$/, "") : ""])),
@@ -139,11 +170,12 @@ export const importReferenceGraph = <Message>(h: HtmlBuilder<Message>, units: re
   });
   const width = Math.max(920, ...rows.map((row) => 40 + row.depthCount * 270));
   const height = Math.max(130, rowTop);
+  const rootRefusals = [...new Set(states.filter(state => state.phase === "incomplete").map(state => state.reason ?? "Incomplete"))];
   return h.svg([h.ViewBox(`0 0 ${width} ${height}`), h.Role("img"),
     h.AriaLabel("Import graph projected from native example facts and compiled Bend transition results. File colors and outcomes follow Bend commands and state.")], [
     h.defs([], [h.marker([h.Id("file-import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
     h.text([h.X("25"), h.Y("23"), h.FontSize("13"), h.FontWeight("700"), h.Fill("#1e3048")], ["IMPORT / REFERENCE GRAPH · replayed example facts"]),
-    ...(rows.every((row) => row.vertices.length === 0) ? [h.text([h.X("25"), h.Y("83"), h.FontSize("13"), h.Fill("#52647d")], ["Advance the scenario to capture a root and reveal its imports."])] : []),
+    ...(rows.every((row) => row.vertices.length === 0) ? [h.text([h.X("25"), h.Y("83"), h.FontSize("13"), h.Fill("#52647d")], [rootRefusals.length ? `Root was not accepted · ${rootRefusals.join(", ")}` : "Advance the scenario to capture a root and reveal its imports."])] : []),
     ...rows.flatMap(({ graph, unit, vertices, positions, top }) => {
       if (vertices.length === 0) return [];
       const unitStatus = states[unit]?.phase ?? "idle";

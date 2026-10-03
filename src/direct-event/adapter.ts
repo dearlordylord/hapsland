@@ -234,7 +234,7 @@ type ComposedEventName = "PreToolUse" | "PostToolUse" | "Stop" | "SubagentStop" 
 type ComposedHost = "codex-cli" | "claude-code";
 const composedToolMatches = (event: EventRecord, host: ComposedHost): boolean => {
   if (!nonEmpty(event.tool_use_id)) return false;
-  if (host === "codex-cli") return event.tool_name === "apply_patch";
+  if (host === "codex-cli") return event.tool_name === "apply_patch" || (event.hook_event_name === "PostToolUse" && event.tool_name === "Bash");
   return event.tool_name === "Edit" || event.tool_name === "Write";
 };
 const composedEventMatches = (event: IdentifiedEvent, host: ComposedHost, name: ComposedEventName): boolean => {

@@ -1,0 +1,32 @@
+{
+  "instances": 896,
+  "histories": 14,
+  "batch_exits": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "predicate_sha256": "fad17b2ef2680b1c553b9b8ecc25af04f1cd5d5d694cb4a9e8fc2438a64959df",
+  "method": "literal necessary-validity implication; no universal proof",
+  "all_pass": true
+}

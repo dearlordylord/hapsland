@@ -1,0 +1,33 @@
+{
+  "stage": "B",
+  "taskId": "repair-3-local-payment",
+  "candidate": "baseline",
+  "ordinal": 2,
+  "blindId": "2237c7d7bcd5",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 66848,
+  "usage": {
+    "input_tokens": 129432,
+    "cached_input_tokens": 118528,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2704,
+    "reasoning_output_tokens": 1656
+  },
+  "uncachedPlusOutputTokens": 13608,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "hookEvents": [],
+  "requests": [],
+  "agentMentionsRule": [],
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "103156732c435fcd87e6083e871c4ffb0a038a5faa0dfd1b897004adfcd2cd88",
+  "changed": true
+}

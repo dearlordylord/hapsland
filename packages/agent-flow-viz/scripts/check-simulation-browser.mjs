@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createServer } from "vite";
-const server = await createServer({ server: { host: "127.0.0.1", port: 0 } });
+const server = await createServer({ server: { host: "127.0.0.1", port: 0, hmr: false } });
 let browser;
 try {
   await server.listen();
@@ -76,8 +76,9 @@ try {
   );
   assert.match(
     await panel.locator(".simulation-history").innerText(),
-    /0\. 105 ms · openRound/,
+    /0\. 105 ms · agent-1 · issuePermit/,
   );
+  assert.match(await panel.locator(".simulation-details").innerText(), /permitIssued/);
   await panel.getByLabel("Burst count (1–100)", { exact: true }).fill("0");
   await panel.getByLabel("Burst count (1–100)", { exact: true }).press("Enter");
   await status("Burst count must be an integer");
@@ -118,9 +119,10 @@ try {
   );
   const assertCapacity = async () => {
     const projection = JSON.parse(await panel.locator(".simulation-details pre").textContent()).after;
-    assert.equal(await panel.locator(".review-capacity [role=img]").getAttribute("aria-label"), `${projection.global.bytes} of ${projection.limits.globalBytes} reserved review bytes`);
-    assert.match(await panel.locator(".review-capacity").innerText(), new RegExp(`${projection.global.items}/${projection.limits.globalItems} work items`));
-    assert.equal(await panel.locator(".review-capacity .capacity-segment").count(), projection.charges.length);
+    assert.equal(await panel.locator('.shared-capacity-bar[role=img][aria-label$="bytes"]').getAttribute("aria-label"), `Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`);
+    assert.equal(await panel.locator('.shared-capacity-bar[aria-label^="Resident ledger items"]').getAttribute("aria-label"), `Resident ledger items ${projection.global.items} of ${projection.limits.globalItems}`);
+    assert.match(await panel.locator(".shared-capacity-total").innerText(), new RegExp(`${projection.global.items} / ${projection.limits.globalItems} items`));
+    assert.equal(await panel.locator('.shared-capacity-bar[aria-label$="bytes"] span').count(), projection.charges.length);
   };
   await assertCapacity();
   await panel.getByRole("button", { name: "Previous event", exact: true }).click();
@@ -341,6 +343,12 @@ try {
   await page.waitForFunction(() => [...document.querySelectorAll("#monkey-business button")].some((button) => /^Jev request #/.test(button.textContent ?? "")));
   await panel.getByRole("button", { name: /^Jev request #/ }).first().click();
   await page.waitForFunction(() => document.querySelector("#monkey-business")?.textContent.includes("Following request:"));
+  // Stage selection opens the flat inspection view; layout stays stable within it.
+  const focusAgent = panel.getByRole("button", { name: "Focus selected agent", exact: true });
+  if (await focusAgent.count()) {
+    await focusAgent.click();
+    await panel.locator(".ensemble-panel.is-flat").waitFor();
+  }
   const diagramTop = () => panel.locator(".production-topology").evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
   const stableTop = await diagramTop();
   const awaitingSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting Jev result" });
@@ -530,6 +538,8 @@ try {
   await panel.getByRole("button", { name: "Load replay", exact: true }).click();
   await status("Replay reconstructed");
   await page.waitForFunction(() => document.querySelector(".simulation-tree-active")?.textContent.includes("7–7 files") && document.querySelector(".simulation-tree-active")?.textContent.includes("depth ≤ 6"));
+  assert.equal(await page.locator(".ensemble-layer").count(), 1, "scripted input replay has a partition layer without a generator");
+  assert.equal(await panel.getByRole("button", { name: "Apply edit pace", exact: true }).count(), 0, "scripted replay must not offer nonexistent generator controls");
   assert.match(await panel.locator(".preparation-mini-counts").textContent(), /5\/7 files read/);
   if (!(await panel.getByLabel("Diagram stage", { exact: true }).isVisible())) await panel.getByText("Inspect a diagram stage by keyboard", { exact: true }).click();
   await panel.getByLabel("Diagram stage", { exact: true }).selectOption("preparation");
@@ -559,7 +569,9 @@ try {
   assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 pending source reads/);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Read & prepare source" }).locator(".topology-facet").count(), 2);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Ready advice" }).locator(".topology-facet").count(), 3);
-  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);
+  const hostOutputSquare = panel.locator(".topology-node").filter({ hasText: "Host output" });
+  assert.equal(await hostOutputSquare.locator(".topology-facet").count(), 3);
+  assert.match(await hostOutputSquare.textContent(), /Output slot · select group in inspector/);
   const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;
   const metrics = await page.evaluate(async ({ core, presentation }) => {
     const { createRun } = await import(core);

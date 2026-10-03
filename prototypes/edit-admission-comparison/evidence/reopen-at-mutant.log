@@ -1,0 +1,23 @@
+SOME PROOFS FAIL
+Error:
+- expected : O.Outcome{1n, 1n, False{}}
+- observed : O.Outcome{2n, 2n, True{}}
+Context:
+- reached            : {C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, False{}, 3n, 2n, []}, [1n], 1n, 1n, False{}, 0n} == C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, False{}, 3n, 2n, []}, [1n], 1n, 1n, False{}, 0n} : C.State}
+- completed_round    : {True{} == True{} : Bool}
+- closed             : {True{} == True{} : Bool}
+- unseen             : {False{} == False{} : Bool}
+- fresh_start        : {True{} == True{} : Bool}
+- start_before_issue : {True{} == True{} : Bool}
+- issue_window       : {True{} == True{} : Bool}
+- issue_deadline     : {True{} == True{} : Bool}
+- issue_before_post  : {True{} == True{} : Bool}
+- start_before_post  : {True{} == True{} : Bool}
+- timely_post        : {True{} == True{} : Bool}
+- actual_pre         : {C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, False{}, 3n, 3n, [../../../../../../../packages/agent-flow-bend/Admission.Permit{2n, 2n, 2n, 4n, 12n}]}, [1n], 1n, 1n, False{}, 0n} == C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, False{}, 3n, 3n, [../../../../../../../packages/agent-flow-bend/Admission.Permit{2n, 2n, 2n, 4n, 12n}]}, [1n], 1n, 1n, False{}, 0n} : C.State}
+- created_permit     : {C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, False{}, 3n, 3n, [../../../../../../../packages/agent-flow-bend/Admission.Permit{2n, 2n, 2n, 4n, 12n}]}, [1n], 1n, 1n, False{}, 0n} == C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, False{}, 3n, 3n, [../../../../../../../packages/agent-flow-bend/Admission.Permit{2n, 2n, 2n, 4n, 12n}]}, [1n], 1n, 1n, False{}, 0n} : C.State}
+Location: approved_at
+32 |     O.Outcome{(C.count(C.run([C.Pre{1n,1n,1n,1n,20n,1n},C.Post{1n,1n,1n,2n},C.RoundClose{3n}],C.Current{},C.initial())) + 1n : Nat),(C.round(C.run([C.Pre{1n,1n,1n,1n,20n,1n},C.Post{1n,1n,1n,2n},C.RoundClose{3n}],C.Current{},C.initial())) + 1n : Nat),True{}} : O.Outcome}:
+33>|   {==}
+   |   ^^^^
+34 |

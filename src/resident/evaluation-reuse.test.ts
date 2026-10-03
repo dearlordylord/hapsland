@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { describe, expect, it } from "vitest";
 import { Effect } from "effect";
 import { it as effectIt } from "@effect/vitest";
@@ -29,7 +30,7 @@ const artifact = (source: string): TypeDeclaration => ({
 
 const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
   const declaration = artifact("type OrderCount = number");
-  return freezeInput({
+  return freezeInput({ providerIdentity: providerIdentity({ provider: "jev" }),
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",

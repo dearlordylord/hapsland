@@ -1,0 +1,34 @@
+SOME PROOFS FAIL
+Error:
+- expected : {D.Outcome{C.count(C.current_post(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, False{}, spent}, post_at), p, l, tool, post_at, C.seen(tool, C.completed(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, False{}, spent}, post_at))))), C.round(C.current_post(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, False{}, spent}, post_at), p, l, tool, post_at, C.seen(tool, C.completed(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, False{}, spent}, post_at))))), C.active(C.current_post(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, False{}, spent}, post_at), p, l, tool, post_at, C.seen(tool, C.completed(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, False{}, spent}, post_at)))))} == D.Outcome{n, r, False{}} : D.Outcome}
+- observed : {D.Outcome{C.count(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, closed_at, next, []}, C.completed(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), C.count(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), C.round(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), False{}, C.spent(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent}))}, p, l, tool, post_at, C.seen(tool, C.completed(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent}))))), C.round(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, closed_at, next, []}, C.completed(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), C.count(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), C.round(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), False{}, C.spent(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent}))}, p, l, tool, post_at, C.seen(tool, C.completed(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent}))))), C.active(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, closed_at, next, []}, C.completed(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), C.count(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), C.round(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})), False{}, C.spent(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent}))}, p, l, tool, post_at, C.seen(tool, C.completed(C.remember_permits(ps, C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent})))))} == D.Outcome{n, r, False{}} : D.Outcome}
+Context:
+- p                : Nat
+- l                : Nat
+- pr               : Nat
+- f                : Nat
+- next             : Nat
+- ps               : List<&2, P.Permit>
+- done             : List<&2, Nat>
+- n                : Nat
+- r                : Nat
+- a                : Bool
+- spent            : Nat
+- history          : List<&2, C.TraceEvent>
+- reached          : {C.State{P.AdmissionState{p, l, pr, True{}, f, next, ps}, done, n, r, a, spent} == C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}) : C.State}
+- tool             : Nat
+- closed_at        : Nat
+- post_at          : Nat
+- round_active     : {a == True{} : Bool}
+- admission_active : {True{} == True{} : Bool}
+- pending_pre      : {P.has_tool(tool, ps) == True{} : Bool}
+- valid_close      : {Cmp.is_ge(Nat.cmp(closed_at, f)) == True{} : Bool}
+- pre_before_close : {Cmp.is_ge(Nat.cmp(closed_at, D.start(../spec.find_tool(tool, ps)))) == True{} : Bool}
+- post_after_close : {Cmp.is_ge(Nat.cmp(post_at, closed_at)) == True{} : Bool}
+- before           : C.State
+- remembered       : C.State
+Location: Laws.delayed_post_after_close
+22 |       +remembered = C.remember_permits(ps,before)
+23>|       Equal.trans(D.Outcome,
+   |       ^^^^^^^^^^^^^^^^^^^^^^
+24 |         D.outcome(C.post(C.Current{},H.closed_state(p,l,pr,closed_at,next,C.completed(remembered),C.count(remembered),C.round(remembered),C.spent(remembered)),p,l,tool,post_at)),

@@ -1,3 +1,8 @@
+import { executionPoolsView } from "./execution-pools-view";
+import { residentCapacityInset } from "./resident-capacity-inset";
+import type { AgentScope } from "./shared-resident-view";
+import { adviceePermitLimit } from "./resource-details";
+import type { CapacityMetadata } from "../../monkey-business/src/index";
 import { Option } from "effect";
 import { preparationMini, type PreparationSnapshot } from "./preparation-mini";
 import type { HtmlBuilder } from "foldkit/html";
@@ -174,13 +179,29 @@ const routeGeometry = (route: Route, offset: number) => {
 };
 
 /** A read-only projection. Every active route is keyed to a checked event or command. */
+/** Topology annotations, not additional states or observed traffic. */
+export const INFRASTRUCTURE_CONTACTS = [
+  { id: "capacity", stage: "admission", x: SQUARES.admission.x + NODE_WIDTH / 2, y: 40, edgeY: SQUARES.admission.y,
+    labelY: 0, title: "Resident capacity", scope: "one shared resident ledger", color: "#168f83" },
+  { id: "jev", stage: "effect", x: SQUARES.effect.x + NODE_WIDTH / 2, y: 490, edgeY: SQUARES.effect.y + NODE_HEIGHT,
+    labelY: 502, title: "Jev backend", scope: "shared permits · simulated responses", color: "#b17a22" },
+] as const;
+
 export const productionFlowView = <Message>(
   h: HtmlBuilder<Message>, projection: CanonicalProjection, last: ReplayStep | undefined,
   showcase: boolean,
   inspect?: (place: (typeof PLACE_ORDER)[number]) => Message,
   preparation: PreparationSnapshot = {},
   numbers?: RecordNumbers,
+  infrastructure = false,
+  resident: CanonicalProjection = projection,
+  metadata?: CapacityMetadata,
+  partition?: number,
+  selected?: { readonly group?: number; readonly round?: number },
+  agents?: readonly AgentScope[],
+  activitySteps?: readonly ReplayStep[],
 ) => {
+  if (selected?.group !== undefined && ![...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)].includes(selected.group)) selected = { ...selected, group: undefined };
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
   const consumed = commands.find((command) => command.kind === "permitConsumed");
@@ -262,13 +283,18 @@ export const productionFlowView = <Message>(
       return `Stop result recorded as ${last.event.outcome}; agent use of advice is not observed.`;
     return undefined;
   })();
-  const changedStages = last?.preparation ? ["preparation", ...flow.changedStages] : flow.changedStages;
+  // A playback batch can contain transient records absent from its endpoint.
+  const activity = activitySteps ? activitySteps.map(step => ({
+    step, flow: projectFlowStep(step.event.kind !== "preparationGraph" ? { ...step, event: step.event } : undefined, numbers),
+  })) : last ? [{ step: last, flow }] : [];
+  const changedStages = activity.flatMap(({ step, flow }) => step.preparation ? ["preparation" as const, ...flow.changedStages] : flow.changedStages);
+  const activityEvidence = activity.flatMap(({ flow }) => flow.evidence);
   const declaredRoutes = new Set(CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
   if (declaredRoutes.size !== CONNECTIONS.length) throw new Error("duplicate dashboard arrow route");
   const unmapped = flow.evidence.filter(item => !declaredRoutes.has(`${item.from}:${item.to}`));
   const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection, numbers), facets: SQUARES[id].facets(projection, numbers) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
-    const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
+    const evidence = activityEvidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
       linked: "relation" in connection && connection.relation === "linked record",
       evidence: evidence.map((item) => `${item.relation ?? item.source}: ${item.description}`).join("; ") };
@@ -289,10 +315,11 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"]),
+    ...(!infrastructure ? [h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"])] : []),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role(inspect ? "group" : "img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
+        executionPoolsView(h, resident, agents, inspect),
         ...routes.map((route, index) => {
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
           const offset = (routeOffsets[index] - (same - 1) / 2) * 18;
@@ -319,7 +346,7 @@ export const productionFlowView = <Message>(
             : { fill: "#e9f1ff", stroke: "#547dc0" };
           return h.g([h.Class(`topology-node ${changedStages.includes(node.id) ? "active" : ""}`), ...(inspect ? [h.Role("button"), h.Tabindex(0), h.AriaLabel(`Inspect ${node.title}`), h.OnClick(inspect(node.id)),
               h.OnKeyDownSelfPreventDefault(key => key === "Enter" || key === " " ? Option.some(inspect(node.id)) : Option.none())] : [])], [
-            h.title([], [`${node.title}: ${node.detail}`]),
+            h.title([], [`${node.title}: ${node.detail}${node.id === "admission" ? [storedResultTransition, issuedPermit?.kind === "permitIssued" ? `Permit #${issuedPermit.token} issued` : undefined, editAccepted ? `Permit #${editAccepted.token} used` : undefined].filter(Boolean).map(fact => ` · NOW: ${fact}`).join("") : ""}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
               h.Height(String(node.id === "preparation" ? 270 : NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
               h.Stroke(palette.stroke), h.StrokeWidth(changedStages.includes(node.id) ? "4" : "2")], []),
@@ -327,24 +354,64 @@ export const productionFlowView = <Message>(
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
               h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
-            ...node.facets.map((facet, index) =>
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
+            ...(node.id === "admission" || node.id === "effect" ? [] : node.id === "scheduling" ? node.facets.filter((_, index) => index !== 2) : node.id === "round" ? node.facets.slice(0, 2) : node.id === "collection" ? node.facets.slice(0, 2) : node.id === "delivery" ? node.facets.slice(1) : node.facets).map((facet, index) =>
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + (index + (node.id === "delivery" ? 1 : 0)) * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
                 h.Fill("#435670")], [squareFacetLine(facet)])),
+            ...(node.id === "effect" ? [
+              h.text([h.X(String(point.x+13)),h.Y(String(point.y+69)),h.FontSize("10"),h.Fill("#435670")],[`Shared Jev permits: ${resident.dispatch.requests.length} / ${resident.executionLimits.jevRequests}`]),
+              h.text([h.X(String(point.x+13)),h.Y(String(point.y+91)),h.FontSize("10"),h.Fill("#435670")],[`This agent: ${projection.dispatch.requests.filter(request=>request.started && (partition === undefined || request.partition === partition)).length} started`]),
+            ] : []),
+            ...(node.id === "collection" ? (() => {
+              const used = resident.collection.claims.length;
+              const maximum = metadata?.collectors?.capacity;
+              const description = `Shared background collectors: ${maximum === undefined ? `${used} used; limit not recorded` : `${used} of ${maximum}`}`;
+              return [h.g([h.Class("collection-shared-collectors"), h.Role("img"), h.AriaLabel(description)], [
+                h.title([], [description, ...resident.collection.claims.map(claim => ` · Group ${claim.group} · collector token ${claim.owner}`)]),
+                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [maximum === undefined ? `Collectors ${used} · max unknown` : `Collectors · shared ${used}/${maximum}`]),
+                ...(maximum === undefined ? [] : [
+                  h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 89)), h.Width("57"), h.Height("5"), h.Fill("#dce5f0")], []),
+                  h.rect([h.Class("collection-collector-fill"), h.X(String(point.x + 154)), h.Y(String(point.y + 89)), h.Width(String(Math.min(57, maximum > 0 ? used / maximum * 57 : 0))), h.Height("5"), h.Fill("#168f83")], []),
+                ]),
+              ])];
+            })() : []),
+            ...(node.id === "delivery" ? (() => {
+              const group = selected?.group;
+              const slot = resident.delivery.slots.find(slot => slot.group === group);
+              const description = group === undefined ? "Stop output slot: select a known delivery group" : `Stop output slot, group ${group}: ${slot ? `occupied; round ${slot.round}; ${slot.phase}` : "free; no active output slot"}`;
+              return [h.g([h.Class("delivery-stop-slot"), h.Role("img"), h.AriaLabel(description)], [
+                h.title([], [description]),
+                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("9"), h.Fill("#435670")], [group === undefined ? "Stop slot · select group in inspector" : `Stop slot · G${group} ${slot ? "1/1" : "0/1"}`]),
+                ...(group === undefined ? [] : [h.rect([h.Class("delivery-stop-slot-cell"), h.X(String(point.x + 193)), h.Y(String(point.y + 60)), h.Width("14"), h.Height("10"), h.Rx("2"), h.Fill(slot ? "#168f83" : "#fff"), h.Stroke("#168f83")], [])]),
+              ])];
+            })() : []),
+            ...(node.id === "round" ? (() => {
+              if (selected?.round === undefined || !projection.rounds.some(r => r.id === selected.round) || selected.group === undefined || metadata?.continuationBudget === undefined)
+                return [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], ["Continuation budget · select round/group"])];
+              const used = resident.delivery.counters.find(c => c.group === selected.group && c.round === selected.round)?.used ?? 0;
+              return [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [`Selected round · ${used}/4 used`]), ...Array.from({length:4}, (_, index) => h.rect([h.X(String(point.x + 152 + index*15)), h.Y(String(point.y + 88)), h.Width("10"), h.Height("8"), h.Fill(index < used ? "#427bc4" : "#dce5f0")], []))];
+            })() : []),
+            ...(node.id === "scheduling" || node.id === "jev" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + (node.id === "scheduling" ? 108 : 95))), h.FontSize("9"), h.Fill("#435670")], [node.id === "scheduling" ? `Preparing: agent ${projection.dispatch.running.filter(w => w.preparation).length} · shared ${resident.dispatch.running.filter(w => w.preparation).length}/${resident.executionLimits.preparation}` : `Jev: agent ${projection.dispatch.requests.length} · shared ${resident.dispatch.requests.length}/${resident.executionLimits.jevRequests}`])] : []),
+            ...(node.id === "admission" ? (() => {
+              const usage = partition === undefined ? projection.partitions.length === 1 ? projection.partitions[0] : undefined : resident.partitions.find(p => p.partition === partition);
+              const scopedPartition = partition ?? (projection.partitions.length === 1 ? projection.partitions[0].partition : projection.admissions.length === 1 ? projection.admissions[0].partition : undefined);
+              const scoped = scopedPartition !== undefined;
+              const rows = [{ label: "Items", used: usage?.items ?? 0, max: scoped ? resident.limits.partitionItems : undefined },
+                { label: "Bytes", used: usage?.bytes ?? 0, max: scoped ? resident.limits.partitionBytes : undefined },
+                { label: "Permits · agent", scope: "this agent", kind: "local", used: resident.admissions.filter(a => a.partition === scopedPartition).reduce((n,a) => n + a.permits.length, 0), max: adviceePermitLimit(metadata, scopedPartition) },
+                { label: "Permits · shared", scope: "all agents", kind: "global", used: resident.admissions.reduce((n,a) => n + a.permits.length, 0), max: metadata?.permits?.residentLimit }];
+              return rows.map((row, index) => h.g([
+                ...(row.kind ? [h.Class(`admission-permit-${row.kind}`), h.Role("img"), h.AriaLabel(`Edit permits, ${row.scope}: ${row.max === undefined ? `${row.used} used; limit not recorded` : `${row.used} of ${row.max}`}`)] : []),
+              ], [
+                ...(row.kind ? [h.title([], [`Edit permits, ${row.scope}: ${row.max === undefined ? `${row.used} used; limit not recorded` : `${row.used} of ${row.max}`}`])] : []),
+                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 65 + index * 13)), h.FontSize("9"), h.Fill("#435670")], [`${row.label} ${row.max === undefined ? `${row.used} · ${row.kind ? "max unknown" : "limit not recorded"}` : `${row.used}/${row.max}`}`]),
+                ...(row.max === undefined ? [] : [h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width("57"), h.Height("5"), h.Fill("#dce5f0")], []), h.rect([...(row.kind ? [h.Class("admission-permit-fill")] : []), h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width(String(Math.min(57, row.max > 0 ? row.used / row.max * 57 : 0))), h.Height("5"), h.Fill(row.kind === "global" ? "#168f83" : "#427bc4")], [])]),
+              ]));
+            })() : []),
             ...(node.id === "preparation" ? [preparationMini(h, point.x, point.y, preparation, numbers)] : []),
             ...(node.id === "preparation" && sourceLabel !== undefined ? [
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 264)), h.FontSize("10"),
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
                 [`NOW · ${sourceLabel} completed`]),
-            ] : []),
-            ...(node.id === "admission" && storedResultTransition !== undefined ? [
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("8"),
-                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
-                [`NOW · ${storedResultTransition}`]),
-            ] : []),
-            ...(node.id === "admission" && issuedPermit?.kind === "permitIssued" ? [
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
-                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
-                [`NOW · Permit #${issuedPermit.token} issued`]),
             ] : []),
             ...(node.id === "sourcePending" && admittedSource?.kind === "observationAdmitted" && last?.event.kind === "admitObservation" ? [
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
@@ -377,15 +444,24 @@ export const productionFlowView = <Message>(
               ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("10"),
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
                 [`NOW · edit #${editAccepted.tool} accepted`])]
-              : node.id === "admission"
-                ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + node.facets.length * 13)), h.FontSize("10"),
-                  h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
-                  [`NOW · permit #${editAccepted.token} used`])]
-                : []),
+              : []),
           ]);
         }),
+        ...(infrastructure ? [residentCapacityInset(h, resident, agents, inspect)] : []),
+        ...(infrastructure ? INFRASTRUCTURE_CONTACTS.map(contact => h.g([
+          h.Class(`topology-resource ${contact.id}`), h.Role("img"),
+          h.AriaLabel(`${contact.title} contact at ${SQUARES[contact.stage].title}: ${contact.scope}`),
+        ], [
+          h.title([], [`Infrastructure topology: ${contact.title} connects to ${SQUARES[contact.stage].title}. ${contact.scope}. This line is not an observed event.`]),
+          h.path([h.D(`M ${contact.x} ${contact.y} L ${contact.x} ${contact.edgeY}`), h.Stroke(contact.color), h.StrokeWidth("2.5"), h.StrokeDasharray("3 3"), h.Fill("none")], []),
+          h.circle([h.Cx(String(contact.x)), h.Cy(String(contact.y)), h.R("5"), h.Fill("#fff"), h.Stroke(contact.color), h.StrokeWidth("2.5")], []),
+          h.rect([h.X(String(contact.x - 112)), h.Y(String(contact.labelY)), h.Width("224"), h.Height("32"), h.Rx("5"), h.Fill("#fff"), h.Stroke(contact.color), h.StrokeDasharray("3 3")], []),
+          h.text([h.X(String(contact.x)), h.Y(String(contact.labelY + 13)), h.TextAnchor("middle"), h.FontSize("12"), h.FontWeight("700"), h.Fill(contact.color)], [contact.title]),
+          h.text([h.X(String(contact.x)), h.Y(String(contact.labelY + 25)), h.TextAnchor("middle"), h.FontSize("9"), h.Fill(contact.color)], [contact.scope]),
+        ])) : []),
       ]),
     ]),
+    ...(!infrastructure ? [
     ...(stepCaption === undefined ? [] : [h.p([h.Class("topology-current-step")], [stepCaption])]),
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
@@ -435,5 +511,6 @@ export const productionFlowView = <Message>(
       ...(unmapped.length ? [h.p([h.Class("topology-unmapped-relations")], [`Checked relations outside drawn connections: ${unmapped.map(item => `${SQUARES[item.from].title} → ${SQUARES[item.to].title}: ${item.description}`).join("; ")}.`])] : []),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
+    ] : []),
   ]);
 };

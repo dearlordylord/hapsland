@@ -1,0 +1,216 @@
+{
+  "stage": "B",
+  "taskId": "repair-2-context-rendering",
+  "candidate": "abide",
+  "ordinal": 1,
+  "blindId": "4affacbfb866",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 121927,
+  "usage": {
+    "input_tokens": 161312,
+    "cached_input_tokens": 143104,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 5719,
+    "reasoning_output_tokens": 4393
+  },
+  "uncachedPlusOutputTokens": 23927,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "hookEvents": [
+    {
+      "kind": "session-start",
+      "at": 1790962459691,
+      "doneAt": 1790962460043,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "decision": null,
+      "sourceHash": "64ca3433e173361be9ca6b0f267efff88d85507148d9499c117eab3ee41ef239"
+    },
+    {
+      "kind": "turn-start",
+      "at": 1790962460093,
+      "doneAt": 1790962460383,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "decision": null,
+      "sourceHash": "64ca3433e173361be9ca6b0f267efff88d85507148d9499c117eab3ee41ef239"
+    },
+    {
+      "kind": "post-tool-use",
+      "at": 1790962472983,
+      "doneAt": 1790962473531,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "decision": null,
+      "sourceHash": "034f69f2536af4c176093c08db261b239fa7169471ac35a778af1f78fb26c418"
+    },
+    {
+      "kind": "post-tool-use",
+      "at": 1790962552406,
+      "doneAt": 1790962553144,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "decision": null,
+      "sourceHash": "819435a25e948d7b36bb12feb1a03d4851f410d84de4bec804e78f6edff481d5"
+    },
+    {
+      "kind": "stop",
+      "at": 1790962574827,
+      "doneAt": 1790962575217,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "decision": null,
+      "sourceHash": "819435a25e948d7b36bb12feb1a03d4851f410d84de4bec804e78f6edff481d5"
+    }
+  ],
+  "requests": [
+    {
+      "id": "0aefc306-079c-4ba9-9187-8875b3d7744b",
+      "at": 1790962473197,
+      "candidate": "abide",
+      "caseId": "repair-2-context-rendering",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1921,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "0aefc306-079c-4ba9-9187-8875b3d7744b",
+      "at": 1790962473197,
+      "candidate": "abide",
+      "caseId": "repair-2-context-rendering",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 266,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 709,
+        "output_tokens": 27
+      }
+    },
+    {
+      "id": "4211c6c8-7c5d-4a0b-89ac-752f0f922db7",
+      "at": 1790962552671,
+      "candidate": "abide",
+      "caseId": "repair-2-context-rendering",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1893,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "4211c6c8-7c5d-4a0b-89ac-752f0f922db7",
+      "at": 1790962552671,
+      "candidate": "abide",
+      "caseId": "repair-2-context-rendering",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 413,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 703,
+        "output_tokens": 27
+      }
+    },
+    {
+      "id": "60c63682-6b6f-4a9b-bc43-41d6010c0eb0",
+      "at": 1790962574974,
+      "candidate": "abide",
+      "caseId": "repair-2-context-rendering",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1948,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "60c63682-6b6f-4a9b-bc43-41d6010c0eb0",
+      "at": 1790962574974,
+      "candidate": "abide",
+      "caseId": "repair-2-context-rendering",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 188,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 721,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "819435a25e948d7b36bb12feb1a03d4851f410d84de4bec804e78f6edff481d5",
+  "changed": true
+}

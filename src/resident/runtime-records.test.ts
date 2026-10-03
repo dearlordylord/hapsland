@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { expect, it } from "@effect/vitest";
 import { Cause, Effect } from "effect";
 import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit } from "../direct-event/model.ts";
@@ -100,7 +101,7 @@ const cacheFixture = Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const declaration = { id: "count.ts::Count", kind: "type-alias" as const, name: "Count",
     source: "type Count = number", sourceHash: "source" };
-  const input = freezeInput({ contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts", declaration,
+  const input = freezeInput({ providerIdentity: providerIdentity({ provider: "jev" }), contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts", declaration,
     unit: { root: { artifact: declaration, references: [] } }, rules: freezeRules([]),
     interpretation: "probability-strictly-greater-than-threshold" });
   const prepared: PreparedUnit = { root: "/fixture", advicee: advicee(), input, identity: semanticIdentity(input) };

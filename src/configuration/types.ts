@@ -123,6 +123,19 @@ export interface GraphLimitsSettings extends Schema.Schema.Type<typeof GraphLimi
  * Lists intentionally remain optional: omission inherits while [] is an explicit
  * empty selection.
  */
+export const ReviewBackendSettings = Schema.Union([
+  Schema.Struct({ provider: Schema.Literal("jev").annotate({ description: "Review backend provider." }) }),
+  Schema.Struct({
+    provider: Schema.Literal("cloudflare").annotate({ description: "Review backend provider." }),
+    model: Schema.Literals(["clef", "clef-flash"]).annotate({ description: "Cloudflare model selector." }),
+    accountId: Schema.String.check(Schema.isPattern(/^[a-fA-F0-9]{32}$/u)).annotate({ description: "Cloudflare account ID, 32 hexadecimal characters." }),
+  }),
+]).annotate({
+  identifier: "ReviewBackendSettings",
+  description: "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field.",
+});
+export type ReviewBackendSettings = typeof ReviewBackendSettings.Type;
+
 export const ConfigurationDocument = Schema.Struct({
   version: Schema.Literal(CONFIGURATION_VERSION).annotate({
     description: "Configuration wire-format version.",
@@ -140,6 +153,7 @@ export const ConfigurationDocument = Schema.Struct({
   privacyExcludes: Schema.optionalKey(Schema.Array(Pattern).annotate({
     description: "Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers.",
   })),
+  reviewBackend: Schema.optionalKey(ReviewBackendSettings),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   sessionAnalytics: Schema.optionalKey(Schema.Boolean.annotate({
     description: "User-owned opt-in session analytics. Disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",

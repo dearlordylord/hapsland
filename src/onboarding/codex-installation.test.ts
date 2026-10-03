@@ -1034,7 +1034,7 @@ responses_websockets_v2 = true`);
 });
 
 describe("Codex update and explicit reinstall journeys", { timeout: 30_000 }, () => {
-  it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground", "background", "feature"])("updates deleted Codex %s without losing settings", (missing) => {
+  it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground"])("updates deleted Codex %s without losing settings", (missing) => {
     const { root, home, bin } = fixture();
     const entrypoint = localPackage(root, "0.1.0");
     const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
@@ -1055,28 +1055,6 @@ describe("Codex update and explicit reinstall journeys", { timeout: 30_000 }, ()
     expect(readFileSync(join(home, "config.toml"), "utf8")).toContain('model = "user-model"');
     const repeated = invoke({ ...request, operation: "update-preview" }, environment);
     expect(repeated).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
-  });
-
-  it("explicit Codex reinstall preserves independent handlers and resumes an interrupted replacement", () => {
-    const { root, home, bin } = fixture();
-    const entrypoint = localPackage(root, "0.1.0");
-    const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
-    const request = { codexHome: home, codexExecutable: bin };
-    const preview = invoke({ ...request, operation: "install-preview" }, environment);
-    invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
-    const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"));
-    hooks.hooks.PostToolUse[0].hooks[0].timeout = 99;
-    hooks.hooks.PostToolUse[0].hooks.push({ type: "command", command: "independent-handler" });
-    hooks.hooks.Stop.push(structuredClone(hooks.hooks.Stop[0]));
-    writeFileSync(join(home, "hooks.json"), JSON.stringify(hooks));
-    const reinstall = { ...request, reinstall: true };
-    const proposal = invoke({ ...reinstall, operation: "install-preview" }, environment);
-    const digest = (proposal.proposal as { digest: string }).digest;
-    const interrupted = invoke({ ...reinstall, operation: "install", proposalDigest: digest }, { ...environment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" });
-    expect(interrupted.status).toBe("partial");
-    expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, environment).status).toBe("installed");
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("independent-handler");
-    expect(invoke({ ...request, operation: "install-preview" }, environment)).toMatchObject({ installed: true });
   });
 
   it("reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits", () => {

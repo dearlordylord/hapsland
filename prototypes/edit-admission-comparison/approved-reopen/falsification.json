@@ -1,0 +1,19 @@
+{
+  "law_sha256": "f85ea551b88bf7ec8accc615d6027194d9b224865f4c8ea7164d13ffc3148d85",
+  "valid_created_PRE_instances": 128,
+  "prior_completed_rounds": "1..8",
+  "explicit_premises_per_instance": 13,
+  "equal_start_issue_post_cases": 8,
+  "batch_exits": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "all_pass": true,
+  "method": "Exact approved equation and each independent premise instantiated; actualPRE and registry facts computed by Bend"
+}

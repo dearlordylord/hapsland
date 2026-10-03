@@ -1,0 +1,33 @@
+{
+  "stage": "B",
+  "taskId": "repair-1-context-invoice",
+  "candidate": "baseline",
+  "ordinal": 0,
+  "blindId": "1055acf054eb",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 123035,
+  "usage": {
+    "input_tokens": 144146,
+    "cached_input_tokens": 128768,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 5702,
+    "reasoning_output_tokens": 4418
+  },
+  "uncachedPlusOutputTokens": 21080,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "hookEvents": [],
+  "requests": [],
+  "agentMentionsRule": [],
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "28c344da8efcbae9b2f3822cb4fc81e53f81389a599be6095f6583e1c1ed2a44",
+  "changed": true
+}

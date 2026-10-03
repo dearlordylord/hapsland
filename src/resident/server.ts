@@ -50,10 +50,11 @@ import type { PreparedUnit } from "../direct-event/model.ts";
 import { captureStable } from "../direct-event/capture.ts";
 import { resolvedDirectFilePolicy, selectedByDirectFilePolicy } from "../direct-event/selection.ts";
 import { admitReview } from "../configuration/decision.ts";
-import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
+import { reviewDecisionModelLayer } from "../review-providers/live.ts";
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { loadConfiguration } from "../configuration/load.ts";
-import { effectiveEditPermitLimits, effectiveVirtualRoundQuietMs } from "../configuration/resolve.ts";
+import { effectiveEditPermitLimits, effectiveVirtualRoundQuietMs, effectiveReviewBackend } from "../configuration/resolve.ts";
 import { readCurrentClaudeFeedbackAuthority } from "../configuration/current-claude-authority.ts";
 import {
   controlledDecisionModelLayer,
@@ -3242,7 +3243,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                     ? undefined
                     : yield* resolveCredential({
                         envVar: dispatchCredential.name,
-                        environmentOnly: dispatchCredential.environmentOnly,
+                        environmentOnly: settings.backend === "cloudflare" || dispatchCredential.environmentOnly,
                         environmentValue: dispatchCredential.environmentValue,
                         expectedGeneration: dispatchCredential.generation,
                         statePath: dispatchCredential.statePath,
@@ -3298,6 +3299,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value
               )
                 return yield* denyReady("credential");
+              const providerSelectionCurrent = () =>
+                canonicalValue(job.prepared.input.providerIdentity) === canonicalValue(settings.providerIdentity) &&
+                canonicalValue(settings.providerIdentity) === canonicalValue(providerIdentity(effectiveReviewBackend(dispatchConfiguration.policy)));
+              if (!providerSelectionCurrent()) return yield* denyReady();
               const dispatchRootVerified = yield* verifyObservationRoot(job.observation);
               if (!dispatchRootVerified) {
                 yield* observeDispatchAuthority({
@@ -3365,11 +3370,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             if (controlled === undefined && credentialProvider === undefined) return undefined;
             const makeEvaluationModel = () => {
               return controlled === undefined
-                ? jevDecisionModelLiveLayer({
-                    apiUrl: settings.apiBase,
-                    credentialEnvVar: settings.credentialEnvVar,
-                    ...(offlineHttpClient === undefined ? {} : { httpClient: offlineHttpClient }),
-                  })
+                ? reviewDecisionModelLayer(settings, offlineHttpClient)
                 : controlledDecisionModelLayer({
                     ...controlled,
                     ...(controlledRequestEffect === undefined

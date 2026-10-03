@@ -125,7 +125,7 @@ const typeForBranch = (schema: JsonObject, definitions: JsonObject): string => {
     const required = Array.isArray(branch.required)
       ? branch.required.filter((key): key is string => typeof key === "string")
       : [];
-    return required.length === 0 ? "object" : `object with ${required.map((key) => `\`${key}\``).join(" or ")}`;
+    return required.length === 0 ? "object" : `object with ${required.map((key) => `\`${key}\``).join(" and ")}`;
   }
   return typeSummary(branch, definitions);
 };
@@ -148,6 +148,7 @@ const typeSummary = (schema: JsonObject, definitions: JsonObject): string => {
   if (Array.isArray(resolved.enum) && resolved.enum.length === 1) {
     return `fixed value ${JSON.stringify(resolved.enum[0])}`;
   }
+  if (Array.isArray(resolved.enum)) return resolved.enum.map((value) => JSON.stringify(value)).join(" or ");
   if (Object.hasOwn(resolved, "const")) return `fixed value ${JSON.stringify(resolved.const)}`;
   if (resolved.type === "array") {
     const itemSchema = objectValue(resolved.items) ?? {};
@@ -247,9 +248,12 @@ const fieldsOf = (root: JsonObject): ReadonlyArray<Field> => {
           ? branch.required.filter((key): key is string => typeof key === "string")
           : [],
       );
-      const branchCondition = branchRequired.size === 1
-        ? `${[...branchRequired][0]} form`
-        : "object form";
+      const providerSchema = objectValue(branchProperties.provider);
+      const provider = providerSchema?.const ??
+        (Array.isArray(providerSchema?.enum) && providerSchema.enum.length === 1 ? providerSchema.enum[0] : undefined);
+      const branchCondition = typeof provider === "string"
+        ? `provider = ${JSON.stringify(provider)}`
+        : branchRequired.size === 1 ? `${[...branchRequired][0]} form` : "object form";
       for (const [key, child] of Object.entries(branchProperties)) {
         const childSchema = objectValue(child);
         if (childSchema !== undefined) {
@@ -267,20 +271,23 @@ const markdownCell = (value: string): string => value.replaceAll("|", "\\|").rep
 
 const markdownTable = (schema: JsonObject): string => {
   const definitions = getDefinitions(schema);
-  const byPath = new Map<string, { readonly field: Field; readonly conditions: Set<string> }>();
+  const byPath = new Map<string, { readonly field: Field; readonly schemas: JsonObject[]; readonly conditions: Set<string> }>();
   for (const field of fieldsOf(schema)) {
     const existing = byPath.get(field.path);
     if (existing === undefined) {
       byPath.set(field.path, {
         field,
+        schemas: [field.schema],
         conditions: new Set(field.requiredWhen === undefined ? [] : [field.requiredWhen]),
       });
-    } else if (field.requiredWhen !== undefined) {
-      existing.conditions.add(field.requiredWhen);
+    } else {
+      existing.schemas.push(field.schema);
+      if (field.requiredWhen !== undefined) existing.conditions.add(field.requiredWhen);
     }
   }
-  const rows = [...byPath.values()].map(({ field: entry, conditions }) => {
-    const { path, schema: field, required, collectionEntry } = entry;
+  const rows = [...byPath.values()].map(({ field: entry, schemas, conditions }) => {
+    const { path, required, collectionEntry } = entry;
+    const field = schemas.length === 1 ? entry.schema : { ...entry.schema, anyOf: schemas };
     const resolved = dereference(field, definitions);
     const description = typeof field.description === "string"
       ? field.description
@@ -353,7 +360,7 @@ const fullRulePackReference = (schema: JsonObject): string => [
   "",
   "A type target uses `typeShape` with `direct-event/type-shape/v1`. Its capabilities may be `root-declaration`, `resolved-outbound-types`, and `selected-source-type-closure`.",
   "A function target uses `function` with `direct-event/function/v1`. Its capabilities may be `signature`, `body`, `resolved-local-calls`, and `resolved-outbound-types`.",
-  "Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to Jev only when the required evidence is complete.",
+  "Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to the selected backend only when the required evidence is complete.",
 ].join("\n");
 
 const replaceMarkedSection = (

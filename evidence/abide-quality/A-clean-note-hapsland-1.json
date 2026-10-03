@@ -1,0 +1,77 @@
+{
+  "stage": "A",
+  "caseId": "clean-note",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r5_absence_confusion"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "c795380a-f04d-4de0-b963-d5a7a325611c",
+      "at": 1790961878166,
+      "candidate": "hapsland",
+      "caseId": "clean-note",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1857,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r5_absence_confusion"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "c795380a-f04d-4de0-b963-d5a7a325611c",
+      "at": 1790961878166,
+      "candidate": "hapsland",
+      "caseId": "clean-note",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 202,
+      "answers": {
+        "r5_absence_confusion": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 827,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

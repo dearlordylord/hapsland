@@ -1,0 +1,44 @@
+SOME PROOFS FAIL
+Error:
+- expected : {O.Outcome{C.count(C.current_post(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))), p, l, tool, post_at, Bool.or(Cmp.is_gt(Nat.cmp(C.round(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline)))), 0n)), C.seen(tool, C.completed(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline)))))))), C.round(C.current_post(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))), p, l, tool, post_at, Bool.or(Cmp.is_gt(Nat.cmp(C.round(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline)))), 0n)), C.seen(tool, C.completed(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline)))))))), C.active(C.current_post(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))), p, l, tool, post_at, Bool.or(Cmp.is_gt(Nat.cmp(C.round(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline)))), 0n)), C.seen(tool, C.completed(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))))))))} == O.Outcome{C.count(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, p, l, tool, post_at, C.seen(tool, done))), C.round(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, p, l, tool, post_at, C.seen(tool, done))), C.active(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, p, l, tool, post_at, C.seen(tool, done)))} : O.Outcome}
+- observed : {O.Outcome{C.count(C.current_post(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))), p, l, tool, post_at, C.seen(tool, C.completed(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))))))), C.round(C.current_post(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))), p, l, tool, post_at, C.seen(tool, C.completed(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))))))), C.active(C.current_post(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline))), p, l, tool, post_at, C.seen(tool, C.completed(C.expire_one(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, next, tool, Cmp.is_ge(Nat.cmp(post_at, deadline)))))))} == O.Outcome{C.count(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, p, l, tool, post_at, C.seen(tool, done))), C.round(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, p, l, tool, post_at, C.seen(tool, done))), C.active(C.current_post(C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent}, p, l, tool, post_at, C.seen(tool, done)))} : O.Outcome}
+Context:
+- p                  : Nat
+- l                  : Nat
+- pr                 : Nat
+- a                  : Bool
+- f                  : Nat
+- next               : Nat
+- ps                 : List<&2, P.Permit>
+- done               : List<&2, Nat>
+- n                  : Nat
+- r                  : Nat
+- active             : Bool
+- spent              : Nat
+- history            : List<&2, C.TraceEvent>
+- reached            : {C.State{P.AdmissionState{p, l, pr, a, f, next, ps}, done, n, r, active, spent} == C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}) : C.State}
+- completed_round    : {Cmp.is_gt(Nat.cmp(r, 0n)) == True{} : Bool}
+- closed             : {D.closed(C.State{P.AdmissionState{p, l, pr, a, f, next, ps}, done, n, r, active, spent}) == True{} : Bool}
+- tool               : Nat
+- start              : Nat
+- deadline           : Nat
+- issued_at          : Nat
+- post_at            : Nat
+- unseen             : {C.seen(tool, done) == False{} : Bool}
+- fresh_start        : {Cmp.is_gt(Nat.cmp(start, f)) == True{} : Bool}
+- start_before_issue : {Cmp.is_le(Nat.cmp(start, issued_at)) == True{} : Bool}
+- issue_window       : {Cmp.is_lt(Nat.cmp(issued_at, Nat.add(start, 5n))) == True{} : Bool}
+- issue_deadline     : {Cmp.is_le(Nat.cmp(issued_at, deadline)) == True{} : Bool}
+- issue_before_post  : {Cmp.is_le(Nat.cmp(issued_at, post_at)) == True{} : Bool}
+- start_before_post  : {Cmp.is_le(Nat.cmp(start, post_at)) == True{} : Bool}
+- timely_post        : {Cmp.is_lt(Nat.cmp(post_at, deadline)) == True{} : Bool}
+- registered         : C.State
+- actual_pre         : {registered == C.issue_guard(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, a, f, next, ps}, done, n, r, active, spent}, issued_at), p, l, tool, start, deadline, issued_at, Bool.and(Bool.not(C.seen(tool, C.completed(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, a, f, next, ps}, done, n, r, active, spent}, issued_at)))), Bool.and(Cmp.is_lt(Nat.cmp(P.pending_count(C.get_permit(C.expire_all(ps, C.State{P.AdmissionState{p, l, pr, a, f, next, ps}, done, n, r, active, spent}, issued_at))), 2n)), Cmp.is_lt(Nat.cmp(issued_at, Nat.add(start, 5n)))))) : C.State}
+- created_permit     : {registered == C.State{P.AdmissionState{p, l, pr, False{}, f, Nat.add(next, 1n), [P.Permit{next, tool, Nat.add(pr, 1n), start, deadline}]}, done, n, r, False{}, spent} : C.State}
+- ready              : C.State
+- timely             : {Cmp.is_lt(Nat.cmp(post_at, deadline)) == True{} : Bool}
+Location: Laws.fresh_registered_post_reopens
+20 |         O.Outcome{(n + 1n : Nat),(r + 1n : Nat),True{}},
+21>|         Equal.cong(C.State,O.Outcome,x => O.outcome(C.current_post(x,p,l,tool,post_at,C.seen(tool,C.completed(x)))),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 |           C.expire_now(ready,post_at),ready,H.expire_registered(p,l,pr,f,next,tool,start,deadline,done,n,r,spent,post_at,timely)),

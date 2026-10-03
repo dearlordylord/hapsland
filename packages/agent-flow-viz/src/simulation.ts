@@ -1,3 +1,5 @@
+import { demoResourceLimits } from "../../monkey-business/src/index";
+import { stageResourceDetails } from "./resource-details";
 import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
@@ -25,8 +27,15 @@ import { SQUARES, PLACE_ORDER } from "./production-flow-presentation";
 import { productionFlowView } from "./production-flow-view";
 
 export const SimulationModel = Schema.Struct({
+  agentId: Schema.String,
+  agentCount: Schema.String,
+  resourceScenario: Schema.String,
+  resourceGroup: Schema.String,
+  resourceRound: Schema.String,
   seed: Schema.String,
   pace: Schema.String,
+  editDuration: Schema.String,
+  draftEpoch: Schema.Number,
   burst: Schema.String,
   delay: Schema.String,
   weightNeverSent: Schema.String,
@@ -66,12 +75,20 @@ export const SimulationModel = Schema.Struct({
   suspended: Schema.Boolean,
   revision: Schema.Number,
   selected: Schema.Number,
+  activityFrom: Schema.Number,
   feedback: Schema.String,
 });
 export type SimulationModel = typeof SimulationModel.Type;
 export const initialSimulation: SimulationModel = {
+  agentId: "agent-1",
+  agentCount: "1",
+  resourceScenario: "none",
+  resourceGroup: "",
+  resourceRound: "",
   seed: "7",
   pace: "100",
+  editDuration: "1",
+  draftEpoch: 0,
   burst: "5",
   delay: "50",
   weightNeverSent: String(DEFAULT_OUTCOME_WEIGHTS.neverSent),
@@ -110,17 +127,19 @@ export const initialSimulation: SimulationModel = {
   suspended: false,
   revision: 0,
   selected: -1,
+  activityFrom: -1,
   feedback: "Start a seeded source-free session. Jev effects are simulated.",
 };
 let run: ReturnType<typeof createRun> | undefined;
 let wallBudget = 0;
-let fileError: string | undefined;
+let fileReadState: { error?: string } = {};
 let replayEndpoint: Replay["endpoint"] | undefined;
 let replaySource: Replay | undefined;
 const completeReplay = () => {
   if (run && replaySource && run.eventCount >= replaySource.endpoint.eventCount) {
     totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 };
     run = restoreReplay(replaySource, countFrame);
+    fileReadState = {};
     replayEndpoint = undefined;
     replaySource = undefined;
     return true;
@@ -231,6 +250,7 @@ export const changeSimulation = (
     ![
       "seed",
       "pace",
+      "editDuration",
       "burst",
       "delay",
       "weightNeverSent",
@@ -260,6 +280,9 @@ export const changeSimulation = (
       "speed",
       "replay",
       "stage",
+      "resourceScenario",
+      "resourceGroup",
+      "resourceRound",
     ].includes(field)
   )
     return model;
@@ -280,11 +303,13 @@ export const actSimulation = (
   model: SimulationModel,
   action: string,
 ): SimulationModel => {
+  model = { ...model, activityFrom: -1 };
   try {
     const exported = () => ({ ...run!.exportReplay(), dashboard: { bookmark: model.bookmark } });
     if (action === "replay-start" && run) {
       const inputs = run.exportReplay();
       run = replayRun(inputs);
+      fileReadState = {};
       totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 };
       run.subscribe(countFrame);
       replayEndpoint = inputs.endpoint;
@@ -293,7 +318,7 @@ export const actSimulation = (
       return { ...model, selected: -1, playing: false, suspended: false, revision: model.revision + 1, feedback: "Replay reset to initial inputs. Resume or Single step to replay recorded controls to its endpoint." };
     }
     if (action === "trees:balanced" || action === "trees:pressure") return {
-      ...model, ...treeDrafts(action === "trees:balanced" ? DEFAULT_FILE_TREE_PROFILE : {
+      ...model, draftEpoch: model.draftEpoch + 1, ...treeDrafts(action === "trees:balanced" ? DEFAULT_FILE_TREE_PROFILE : {
         ...DEFAULT_FILE_TREE_PROFILE, minFiles: 10, maxFiles: 16, maxDepth: 4, minTreeBytes: 2048, maxTreeBytes: 5120,
       }), feedback: "Tree generation drafted. Start / reset or Apply to future preparations to use it.",
     };
@@ -309,6 +334,12 @@ export const actSimulation = (
       return { ...model, feedback: "Replay file downloaded." };
     }
     if (action === "import-file") {
+      const ownerRun = run;
+      const ownerLabel = "Resident simulation controls";
+      const ownerPanel = document.querySelector(`[aria-label="${ownerLabel}"]`);
+      const textarea = ownerPanel?.querySelector<HTMLTextAreaElement>("textarea");
+      const ownerReadState = fileReadState;
+      const stillSelected = () => run === ownerRun && textarea?.isConnected === true && ownerPanel?.getAttribute("aria-label") === ownerLabel;
       const picker = document.createElement("input");
       picker.type = "file";
       picker.accept = ".json,application/json";
@@ -316,14 +347,13 @@ export const actSimulation = (
         const file = picker.files?.[0];
         if (!file) return;
         void file.text().then((raw) => {
-          const textarea = document.querySelector<HTMLTextAreaElement>("#monkey-business textarea");
-          if (textarea) { textarea.value = raw; textarea.dispatchEvent(new Event("input", { bubbles: true })); }
-        }).catch((error) => { fileError = `Could not read replay file: ${error instanceof Error ? error.message : String(error)}`; });
+          if (stillSelected() && textarea) { textarea.value = raw; textarea.dispatchEvent(new Event("input", { bubbles: true })); }
+        }).catch((error) => { ownerReadState.error = `Could not read replay file: ${error instanceof Error ? error.message : String(error)}`; });
       };
       picker.click();
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
     }
-    if (replaySource && ["pace", "burst", "suspend", "sizes", "environment", "output", "fileTrees"].includes(action)) {
+    if (replaySource && ["pace", "editDuration", "burst", "suspend", "sizes", "environment", "output", "fileTrees"].includes(action)) {
       return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
     }
     if (action.startsWith("preset:")) {
@@ -340,7 +370,7 @@ export const actSimulation = (
         capacity: { pace: "10", delay: "5000", outcome: "finding", bytes: "1000000", feedback: "Capacity pressure drafted. Start / reset, Resume, then inject a burst and inspect refusal events." },
       };
       const { outcome, ...fields } = presets[action.slice(7)];
-      return { ...model, ...weightDrafts(singleOutcomeWeights(outcome)), currentWork: "current", credentialReady: "ready", credentialGeneration: "1", sourceReadable: "readable", outputOutcome: "certain", outputDelay: "1", outputLease: "1000", ...fields };
+      return { ...model, draftEpoch: model.draftEpoch + 1, ...weightDrafts(singleOutcomeWeights(outcome)), currentWork: "current", credentialReady: "ready", credentialGeneration: "1", sourceReadable: "readable", outputOutcome: "certain", outputDelay: "1", outputLease: "1000", ...fields };
 
     }
     if (action === "speed") return { ...model, appliedSpeed: speedValue(model.speed), feedback: "Playback speed applied. Draft edits do not change playback." };
@@ -355,25 +385,33 @@ export const actSimulation = (
     let loadedFields: Partial<SimulationModel> = {};
     if (action === "start") {
       const validSpeed = speedValue(model.speed);
+      const demoLimits = demoResourceLimits(number(model.agentCount, "Agent count", 1, 6));
       run = createRun({
-        // Keep ordinary reservations and bursts visible in this single-agent demo.
+        demoAgentCount: number(model.agentCount, "Agent count", 1, 6),
+        // One resident ledger and execution pool serve every independent generator.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
+        lifecycles: { permits: { adviceeLimit: 16, residentLimit: 64, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
+        resourceScenarios: model.resourceScenario === "none" ? undefined : { noticeMaximumKeys: demoLimits.noticeMaximumKeys, notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
         seed: number(model.seed, "Seed", 0, 0xffffffff),
         jevDelay: number(model.delay, "Jev delay", 0, 1_000_000),
         outcomeWeights: draftWeights(model),
         fileTrees: treeProfile(model),
-        session: {
+        sessions: Array.from({ length: number(model.agentCount, "Agent count", 1, 6) }, (_, index) => ({
+          agent: `agent-${index + 1}`,
+          seed: (number(model.seed, "Seed", 0, 0xffffffff) + Math.imul(index, 2654435761)) >>> 0,
           editIntervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
+          editDurationMs: number(model.editDuration, "Simulated edit duration", 0, 1_000_000_000),
           bytes: number(model.bytes, "Reservation bytes", 1, 1_000_000),
-        },
+        })),
       });
+      fileReadState = {};
       replayEndpoint = undefined;
       replaySource = undefined;
       totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 };
       run.subscribe(countFrame);
-      loadedFields = { appliedSpeed: validSpeed, bookmark: -1 };
+      loadedFields = { appliedSpeed: validSpeed, bookmark: -1, draftEpoch: model.draftEpoch + 1 };
       playing = false;
       suspended = false;
       wallBudget = 0;
@@ -397,8 +435,9 @@ export const actSimulation = (
       const previousTotals = totals;
       totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 };
       let restored;
-      try { restored = restoreReplay(inputs, countFrame); } catch (error) { totals = previousTotals; throw error; }
+      try { restored = restoreReplay(inputs, countFrame); number(String(Math.max(1, restored.agentScopes.length, restored.projection.partitions.length)), "Replay agent count", 1, 6); } catch (error) { totals = previousTotals; throw error; }
       run = restored;
+      fileReadState = {};
       replayEndpoint = undefined;
       replaySource = undefined;
       playing = false;
@@ -412,6 +451,9 @@ export const actSimulation = (
           );
       suspended = latest("suspendArrivals")?.suspended === true;
       loadedFields = {
+        draftEpoch: model.draftEpoch + 1,
+        agentCount: String(Math.max(1, restored.agentScopes.length, restored.projection.partitions.length)),
+        agentId: inputs.config.sessions?.[0]?.agent ?? inputs.config.session?.agent ?? "agent-1",
         ...treeDrafts(latest("fileTrees")?.profile ?? inputs.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE),
         bookmark: (inputs as Replay & { dashboard?: { bookmark?: number } }).dashboard?.bookmark ?? -1,
         currentWork: (latest("environment")?.currentWork ?? inputs.config.environment?.currentWork ?? true) ? "current" : "stale",
@@ -422,14 +464,15 @@ export const actSimulation = (
         outputDelay: String(latest("outputProfile")?.delayMs ?? inputs.config.outputProfile?.delayMs ?? 0),
         outputLease: String(latest("outputProfile")?.leaseMs ?? inputs.config.outputProfile?.leaseMs ?? 30000),
         seed: String(inputs.config.seed ?? 1),
+        editDuration: String(latest("editDuration")?.durationMs ?? inputs.config.sessions?.[0]?.editDurationMs ?? inputs.config.session?.editDurationMs ?? inputs.config.lifecycles?.permits?.holdMs ?? 1),
         pace: String(
           latest("editPace")?.intervalMs ??
-            inputs.config.session?.editIntervalMs ??
+            inputs.config.sessions?.[0]?.editIntervalMs ?? inputs.config.session?.editIntervalMs ??
             100,
         ),
         bytes: String(
           latest("sizes")?.reservationBytes ??
-            inputs.config.session?.bytes ??
+            inputs.config.sessions?.[0]?.bytes ?? inputs.config.session?.bytes ??
             100,
         ),
         delay: String(
@@ -464,13 +507,19 @@ export const actSimulation = (
         case "pace":
           run.applyControl({
             kind: "editPace",
+            agent: model.agentId,
             intervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
           });
           feedback = "Future edit pace updated at this virtual boundary.";
           break;
+        case "editDuration":
+          run.applyControl({ kind: "editDuration", agent: model.agentId, durationMs: number(model.editDuration, "Simulated edit duration", 0, 1_000_000_000) });
+          feedback = "Future simulated PRE-to-POST duration updated for the selected agent. In-progress edits keep their timing.";
+          break;
         case "burst":
           run.applyControl({
             kind: "burst",
+            agent: model.agentId,
             count: number(model.burst, "Burst count", 1, 100),
           });
           feedback = "Bounded edit burst recorded.";
@@ -485,7 +534,7 @@ export const actSimulation = (
           break;
         case "suspend":
           suspended = !suspended;
-          run.applyControl({ kind: "suspendArrivals", suspended });
+          run.applyControl({ kind: "suspendArrivals", suspended, agent: model.agentId });
           feedback = suspended
             ? "Future edits suspended. Existing synthetic work continues; playback will wait when settled."
             : "Future edit generation resumed.";
@@ -497,6 +546,7 @@ export const actSimulation = (
         case "sizes":
           run.applyControl({
             kind: "sizes",
+            agent: model.agentId,
             reservationBytes: number(
               model.bytes,
               "Reservation bytes",
@@ -528,7 +578,7 @@ export const actSimulation = (
       ...model,
       ...loadedFields,
       playing,
-      suspended: run?.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals")?.control.kind === "suspendArrivals" ? (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals")!.control as Extract<Control, { kind: "suspendArrivals" }>).suspended : suspended,
+      suspended: run?.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId))?.control.kind === "suspendArrivals" ? (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId))!.control as Extract<Control, { kind: "suspendArrivals" }>).suspended : suspended,
       replay,
       selected,
       feedback,
@@ -547,13 +597,14 @@ export const tickSimulation = (
   model: SimulationModel,
   deltaMs: number,
 ): SimulationModel => {
-  if (fileError) { const feedback = fileError; fileError = undefined; return { ...model, feedback }; }
+  if (fileReadState.error) { const feedback = fileReadState.error; fileReadState.error = undefined; return { ...model, feedback }; }
   if (!model.playing || !run) return model;
   try {
     wallBudget +=
       Math.min(deltaMs, 100) * model.appliedSpeed;
     if (wallBudget < 50) return model;
     const beforeTime = run.now;
+    const activityFrom = run.eventCount;
     const result = run.advance({
       untilTime: beforeTime + Math.floor(wallBudget),
       maxEvents: replayEndpoint ? Math.min(100, replayEndpoint.eventCount - run.eventCount) : 100,
@@ -568,7 +619,8 @@ export const tickSimulation = (
     return {
       ...model,
       selected: -1,
-      suspended: (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals")?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined)?.suspended ?? model.suspended,
+      activityFrom,
+      suspended: (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId))?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined)?.suspended ?? model.suspended,
       revision: model.revision + 1,
       playing: !completed && (result.reason !== "idle" || model.suspended) && (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
       feedback: completed ? "Replay reached its exact recorded endpoint." : /^(Cannot apply:|Cannot update:|Could not read replay file:)/.test(model.feedback) ? model.feedback :
@@ -589,7 +641,11 @@ export const simulationView = <Message>(
   h: HtmlBuilder<Message>,
   action: (action: string) => Message,
   changed: (field: string, raw: string) => Message,
+  showDiagram = true,
+  inspection?: { readonly projection: import("../../../src/canonical/adapter").CanonicalProjection; readonly observations: readonly Observation[]; readonly partition?: number; readonly agents?: readonly import("./shared-resident-view").AgentScope[] },
 ) => {
+  // Native dirty inputs own their visible draft. A controlled Value would replay older
+  // queued models into the focused field; only explicit draft replacement changes its key.
   const input = (field: string, label: string, value: string) =>
     h.label(
       [],
@@ -597,7 +653,8 @@ export const simulationView = <Message>(
         label,
         h.input([
           h.Type("text"),
-          h.Value(value),
+          h.Key(`draft:${field}:${model.draftEpoch}`),
+          h.Attribute("value", value),
           h.OnInput((raw) => changed(field, raw)),
         ]),
       ],
@@ -613,7 +670,7 @@ export const simulationView = <Message>(
   try { draftMix = mixSummary(weights); } catch { /* Invalid drafts are previewed without touching the engine. */ }
   const observations = run?.observations ?? [];
   const activeReplay = run?.exportReplay();
-  const latestControl = <Kind extends Control["kind"]>(kind: Kind) => activeReplay?.controls.map((entry) => entry.control).findLast((control): control is Extract<Control, { kind: Kind }> => control.kind === kind);
+  const latestControl = <Kind extends Control["kind"]>(kind: Kind) => activeReplay?.controls.map((entry) => entry.control).findLast((control): control is Extract<Control, { kind: Kind }> => control.kind === kind && (!control.agent || control.agent === model.agentId));
   const activeTrees = activeReplay ? latestControl("fileTrees")?.profile ?? activeReplay.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE : undefined;
   let treeDraftStatus: string;
   try {
@@ -623,12 +680,17 @@ export const simulationView = <Message>(
   }
   catch (error) { treeDraftStatus = `Cannot apply: ${error instanceof Error ? error.message : String(error)}`; }
   const treeInput = (field: typeof treeFields[keyof typeof treeFields], label: string, min: number, max: number, shortLabel = label) => h.label([], [shortLabel,
-    h.input([h.Type("number"), h.AriaLabel(label), h.Min(String(min)), h.Max(String(max)), h.Step("1"), h.Value(model[field]), h.OnInput(raw => changed(field, raw))]),
+    h.input([h.Type("number"), h.AriaLabel(label), h.Min(String(min)), h.Max(String(max)), h.Step("1"), h.Key(`draft:${field}:${model.draftEpoch}`), h.Attribute("value", model[field]), h.OnInput(raw => changed(field, raw))]),
   ]);
   const current =
     model.selected < 0
       ? observations.at(-1)
       : observations.find((item) => item.sequence === model.selected);
+  const candidate = current?.capacityMetadata.encodedOutput;
+  const availableGroups = current ? Array.from(new Set([...current.after.delivery.slots.map(s => s.group), ...current.after.delivery.counters.map(c => c.group), ...current.after.collection.claims.map(c => c.group), ...(current.capacityMetadata.deliveryGroups ?? []).map(binding => binding.group)])) : [];
+  const availableRounds = (inspection?.projection ?? current?.after)?.rounds ?? [];
+  const selectedGroup = availableGroups.includes(Number(model.resourceGroup)) && model.resourceGroup !== "" ? model.resourceGroup : "";
+  const selectedRound = availableRounds.some(round => String(round.id) === model.resourceRound) ? model.resourceRound : "";
   // A clipped observation history cannot establish the first ordinal of each kind.
   const numbers = numberRecords(observations[0]?.sequence === 0
     ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []);
@@ -644,9 +706,9 @@ export const simulationView = <Message>(
       }
     : undefined;
   return h.section(
-    [h.Id("monkey-business"), h.Class("chart-panel simulation-panel")],
+    [h.Id(showDiagram ? "monkey-business" : "agent-simulation"), h.AriaLabel("Resident simulation controls"), h.Class("chart-panel simulation-panel")],
     [
-      h.h2([], ["Monkey-business · seeded simulation"]),
+      h.h2([], ["Resident controls & event history"]),
       h.p(
         [],
         [
@@ -676,21 +738,23 @@ export const simulationView = <Message>(
       h.div(
         [h.Class("simulation-controls")],
         [
-          controlForm("pace", [input("pace", "Edit interval (virtual ms)", model.pace), submit("Apply edit pace")]),
+          ...(run && !run.agentScopes.length ? [h.p([], ["Scripted events · no generator controls"])] : [controlForm("pace", [input("pace", "Edit interval (virtual ms)", model.pace), submit("Apply edit pace")]),
+          controlForm("editDuration", [h.label([], ["Simulated edit duration (virtual ms)", h.input([h.Type("number"), h.AriaLabel("Simulated edit duration (virtual ms)"), h.Min("0"), h.Max("1000000000"), h.Step("1"), h.Key(`edit-duration:${model.draftEpoch}`), h.Attribute("value", model.editDuration), h.OnInput(raw => changed("editDuration", raw))])]), submit("Apply edit duration")]),
+          h.p([], ["Time between PRE and POST. Start applies it to all agents; Apply changes future edits for the selected agent. Edits already in progress keep their duration."]),
           controlForm("burst", [input("burst", "Burst count (1–100)", model.burst), submit("Inject edit burst")]),
           button(
             model.suspended
               ? "Resume edit generation"
               : "Suspend edit generation",
             "suspend",
-          ),
+          )]),
         ],
       ),
       h.div(
         [h.Class("simulation-controls")],
         [
           input("delay", "Simulated Jev delay (virtual ms)", model.delay),
-          controlForm("sizes", [input("bytes", "Reservation bytes per edit", model.bytes), submit("Apply reservation size")]),
+          ...(run && !run.agentScopes.length ? [] : [controlForm("sizes", [input("bytes", "Reservation bytes per edit", model.bytes), submit("Apply reservation size")])]),
         ],
       ),
       h.details([h.Class("simulation-file-trees")], [
@@ -712,6 +776,7 @@ export const simulationView = <Message>(
         h.p([h.Class("simulation-tree-active")], [activeTrees ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.` : "Start / reset applies the draft generation settings."]),
         h.p([], ["Changes apply when a preparation starts. In-flight trees stay fixed. Checked graph budgets remain 8 files read, depth 4 and 20 KiB of accepted evidence. Generation may exceed those budgets. Reservation bytes are a separate review admission fact."]),
       ]),
+      h.div([h.Class("simulation-resource-scenario")], [select("resourceScenario", "Optional resource exercise · applies on Start resident", model.resourceScenario, ["none", "notices", "fit", "oversized"]), h.p([], ["Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."])]),
       h.details([h.Class("simulation-outcome-mix")], [
         h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
         h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities." ]),
@@ -742,17 +807,18 @@ export const simulationView = <Message>(
       h.p([h.Class("simulation-inspection")], [model.selected < 0 ? "Viewing latest observation" : `Inspecting event ${current?.sequence ?? "unavailable"} at ${current?.time ?? 0} ms; run endpoint ${run?.now ?? 0} ms. Playback paused. Applied controls affect the run endpoint, not this historical event.`]),
       h.div([h.Class("simulation-controls")], [button("Previous event", "previous"), button("Next event", "next"), button("Return to latest", "latest"), button("Replay from start", "replay-start"), button("Inspect oldest retained event", "from-start"), button("Bookmark event", "bookmark"), button("Go to bookmark", "go-bookmark")]),
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} confirmed host submissions · ${totals.uncertain} uncertain advice submissions · ${totals.released} released output attempts. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
-      h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
-      ...(run
-        ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)]
+      h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editIntervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · simulated edit duration ${latestControl("editDuration")?.durationMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editDurationMs ?? activeReplay.config.session?.editDurationMs ?? activeReplay.config.lifecycles?.permits?.holdMs ?? 1} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.bytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
+      ...(run && showDiagram
+        ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers, false, undefined, undefined, undefined, undefined, undefined,
+          model.selected < 0 && model.activityFrom >= 0 ? observations.filter(frame => frame.sequence >= model.activityFrom).map(frame => ({ ...frame, origin: "manual" as const })) : undefined)]
         : []),
-      ...(run ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
+      ...(run && showDiagram ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
       h.p([h.Class("simulation-active-effects")], [activeReplay ? `Active facts: work ${(latestControl("environment")?.currentWork ?? activeReplay.config.environment?.currentWork ?? true) ? "current" : "stale"} · credential ${(latestControl("environment")?.credentialReady ?? activeReplay.config.environment?.credentialReady ?? true) ? "ready" : "unavailable"} (generation ${latestControl("environment")?.credentialGeneration ?? activeReplay.config.environment?.credentialGeneration ?? 1}) · source ${(latestControl("environment")?.sourceReadable ?? activeReplay.config.environment?.sourceReadable ?? true) ? "readable" : "unreadable"}. Future host output: ${latestControl("outputProfile")?.outcome ?? activeReplay.config.outputProfile?.outcome ?? "certain"} · delay ${latestControl("outputProfile")?.delayMs ?? activeReplay.config.outputProfile?.delayMs ?? 0} ms · lease ${latestControl("outputProfile")?.leaseMs ?? activeReplay.config.outputProfile?.leaseMs ?? 30000} ms. In-flight output keeps its captured profile.` : "No active synthetic environment."]),
       h.details([], [h.summary([], ["Control history"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
-      h.div([h.Class(`simulation-stage-inspector${model.focus === "preparation" ? " preparation-selected" : ""}`)], [
-      h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
+      h.div([h.Class(`simulation-stage-inspector${model.focus ? " capacity-selected" : ""}${model.focus === "preparation" ? " preparation-selected" : ""}`)], [
+      h.details([h.Open(true)], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
       ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
-      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after, numbers) ?? ""]), ...(model.focus === "preparation" ? [preparationDetails(h, preparationSnapshot(observations.filter(frame => frame.sequence <= current.sequence).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)] : []), h.ul([], locateFlow(current.after, numbers).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
+      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(inspection?.projection ?? current.after, numbers) ?? ""]), ...(["delivery", "round"].includes(model.focus) ? [h.label([], ["Delivery group", h.select([h.AriaLabel("Resource delivery group"), h.Value(selectedGroup), h.OnChange(raw => changed("resourceGroup", raw))], [h.option([h.Value("")], ["Select group"]), ...availableGroups.map(group => h.option([h.Value(String(group))], [`Group ${group}`]))])])] : []), ...(["round"].includes(model.focus) ? [h.label([], ["Current round", h.select([h.AriaLabel("Resource current round"), h.Value(selectedRound), h.OnChange(raw => changed("resourceRound", raw))], [h.option([h.Value("")], ["Select round"]), ...availableRounds.map(round => h.option([h.Value(String(round.id))], [`Partition ${round.partition} · round ${round.id}`]))])])] : []), stageResourceDetails(h, model.focus, inspection?.projection ?? current.after, current.after, current.capacityMetadata, candidate, inspection?.partition ?? run?.agentScopes.find(a => a.agent === model.agentId)?.partition, selectedGroup === "" ? undefined : Number(selectedGroup), selectedRound === "" ? undefined : Number(selectedRound), inspection?.agents ?? run?.agentScopes), ...(model.focus === "preparation" ? [preparationDetails(h, preparationSnapshot((inspection?.observations ?? observations).filter(frame => frame.sequence <= current.sequence).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)] : []), h.ul([], locateFlow(inspection?.projection ?? current.after, numbers).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ]),
       h.details(
         [h.Class("simulation-details")],
@@ -794,7 +860,7 @@ export const simulationView = <Message>(
           .slice(-100)
           .map((item) =>
             h.button([h.Type("button"), h.Class(item.sequence === current?.sequence ? "selected" : ""), h.OnClick(action(`inspect:${item.sequence}`))], [
-              `${item.sequence}. ${item.time} ms · ${item.event.kind === "preparationGraph" ? `preparation · ${item.event.fact.kind} · operation #${item.event.operation}` : item.event.kind}${item.rejection ? ` · refusal: ${item.rejection}` : ""}`,
+              `${item.sequence}. ${item.time} ms · ${item.agent ?? "resident"} · ${item.event.kind === "preparationGraph" ? `preparation · ${item.event.fact.kind} · operation #${item.event.operation}` : item.event.kind}${item.rejection ? ` · refusal: ${item.rejection}` : ""}`,
             ]),
           ),
       ),
@@ -816,4 +882,21 @@ export const simulationView = <Message>(
       ),
     ],
   );
+};
+
+/** The dashboard has one resident Run, shared by every displayed agent partition. */
+export const simulationRun = () => run;
+
+/** Load applied generator values when inspecting a different agent. */
+export const selectSimulationAgent = (model: SimulationModel, agent: string): SimulationModel => {
+  if (run && !run.agentScopes.length) return { ...model, agentId: agent, item: "" };
+  const replay = run?.exportReplay();
+  const session = replay?.config.sessions?.find(session => session.agent === agent) ?? replay?.config.session;
+  const latest = <Kind extends Control["kind"]>(kind: Kind) => replay?.controls.findLast(entry => entry.control.kind === kind && (!entry.control.agent || entry.control.agent === agent))?.control as Extract<Control, { kind: Kind }> | undefined;
+  return { ...model, agentId: agent, item: "", draftEpoch: model.draftEpoch + 1,
+    editDuration: String(latest("editDuration")?.durationMs ?? session?.editDurationMs ?? replay?.config.lifecycles?.permits?.holdMs ?? 1),
+    pace: String(latest("editPace")?.intervalMs ?? session?.editIntervalMs ?? 100),
+    bytes: String(latest("sizes")?.reservationBytes ?? session?.bytes ?? 100),
+    suspended: latest("suspendArrivals")?.suspended ?? false,
+  };
 };

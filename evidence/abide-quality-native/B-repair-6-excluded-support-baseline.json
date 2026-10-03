@@ -1,0 +1,33 @@
+{
+  "stage": "B",
+  "taskId": "repair-6-excluded-support",
+  "candidate": "baseline",
+  "ordinal": 5,
+  "blindId": "112a51eb7f01",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 253791,
+  "usage": {
+    "input_tokens": 99790,
+    "cached_input_tokens": 88320,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 4096,
+    "reasoning_output_tokens": 3126
+  },
+  "uncachedPlusOutputTokens": 15566,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "hookEvents": [],
+  "requests": [],
+  "agentMentionsRule": [],
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "0d41d9cfba0fe424c50dc190b76eb4a78abfdab07f51c6b50a7af45cb2b867ac",
+  "changed": true
+}

@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { it } from "@effect/vitest";
 import { expect } from "vitest";
 import { Cause, Effect } from "effect";
@@ -11,7 +12,7 @@ const observation: DirectObservation = {
   root: "/fixture", rootIdentity: { rootDevice: "1", rootInode: "1", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "2" },
   advicee: advicee(), candidates: [{ operation: "add", path: "count.ts", addedLines: [] }],
 };
-const input = freezeInput({ contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts",
+const input = freezeInput({ providerIdentity: providerIdentity({ provider: "jev" }), contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts",
   declaration: { id: "count.ts::Count", kind: "type-alias", name: "Count", source: "type Count = number", sourceHash: "source" },
   unit: { root: { artifact: { id: "count.ts::Count", kind: "type-alias", name: "Count", source: "type Count = number", sourceHash: "source" }, references: [] } },
   rules: freezeRules([]), interpretation: "probability-strictly-greater-than-threshold" });

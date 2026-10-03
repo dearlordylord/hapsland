@@ -96,3 +96,121 @@ verify that the visible graph follows replay, including excluded C receiving
 no `ReadSource` command and no unrelated root appearing. The branching tree
 also shows denied X without a read, followed by E/G tree-budget skips and a
 `TreeLimit` terminal reason from Bend.
+
+## Multi-agent visualization boundary
+
+`fleet-simulation.ts` renders one Monkey Business Run fed by independently seeded
+SessionGenerators. That Run owns one canonical resident state, event queue,
+clock, capacity ledger and Jev execution pool. The frontend must not instantiate
+one Run per plane or arbitrate capacity itself. Targeted controls identify the
+selected generator; native/backend profiles and replay remain resident-wide.
+
+All planes and shared resource panels use the same global history position.
+`projectAgent` filters owned records from that checked snapshot for the local
+SVG; it preserves global totals and execution limits. It does not calculate
+new decisions or local versions of shared limits. Shared item/byte totals,
+per-partition usage and occupied Jev permits must read the checked projection.
+Resident-capacity and Jev contacts are attached to the admission and request-
+attempt stages. The rails identify the shared resources; they do not by
+themselves establish an observed message, request or result. Jev and native
+responses remain synthetic observations supplied to the checked reducer.
+
+## Capacity and ownership projections
+
+Capacity indicators format the selected checked snapshot. Occupancy may be counted
+or summed from its records, and bar fill may format `used / max`; this presentation
+arithmetic never grants capacity or decides whether work fits. The renderer consumes
+Bend's refusal, fit and ownership decisions. All six charge purposes share the same
+resident/partition ledger; stages and charge purposes do not acquire separate pools.
+
+The multi-agent shared rail receives the complete resident snapshot; each plane
+receives its partition projection and the same resident context. Items/bytes,
+preparation workers, Jev permits, edit permits and background collectors retain
+their actual resident or partition scopes. Selecting another agent changes its
+local contribution and inspection, not the shared numerator or denominator.
+Preparation occupancy counts running preparation jobs, excluding waiting work and
+running reviews. The **ONE RESIDENT** inset to the right of Round state has the
+subtitle **Execution limits · shared by all agents** and separately labeled
+Preparation workers and Jev request permit rows. Each row mirrors
+the complete selected resident snapshot and owning-agent palette on every layer,
+using its checked maximum. Sort preparation operations and Jev requests by their
+own identities; do not pair positions or add links between the rows. Exact owner
+identities and request status belong in accessibility labels and the keyboard
+stage inspector. Jev request attempt retains the shared count and local started
+reference; Scheduling retains its local preparation reference. The top rail
+contains no duplicate preparation pool, and the original gold Jev contact stays.
+Positions do not identify physical connections or stable sockets.
+
+The accepted global item/byte inset beside Admission uses the same green dashed
+shared-resource family and **ONE RESIDENT** heading, with the subtitle
+**Work reservations · shared by all agents**. It mirrors the complete resident
+ledger on each layer; Admission retains its agent-local meters. The top rail
+contains no duplicate global item/byte ledger. These resource cards have different
+units and lifecycles: retained data may remain charged after execution slots are
+released. Common styling expresses shared resident ownership, not a fixed ratio
+or a resource-conversion edge. Admission shows separate agent-local and resident-wide edit-permit rows. The accepted collector meter lives inside Advice
+collection, mirrors the resident-wide claims used/recorded maximum across
+layers, and has no top-rail duplicate. It remains separate from advice leases;
+collector group/token ownership is available in details, without inferred
+agent-color attribution.
+
+Effective limits come from checked projection limits or capacity metadata captured
+at the selected frame. Known initial configuration and subsequent event-supplied
+limits are valid evidence; a future event, current live configuration or production
+default cannot supply a historical denominator. If no limit was recorded, show
+`n used · limit not recorded` and omit fill. Local edit-permit ceilings are
+recorded by partition: a fact for another agent cannot replace the selected
+agent's denominator. An explicitly configured uniform initial ceiling may supply
+the fallback; without it, a partition whose limit has not yet been observed
+remains unknown, including when a different partition's limit is known.
+No candidate/group/round is distinct
+from zero occupancy. A visual bar may clamp fill while retaining the raw numeric
+value and explicit over-limit fact; clamping must not hide an oversized candidate.
+
+Collector claims are resident occupancy plus group ownership. Advice leases are
+per-record free/leased states. Stop output is an exclusive selected-group slot, shown inside Host output as
+a single filled1/1 or empty0/1 cell for an explicitly selected known group,
+not an aggregate slot count divided by one. Unknown selection has a prompt and
+no cell. Continuation marks display the selected
+current round and delivery group's checked consumed budget; absent or stale
+selection requires selection rather than silently choosing another record.
+Cache retention, and diagnostic operational-notice retention are
+intentionally omitted from the main diagram and its stage inspectors. Actual
+storage charges remain in common ledger totals; backend state and exercises
+remain. The empty retained-resource disclosure and its links must not return.
+
+Encoded output details show the latest supplied resident candidate fact through
+the selected replay frame, with synthetic provenance and the recorded Bend
+`fits`/`limited` decision. Do not infer a fit outcome by comparing bytes in the
+renderer, or imply that a previous supplied candidate is an active native writer.
+No candidate means its bytes were not supplied, not a measured zero-byte encoding.
+
+Import meters use each artifact's checked files/read/tree/work totals and limits;
+they never divide by generated candidate-file count. The existing tree view remains
+an accepted-contribution breakdown. Source-size and outgoing-edge figures are the
+latest supplied root/capture facts for that artifact and selected history boundary.
+Their numeric relation to limits does not establish that Bend evaluated that gate:
+a prior gate may have rejected the fact. Label them supplied, keep the checked
+terminal outcome separate, and display unrecorded depth as unknown rather than
+inferring it from diagram layout. Graph incompleteness alone does not determine
+per-rule evidence sufficiency or whether a supplied review unit exists.
+
+These rules document current projection behavior under the existing decision
+boundary. Browser checks and Astra rendered review are separate evidence;
+neither establishes native effect enforcement or release/platform support.
+
+
+Demo retention capacities are computed once from the configured generator count
+N and stored in replay configuration: cache entries `min(8, max(4, 2*N))`, cache
+bytes `entries * 8192`, notice keys
+`min(64, 8*N)`. These are one resident-wide demo set, still subject to the shared
+ledger, not additional capacity granted per agent. Native constants are unchanged
+(cache 8 entries/128 KiB, notices 64). Explicit tiny boundary fixtures
+retain their supplied maxima; existing replay values remain explicit and are not
+rewritten. Optional scenarios create at most two notice
+identities independently of these maxima, so ordinary demos do not imply that a
+handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
+are omitted from the diagram.
+
+Ticket state and its exercise were removed with master issue #171; active review
+responses use response authority rather than retained ticket records.

@@ -1,0 +1,64 @@
+{
+  "stage": "A",
+  "caseId": "local-payment",
+  "candidate": "abide",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": 0,
+    "hookExit": 0,
+    "finding": true
+  },
+  "requests": [
+    {
+      "id": "0fa0a498-feb7-47e6-be0b-49e2d7536a32",
+      "at": 1790961861995,
+      "candidate": "abide",
+      "caseId": "local-payment",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1754,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r2-meaningless-combinations"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "0fa0a498-feb7-47e6-be0b-49e2d7536a32",
+      "at": 1790961861995,
+      "candidate": "abide",
+      "caseId": "local-payment",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 216,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 659,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

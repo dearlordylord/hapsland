@@ -12,7 +12,18 @@
     "test:simulation-browser": "node scripts/check-simulation-browser.mjs",
     "test:replay-browser": "node scripts/check-replay-navigation.mjs",
     "test:usability": "node scripts/check-usability.mjs",
-    "test:site": "node --experimental-strip-types scripts/check-site-scenarios.mjs && node scripts/check-site-browser.mjs"
+    "test:ensemble-browser": "node scripts/check-ensemble-browser.mjs",
+    "test:resource-browser": "node scripts/check-resource-browser.mjs",
+    "test:execution-pools-browser": "node scripts/check-execution-pools-browser.mjs",
+    "test:site": "node --experimental-strip-types scripts/check-site-scenarios.mjs && node scripts/check-site-browser.mjs",
+    "test:render-browser": "node scripts/check-render-browser.mjs",
+    "test:camera-browser": "node scripts/check-camera-browser.mjs",
+    "test:resident-capacity-browser": "node scripts/check-resident-capacity-browser.mjs",
+    "test:edit-permits-browser": "node scripts/check-edit-permits-browser.mjs",
+    "test:edit-duration-browser": "node scripts/check-edit-duration-browser.mjs",
+    "test:live-drafts-browser": "node scripts/check-live-drafts-browser.mjs",
+    "test:collectors-browser": "node scripts/check-collectors-browser.mjs",
+    "test:stop-slot-browser": "node scripts/check-stop-slot-browser.mjs"
   },
   "dependencies": {
     "@effect/platform-browser": "4.0.0",

@@ -50,7 +50,10 @@ themselves change semantic identity when an unrelated comment moves. Before
 dispatch, Hapsland requires the captured files to match exactly. Before
 advice, it rereads contributing files and rebuilds the unit; changed review
 input, rules, file selection, attribution, or working root retires the result.
-Only a still-current matching unit may reuse a successful Jev result.
+Only a still-current matching unit may reuse a successful review-backend result.
+The prepared identity includes the selected provider, model selector, and full
+destination; a change to any of these invalidates reuse. See the
+[provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
 `apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply

@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "authority": "Implementation and bounded runtime validation evidence, not a product contract or comparison.",
+  "historicalObservation": "../abide-quality-instructions/flow-gap.json",
+  "confirmedDefect": "Codex composed PostToolUse identity rejected Bash before resident collection despite the installed Bash matcher. Subsequent Bash checks could not collect a formed finding.",
+  "reproducedRace": "Background collection can claim before edit admission and receive busy; no later collection is attempted by that hook. Offline-2 and injected-fault runs record this ordering.",
+  "historicalStopLimit": "Historical completion-only logging cannot prove whether Stop was absent, timed out or failed. Exact historical Stop cause remains unobservable; timeout was separately reproduced by declared 6000 ms wrapper delay against native 5-second timeout.",
+  "fix": "Accept Codex Bash only for PostToolUse identity-only background collection. PreToolUse Bash and direct edit admission remain rejected.",
+  "livePhysicalRequests": 4,
+  "scoring": "Original finite-domain scorer logic with a one-artifact completeness gate; original protected scorer unchanged. These diagnostic artifacts are not a blinded comparative study.",
+  "runs": [
+    {
+      "run": "offline-1",
+      "record": "offline-1/B-repair-2-context-rendering-hapsland.json",
+      "successfulSession": true,
+      "requests": 2,
+      "emissionSurfaces": [
+        {
+          "kind": "background",
+          "tool": "apply_patch"
+        },
+        {
+          "kind": "background",
+          "tool": "apply_patch"
+        }
+      ],
+      "nonceConfirmed": true,
+      "reportedApplication": "APPLIED",
+      "artifactStatus": "repaired",
+      "invalidAccepted": 0,
+      "validFailures": 0,
+      "uncompletedHookStarts": [],
+      "backgroundBusyObserved": false
+    },
+    {
+      "run": "offline-2",
+      "record": "offline-2/B-repair-2-context-rendering-hapsland.json",
+      "successfulSession": true,
+      "requests": 2,
+      "emissionSurfaces": [
+        {
+          "kind": "stop",
+          "tool": null
+        },
+        {
+          "kind": "background",
+          "tool": "apply_patch"
+        }
+      ],
+      "nonceConfirmed": true,
+      "reportedApplication": "APPLIED",
+      "artifactStatus": "repaired",
+      "invalidAccepted": 0,
+      "validFailures": 0,
+      "uncompletedHookStarts": [],
+      "backgroundBusyObserved": true
+    },
+    {
+      "run": "live-1",
+      "record": "live-1/B-repair-2-context-rendering-hapsland.json",
+      "successfulSession": true,
+      "requests": 2,
+      "emissionSurfaces": [
+        {
+          "kind": "stop",
+          "tool": null
+        }
+      ],
+      "nonceConfirmed": true,
+      "reportedApplication": "APPLIED",
+      "artifactStatus": "repaired",
+      "invalidAccepted": 0,
+      "validFailures": 0,
+      "uncompletedHookStarts": [],
+      "backgroundBusyObserved": true,
+      "runtimeSourceAmendment": "The adapter correction was applied during final checks after Stop had emitted the finding and the repair edit had completed. This run is not an immutable all-pre-fix control; first delivery and repair precede the correction."
+    },
+    {
+      "run": "patched-offline-faults",
+      "record": "patched-offline-faults/B-repair-2-context-rendering-hapsland.json",
+      "successfulSession": true,
+      "requests": 2,
+      "emissionSurfaces": [
+        {
+          "kind": "background",
+          "tool": "Bash"
+        },
+        {
+          "kind": "background",
+          "tool": "apply_patch"
+        }
+      ],
+      "nonceConfirmed": true,
+      "reportedApplication": "APPLIED",
+      "artifactStatus": "repaired",
+      "invalidAccepted": 0,
+      "validFailures": 0,
+      "uncompletedHookStarts": [
+        {
+          "kind": "stop",
+          "event": "Stop"
+        }
+      ],
+      "backgroundBusyObserved": true
+    },
+    {
+      "run": "patched-live-faults",
+      "record": "patched-live-faults/B-repair-2-context-rendering-hapsland.json",
+      "successfulSession": true,
+      "requests": 2,
+      "emissionSurfaces": [
+        {
+          "kind": "background",
+          "tool": "Bash"
+        }
+      ],
+      "nonceConfirmed": true,
+      "reportedApplication": "APPLIED",
+      "artifactStatus": "repaired",
+      "invalidAccepted": 0,
+      "validFailures": 0,
+      "uncompletedHookStarts": [
+        {
+          "kind": "stop",
+          "event": "Stop"
+        }
+      ],
+      "backgroundBusyObserved": true
+    }
+  ],
+  "scoringRunnerSha256": "63af9f33f7762e74eab3d1070166f3776b4a052885df2bc66679afecc6fb50f7"
+}

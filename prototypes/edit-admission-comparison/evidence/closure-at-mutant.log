@@ -1,0 +1,17 @@
+SOME PROOFS FAIL
+Error:
+- expected : D.Outcome{2n, 2n, True{}}
+- observed : D.Outcome{1n, 1n, False{}}
+Context:
+- reached          : {C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, True{}, 0n, 3n, [../../../../../../../packages/agent-flow-bend/Admission.Permit{2n, 2n, 1n, 5n, 30n}]}, [1n], 1n, 1n, True{}, 0n} == C.State{../../../../../../../packages/agent-flow-bend/Admission.AdmissionState{1n, 1n, 1n, True{}, 0n, 3n, [../../../../../../../packages/agent-flow-bend/Admission.Permit{2n, 2n, 1n, 5n, 30n}]}, [1n], 1n, 1n, True{}, 0n} : C.State}
+- round_active     : {True{} == True{} : Bool}
+- admission_active : {True{} == True{} : Bool}
+- pending_pre      : {True{} == True{} : Bool}
+- valid_close      : {True{} == True{} : Bool}
+- pre_before_close : {True{} == True{} : Bool}
+- post_after_close : {True{} == True{} : Bool}
+Location: approved_at
+19 |     D.Outcome{C.count(C.run([C.Pre{1n,1n,1n,1n,20n,1n},C.Post{1n,1n,1n,4n},C.Pre{1n,1n,2n,5n,30n,5n}],C.Current{},C.initial())),C.round(C.run([C.Pre{1n,1n,1n,1n,20n,1n},C.Post{1n,1n,1n,4n},C.Pre{1n,1n,2n,5n,30n,5n}],C.Current{},C.initial())),False{}} : D.Outcome}:
+20>|   {==}
+   |   ^^^^
+21 |

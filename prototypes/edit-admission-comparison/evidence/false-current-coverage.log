@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : 0n
+- observed : 1n
+Location: false_coverage
+4 | def false_coverage() -> {C.count(C.run([C.NativeStart{2n,1n},C.NativeComplete{2n,2n},C.Post{1n,1n,2n,3n}],C.Current{},C.initial())) == 1n : Nat}:
+5>|   {==}
+  |   ^^^^
+6 |
