@@ -306,3 +306,30 @@ law drop_only_cancels_delivery:
 
 def drop_only_cancels_delivery(target, original_at, action, order, at, fresh):
   {==}
+
+# A targeted environment intervention replaces actual queued deliveries. Copies
+# share an original receipt but do not share its current scheduling membership.
+# Only the original's actual queued order can change its status, once per fact.
+def replaced_order(orders: List<&2,Nat>, +order: Nat) -> Bool:
+  match orders:
+    case Nil{}: False{}
+    case head <> tail: Nat.is_eq(head,order) || replaced_order(tail,order)
+
+def replaced_queued(hit: Bool, fact: Fact, order: Nat) -> Original:
+  match hit:
+    case True{}: Original{fact,Dropped{},order}
+    case False{}: Original{fact,Queued{},order}
+
+def replaced_original(original: Original, orders: List<&2,Nat>) -> Original:
+  match original:
+    case Original{fact,Queued{},+order}: replaced_queued(replaced_order(orders,order),fact,order)
+    case _: original
+
+def replaced_list(originals: List<&2,Original>, +orders: List<&2,Nat>) -> List<&2,Original>:
+  match originals:
+    case Nil{}: Nil{}
+    case head <> tail: replaced_original(head,orders) <> replaced_list(tail,orders)
+
+def replaced(state: State, orders: List<&2,Nat>) -> State:
+  match state:
+    case State{originals}: State{replaced_list(originals,orders)}

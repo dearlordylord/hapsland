@@ -1,3 +1,4 @@
+import { replaceSharedCallbacks } from "../../../src/canonical/simulation-adapter.ts";
 import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSharedNotice } from "../../../src/canonical/simulation-adapter.ts";
 import { issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
 import { encodePreparationGraphLimits } from "./file-trees.ts";
@@ -42,6 +43,7 @@ export class SharedCore {
     return issued.receipt;
   }
   get callbackOriginals() { return sharedCallbackOriginals(this.state); }
+  replaceCallbacks(orders: readonly number[]) { this.state = replaceSharedCallbacks(this.state, orders); }
   deliverCallback(order: number) { this.state = deliverSharedCallback(this.state, order); }
   callback(target: unknown, action: unknown, receipt: object | undefined, at: number, order: number) {
     const result = actSharedCallback(this.state, target, action, receipt, at, order);

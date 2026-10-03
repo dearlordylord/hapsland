@@ -592,3 +592,6 @@ def notice_lease(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Ma
 def notice_acknowledge(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
     case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
+
+def callback_replaced(+state: Types.State, orders: List<&2,Nat>) -> Types.State:
+  with_callbacks(state,Callbacks.replaced(callback_state(state),orders))

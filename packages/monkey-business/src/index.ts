@@ -624,14 +624,9 @@ export class Run {
           const checked = readRecord(fact);
           return { event: decodeDriverEvent(checked.event), delay: readNat(checked.delay) };
         }, 1024);
-        // These exact queued deliveries were replaced by an accepted targeted
-        // intervention. Held deliveries are absent from this queue and survive.
-        for (const callback of callbacks) if (callback.callbackReceipt) {
-          const receipt = callback.callbackReceipt;
-          const canceled = this.core.callback(encodeCallbackTarget(receipt.target), encodeCallbackAction("drop"),
-            this.callbackFacts.get(receipt), this.clock, this.order);
-          if (readRecord(canceled.result).$ !== "Callbacks.Applied") throw new Error("replaced callback lost queued provenance");
-        }
+        // The shared owner checks each original's actual queued order once.
+        // Copies and held/history receipts do not change original membership.
+        this.core.replaceCallbacks(callbacks.map(callback => callback.order));
         this.queue = this.queue.filter(item => !targeted(item));
         for (const fact of facts) this.event(target.partition, fact.event, fact.delay);
         result = "applied";

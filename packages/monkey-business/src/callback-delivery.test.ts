@@ -149,3 +149,35 @@ it("consumes a rejected physical preparation receipt even without commands and e
   expect(run.projection).toEqual(before);
   replay(run);
 });
+
+it.each([false, true])("applies a targeted backend override with an authentic queued copy (held original=%s)", held => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const original = issued(run);
+  if (original.effect.kind !== "jevSettled") throw new Error("missing original completion");
+  if (held) apply(run, original, "hold");
+  apply(run, original, "duplicate");
+  run.applyControl({ kind: "jevRequest", target: { ...original.owner, request: original.effect.request }, outcome: "backendFailure" });
+  expect(run.observe().interventions.at(-1)?.result).toBe("applied");
+  run.advance({ untilTime: 30, maxEvents: 100 });
+  const completed = run.observations.filter(frame => frame.event.kind === "jevRequestSettled");
+  expect(completed).toHaveLength(1);
+  expect(completed[0]!.event).toMatchObject({ ...original.owner, request: original.effect.request, outcome: "backendFailure" });
+  expect(completed[0]!.rejection).toBeUndefined();
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.dispatch.running).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.exportReplay().controls.filter(record => record.control.kind === "jevRequest")).toHaveLength(1);
+  if (held) {
+    expect(run.observe().callbackTargets).toContainEqual(original);
+    apply(run, original, "release");
+    expect(run.observe().callbackReports.at(-1)?.result).toBe("applied");
+    run.advance({ untilTime: run.now, maxEvents: 10 });
+    const late = run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)!;
+    expect(late.event).toMatchObject({ ...original.owner, request: original.effect.request, outcome: "clear" });
+    expect(late.rejection).toBe("StaleOperation");
+    expect(late.commands).toEqual([]);
+  } else expect(run.observe().callbackTargets).not.toContainEqual(original);
+  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "reservationReleased")).toHaveLength(1);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  replay(run);
+});

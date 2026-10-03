@@ -364,3 +364,9 @@ export const ownedSharedNotice = (state: EngineState, partition: number, group: 
   sharedCheck(state);
   return decodeSharedValue(SharedEngine[action === "lease" ? "notice_lease" : "notice_acknowledge"](state, BigInt(readNat(partition)), BigInt(readNat(group)), BigInt(readNat(key))));
 };
+
+export const replaceSharedCallbacks = (state: EngineState, orders: readonly number[]) => {
+  sharedCheck(state);
+  const encoded = orders.reduceRight<unknown>((tail, order) => ({ $: "Con", head: readNat(order), tail }), { $: "Nil" });
+  return retain(state, SharedEngine.callback_replaced(state, encodeSharedValue(encoded)));
+};
