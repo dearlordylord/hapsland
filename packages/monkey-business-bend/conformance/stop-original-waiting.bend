@@ -8,5 +8,8 @@ import ./callback-native-codec.bend as Codec
 def trace() -> List<&2,Nat>:
   Codec.stop_scenarios([Wire.Envelope{[Driver.first()]}],[])
 
+def json() -> String:
+  Codec.render(trace())
+
 def main() -> IO(Unit):
-  IO.print(Codec.render(trace()))
+  IO.print(json())
