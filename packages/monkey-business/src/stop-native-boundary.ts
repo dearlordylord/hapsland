@@ -84,7 +84,7 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       const lifecycle = list(readRecord(source.engine).lifecycles).map(readRecord).find(entry => entry.partition === input.partition);
       if (!lifecycle) throw new Error("original Stop intent has no actual advicee allocation");
       same(readNat(input.started), publicItem.input.at, `${field} item ${order} original Stop start`);
-      same(readBool(input.recurring), publicItem.input.recurring ?? false, `${field} item ${order} original recurrence`);
+      same(readBool(input.recurring), ("recurring" in publicItem.input ? publicItem.input.recurring : false), `${field} item ${order} original recurrence`);
       // Cutoff is compared against the separately frozen original input;
       // full registration/capture comparisons preserve its actual owner value.
       same(readNat(input.cutoff), publicItem.input.at + 8, `${field} item ${order} original cutoff`);
