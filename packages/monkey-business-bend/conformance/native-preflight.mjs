@@ -18,7 +18,8 @@ const fail = message => { throw new Error(`Native preflight: ${message}`); };
 function checked(command, arguments_, timeout) {
   const result = spawnSync(command, arguments_, { encoding: "utf8", timeout });
   if (result.error || result.status !== 0) {
-    throw new Error(`Native preflight: ${basename(command)} failed (${result.error?.code ?? result.status})`, { cause: result.error });
+    const diagnostic = [result.stdout, result.stderr].filter(Boolean).join("\n").slice(-8192);
+    throw new Error(`Native preflight: ${basename(command)} failed (${result.error?.code ?? result.status})${diagnostic ? `:\n${diagnostic}` : ""}`, { cause: result.error });
   }
   return result.stdout.trim();
 }
