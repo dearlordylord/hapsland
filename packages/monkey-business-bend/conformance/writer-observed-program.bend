@@ -298,7 +298,7 @@ def delivery_selected(entries: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.
     endpoint: Nat, environment: Edge.Environment, trace: Trace) -> Trace:
   match entries:
     case Scheduler.Entry{at,order} <> _:
-      selected(Edge.runtime_entries(runtime),Output.delivery_runtime(runtime,at,order),endpoint,environment,trace)
+      selected(Edge.runtime_entries(runtime),runtime,endpoint,environment,trace)
     case Nil{}: trace
 
 def expired_selected(+trace: Trace, +endpoint: Nat, environment: Edge.Environment) -> Trace:
