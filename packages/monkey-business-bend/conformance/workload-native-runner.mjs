@@ -3,11 +3,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { validateNativeFixture } from "./native-preflight.mjs";
+import { NATIVE_C_EMISSION_TIMEOUT_MS, validateNativeFixture } from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
-// Keep proof/emission and native execution bounded at 5s. External C compilation
-// has the separately authorized 15s bound after the #179 loaded-lane timeout.
+// C emission uses the user-authorized 8s bound; JS emission and execution stay
+// at 5s. External C compilation retains its separately authorized 15s bound.
 export function runWorkloadNative(fixture) {
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;
   const sessionId = process.env.HAPSLAND_NATIVE_PREFLIGHT_SESSION;
@@ -23,7 +23,7 @@ export function runWorkloadNative(fixture) {
   try {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
-    checked("bend", [fileURLToPath(fixture), "-o", source], 5000);
+    checked("bend", [fileURLToPath(fixture), "-o", source], NATIVE_C_EMISSION_TIMEOUT_MS);
     checked("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], 15000);
     return JSON.parse(checked(binary, [], 5000));
   } finally {

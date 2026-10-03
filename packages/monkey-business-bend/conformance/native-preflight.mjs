@@ -5,6 +5,9 @@ import { arch, platform, release, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// User-authorized 2026-10-03 amendment: C emission alone increases from 5s to 8s.
+export const NATIVE_C_EMISSION_TIMEOUT_MS = 8000;
+
 const CLANG_FLAGS = Object.freeze(["-O0", "-Wno-unused-value"]);
 const CLANG_LIBRARIES = Object.freeze(["-lm", "-pthread"]);
 const created = new WeakSet();
@@ -51,7 +54,7 @@ function provenance(bend, clang) {
   return {
     tools,
     host: host(),
-    flags: { bend: ["-o"], clang: [...CLANG_FLAGS], libraries: [...CLANG_LIBRARIES] },
+    flags: { cEmissionTimeoutMs: NATIVE_C_EMISSION_TIMEOUT_MS, bend: ["-o"], clang: [...CLANG_FLAGS], libraries: [...CLANG_LIBRARIES] },
     // The installed native Bend executable resolves Base beside its bin directory.
     base: realpathSync(join(dirname(dirname(tools.bend.path)), "bend2", "base.bend")),
   };
@@ -119,7 +122,7 @@ export function createNativePreflight({ fixtures, bend = "bend", clang = "clang"
       const binaryName = `fixture-${index}`;
       const c = join(directory, cName);
       const binary = join(directory, binaryName);
-      checked(inputs.tools.bend.path, [root, "-o", c], 5000);
+      checked(inputs.tools.bend.path, [root, "-o", c], NATIVE_C_EMISSION_TIMEOUT_MS);
       checked(inputs.tools.clang.path, [...CLANG_FLAGS, c, "-o", binary, ...CLANG_LIBRARIES], 15000);
       if (!same(graph, sourceGraph(root, inputs.base))) fail("source changed during compilation");
       const cHash = fileHash(c);

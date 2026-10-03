@@ -136,3 +136,5 @@ recovery. The bounded proposal runner checks a literal, the kernel verdict, and 
 mutant that republishes the batch; the mutant fails in the proposal's own section.
 This and the started-request NeverSent refusal law remain candidate proposals for
 owner review under #176, not accepted new product requirements.
+
+Native validation budgets: fresh C emission is bounded at 8 seconds, external clang compilation at 15 seconds, and native execution at 5 seconds. JS emission/execution and source checking remain bounded at 5 seconds. On 2026-10-03 the user authorized the C-only increase from 5 to 8 seconds after the full output and sharing roots exceeded the former C deadline. Those earlier failures remain failures; the amended deadline requires fresh validation. The preflight manifest records the C deadline with compiler flags and rejects mismatched provenance.
