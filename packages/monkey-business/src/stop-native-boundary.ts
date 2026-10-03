@@ -1,3 +1,4 @@
+import { encodeImportGraphEvent } from "../../../src/canonical/graph-adapter.ts";
 import { isDeepStrictEqual } from "node:util";
 import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts";
 import { readBendList, readRecord, readNat, readBool } from "../../../src/canonical/boundary-schema.ts";
@@ -84,7 +85,7 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       const event = publicItem.input.event;
       same([input.partition,input.lifetime,input.round,input.operation,input.position],
         [event.partition,event.lifetime,event.round,event.operation,event.step], `${field} item ${order} graph tuple`);
-      same(decodePrefixGraphEvent(input.event), event.fact, `${field} item ${order} full graph event`);
+      same(decodePrefixGraphEvent(input.event), encodeImportGraphEvent(event.fact), `${field} item ${order} full graph event`);
     } else if (input.$ === "advicee_lifecycle_driver.FinishIntent") {
       if (publicItem.input.kind !== "finish") throw new Error("native Finish intent changed public input kind");
       const lifecycle = list(readRecord(source.engine).lifecycles).map(readRecord).find(entry => entry.partition === input.partition);
