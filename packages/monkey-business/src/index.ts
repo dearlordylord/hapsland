@@ -90,11 +90,15 @@ export type RunInput =
       | { readonly kind: "finish" }
     ));
 export type Control = LiveControl & { readonly agent?: string };
-export type ControlRecord = {
-  readonly control: Control;
-  readonly time: number;
-  readonly sequence: number;
+export type ReplayCheckpoint = {
   readonly boundary: number;
+  readonly queueTakes: number;
+  readonly time: number;
+  readonly checkpointSequence: number;
+};
+export type ReplayBoundary = ReplayCheckpoint & { readonly sequence: number };
+export type ControlRecord = ReplayBoundary & {
+  readonly control: Control;
 };
 export type EffectObservation =
   | {
@@ -207,7 +211,7 @@ export type RunConfig = {
   readonly sessions?: readonly SessionConfig[];
 } & OutcomeChoice;
 export type Replay = {
-  readonly endpoint: { readonly eventCount: number; readonly now: number };
+  readonly endpoint: { readonly eventCount: number; readonly queueTakes: number; readonly now: number };
   readonly format: typeof REPLAY_FORMAT;
   readonly randomAlgorithm: typeof RANDOM_ALGORITHM;
   readonly logicIdentity: typeof LOGIC_IDENTITY;
@@ -215,12 +219,9 @@ export type Replay = {
   readonly outcomeSampling: { readonly algorithm: typeof OUTCOME_RANDOM_ALGORITHM; readonly stream: typeof OUTCOME_RANDOM_STREAM; readonly order: typeof JEV_OUTCOME_ORDER };
   readonly config: RunConfig;
   readonly controls: readonly ControlRecord[];
-  readonly scheduledInputs: readonly {
-    boundary: number;
-    time: number;
-    sequence: number;
-    input: RunInput;
-  }[];
+  readonly scheduledInputs: readonly (ReplayBoundary & { readonly input: RunInput })[];
+  /** Actual public advance normalization calls, ordered with inputs and controls. */
+  readonly normalizations: readonly ReplayCheckpoint[];
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
@@ -289,6 +290,17 @@ const integer = (n: number, name: string) => {
 };
 const copy = <T>(x: T): T => structuredClone(x);
 const restoreEndpoint = Symbol("restore replay endpoint");
+const replayProgress = Symbol("replay progress driver");
+const replayNormalize = Symbol("recorded normalization");
+type ReplayCoordinate = { eventCount: number; queueTakes: number; now: number };
+type ReplayProgressDriver = { target: () => ReplayCoordinate | undefined; flush: () => void };
+const ReplayCoordinateSchema = Schema.Struct({ eventCount: Nat, queueTakes: Nat, now: Nat });
+const readReplayCoordinate = decoder(ReplayCoordinateSchema);
+const ReplayCheckpointFields = { boundary: Nat, queueTakes: Nat, time: Nat, checkpointSequence: Nat };
+const ReplayBoundaryFields = { ...ReplayCheckpointFields, sequence: Nat };
+const readNormalization = decoder(Schema.Struct(ReplayCheckpointFields));
+const readControlRecord = decoder(Schema.Struct({ ...ReplayBoundaryFields, control: Schema.Unknown }));
+const readInputRecord = decoder(Schema.Struct({ ...ReplayBoundaryFields, input: Schema.Unknown }));
 type Finish = import("./stop-codec.ts").StopFinish;
 const defaults = {
   globalItems: 32,
@@ -368,10 +380,15 @@ export class Run {
     this.scheduled.set(item.order, item);
   }
   private queueShift(): Scheduled | undefined {
+    const target = this.progressDriver?.target();
+    if (target && this.takes >= target.queueTakes) return;
+    // Check finite progress before the owner consumes anything. None is not a take.
+    if (this.queue.length) integer(this.takes + 1, "successful queue take count");
     const entry = this.core.take();
     if (!entry) return;
     const item = this.scheduled.get(entry.order);
     if (!item) throw new Error("shared scheduler lost source facts");
+    this.takes++;
     this.scheduled.delete(entry.order);
     // Delivery consumes an authentic issued queue receipt independently of the
     // Canonical result or whether the transition emits any commands.
@@ -395,6 +412,9 @@ export class Run {
   }
   private order = 0;
   private count = 0;
+  private takes = 0;
+  private progressDriver?: ReplayProgressDriver;
+  private normalizations: ReplayCheckpoint[] = [];
   private get clock() { return this.core.now; }
   private history: Observation[] = [];
   private listeners = new Set<(o: Observation) => void>();
@@ -402,13 +422,9 @@ export class Run {
   private controls: ControlRecord[] = [];
   private interventionReports: JevInterventionReport[] = [];
   get interventions(): readonly JevInterventionReport[] { return copy(this.interventionReports); }
-  private externalInputs: {
-    boundary: number;
-    time: number;
-    sequence: number;
-    input: RunInput;
-  }[] = [];
+  private externalInputs: (ReplayBoundary & { input: RunInput })[] = [];
   private timelineOrder = 0;
+  private checkpointOrder = 0;
   private issuedRequests = new Map<
     number,
     Extract<CanonicalCommand, { kind: "jevRequestIssued" }>
@@ -582,11 +598,15 @@ export class Run {
     for (const listener of this.structuralListeners) listener(frame);
   }
   schedule(input: RunInput) {
+    integer(this.checkpointOrder + 1, "replay checkpoint sequence");
+    integer(this.timelineOrder + 1, "replay action sequence");
     this.enqueue(copy(input));
     this.externalInputs.push({
       boundary: this.count,
+      queueTakes: this.takes,
       time: this.clock,
       sequence: this.timelineOrder++,
+      checkpointSequence: this.checkpointOrder++,
       input: copy(input),
     });
   }
@@ -634,6 +654,8 @@ export class Run {
     }
   }
   applyControl(control: Control): ControlRecord {
+    integer(this.checkpointOrder + 1, "replay checkpoint sequence");
+    integer(this.timelineOrder + 1, "replay action sequence");
     const value: Control = validateLiveControl(control);
     if (value.agent !== undefined && !this.scopes.some(scope => scope.agent === value.agent))
       throw new RangeError("unknown agent control target");
@@ -825,7 +847,9 @@ export class Run {
       control: value,
       time: this.clock,
       sequence: this.timelineOrder++,
+      checkpointSequence: this.checkpointOrder++,
       boundary: this.count,
+      queueTakes: this.takes,
     };
     this.controls.push(record);
     return copy(record);
@@ -936,6 +960,8 @@ export class Run {
     this.enqueueResponseActions(changed.actions,undefined,0);
   }
   step(untilTime?: number): Observation | undefined {
+    const target = this.progressDriver?.target();
+    if (target) untilTime = Math.min(untilTime ?? target.now, target.now);
     if (
       untilTime !== undefined &&
       this.queue[0] &&
@@ -962,6 +988,7 @@ export class Run {
     }
     const head = this.queue[0];
     if (head?.input.kind === "canonical" && head.input.event.kind === "preparationCompleted") {
+      if (target && this.count >= target.eventCount) return;
       const owner = this.inputPartition(head);
       const structuralBefore = this.structuralBefore();
       const original = structuralBefore ? copy(head) : head;
@@ -1577,6 +1604,9 @@ export class Run {
     return item.partition ?? 1;
   }
   private record(observation: Observation): Observation {
+    const target = this.progressDriver?.target();
+    if (target && this.count > target.eventCount)
+      throw new Error("overshot replay observation boundary");
     const live = new Set(this.core.callbackOriginals.map(original => decodeCallbackTarget(readRecord(original.fact).target).originalOrder));
     for (const order of this.callbackPayloads.keys()) if (!live.has(order)) this.callbackPayloads.delete(order);
     freezeCanonicalData(observation);
@@ -1631,6 +1661,16 @@ export class Run {
       ...(item.callbackReceipt ? { callback: item.callbackReceipt.target } : {}) })));
   }
   private normalizeQuietWriterBoundary() {
+    if (this.progressDriver?.target()) {
+      this.progressDriver.flush();
+      return;
+    }
+    this[replayNormalize]();
+  }
+  [replayNormalize]() {
+    integer(this.checkpointOrder + 1, "replay checkpoint sequence");
+    this.normalizations.push({ boundary: this.count, queueTakes: this.takes,
+      time: this.clock, checkpointSequence: this.checkpointOrder++ });
     const changed = this.core.responseExpire(this.clock);
     this.enqueueResponseActions(changed.actions,undefined,0);
     // Both live and replay viewing boundaries settle source-owned context
@@ -1672,24 +1712,26 @@ export class Run {
       now: this.clock,
     };
   }
+  [replayProgress](driver?: ReplayProgressDriver) { this.progressDriver = driver; }
+  get queueTakeCount() { return this.takes; }
   [restoreEndpoint](endpoint: Replay["endpoint"]) {
-    integer(endpoint.eventCount, "replay event count");
-    integer(endpoint.now, "replay endpoint time");
-    if (this.count !== endpoint.eventCount || this.clock > endpoint.now)
-      throw new Error("incompatible replay endpoint");
-    if (this.clock === endpoint.now) return;
-    this.canonicalAllowed = false;
-    try {
-      this.step(endpoint.now);
-    } finally {
-      this.canonicalAllowed = true;
+    const target = readReplayCoordinate(endpoint);
+    for (;;) {
+      this.progressDriver?.flush();
+      if (this.count === target.eventCount && this.takes === target.queueTakes && this.clock === target.now) return;
+      if (this.count > target.eventCount || this.takes > target.queueTakes || this.clock > target.now)
+        throw new Error("incompatible replay endpoint");
+      const before = [this.count, this.takes, this.clock];
+      this.canonicalAllowed = this.count < target.eventCount;
+      try { this.step(target.now); }
+      finally { this.canonicalAllowed = true; }
+      if (before[0] === this.count && before[1] === this.takes && before[2] === this.clock)
+        throw new Error("unreconstructable replay endpoint");
     }
-    if (this.clock !== endpoint.now)
-      throw new Error("unreconstructable replay endpoint");
   }
   exportReplay(): Replay {
     return copy({
-      endpoint: { eventCount: this.count, now: this.clock },
+      endpoint: { eventCount: this.count, queueTakes: this.takes, now: this.clock },
       format: REPLAY_FORMAT,
       randomAlgorithm: RANDOM_ALGORITHM,
       logicIdentity: LOGIC_IDENTITY,
@@ -1698,11 +1740,12 @@ export class Run {
       config: this.config,
       controls: this.controls,
       scheduledInputs: this.externalInputs,
+      normalizations: this.normalizations,
     });
   }
 }
 export const createRun = (config: RunConfig = {}) => new Run(config);
-export const replayRun = (replay: Replay) => {
+const reconstructReplay = (replay: Replay, restore: boolean) => {
   if (
     replay.format !== REPLAY_FORMAT ||
     replay.randomAlgorithm !== RANDOM_ALGORITHM ||
@@ -1713,45 +1756,62 @@ export const replayRun = (replay: Replay) => {
     JSON.stringify(replay.outcomeSampling?.order) !== JSON.stringify(JEV_OUTCOME_ORDER)
   )
     throw new Error("incompatible replay identity");
+  const endpoint = readReplayCoordinate(replay.endpoint);
   const run = createRun(replay.config);
   const timeline = [
-    ...replay.controls.map((record) => ({ kind: "control" as const, record })),
-    ...replay.scheduledInputs.map((record) => ({
-      kind: "input" as const,
-      record,
-    })),
-  ].sort((a, b) => a.record.sequence - b.record.sequence);
+    ...replay.controls.map((record) => ({ kind: "control" as const, record: readControlRecord(record) })),
+    ...replay.scheduledInputs.map((record) => ({ kind: "input" as const, record: readInputRecord(record) })),
+    ...replay.normalizations.map((record) => ({ kind: "normalize" as const, record: readNormalization(record) })),
+  ].sort((a, b) => a.record.checkpointSequence - b.record.checkpointSequence);
+  let actionSequence = 0;
+  for (const [sequence, item] of timeline.entries()) {
+    if (item.kind !== "normalize" && item.record.sequence !== actionSequence++)
+      throw new Error("incompatible replay action sequence");
+    if (item.record.checkpointSequence !== sequence || item.record.boundary > endpoint.eventCount
+      || item.record.queueTakes > endpoint.queueTakes || item.record.time > endpoint.now)
+      throw new Error("incompatible replay timeline");
+  }
   const step = run.step.bind(run);
+  let cursor = 0;
   const flush = () => {
-    while (
-      timeline[0]?.record.boundary === run.eventCount &&
-      timeline[0].record.time <= run.now
-    ) {
-      const item = timeline.shift()!;
-      if (item.kind === "control") run.applyControl(item.record.control);
-      else run.schedule(item.record.input);
+    while (cursor < timeline.length) {
+      const item = timeline[cursor]!;
+      if (item.record.boundary < run.eventCount || item.record.queueTakes < run.queueTakeCount
+        || item.record.time < run.now) throw new Error("overshot replay timeline");
+      if (item.record.boundary !== run.eventCount || item.record.queueTakes !== run.queueTakeCount
+        || item.record.time !== run.now) return;
+      cursor++;
+      if (item.kind === "control") run.applyControl(item.record.control as Control);
+      else if (item.kind === "input") run.schedule(item.record.input as RunInput);
+      else run[replayNormalize]();
     }
   };
+  run[replayProgress]({ flush, target: () => {
+    const record = timeline[cursor]?.record;
+    return record ? { eventCount: record.boundary, queueTakes: record.queueTakes, now: record.time }
+      : restore ? endpoint : undefined;
+  } });
   run.step = (untilTime?: number) => {
-    flush();
-    const observation = step(untilTime);
-    flush();
-    return observation;
+    for (;;) {
+      flush();
+      const before = cursor;
+      const observation = step(untilTime);
+      flush();
+      if (observation || cursor === before) return observation;
+      // A finite recorded checkpoint may unblock the next metadata item without
+      // emitting a product observation. Continue through the same step owner.
+    }
   };
   flush();
   return run;
 };
+export const replayRun = (replay: Replay) => reconstructReplay(replay, false);
 
 /** Reconstruct the recorded viewing boundary, including metadata and boundary controls, without another canonical transition. */
 export const restoreReplay = (replay: Replay, listener?: (frame: Observation) => void): Run => {
-  integer(replay.endpoint.eventCount, "replay event count");
-  integer(replay.endpoint.now, "replay endpoint time");
-  const run = replayRun(replay);
+  const run = reconstructReplay(replay, true);
   if (listener) run.subscribe(listener);
-  run.advance({
-    maxEvents: replay.endpoint.eventCount,
-    untilTime: replay.endpoint.now,
-  });
   run[restoreEndpoint](replay.endpoint);
+  run[replayProgress]();
   return run;
 };
