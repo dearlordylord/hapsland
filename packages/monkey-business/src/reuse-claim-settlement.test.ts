@@ -32,7 +32,15 @@ it("settles an authentically issued stale clear result without caching its repla
   expect(run.advance({ untilTime: 100, maxEvents: 1000 }).reason).toBe("idle");
   const commands = run.observations.flatMap(frame => frame.commands);
   expect(commands.filter(command => command.kind === "jevRequestIssued")).toHaveLength(2);
-  expect(commands.filter(command => command.kind === "jevObservationIgnored")).toHaveLength(1);
+  // Canonical records an authentic AtJev result even when the revision became
+  // stale. Captured revision currency separately forbids caching that result.
+  const stale = run.observations.find(frame => frame.time === 2 + 5 && frame.event.kind === "jevRequestSettled");
+  const current = run.observations.find(frame => frame.time === 3 + 2 + 5 && frame.event.kind === "jevRequestSettled");
+  expect(stale?.event).toMatchObject({ kind: "jevRequestSettled", currentWork: false, outcome: "clear" });
+  expect(stale?.commands).toContainEqual({ kind: "jevRequestOutcomeRecorded", outcome: "clear" });
+  expect(stale?.commands).toContainEqual({ kind: "settleStaleClear" });
+  expect(current?.event).toMatchObject({ kind: "jevRequestSettled", currentWork: true, outcome: "clear" });
+  expect(current?.commands).toContainEqual({ kind: "settleClear" });
   expect(commands.filter(command => command.kind === "cacheCommitted")).toHaveLength(1);
   expect(run.projection.work).toEqual([]);
   expect(run.projection.dispatch.requests).toEqual([]);
