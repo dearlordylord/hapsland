@@ -107,9 +107,11 @@ Four selected cross-file duplicate-fact designs produced **12/12 checked repairs
 with Hapsland and 1/12 with Abide configured with the same Noul concern**.
 **Hapsland also warned on all six clean-control observations.**
 
-The other eight rules produced **4/16 Hapsland repairs and 3/16 Abide repairs**
-in one native session per defective case and arm. Across the two matrices, results include local examples,
-false warnings and incomplete function graphs; they do not establish general
+The other eight rules produced **6/16 Hapsland repairs and 3/16 Abide repairs**
+in one native session per defective case and arm. The resource rule was rerun
+with corrected review configuration; seven rules
+retain their existing measurements. Across the two matrices, results include
+local examples and false warnings; they do not establish general
 review superiority. The report links starting and final code for inspection.
 
 ## Installation
