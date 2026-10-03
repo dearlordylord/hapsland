@@ -30,10 +30,7 @@ if (process.argv.includes("--check")) {
     const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], { encoding: "utf8", timeout: 5000 });
     if (run.error || run.status !== 0) throw run.error ?? new Error(run.stdout + run.stderr);
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
-    const marker = "export default {
- freshness_admitted: (state,scope,source,command) => run_loop($freshness_admitted$(state,facts(scope),facts(source),facts(command))),
- freshness_current: (state,scope) => run_loop($freshness_current$(state,facts(scope))),
- freshness_checks: (state,scope) => run_loop($freshness_checks$(state,facts(scope))),";
+    const marker = "export default {";
     const offset = compiled.lastIndexOf(marker);
     const names = ["freshness_admitted", "freshness_current", "freshness_checks", "callback_replaced", "notice_after", "notice_exercise", "notice_failure", "notice_lease", "notice_acknowledge", "callback_owner", "callback_issue", "callback_delivered", "callback_originals", "callback_action", "activity_event_valid", "lifecycle_entries", "lifecycle_entry", "lifecycle_action", "activity_scope", "activity_valid", "activity_lifetime", "activity_edit", "permit_issue", "permit_issued", "permit_consumed", "preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "session_delay"];
     if (offset < 0 || names.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
@@ -59,6 +56,9 @@ const facts = value => {
   return value;
 };
 export default {
+ freshness_admitted: (state,scope,source,command) => run_loop($freshness_admitted$(state,facts(scope),facts(source),facts(command))),
+ freshness_current: (state,scope) => run_loop($freshness_current$(state,facts(scope))),
+ freshness_checks: (state,scope) => run_loop($freshness_checks$(state,facts(scope))),
  notice_after: (before,state,scope,event,commands,now) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now))),
  notice_exercise: (scope) => run_loop($notice_exercise$(facts(scope))),
  notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),

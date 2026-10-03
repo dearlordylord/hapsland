@@ -19,9 +19,13 @@ def with_callbacks(state: State, callbacks: Callbacks.State) -> State:
   match state:
     case State{_, notices, clocks, freshness, sources}: State{callbacks, notices, clocks, freshness, sources}
 
-def retain(state: State, canonical: Canonical.State) -> State:
+def retained_state(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, +freshness: Freshness.State, sources: ScopedRevision.State, canonical: Canonical.State) -> State:
+  State{callbacks,notices,clocks,freshness,ScopedRevision.retain(sources,canonical,Freshness.bindings(freshness))}
+
+def retain(state: State, +canonical: Canonical.State) -> State:
   match state:
-    case State{callbacks, notices, clocks, +freshness, sources}: State{Callbacks.retain(callbacks, canonical), notices, clocks, Freshness.retained(freshness, canonical), ScopedRevision.retain(sources,canonical,Freshness.bindings(Freshness.retained(freshness,canonical)))}
+    case State{callbacks,notices,clocks,freshness,sources}:
+      retained_state(Callbacks.retain(callbacks,canonical),notices,clocks,Freshness.retained(freshness,canonical),sources,canonical)
 
 def notice_requested(state: State, scope: NoticeScenario.Scope, key: Nat, sequence: Nat, commands: List<&2,Canonical.Command>, now: Nat) -> NoticeScenario.Followup:
   match state:
@@ -48,4 +52,4 @@ def with_sources(state: State, sources: ScopedRevision.State) -> State:
     case State{callbacks,notices,clocks,freshness,_}: State{callbacks,notices,clocks,freshness,sources}
 
 def accepted(+state: State, canonical: Canonical.State, event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> State:
-  retain(with_freshness(state,Freshness.feedback(freshness(state),event,commands)),canonical)
+  retain(with_freshness(state,Freshness.feedback(commands,freshness(state),event)),canonical)

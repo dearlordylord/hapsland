@@ -159,6 +159,478 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
+function $$$$047agent$045flow$045bend$047Dispatch$initial$() {
+  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$max_running$() {
+  return 8;
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$max_requests$() {
+  return 8;
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$preparation_count$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _t_1 = _t_0["preparation"];
+        if (_t_1) {
+          const _rest_0 = _items_0["tail"];
+          const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_rest_0));
+          return nat_chk(1 + _x_0);
+        } else {
+          const _rest_1 = _items_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _owner_0 = _entry_0["partition"];
+  const _generation_0 = _entry_0["lifetime"];
+  const _current_0 = _entry_0["round"];
+  const _id_0 = _entry_0["operation"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Nat$is_eq$(_id_0, _operation_0)))))));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$contains$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return (_x_0 || _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0) {
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0) {
+  const _t_0 = _entry_0["preparation"];
+  if (!_t_0) {
+    return true;
+  } else {
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_running_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_running$());
+    return (_x_0 < _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, _result_0) {
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _t_0 = _result_0["state"];
+    const _queued_0 = _t_0["queued"];
+    const _running_0 = _t_0["running"];
+    const _next_sequence_0 = _t_0["next_sequence"];
+    const _closed_0 = _t_0["closed"];
+    const _requests_0 = _t_0["requests"];
+    const _commands_0 = _result_0["commands"];
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
+  } else {
+    const _state_0 = _result_0["state"];
+    return {$: "Dispatch.Denied", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
+  if (_queued_0.$ === "Nil") {
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
+  } else {
+    const _entry_0 = _queued_0["head"];
+    const _rest_0 = _queued_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_one$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _second_0 = _result_0["state"];
+    const _more_0 = _result_0["commands"];
+    return {$: "Dispatch.Advanced", "state": _second_0, "commands": ($List$append$(_commands_0, _more_0))};
+  } else {
+    return {$: "Dispatch.Denied", "state": _first_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_next$(_first_0, _commands_0) {
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_one$(_first_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0) {
+  if (_queued_0.$ === "Nil") {
+    return false;
+  } else {
+    const _entry_0 = _queued_0["head"];
+    const _rest_0 = _queued_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_rest_0, _running_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_remaining_0, _result_0) {
+  if (_remaining_0 === 0) {
+    return _result_0;
+  } else {
+    const _rest_0 = (_remaining_0 - 1);
+    if (_result_0.$ === "Dispatch.Advanced") {
+      const _t_0 = _result_0["state"];
+      const _queued_0 = _t_0["queued"];
+      const _running_0 = _t_0["running"];
+      const __0 = _t_0["next_sequence"];
+      const __1 = _t_0["closed"];
+      const __2 = _t_0["requests"];
+      const _commands_0 = _result_0["commands"];
+      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
+    } else {
+      const _state_0 = _result_0["state"];
+      return {$: "Dispatch.Denied", "state": _state_0};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_available$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const __0 = _state_0["running"];
+  const __1 = _state_0["next_sequence"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0)), _rest_0, {$: "Con", "head": _entry_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0) {
+  if (_ids_0.$ === "Nil") {
+    return false;
+  } else {
+    const _id_0 = _ids_0["head"];
+    const _rest_0 = _ids_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$listed$(_rest_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, _running_0) {
+  const _operation_0 = _entry_0["operation"];
+  return {$: "Dispatch.Discarded", "operation": _operation_0, "running": _running_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
+  if (_hit_0) {
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": _entries_0, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": _commands_0}};
+  } else {
+    const _entries_1 = _tail_0["entries"];
+    const _commands_1 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_1}, "commands": _commands_1};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_items_0, _ids_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const __3 = _t_0["sequence"];
+    const __4 = _t_0["cancelled"];
+    const __5 = _t_0["preparation"];
+    const _rest_0 = _items_0["tail"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_rest_0, _ids_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0) {
+  const _partition_0 = _entry_0["partition"];
+  const _lifetime_0 = _entry_0["lifetime"];
+  const _round_0 = _entry_0["round"];
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  const _preparation_0 = _entry_0["preparation"];
+  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
+  if (!_hit_0) {
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_0}, "commands": _commands_0};
+  } else {
+    const _entries_1 = _tail_0["entries"];
+    const _commands_1 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0)), "tail": _entries_1}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, true)), "tail": _commands_1}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$(_entry_0, _hit_0, _tail_0) {
+  const __0 = _entry_0["partition"];
+  const __1 = _entry_0["lifetime"];
+  const __2 = _entry_0["round"];
+  const __3 = _entry_0["operation"];
+  const __4 = _entry_0["sequence"];
+  const _t_0 = _entry_0["cancelled"];
+  if (_t_0) {
+    const __5 = _entry_0["preparation"];
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
+  } else {
+    const __6 = _entry_0["preparation"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running$(_items_0, _ids_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const __3 = _t_0["sequence"];
+    const __4 = _t_0["cancelled"];
+    const __5 = _t_0["preparation"];
+    const _rest_0 = _items_0["tail"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_rest_0, _ids_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discarded_result$(_state_0, _queued_0, _running_0) {
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _waiting_0 = _queued_0["entries"];
+  const _waiting_commands_0 = _queued_0["commands"];
+  const _executing_0 = _running_0["entries"];
+  const _executing_commands_0 = _running_0["commands"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discard$(_state_0, _ids_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const __0 = _state_0["next_sequence"];
+  const __1 = _state_0["closed"];
+  const __2 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_running_0, _ids_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discard_all$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$close$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _requests_0 = _state_0["requests"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_queued_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  const _owner_0 = _item_0["partition"];
+  const _generation_0 = _item_0["lifetime"];
+  const _current_0 = _item_0["round"];
+  const _work_0 = _item_0["operation"];
+  const _id_0 = _item_0["request"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _work_0 = _t_0["operation"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_work_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_rest_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _x_0 = ($List$length$(_requests_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_requests$());
+  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_requests_0, _operation_0));
+  const _x_3 = ($Bool$not$((_x_0 < _x_1)));
+  const _x_4 = (_x_2 || _x_3);
+  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _work_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const __0 = _t_0["started"];
+    const _interrupted_0 = _t_0["interrupted"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _work_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const _started_0 = _t_0["started"];
+    const __0 = _t_0["interrupted"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  if (_found_0.$ === "None") {
+    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _started_0 = _t_0["started"];
+    const _interrupted_0 = _t_0["interrupted"];
+    const _x_0 = ($Bool$and$(_interrupt_0, _interrupted_0));
+    const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
+    const _x_2 = ($Bool$and$(_start_0, _started_0));
+    const _x_3 = (_x_0 || _x_1);
+    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
+  const __0 = _state_0["queued"];
+  const __1 = _state_0["running"];
+  const __2 = _state_0["next_sequence"];
+  const __3 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+}
+
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
   if (_purpose_0.$ === "Ledger.ObservationDispatch") {
     return _limits_0;
@@ -3169,478 +3641,6 @@ function $$$$047agent$045flow$045bend$047Work$close$(_work_0) {
 
 function $$$$047agent$045flow$045bend$047Work$main$() {
   return $$$$047agent$045flow$045bend$047Work$admit$(($$$$047agent$045flow$045bend$047Work$initial$()));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$initial$() {
-  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$max_running$() {
-  return 8;
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$max_requests$() {
-  return 8;
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$preparation_count$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["preparation"];
-        if (_t_1) {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_rest_0));
-          return nat_chk(1 + _x_0);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _owner_0 = _entry_0["partition"];
-  const _generation_0 = _entry_0["lifetime"];
-  const _current_0 = _entry_0["round"];
-  const _id_0 = _entry_0["operation"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Nat$is_eq$(_id_0, _operation_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$contains$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return (_x_0 || _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0) {
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0) {
-  const _t_0 = _entry_0["preparation"];
-  if (!_t_0) {
-    return true;
-  } else {
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_running_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_running$());
-    return (_x_0 < _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _t_0 = _result_0["state"];
-    const _queued_0 = _t_0["queued"];
-    const _running_0 = _t_0["running"];
-    const _next_sequence_0 = _t_0["next_sequence"];
-    const _closed_0 = _t_0["closed"];
-    const _requests_0 = _t_0["requests"];
-    const _commands_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
-  } else {
-    const _state_0 = _result_0["state"];
-    return {$: "Dispatch.Denied", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
-  if (_queued_0.$ === "Nil") {
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
-  } else {
-    const _entry_0 = _queued_0["head"];
-    const _rest_0 = _queued_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_one$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _second_0 = _result_0["state"];
-    const _more_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": _second_0, "commands": ($List$append$(_commands_0, _more_0))};
-  } else {
-    return {$: "Dispatch.Denied", "state": _first_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_next$(_first_0, _commands_0) {
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_one$(_first_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0) {
-  if (_queued_0.$ === "Nil") {
-    return false;
-  } else {
-    const _entry_0 = _queued_0["head"];
-    const _rest_0 = _queued_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_rest_0, _running_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_remaining_0, _result_0) {
-  if (_remaining_0 === 0) {
-    return _result_0;
-  } else {
-    const _rest_0 = (_remaining_0 - 1);
-    if (_result_0.$ === "Dispatch.Advanced") {
-      const _t_0 = _result_0["state"];
-      const _queued_0 = _t_0["queued"];
-      const _running_0 = _t_0["running"];
-      const __0 = _t_0["next_sequence"];
-      const __1 = _t_0["closed"];
-      const __2 = _t_0["requests"];
-      const _commands_0 = _result_0["commands"];
-      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
-    } else {
-      const _state_0 = _result_0["state"];
-      return {$: "Dispatch.Denied", "state": _state_0};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_available$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const __0 = _state_0["running"];
-  const __1 = _state_0["next_sequence"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0)), _rest_0, {$: "Con", "head": _entry_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0) {
-  if (_ids_0.$ === "Nil") {
-    return false;
-  } else {
-    const _id_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$listed$(_rest_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, _running_0) {
-  const _operation_0 = _entry_0["operation"];
-  return {$: "Dispatch.Discarded", "operation": _operation_0, "running": _running_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
-  if (_hit_0) {
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": _entries_0, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": _commands_0}};
-  } else {
-    const _entries_1 = _tail_0["entries"];
-    const _commands_1 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_1}, "commands": _commands_1};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_items_0, _ids_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _operation_0 = _t_0["operation"];
-    const __3 = _t_0["sequence"];
-    const __4 = _t_0["cancelled"];
-    const __5 = _t_0["preparation"];
-    const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_rest_0, _ids_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0) {
-  const _partition_0 = _entry_0["partition"];
-  const _lifetime_0 = _entry_0["lifetime"];
-  const _round_0 = _entry_0["round"];
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  const _preparation_0 = _entry_0["preparation"];
-  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
-  if (!_hit_0) {
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_0}, "commands": _commands_0};
-  } else {
-    const _entries_1 = _tail_0["entries"];
-    const _commands_1 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0)), "tail": _entries_1}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, true)), "tail": _commands_1}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$(_entry_0, _hit_0, _tail_0) {
-  const __0 = _entry_0["partition"];
-  const __1 = _entry_0["lifetime"];
-  const __2 = _entry_0["round"];
-  const __3 = _entry_0["operation"];
-  const __4 = _entry_0["sequence"];
-  const _t_0 = _entry_0["cancelled"];
-  if (_t_0) {
-    const __5 = _entry_0["preparation"];
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
-  } else {
-    const __6 = _entry_0["preparation"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running$(_items_0, _ids_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _operation_0 = _t_0["operation"];
-    const __3 = _t_0["sequence"];
-    const __4 = _t_0["cancelled"];
-    const __5 = _t_0["preparation"];
-    const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_rest_0, _ids_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discarded_result$(_state_0, _queued_0, _running_0) {
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _waiting_0 = _queued_0["entries"];
-  const _waiting_commands_0 = _queued_0["commands"];
-  const _executing_0 = _running_0["entries"];
-  const _executing_commands_0 = _running_0["commands"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discard$(_state_0, _ids_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const __0 = _state_0["next_sequence"];
-  const __1 = _state_0["closed"];
-  const __2 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_running_0, _ids_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discard_all$(_items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$close$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _requests_0 = _state_0["requests"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_queued_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  const _owner_0 = _item_0["partition"];
-  const _generation_0 = _item_0["lifetime"];
-  const _current_0 = _item_0["round"];
-  const _work_0 = _item_0["operation"];
-  const _id_0 = _item_0["request"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_items_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _work_0 = _t_0["operation"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_work_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_rest_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($List$length$(_requests_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_requests$());
-  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_requests_0, _operation_0));
-  const _x_3 = ($Bool$not$((_x_0 < _x_1)));
-  const _x_4 = (_x_2 || _x_3);
-  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const __0 = _t_0["started"];
-    const _interrupted_0 = _t_0["interrupted"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const _started_0 = _t_0["started"];
-    const __0 = _t_0["interrupted"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  if (_found_0.$ === "None") {
-    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _started_0 = _t_0["started"];
-    const _interrupted_0 = _t_0["interrupted"];
-    const _x_0 = ($Bool$and$(_interrupt_0, _interrupted_0));
-    const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
-    const _x_2 = ($Bool$and$(_start_0, _started_0));
-    const _x_3 = (_x_0 || _x_1);
-    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
-  const __0 = _state_0["queued"];
-  const __1 = _state_0["running"];
-  const __2 = _state_0["next_sequence"];
-  const __3 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
 }
 
 function $$$$047agent$045flow$045bend$047Retention$cleanup_gate$(_facts_0) {
@@ -12543,6 +12543,540 @@ function $Driver$revalidate$(_state_0, _context_0) {
   return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
 }
 
+function $FreshnessScenario$initial$() {
+  return {$: "FreshnessScenario.State", "bindings": {$: "Nil"}};
+}
+
+function $FreshnessScenario$same$(_left_0, _right_0) {
+  const _p_0 = _left_0["partition"];
+  const _l_0 = _left_0["lifetime"];
+  const _r_0 = _left_0["round"];
+  const _op_0 = _left_0["operation"];
+  const _other_p_0 = _right_0["partition"];
+  const _other_l_0 = _right_0["lifetime"];
+  const _other_r_0 = _right_0["round"];
+  const _other_op_0 = _right_0["operation"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _other_p_0)), ($Nat$is_eq$(_l_0, _other_l_0)))), ($Nat$is_eq$(_r_0, _other_r_0)))), ($Nat$is_eq$(_op_0, _other_op_0)));
+}
+
+function $FreshnessScenario$found$(_equal_0, _binding_0, _rest_0) {
+  if (_equal_0) {
+    return {$: "Some", "value": _binding_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $FreshnessScenario$lookup$(_bindings_0, _scope_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _owner_0 = _t_0["scope"];
+    const _source_0 = _t_0["source"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _bindings_0["tail"];
+    return $FreshnessScenario$found$(($FreshnessScenario$same$(_owner_0, _scope_0)), {$: "FreshnessScenario.Binding", "scope": _owner_0, "source": _source_0, "generation": _generation_0}, ($FreshnessScenario$lookup$(_tail_0, _scope_0)));
+  }
+}
+
+function $FreshnessScenario$kept$(_equal_0, _binding_0, _rest_0) {
+  if (_equal_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _binding_0, "tail": _rest_0};
+  }
+}
+
+function $FreshnessScenario$remove$(_bindings_0, _scope_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _owner_0 = _t_0["scope"];
+    const _source_0 = _t_0["source"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _bindings_0["tail"];
+    return $FreshnessScenario$kept$(($FreshnessScenario$same$(_owner_0, _scope_0)), {$: "FreshnessScenario.Binding", "scope": _owner_0, "source": _source_0, "generation": _generation_0}, ($FreshnessScenario$remove$(_tail_0, _scope_0)));
+  }
+}
+
+function $FreshnessScenario$retain$(_state_0, _scope_0, _source_0, _generation_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return {$: "FreshnessScenario.State", "bindings": {$: "Con", "head": {$: "FreshnessScenario.Binding", "scope": _scope_0, "source": _source_0, "generation": _generation_0}, "tail": ($FreshnessScenario$remove$(_bindings_0, _scope_0))}};
+}
+
+function $FreshnessScenario$registration$(_source_0) {
+  const _subject_0 = _source_0["subject"];
+  const _input_0 = _source_0["input"];
+  return $Driver$immediate$({$: "Canonical.RevisionRegister", "subject": _subject_0, "input": _input_0, "add_member": false}, false);
+}
+
+function $FreshnessScenario$registered$(_state_0, _scope_0, _source_0, _command_0) {
+  if (_command_0.$ === "Canonical.RevisionReused") {
+    const _generation_0 = _command_0["generation"];
+    return $FreshnessScenario$retain$(_state_0, _scope_0, _source_0, _generation_0);
+  } else if (_command_0.$ === "Canonical.RevisionReplaced") {
+    const _generation_1 = _command_0["generation"];
+    return $FreshnessScenario$retain$(_state_0, _scope_0, _source_0, _generation_1);
+  } else {
+    return _state_0;
+  }
+}
+
+function $FreshnessScenario$inherit$(_state_0, _child_0, _parent_0) {
+  if (_parent_0.$ === "None") {
+    return _state_0;
+  } else {
+    const _t_0 = _parent_0["value"];
+    const _source_0 = _t_0["source"];
+    const _generation_0 = _t_0["generation"];
+    return $FreshnessScenario$retain$(_state_0, _child_0, _source_0, _generation_0);
+  }
+}
+
+function $FreshnessScenario$unit$(_state_0, _parent_0, _command_0) {
+  const _bindings_0 = _state_0["bindings"];
+  const _p_0 = _parent_0["partition"];
+  const _l_0 = _parent_0["lifetime"];
+  const _r_0 = _parent_0["round"];
+  const _operation_0 = _parent_0["operation"];
+  if (_command_0.$ === "Canonical.UnitAdmitted") {
+    const _child_0 = _command_0["operation"];
+    return $FreshnessScenario$inherit$({$: "FreshnessScenario.State", "bindings": _bindings_0}, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _child_0}, ($FreshnessScenario$lookup$(_bindings_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0})));
+  } else {
+    return {$: "FreshnessScenario.State", "bindings": _bindings_0};
+  }
+}
+
+function $FreshnessScenario$check_found$(_binding_0) {
+  if (_binding_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _binding_0["value"];
+    const _t_1 = _t_0["source"];
+    const _subject_0 = _t_1["subject"];
+    const _input_0 = _t_1["input"];
+    const _generation_0 = _t_0["generation"];
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.RevisionCurrentCheck", "subject": _subject_0, "input": _input_0, "generation": _generation_0}, false)), "tail": {$: "Nil"}};
+  }
+}
+
+function $FreshnessScenario$checks$(_state_0, _scope_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return $FreshnessScenario$check_found$(($FreshnessScenario$lookup$(_bindings_0, _scope_0)));
+}
+
+function $FreshnessScenario$current_binding$(_canonical_0, _binding_0) {
+  const _collection_0 = _canonical_0["collection"];
+  if (_binding_0.$ === "Some") {
+    const _t_0 = _binding_0["value"];
+    const _t_1 = _t_0["source"];
+    const _subject_0 = _t_1["subject"];
+    const _input_0 = _t_1["input"];
+    const _generation_0 = _t_0["generation"];
+    return {$: "Some", "value": ($$$$047agent$045flow$045bend$047CollectionState$revision_current$(_collection_0, _subject_0, _input_0, _generation_0))};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $FreshnessScenario$current$(_state_0, _canonical_0, _scope_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return $FreshnessScenario$current_binding$(_canonical_0, ($FreshnessScenario$lookup$(_bindings_0, _scope_0)));
+}
+
+function $FreshnessScenario$retired$(_state_0, _scope_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$remove$(_bindings_0, _scope_0))};
+}
+
+function $FreshnessScenario$requests_owned$(_requests_0, _scope_0) {
+  if (_requests_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _requests_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _o_0 = _t_0["operation"];
+    const _tail_0 = _requests_0["tail"];
+    const _partition_0 = _scope_0["partition"];
+    const _lifetime_0 = _scope_0["lifetime"];
+    const _round_0 = _scope_0["round"];
+    const _operation_0 = _scope_0["operation"];
+    const _x_0 = ($FreshnessScenario$same$({$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "FreshnessScenario.Scope", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0}));
+    const _x_1 = ($FreshnessScenario$requests_owned$(_tail_0, {$: "FreshnessScenario.Scope", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0}));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $FreshnessScenario$work_owned$(_found_0) {
+  if (_found_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $FreshnessScenario$live$(_canonical_0, _scope_0) {
+  const _work_0 = _canonical_0["work"];
+  const _t_0 = _canonical_0["dispatch"];
+  const _requests_0 = _t_0["requests"];
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  const _o_0 = _scope_0["operation"];
+  const _x_0 = ($FreshnessScenario$work_owned$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, _l_0, _r_0, _o_0, _work_0))));
+  const _x_1 = ($FreshnessScenario$requests_owned$(_requests_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}));
+  return (_x_0 || _x_1);
+}
+
+function $FreshnessScenario$retained_bindings$(_bindings_0, _canonical_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _scope_0 = _t_0["scope"];
+    const _source_0 = _t_0["source"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _bindings_0["tail"];
+    return $FreshnessScenario$kept$(($Bool$not$(($FreshnessScenario$live$(_canonical_0, _scope_0)))), {$: "FreshnessScenario.Binding", "scope": _scope_0, "source": _source_0, "generation": _generation_0}, ($FreshnessScenario$retained_bindings$(_tail_0, _canonical_0)));
+  }
+}
+
+function $FreshnessScenario$retained$(_state_0, _canonical_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$retained_bindings$(_bindings_0, _canonical_0))};
+}
+
+function $FreshnessScenario$bindings$(_state_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return _bindings_0;
+}
+
+function $FreshnessScenario$registered_bindings$(_bindings_0, _source_0, _generation_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _scope_0 = _t_0["scope"];
+    const _t_1 = _t_0["source"];
+    const _subject_0 = _t_1["subject"];
+    const _input_0 = _t_1["input"];
+    const _old_0 = _t_0["generation"];
+    const _tail_0 = _bindings_0["tail"];
+    const _s_0 = _source_0["subject"];
+    const _i_0 = _source_0["input"];
+    return {$: "Con", "head": {$: "FreshnessScenario.Binding", "scope": _scope_0, "source": {$: "FreshnessScenario.Source", "subject": _subject_0, "input": _input_0}, "generation": ($Bool$pick$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_old_0, 0)), ($Nat$is_eq$(_subject_0, _s_0)))), ($Nat$is_eq$(_input_0, _i_0)))), _generation_0, _old_0))}, "tail": ($FreshnessScenario$registered_bindings$(_tail_0, {$: "FreshnessScenario.Source", "subject": _s_0, "input": _i_0}, _generation_0))};
+  }
+}
+
+function $FreshnessScenario$registration_feedback$(_state_0, _source_0, _command_0) {
+  const _bindings_0 = _state_0["bindings"];
+  if (_command_0.$ === "Canonical.RevisionReused") {
+    const _generation_0 = _command_0["generation"];
+    return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$registered_bindings$(_bindings_0, _source_0, _generation_0))};
+  } else if (_command_0.$ === "Canonical.RevisionReplaced") {
+    const _generation_1 = _command_0["generation"];
+    return {$: "FreshnessScenario.State", "bindings": ($FreshnessScenario$registered_bindings$(_bindings_0, _source_0, _generation_1))};
+  } else {
+    return {$: "FreshnessScenario.State", "bindings": _bindings_0};
+  }
+}
+
+function $FreshnessScenario$preparation_feedback$(_state_0, _p_0, _l_0, _r_0, _parent_0, _child_0) {
+  const _bindings_0 = _state_0["bindings"];
+  return $FreshnessScenario$inherit$({$: "FreshnessScenario.State", "bindings": _bindings_0}, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _child_0}, ($FreshnessScenario$lookup$(_bindings_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _parent_0})));
+}
+
+function $FreshnessScenario$command_feedback$(_state_0, _event_0, _command_0) {
+  if (_event_0.$ === "Canonical.RevisionRegister") {
+    const _subject_0 = _event_0["subject"];
+    const _input_0 = _event_0["input"];
+    return $FreshnessScenario$registration_feedback$(_state_0, {$: "FreshnessScenario.Source", "subject": _subject_0, "input": _input_0}, _command_0);
+  } else if (_event_0.$ === "Canonical.BeginObservedPreparation") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _parent_0 = _event_0["observation"];
+    if (_command_0.$ === "Canonical.Prepare") {
+      const _child_0 = _command_0["operation"];
+      return $FreshnessScenario$preparation_feedback$(_state_0, _p_0, _l_0, _r_0, _parent_0, _child_0);
+    } else {
+      return _state_0;
+    }
+  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _parent_1 = _event_0["operation"];
+    return $FreshnessScenario$unit$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _parent_1}, _command_0);
+  } else {
+    return _state_0;
+  }
+}
+
+function $FreshnessScenario$feedback$($0, $1, $2) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      const _state_0 = $1;
+      const _event_0 = $2;
+      if (_commands_0.$ === "Nil") {
+        return _state_0;
+      } else {
+        const _command_0 = _commands_0["head"];
+        const _tail_0 = _commands_0["tail"];
+        $0 = _tail_0;
+        $1 = ($FreshnessScenario$command_feedback$(_state_0, _event_0, _command_0));
+        $2 = _event_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $FreshnessContext$candidate_scope$(_bindings_0, _partition_0, _round_0, _advice_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _t_1 = _t_0["scope"];
+    const _p_0 = _t_1["partition"];
+    const _l_0 = _t_1["lifetime"];
+    const _r_0 = _t_1["round"];
+    const _o_0 = _t_1["operation"];
+    const _tail_0 = _bindings_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _partition_0)), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_o_0, _advice_0)))), {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}}, ($FreshnessContext$candidate_scope$(_tail_0, _partition_0, _round_0, _advice_0)));
+  }
+}
+
+function $FreshnessContext$operation_scope$(_bindings_0, _advice_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _t_1 = _t_0["scope"];
+    const _p_0 = _t_1["partition"];
+    const _l_0 = _t_1["lifetime"];
+    const _r_0 = _t_1["round"];
+    const _o_0 = _t_1["operation"];
+    const _tail_0 = _bindings_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_o_0, _advice_0)), {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}}, ($FreshnessContext$operation_scope$(_tail_0, _advice_0)));
+  }
+}
+
+function $FreshnessContext$candidate$(_state_0, _value_0) {
+  if (_value_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _value_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _o_0 = _t_0["advice"];
+    const _r_0 = _t_0["round"];
+    return $FreshnessContext$candidate_scope$(($FreshnessScenario$bindings$(_state_0)), _p_0, _r_0, _o_0);
+  }
+}
+
+function $FreshnessContext$scope$(_state_0, _event_0, _value_0) {
+  if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    return {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}};
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    return {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}};
+  } else if (_event_0.$ === "Canonical.CollectionReady") {
+    const _advice_0 = _event_0["advice"];
+    return $FreshnessContext$operation_scope$(($FreshnessScenario$bindings$(_state_0)), _advice_0);
+  } else {
+    return $FreshnessContext$candidate$(_state_0, _value_0);
+  }
+}
+
+function $FreshnessContext$current_found$(_found_0, _supplied_0) {
+  if (_found_0.$ === "None") {
+    return _supplied_0;
+  } else {
+    const _actual_0 = _found_0["value"];
+    return $Bool$and$(_supplied_0, _actual_0);
+  }
+}
+
+function $FreshnessContext$current$(_state_0, _canonical_0, _owner_0, _supplied_0) {
+  if (_owner_0.$ === "None") {
+    return _supplied_0;
+  } else {
+    const _scope_0 = _owner_0["value"];
+    return $FreshnessContext$current_found$(($FreshnessScenario$current$(_state_0, _canonical_0, _scope_0)), _supplied_0);
+  }
+}
+
+function $FreshnessContext$apply$(_state_0, _canonical_0, _event_0, _context_0) {
+  const _p_0 = _context_0["partition"];
+  const _l_0 = _context_0["lifetime"];
+  const _r_0 = _context_0["round"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _supplied_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _value_0 = _context_0["candidate"];
+  const _collection_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _output_lease_0 = _context_0["output_lease"];
+  const _background_0 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": ($FreshnessContext$current$(_state_0, _canonical_0, ($FreshnessContext$scope$(_state_0, _event_0, _value_0)), _supplied_0)), "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _value_0, "automatic_collection": _collection_0, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _output_lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+}
+
+function $ScopedRevision$limit$() {
+  const _x_0 = nat_chk(65536 * 4294967295);
+  return nat_chk(_x_0 + 65535);
+}
+
+function $ScopedRevision$maximum$(_left_0, _right_0) {
+  return $Bool$pick$((_left_0 < _right_0), _right_0, _left_0);
+}
+
+function $ScopedRevision$initial$() {
+  return {$: "ScopedRevision.State", "keys": {$: "Nil"}, "next": 1};
+}
+
+function $ScopedRevision$lookup$(_keys_0, _partition_0, _label_0) {
+  if (_keys_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _keys_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _s_0 = _t_0["label"];
+    const _subject_0 = _t_0["subject"];
+    const _tail_0 = _keys_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_p_0, _partition_0)), ($Nat$is_eq$(_s_0, _label_0)))), {$: "Some", "value": _subject_0}, ($ScopedRevision$lookup$(_tail_0, _partition_0, _label_0)));
+  }
+}
+
+function $ScopedRevision$upper$(_entries_0) {
+  if (_entries_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _subject_0 = _t_0["subject"];
+    const _tail_0 = _entries_0["tail"];
+    return $ScopedRevision$maximum$(_subject_0, ($ScopedRevision$upper$(_tail_0)));
+  }
+}
+
+function $ScopedRevision$canonical_upper$(_canonical_0) {
+  const _t_0 = _canonical_0["collection"];
+  const _t_1 = _t_0["revision"];
+  const _entries_0 = _t_1["entries"];
+  return $ScopedRevision$upper$(_entries_0);
+}
+
+function $ScopedRevision$allocated$(_state_0, _partition_0, _label_0, _input_0, _candidate_0) {
+  const _keys_0 = _state_0["keys"];
+  const __0 = _state_0["next"];
+  const _x_0 = ($ScopedRevision$limit$());
+  return $Bool$pick$((_candidate_0 < _x_0), {$: "ScopedRevision.Resolved", "state": {$: "ScopedRevision.State", "keys": {$: "Con", "head": {$: "ScopedRevision.SubjectKey", "partition": _partition_0, "label": _label_0, "subject": _candidate_0}, "tail": _keys_0}, "next": nat_chk(_candidate_0 + 1)}, "source": {$: "Some", "value": {$: "FreshnessScenario.Source", "subject": _candidate_0, "input": _input_0}}}, {$: "ScopedRevision.Resolved", "state": {$: "ScopedRevision.State", "keys": _keys_0, "next": __0}, "source": {$: "None"}});
+}
+
+function $ScopedRevision$allocate_unseen$(_state_0, _canonical_0, _partition_0, _label_0, _input_0) {
+  const __0 = _state_0["keys"];
+  const _next_0 = _state_0["next"];
+  const _upper_0 = ($ScopedRevision$canonical_upper$(_canonical_0));
+  const _x_0 = ($ScopedRevision$limit$());
+  return $Bool$pick$((_upper_0 < _x_0), ($ScopedRevision$allocated$({$: "ScopedRevision.State", "keys": __0, "next": _next_0}, _partition_0, _label_0, _input_0, ($ScopedRevision$maximum$(_next_0, nat_chk(_upper_0 + 1))))), {$: "ScopedRevision.Resolved", "state": {$: "ScopedRevision.State", "keys": __0, "next": _next_0}, "source": {$: "None"}});
+}
+
+function $ScopedRevision$resolved$(_state_0, _canonical_0, _partition_0, _label_0, _input_0, _found_0) {
+  if (_found_0.$ === "Some") {
+    const _subject_0 = _found_0["value"];
+    return {$: "ScopedRevision.Resolved", "state": _state_0, "source": {$: "Some", "value": {$: "FreshnessScenario.Source", "subject": _subject_0, "input": _input_0}}};
+  } else {
+    return $ScopedRevision$allocate_unseen$(_state_0, _canonical_0, _partition_0, _label_0, _input_0);
+  }
+}
+
+function $ScopedRevision$resolve$(_state_0, _canonical_0, _partition_0, _source_0) {
+  const _keys_0 = _state_0["keys"];
+  const __0 = _state_0["next"];
+  const _label_0 = _source_0["subject"];
+  const _input_0 = _source_0["input"];
+  return $ScopedRevision$resolved$({$: "ScopedRevision.State", "keys": _keys_0, "next": __0}, _canonical_0, _partition_0, _label_0, _input_0, ($ScopedRevision$lookup$(_keys_0, _partition_0, _label_0)));
+}
+
+function $ScopedRevision$captured_subject$(_bindings_0, _subject_0) {
+  if (_bindings_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _t_1 = _t_0["source"];
+    const _candidate_0 = _t_1["subject"];
+    const _tail_0 = _bindings_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_subject_0, _candidate_0));
+    const _x_1 = ($ScopedRevision$captured_subject$(_tail_0, _subject_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $ScopedRevision$present_found$(_found_0) {
+  if (_found_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $ScopedRevision$present$(_canonical_0, _subject_0) {
+  const _t_0 = _canonical_0["collection"];
+  const _t_1 = _t_0["revision"];
+  const _entries_0 = _t_1["entries"];
+  return $ScopedRevision$present_found$(($$$$047agent$045flow$045bend$047RevisionState$find$(_subject_0, _entries_0)));
+}
+
+function $ScopedRevision$kept_key$(_keep_0, _key_0, _rest_0) {
+  if (_keep_0) {
+    return {$: "Con", "head": _key_0, "tail": _rest_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $ScopedRevision$retained_keys$(_keys_0, _canonical_0, _bindings_0) {
+  if (_keys_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _keys_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _label_0 = _t_0["label"];
+    const _subject_0 = _t_0["subject"];
+    const _tail_0 = _keys_0["tail"];
+    const _x_0 = ($ScopedRevision$present$(_canonical_0, _subject_0));
+    const _x_1 = ($ScopedRevision$captured_subject$(_bindings_0, _subject_0));
+    return $ScopedRevision$kept_key$((_x_0 || _x_1), {$: "ScopedRevision.SubjectKey", "partition": _p_0, "label": _label_0, "subject": _subject_0}, ($ScopedRevision$retained_keys$(_tail_0, _canonical_0, _bindings_0)));
+  }
+}
+
+function $ScopedRevision$retain$(_state_0, _canonical_0, _bindings_0) {
+  const _keys_0 = _state_0["keys"];
+  const _next_0 = _state_0["next"];
+  return {$: "ScopedRevision.State", "keys": ($ScopedRevision$retained_keys$(_keys_0, _canonical_0, _bindings_0)), "next": _next_0};
+}
+
 function $Callbacks$owner_equal$(_a_0, _b_0) {
   const _p_0 = _a_0["partition"];
   const _l_0 = _a_0["lifetime"];
@@ -13398,7 +13932,7 @@ function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
 }
 
 function $RuntimeScenarios$initial$() {
-  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}};
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$())};
 }
 
 function $RuntimeScenarios$callbacks$(_state_0) {
@@ -13409,14 +13943,22 @@ function $RuntimeScenarios$callbacks$(_state_0) {
 function $RuntimeScenarios$with_callbacks$(_state_0, _callbacks_0) {
   const _notices_0 = _state_0["notices"];
   const _clocks_0 = _state_0["clocks"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0};
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0};
+}
+
+function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0) {
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0))))};
 }
 
 function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
   const _callbacks_0 = _state_0["callbacks"];
   const _notices_0 = _state_0["notices"];
   const _clocks_0 = _state_0["clocks"];
-  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$retain$(_callbacks_0, _canonical_0)), "notices": _notices_0, "clocks": _clocks_0};
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  return $RuntimeScenarios$retained_state$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, ($FreshnessScenario$retained$(_freshness_0, _canonical_0)), _sources_0, _canonical_0);
 }
 
 function $RuntimeScenarios$notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
@@ -13428,6 +13970,36 @@ function $RuntimeScenarios$notice_reserved$(_state_0, _partition_0, _commands_0)
   const _t_0 = _state_0["notices"];
   const _pending_0 = _t_0["pending"];
   return $NoticeScenario$reserved$(_pending_0, _partition_0, _commands_0);
+}
+
+function $RuntimeScenarios$freshness$(_state_0) {
+  const _freshness_0 = _state_0["freshness"];
+  return _freshness_0;
+}
+
+function $RuntimeScenarios$sources$(_state_0) {
+  const _sources_0 = _state_0["sources"];
+  return _sources_0;
+}
+
+function $RuntimeScenarios$with_freshness$(_state_0, _freshness_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _sources_0 = _state_0["sources"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0};
+}
+
+function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _freshness_0 = _state_0["freshness"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0};
+}
+
+function $RuntimeScenarios$accepted$(_state_0, _canonical_0, _event_0, _commands_0) {
+  return $RuntimeScenarios$retain$(($RuntimeScenarios$with_freshness$(_state_0, ($FreshnessScenario$feedback$(_commands_0, ($RuntimeScenarios$freshness$(_state_0)), _event_0)))), _canonical_0);
 }
 
 function $Advicees$initial$() {
@@ -18143,7 +18715,7 @@ function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$retain$(_scenarios_0, _state_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$accepted$(_scenarios_0, _state_0, _event_0, _commands_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -18182,8 +18754,13 @@ function $credential_state$(_state_0) {
   return _credentials_0;
 }
 
+function $freshness_state$(_state_0) {
+  const _scenarios_0 = _state_0["scenarios"];
+  return $RuntimeScenarios$freshness$(_scenarios_0);
+}
+
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
-  return $Driver$handle$(($canonical$(_state_0)), _event_0, _command_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)));
+  return $Driver$handle$(($canonical$(_state_0)), _event_0, _command_0, ($FreshnessContext$apply$(($freshness_state$(_state_0)), ($canonical$(_state_0)), _event_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)))));
 }
 
 function $edit$(_state_0, _partition_0, _lifetime_0) {
@@ -18269,7 +18846,7 @@ function $cancel$(_state_0, _order_0) {
 }
 
 function $fence$(_state_0, _event_0, _generated_0, _context_0) {
-  return $Driver$fence$(($canonical$(_state_0)), _event_0, _generated_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)));
+  return $Driver$fence$(($canonical$(_state_0)), _event_0, _generated_0, ($FreshnessContext$apply$(($freshness_state$(_state_0)), ($canonical$(_state_0)), _event_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)))));
 }
 
 function $preparation_fact_time$(_delay_0, _index_0, _count_0) {
@@ -18963,9 +19540,11 @@ function $notice_followed$(_state_0, _followup_0) {
   const _t_0 = _state_0["scenarios"];
   const _callbacks_0 = _t_0["callbacks"];
   const _clocks_0 = _t_0["clocks"];
+  const _freshness_0 = _t_0["freshness"];
+  const _sources_0 = _t_0["sources"];
   const _notices_0 = _followup_0["state"];
   const _events_0 = _followup_0["events"];
-  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0}}, "events": _events_0};
+  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0}}, "events": _events_0};
 }
 
 function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
@@ -18985,7 +19564,9 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
   const _callbacks_0 = _t_0["callbacks"];
   const _notices_0 = _t_0["notices"];
   const _clocks_0 = _t_0["clocks"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0))}};
+  const _freshness_0 = _t_0["freshness"];
+  const _sources_0 = _t_0["sources"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0}};
 }
 
 function $notice_pruned$(_state_0, _key_0, _commands_0) {
@@ -19005,7 +19586,9 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   const _callbacks_0 = _t_0["callbacks"];
   const _notices_0 = _t_0["notices"];
   const _clocks_0 = _t_0["clocks"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0))}};
+  const _freshness_0 = _t_0["freshness"];
+  const _sources_0 = _t_0["sources"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0}};
 }
 
 function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
@@ -19059,6 +19642,54 @@ function $callback_replaced$(_state_0, _orders_0) {
   return $with_callbacks$(_state_0, ($Callbacks$replaced$(($callback_state$(_state_0)), _orders_0)));
 }
 
+function $with_freshness$(_state_0, _freshness_0) {
+  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_freshness$(($scenarios$(_state_0)), _freshness_0)));
+}
+
+function $freshness_bound$(_state_0, _scope_0, _source_0, _sources_0) {
+  return {$: "FreshnessAdmission", "state": ($with_scenarios$(_state_0, ($RuntimeScenarios$with_sources$(($RuntimeScenarios$with_freshness$(($scenarios$(_state_0)), ($FreshnessScenario$retain$(($freshness_state$(_state_0)), _scope_0, _source_0, 0)))), _sources_0)))), "source": {$: "Some", "value": _source_0}, "actions": {$: "Con", "head": ($FreshnessScenario$registration$(_source_0)), "tail": {$: "Nil"}}};
+}
+
+function $freshness_resolved$(_state_0, _scope_0, _resolved_0) {
+  const __0 = _resolved_0["state"];
+  const _t_0 = _resolved_0["source"];
+  if (_t_0.$ === "None") {
+    return {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}};
+  } else {
+    const _source_0 = _t_0["value"];
+    return $freshness_bound$(_state_0, _scope_0, _source_0, __0);
+  }
+}
+
+function $freshness_admitted$(_state_0, _scope_0, _source_0, _command_0) {
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  const _o_0 = _scope_0["operation"];
+  if (_command_0.$ === "Canonical.ObservationAdmitted") {
+    const _id_0 = _command_0["id"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_o_0, _id_0)), ($FreshnessScenario$live$(($canonical$(_state_0)), {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})))), ($freshness_resolved$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, ($ScopedRevision$resolve$(($RuntimeScenarios$sources$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _p_0, _source_0)))), {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}});
+  } else {
+    return {$: "FreshnessAdmission", "state": _state_0, "source": {$: "None"}, "actions": {$: "Nil"}};
+  }
+}
+
+function $freshness_current$(_state_0, _scope_0) {
+  return $FreshnessScenario$current$(($freshness_state$(_state_0)), ($canonical$(_state_0)), _scope_0);
+}
+
+function $freshness_checks$(_state_0, _scope_0) {
+  return $FreshnessScenario$checks$(($freshness_state$(_state_0)), _scope_0);
+}
+
+function $Bool$and$(_a_0, _b_0) {
+  if (!_a_0) {
+    return false;
+  } else {
+    return _b_0;
+  }
+}
+
 function $Nat$is_eq$(_a_0, _b_0) {
   return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
@@ -19071,10 +19702,6 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
   }
 }
 
-function $Nat$is_gt$(_a_0, _b_0) {
-  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
-}
-
 function $List$append$(_xs_0, _ys_0) {
   if (_xs_0.$ === "Nil") {
     return _ys_0;
@@ -19083,10 +19710,6 @@ function $List$append$(_xs_0, _ys_0) {
     const _t_0 = _xs_0["tail"];
     return {$: "Con", "head": _h_0, "tail": ($List$append$(_t_0, _ys_0))};
   }
-}
-
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
 function $List$length$(_xs_0) {
@@ -19098,24 +19721,24 @@ function $List$length$(_xs_0) {
   }
 }
 
-function $Bool$and$(_a_0, _b_0) {
-  if (!_a_0) {
-    return false;
-  } else {
-    return _b_0;
-  }
-}
-
-function $Nat$is_ge$(_a_0, _b_0) {
-  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
-}
-
 function $Bool$not$(_b_0) {
   if (!_b_0) {
     return true;
   } else {
     return false;
   }
+}
+
+function $Nat$is_gt$(_a_0, _b_0) {
+  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_ge$(_a_0, _b_0) {
+  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
 }
 
 function $List$is_empty$(_xs_0) {
@@ -19210,8 +19833,58 @@ function $List$reverse$go$($0, $1) {
   }
 }
 
+function $0m2(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Dispatch.Entry": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "sequence": BigInt(v["sequence"])}; return top[0];
+      default: throw "bend: Dispatch.Entry has no tag " + v?.$ + " (its tags: Dispatch.Entry); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:dc7030a4db7495b0d0b3a0507a3fe4f47545c96573f0c9ddb0db5fc4d6755fdc";
+function $0m1(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m2(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m4(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Dispatch.Request": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
+      default: throw "bend: Dispatch.Request has no tag " + v?.$ + " (its tags: Dispatch.Request); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m3(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m4(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:2a405a7bd6e5016d783a5230f1367595e1a2a4f51a961562497fc466412bb859";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -19227,6 +19900,9 @@ const facts = value => {
   return value;
 };
 export default {
+ freshness_admitted: (state,scope,source,command) => run_loop($freshness_admitted$(state,facts(scope),facts(source),facts(command))),
+ freshness_current: (state,scope) => run_loop($freshness_current$(state,facts(scope))),
+ freshness_checks: (state,scope) => run_loop($freshness_checks$(state,facts(scope))),
  notice_after: (before,state,scope,event,commands,now) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now))),
  notice_exercise: (scope) => run_loop($notice_exercise$(facts(scope))),
  notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),

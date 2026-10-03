@@ -24,19 +24,20 @@ def candidate(state: Freshness.State, value: Maybe<&2,Driver.Candidate>) -> Mayb
 def scope(+state: Freshness.State, event: Canonical.CanonicalEvent, value: Maybe<&2,Driver.Candidate>) -> Maybe<&2,Freshness.Scope>:
   match event:
     case Canonical.JevRequestReady{p,l,r,o,_,_,_,_,_,_}: Some{Freshness.Scope{p,l,r,o}}
-    case Canonical.JevRequestStarted{p,l,r,o,_}: Some{Freshness.Scope{p,l,r,o}}
-    case Canonical.JevRequestInterrupted{p,l,r,o,_}: Some{Freshness.Scope{p,l,r,o}}
     case Canonical.JevRequestSettled{p,l,r,o,_,_,_}: Some{Freshness.Scope{p,l,r,o}}
     case Canonical.CollectionReady{advice,_,_,_,_,_}: operation_scope(Freshness.bindings(state),advice)
     case _: candidate(state,value)
+
+def current_found(found: Maybe<&2,Bool>, supplied: Bool) -> Bool:
+  match found:
+    case None{}: supplied
+    case Some{actual}: supplied && actual
 
 def current(state: Freshness.State, canonical: Canonical.State, owner: Maybe<&2,Freshness.Scope>, supplied: Bool) -> Bool:
   match owner:
     case None{}: supplied
     case Some{scope}:
-      match Freshness.current(state,canonical,scope):
-        case None{}: supplied
-        case Some{actual}: supplied && actual
+      current_found(Freshness.current(state,canonical,scope),supplied)
 
 def apply(+state: Freshness.State, canonical: Canonical.State, event: Canonical.CanonicalEvent, context: Driver.Context) -> Driver.Context:
   match context:

@@ -23,7 +23,7 @@ function replay(run: Run) {
 // a test oracle. These cases preserve the existing changed/refused regressions.
 it.each([
   ["preparation", 1, 5], ["review", 3, 2],
-] as const)("changed input fences the old result during overlapping %s", (_phase, next, preparationDelay) => {
+] as const)("changed input fences the old result during overlapping %s", (phase, next, preparationDelay) => {
   const run = createRun(config(true, next, preparationDelay));
   advance(run, next);
   expect(run.observations.filter(frame => frame.event.kind === "revisionRegister")).toHaveLength(2);
@@ -34,13 +34,27 @@ it.each([
   replay(run);
   advance(run, 30);
   const issues = run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "jevRequestIssued");
-  expect(issues).toHaveLength(2);
-  const old = issues[0]!;
-  const oldCallback = run.observations.find(frame => frame.event.kind === "jevRequestSettled"
-    && frame.event.request === old.request)!;
-  expect(oldCallback.event).toMatchObject({ partition: old.partition, lifetime: old.lifetime,
-    round: old.round, operation: old.operation, request: old.request, outcome: "finding", currentWork: false });
-  expect(oldCallback.commands).toEqual([{ kind: "jevObservationIgnored" }]);
+  // Production server.ts:1986–2000,2098–2101 checks current work before
+  // backend issuance. A stale preparation still completes its original facts,
+  // but cannot acquire a request; an already-issued review completes physically.
+  expect(issues).toHaveLength(phase === "preparation" ? 1 : 2);
+  if (phase === "preparation") {
+    expect(run.observations.filter(frame => frame.event.kind === "preparationCompleted")).toHaveLength(2);
+    expect(run.observations.some(frame => frame.event.kind === "jevRequestReady" && !frame.event.currentWork)).toBe(true);
+  } else {
+    const old = issues[0]!;
+    const oldCallback = run.observations.find(frame => frame.event.kind === "jevRequestSettled"
+      && frame.event.request === old.request)!;
+    expect(oldCallback.event).toMatchObject({ partition: old.partition, lifetime: old.lifetime,
+      round: old.round, operation: old.operation, request: old.request, outcome: "finding", currentWork: false });
+    // Canonical.review_observed_choice retires an owned stale finding; the
+    // canceled/absent-work JevObservationIgnored path has different premises.
+    expect(oldCallback.commands).toEqual([
+      { kind: "reservationReleased", id: 2 }, { kind: "reviewRecorded", outcome: "finding" },
+      { kind: "retireStaleFinding" }, { kind: "jevRequestOutcomeRecorded", outcome: "finding" },
+    ]);
+    expect(oldCallback.after.dispatch.requests.some(request => request.request === old.request)).toBe(false);
+  }
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "retainFinding"))
     .toEqual([{ kind: "retainFinding" }]);
   expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal").map(frame => frame.time))

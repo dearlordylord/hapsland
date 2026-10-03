@@ -116,14 +116,14 @@ def work_owned(found: Maybe<&2,Canonical.Work>) -> Bool:
 
 def live(canonical: Canonical.State, scope: Scope) -> Bool:
   match canonical scope:
-    case Canonical.State{_,_,+work,_,Dispatch.State{_,_,_,_,+requests},_,_,_,_} Scope{+p,+l,+r,+o}:
+    case Canonical.State{_,_,+work,_,_,_,Dispatch.State{_,_,_,_,+requests},_,_} Scope{+p,+l,+r,+o}:
       work_owned(Canonical.find_work(p,l,r,o,work)) || requests_owned(requests,Scope{p,l,r,o})
 
 def retained_bindings(bindings: List<&2,Binding>, +canonical: Canonical.State) -> List<&2,Binding>:
   match bindings:
     case Nil{}: []
     case Binding{+scope,+source,+generation} <> tail:
-      Bool.pick(List<&2,Binding>,live(canonical,scope),Binding{scope,source,generation} <> retained_bindings(tail,canonical),retained_bindings(tail,canonical))
+      kept(Bool.not(live(canonical,scope)),Binding{scope,source,generation},retained_bindings(tail,canonical))
 
 def retained(state: State, canonical: Canonical.State) -> State:
   match state:
@@ -145,16 +145,19 @@ def registration_feedback(state: State, source: Source, command: Canonical.Comma
     case State{bindings} Canonical.RevisionReplaced{generation}: State{registered_bindings(bindings,source,generation)}
     case _ _: state
 
+def preparation_feedback(+state: State, +p: Nat, +l: Nat, +r: Nat, parent: Nat, child: Nat) -> State:
+  match state:
+    case State{+bindings}: inherit(state,Scope{p,l,r,child},lookup(bindings,Scope{p,l,r,parent}))
+
 def command_feedback(+state: State, event: Canonical.CanonicalEvent, command: Canonical.Command) -> State:
   match event command:
     case Canonical.RevisionRegister{subject,input,_} _: registration_feedback(state,Source{subject,input},command)
     case Canonical.BeginObservedPreparation{p,l,r,parent,_} Canonical.Prepare{child,_}:
-      match state:
-        case State{+bindings}: inherit(state,Scope{p,l,r,child},lookup(bindings,Scope{p,l,r,parent}))
+      preparation_feedback(state,p,l,r,parent,child)
     case Canonical.PreparationCompleted{p,l,r,parent,_} _: unit(state,Scope{p,l,r,parent},command)
     case _ _: state
 
-def feedback(state: State, +event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> State:
+def feedback(commands: List<&2,Canonical.Command>, state: State, +event: Canonical.CanonicalEvent) -> State:
   match commands:
     case Nil{}: state
-    case command <> tail: feedback(command_feedback(state,event,command),event,tail)
+    case command <> tail: feedback(tail,command_feedback(state,event,command),event)

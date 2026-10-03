@@ -122,6 +122,10 @@ def credential_state(state: Types.State) -> CredentialFacts.State:
   match state:
     case Types.State{_, _, _, _, _, _, credentials, _, _, _, _, _, _}: credentials
 
+def freshness_state(state: Types.State) -> FreshnessScenario.State:
+  match state:
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,scenarios}: RuntimeScenarios.freshness(scenarios)
+
 def handle(+state: Types.State, +event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
   Driver.handle(canonical(state), event, command, FreshnessContext.apply(freshness_state(state),canonical(state),event,CredentialContext.apply(credential_state(state), event, context)))
 
@@ -601,9 +605,6 @@ def callback_replaced(+state: Types.State, orders: List<&2,Nat>) -> Types.State:
 
 type FreshnessAdmission is Data:
   FreshnessAdmission{state: Types.State, source: Maybe<&2,FreshnessScenario.Source>, actions: List<&2,Driver.Action>}
-
-def freshness_state(state: Types.State) -> FreshnessScenario.State:
-  RuntimeScenarios.freshness(scenarios(state))
 
 def with_freshness(+state: Types.State, freshness: FreshnessScenario.State) -> Types.State:
   with_scenarios(state,RuntimeScenarios.with_freshness(scenarios(state),freshness))
