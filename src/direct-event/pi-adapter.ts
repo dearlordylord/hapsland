@@ -129,6 +129,8 @@ const patchBodyEnd = (lines: readonly string[], start: number): number => {
   while (end < lines.length && !lines[end]!.startsWith("@@")) end += 1;
   return end;
 };
+const reviewablePatch = (frame: PatchFrame, consumed: Set<number>, editCount: number): boolean =>
+  consumed.size === editCount && frame.addedLines.some((line) => line.trim().length > 0);
 /** Pi's unified patch contains post-image coordinates, never display-diff coordinates. */
 const verifyPatch = (patch: string, path: string, source: string, relativePath: string, edits: readonly { oldText: string; newText: string }[]) => {
   const lines = patchBodyLines(patch, path);
@@ -146,7 +148,7 @@ const verifyPatch = (patch: string, path: string, source: string, relativePath: 
     frame.priorOldEnd = header.oldPosition + header.oldCount;
     frame.priorNewEnd = header.newPosition + header.newCount;
   }
-  if (consumed.size !== edits.length || !frame.addedLines.some((line) => line.trim().length > 0)) return undefined;
+  if (!reviewablePatch(frame, consumed, edits.length)) return undefined;
   return { hunks: frame.hunks, addedLines: frame.addedLines };
 };
 const boundedAscii = (value: unknown, maxBytes: number): value is string =>
