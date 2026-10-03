@@ -1586,7 +1586,7 @@ export class Run {
   /** Physical job observation only; recorded ownership is measured in Bend. */
   private quietNativeIdle(partition: number) {
     const agent=this.agentName(partition);
-    return ![...this.jobs.values()].some(job => (job.agent ?? this.scopes[0]?.agent ?? "agent-1")===agent);
+    return ![...this.jobs.values()].some(job => (("agent" in job ? job.agent : undefined) ?? this.scopes[0]?.agent ?? "agent-1")===agent);
   }
   private endFinish(partition: number, continuation: boolean) {
     const f = this.finishes.get(partition);
