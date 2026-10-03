@@ -8,13 +8,45 @@ type Handler = (event: Event, context: Context) => Promise<unknown>;
 type ExtensionAPI = { on(name: string, handler: Handler): unknown };
 type Identity = { cwd: string; session_id: string; tool_use_id: string; host_version: "1.0.0"; tool_name: string };
 type Options = { command?: readonly string[]; env?: NodeJS.ProcessEnv };
-const digest = (value: unknown): string => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+// Sixfold JSON escaping of both bounded native evidence inputs fits this command envelope.
+const MAX_PI_COMMAND_BYTES = 4 * 1_024 * 1_024;
+const encode = (value: unknown, maximumBytes: number): string | undefined => {
+  try {
+    const text = JSON.stringify(value);
+    return typeof text === "string" && Buffer.byteLength(text) <= maximumBytes ? text : undefined;
+  } catch { return undefined; }
+};
+const digest = (value: unknown): string | undefined => {
+  const encoded = encode(value, MAX_PI_COMMAND_BYTES);
+  return encoded === undefined ? undefined : createHash("sha256").update(encoded).digest("hex");
+};
+const nativeContentItem = (item: unknown): boolean => {
+  if (item === null || typeof item !== "object") return false;
+  const content = item as Event;
+  switch (content.type) {
+    case "text": return typeof content.text === "string";
+    case "image": return typeof content.data === "string" && typeof content.mimeType === "string";
+    default: return false;
+  }
+};
+const nativeOutput = (event: Event): Event | undefined => {
+  try {
+    if (!Array.isArray(event.content)) return undefined;
+    const valid = event.content.every(nativeContentItem);
+    if (!valid) return undefined;
+    const output = { content: [...event.content], ...(event.structuredContent === undefined ? {} : { structuredContent: event.structuredContent }) };
+    return output;
+  } catch { return undefined; }
+};
 const identity = (ctx: Context, tool: string, id: string): Identity => ({ cwd: ctx.cwd, session_id: ctx.sessionManager.getSessionId(), tool_use_id: id, host_version: "1.0.0", tool_name: tool });
 const partition = (id: Identity): string => `${id.cwd}\0${id.session_id}`;
 const supported = (event: Event): boolean => event.toolName === "edit" && typeof event.toolCallId === "string" && event.toolCallId.length > 0 && event.parentToolCallId === undefined && event.agent_id === undefined;
 
 /** Hooks use one bounded command call; source and review state belong to the resident. */
-const command = (options: Options, value: unknown): Promise<Event> => new Promise(resolve => {
+const command = (options: Options, value: unknown): Promise<Event> => {
+  const input = encode(value, MAX_PI_COMMAND_BYTES);
+  if (input === undefined) return Promise.resolve({ status: "unavailable" });
+  return new Promise(resolve => {
   const env = { ...process.env, ...options.env };
   const argv = options.command ?? [fileURLToPath(new URL("../../bin/launch.sh", import.meta.url))];
   const args = [...argv.slice(1), "--pi-hook", ...(env.REVIEW_CONTROL_JSON === undefined ? [] : ["--controlled-reviewer"])];
@@ -27,8 +59,9 @@ const command = (options: Options, value: unknown): Promise<Event> => new Promis
   child.on("error", () => finish({ status: "unavailable" }));
   child.on("close", code => { try { finish(code === 0 ? JSON.parse(output) : { status: "unavailable" }); } catch { finish({ status: "unavailable" }); } });
   child.stdin.on("error", () => finish({ status: "unavailable" }));
-  child.stdin.end(JSON.stringify(value));
-});
+  child.stdin.end(input);
+  });
+};
 
 export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI): void => {
   // Source-free argument digest and originating identity only; expires and never stores edits or findings.
@@ -45,13 +78,15 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   api.on("tool_call", async (event, ctx) => {
     prune();
     if (!supported(event) || calls.size >= 64) return;
+    const fingerprint = digest(event.input);
+    if (fingerprint === undefined) return;
     const id = identity(ctx, event.toolName, event.toolCallId);
     const key = `${partition(id)}\0${id.tool_use_id}`;
     if (calls.has(key)) return;
     const generation = epoch;
     const result = await send(id, "before");
     if (result.status !== "registered" || generation !== epoch) { if (result.status === "registered") await send(id, "retire"); return; }
-    calls.set(key, { id, input: digest(event.input), expires: Date.now() + 30_000 });
+    calls.set(key, { id, input: fingerprint, expires: Date.now() + 30_000 });
     partitions.set(partition(id), id);
   });
   api.on("tool_result", async (event, ctx) => {
@@ -62,16 +97,21 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     const call = calls.get(key);
     if (call === undefined) return;
     calls.delete(key);
-    if (event.isError !== false || call.input !== digest(event.input)) { await send(call.id, "retire"); return; }
+    const original = nativeOutput(event);
+    if (event.isError !== false || call.input !== digest(event.input) || original === undefined) { await send(call.id, "retire"); return; }
     const generation = epoch;
     const result = await send(call.id, "edit", { input: event.input, details: event.details, isError: false });
-    if (result.status !== "advice" || generation !== epoch) { if (result.status === "incomplete") await send(call.id, "retire"); return; }
+    if (result.status !== "advice" || generation !== epoch) { if (["incomplete", "unavailable"].includes(result.status)) await send(call.id, "retire"); return; }
+    if (typeof result.text !== "string") return;
+    const output = { ...original, content: [...original.content, { type: "text", text: result.text }] };
     // This ack proves our native handler offered these bytes; later handlers may replace them.
     await send(call.id, "ack", { token: result.token, lifetime: result.lifetime });
     if (generation !== epoch) return;
-    return { content: [...event.content, { type: "text", text: result.text }], ...(event.structuredContent === undefined ? {} : { structuredContent: event.structuredContent }) };
+    return output;
   });
   api.on("agent_before_settle", async (event, ctx) => {
+    if (!Array.isArray(event.entries)) return;
+    const entries = [...event.entries];
     const id = identity(ctx, "finish", randomUUID());
     const generation = epoch;
     boundary = { id, generation };
@@ -79,9 +119,11 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     // Pi rebuilds canContinue after our entry: an initial assistant-only preview is false.
     const result = await send(id, "finish");
     if (result.status !== "advice" || generation !== epoch) return;
+    if (typeof result.text !== "string") return;
+    const output = { entries: [...entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };
     await send(id, "ack", { token: result.token, lifetime: result.lifetime, stopToken: result.stopToken, continued: result.continued });
     if (generation !== epoch) return;
-    return { entries: [...event.entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };
+    return output;
   });
   const cleanup = async () => {
     epoch++;
