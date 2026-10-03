@@ -8,7 +8,7 @@ export const piModelProfile = (settings) => {
 export const assessPiAdoption = ({ events, requests, outcomes, finalMatches, compiles, rejectsInvalid, setupReady, doctorReady }) => {
   const edits = events.filter(e => e.kind === 'tool-result' && e.tool === 'edit' && !e.isError);
   const first = edits.find(e => e.initial);
-  const delivered = events.find(e => e.kind === 'tool-result' && e.finding);
+  const delivered = events.find(e => (e.kind === 'tool-result' || e.kind === 'native-message' && ['toolResult','custom'].includes(e.role)) && e.finding);
   const visible = events.find(e => e.kind === 'provider-request' && e.finding);
   const repair = edits.find(e => e.final && visible && e.at > visible.at);
   return {
@@ -20,6 +20,7 @@ export const assessPiAdoption = ({ events, requests, outcomes, finalMatches, com
     nativeAdviceSubmitted: !!delivered,
     adviceInProviderRequest: !!visible,
     repairAfterModelVisibleAdvice: !!repair,
+    exactlyTwoNativeEdits: edits.length === 2 && !events.some(e => e.kind === 'tool-result' && e.tool === 'write'),
     repairedSourceMatches: finalMatches,
     sourceCompiles: compiles,
     invalidConstructionRejected: rejectsInvalid,
