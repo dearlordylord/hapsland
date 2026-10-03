@@ -1,9 +1,20 @@
 export declare const PREPARATION_SOURCE_IDENTITY: string;
 export declare const SOURCE_IDENTITY: string;
-export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown; opening: unknown; retiring: unknown }
+export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown; opening: unknown; retiring: unknown; lifecycles: unknown; preparations: unknown; activity_scopes: unknown }
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ lifecycle_entries(state: EngineState): unknown;
+ lifecycle_entry(state: EngineState, partition: bigint): unknown;
+ lifecycle_action(state: EngineState, partition: bigint, action: unknown): { state: EngineState; changed: unknown; cleanup: unknown; events: unknown };
+ activity_scope(state: EngineState, partition: bigint): unknown;
+ activity_valid(state: EngineState, partition: bigint, incarnation: bigint): boolean;
+ activity_lifetime(state: EngineState, partition: bigint): number;
+ activity_edit(state: EngineState, partition: bigint, incarnation: bigint): { state: EngineState; plan: unknown };
+ permit_issue(capture: unknown, now: bigint): unknown;
+ permit_issued(capture: unknown, token: bigint): unknown;
+ permit_consumed(state: EngineState, command: unknown, partition: bigint, lifetime: bigint): unknown;
+
  preparation_active(state: EngineState, partition: bigint, lifetime: bigint, round: bigint, operation: bigint): boolean;
  context_credentials(state: EngineState, event: unknown, context: unknown): unknown;
  credential_captured(state: EngineState, operation: bigint): unknown;

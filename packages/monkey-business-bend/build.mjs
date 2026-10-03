@@ -32,7 +32,7 @@ if (process.argv.includes("--check")) {
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";
     const offset = compiled.lastIndexOf(marker);
-    const names = ["preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
+    const names = ["lifecycle_entries", "lifecycle_entry", "lifecycle_action", "activity_scope", "activity_valid", "activity_lifetime", "activity_edit", "permit_issue", "permit_issued", "permit_consumed", "preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
     if (offset < 0 || names.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
     // Same immediate-Nat ABI convention as agent-flow-bend's checked builds.
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
@@ -56,6 +56,16 @@ const facts = value => {
   return value;
 };
 export default {
+ lifecycle_entries: (state) => run_loop($lifecycle_entries$(state)),
+ lifecycle_entry: (state, partition) => run_loop($lifecycle_entry$(state, facts(partition))),
+ lifecycle_action: (state, partition, action) => run_loop($lifecycle_action$(state, facts(partition), facts(action))),
+ activity_scope: (state, partition) => run_loop($activity_scope$(state, facts(partition))),
+ activity_valid: (state, partition, incarnation) => run_loop($activity_valid$(state, facts(partition), facts(incarnation))),
+ activity_lifetime: (state, partition) => run_loop($activity_lifetime$(state, facts(partition))),
+ activity_edit: (state, partition, incarnation) => run_loop($activity_edit$(state, facts(partition), facts(incarnation))),
+ permit_issue: (capture, now) => run_loop($permit_issue$(facts(capture), facts(now))),
+ permit_issued: (capture, token) => run_loop($permit_issued$(facts(capture), facts(token))),
+ permit_consumed: (state, command, partition, lifetime) => run_loop($permit_consumed$(state, facts(command), facts(partition), facts(lifetime))),
  preparation_active: (state, partition, lifetime, round, operation) => run_loop($preparation_active$(state, facts(partition), facts(lifetime), facts(round), facts(operation))),
  context_credentials: (state, event, context) => run_loop($context_credentials$(state, facts(event), facts(context))),
  credential_captured: (state, operation) => run_loop($credential_captured$(state, facts(operation))),
