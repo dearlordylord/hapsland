@@ -1,4 +1,5 @@
 import {Schema} from "effect";
+import {canonicalValue} from "../../../src/direct-event/model.ts";
 import {decoder,PositiveNat,readBendList} from "../../../src/canonical/boundary-schema.ts";
 import {decodeDriverEvent} from "./driver-codec.ts";
 
@@ -30,3 +31,22 @@ export const validateSharingControl=(value:unknown):SharingControl=>{
 };
 /** Scenario controls cannot manufacture a result, a claim or current authority. */
 export const decodeSharingEvents=(value:unknown)=>Object.freeze(readBendList(value,decodeDriverEvent,2048));
+
+/** Original production facts, not a new reuse setting or eligibility decision.
+ * server.ts:1693 scopes key() with the captured WorkCohort.id and dispatch
+ * credential generation. Null is the actual standalone/controlled sentinel;
+ * choosing a controlled model does not itself imply a null credential capture. */
+const IdentityText=Schema.String.check(Schema.isMinLength(1),Schema.isMaxLength(8192));
+export const SharingIdentityFactsSchema=Schema.Struct({partition:IdentityText,
+ workId:Schema.NullOr(IdentityText),credentialGeneration:Schema.NullOr(PositiveNat),preparedIdentity:IdentityText});
+export type SharingIdentityFacts=typeof SharingIdentityFactsSchema.Type;
+const readIdentityFacts=decoder(SharingIdentityFactsSchema);
+export const captureSharingIdentityFacts=(value:unknown):SharingIdentityFacts=>Object.freeze(readIdentityFacts(value));
+/** The edge interns this label bijectively, never stores a second cache here.
+ * logical ledger partition remains SharingKey.partition; this complete label
+ * supplies SharingKey.prepared. The spelling matches the production key. */
+export const sharingIdentityLabel=(value:unknown):string=>{
+ const facts=captureSharingIdentityFacts(value);
+ const namespace=`${facts.partition}\0work:${facts.workId??"standalone"}\0credential-generation:${facts.credentialGeneration??"controlled"}`;
+ return canonicalValue({partition:namespace,input:facts.preparedIdentity});
+};

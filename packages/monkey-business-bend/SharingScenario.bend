@@ -4,7 +4,9 @@ import ../agent-flow-bend/Reuse.bend as Reuse
 import ../agent-flow-bend/CollectionState.bend as Collection
 import ./FreshnessScenario.bend as Freshness
 
-# The edge interns the complete prepared.identity label bijectively. Partition
+# The edge interns the complete original production reuse namespace plus
+# prepared.identity label bijectively (work cohort + captured credential scope).
+# Key.partition is the logical ledger owner, not that reuse namespace. Partition
 # pairing, membership and physical callback attribution live in this shared
 # core. No claim authorizes cross-partition sharing or another output attempt.
 type Key is Data:
