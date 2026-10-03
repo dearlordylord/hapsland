@@ -1,3 +1,5 @@
+import { nativeRunFixtures } from "./native-run-fixtures.mjs";
+
 export const nativePreflightFixtures = Object.freeze([
   "jev-recovery-native.bend",
   "jev-targets-native.bend",
@@ -10,7 +12,7 @@ export const nativePreflightFixtures = Object.freeze([
   "advicee-preparation-departure.bend",
   "permit-scenario.bend",
   "permit-generated-native.bend",
-].map((name) => new URL(name, import.meta.url)));
+].map((name) => new URL(name, import.meta.url)).concat(nativeRunFixtures));
 
 export function usesNativePreflight(fixture) {
   return nativePreflightFixtures.some((selected) => selected.href === fixture.href);
