@@ -44,6 +44,7 @@ import ../../agent-flow-bend/SubmissionState.bend as SubmissionState
 import ../TreeFacts.bend as TreeFacts
 import ../Types.bend as Types
 import ../Workload.bend as Workload
+import ../WriterScenario.bend as WriterScenario
 import ./advicee-lifecycle-driver.bend as advicee_lifecycle_driver
 import ./output-scenario-driver.bend as output_scenario_driver
 import ./sharing-observed-driver.bend as sharing_observed_driver
@@ -51,6 +52,13 @@ import ./sharing-observed-initial.bend as sharing_observed_initial
 import ./sharing-observed-wire.bend as sharing_observed_wire
 import ./sharing-original-captures.bend as sharing_original_captures
 import ./sharing-original-inputs.bend as sharing_original_inputs
+import ./writer-intersection-controls.bend as writer_intersection_controls
+import ./writer-observed-context.bend as writer_observed_context
+import ./writer-observed-driver.bend as writer_observed_driver
+import ./writer-observed-program.bend as writer_observed_program
+import ./writer-observed-transport.bend as writer_observed_transport
+import ./writer-observed-wire.bend as writer_observed_wire
+import ./writer-original-inputs.bend as writer_original_inputs
 
 # Lossless private prefix transport, generated from the actual owner ADTs.
 # Every ordinal is local to its expected type; all fields remain in owner order.
@@ -1950,9 +1958,35 @@ def collectionscenario_state(values: List<&2,CollectionScenario.State>, suffix: 
     case CollectionScenario.State{v0,v1,v2} <> Nil{}: 0n <> v0 <> list_collectionscenario_context([v1],list_collectionscenario_scope([v2],suffix))
     case _: 999999n <> suffix
 
+def writerscenario_target(values: List<&2,WriterScenario.Target>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case WriterScenario.Target{v0,v1,v2,v3} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> suffix
+    case _: 999999n <> suffix
+
+def writerscenario_capture(values: List<&2,WriterScenario.Capture>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case WriterScenario.Capture{v0,v1,v2,v3,v4,v5} <> Nil{}: 0n <> writerscenario_target([v0],v1 <> v2 <> v3 <> v4 <> collectionscenario_response([v5],suffix))
+    case _: 999999n <> suffix
+
+def list_writerscenario_capture_items(values: List<&2,List<&2,WriterScenario.Capture>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: writerscenario_capture([head],list_writerscenario_capture_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_writerscenario_capture(values: List<&2,List<&2,WriterScenario.Capture>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,WriterScenario.Capture,value) <> list_writerscenario_capture_items([value],suffix)
+    case _: 999999n <> suffix
+
+def writerscenario_state(values: List<&2,WriterScenario.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case WriterScenario.State{v0,v1} <> Nil{}: 0n <> list_writerscenario_capture([v0],list_collectionscenario_scope([v1],suffix))
+    case _: 999999n <> suffix
+
 def runtimescenarios_state(values: List<&2,RuntimeScenarios.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case RuntimeScenarios.State{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 0n <> callbacks_state([v0],noticescenario_state([v1],list_noticescenario_clock([v2],freshnessscenario_state([v3],scopedrevision_state([v4],sharingruntime_state([v5],cacheruntime_state([v6],collectionscenario_state([v7],suffix))))))))
+    case RuntimeScenarios.State{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> callbacks_state([v0],noticescenario_state([v1],list_noticescenario_clock([v2],freshnessscenario_state([v3],scopedrevision_state([v4],sharingruntime_state([v5],cacheruntime_state([v6],collectionscenario_state([v7],writerscenario_state([v8],suffix)))))))))
     case _: 999999n <> suffix
 
 def types_state(values: List<&2,Types.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2297,11 +2331,242 @@ def list_output_scenario_driver_envelope(values: List<&2,List<&2,output_scenario
     case +value <> Nil{}: List.length(&2,output_scenario_driver.Envelope,value) <> list_output_scenario_driver_envelope_items([value],suffix)
     case _: 999999n <> suffix
 
+def writer_original_inputs_edit(values: List<&2,writer_original_inputs.Edit>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_original_inputs.Edit{v0,v1,v2,v3} <> Nil{}: 0n <> text([v0],v1 <> v2 <> list_nat([v3],suffix))
+    case writer_original_inputs.SharedEdit{v0} <> Nil{}: 1n <> sharing_original_inputs_edit([v0],suffix)
+    case _: 999999n <> suffix
+
+def list_writer_original_inputs_edit_items(values: List<&2,List<&2,writer_original_inputs.Edit>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: writer_original_inputs_edit([head],list_writer_original_inputs_edit_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_original_inputs_edit(values: List<&2,List<&2,writer_original_inputs.Edit>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,writer_original_inputs.Edit,value) <> list_writer_original_inputs_edit_items([value],suffix)
+    case _: 999999n <> suffix
+
+def writerscenario_claimfacts(values: List<&2,WriterScenario.ClaimFacts>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case WriterScenario.ClaimFacts{v0,v1,v2,v3,v4} <> Nil{}: 0n <> writerscenario_target([v0],v1 <> v2 <> v3 <> collectionscenario_response([v4],suffix))
+    case _: 999999n <> suffix
+
+def writer_observed_driver_control(values: List<&2,writer_observed_driver.Control>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_driver.Claim{v0,v1} <> Nil{}: 0n <> text([v0],writerscenario_claimfacts([v1],suffix))
+    case writer_observed_driver.Attempt{v0,v1,v2} <> Nil{}: 1n <> text([v0],writerscenario_target([v1],boolean(v2,suffix)))
+    case writer_observed_driver.Release{v0,v1} <> Nil{}: 2n <> text([v0],writerscenario_target([v1],suffix))
+    case writer_observed_driver.Expire{v0,v1} <> Nil{}: 3n <> text([v0],writerscenario_target([v1],suffix))
+    case _: 999999n <> suffix
+
+def writer_intersection_controls_control(values: List<&2,writer_intersection_controls.Control>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_intersection_controls.OpenResponse{v0,v1} <> Nil{}: 0n <> text([v0],collectionscenario_response([v1],suffix))
+    case writer_intersection_controls.AttemptIssuedResponse{v0,v1,v2} <> Nil{}: 1n <> text([v0],v1 <> boolean(v2,suffix))
+    case writer_intersection_controls.OutputProfile{v0,v1} <> Nil{}: 2n <> v0 <> v1 <> suffix
+    case writer_intersection_controls.LeaveMember{v0,v1} <> Nil{}: 3n <> text([v0],v1 <> suffix)
+    case _: 999999n <> suffix
+
+def writer_original_inputs_boundary(values: List<&2,writer_original_inputs.Boundary>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_original_inputs.Advance{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
+    case writer_original_inputs.WriterControl{v0} <> Nil{}: 1n <> writer_observed_driver_control([v0],suffix)
+    case writer_original_inputs.IntersectionControl{v0} <> Nil{}: 2n <> writer_intersection_controls_control([v0],suffix)
+    case writer_original_inputs.Departure{v0,v1,v2} <> Nil{}: 3n <> text([v0],v1 <> adviceelifecycle_action([v2],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_original_inputs_boundary_items(values: List<&2,List<&2,writer_original_inputs.Boundary>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: writer_original_inputs_boundary([head],list_writer_original_inputs_boundary_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_original_inputs_boundary(values: List<&2,List<&2,writer_original_inputs.Boundary>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,writer_original_inputs.Boundary,value) <> list_writer_original_inputs_boundary_items([value],suffix)
+    case _: 999999n <> suffix
+
+def writer_original_inputs_scenario(values: List<&2,writer_original_inputs.Scenario>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_original_inputs.Scenario{v0,v1,v2,v3} <> Nil{}: 0n <> sharing_original_inputs_configuration([v0],list_writer_original_inputs_edit([v1],v2 <> list_writer_original_inputs_boundary([v3],suffix)))
+    case _: 999999n <> suffix
+
+def writerscenario_pending(values: List<&2,WriterScenario.Pending>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case WriterScenario.Pending{v0,v1} <> Nil{}: 0n <> writerscenario_claimfacts([v0],v1 <> suffix)
+    case _: 999999n <> suffix
+
+def writer_observed_transport_capsule(values: List<&2,writer_observed_transport.Capsule>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_transport.Pending{v0} <> Nil{}: 0n <> writerscenario_pending([v0],suffix)
+    case writer_observed_transport.Response{v0} <> Nil{}: 1n <> collectionscenario_identity([v0],suffix)
+    case writer_observed_transport.Release{v0} <> Nil{}: 2n <> writerscenario_capture([v0],suffix)
+    case writer_observed_transport.UnissuedRelease{v0} <> Nil{}: 3n <> writerscenario_pending([v0],suffix)
+    case _: 999999n <> suffix
+
+def writer_observed_context_scope(values: List<&2,writer_observed_context.Scope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_context.Scope{v0,v1,v2} <> Nil{}: 0n <> v0 <> v1 <> v2 <> suffix
+    case _: 999999n <> suffix
+
+def writer_observed_context_payload(values: List<&2,writer_observed_context.Payload>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_context.Payload{v0,v1,v2} <> Nil{}: 0n <> writer_observed_context_scope([v0],boolean(v1,canonical_requestoutcome([v2],suffix)))
+    case _: 999999n <> suffix
+
+def maybe_writer_observed_transport_capsule(values: List<&2,Maybe<&2,writer_observed_transport.Capsule>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> writer_observed_transport_capsule([value],suffix)
+    case _: 999999n <> suffix
+
+def writer_observed_transport_binding(values: List<&2,writer_observed_transport.Binding>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_transport.Binding{v0,v1} <> Nil{}: 0n <> v0 <> writer_observed_transport_capsule([v1],suffix)
+    case writer_observed_transport.ContextBinding{v0,v1,v2} <> Nil{}: 1n <> v0 <> writer_observed_context_payload([v1],maybe_writer_observed_transport_capsule([v2],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_observed_transport_binding_items(values: List<&2,List<&2,writer_observed_transport.Binding>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: writer_observed_transport_binding([head],list_writer_observed_transport_binding_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_observed_transport_binding(values: List<&2,List<&2,writer_observed_transport.Binding>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,writer_observed_transport.Binding,value) <> list_writer_observed_transport_binding_items([value],suffix)
+    case _: 999999n <> suffix
+
+def maybe_writerscenario_pending(values: List<&2,Maybe<&2,WriterScenario.Pending>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> writerscenario_pending([value],suffix)
+    case _: 999999n <> suffix
+
+def collectionscenario_applicability(values: List<&2,CollectionScenario.Applicability>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case CollectionScenario.Applied{} <> Nil{}: 0n <> suffix
+    case CollectionScenario.Missing{} <> Nil{}: 1n <> suffix
+    case CollectionScenario.WrongScope{} <> Nil{}: 2n <> suffix
+    case CollectionScenario.AlreadyAttempting{} <> Nil{}: 3n <> suffix
+    case CollectionScenario.IdentityExhausted{} <> Nil{}: 4n <> suffix
+    case CollectionScenario.ContextBound{} <> Nil{}: 5n <> suffix
+    case _: 999999n <> suffix
+
+def maybe_collectionscenario_identity(values: List<&2,Maybe<&2,CollectionScenario.Identity>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> collectionscenario_identity([value],suffix)
+    case _: 999999n <> suffix
+
+def engine_responseresult(values: List<&2,Engine.ResponseResult>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Engine.ResponseResult{v0,v1} <> Nil{}: 0n <> collectionscenario_applicability([v0],maybe_collectionscenario_identity([v1],suffix))
+    case _: 999999n <> suffix
+
+def writer_observed_driver_report(values: List<&2,writer_observed_driver.Report>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_driver.Queued{} <> Nil{}: 0n <> suffix
+    case writer_observed_driver.RefusedScope{} <> Nil{}: 1n <> suffix
+    case writer_observed_driver.OwnerResult{v0,v1} <> Nil{}: 2n <> engine_responseresult([v0],maybe_collectionscenario_identity([v1],suffix))
+    case _: 999999n <> suffix
+
+def maybe_adviceelifecycle_entry(values: List<&2,Maybe<&2,AdviceeLifecycle.Entry>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> adviceelifecycle_entry([value],suffix)
+    case _: 999999n <> suffix
+
+def adviceelifecycle_changed(values: List<&2,AdviceeLifecycle.Changed>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case AdviceeLifecycle.Changed{v0,v1,v2,v3} <> Nil{}: 0n <> list_adviceelifecycle_entry([v0],maybe_adviceelifecycle_entry([v1],maybe_adviceelifecycle_entry([v2],boolean(v3,suffix))))
+    case _: 999999n <> suffix
+
+def list_driver_action_items(values: List<&2,List<&2,Driver.Action>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: driver_action([head],list_driver_action_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_driver_action(values: List<&2,List<&2,Driver.Action>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,Driver.Action,value) <> list_driver_action_items([value],suffix)
+    case _: 999999n <> suffix
+
+def adviceelifecyclecleanup_cleanupplan(values: List<&2,AdviceeLifecycleCleanup.CleanupPlan>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case AdviceeLifecycleCleanup.CleanupPlan{v0,v1,v2} <> Nil{}: 0n <> list_driver_action([v0],list_nat([v1],list_adviceelifecyclecleanup_capturedpreparation([v2],suffix)))
+    case _: 999999n <> suffix
+
+def list_workload_emission_items(values: List<&2,List<&2,Workload.Emission>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: workload_emission([head],list_workload_emission_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_workload_emission(values: List<&2,List<&2,Workload.Emission>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,Workload.Emission,value) <> list_workload_emission_items([value],suffix)
+    case _: 999999n <> suffix
+
+def maybe_engine_responseresult(values: List<&2,Maybe<&2,Engine.ResponseResult>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> engine_responseresult([value],suffix)
+    case _: 999999n <> suffix
+
+def writer_observed_driver_frame(values: List<&2,writer_observed_driver.Frame>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_driver.ControlFrame{v0,v1,v2,v3,v4,v5,v6} <> Nil{}: 0n <> list_types_state([v0],list_types_state([v1],v2 <> writer_observed_driver_control([v3],maybe_writerscenario_pending([v4],writer_observed_driver_report([v5],maybe_nat([v6],suffix))))))
+    case writer_observed_driver.GrantFrame{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 1n <> list_types_state([v0],list_types_state([v1],v2 <> writerscenario_pending([v3],canonical_canonicalevent([v4],canonical_step([v5],engine_responseresult([v6],v7 <> suffix))))))
+    case writer_observed_driver.Observed{v0,v1,v2} <> Nil{}: 2n <> advicee_lifecycle_driver_observedframe([v0],maybe_callbacks_target([v1],maybe_list_maybe_nat([v2],suffix)))
+    case writer_observed_driver.Boundary{v0,v1,v2,v3} <> Nil{}: 3n <> v0 <> v1 <> v2 <> list_types_state([v3],suffix)
+    case writer_observed_driver.LifecycleFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 4n <> list_types_state([v0],list_types_state([v1],v2 <> text([v3],v4 <> adviceelifecycle_action([v5],adviceelifecycle_changed([v6],adviceelifecyclecleanup_cleanupplan([v7],list_workload_emission([v8],suffix)))))))
+    case writer_observed_driver.IntersectionFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 5n <> list_types_state([v0],list_types_state([v1],v2 <> writer_intersection_controls_control([v3],maybe_collectionscenario_identity([v4],maybe_freshnessscenario_scope([v5],maybe_engine_responseresult([v6],list_canonical_canonicalevent([v7],boolean(v8,suffix))))))))
+    case writer_observed_driver.InvalidTransport{} <> Nil{}: 6n <> suffix
+    case _: 999999n <> suffix
+
+def list_writer_observed_driver_frame_items(values: List<&2,List<&2,writer_observed_driver.Frame>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: writer_observed_driver_frame([head],list_writer_observed_driver_frame_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_observed_driver_frame(values: List<&2,List<&2,writer_observed_driver.Frame>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,writer_observed_driver.Frame,value) <> list_writer_observed_driver_frame_items([value],suffix)
+    case _: 999999n <> suffix
+
+def writer_observed_driver_runtime(values: List<&2,writer_observed_driver.Runtime>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_driver.Runtime{v0,v1,v2,v3,v4} <> Nil{}: 0n <> list_advicee_lifecycle_driver_runtime([v0],list_writer_observed_transport_binding([v1],list_writer_observed_driver_frame([v2],v3 <> boolean(v4,suffix))))
+    case _: 999999n <> suffix
+
+def writer_observed_program_originalinputs(values: List<&2,writer_observed_program.OriginalInputs>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_program.OriginalInputs{v0,v1} <> Nil{}: 0n <> list_writer_original_inputs_edit([v0],list_sharing_observed_initial_queuedoriginal([v1],suffix))
+    case _: 999999n <> suffix
+
+def writer_observed_program_trace(values: List<&2,writer_observed_program.Trace>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_program.Trace{v0,v1,v2,v3,v4,v5} <> Nil{}: 0n <> writer_observed_driver_runtime([v0],list_sharing_observed_initial_agent([v1],writer_observed_program_originalinputs([v2],sharing_original_captures_labels([v3],list_sharing_original_captures_original([v4],v5 <> suffix)))))
+    case _: 999999n <> suffix
+
+def writer_observed_wire_envelope(values: List<&2,writer_observed_wire.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case writer_observed_wire.Envelope{v0,v1} <> Nil{}: 0n <> writer_original_inputs_scenario([v0],writer_observed_program_trace([v1],suffix))
+    case _: 999999n <> suffix
+
 def sharing_scenarios(values: List<&2,sharing_observed_wire.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   sharing_observed_wire_envelope(values,suffix)
 
 def output_scenarios(values: List<&2,output_scenario_driver.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   list_output_scenario_driver_envelope([values],suffix)
+
+def writer_scenarios(values: List<&2,writer_observed_wire.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  writer_observed_wire_envelope(values,suffix)
 
 def target_member(targets: List<&2,Callbacks.Target>, +target: Callbacks.Target) -> Bool:
   match targets:

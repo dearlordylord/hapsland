@@ -14340,6 +14340,711 @@ function $CollectionScenario$context_bound_refuses_atomically$(_next_0, _context
   return null;
 }
 
+function $WriterScenario$initial$() {
+  return {$: "WriterScenario.State", "writers": {$: "Nil"}, "managed": {$: "Nil"}};
+}
+
+function $WriterScenario$same_target$(_left_0, _right_0) {
+  const _p_0 = _left_0["partition"];
+  const _l_0 = _left_0["lifetime"];
+  const _r_0 = _left_0["round"];
+  const _t_0 = _left_0["token"];
+  const _owner_0 = _right_0["partition"];
+  const _generation_0 = _right_0["lifetime"];
+  const _round_0 = _right_0["round"];
+  const _token_0 = _right_0["token"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_t_0, _token_0)));
+}
+
+function $WriterScenario$target$(_capture_0) {
+  const _target_0 = _capture_0["target"];
+  return _target_0;
+}
+
+function $WriterScenario$choose_capture$(_hit_0, _capture_0, _rest_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _capture_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $WriterScenario$find$(_writers_0, _identity_0) {
+  if (_writers_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _writers_0["head"];
+    const _tail_0 = _writers_0["tail"];
+    return $WriterScenario$choose_capture$(($WriterScenario$same_target$(($WriterScenario$target$(_head_0)), _identity_0)), _head_0, ($WriterScenario$find$(_tail_0, _identity_0)));
+  }
+}
+
+function $WriterScenario$lookup$(_state_0, _identity_0) {
+  const _writers_0 = _state_0["writers"];
+  return $WriterScenario$find$(_writers_0, _identity_0);
+}
+
+function $WriterScenario$granted$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CollectionBackgroundClaimed") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $WriterScenario$retain$(_state_0, _capture_0, _accepted_0) {
+  const _writers_0 = _state_0["writers"];
+  const _managed_0 = _state_0["managed"];
+  if (_accepted_0) {
+    return {$: "WriterScenario.State", "writers": ($List$append$(_writers_0, {$: "Con", "head": _capture_0, "tail": {$: "Nil"}})), "managed": _managed_0};
+  } else {
+    return {$: "WriterScenario.State", "writers": _writers_0, "managed": _managed_0};
+  }
+}
+
+function $WriterScenario$release_capture$(_found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["target"];
+    const _partition_0 = _t_1["partition"];
+    const _token_0 = _t_1["token"];
+    return {$: "Con", "head": {$: "Canonical.CollectionReleaseBackground", "group": _partition_0, "token": _token_0}, "tail": {$: "Nil"}};
+  }
+}
+
+function $WriterScenario$release$(_state_0, _identity_0) {
+  return $WriterScenario$release_capture$(($WriterScenario$lookup$(_state_0, _identity_0)));
+}
+
+function $WriterScenario$expire_capture$(_found_0, _now_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["target"];
+    const _partition_0 = _t_1["partition"];
+    const _token_0 = _t_1["token"];
+    const _started_0 = _t_0["claim_started"];
+    const _lifetime_0 = _t_0["claim_lifetime"];
+    return {$: "Con", "head": {$: "Canonical.CollectionExpireBackground", "group": _partition_0, "token": _token_0, "elapsed": (_now_0 < _started_0 ? 0 : _now_0 - _started_0), "lifetime": _lifetime_0}, "tail": {$: "Nil"}};
+  }
+}
+
+function $WriterScenario$expire$(_state_0, _identity_0, _now_0) {
+  return $WriterScenario$expire_capture$(($WriterScenario$lookup$(_state_0, _identity_0)), _now_0);
+}
+
+function $WriterScenario$keep_capture$(_hit_0, _head_0, _tail_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _tail_0};
+  }
+}
+
+function $WriterScenario$without$(_writers_0, _identity_0) {
+  if (_writers_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _writers_0["head"];
+    const _tail_0 = _writers_0["tail"];
+    return $WriterScenario$keep_capture$(($WriterScenario$same_target$(($WriterScenario$target$(_head_0)), _identity_0)), _head_0, ($WriterScenario$without$(_tail_0, _identity_0)));
+  }
+}
+
+function $WriterScenario$removed$(_state_0, _identity_0, _accepted_0) {
+  const _writers_0 = _state_0["writers"];
+  const _managed_0 = _state_0["managed"];
+  if (_accepted_0) {
+    return {$: "WriterScenario.State", "writers": ($WriterScenario$without$(_writers_0, _identity_0)), "managed": _managed_0};
+  } else {
+    return {$: "WriterScenario.State", "writers": _writers_0, "managed": _managed_0};
+  }
+}
+
+function $WriterScenario$claims$(_collection_0) {
+  const _claims_0 = _collection_0["claims"];
+  return _claims_0;
+}
+
+function $WriterScenario$owned$(_canonical_0, _capture_0) {
+  const _t_0 = _capture_0["target"];
+  const _partition_0 = _t_0["partition"];
+  const _token_0 = _t_0["token"];
+  return $$$$047agent$045flow$045bend$047CollectionState$claim_owned$(_partition_0, _token_0, ($WriterScenario$claims$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))));
+}
+
+function $WriterScenario$facts_target$(_facts_0) {
+  const _target_0 = _facts_0["target"];
+  return _target_0;
+}
+
+function $WriterScenario$facts_response$(_facts_0) {
+  const _response_0 = _facts_0["response"];
+  return _response_0;
+}
+
+function $WriterScenario$target_scope$(_target_0) {
+  const _p_0 = _target_0["partition"];
+  const _l_0 = _target_0["lifetime"];
+  const _r_0 = _target_0["round"];
+  return {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0};
+}
+
+function $WriterScenario$facts_scope_same$(_facts_0) {
+  const _target_0 = _facts_0["target"];
+  const _response_0 = _facts_0["response"];
+  return $CollectionScenario$scope_equal$(($WriterScenario$target_scope$(_target_0)), ($CollectionScenario$scope$(_response_0)));
+}
+
+function $WriterScenario$facts_writer_live$(_facts_0, _now_0) {
+  const _started_0 = _facts_0["claim_started"];
+  const _lifetime_0 = _facts_0["claim_lifetime"];
+  const _x_0 = (_now_0 < _started_0 ? 0 : _now_0 - _started_0);
+  return $Bool$and$(($Nat$is_le$(_started_0, _now_0)), (_x_0 < _lifetime_0));
+}
+
+function $WriterScenario$facts_live$(_facts_0, _canonical_0, _now_0) {
+  return $Bool$and$(($Bool$and$(($Bool$and$(($WriterScenario$facts_scope_same$(_facts_0)), ($CollectionScenario$current$(_canonical_0, ($WriterScenario$target_scope$(($WriterScenario$facts_target$(_facts_0)))))))), ($WriterScenario$facts_writer_live$(_facts_0, _now_0)))), ($CollectionScenario$deadline_live$(($WriterScenario$facts_response$(_facts_0)), _now_0)));
+}
+
+function $WriterScenario$claim_facts$(_facts_0, _canonical_0, _now_0) {
+  const _t_0 = _facts_0["target"];
+  const _p_0 = _t_0["partition"];
+  const __0 = _t_0["lifetime"];
+  const __1 = _t_0["round"];
+  const _token_0 = _t_0["token"];
+  const __2 = _facts_0["claim_started"];
+  const __3 = _facts_0["claim_lifetime"];
+  const _capacity_0 = _facts_0["capacity"];
+  const __4 = _facts_0["response"];
+  return {$: "Canonical.CollectionClaimBackground", "group": _p_0, "token": _token_0, "active": ($WriterScenario$facts_live$({$: "WriterScenario.ClaimFacts", "target": {$: "WriterScenario.Target", "partition": _p_0, "lifetime": __0, "round": __1, "token": _token_0}, "claim_started": __2, "claim_lifetime": __3, "capacity": _capacity_0, "response": __4}, _canonical_0, _now_0)), "capacity": _capacity_0};
+}
+
+function $WriterScenario$pending_claim$(_pending_0, _canonical_0, _now_0) {
+  const _facts_0 = _pending_0["facts"];
+  return $WriterScenario$claim_facts$(_facts_0, _canonical_0, _now_0);
+}
+
+function $WriterScenario$issued_capture$(_facts_0, _identity_0) {
+  const _target_0 = _facts_0["target"];
+  const _started_0 = _facts_0["claim_started"];
+  const _lifetime_0 = _facts_0["claim_lifetime"];
+  const _capacity_0 = _facts_0["capacity"];
+  const _response_0 = _facts_0["response"];
+  const _id_0 = _identity_0["id"];
+  return {$: "WriterScenario.Capture", "target": _target_0, "claim_started": _started_0, "claim_lifetime": _lifetime_0, "capacity": _capacity_0, "response_id": _id_0, "response": _response_0};
+}
+
+function $WriterScenario$response_identity$(_capture_0) {
+  const _t_0 = _capture_0["target"];
+  const _p_0 = _t_0["partition"];
+  const _l_0 = _t_0["lifetime"];
+  const _r_0 = _t_0["round"];
+  const _id_0 = _capture_0["response_id"];
+  return {$: "CollectionScenario.Identity", "id": _id_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0};
+}
+
+function $WriterScenario$capture_live$(_capture_0, _canonical_0, _now_0) {
+  const _target_0 = _capture_0["target"];
+  const _started_0 = _capture_0["claim_started"];
+  const _lifetime_0 = _capture_0["claim_lifetime"];
+  const _capacity_0 = _capture_0["capacity"];
+  const __0 = _capture_0["response_id"];
+  const _response_0 = _capture_0["response"];
+  return $Bool$and$(($WriterScenario$owned$(_canonical_0, {$: "WriterScenario.Capture", "target": _target_0, "claim_started": _started_0, "claim_lifetime": _lifetime_0, "capacity": _capacity_0, "response_id": __0, "response": _response_0})), ($WriterScenario$facts_live$({$: "WriterScenario.ClaimFacts", "target": _target_0, "claim_started": _started_0, "claim_lifetime": _lifetime_0, "capacity": _capacity_0, "response": _response_0}, _canonical_0, _now_0)));
+}
+
+function $WriterScenario$claim_event_same$(_event_0, _facts_0) {
+  if (_event_0.$ === "Canonical.CollectionClaimBackground") {
+    const _p_0 = _event_0["group"];
+    const _token_0 = _event_0["token"];
+    const _t_0 = _event_0["active"];
+    if (_t_0) {
+      const _capacity_0 = _event_0["capacity"];
+      const _t_1 = _facts_0["target"];
+      const _owner_0 = _t_1["partition"];
+      const _original_0 = _t_1["token"];
+      const _original_capacity_0 = _facts_0["capacity"];
+      return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_token_0, _original_0)))), ($Nat$is_eq$(_capacity_0, _original_capacity_0)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $WriterScenario$facts_owned$(_canonical_0, _facts_0) {
+  const _t_0 = _facts_0["target"];
+  const _p_0 = _t_0["partition"];
+  const _token_0 = _t_0["token"];
+  return $$$$047agent$045flow$045bend$047CollectionState$claim_owned$(_p_0, _token_0, ($WriterScenario$claims$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_canonical_0)))));
+}
+
+function $WriterScenario$pending_granted$(_pending_0, _event_0, _commands_0, _canonical_0, _now_0) {
+  const _facts_0 = _pending_0["facts"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($WriterScenario$claim_event_same$(_event_0, _facts_0)), ($WriterScenario$granted$(_commands_0)))), ($WriterScenario$facts_owned$(_canonical_0, _facts_0)))), ($WriterScenario$facts_live$(_facts_0, _canonical_0, _now_0)));
+}
+
+function $WriterScenario$facts_expiry_action$(_facts_0, _now_0) {
+  const _t_0 = _facts_0["target"];
+  const _p_0 = _t_0["partition"];
+  const _token_0 = _t_0["token"];
+  const _started_0 = _facts_0["claim_started"];
+  const _lifetime_0 = _facts_0["claim_lifetime"];
+  const _x_0 = nat_chk(_started_0 + _lifetime_0);
+  return {$: "Driver.Action", "event": {$: "Canonical.CollectionExpireBackground", "group": _p_0, "token": _token_0, "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": (_x_0 < _now_0 ? 0 : _x_0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
+}
+
+function $WriterScenario$expiry_action$(_capture_0, _now_0) {
+  const _target_0 = _capture_0["target"];
+  const _started_0 = _capture_0["claim_started"];
+  const _lifetime_0 = _capture_0["claim_lifetime"];
+  const _capacity_0 = _capture_0["capacity"];
+  const _response_0 = _capture_0["response"];
+  return $WriterScenario$facts_expiry_action$({$: "WriterScenario.ClaimFacts", "target": _target_0, "claim_started": _started_0, "claim_lifetime": _lifetime_0, "capacity": _capacity_0, "response": _response_0}, _now_0);
+}
+
+function $WriterScenario$original_time$(_facts_0, _now_0) {
+  const _started_0 = _facts_0["claim_started"];
+  const _response_0 = _facts_0["response"];
+  return $Bool$and$(($Nat$is_eq$(_started_0, _now_0)), ($CollectionScenario$issuance_time$(_response_0, _now_0)));
+}
+
+function $WriterScenario$declared_scope$(_valid_0, _state_0, _scope_0) {
+  const _writers_0 = _state_0["writers"];
+  const _managed_0 = _state_0["managed"];
+  return {$: "WriterScenario.State", "writers": _writers_0, "managed": ($Bool$pick$(_valid_0, ($CollectionScenario$register$(_managed_0, _scope_0)), _managed_0))};
+}
+
+function $WriterScenario$declare$(_state_0, _facts_0, _canonical_0) {
+  return $WriterScenario$declared_scope$(($Bool$and$(($WriterScenario$facts_scope_same$(_facts_0)), ($CollectionScenario$current$(_canonical_0, ($WriterScenario$target_scope$(($WriterScenario$facts_target$(_facts_0)))))))), _state_0, ($WriterScenario$target_scope$(($WriterScenario$facts_target$(_facts_0)))));
+}
+
+function $WriterScenario$is_managed$(_state_0, _partition_0) {
+  const _scopes_0 = _state_0["managed"];
+  return $CollectionScenario$controlled$(_scopes_0, _partition_0);
+}
+
+function $WriterScenario$has_response$(_found_0) {
+  if (_found_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $WriterScenario$retained_capture$(_valid_0, _capture_0, _tail_0) {
+  if (_valid_0) {
+    return {$: "Con", "head": _capture_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $WriterScenario$retain_members$(_writers_0, _responses_0) {
+  if (_writers_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _writers_0["head"];
+    const _tail_0 = _writers_0["tail"];
+    return $WriterScenario$retained_capture$(($WriterScenario$has_response$(($CollectionScenario$lookup$(($CollectionScenario$contexts$(_responses_0)), ($WriterScenario$response_identity$(_head_0)))))), _head_0, ($WriterScenario$retain_members$(_tail_0, _responses_0)));
+  }
+}
+
+function $WriterScenario$retain_current$(_state_0, _canonical_0, _responses_0) {
+  const _writers_0 = _state_0["writers"];
+  const _managed_0 = _state_0["managed"];
+  return {$: "WriterScenario.State", "writers": ($WriterScenario$retain_members$(_writers_0, _responses_0)), "managed": ($CollectionScenario$retain_scopes$(_managed_0, _canonical_0))};
+}
+
+function $WriterScenario$removed_response$(_capture_0, _writers_0, _managed_0, _actions_0, _changed_0) {
+  const _responses_0 = _changed_0["state"];
+  const _release_0 = _changed_0["actions"];
+  return {$: "WriterScenario.Reconciled", "state": {$: "WriterScenario.State", "writers": _writers_0, "managed": _managed_0}, "responses": _responses_0, "actions": ($List$append$(_release_0, _actions_0))};
+}
+
+function $WriterScenario$reconcile_head$(_valid_0, _capture_0, _rest_0) {
+  if (_valid_0) {
+    const _t_0 = _rest_0["state"];
+    const _writers_0 = _t_0["writers"];
+    const _managed_0 = _t_0["managed"];
+    const _responses_0 = _rest_0["responses"];
+    const _actions_0 = _rest_0["actions"];
+    return {$: "WriterScenario.Reconciled", "state": {$: "WriterScenario.State", "writers": {$: "Con", "head": _capture_0, "tail": _writers_0}, "managed": _managed_0}, "responses": _responses_0, "actions": _actions_0};
+  } else {
+    const _t_1 = _rest_0["state"];
+    const _writers_1 = _t_1["writers"];
+    const _managed_1 = _t_1["managed"];
+    const _responses_1 = _rest_0["responses"];
+    const _actions_1 = _rest_0["actions"];
+    return $WriterScenario$removed_response$(_capture_0, _writers_1, _managed_1, _actions_1, ($CollectionScenario$close$(_responses_1, ($WriterScenario$response_identity$(_capture_0)))));
+  }
+}
+
+function $WriterScenario$reconcile_members$(_writers_0, _managed_0, _responses_0, _canonical_0, _now_0) {
+  if (_writers_0.$ === "Nil") {
+    return {$: "WriterScenario.Reconciled", "state": {$: "WriterScenario.State", "writers": {$: "Nil"}, "managed": _managed_0}, "responses": _responses_0, "actions": {$: "Nil"}};
+  } else {
+    const _head_0 = _writers_0["head"];
+    const _tail_0 = _writers_0["tail"];
+    return $WriterScenario$reconcile_head$(($WriterScenario$capture_live$(_head_0, _canonical_0, _now_0)), _head_0, ($WriterScenario$reconcile_members$(_tail_0, _managed_0, _responses_0, _canonical_0, _now_0)));
+  }
+}
+
+function $WriterScenario$reconcile$(_state_0, _responses_0, _canonical_0, _now_0) {
+  const _writers_0 = _state_0["writers"];
+  const _managed_0 = _state_0["managed"];
+  return $WriterScenario$reconcile_members$(_writers_0, ($CollectionScenario$retain_scopes$(_managed_0, _canonical_0)), _responses_0, _canonical_0, _now_0);
+}
+
+function $WriterScenario$identity_writer$(_writers_0, _identity_0) {
+  if (_writers_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _writers_0["head"];
+    const _tail_0 = _writers_0["tail"];
+    return $WriterScenario$choose_capture$(($CollectionScenario$identity_same$(($WriterScenario$response_identity$(_head_0)), _identity_0)), _head_0, ($WriterScenario$identity_writer$(_tail_0, _identity_0)));
+  }
+}
+
+function $WriterScenario$response_writer$(_state_0, _identity_0) {
+  const _writers_0 = _state_0["writers"];
+  return $WriterScenario$identity_writer$(_writers_0, _identity_0);
+}
+
+function $WriterScenario$fence_writer$(_found_0, _canonical_0, _now_0) {
+  if (_found_0.$ === "None") {
+    return true;
+  } else {
+    const _capture_0 = _found_0["value"];
+    return $WriterScenario$capture_live$(_capture_0, _canonical_0, _now_0);
+  }
+}
+
+function $WriterScenario$response_fence$(_state_0, _identity_0, _canonical_0, _now_0) {
+  return $WriterScenario$fence_writer$(($WriterScenario$response_writer$(_state_0, _identity_0)), _canonical_0, _now_0);
+}
+
+function $WriterScenario$managed_scope$(_scopes_0, _scope_0) {
+  if (_scopes_0.$ === "Nil") {
+    return false;
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    const _x_0 = ($CollectionScenario$scope_equal$(_head_0, _scope_0));
+    const _x_1 = ($WriterScenario$managed_scope$(_tail_0, _scope_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $WriterScenario$route_managed$(_state_0, _p_0, _l_0, _r_0) {
+  const _scopes_0 = _state_0["managed"];
+  return $WriterScenario$managed_scope$(_scopes_0, {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0});
+}
+
+function $WriterScenario$driver_context$(_state_0, _context_0) {
+  const _p_0 = _context_0["partition"];
+  const _l_0 = _context_0["lifetime"];
+  const _r_0 = _context_0["round"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const _automatic_collection_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _lease_0 = _context_0["output_lease"];
+  const _background_0 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _candidate_0, "automatic_collection": ($Bool$and$(_automatic_collection_0, ($Bool$not$(($WriterScenario$route_managed$(_state_0, _p_0, _l_0, _r_0)))))), "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+}
+
+function $WriterScenario$managed_handled$(_managed_0, _original_0) {
+  if (_managed_0) {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  } else {
+    return _original_0;
+  }
+}
+
+function $WriterScenario$handled$(_state_0, _command_0, _context_0, _original_0) {
+  if (_command_0.$ === "Canonical.CollectionEligible") {
+    const _p_0 = _context_0["partition"];
+    const _l_0 = _context_0["lifetime"];
+    const _r_0 = _context_0["round"];
+    return $WriterScenario$managed_handled$(($WriterScenario$route_managed$(_state_0, _p_0, _l_0, _r_0)), _original_0);
+  } else {
+    return _original_0;
+  }
+}
+
+function $WriterScenario$background_lease_begin$(_event_0, _identity_0) {
+  if (_event_0.$ === "Canonical.CollectionReserveLease") {
+    const _advice_0 = _event_0["advice"];
+    const _token_0 = _event_0["token"];
+    const _p_0 = _identity_0["partition"];
+    const _r_0 = _identity_0["round"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionBegin", "advice": _advice_0, "group": _p_0, "round": _r_0, "token": _token_0, "surface": {$: "Handoff.Background"}, "authorize_now": true, "fingerprints": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}, "units": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}}, false)), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  }
+}
+
+function $WriterScenario$background_context$(_context_0) {
+  const _p_0 = _context_0["partition"];
+  const _l_0 = _context_0["lifetime"];
+  const _r_0 = _context_0["round"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const _automatic_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _lease_0 = _context_0["output_lease"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _candidate_0, "automatic_collection": _automatic_0, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": true, "automatic_dispatch": _dispatch_0};
+}
+
+function $WriterScenario$writer_handled$(_found_0, _canonical_0, _event_0, _command_0, _context_0, _identity_0) {
+  if (_found_0.$ === "Some") {
+    if (_command_0.$ === "Canonical.CollectionLeaseReserved") {
+      return $WriterScenario$background_lease_begin$(_event_0, _identity_0);
+    } else {
+      return $CollectionScenario$handle_response$(_canonical_0, _event_0, _command_0, ($WriterScenario$background_context$(_context_0)), _identity_0);
+    }
+  } else {
+    return $CollectionScenario$handle_response$(_canonical_0, _event_0, _command_0, _context_0, _identity_0);
+  }
+}
+
+function $WriterScenario$handle_response$(_state_0, _canonical_0, _event_0, _command_0, _context_0, _identity_0) {
+  return $WriterScenario$writer_handled$(($WriterScenario$response_writer$(_state_0, _identity_0)), _canonical_0, _event_0, _command_0, _context_0, _identity_0);
+}
+
+function $WriterScenario$original_round$(_found_0, _capture_0) {
+  if (_found_0.$ === "None") {
+    return true;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    const _t_1 = _capture_0["target"];
+    const _owner_0 = _t_1["partition"];
+    const _life_0 = _t_1["lifetime"];
+    const _round_0 = _t_1["round"];
+    return $CollectionScenario$scope_equal$({$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, {$: "CollectionScenario.Scope", "partition": _owner_0, "lifetime": _life_0, "round": _round_0});
+  }
+}
+
+function $WriterScenario$no_replacement$(_found_0, _original_0) {
+  if (_found_0.$ === "None") {
+    return true;
+  } else {
+    const _current_0 = _found_0["value"];
+    return $CollectionScenario$identity_same$(($WriterScenario$response_identity$(_current_0)), ($WriterScenario$response_identity$(_original_0)));
+  }
+}
+
+function $WriterScenario$release_scope$(_state_0, _canonical_0, _capture_0) {
+  const __0 = _canonical_0["ledger"];
+  const _rounds_0 = _canonical_0["rounds"];
+  const __1 = _canonical_0["work"];
+  const __2 = _canonical_0["next_round"];
+  const __3 = _canonical_0["next_operation"];
+  const __4 = _canonical_0["admissions"];
+  const __5 = _canonical_0["dispatch"];
+  const __6 = _canonical_0["collection"];
+  const __7 = _canonical_0["history"];
+  const _t_0 = _capture_0["target"];
+  const _p_0 = _t_0["partition"];
+  const _l_0 = _t_0["lifetime"];
+  const _r_0 = _t_0["round"];
+  const _token_0 = _t_0["token"];
+  const _started_0 = _capture_0["claim_started"];
+  const _lifetime_0 = _capture_0["claim_lifetime"];
+  const _capacity_0 = _capture_0["capacity"];
+  const _id_0 = _capture_0["response_id"];
+  const _response_0 = _capture_0["response"];
+  const _original_0 = {$: "WriterScenario.Capture", "target": {$: "WriterScenario.Target", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "token": _token_0}, "claim_started": _started_0, "claim_lifetime": _lifetime_0, "capacity": _capacity_0, "response_id": _id_0, "response": _response_0};
+  return $Bool$and$(($Bool$and$(($WriterScenario$original_round$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_p_0, _rounds_0)), _original_0)), ($WriterScenario$no_replacement$(($WriterScenario$lookup$(_state_0, {$: "WriterScenario.Target", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "token": _token_0})), _original_0)))), ($WriterScenario$owned$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _original_0)));
+}
+
+function $WriterScenario$release_fact_same$(_event_0, _capture_0, _now_0) {
+  if (_event_0.$ === "Canonical.CollectionReleaseBackground") {
+    const _p_0 = _event_0["group"];
+    const _token_0 = _event_0["token"];
+    const _t_0 = _capture_0["target"];
+    const _owner_0 = _t_0["partition"];
+    const _original_0 = _t_0["token"];
+    return $Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_token_0, _original_0)));
+  } else if (_event_0.$ === "Canonical.CollectionExpireBackground") {
+    const _p_1 = _event_0["group"];
+    const _token_1 = _event_0["token"];
+    const _elapsed_0 = _event_0["elapsed"];
+    const _lifetime_0 = _event_0["lifetime"];
+    const _t_1 = _capture_0["target"];
+    const _owner_1 = _t_1["partition"];
+    const _original_1 = _t_1["token"];
+    const _started_0 = _capture_0["claim_started"];
+    const _duration_0 = _capture_0["claim_lifetime"];
+    return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_1, _owner_1)), ($Nat$is_eq$(_token_1, _original_1)))), ($Nat$is_eq$(_lifetime_0, _duration_0)))), ($Nat$is_le$(_started_0, _now_0)))), ($Nat$is_le$(_elapsed_0, (_now_0 < _started_0 ? 0 : _now_0 - _started_0))));
+  } else {
+    return false;
+  }
+}
+
+function $WriterScenario$release_allowed$(_valid_0, _event_0) {
+  if (_valid_0) {
+    return {$: "Some", "value": _event_0};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $WriterScenario$release_delivery$(_state_0, _canonical_0, _capture_0, _event_0, _now_0) {
+  return $WriterScenario$release_allowed$(($Bool$and$(($WriterScenario$release_scope$(_state_0, _canonical_0, _capture_0)), ($WriterScenario$release_fact_same$(_event_0, _capture_0, _now_0)))), _event_0);
+}
+
+function $WriterScenario$retired_capture$(_valid_0, _capture_0, _tail_0) {
+  if (_valid_0) {
+    const _t_0 = _capture_0["target"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _token_0 = _t_0["token"];
+    const _started_0 = _capture_0["claim_started"];
+    const _lifetime_0 = _capture_0["claim_lifetime"];
+    const _capacity_0 = _capture_0["capacity"];
+    const _id_0 = _capture_0["response_id"];
+    const _response_0 = _capture_0["response"];
+    return {$: "Con", "head": {$: "WriterScenario.PhysicalRelease", "capture": {$: "WriterScenario.Capture", "target": {$: "WriterScenario.Target", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "token": _token_0}, "claim_started": _started_0, "claim_lifetime": _lifetime_0, "capacity": _capacity_0, "response_id": _id_0, "response": _response_0}, "event": {$: "Canonical.CollectionReleaseBackground", "group": _p_0, "token": _token_0}}, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $WriterScenario$retired_members$(_writers_0, _before_0, _after_0, _event_0) {
+  if (_writers_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _writers_0["head"];
+    const _tail_0 = _writers_0["tail"];
+    if (_event_0.$ === "Canonical.RetirePartition") {
+      const _p_0 = _event_0["partition"];
+      const _l_0 = _event_0["lifetime"];
+      const _r_0 = _event_0["round"];
+      return $WriterScenario$retired_capture$(($Bool$and$(($Bool$and$(($CollectionScenario$scope_equal$(($WriterScenario$target_scope$(($WriterScenario$target$(_head_0)))), {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0})), ($CollectionScenario$current$(_before_0, {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0})))), ($Bool$not$(($CollectionScenario$current$(_after_0, {$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0})))))), _head_0, ($WriterScenario$retired_members$(_tail_0, _before_0, _after_0, {$: "Canonical.RetirePartition", "partition": _p_0, "lifetime": _l_0, "round": _r_0})));
+    } else {
+      return {$: "Nil"};
+    }
+  }
+}
+
+function $WriterScenario$retired$(_state_0, _before_0, _after_0, _event_0) {
+  const _writers_0 = _state_0["writers"];
+  return $WriterScenario$retired_members$(_writers_0, _before_0, _after_0, _event_0);
+}
+
+function $WriterScenario$closed_actions$(_changed_0) {
+  const _actions_0 = _changed_0["actions"];
+  return _actions_0;
+}
+
+function $WriterScenario$departure_actions$(_facts_0, _responses_0) {
+  if (_facts_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _facts_0["head"];
+    const _capture_0 = _t_0["capture"];
+    const _tail_0 = _facts_0["tail"];
+    return $List$append$(($WriterScenario$closed_actions$(($CollectionScenario$close$(_responses_0, ($WriterScenario$response_identity$(_capture_0)))))), ($WriterScenario$departure_actions$(_tail_0, _responses_0)));
+  }
+}
+
+function $WriterScenario$facts_round$(_found_0, _facts_0) {
+  if (_found_0.$ === "None") {
+    return true;
+  } else {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    return $CollectionScenario$scope_equal$({$: "CollectionScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, ($WriterScenario$target_scope$(($WriterScenario$facts_target$(_facts_0)))));
+  }
+}
+
+function $WriterScenario$unissued_scope_target$(_canonical_0, _facts_0, _identity_0) {
+  const __0 = _canonical_0["ledger"];
+  const _rounds_0 = _canonical_0["rounds"];
+  const __1 = _canonical_0["work"];
+  const __2 = _canonical_0["next_round"];
+  const __3 = _canonical_0["next_operation"];
+  const __4 = _canonical_0["admissions"];
+  const __5 = _canonical_0["dispatch"];
+  const __6 = _canonical_0["collection"];
+  const __7 = _canonical_0["history"];
+  const _p_0 = _identity_0["partition"];
+  return $Bool$and$(($WriterScenario$facts_round$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_p_0, _rounds_0)), _facts_0)), ($WriterScenario$facts_owned$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _facts_0)));
+}
+
+function $WriterScenario$unissued_scope$(_canonical_0, _facts_0) {
+  return $WriterScenario$unissued_scope_target$(_canonical_0, _facts_0, ($WriterScenario$facts_target$(_facts_0)));
+}
+
+function $WriterScenario$facts_release$(_facts_0) {
+  const _t_0 = _facts_0["target"];
+  const _p_0 = _t_0["partition"];
+  const _token_0 = _t_0["token"];
+  return {$: "Canonical.CollectionReleaseBackground", "group": _p_0, "token": _token_0};
+}
+
+function $WriterScenario$unissued_found$(_found_0, _canonical_0, _facts_0) {
+  if (_found_0.$ === "Some") {
+    return {$: "None"};
+  } else {
+    return $WriterScenario$release_allowed$(($WriterScenario$unissued_scope$(_canonical_0, _facts_0)), ($WriterScenario$facts_release$(_facts_0)));
+  }
+}
+
+function $WriterScenario$unissued_release$(_state_0, _canonical_0, _pending_0, _now_0) {
+  const _facts_0 = _pending_0["facts"];
+  return $WriterScenario$unissued_found$(($WriterScenario$lookup$(_state_0, ($WriterScenario$facts_target$(_facts_0)))), _canonical_0, _facts_0);
+}
+
 function $FreshnessScenario$initial$() {
   return {$: "FreshnessScenario.State", "bindings": {$: "Nil"}};
 }
@@ -19599,7 +20304,7 @@ function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
 }
 
 function $RuntimeScenarios$initial$() {
-  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$()), "collection": ($CollectionScenario$initial$())};
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$()), "collection": ($CollectionScenario$initial$()), "writers": ($WriterScenario$initial$())};
 }
 
 function $RuntimeScenarios$callbacks$(_state_0) {
@@ -19615,15 +20320,17 @@ function $RuntimeScenarios$with_callbacks$(_state_0, _callbacks_0) {
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
+  const _writers_0 = _state_0["writers"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
 }
 
-function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0) {
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0, "collection": ($CollectionScenario$retain$(_collection_0, _canonical_0))};
+function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0) {
+  const _retained_0 = ($CollectionScenario$retain$(_collection_0, _canonical_0));
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0, "collection": _retained_0, "writers": ($WriterScenario$retain_current$(_writers_0, _canonical_0, _retained_0))};
 }
 
-function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0) {
-  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0);
+function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0) {
+  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0);
 }
 
 function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
@@ -19635,7 +20342,8 @@ function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
-  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)), _collection_0);
+  const _writers_0 = _state_0["writers"];
+  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)), _collection_0, _writers_0);
 }
 
 function $RuntimeScenarios$notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
@@ -19667,7 +20375,8 @@ function $RuntimeScenarios$with_freshness$(_state_0, _freshness_0) {
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
+  const _writers_0 = _state_0["writers"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
 }
 
 function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
@@ -19678,7 +20387,8 @@ function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
+  const _writers_0 = _state_0["writers"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
 }
 
 function $RuntimeScenarios$sharing$(_state_0) {
@@ -19694,7 +20404,8 @@ function $RuntimeScenarios$with_sharing$(_state_0, _sharing_0) {
   const _sources_0 = _state_0["sources"];
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
+  const _writers_0 = _state_0["writers"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
 }
 
 function $RuntimeScenarios$cache$(_state_0) {
@@ -19710,7 +20421,8 @@ function $RuntimeScenarios$with_cache$(_state_0, _cache_0) {
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
   const _collection_0 = _state_0["collection"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
+  const _writers_0 = _state_0["writers"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
 }
 
 function $RuntimeScenarios$cache_feedback_state$(_feedback_0) {
@@ -19739,7 +20451,25 @@ function $RuntimeScenarios$with_collection$(_state_0, _collection_0) {
   const _sources_0 = _state_0["sources"];
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0};
+  const _writers_0 = _state_0["writers"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+}
+
+function $RuntimeScenarios$writers$(_state_0) {
+  const _writers_0 = _state_0["writers"];
+  return _writers_0;
+}
+
+function $RuntimeScenarios$with_writers$(_state_0, _writers_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  const _sharing_0 = _state_0["sharing"];
+  const _cache_0 = _state_0["cache"];
+  const _collection_0 = _state_0["collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
 }
 
 function $AdviceeLifecycle$partition$(_entry_0) {
@@ -24356,7 +25086,7 @@ function $handle_output$(_state_0, _event_0, _command_0, _context_0) {
 }
 
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
-  return $CollectionScenario$handled$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _command_0, _context_0, ($handle_output$(_state_0, _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, false)))));
+  return $WriterScenario$handled$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _command_0, _context_0, ($CollectionScenario$handled$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _command_0, _context_0, ($handle_output$(_state_0, _event_0, _command_0, ($WriterScenario$driver_context$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, false)))))))));
 }
 
 function $edit$(_state_0, _partition_0, _lifetime_0) {
@@ -24392,7 +25122,7 @@ function $after$(_before_0, _state_0, _event_0) {
   const _previous_0 = _before_0["canonical"];
   const _captures_0 = _before_0["preparations"];
   const _scenarios_0 = _before_0["scenarios"];
-  return $List$append$(($sharing_actions$(($SharingRuntime$postprocess$(($RuntimeScenarios$sharing$(_scenarios_0)), ($sharing_runtime$(_state_0)), ($canonical$(_state_0)), ($freshness_state$(_state_0)), _event_0)))), ($List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($AdviceeLifecycleCleanup$preparation_actions$(_captures_0, ($preparation_running$(_previous_0)), _event_0)))));
+  return $List$append$(($sharing_actions$(($SharingRuntime$postprocess$(($RuntimeScenarios$sharing$(_scenarios_0)), ($sharing_runtime$(_state_0)), ($canonical$(_state_0)), ($freshness_state$(_state_0)), _event_0)))), ($List$append$(($WriterScenario$departure_actions$(($WriterScenario$retired$(($RuntimeScenarios$writers$(_scenarios_0)), _previous_0, ($canonical$(_state_0)), _event_0)), ($RuntimeScenarios$collection$(_scenarios_0)))), ($List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($AdviceeLifecycleCleanup$preparation_actions$(_captures_0, ($preparation_running$(_previous_0)), _event_0)))))));
 }
 
 function $enqueue$(_state_0, _at_0, _order_0) {
@@ -25382,9 +26112,10 @@ function $notice_followed$(_state_0, _followup_0) {
   const _sharing_0 = _t_0["sharing"];
   const _cache_0 = _t_0["cache"];
   const _collection_0 = _t_0["collection"];
+  const _writers_0 = _t_0["writers"];
   const _notices_0 = _followup_0["state"];
   const _events_0 = _followup_0["events"];
-  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0}}, "events": _events_0};
+  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0}}, "events": _events_0};
 }
 
 function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
@@ -25409,7 +26140,8 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
   const _sharing_0 = _t_0["sharing"];
   const _cache_0 = _t_0["cache"];
   const _collection_0 = _t_0["collection"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0}};
+  const _writers_0 = _t_0["writers"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0}};
 }
 
 function $notice_pruned$(_state_0, _key_0, _commands_0) {
@@ -25434,7 +26166,8 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   const _sharing_0 = _t_0["sharing"];
   const _cache_0 = _t_0["cache"];
   const _collection_0 = _t_0["collection"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0}};
+  const _writers_0 = _t_0["writers"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0}};
 }
 
 function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
@@ -25943,7 +26676,7 @@ function $collection_response_after$(_state_0, _target_0, _event_0, _commands_0)
 }
 
 function $collection_response_valid$(_state_0, _target_0, _now_0) {
-  return $CollectionScenario$valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)));
+  return $Bool$and$(($WriterScenario$response_fence$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0)), ($CollectionScenario$valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)))));
 }
 
 function $collection_response_automatic$(_state_0, _partition_0) {
@@ -25951,15 +26684,151 @@ function $collection_response_automatic$(_state_0, _partition_0) {
 }
 
 function $collection_response_handle$(_state_0, _event_0, _command_0, _context_0, _target_0) {
-  return $CollectionScenario$handle_response$(($canonical$(_state_0)), _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, true)), _target_0);
+  return $WriterScenario$handle_response$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _event_0, _command_0, ($CollectionScenario$driver_context$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _context_0, true)), _target_0);
+}
+
+function $writer_with$(_state_0, _writers_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$with_writers$(_scenarios_0, _writers_0))};
+}
+
+function $writer_reconciled$(_state_0, _change_0) {
+  const _writers_0 = _change_0["state"];
+  const _responses_0 = _change_0["responses"];
+  const _actions_0 = _change_0["actions"];
+  return {$: "ResponseTransition", "state": ($writer_with$(($collection_with$(_state_0, _responses_0)), _writers_0)), "result": {$: "ResponseResult", "result": {$: "CollectionScenario.Applied"}, "issued": {$: "None"}}, "actions": _actions_0};
+}
+
+function $writer_reconcile$(_state_0, _now_0) {
+  return $writer_reconciled$(_state_0, ($WriterScenario$reconcile$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), ($RuntimeScenarios$collection$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _now_0)));
+}
+
+function $collection_expired_change$(_state_0, _release_0, _changed_0) {
+  const _collection_0 = _changed_0["state"];
+  const _result_0 = _changed_0["result"];
+  const _issued_0 = _changed_0["issued"];
+  const _actions_0 = _changed_0["actions"];
+  return {$: "ResponseTransition", "state": ($collection_with$(_state_0, _collection_0)), "result": {$: "ResponseResult", "result": _result_0, "issued": _issued_0}, "actions": ($List$append$(_release_0, _actions_0))};
+}
+
+function $collection_expired_writer$(_change_0, _now_0) {
+  const _state_0 = _change_0["state"];
+  const _release_0 = _change_0["actions"];
+  return $collection_expired_change$(_state_0, _release_0, ($CollectionScenario$expire$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _now_0)));
 }
 
 function $collection_response_expire$(_state_0, _now_0) {
-  return $collection_changed$(_state_0, ($CollectionScenario$expire$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _now_0)));
+  return $collection_expired_writer$(($writer_reconcile$(_state_0, _now_0)), _now_0);
 }
 
 function $collection_response_delivery_valid$(_state_0, _target_0, _now_0, _event_0) {
-  return $CollectionScenario$delivery_valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)), _event_0);
+  return $Bool$and$(($WriterScenario$response_fence$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0)), ($CollectionScenario$delivery_valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)), _event_0)));
+}
+
+function $writer_prepared$(_valid_0, _state_0, _facts_0) {
+  if (!_valid_0) {
+    return {$: "WriterPrepared", "state": _state_0, "pending": {$: "None"}, "actions": {$: "Nil"}};
+  } else {
+    return {$: "WriterPrepared", "state": ($writer_with$(_state_0, ($WriterScenario$declare$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _facts_0, ($canonical$(_state_0)))))), "pending": {$: "Some", "value": {$: "WriterScenario.Pending", "facts": _facts_0, "credential": ($current_credential_generation$(($credential_state$(_state_0))))}}, "actions": {$: "Con", "head": ($Driver$immediate$(($WriterScenario$claim_facts$(_facts_0, ($canonical$(_state_0)), ($clock$(_state_0)))), false)), "tail": {$: "Nil"}}};
+  }
+}
+
+function $writer_prepare$(_state_0, _facts_0) {
+  return $writer_prepared$(($Bool$and$(($WriterScenario$original_time$(_facts_0, ($clock$(_state_0)))), ($WriterScenario$facts_live$(_facts_0, ($canonical$(_state_0)), ($clock$(_state_0)))))), _state_0, _facts_0);
+}
+
+function $writer_claim_event$(_state_0, _pending_0, _now_0) {
+  return $WriterScenario$pending_claim$(_pending_0, ($canonical$(_state_0)), _now_0);
+}
+
+function $writer_issued$(_state_0, _facts_0, _change_0, _now_0) {
+  const _collection_0 = _change_0["state"];
+  const _result_0 = _change_0["result"];
+  const _t_0 = _change_0["issued"];
+  if (_t_0.$ === "Some") {
+    const _identity_0 = _t_0["value"];
+    const _actions_0 = _change_0["actions"];
+    const _capture_0 = ($WriterScenario$issued_capture$(_facts_0, _identity_0));
+    return {$: "ResponseTransition", "state": ($writer_with$(($collection_with$(_state_0, _collection_0)), ($WriterScenario$retain$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _capture_0, true)))), "result": {$: "ResponseResult", "result": _result_0, "issued": {$: "Some", "value": _identity_0}}, "actions": ($List$append$(_actions_0, {$: "Con", "head": ($WriterScenario$expiry_action$(_capture_0, _now_0)), "tail": {$: "Nil"}}))};
+  } else {
+    const _actions_1 = _change_0["actions"];
+    return {$: "ResponseTransition", "state": ($collection_with$(_state_0, _collection_0)), "result": {$: "ResponseResult", "result": _result_0, "issued": {$: "None"}}, "actions": ($List$append$(_actions_1, {$: "Con", "head": ($Driver$immediate$(($WriterScenario$facts_release$(_facts_0)), false)), "tail": {$: "Nil"}}))};
+  }
+}
+
+function $writer_granted$(_valid_0, _state_0, _pending_0, _now_0) {
+  if (!_valid_0) {
+    return {$: "ResponseTransition", "state": _state_0, "result": {$: "ResponseResult", "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}}, "actions": {$: "Nil"}};
+  } else {
+    const _facts_0 = _pending_0["facts"];
+    const _credential_0 = _pending_0["credential"];
+    return $writer_issued$(_state_0, _facts_0, ($CollectionScenario$issue$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), ($WriterScenario$facts_response$(_facts_0)), _credential_0, ($canonical$(_state_0)))), _now_0);
+  }
+}
+
+function $writer_feedback$(_state_0, _pending_0, _event_0, _commands_0, _now_0) {
+  return $writer_granted$(($WriterScenario$pending_granted$(_pending_0, _event_0, _commands_0, ($canonical$(_state_0)), _now_0)), _state_0, _pending_0, _now_0);
+}
+
+function $writer_release$(_state_0, _target_0) {
+  return $WriterScenario$release$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _target_0);
+}
+
+function $writer_expire$(_state_0, _target_0, _now_0) {
+  return $WriterScenario$expire$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _target_0, _now_0);
+}
+
+function $writer_attempt_identity$(_state_0, _identity_0, _now_0, _current_block_0) {
+  const _id_0 = _identity_0["id"];
+  const _p_0 = _identity_0["partition"];
+  const _l_0 = _identity_0["lifetime"];
+  const _r_0 = _identity_0["round"];
+  return {$: "WriterAttempt", "changed": ($collection_response_attempt$(_state_0, _id_0, _p_0, _l_0, _r_0, _now_0, _current_block_0)), "target": {$: "Some", "value": {$: "CollectionScenario.Identity", "id": _id_0, "partition": _p_0, "lifetime": _l_0, "round": _r_0}}};
+}
+
+function $writer_attempt_live$(_valid_0, _state_0, _capture_0, _now_0, _current_block_0) {
+  if (!_valid_0) {
+    return {$: "WriterAttempt", "changed": {$: "ResponseTransition", "state": _state_0, "result": {$: "ResponseResult", "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}}, "actions": {$: "Nil"}}, "target": {$: "None"}};
+  } else {
+    return $writer_attempt_identity$(_state_0, ($WriterScenario$response_identity$(_capture_0)), _now_0, _current_block_0);
+  }
+}
+
+function $writer_attempt_found$(_found_0, _state_0, _now_0, _current_block_0) {
+  if (_found_0.$ === "None") {
+    return {$: "WriterAttempt", "changed": {$: "ResponseTransition", "state": _state_0, "result": {$: "ResponseResult", "result": {$: "CollectionScenario.Missing"}, "issued": {$: "None"}}, "actions": {$: "Nil"}}, "target": {$: "None"}};
+  } else {
+    const _capture_0 = _found_0["value"];
+    return $writer_attempt_live$(($WriterScenario$capture_live$(_capture_0, ($canonical$(_state_0)), _now_0)), _state_0, _capture_0, _now_0, _current_block_0);
+  }
+}
+
+function $writer_attempt$(_state_0, _target_0, _now_0, _current_block_0) {
+  return $writer_attempt_found$(($WriterScenario$lookup$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _target_0)), _state_0, _now_0, _current_block_0);
+}
+
+function $writer_capture$(_state_0, _target_0) {
+  return $WriterScenario$lookup$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), _target_0);
+}
+
+function $writer_departures$(_before_0, _state_0, _event_0) {
+  return $WriterScenario$retired$(($RuntimeScenarios$writers$(($scenarios$(_before_0)))), ($canonical$(_before_0)), ($canonical$(_state_0)), _event_0);
+}
+
+function $writer_release_delivery$(_state_0, _capture_0, _event_0, _now_0) {
+  return $WriterScenario$release_delivery$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _capture_0, _event_0, _now_0);
 }
 
 function $stop_initial$(_capture_0) {
@@ -25980,6 +26849,10 @@ function $quiet_after$(_state_0, _event_0, _partition_0, _now_0, _window_0, _nat
 
 function $quiet_command$(_state_0, _command_0, _event_0, _partition_0, _now_0) {
   return $QuietScenario$command$(($canonical$(_state_0)), _command_0, _event_0, _partition_0, _now_0);
+}
+
+function $writer_unissued_release_delivery$(_state_0, _pending_0, _now_0) {
+  return $WriterScenario$unissued_release$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _pending_0, _now_0);
 }
 
 function $Bool$and$(_a_0, _b_0) {
@@ -26184,7 +27057,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:51e53a97153f8abf4a665b7b76a2ebe429d0de6fb2e40feef0ba715064cede07";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:e26af72f58757048785f45403b1c0dc57916893f982bb897fe6127cea89d6511";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -26203,6 +27076,16 @@ export default {
  quiet_command: (state,command,event,partition,now) => run_loop($quiet_command$(state,facts(command),facts(event),facts(partition),facts(now))),
  quiet_event: (state,event,native_idle,stop_absent) => run_loop($quiet_event$(state,facts(event),facts(native_idle),facts(stop_absent))),
  quiet_after: (state,event,partition,now,window,native_idle,stop_absent) => run_loop($quiet_after$(state,facts(event),facts(partition),facts(now),facts(window),facts(native_idle),facts(stop_absent))),
+ writer_unissued_release_delivery: (state,pending,now) => run_loop($writer_unissued_release_delivery$(state,facts(pending),facts(now))),
+ writer_capture: (state,target) => run_loop($writer_capture$(state,facts(target))),
+ writer_departures: (before,state,event) => run_loop($writer_departures$(before,state,facts(event))),
+ writer_release_delivery: (state,capture,event,now) => run_loop($writer_release_delivery$(state,facts(capture),facts(event),facts(now))),
+ writer_attempt: (state,target,now,block) => run_loop($writer_attempt$(state,facts(target),facts(now),facts(block))),
+ writer_prepare: (state,fact) => run_loop($writer_prepare$(state,facts(fact))),
+ writer_claim_event: (state,pending,now) => run_loop($writer_claim_event$(state,facts(pending),facts(now))),
+ writer_feedback: (state,pending,event,commands,now) => run_loop($writer_feedback$(state,facts(pending),facts(event),facts(commands),facts(now))),
+ writer_release: (state,target) => run_loop($writer_release$(state,facts(target))),
+ writer_expire: (state,target,now) => run_loop($writer_expire$(state,facts(target),facts(now))),
  collection_response_delivery_valid: (state,target,now,event) => run_loop($collection_response_delivery_valid$(state,facts(target),facts(now),facts(event))),
  collection_response_open: (state,response) => run_loop($collection_response_open$(state,facts(response))),
  collection_response_close: (state,id,p,l,r) => run_loop($collection_response_close$(state,facts(id),facts(p),facts(l),facts(r))),
