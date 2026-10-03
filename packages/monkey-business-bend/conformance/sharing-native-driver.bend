@@ -29,7 +29,7 @@ def sharing_edit(state: Types.State, queue: Edge.Queue, jobs: List<&2,Edge.Store
     +job: Edge.Job, now: Nat, delay: Nat, ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
   match job:
     case Edge.Job{+partition,lifetime,_,_,_}:
-      Edge.edit_plan(Engine.sharing_edit_attempt(state,partition,lifetime,Sharing.Key{partition,7n},
+      Edge.edit_plan(Engine.sharing_edit_attempt(state,partition,lifetime,Sharing.SharingKey{partition,7n},
         Freshness.Source{(partition+10n:Nat),13n}),queue,jobs,job,now,delay,ih)
 
 def input(input: Edge.Input, state: Types.State, queue: Edge.Queue,

@@ -24,7 +24,7 @@ export const encodeSharingMember=(value:unknown)=>{
  return Object.freeze({$:"SharingScenario.Member",scope:Object.freeze({$:"FreshnessScenario.Scope",...member.scope}),
   source:Object.freeze({$:"FreshnessScenario.Source",subject:member.subject,input:member.input}),generation:member.generation});
 };
-export const encodeSharingKey=(value:unknown)=>Object.freeze({$:"SharingScenario.Key",...readKey(value)});
+export const encodeSharingKey=(value:unknown)=>Object.freeze({$:"SharingScenario.SharingKey",...readKey(value)});
 export const encodeSharingPhysical=(value:unknown)=>Object.freeze({$:"SharingScenario.Physical",...readPhysical(value)});
 export const validateSharingControl=(value:unknown):SharingControl=>{
  const control=readControl(value);return Object.freeze(control.action==="leave"?{...control,target:Object.freeze(control.target)}:control);

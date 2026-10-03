@@ -161,3 +161,18 @@ def feedback(commands: List<&2,Canonical.Command>, state: State, +event: Canonic
   match commands:
     case Nil{}: state
     case command <> tail: feedback(tail,command_feedback(state,event,command),event)
+
+def referenced(scopes: List<&2,Scope>, +scope: Scope) -> Bool:
+  match scopes:
+    case Nil{}: False{}
+    case head <> tail: same(head,scope) || referenced(tail,scope)
+
+def retained_reference_bindings(bindings: List<&2,Binding>, +canonical: Canonical.State, +references: List<&2,Scope>) -> List<&2,Binding>:
+  match bindings:
+    case Nil{}: []
+    case Binding{+scope,+source,+generation} <> tail:
+      kept(Bool.not(live(canonical,scope) || referenced(references,scope)),Binding{scope,source,generation},retained_reference_bindings(tail,canonical,references))
+
+def retained_references(state: State, canonical: Canonical.State, references: List<&2,Scope>) -> State:
+  match state:
+    case State{bindings}: State{retained_reference_bindings(bindings,canonical,references)}

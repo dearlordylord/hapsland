@@ -1,4 +1,6 @@
 import Base
+import ./SharingRuntime.bend as SharingRuntime
+import ./SharingScenario.bend as SharingScenario
 import ./FreshnessContext.bend as FreshnessContext
 import ./FreshnessScenario.bend as FreshnessScenario
 import ./ScopedRevision.bend as ScopedRevision
@@ -519,7 +521,7 @@ def callback_delivered(+state: Types.State, order: Nat) -> Types.State:
 
 def callback_originals(state: Types.State) -> List<&2, Callbacks.Original>:
   match state:
-    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _}}: originals
+    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _}}: originals
 
 type CallbackTransition is Data:
   CallbackTransition{state: Types.State, result: Callbacks.Applicability, cancel: List<&2,Nat>, schedule: List<&2,Callbacks.Scheduled>}
@@ -557,18 +559,18 @@ type NoticeTransition is Data:
 
 def notice_followed(state: Types.State, followup: NoticeScenario.Followup) -> NoticeTransition:
   match state followup:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources}} NoticeScenario.Followup{notices,events}:
-      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources}},events}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing}} NoticeScenario.Followup{notices,events}:
+      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing}},events}
 
 def notice_clocked(state: Types.State, scope: NoticeScenario.Scope, key: Nat, now: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing}}
 
 def notice_pruned(state: Types.State, key: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing}}
 
 # Called with this event's actual accepted commands and captured exercise scope.
 # The before state is required for releasing only a genuinely dropped key.
@@ -590,15 +592,15 @@ def notice_exercise(scope: NoticeScenario.Scope) -> List<&2,NoticeScenario.Sched
 
 def notice_failure(state: Types.State, scope: NoticeScenario.Scope, now: Nat, key: Nat, sequence: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
 
 def notice_lease(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
 
 def notice_acknowledge(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
 
 def callback_replaced(+state: Types.State, orders: List<&2,Nat>) -> Types.State:
   with_callbacks(state,Callbacks.replaced(callback_state(state),orders))
@@ -632,3 +634,43 @@ def freshness_current(+state: Types.State, scope: FreshnessScenario.Scope) -> Ma
 
 def freshness_checks(state: Types.State, scope: FreshnessScenario.Scope) -> List<&2,Driver.Action>:
   FreshnessScenario.checks(freshness_state(state),scope)
+
+def sharing_runtime(state: Types.State) -> SharingRuntime.State:
+  RuntimeScenarios.sharing(scenarios(state))
+
+def with_sharing_runtime(+state: Types.State, sharing: SharingRuntime.State) -> Types.State:
+  with_scenarios(state,RuntimeScenarios.with_sharing(scenarios(state),sharing))
+
+type SharingCapture is Data:
+  SharingCapture{state: Types.State, routes: List<&2,SharingRuntime.Route>, valid: Bool}
+
+def sharing_captured(+state: Types.State, capture: SharingRuntime.Captured) -> SharingCapture:
+  match capture:
+    case SharingRuntime.Captured{sharing,routes,True{}}: SharingCapture{with_sharing_runtime(state,sharing),routes,True{}}
+    case SharingRuntime.Captured{_,_,False{}}: SharingCapture{state,[],False{}}
+
+def sharing_prepare_found(+state: Types.State, +scope: FreshnessScenario.Scope, keys: List<&2,SharingScenario.SharingKey>, sizes: List<&2,Nat>, found: Maybe<&2,Canonical.Work>) -> SharingCapture:
+  match found:
+    case Some{Canonical.Work{p,l,r,_,_,Canonical.Preparing{},parent}}:
+      sharing_captured(state,SharingRuntime.capture(sharing_runtime(state),freshness_state(state),scope,FreshnessScenario.Scope{p,l,r,parent},keys,sizes))
+    case _: SharingCapture{state,[],False{}}
+
+def sharing_prepare(+state: Types.State, +scope: FreshnessScenario.Scope, keys: List<&2,SharingScenario.SharingKey>, sizes: List<&2,Nat>) -> SharingCapture:
+  match scope:
+    case FreshnessScenario.Scope{+p,+l,+r,+o}:
+      sharing_prepare_found(state,scope,keys,sizes,Canonical.find_work(p,l,r,o,Driver.work_list(canonical(state))))
+
+def sharing_route(+state: Types.State, route: SharingRuntime.Route) -> List<&2,Canonical.CanonicalEvent>:
+  SharingRuntime.route_event(canonical(state),freshness_state(state),sharing_runtime(state),route)
+
+def sharing_routed(+state: Types.State, route: SharingRuntime.Route, commands: List<&2,Canonical.Command>) -> Types.State:
+  with_sharing_runtime(state,SharingRuntime.routed(sharing_runtime(state),route,commands))
+
+def sharing_completion(state: Types.State, event: Canonical.CanonicalEvent) -> SharingRuntime.Completion:
+  SharingRuntime.completion(sharing_runtime(state),event)
+
+def sharing_binding(state: Types.State, scope: FreshnessScenario.Scope) -> Maybe<&2,SharingRuntime.Binding>:
+  SharingRuntime.lookup_binding(sharing_runtime(state),scope)
+
+def sharing_result(state: Types.State, evaluation: Nat) -> Maybe<&2,Canonical.RequestOutcome>:
+  SharingRuntime.result(sharing_runtime(state),evaluation)

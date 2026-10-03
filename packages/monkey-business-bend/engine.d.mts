@@ -9,6 +9,12 @@ declare const Engine: {
  notice_failure(state: EngineState,scope: unknown,now: bigint,key: bigint,sequence: bigint): unknown;
  notice_lease(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
  notice_acknowledge(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
+ sharing_prepare(state: EngineState,scope: unknown,keys: unknown,sizes: unknown): {state: EngineState; routes: unknown; valid: unknown};
+ sharing_route(state: EngineState,route: unknown): unknown;
+ sharing_routed(state: EngineState,route: unknown,commands: unknown): EngineState;
+ sharing_completion(state: EngineState,event: unknown): unknown;
+ sharing_binding(state: EngineState,scope: unknown): unknown;
+ sharing_result(state: EngineState,evaluation: bigint): unknown;
  freshness_admitted(state: EngineState,scope: unknown,source: unknown,command: unknown): {state: EngineState; source: unknown; actions: unknown};
  freshness_current(state: EngineState,scope: unknown): unknown;
  freshness_checks(state: EngineState,scope: unknown): unknown;

@@ -6,29 +6,32 @@ import ./FreshnessScenario.bend as Freshness
 
 # The edge interns the complete original production reuse namespace plus
 # prepared.identity label bijectively (work cohort + captured credential scope).
-# Key.partition is the logical ledger owner, not that reuse namespace. Partition
+# SharingKey.partition is the logical ledger owner, not that reuse namespace. Partition
 # pairing, membership and physical callback attribution live in this shared
 # core. No claim authorizes cross-partition sharing or another output attempt.
-type Key is Data:
-  Key{partition: Nat, prepared: Nat}
+type SharingKey is Data:
+  SharingKey{partition: Nat, prepared: Nat}
 type Member is Data:
   Member{scope: Freshness.Scope, source: Freshness.Source, generation: Nat}
 type Physical is Data:
   Physical{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, request: Nat}
 type Evaluation is Data:
-  Evaluation{id: Nat, key: Key, members: List<&2,Member>,
+  Evaluation{id: Nat, key: SharingKey, members: List<&2,Member>,
     physical: Maybe<&2,Physical>, advice: Maybe<&2,Freshness.Scope>}
 type State is Data:
   State{evaluations: List<&2,Evaluation>, next_id: Nat}
 type Registration is Data:
   Registration{state: State, id: Maybe<&2,Nat>}
 
+def maximum() -> Nat:
+  Nat.add(Nat.mul(65536n,U32.to_nat(4294967295)),65535n)
+
 def initial() -> State:
   State{[],1n}
 
-def same_key(left: Key, right: Key) -> Bool:
+def same_key(left: SharingKey, right: SharingKey) -> Bool:
   match left right:
-    case Key{p,input} Key{owner,prepared}:
+    case SharingKey{p,input} SharingKey{owner,prepared}:
       Nat.is_eq(p,owner) && Nat.is_eq(input,prepared)
 
 def same_member(left: Member, right: Member) -> Bool:
@@ -39,15 +42,15 @@ def member_partition(member: Member) -> Nat:
   match member:
     case Member{Freshness.Scope{partition,_,_,_},_,_}: partition
 
-def key_partition(key: Key) -> Nat:
+def key_partition(key: SharingKey) -> Nat:
   match key:
-    case Key{partition,_}: partition
+    case SharingKey{partition,_}: partition
 
 def id(evaluation: Evaluation) -> Nat:
   match evaluation:
     case Evaluation{id,_,_,_,_}: id
 
-def key(evaluation: Evaluation) -> Key:
+def key(evaluation: Evaluation) -> SharingKey:
   match evaluation:
     case Evaluation{_,key,_,_,_}: key
 
@@ -77,32 +80,32 @@ def lookup(state: State, evaluation_id: Nat) -> Maybe<&2,Evaluation>:
 
 # A fully departed evaluation's original physical callback may remain live.
 # New work must not join that retired claim or steal its callback attribution.
-def find_live_key(items: List<&2,Evaluation>, +requested: Key) -> Maybe<&2,Evaluation>:
+def find_live_key(items: List<&2,Evaluation>, +requested: SharingKey) -> Maybe<&2,Evaluation>:
   match items:
     case []: None{}
     case +head <> tail:
       choose(same_key(key(head),requested) && present(members(head)),head,find_live_key(tail,requested))
 
-def allocate(state: State, key: Key, member: Member, allowed: Bool) -> Registration:
+def allocate(state: State, key: SharingKey, member: Member, allowed: Bool) -> Registration:
   match state allowed:
     case State{items,+next} True{}:
       Registration{State{Evaluation{next,key,[member],None{},None{}} <> items,(next+1n:Nat)},Some{next}}
     case _ False{}: Registration{state,None{}}
 
-def existing(+state: State, +key: Key, +member: Member,
+def existing(+state: State, +key: SharingKey, +member: Member,
     found: Maybe<&2,Evaluation>) -> Registration:
   match state found:
     case State{_,+next} None{}:
-      allocate(state,key,member,Nat.is_lt(next,281474976710655n))
+      allocate(state,key,member,Nat.is_lt(next,maximum()))
     case _ Some{evaluation}: Registration{state,Some{id(evaluation)}}
 
-def scoped(state: State, +key: Key, member: Member, allowed: Bool) -> Registration:
+def scoped(state: State, +key: SharingKey, member: Member, allowed: Bool) -> Registration:
   match state allowed:
     case State{+items,next} True{}:
       existing(State{items,next},key,member,find_live_key(items,key))
     case _ False{}: Registration{state,None{}}
 
-def register(state: State, +key: Key, +member: Member) -> Registration:
+def register(state: State, +key: SharingKey, +member: Member) -> Registration:
   scoped(state,key,member,Nat.is_eq(key_partition(key),member_partition(member)))
 
 def keep_eval(hit: Bool, head: Evaluation, tail: List<&2,Evaluation>) -> List<&2,Evaluation>:

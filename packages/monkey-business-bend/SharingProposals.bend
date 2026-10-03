@@ -11,7 +11,7 @@ law exact_scoped_key:
   for +prepared: Nat
   for +owner: Nat
   for +other_prepared: Nat
-  {S.same_key(S.Key{partition,prepared},S.Key{owner,other_prepared}) == (Nat.is_eq(partition,owner) && Nat.is_eq(prepared,other_prepared)) : Bool}
+  {S.same_key(S.SharingKey{partition,prepared},S.SharingKey{owner,other_prepared}) == (Nat.is_eq(partition,owner) && Nat.is_eq(prepared,other_prepared)) : Bool}
 
 # A refused departure feedback preserves every captured original callback,
 # remaining member and advice identity, for every finite evaluation list.
