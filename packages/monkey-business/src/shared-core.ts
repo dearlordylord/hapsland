@@ -13,7 +13,7 @@ import { prepareSharedSharing, routeSharedSharing, routedSharedSharing, leaveSha
 import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canonical/simulation-adapter.ts";
 import { encodeFreshnessScope, encodeFreshnessSource, type FreshnessScope, type FreshnessSource } from "./freshness-codec.ts";
 import { replaceSharedCallbacks } from "../../../src/canonical/simulation-adapter.ts";
-import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSharedNotice } from "../../../src/canonical/simulation-adapter.ts";
+import { sharedNoticeExercise, afterSharedNotice, pruneSharedNotices, suppliedSharedNotice, ownedSharedNotice } from "../../../src/canonical/simulation-adapter.ts";
 import { interveneSharedOutput, deliverSharedOutput, issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
 import { encodePreparationGraphLimits } from "./file-trees.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
@@ -78,11 +78,12 @@ export class SharedCore {
     return declared.scope;
   }
   noticeExercise(scope: unknown) { return sharedNoticeExercise(scope); }
-  noticeAfter(scope: unknown, event: CanonicalEvent, now: number) {
-    const result = afterSharedNotice(this.state, scope, event, now);
+  noticeAfter(scope: unknown, event: CanonicalEvent, now: number, profile: unknown) {
+    const result = afterSharedNotice(this.state, scope, event, now, profile);
     this.state = result.state;
     return result.events;
   }
+  noticePrune(partition: number, group: number, now: number) { return pruneSharedNotices(this.state, partition, group, now); }
   noticeFailure(scope: unknown, now: number, key: number, sequence: number) { return suppliedSharedNotice(this.state, scope, now, key, sequence); }
   noticeOwned(partition: number, group: number, key: number, action: "lease" | "acknowledge") { return ownedSharedNotice(this.state, partition, group, key, action); }
   issueCallback(event: CanonicalEvent, order: number, at: number, capture?: unknown) {
