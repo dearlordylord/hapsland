@@ -73,6 +73,19 @@ try {
   assert.ok(retained.projection.global.bytes >= 128); // Actual diagnostic storage remains in the shared ledger.
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-1512.png'});
 
+  const cacheHit=createRun({inputs:[0,10].map(at=>({at,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['same-prepared-result']})),outcome:'clear',jevDelay:2,lifecycles:{reuse:{entryLimit:2,byteLimit:100}}});
+  cacheHit.advance({untilTime:20,maxEvents:1000});
+  assert.equal(cacheHit.observations.filter(frame=>frame.commands.some(command=>command.kind==='jevRequestIssued')).length,1);
+  assert.equal(cacheHit.observations.filter(frame=>frame.commands.some(command=>command.kind==='reuseCached')).length,1);
+  assert.deepEqual(cacheHit.projection.global,{items:1,bytes:5});
+  await load(cacheHit);
+  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(),`1 / ${cacheHit.projection.limits.globalItems}`);
+  assert.equal(await page.locator('.resident-capacity-bytes .resident-capacity-total').first().textContent(),`5 / ${cacheHit.projection.limits.globalBytes}`);
+  assert.doesNotMatch(await resident.innerText(),/Cached evaluations|Retained tickets|Resident resource details/);
+  assert.deepEqual(restoreReplay(cacheHit.exportReplay()).observe(),cacheHit.observe());
+  await resident.screenshot({path:'/tmp/hapsland-capacity-reused-result-1512.png'});
+  await load(retained);
+
   await click(`Select advicee ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('outcomes');
   assert.doesNotMatch(await page.locator('.simulation-stage-inspector').innerText(),/Cached evaluations|Retained tickets|Notice key|Resident resource details|ticket units|Ticket unit/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-outcomes-no-retention-1512.png'});

@@ -1,6 +1,7 @@
 import { semanticIdentity, type ReviewInput } from "../../../src/direct-event/model.ts";
 import { TYPE_INPUT_CONTRACT } from "../../../src/rules/targets.ts";
 import {expect,it} from "vitest";
+import {createRun,restoreReplay} from "./index.ts";
 import {initialCanonical,stepCanonical,projectCanonical,type CanonicalEvent} from "../../../src/canonical/adapter.ts";
 import {sharingIdentityLabel,captureSharingIdentityFacts,type SharingIdentityFacts} from "./sharing-controls.ts";
 import {runWorkloadNative} from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
@@ -74,4 +75,38 @@ it("captures provider destination independently from work and credential namespa
  const snapshot = { ...input, sourceFingerprints: [{ path: "type.ts", contentHash: "fresh", byteLength: 19 }] };
  expect(semanticIdentity(snapshot)).toBe(preparedIdentity);
  expect(captured).toEqual({ ...original, preparedIdentity });
+});
+
+// Runtime cases use original admitted facts, not fixture-assigned cache IDs.
+it.each(cases)("$name applies the actual configured runtime and ordinary replay",({stored,next,command})=>{
+ const input=(at:number,facts:SharingIdentityFacts)=>({at,kind:"edit" as const,bytes:10,unitBytes:[5],evaluationInputs:[facts.preparedIdentity],evaluationIdentityFacts:[facts]});
+ const run=createRun({seed:7,retention:10000,inputs:[input(0,stored),input(10,next)],outcome:"clear",jevDelay:2,lifecycles:{reuse:{entryLimit:8,byteLimit:128*1024}}});
+ run.advance({untilTime:9,maxEvents:1000});
+ const originalEntry=run.projection.reuse.cache[0];
+ expect(originalEntry).toBeDefined();
+ const originalIssued=run.observations.filter(frame=>frame.commands.some(value=>value.kind==="jevRequestIssued"));
+ expect(originalIssued).toHaveLength(1);
+ run.advance({untilTime:20,maxEvents:1000});
+ const allIssued=run.observations.filter(frame=>frame.commands.some(value=>value.kind==="jevRequestIssued"));
+ expect(allIssued).toHaveLength(command==="reuseCached"?1:2);
+ expect(run.observations.filter(frame=>frame.commands.some(value=>value.kind==="reuseCached"))).toHaveLength(command==="reuseCached"?1:0);
+ expect(run.projection.reuse.cache).toHaveLength(command==="reuseCached"?1:2);
+ expect(run.projection.reuse.cache.some(entry=>entry.reservation===originalEntry?.reservation)).toBe(true);
+ expect(run.projection.global).toEqual({items:command==="reuseCached"?1:2,bytes:command==="reuseCached"?5:10});
+ expect(run.projection.work).toEqual([]);
+ expect(run.projection.dispatch.requests).toEqual([]);
+ expect(run.projection.collection.leases).toEqual([]);
+ expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
+});
+it("keeps captured numeric zero distinct from the controlled null namespace",()=>{
+ const zero=captureSharingIdentityFacts({...original,credentialGeneration:0});
+ const nullCapture=captureSharingIdentityFacts({...zero,credentialGeneration:null});
+ const input=(at:number,facts:SharingIdentityFacts)=>({at,kind:"edit" as const,bytes:10,unitBytes:[5],evaluationInputs:[facts.preparedIdentity],evaluationIdentityFacts:[facts]});
+ const run=createRun({seed:7,retention:10000,inputs:[input(0,zero),input(10,nullCapture)],outcome:"clear",jevDelay:2,lifecycles:{reuse:{entryLimit:8,byteLimit:128*1024}}});
+ run.advance({untilTime:20,maxEvents:1000});
+ expect(run.observations.filter(frame=>frame.commands.some(value=>value.kind==="jevRequestIssued"))).toHaveLength(2);
+ expect(run.observations.some(frame=>frame.commands.some(value=>value.kind==="reuseCached"))).toBe(false);
+ expect(run.projection.reuse.cache).toHaveLength(2);
+ expect(run.projection.global).toEqual({items:2,bytes:10});
+ expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 });
