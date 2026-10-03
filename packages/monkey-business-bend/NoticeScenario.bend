@@ -1,6 +1,8 @@
 import Base
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/Ledger.bend as Ledger
+import ../agent-flow-bend/CollectionState.bend as Collection
+import ../agent-flow-bend/NoticeState.bend as Notices
 
 # Explicit source-free operational-failure exercise. These are supplied facts,
 # not a conversion of Jev outcomes into ordinary advice or production limits.
@@ -199,3 +201,28 @@ def scoped_lease(clocks: List<&2, Clock>, partition: Nat, group: Nat, +key: Nat)
 
 def scoped_acknowledge(clocks: List<&2, Clock>, partition: Nat, group: Nat, +key: Nat) -> Maybe<&2, Canonical.CanonicalEvent>:
   owned_event(existing_owned(find_clock(clocks, key), partition, group), acknowledge(key))
+
+def dropped_key(commands: List<&2, Canonical.Command>) -> Bool:
+  match commands:
+    case []: False{}
+    case Canonical.NoticePruned{_, _, True{}} <> _: True{}
+    case Canonical.NoticeDropped{} <> _: True{}
+    case _ <> tail: dropped_key(tail)
+
+def release_record(found: Maybe<&2, Notices.Record>, dropped: Bool) -> List<&2, Canonical.CanonicalEvent>:
+  match found dropped:
+    case Some{Notices.Record{_, _, _, reservation, _, _}} True{}:
+      [Canonical.ReleaseCapacity{reservation}]
+    case _ _: []
+
+def prune_feedback(before: Canonical.State, key: Nat, commands: List<&2, Canonical.Command>) -> List<&2, Canonical.CanonicalEvent>:
+  release_record(Notices.find_record(key, Notices.records_of(
+    Collection.notice_state(Canonical.collection_of(before)))), dropped_key(commands))
+
+def clocks_pruned(clocks: List<&2, Clock>, key: Nat, dropped: Bool) -> List<&2, Clock>:
+  match dropped:
+    case True{}: without_clock(clocks, key)
+    case False{}: clocks
+
+def prune_clocks(clocks: List<&2, Clock>, key: Nat, commands: List<&2, Canonical.Command>) -> List<&2, Clock>:
+  clocks_pruned(clocks, key, dropped_key(commands))
