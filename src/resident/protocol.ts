@@ -60,7 +60,7 @@ export type ResidentRequest =
   | { readonly requestRoute: "shared"; readonly operation: "begin-stop" | "finish-stop"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly token: string;
       readonly close?: boolean; readonly reason?: RoundCloseReason }
-  | { readonly requestRoute: "shared"; readonly operation: "register-edit"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "register-edit" | "retire-edit"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly startedAt: number;
       readonly activityPath?: string; readonly userConfigPath?: string }
   | { readonly requestRoute: "shared"; readonly operation: "claim-background" | "release-background";
@@ -171,6 +171,8 @@ const ClaudeAdvicee = Schema.Struct({ ...adviceeFields,
   host: Schema.Literal("claude-code"), hostVersion: Schema.Literal("2.1.218"), turnId: Schema.Null,
 });
 const Advicee = Schema.Union([ClaudeAdvicee, Schema.Struct({ ...adviceeFields,
+  host: Schema.Literal("pi"), hostVersion: Schema.Literal("1.0.0"), turnId: Schema.Null, subagentId: Schema.Null,
+}), Schema.Struct({ ...adviceeFields,
   host: Schema.Literal("codex-cli"), hostVersion: Schema.Literals(CODEX_HOST_VERSIONS), turnId: BoundedString,
 })]);
 const ControlledOptions = Schema.Struct({
@@ -244,7 +246,7 @@ const ResidentRequestSchema = Schema.Union([
     promptDigest: Schema.optionalKey(Digest), onlyIfMissing: Schema.optionalKey(Schema.Literal(true)) }),
   Schema.Struct({ ...owner, operation: Schema.Literals(["begin-stop", "finish-stop"]), token: BoundedString,
     close: Schema.optionalKey(Schema.Boolean), reason: Schema.optionalKey(Schema.Literals(ROUND_CLOSE_REASONS)) }),
-  Schema.Struct({ ...owner, operation: Schema.Literal("register-edit"),
+  Schema.Struct({ ...owner, operation: Schema.Literals(["register-edit", "retire-edit"]),
     startedAt: Schema.Finite.check(Schema.isGreaterThan(0)),
     activityPath: Schema.optionalKey(AbsolutePath), userConfigPath: Schema.optionalKey(AbsolutePath) }),
   Schema.Struct({ ...owner, operation: Schema.Literals(["claim-background", "release-background"]),

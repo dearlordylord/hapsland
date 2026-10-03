@@ -456,6 +456,11 @@ export const deliveryOperations = (
     });
     return { accepted: true };
   }
+  function retireEdit(partition: string, eventId: string): void {
+    const key = `${partition}\0${eventId}`;
+    const permit = state.permits.get(key);
+    if (permit !== undefined) releaseCompletedPermit(partition, key, permit);
+  }
   function registerEditDecision(
     partition: string,
     eventId: string,
@@ -1732,6 +1737,7 @@ export const deliveryOperations = (
     ensureFromHostTurn,
     registerEdit,
     registerEditDecision,
+    retireEdit,
     admitEdit,
     expirePermits,
     hasPendingEdits,

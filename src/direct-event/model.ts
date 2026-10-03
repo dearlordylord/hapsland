@@ -27,6 +27,13 @@ export type DirectAdvicee = {
   /** Preserve a supplied subagent identity; main-thread hooks may omit it. */
   readonly subagentId: string | null;
 } | {
+  readonly host: "pi";
+  readonly hostVersion: "1.0.0";
+  readonly sessionId: string;
+  readonly turnId: null;
+  readonly toolUseId: string;
+  readonly subagentId: null;
+} | {
   readonly host: "opencode";
   readonly hostVersion: "1.14.44";
   readonly sessionId: string;
