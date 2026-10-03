@@ -113,33 +113,46 @@ def controlled_schedule(pair: Types.State & List<&2,Edge.Item>, +sequence: Nat,
   (state,items)=pair
   Runtime{[Edge.Runtime{state,Edge.Queue{items,sequence,sequence},jobs,delay}],issued,frames,valid}
 
-def outcome_result(result: Engine.OutputIntervention, +before: Types.State, target: Callbacks.Target,
-    outcome: Output.Outcome, queue: Edge.Queue, jobs: List<&2,Edge.Stored>, delay: Nat,
-    issued: Nat, frames: List<&2,Frame>) -> Runtime:
-  match result queue:
-    case Engine.OutputIntervention{+state,+result,cancel,+schedule,_} Edge.Queue{items,sequence,_}:
+def outcome_frame(+before: List<&2,Types.State>, after: List<&2,Types.State>, target: Callbacks.Target,
+    outcome: Output.Outcome, result: Callbacks.Applicability, schedule: List<&2,Callbacks.Scheduled>) -> Frame:
+  match before:
+    case state <> Nil{}: OutcomeControl{before,after,Engine.clock(state),target,outcome,result,schedule}
+    case _: InvalidTransport{}
+
+def outcome_result(result: List<&2,Engine.OutputIntervention>, +runtime: List<&2,Edge.Runtime>,
+    target: Callbacks.Target, outcome: Output.Outcome, issued: Nat, frames: List<&2,Frame>) -> Runtime:
+  match result runtime:
+    case Engine.OutputIntervention{+state,+result,cancel,+schedule,_} <> Nil{}
+        Edge.Runtime{_,Edge.Queue{items,sequence,_},jobs,delay} <> Nil{}:
       controlled_schedule(schedule_items(schedule,cancel_orders(cancel,state),items),sequence,jobs,delay,issued,
-        List.append(&2,Frame,frames,[OutcomeControl{[before],[state],Engine.clock(before),target,outcome,result,schedule}]),True{})
+        List.append(&2,Frame,frames,[outcome_frame(Edge.runtime_states(runtime),[state],target,outcome,result,schedule)]),True{})
+    case _ runtime: Runtime{runtime,issued,List.append(&2,Frame,frames,[InvalidTransport{}]),False{}}
 
 def target_of_fact(fact: Callbacks.Fact) -> Callbacks.Target:
   match fact:
     case Callbacks.Fact{target,_,_,_}: target
 
-def intervene(receipt: Maybe<&2,Callbacks.Fact>, +state: Types.State, queue: Edge.Queue,
-    jobs: List<&2,Edge.Stored>, delay: Nat, issued: Nat, frames: List<&2,Frame>, +outcome: Output.Outcome) -> Runtime:
+def intervention(runtime: List<&2,Edge.Runtime>, target: Callbacks.Target, outcome: Output.Outcome,
+    fact: Callbacks.Fact) -> List<&2,Engine.OutputIntervention>:
+  match runtime:
+    case Edge.Runtime{state,_,_,_} <> Nil{}: [Engine.output_intervene(state,target,outcome,Some{fact})]
+    case _: []
+
+def intervene(receipt: Maybe<&2,Callbacks.Fact>, +runtime: List<&2,Edge.Runtime>,
+    issued: Nat, frames: List<&2,Frame>, +outcome: Output.Outcome) -> Runtime:
   match receipt:
     case Some{+fact}:
-      outcome_result(Engine.output_intervene(state,target_of_fact(fact),outcome,Some{fact}),state,
-        target_of_fact(fact),outcome,queue,jobs,delay,issued,frames)
-    case None{}: Runtime{[Edge.Runtime{state,queue,jobs,delay}],issued,frames,True{}}
+      outcome_result(intervention(runtime,target_of_fact(fact),outcome,fact),runtime,
+        target_of_fact(fact),outcome,issued,frames)
+    case None{}: Runtime{runtime,issued,frames,Edge.runtime_valid(runtime)}
 
 # New action payloads are already present in Edge.queue. Publish their exact
 # scheduler keys before intervention, so replacement cannot invent queue facts.
-def issued_item(value: Issued, +queue: Edge.Queue, jobs: List<&2,Edge.Stored>, delay: Nat,
+def issued_item(value: Issued, queue: Edge.Queue, jobs: List<&2,Edge.Stored>, delay: Nat,
     issued: Nat, frames: List<&2,Frame>, outcome: Output.Outcome) -> Runtime:
-  match value queue:
-    case Issued{state,receipt} Edge.Queue{+items,+sequence,synced}:
-      intervene(receipt,Edge.sync(items,state,synced),Edge.Queue{items,sequence,sequence},jobs,delay,issued,frames,outcome)
+  match value:
+    case Issued{state,receipt}:
+      intervene(receipt,Edge.runtime_sync([Edge.Runtime{state,queue,jobs,delay}]),issued,frames,outcome)
 
 # The capture pass processes one original newly appended action at a time;
 # factual snapshots never reconstruct membership or callback identities.
@@ -152,24 +165,26 @@ def fresh_action(fresh: Bool, +action: Driver.Action, +state: Types.State, order
         Driver.Action{event,d,c,j,e}),queue,jobs,delay,issued_count,frames,outcome)
     case False{} _: Runtime{[Edge.Runtime{state,queue,jobs,delay}],issued_count,frames,True{}}
 
-def fresh_item(item: Edge.Item, +runtime: Edge.Runtime, +issued_count: Nat, frames: List<&2,Frame>,
+def fresh_item(item: Edge.Item, +runtime: List<&2,Edge.Runtime>, +issued_count: Nat, frames: List<&2,Frame>,
     outcome: Output.Outcome, output_delay: Nat, lease: Nat, allowed: Bool) -> Runtime:
   match item runtime:
-    case Edge.Item{at,+order,Edge.Event{+action,_}} Edge.Runtime{+state,queue,jobs,delay}:
+    case Edge.Item{at,+order,Edge.Event{+action,_}} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
       fresh_action(Nat.is_le(issued_count,order),action,state,order,at,queue,jobs,delay,issued_count,frames,outcome,output_delay,lease,allowed)
-    case _ runtime: Runtime{[runtime],issued_count,frames,True{}}
+    case _ _ <> Nil{}: Runtime{runtime,issued_count,frames,True{}}
+    case _ runtime: Runtime{runtime,issued_count,frames,False{}}
 
-def captured_finished(runtime: Edge.Runtime, frames: List<&2,Frame>) -> Runtime:
+def captured_finished(+runtime: List<&2,Edge.Runtime>, frames: List<&2,Frame>) -> Runtime:
   match runtime:
-    case Edge.Runtime{state,Edge.Queue{items,+sequence,synced},jobs,delay}:
-      Runtime{[Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,delay}],sequence,frames,True{}}
+    case Edge.Runtime{_,Edge.Queue{_,sequence,_},_,_} <> Nil{}:
+      Runtime{runtime,sequence,frames,True{}}
+    case runtime: Runtime{runtime,0n,frames,False{}}
 
-def captured_tail(result: Runtime, ih: Edge.Runtime -> List<&2,Frame> -> Runtime) -> Runtime:
+def captured_tail(result: Runtime, ih: List<&2,Edge.Runtime> -> List<&2,Frame> -> Runtime) -> Runtime:
   match result:
-    case Runtime{runtime <> Nil{},_,frames,True{}}: ih(runtime,frames)
+    case Runtime{runtime,_,frames,True{}}: ih(runtime,frames)
     case _: result
 
-def capture_items(items: List<&2,Edge.Item>, runtime: Edge.Runtime, +cutoff: Nat, frames: List<&2,Frame>,
+def capture_items(items: List<&2,Edge.Item>, runtime: List<&2,Edge.Runtime>, +cutoff: Nat, frames: List<&2,Frame>,
     +outcome: Output.Outcome, +delay: Nat, +lease: Nat, +allowed: Bool) -> Runtime:
   match items:
     case Nil{}: captured_finished(runtime,frames)
@@ -211,14 +226,19 @@ def delivery_items(items: List<&2,Edge.Item>, +originals: List<&2,Callbacks.Orig
     case Nil{}: Nil{}
     case item <> tail: deliver_item(item,originals,now,selected) <> delivery_items(tail,originals,now,selected)
 
-def command_scopes(commands: List<&2,C.Command>, +before: Types.State, +after: Types.State) -> List<&2,Maybe<&2,Nat>>:
+def command_scope(command: C.Command, before: List<&2,Types.State>, after: List<&2,Types.State>) -> Maybe<&2,Nat>:
+  match before after:
+    case before <> Nil{} after <> Nil{}: Engine.scope_command(before,after,command,Some{1n})
+    case _ _: None{}
+
+def command_scopes(commands: List<&2,C.Command>, +before: List<&2,Types.State>, +after: List<&2,Types.State>) -> List<&2,Maybe<&2,Nat>>:
   match commands:
     case Nil{}: Nil{}
-    case command <> tail: Engine.scope_command(before,after,command,Some{1n}) <> command_scopes(tail,before,after)
+    case command <> tail: command_scope(command,before,after) <> command_scopes(tail,before,after)
 
-def canonical_scopes(result: List<&2,C.Step>, before: List<&2,Types.State>, after: List<&2,Types.State>) -> List<&2,Maybe<&2,Nat>>:
+def canonical_scopes(result: List<&2,C.Step>, +before: List<&2,Types.State>, +after: List<&2,Types.State>) -> List<&2,Maybe<&2,Nat>>:
   match result before after:
-    case C.Advanced{_,commands} <> Nil{} before <> Nil{} after <> Nil{}: command_scopes(commands,before,after)
+    case C.Advanced{_,commands} <> Nil{} _ <> Nil{} _ <> Nil{}: command_scopes(commands,before,after)
     case _ _ _: Nil{}
 
 def frame_scopes(frame: Edge.ObservedFrame) -> List<&2,Maybe<&2,Nat>>:
@@ -226,12 +246,12 @@ def frame_scopes(frame: Edge.ObservedFrame) -> List<&2,Maybe<&2,Nat>>:
     case Edge.CanonicalFrame{before,after,_,_,_,result}: canonical_scopes(result,before,after)
     case _: Nil{}
 
-def observed_frame(runtime: List<&2,Edge.Runtime>, frame: Maybe<&2,Edge.ObservedFrame>,
+def observed_frame(+runtime: List<&2,Edge.Runtime>, frame: Maybe<&2,Edge.ObservedFrame>,
     receipt: Maybe<&2,Callbacks.Fact>, issued: Nat, frames: List<&2,Frame>) -> Runtime:
   match frame:
     case Some{Edge.UnexpectedInput{}}: Runtime{runtime,issued,List.append(&2,Frame,frames,[InvalidTransport{}]),False{}}
-    case Some{+frame}: Runtime{runtime,issued,List.append(&2,Frame,frames,[Observed{frame,receipt,frame_scopes(frame)}]),True{}}
-    case None{}: Runtime{runtime,issued,frames,True{}}
+    case Some{+frame}: Runtime{runtime,issued,List.append(&2,Frame,frames,[Observed{frame,receipt,frame_scopes(frame)}]),Edge.runtime_valid(runtime)}
+    case None{}: Runtime{runtime,issued,frames,Edge.runtime_valid(runtime)}
 
 def authorized(command: C.Command) -> Bool:
   match command:
@@ -239,89 +259,119 @@ def authorized(command: C.Command) -> Bool:
     case C.SubmissionBegun{}: True{}
     case _: False{}
 
-def hook_runtime(result: Runtime, previous: Edge.Runtime, facts: Facts,
-    ih: Facts -> Edge.CommandHook<Facts>) -> Edge.Runtime & Edge.CommandHook<Facts>:
+def hook_runtime(result: Runtime, facts: Facts,
+    ih: Facts -> Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
   match result facts:
-    case Runtime{runtime <> Nil{},cutoff,frames,True{}} Facts{_,_,outcome,delay,lease}:
+    case Runtime{runtime,cutoff,frames,True{}} Facts{_,_,outcome,delay,lease}:
       (runtime,ih(Facts{cutoff,frames,outcome,delay,lease}))
-    case _ _: (previous,Edge.HookFault{facts})
+    case Runtime{runtime,_,_,_} facts: (runtime,Edge.HookFault{facts})
 
-def hook_command(command: C.Command, +runtime: Edge.Runtime, +facts: Facts,
-    ih: Facts -> Edge.CommandHook<Facts>) -> Edge.Runtime & Edge.CommandHook<Facts>:
-  match runtime facts:
-    case Edge.Runtime{state,Edge.Queue{+items,sequence,synced},jobs,jev_delay} Facts{cutoff,frames,outcome,delay,lease}:
-      hook_runtime(capture_items(items,Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,jev_delay},cutoff,frames,outcome,delay,lease,authorized(command)),runtime,facts,ih)
+def hook_command(command: C.Command, +runtime: List<&2,Edge.Runtime>, +facts: Facts,
+    ih: Facts -> Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+  match facts:
+    case Facts{cutoff,frames,outcome,delay,lease}:
+      hook_runtime(capture_items(Edge.runtime_items(runtime),runtime,cutoff,frames,outcome,delay,lease,authorized(command)),facts,ih)
 
 def hook(commands: List<&2,C.Command>, facts: Facts) -> Edge.CommandHook<Facts>:
   match commands:
     case Nil{}: Edge.HookEnd{facts}
-    case _ <> rest: Edge.HookNext{facts,current => actual => runtime =>
+    case _ <> rest: Edge.HookNext{facts,state => event => command => context => Edge.default_handler(state,event,command,context),current => actual => runtime =>
       hook_command(actual,runtime,current,next => hook(rest,next))}
 
 def observed(value: Transport.Stepped<Facts>, previous: Runtime, receipt: Maybe<&2,Callbacks.Fact>) -> Runtime:
   match value previous:
     case Transport.Stepped{Edge.Observed{runtime,frame,Edge.HookEnd{Facts{issued,frames,_,_,_}}},_} Runtime{_,_,_,True{}}:
       observed_frame(runtime,frame,receipt,issued,frames)
-    case _ Runtime{runtime,issued,frames,_}: Runtime{runtime,issued,List.append(&2,Frame,frames,[InvalidTransport{}]),False{}}
+    case Transport.Stepped{Edge.Observed{runtime,_,_},_} Runtime{_,issued,frames,_}:
+      Runtime{runtime,issued,List.append(&2,Frame,frames,[InvalidTransport{}]),False{}}
 
-def step_selected(queue: List<&2,Scheduler.Entry>, +runtime: Edge.Runtime, environment: Edge.Environment,
-    previous: Runtime, +facts: Facts) -> Runtime:
-  match queue runtime:
-    case Scheduler.Entry{+at,+order} <> _ Edge.Runtime{+state,Edge.Queue{items,sequence,synced},jobs,delay}:
-      observed(Transport.step(Facts,Edge.Runtime{state,Edge.Queue{delivery_items(items,Engine.callback_originals(state),at,order),sequence,synced},jobs,delay},20n,environment,commands => hook(commands,facts)),
-        previous,selected_receipt(Engine.callback_originals(state),order))
-    case _ _: previous
+def delivery_runtime_items(runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat) -> List<&2,Edge.Item>:
+  match runtime:
+    case Edge.Runtime{state,Edge.Queue{items,_,_},_,_} <> Nil{}:
+      delivery_items(items,Engine.callback_originals(state),at,order)
+    case _: []
+
+def delivery_runtime_ready(items: List<&2,Edge.Item>, runtime: List<&2,Edge.Runtime>) -> List<&2,Edge.Runtime>:
+  match runtime:
+    case Edge.Runtime{state,Edge.Queue{_,sequence,synced},jobs,delay} <> Nil{}:
+      [Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,delay}]
+    case runtime: runtime
+
+def delivery_runtime(+runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat) -> List<&2,Edge.Runtime>:
+  delivery_runtime_ready(delivery_runtime_items(runtime,at,order),runtime)
+
+def step_receipted(receipt: Maybe<&2,Callbacks.Fact>, runtime: List<&2,Edge.Runtime>,
+    environment: Edge.Environment, previous: Runtime, +facts: Facts) -> Runtime:
+  observed(Transport.step(Facts,runtime,20n,environment,commands => hook(commands,facts)),previous,receipt)
+
+def step_selected(queue: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>, environment: Edge.Environment,
+    previous: Runtime, facts: Facts) -> Runtime:
+  match queue:
+    case Scheduler.Entry{at,+order} <> _:
+      step_receipted(selected_receipt(Edge.runtime_originals(runtime),order),delivery_runtime(runtime,at,order),environment,previous,facts)
+    case _: previous
 
 def in_horizon(queue: List<&2,Scheduler.Entry>) -> Bool:
   match queue:
     case Scheduler.Entry{at,_} <> _: Nat.is_le(at,20n)
     case Nil{}: False{}
 
-def endpoint(previous: Runtime, state: Types.State) -> Trace:
+def endpoint(previous: Runtime, states: List<&2,Types.State>) -> Trace:
   match previous:
-    case Runtime{_,_,frames,valid}: Trace{frames,[state],valid}
+    case Runtime{_,_,frames,valid}: Trace{frames,states,valid}
 
-def exhausted(previous: Runtime, state: Types.State) -> Trace:
+def exhausted(previous: Runtime, states: List<&2,Types.State>) -> Trace:
   match previous:
-    case Runtime{_,_,frames,_}: Trace{List.append(&2,Frame,frames,[InvalidTransport{}]),[state],False{}}
+    case Runtime{_,_,frames,_}: Trace{List.append(&2,Frame,frames,[InvalidTransport{}]),states,False{}}
 
 def facts_for(runtime: Runtime, cutoff: Nat, outcome: Output.Outcome, delay: Nat, lease: Nat) -> Facts:
   match runtime:
     case Runtime{_,_,frames,_}: Facts{cutoff,frames,outcome,delay,lease}
 
-def advance_horizon(within: Bool, fuel: Nat, +runtime: Edge.Runtime, +previous: Runtime,
+def advance_horizon(within: Bool, fuel: Nat, +runtime: List<&2,Edge.Runtime>, +previous: Runtime,
     environment: Edge.Environment, outcome: Output.Outcome, delay: Nat, lease: Nat, ih: Runtime -> Trace) -> Trace:
-  match within fuel runtime:
-    case False{} _ Edge.Runtime{state,_,_,_}: endpoint(previous,state)
-    case True{} 0n Edge.Runtime{state,_,_,_}: exhausted(previous,state)
-    case True{} 1n+rest Edge.Runtime{+state,Edge.Queue{_,sequence,_},_,_}:
-      ih(step_selected(Engine.queued(state),runtime,environment,previous,facts_for(previous,sequence,outcome,delay,lease)))
+  match within fuel:
+    case False{} _: endpoint(previous,Edge.runtime_states(runtime))
+    case True{} 0n: exhausted(previous,Edge.runtime_states(runtime))
+    case True{} 1n+rest:
+      ih(step_selected(Edge.runtime_entries(runtime),runtime,environment,previous,
+        facts_for(previous,Edge.runtime_sequence(runtime),outcome,delay,lease)))
+
+def advance_valid(valid: Bool, +runtime: List<&2,Edge.Runtime>, previous: Runtime,
+    fuel: Nat, environment: Edge.Environment, outcome: Output.Outcome, delay: Nat, lease: Nat,
+    ih: Runtime -> Trace) -> Trace:
+  match valid:
+    case True{}:
+      advance_horizon(in_horizon(Edge.runtime_entries(runtime)),fuel,runtime,previous,environment,outcome,delay,lease,ih)
+    case False{}: exhausted(previous,Edge.runtime_states(runtime))
+
+def advance_synced(+runtime: List<&2,Edge.Runtime>, previous: Runtime, fuel: Nat,
+    environment: Edge.Environment, outcome: Output.Outcome, delay: Nat, lease: Nat, ih: Runtime -> Trace) -> Trace:
+  advance_valid(Edge.runtime_valid(runtime),runtime,previous,fuel,environment,outcome,delay,lease,ih)
 
 def advance_captured(+captured: Runtime, fuel: Nat, environment: Edge.Environment, outcome: Output.Outcome, delay: Nat, lease: Nat, ih: Runtime -> Trace) -> Trace:
   match captured:
-    case Runtime{Edge.Runtime{+state,Edge.Queue{+items,+sequence,synced},jobs,jev_delay} <> Nil{},_,frames,True{}}:
-      +state=Edge.sync(items,state,synced)
-      advance_horizon(in_horizon(Engine.queued(state)),fuel,Edge.Runtime{state,Edge.Queue{items,sequence,sequence},jobs,jev_delay},
-        captured,environment,outcome,delay,lease,ih)
-    case Runtime{_,_,frames,_}: Trace{frames,[],False{}}
+    case Runtime{runtime,_,_,True{}}:
+      advance_synced(Edge.runtime_sync(runtime),captured,fuel,environment,outcome,delay,lease,ih)
+    case Runtime{runtime,_,frames,_}: Trace{frames,Edge.runtime_states(runtime),False{}}
 
-# The zero-fuel continuation is not invoked by advance_horizon; retain a
-# factual terminal projection rather than manufacture a replacement runtime.
+# The zero-fuel continuation is not invoked by advance_horizon; retain the
+# actual endpoint projection and validity of the provided carrier.
 def terminal(runtime: Runtime) -> Trace:
   match runtime:
-    case Runtime{Edge.Runtime{state,_,_,_} <> Nil{},_,frames,valid}: Trace{frames,[state],valid}
-    case Runtime{_,_,frames,_}: Trace{frames,[],False{}}
+    case Runtime{+runtime,_,frames,valid}:
+      Trace{frames,Edge.runtime_states(runtime),Bool.and(valid,Edge.runtime_valid(runtime))}
 
 def advance(fuel: Nat, runtime: Runtime, +environment: Edge.Environment,
     +outcome: Output.Outcome, +delay: Nat, +lease: Nat) -> Trace:
   match fuel runtime:
-    case 0n Runtime{Edge.Runtime{state,Edge.Queue{+items,sequence,synced},jobs,jev_delay} <> Nil{},cutoff,frames,True{}}:
-      advance_captured(capture_items(items,Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,jev_delay},cutoff,frames,outcome,delay,lease,False{}),
+    case 0n Runtime{+runtime,cutoff,frames,True{}}:
+      advance_captured(capture_items(Edge.runtime_items(runtime),runtime,cutoff,frames,outcome,delay,lease,False{}),
         0n,environment,outcome,delay,lease,next => terminal(next))
-    case 1n+rest Runtime{Edge.Runtime{state,Edge.Queue{+items,sequence,synced},jobs,jev_delay} <> Nil{},cutoff,frames,True{}}:
-      advance_captured(capture_items(items,Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,jev_delay},cutoff,frames,outcome,delay,lease,False{}),
+    case 1n+rest Runtime{+runtime,cutoff,frames,True{}}:
+      advance_captured(capture_items(Edge.runtime_items(runtime),runtime,cutoff,frames,outcome,delay,lease,False{}),
         1n,environment,outcome,delay,lease,next => advance(rest,next,environment,outcome,delay,lease))
-    case _ Runtime{_,_,frames,_}: Trace{frames,[],False{}}
+    case _ Runtime{runtime,_,frames,_}: Trace{frames,Edge.runtime_states(runtime),False{}}
 
 # Exact original public quiet session: root/workload seed7, agent-1,
 # defaults100 bytes, task0 before explicit edit0, next edit1000000 retained.
