@@ -764,6 +764,7 @@ export const deliverSharedWriterRelease=(state:EngineState,receipt:SharedWriterR
   const event=peekSharedWriterRelease(state,receipt,now);
   consumedWriterReleases.add(receipt);
   return event;
+};
 export const configureSharedCollector = (state: EngineState, profile: Parameters<typeof encodeCollectorProfile>[0]): EngineState => {
   sharedCheck(state);
   return retain(state, SharedEngine.collector_configure(state, encodeSharedValue(encodeCollectorProfile(profile))));

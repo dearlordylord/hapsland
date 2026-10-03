@@ -549,8 +549,8 @@ def apply(input: Inputs.Boundary, trace: Trace, environment: Edge.Environment) -
 
 def next_environment(input: Inputs.Boundary, environment: Edge.Environment) -> Edge.Environment:
   match input environment:
-    case Inputs.IntersectionControl{IntersectionInputs.OutputProfile{delay,lease}} Edge.Environment{seed,tree,graph,preparation,_,_}:
-      Edge.Environment{seed,tree,graph,preparation,delay,lease}
+    case Inputs.IntersectionControl{IntersectionInputs.OutputProfile{delay,lease}} Edge.Environment{seed,tree,graph,preparation,_,_,stop_profile}:
+      Edge.Environment{seed,tree,graph,preparation,delay,lease,stop_profile}
     case _ environment: environment
 
 

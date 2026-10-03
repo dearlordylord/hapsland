@@ -33,7 +33,7 @@ def sharing_runtime(value: Capture.Captured) -> List<&2,Edge.Runtime>:
 
 def physical_capture(allowed: Bool, event: C.CanonicalEvent, now: Nat, environment: Edge.Environment) -> Maybe<&2,OutputFacts.Capture>:
   match environment:
-    case Edge.Environment{_,_,_,_,delay,lease}: Output.authorized_capture(allowed,event,now,delay,lease)
+    case Edge.Environment{_,_,_,_,delay,lease,_}: Output.authorized_capture(allowed,event,now,delay,lease)
 
 def issued(value: Output.Issued, runtime: List<&2,Edge.Runtime>, bindings: List<&2,Originals.Binding>) -> Captured:
   match value runtime:
