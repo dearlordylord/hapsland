@@ -113,7 +113,7 @@ def routed_ready(-F: Data, queue: List<&2,Edge.Queue>, next: List<&2,Engine.Shar
         Edge.Runtime{_,_,jobs,delay} <> Nil{}:
       +following:List<&2,Edge.Runtime>=[Edge.Runtime{state,queue,jobs,delay}]
       Stepped{Edge.Observed{following,
-        Some{Edge.CanonicalFrame{[before],[after],now,order,event,[result],runtime,following,None{},Edge.frame_scope_states([before],[after],Edge.actual_commands(result),None{}),None{}}},hook},None{}}
+        Some{Edge.CanonicalFrame{[before],[after],now,order,event,[result],runtime,following,None{},Edge.frame_scope_states([before],[after],Edge.actual_commands(result),None{}),None{},[]}},hook},None{}}
     case _ _ runtime: Stepped{Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},hook},None{}}
 
 def routed_mode(next: List<&2,Engine.SharingNext>) -> Nat:

@@ -41,15 +41,15 @@ def finish_before(before: List<&2,Edge.Runtime>, provided: Maybe<&2,Nat>) -> May
 
 def frame_finish(frame: Edge.ObservedFrame) -> Maybe<&2,Stop.Finish>:
   match frame:
-    case Edge.FinishFrame{_,_,_,_,_,finish,_,_,_,_,_,_}: finish
-    case Edge.CanonicalFrame{_,_,_,_,_,_,before,_,provided,_,_}: finish_before(before,provided)
-    case Edge.CacheFrame{_,_,_,_,_,_,_,before,_,provided,_,_}: finish_before(before,provided)
-    case Edge.GraphFrame{_,_,_,_,_,_,_,_,before,_,provided,_,_}: finish_before(before,provided)
+    case Edge.FinishFrame{_,_,_,_,_,finish,_,_,_,_,_,_,_}: finish
+    case Edge.CanonicalFrame{_,_,_,_,_,_,before,_,provided,_,_,_}: finish_before(before,provided)
+    case Edge.CacheFrame{_,_,_,_,_,_,_,before,_,provided,_,_,_}: finish_before(before,provided)
+    case Edge.GraphFrame{_,_,_,_,_,_,_,_,before,_,provided,_,_,_}: finish_before(before,provided)
     case Edge.UnexpectedInput{}: None{}
 
 def consumed(frame: Edge.ObservedFrame) -> Nat:
   match frame:
-    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_}: 0n
+    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}: 0n
     case Edge.UnexpectedInput{}: 0n
     case _: 1n
 

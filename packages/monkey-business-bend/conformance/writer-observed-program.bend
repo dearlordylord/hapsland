@@ -135,10 +135,10 @@ def following_capsule(original: Maybe<&2,Originals.Capsule>, state: Types.State)
 
 def with_after(frame: Edge.ObservedFrame, after: List<&2,Types.State>, following: List<&2,Edge.Runtime>) -> Edge.ObservedFrame:
   match frame:
-    case Edge.CanonicalFrame{before,_,time,order,event,result,runtime_before,_,provided,scopes,receipt}:
-      Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,following,provided,scopes,receipt}
-    case Edge.CacheFrame{before,_,time,order,fact,event,result,runtime_before,_,provided,scopes,receipt}:
-      Edge.CacheFrame{before,after,time,order,fact,event,result,runtime_before,following,provided,scopes,receipt}
+    case Edge.CanonicalFrame{before,_,time,order,event,result,runtime_before,_,provided,scopes,receipt,physical}:
+      Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,following,provided,scopes,receipt,physical}
+    case Edge.CacheFrame{before,_,time,order,fact,event,result,runtime_before,_,provided,scopes,receipt,physical}:
+      Edge.CacheFrame{before,after,time,order,fact,event,result,runtime_before,following,provided,scopes,receipt,physical}
     case frame: frame
 
 # The emitted action lists, release custody and report are returned together;
@@ -187,14 +187,14 @@ def finished_departures(value: Finished, before: List<&2,Types.State>, event: C.
 def finish(+original: Maybe<&2,Originals.Capsule>, +runtime: List<&2,Edge.Runtime>,
     frame: Maybe<&2,Edge.ObservedFrame>, bindings: List<&2,Originals.Binding>, job: Maybe<&2,Edge.Job>) -> Finished:
   match runtime frame job:
-    case Edge.Runtime{state,_,_,_} <> Nil{} Some{Edge.CanonicalFrame{before,_,time,_,+event,result <> Nil{},_,_,_,_,_}} Some{+job}:
+    case Edge.Runtime{state,_,_,_} <> Nil{} Some{Edge.CanonicalFrame{before,_,time,_,+event,result <> Nil{},_,_,_,_,_,_}} Some{+job}:
       finished_departures(finished_publication(Originals.after(original,state,event,result,time),runtime,bindings,original,job),before,event,job)
     case runtime _ _: Finished{runtime,bindings,None{},True{}}
 
 def grant(original: Maybe<&2,Originals.Capsule>, frame: Edge.ObservedFrame, after: List<&2,Types.State>,
     report: Maybe<&2,Engine.ResponseResult>, frames: List<&2,Writer.Frame>) -> List<&2,Writer.Frame>:
   match original frame report:
-    case Some{Originals.Pending{pending}} Edge.CanonicalFrame{before,_,time,order,event,result <> Nil{},_,_,_,_,_} Some{report}:
+    case Some{Originals.Pending{pending}} Edge.CanonicalFrame{before,_,time,order,event,result <> Nil{},_,_,_,_,_,_} Some{report}:
       List.append(&2,Writer.Frame,frames,[Writer.GrantFrame{before,after,time,pending,event,result,report,order}])
     case _ _ _: frames
 
@@ -214,7 +214,7 @@ def recorded(frame: Maybe<&2,Edge.ObservedFrame>, +after: List<&2,Types.State>, 
 
 def count(frame: Maybe<&2,Edge.ObservedFrame>, before: Nat) -> Nat:
   match frame:
-    case Some{Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_}}: before
+    case Some{Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}}: before
     case Some{_}: Nat.add(before,1n)
     case None{}: before
 

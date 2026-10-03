@@ -17,7 +17,7 @@ export * from "./callback-controls.ts";
 import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
 import { readRecord, readBool, readNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
-import { decodeDriver, decodeDriverEvent, encodeDriverOutcome } from "./driver-codec.ts";
+import { decodeDriver, decodeDriverEvent, encodeDriverOutcome, type DriverAction } from "./driver-codec.ts";
 import { SharedCore } from "./shared-core.ts";
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
@@ -227,6 +227,10 @@ type Scheduled = {
   writerRelease?: SharedWriterRelease;
   writerOrigin?: { readonly pending: SharedWriterPending; readonly control: Extract<WriterControl, {action:"claim"}>; readonly sequence: number };
   responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl | WriterControl; readonly sequence: number };
+  driverAction?: DriverAction;
+  driverContext?: unknown;
+  stopFact?: { readonly at: number; readonly event: CanonicalEvent };
+  stopCapture?: StopCapture;
   noticeScope?: ReturnType<typeof encodeNoticeScope>;
   noticeDiagnostic?: OperationalNoticeKind;
   callbackReceipt?: CallbackReceipt;
@@ -606,10 +610,14 @@ export class Run {
     expiryAdvice?: number,
     provenance: "environment" | "canonicalFeedback" = "environment",
     capture?: OutputCapture,
+    sourceAction?: DriverAction,
+    sourceContext?: unknown,
   ) {
     const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
     this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
     const scheduled = this.queue.find(item => item.order === this.order - 1)!;
+    scheduled.driverAction = freezeCanonicalData(copy(sourceAction ?? { event, delay, job: !!job, ...(expiryAdvice === undefined ? {} : { expiryAdvice }) }));
+    if (sourceContext !== undefined) scheduled.driverContext = freezeCanonicalData(copy(sourceContext));
     scheduled.generated = true;
     scheduled.partition = partition;
     const rawReceipt = provenance === "environment"
@@ -835,7 +843,7 @@ export class Run {
       context.background = this.generators.size > 0;
       for (const action of decodeDriver({ handled: true, actions: this.core.revalidate(context) }).actions) {
         const partition = action.candidate?.partition ?? this.inputPartition({ at: this.clock, order: 0, input: { at: this.clock, kind: "canonical", event: action.event } });
-        this.event(partition, action.event, action.delay);
+        this.event(partition, action.event, action.delay, undefined, action.expiryAdvice, "environment", undefined, action);
         if (action.candidate) {
           const scheduled = this.scheduled.get(this.order - 1);
           if (!scheduled) throw new Error("shared driver action lost source facts");
@@ -887,7 +895,7 @@ export class Run {
         && (action.event.kind === "submissionTerminal" || action.event.kind === "submissionExpiryCheck")
         ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
       const provenance = command.kind === "submissionExpired" ? "canonicalFeedback" : "environment";
-      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, provenance, output);
+      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, provenance, output, action, context);
       if (item.responseOrigin && action.event.kind !== "submissionTerminal" && action.event.kind !== "submissionExpiryCheck"
         && action.event.kind !== "collectionLeaseCheck" && action.event.kind !== "collectionReleaseLease") {
         const scheduled = this.scheduled.get(this.order - 1);
@@ -1597,9 +1605,10 @@ export class Run {
     if (!f) return;
     const at = this.clock + delay;
     if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === partition && item.at === at)) return;
-    const facts = wakeStopFacts(this.finishCapture(partition,f),at);
+    const capture = this.finishCapture(partition,f);
+    const facts = wakeStopFacts(capture,at);
     for (const fact of facts) this.queuePush({ at: fact.at, order: this.order++,
-      finishAttempt: f.attempt, partition,
+      finishAttempt: f.attempt, partition, stopFact: copy(fact), stopCapture: copy(capture),
       input: { at: fact.at, kind: "canonical", event: fact.event } });
   }
   /** Physical job observation only; recorded ownership is measured in Bend. */
