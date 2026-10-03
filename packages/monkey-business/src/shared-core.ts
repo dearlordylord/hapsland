@@ -1,6 +1,11 @@
 import { commandSharedQuiet, afterSharedQuiet, generatedSharedQuiet } from "../../../src/canonical/simulation-adapter.ts";
 import { peekSharedWriterRelease, deliverSharedWriterRelease, type SharedWriterRelease, attemptSharedWriter, prepareSharedWriter, claimSharedWriter, afterSharedWriter, releaseSharedWriter, type SharedWriterPending } from "../../../src/canonical/simulation-adapter.ts";
 import type { WriterCapture, WriterTarget } from "./writer-controls.ts";
+import { driveSharedStop, sharedStopFinish, sharedStopFinishes, registerSharedStop, progressSharedStop, closeSharedStop } from "../../../src/canonical/simulation-adapter.ts";
+import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
+import type { StopProgress, StopInputSchema } from "./stop-codec.ts";
+import { configureSharedCollector, driveSharedCollector, afterSharedCollector } from "../../../src/canonical/simulation-adapter.ts";
+import type { encodeCollectorProfile } from "./collector-codec.ts";
 import { controlSharedResponse, afterSharedResponse, expireSharedResponses, driveSharedResponse, deliverySharedResponse } from "../../../src/canonical/simulation-adapter.ts";
 import type { CollectionResponseControl, CollectionResponseIdentity } from "./collection-scenario.ts";
 import { beginSharedCache, stepSharedCache, configureSharedCache, type SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
@@ -12,7 +17,8 @@ import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSha
 import { interveneSharedOutput, deliverSharedOutput, issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
 import { encodePreparationGraphLimits } from "./file-trees.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
-import { type EngineState } from "../../monkey-business-bend/engine.mjs";
+import { encodeStopCapture, decodeStopActions, decodeStopCandidates, type StopCapture } from "./stop-codec.ts";
+import SharedEngine, { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
 import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
 import { decodeImportGraphStep, encodeImportGraphEvent, projectImportGraph, initialImportGraph } from "../../../src/canonical/graph-adapter.ts";
@@ -29,10 +35,47 @@ import { sharedActivityEventValid, actSharedLifecycle, sharedLifecycleEntries, s
 /** The shared Bend owner holds both production reducers; this boundary validates and projects. */
 export class SharedCore {
   private state: EngineState;
+  private structuralTransition: unknown;
+  private structuralSource: unknown;
   private queuedProjection: ReturnType<typeof queuedShared> | undefined;
   constructor(limits: Parameters<typeof initialCanonical>[0], seed = 1) {
     this.state = configureSharedSeed(initialSharedCanonical(limits), seed);
   }
+  /** Detached immutable evidence; never accepted as an Engine mutation input. */
+  snapshotState(): EngineState { return freezeCanonicalData(structuredClone(this.state)); }
+  transitionSnapshot(): unknown { return freezeCanonicalData(structuredClone(this.structuralTransition)); }
+  transitionSourceSnapshot(): unknown { return freezeCanonicalData(structuredClone(this.structuralSource)); }
+  configureCollector(profile: Parameters<typeof encodeCollectorProfile>[0]) { this.state = configureSharedCollector(this.state, profile); }
+  collectorHandle(index: number, context: unknown) {
+    const changed = driveSharedCollector(this.state,index,context);
+    this.state = changed.state;
+    return changed.handled;
+  }
+  collectorAfter() {
+    const changed = afterSharedCollector(this.state);
+    this.state = changed.state;
+    return changed.handled.actions;
+  }
+  stopHandle(index: number, context: unknown, facts: import("./stop-codec.ts").StopCommandFacts) {
+    const changed = driveSharedStop(this.state,index,context,facts);
+    this.state = changed.state;
+    return changed.report;
+  }
+  stopFind(partition: number) { return sharedStopFinish(this.state,partition); }
+  stopEntries() { return sharedStopFinishes(this.state); }
+  stopRegister(input: typeof StopInputSchema.Type) {
+    const registered = registerSharedStop(this.state,input);
+    this.state = registered.state;
+    return registered;
+  }
+  stopProgress(partition: number, attempt: number, progress: StopProgress) {
+    this.state = progressSharedStop(this.state,partition,attempt,progress);
+    return this.stopFind(partition);
+  }
+  stopClose(partition: number) { this.state = closeSharedStop(this.state,partition); }
+  stopBudget(capture: StopCapture) { return decodeStopActions(SharedEngine.stop_budget(this.state, encodeStopCapture(capture))); }
+  stopEnd(capture: StopCapture, continuation: boolean) { return decodeStopActions(SharedEngine.stop_end(this.state, encodeStopCapture(capture), continuation)); }
+  stopCandidates(capture: StopCapture) { return decodeStopCandidates(SharedEngine.stop_candidates(this.state, encodeStopCapture(capture))); }
   declareAdvicee(identity: number, seed: number) {
     const declared = declareSharedAdvicee(this.state, identity, seed);
     this.state = declared.state;
@@ -112,6 +155,7 @@ export class SharedCore {
   preprocessSharing(event: CanonicalEvent, partition: number, order: number, horizon?: number) {
     const prepared = preprocessSharedSharing(this.state, event, partition, order, horizon);
     this.state = prepared.state;
+    this.structuralTransition = prepared.structural;
     return prepared;
   }
   leaveAllSharing(partition: number, lifetime: number) {
@@ -189,6 +233,8 @@ export class SharedCore {
     const transition = cacheFact ? { ...stepSharedCache(this.state,cacheFact), writerReleases: [] } : stepSharedCanonical(this.state, event);
     const result = transition.result;
     this.state = transition.state;
+    this.structuralTransition = transition.structural;
+    this.structuralSource = transition.structuralSource;
     return { ...result, afterActions: transition.afterActions, cacheReleases: transition.cacheReleases, cacheFacts: transition.cacheFacts, writerReleases: transition.writerReleases };
   }
   graphStep(event: PreparationEvent): PreparationFrame {
@@ -199,6 +245,7 @@ export class SharedCore {
     const result = decodeImportGraphStep(transition.result);
     const before = projectImportGraph(transition.before);
     this.state = transition.state;
+    this.structuralTransition = transition.structural;
     return { event, before, after: projectImportGraph(result.state), command: result.command };
   }
   preparationFactTime(delay: number, index: number, count: number) { return preparationFactTime(delay, index, count); }

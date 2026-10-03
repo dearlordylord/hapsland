@@ -11,6 +11,7 @@ import ./FreshnessScenario.bend as FreshnessScenario
 import ./ScopedRevision.bend as ScopedRevision
 import ./Callbacks.bend as Callbacks
 import ./StopScenario.bend as StopScenario
+import ./CollectorScenario.bend as CollectorScenario
 import ./OutputScenario.bend as OutputScenario
 import ./OutputCompletion.bend as OutputCompletion
 import ./NoticeScenario.bend as NoticeScenario
@@ -291,6 +292,16 @@ def workload_action(state: Types.State, partition: Nat, action: Workload.Action)
 def workload_valid(state: Types.State, partition: Nat, generation: Nat, recurring: Bool) -> Bool:
   match state:
     case Types.State{_, _, _, workloads, _, _, _, _, _, _, _, _, _}: Workload.valid(workloads, partition, generation, recurring)
+
+def workload_present(found: Maybe<&2,Workload.Advicee>) -> Bool:
+  match found:
+    case Some{_}: True{}
+    case None{}: False{}
+
+# Factual configured Background membership; Canonical still owns admission.
+def workload_configured(state: Types.State, partition: Nat) -> Bool:
+  match state:
+    case Types.State{_,_,_,workloads,_,_,_,_,_,_,_,_,_}: workload_present(Workload.find(workloads,partition))
 
 def workload_duration(state: Types.State, partition: Nat, fallback: Nat) -> Nat:
   match state:
@@ -699,7 +710,7 @@ def callback_delivered(+state: Types.State, order: Nat) -> Types.State:
 
 def callback_originals(state: Types.State) -> List<&2, Callbacks.Original>:
   match state:
-    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _, _,_,_}}: originals
+    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _, _,_,_,_,_}}: originals
 
 type CallbackTransition is Data:
   CallbackTransition{state: Types.State, result: Callbacks.Applicability, cancel: List<&2,Nat>, schedule: List<&2,Callbacks.Scheduled>}
@@ -759,18 +770,18 @@ type NoticeTransition is Data:
 
 def notice_followed(state: Types.State, followup: NoticeScenario.Followup) -> NoticeTransition:
   match state followup:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing,cache,collection,writers}} NoticeScenario.Followup{notices,events}:
-      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}},events}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}} NoticeScenario.Followup{notices,events}:
+      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}},events}
 
 def notice_clocked(state: Types.State, scope: NoticeScenario.Scope, key: Nat, now: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing,cache,collection,writers}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing,cache,collection,writers,background_collection,stop}}
 
 def notice_pruned(state: Types.State, key: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing,cache,collection,writers}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing,cache,collection,writers,background_collection,stop}}
 
 # Called with this event's actual accepted commands and captured exercise scope.
 # The before state is required for releasing only a genuinely dropped key.
@@ -792,15 +803,15 @@ def notice_exercise(scope: NoticeScenario.Scope) -> List<&2,NoticeScenario.Sched
 
 def notice_failure(state: Types.State, scope: NoticeScenario.Scope, now: Nat, key: Nat, sequence: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
 
 def notice_lease(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
 
 def notice_acknowledge(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
 
 def callback_replaced(+state: Types.State, orders: List<&2,Nat>) -> Types.State:
   with_callbacks(state,Callbacks.replaced(callback_state(state),orders))
@@ -1227,3 +1238,153 @@ def quiet_command(state: Types.State, command: Canonical.Command, event: Canonic
   QuietScenario.command(canonical(state),command,event,partition,now)
 def writer_unissued_release_delivery(+state: Types.State, pending: WriterScenario.Pending, now: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   WriterScenario.unissued_release(RuntimeScenarios.writers(scenarios(state)),canonical(state),pending,now)
+
+def stop_reserve(capture: StopScenario.Capture, selected: List<&2,Nat>, now: Nat) -> List<&2,Driver.Action>:
+  [StopScenario.reserve(capture,selected,now)]
+
+def stop_continued(capture: StopScenario.Capture) -> List<&2,Driver.Action>:
+  StopScenario.continued(capture)
+
+def stop_reserved(capture: StopScenario.Capture, selected: List<&2,Nat>, failed: Bool, delay: Nat) -> List<&2,Driver.Action>:
+  StopScenario.reserved(capture,selected,failed,delay)
+
+def stop_budget(state: Types.State, capture: StopScenario.Capture) -> List<&2,Driver.Action>:
+  [StopScenario.budget(canonical(state),capture)]
+
+def stop_candidates(state: Types.State, capture: StopScenario.Capture) -> List<&2,Nat>:
+  match capture:
+    case StopScenario.Capture{p,l,r,_,_,_,_}: StopScenario.candidates(Driver.work_list(canonical(state)),p,l,r)
+
+def stop_end(state: Types.State, capture: StopScenario.Capture, continuation: Bool) -> List<&2,Driver.Action>:
+  StopScenario.end(canonical(state),capture,continuation)
+
+def stop_validation(capture: StopScenario.Capture, advice: Nat, current: Bool,
+    credential: Bool, generation: Bool, readable: Bool) -> List<&2,Driver.Action>:
+  match capture:
+    case StopScenario.Capture{p,_,r,_,token,_,_}:
+      [StopScenario.validation(advice,p,r,token,current,credential,generation,readable)]
+
+# Factual background-collection feedback publishes its state and actions as one
+# checked result. Admission decisions remain in the accepted Canonical step.
+type CollectorHandled is Data:
+  CollectorHandled{state: Types.State, handled: Driver.Handled}
+
+def collector_with(state: Types.State, collector: CollectorScenario.State) -> Types.State:
+  match state:
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,scenarios}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,
+        RuntimeScenarios.with_background_collection(scenarios,collector)}
+
+def collector_changed(state: Types.State, changed: CollectorScenario.Changed) -> CollectorHandled:
+  match changed:
+    case CollectorScenario.Changed{collector,handled}: CollectorHandled{collector_with(state,collector),handled}
+
+def collector_configure(+state: Types.State, profile: Maybe<&2,CollectorScenario.Profile>) -> Types.State:
+  collector_with(state,CollectorScenario.configure(RuntimeScenarios.background_collection(scenarios(state)),profile))
+
+def collector_configured(state: Types.State) -> Bool:
+  CollectorScenario.configured(RuntimeScenarios.background_collection(scenarios(state)))
+
+# Original Finish facts live inside the same complete Engine state used by every
+# frontend. These projections never reconstruct or substitute Canonical state.
+def stop_state(state: Types.State) -> StopScenario.State:
+  RuntimeScenarios.stop(scenarios(state))
+
+def stop_with(+state: Types.State, stop: StopScenario.State) -> Types.State:
+  with_scenarios(state,RuntimeScenarios.with_stop(scenarios(state),stop))
+
+def stop_entries(state: Types.State) -> List<&2,StopScenario.Finish>:
+  StopScenario.entries(stop_state(state))
+
+def stop_find(state: Types.State, partition: Nat) -> Maybe<&2,StopScenario.Finish>:
+  StopScenario.find(stop_entries(state),partition)
+
+def stop_scope_active(finish: Maybe<&2,StopScenario.Finish>, current: Maybe<&2,Canonical.Round>) -> Bool:
+  match finish current:
+    case Some{StopScenario.Finish{p,l,r,_,_,_,_,_,_,_,_,_,_}} Some{Canonical.Round{owner,generation,round,_,_,_,_,_}}:
+      Nat.is_eq(p,owner) && Nat.is_eq(l,generation) && Nat.is_eq(r,round)
+    case _ _: False{}
+
+def stop_active(+state: Types.State, +partition: Nat) -> Bool:
+  stop_scope_active(stop_find(state,partition),Canonical.find_round(partition,Driver.rounds(canonical(state))))
+
+def stop_put(+state: Types.State, finish: StopScenario.Finish) -> Types.State:
+  stop_with(state,StopScenario.put(stop_state(state),finish))
+
+def stop_close(+state: Types.State, partition: Nat) -> Types.State:
+  stop_with(state,StopScenario.close(stop_state(state),partition))
+
+
+type StopRegistered is Data:
+  StopRegistered{state: Types.State, finish: Maybe<&2,StopScenario.Finish>, created: Bool}
+
+def stop_registered(state: Types.State, registered: StopScenario.Registered) -> StopRegistered:
+  match registered:
+    case StopScenario.Registered{stop,finish,created}: StopRegistered{stop_with(state,stop),finish,created}
+
+def stop_original_scope(found: Maybe<&2,Canonical.Round>, input: StopScenario.Input, now: Nat) -> Bool:
+  match found input:
+    case Some{Canonical.Round{p,l,r,_,_,_,_,_}} StopScenario.Input{owner,generation,round,+started,+cutoff,_}:
+      Nat.is_eq(p,owner) && Nat.is_eq(l,generation) && Nat.is_eq(r,round) &&
+        Nat.is_eq(started,now) && Nat.is_le(started,cutoff) && Nat.is_le(cutoff,Nat.add(Nat.mul(65536n,4294967295n),65535n))
+    case _ _: False{}
+
+def stop_registration_valid(+state: Types.State, +input: StopScenario.Input) -> Bool:
+  match input:
+    case StopScenario.Input{p,_,_,_,_,_}:
+      stop_original_scope(Canonical.find_round(p,Driver.rounds(canonical(state))),input,clock(state))
+
+def stop_register(+state: Types.State, +input: StopScenario.Input) -> StopRegistered:
+  stop_registered(state,StopScenario.register(stop_state(state),input,stop_registration_valid(state,input)))
+
+
+# Resolve only the factual original scope when a caller's Finish input is
+# actually dequeued. Registration remains the same checked Stop owner.
+def stop_start_scope(found: Maybe<&2,Canonical.Round>, state: Types.State,
+    started: Nat, cutoff: Nat, recurring: Bool) -> StopRegistered:
+  match found:
+    case Some{Canonical.Round{p,l,r,_,_,_,_,_}}:
+      stop_register(state,StopScenario.Input{p,l,r,started,cutoff,recurring})
+    case None{}: StopRegistered{state,None{},False{}}
+
+def stop_start(+state: Types.State, partition: Nat, started: Nat, cutoff: Nat, recurring: Bool) -> StopRegistered:
+  stop_start_scope(Canonical.find_round(partition,Driver.rounds(canonical(state))),state,started,cutoff,recurring)
+
+
+def stop_progress(+state: Types.State, partition: Nat, attempt: Nat, change: StopScenario.Progress) -> Types.State:
+  stop_with(state,StopScenario.progress(stop_state(state),partition,attempt,change))
+
+
+def collector_partition(context: Driver.Context) -> Nat:
+  match context:
+    case Driver.Context{partition,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}: partition
+
+def collector_command(+state: Types.State, +event: Canonical.CanonicalEvent, command: Canonical.Command,
+    +context: Driver.Context) -> CollectorHandled:
+  collector_changed(state,CollectorScenario.handle(RuntimeScenarios.background_collection(scenarios(state)),event,command,
+    canonical(state),CredentialContext.apply(credential_state(state),event,
+      CollectorScenario.candidate_context(RuntimeScenarios.background_collection(scenarios(state)),event,context)),stop_active(state,collector_partition(context))))
+
+def collector_after(+state: Types.State, event: Canonical.CanonicalEvent) -> CollectorHandled:
+  collector_changed(state,CollectorScenario.after(RuntimeScenarios.background_collection(scenarios(state)),canonical(state),event))
+
+type StopHandled is Data:
+  StopHandled{state: Types.State, handled: Driver.Handled, ended: Maybe<&2,StopScenario.Ended>,
+    fit_attempt: Maybe<&2,Nat>, output: Maybe<&2,OutputScenario.Capture>}
+
+def stop_changed(state: Types.State, changed: StopScenario.Changed) -> StopHandled:
+  match changed:
+    case StopScenario.Changed{stop,handled,ended,fit_attempt,output}:
+      StopHandled{stop_with(state,stop),handled,ended,fit_attempt,output}
+
+def stop_command_valid(valid: Bool, +state: Types.State, event: Canonical.CanonicalEvent,
+    command: Canonical.Command, context: Driver.Context, facts: StopScenario.CommandFacts) -> StopHandled:
+  match valid:
+    case True{}:
+      stop_changed(state,StopScenario.handle(stop_state(state),canonical(state),facts,
+        CredentialContext.apply(credential_state(state),event,context),command))
+    case False{}: StopHandled{state,Driver.Handled{False{},[]},None{},None{},None{}}
+
+def stop_command(+state: Types.State, event: Canonical.CanonicalEvent, command: Canonical.Command,
+    +context: Driver.Context, facts: StopScenario.CommandFacts) -> StopHandled:
+  stop_command_valid(stop_active(state,collector_partition(context)),state,event,command,context,facts)

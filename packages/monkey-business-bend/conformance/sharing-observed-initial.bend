@@ -108,4 +108,4 @@ def initialize(scenario: Inputs.Scenario) -> Initialized:
 def environment(configuration: Inputs.Configuration) -> Edge.Environment:
   match configuration:
     case Inputs.Configuration{seed,_,_,_,tree,graph,preparation_delay,output_delay,output_lease,_,_}:
-      Edge.Environment{seed,tree,graph,preparation_delay,output_delay,output_lease}
+      Edge.Environment{seed,tree,graph,preparation_delay,output_delay,output_lease,None{}}

@@ -55,32 +55,12 @@ def provided(job: Maybe<&2,Edge.Job>) -> Maybe<&2,Nat>:
     case Some{Edge.Job{p,_,_,_,_}}: Some{p}
     case None{}: None{}
 
-def command_scope(command: C.Command, before: List<&2,Types.State>, after: List<&2,Types.State>,
-    context: Maybe<&2,Nat>) -> Maybe<&2,Nat>:
-  match before after:
-    case before <> Nil{} after <> Nil{}: Engine.scope_command(before,after,command,context)
-    case _ _: None{}
-
-def command_scopes(list: List<&2,C.Command>, +before: List<&2,Types.State>, +after: List<&2,Types.State>,
-    +context: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
-  match list:
-    case Nil{}: []
-    case command <> tail:
-      command_scope(command,before,after,context) <> command_scopes(tail,before,after,context)
-
-def result_scopes(+before: List<&2,Types.State>, +after: List<&2,Types.State>,
-    result: List<&2,C.Step>, context: Maybe<&2,Nat>) -> Maybe<&2,List<&2,Maybe<&2,Nat>>>:
-  match before after result:
-    case _ <> Nil{} _ <> Nil{} C.Advanced{_,commands} <> Nil{}:
-      Some{command_scopes(commands,before,after,context)}
-    case _ <> Nil{} _ <> Nil{} C.Rejected{_,_} <> Nil{}: Some{[]}
-    case _ _ _: None{}
-
 def frame_scopes(frame: Edge.ObservedFrame, context: Maybe<&2,Nat>) -> Maybe<&2,List<&2,Maybe<&2,Nat>>>:
   match frame:
-    case Edge.CanonicalFrame{before,after,_,_,_,result}: result_scopes(before,after,result,context)
-    case Edge.CacheFrame{before,after,_,_,_,_,result}: result_scopes(before,after,result,context)
-    case Edge.GraphFrame{_,_,_,_,_,_,_,_}: Some{[]}
+    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_}: Some{scopes}
+    case Edge.CacheFrame{_,_,_,_,_,_,_,_,_,_,scopes,_}: Some{scopes}
+    case Edge.GraphFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
+    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
     case Edge.UnexpectedInput{}: None{}
 
 def record(frame: Maybe<&2,Edge.ObservedFrame>, receipt: Maybe<&2,Callbacks.Target>,
@@ -224,7 +204,7 @@ def member_selected(equal: Bool, scope: Freshness.Scope, index: Nat,
 def member(list: List<&2,Frame>, +partition: Nat, index: Nat) -> Maybe<&2,Freshness.Scope>:
   match list:
     case Nil{}: None{}
-    case Observed{Edge.CanonicalFrame{_,_,_,_,C.BeginObservedPreparation{+p,l,r,observation,_},_},_,_,_} <> tail:
+    case Observed{Edge.CanonicalFrame{_,_,_,_,C.BeginObservedPreparation{+p,l,r,observation,_},_,_,_,_,_,_},_,_,_} <> tail:
       member_selected(Nat.is_eq(p,partition),Freshness.Scope{p,l,r,observation},index,
         i => member(tail,partition,i))
     case _ <> tail: member(tail,partition,index)

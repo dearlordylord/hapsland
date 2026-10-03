@@ -23,7 +23,7 @@ def consumer_config() -> T.Config:
     T.Environment{3200n, None{}, Trace.weights(), 800n,
       Tree.Profile{1n, 3n, 2n, 2n, 0n, 0n, 0n, 10n, 0n, 0n, 0n, 0n, 4n, 8n, 3n, 6n},
       Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n},
-      800n, 5000n, True{}, True{}, 1n, True{}, 20000n}}
+      800n, 5000n, True{}, True{}, 1n, True{}, 20000n}, None{}}
 
 def changed(result: T.Controlled) -> T.State:
   match result:

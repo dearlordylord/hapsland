@@ -13,9 +13,9 @@ def view(observation: T.Observation) -> List<&2, Nat>:
 def config(jev: Nat, preparation: Nat, lifetime: Nat, generation: Nat,
     weights: List<&2, Numeric.Words>, original: T.Config) -> T.Config:
   match original:
-    case T.Config{limits, advicees, T.Environment{_, _, _, _, tree, graph, output, lease, current, ready, _, readable, _}}:
+    case T.Config{limits, advicees, T.Environment{_, _, _, _, tree, graph, output, lease, current, ready, _, readable, _}, collectors}:
       T.Config{limits, advicees, T.Environment{jev, None{}, weights, preparation, tree, graph,
-        output, lease, current, ready, generation, readable, lifetime}}
+        output, lease, current, ready, generation, readable, lifetime}, collectors}
 
 def initial(seed: Nat, jev: Nat, preparation: Nat, lifetime: Nat, generation: Nat,
     weights: List<&2, Numeric.Words>) -> List<&2, Nat>:

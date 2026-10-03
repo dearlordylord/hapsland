@@ -8,9 +8,9 @@ import ./native-run-projection.bend as Projection
 
 def finding_config(config: T.Config) -> T.Config:
   match config:
-    case T.Config{limits, advicees, T.Environment{delay, _, weights, prep, tree, graph, output, lease, current, ready, generation, readable, lifetime}}:
+    case T.Config{limits, advicees, T.Environment{delay, _, weights, prep, tree, graph, output, lease, current, ready, generation, readable, lifetime}, collectors}:
       T.Config{limits, advicees, T.Environment{delay, Some{Canonical.RequestFinding{}}, weights,
-        prep, tree, graph, output, lease, current, ready, generation, readable, lifetime}}
+        prep, tree, graph, output, lease, current, ready, generation, readable, lifetime}, collectors}
 
 def changed(result: T.Controlled) -> T.State:
   match result:

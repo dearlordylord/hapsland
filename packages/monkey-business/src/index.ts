@@ -1,4 +1,4 @@
-import { wakeStopFacts } from "./stop-codec.ts";
+import { wakeStopFacts, type StopCapture } from "./stop-codec.ts";
 import type { WriterControl, WriterReport } from "./writer-controls.ts";
 export * from "./writer-controls.ts";
 import type { SharedWriterPending, SharedWriterRelease } from "../../../src/canonical/simulation-adapter.ts";
@@ -246,6 +246,35 @@ type Scheduled = {
   input: { kind: "preparationGraph"; at: number; event: PreparationEvent };
   candidate?: never;
 });
+/** Full factual viewing boundary. Snapshots are detached from the live owner. */
+export type RunRuntimeSnapshot = {
+  readonly engine: ReturnType<SharedCore["snapshotState"]>;
+  readonly queue: readonly Readonly<Scheduled>[];
+  readonly jobs: readonly (readonly [number, Extract<RunInput, { kind: "edit" }>])[];
+  readonly issuedRequests: readonly (readonly [number, Extract<CanonicalCommand, { kind: "jevRequestIssued" }>])[];
+  readonly retainedCallbacks: readonly { readonly order: number; readonly receipt: CallbackReceipt;
+    readonly payload: Readonly<Scheduled>; readonly fact: unknown }[];
+  readonly order: number;
+  readonly eventCount: number;
+  readonly jevDelay: number;
+  readonly outcome: JevRequestOutcome | undefined;
+  readonly outcomeWeights: OutcomeWeights;
+  readonly environment: EnvironmentProfile;
+  readonly outputProfile: OutputProfile;
+  readonly generatorPartitions: readonly number[];
+};
+type RunStructuralDetails =
+  | { readonly kind: "canonical" | "preparation" | "sharing"; readonly scheduled: Readonly<Scheduled>;
+      readonly observation: Observation; readonly transition: unknown; readonly source?: unknown }
+  | { readonly kind: "finishRegistration"; readonly scheduled: Readonly<Scheduled>;
+      readonly registration: ReturnType<SharedCore["stopRegister"]> }
+  | { readonly kind: "callbackDelivery"; readonly scheduled: Readonly<Scheduled>;
+      readonly receipt: CallbackReceipt; readonly fact: unknown; readonly delivery: unknown };
+export type RunStructuralFrame = RunStructuralDetails & {
+  readonly time: number;
+  readonly before: RunRuntimeSnapshot;
+  readonly after: RunRuntimeSnapshot;
+};
 const integer = (n: number, name: string) => {
   if (!Number.isSafeInteger(n) || n < 0 || n > 2 ** 48 - 1)
     throw new RangeError(`invalid ${name}`);
@@ -253,19 +282,7 @@ const integer = (n: number, name: string) => {
 };
 const copy = <T>(x: T): T => structuredClone(x);
 const restoreEndpoint = Symbol("restore replay endpoint");
-type Finish = {
-  started: number;
-  lifetime: number;
-  round: number;
-  attempt: number;
-  token: number;
-  deadline: number;
-  recurring: boolean;
-  selected: number[];
-  waiting: boolean;
-  validating: number;
-  fitPending?: boolean;
-};
+type Finish = import("./stop-codec.ts").StopFinish;
 const defaults = {
   globalItems: 32,
   globalBytes: 100000,
@@ -283,7 +300,6 @@ export class Run {
   private identityIds = new Map<string, number>();
   private nextIdentity = 1;
   private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
-  private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
   private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
   get capacityMetadata(): CapacityMetadata {
     const metadata = copy(this.metadata);
@@ -353,6 +369,9 @@ export class Run {
     // Delivery consumes an authentic issued queue receipt independently of the
     // Canonical result or whether the transition emits any commands.
     if (item.callbackReceipt) {
+      const receipt = item.callbackReceipt;
+      const physicalBefore = this.structuralBefore();
+      const original = physicalBefore ? copy(item) : item;
       const fact = this.callbackFacts.get(item.callbackReceipt);
       if (!fact) throw new Error("issued callback lost trusted fact");
       const delivered = readRecord(this.core.outputDeliver(fact, this.clock));
@@ -362,6 +381,8 @@ export class Run {
         item.input = { ...item.input, event: action.event };
       }
       this.core.deliverCallback(entry.order);
+      this.structuralRecord(physicalBefore,() => ({ kind: "callbackDelivery", scheduled: original,
+        receipt, fact, delivery: delivered }));
     }
     return item;
   }
@@ -370,6 +391,7 @@ export class Run {
   private get clock() { return this.core.now; }
   private history: Observation[] = [];
   private listeners = new Set<(o: Observation) => void>();
+  private structuralListeners = new Set<(frame: RunStructuralFrame) => void>();
   private controls: ControlRecord[] = [];
   private interventionReports: JevInterventionReport[] = [];
   get interventions(): readonly JevInterventionReport[] { return copy(this.interventionReports); }
@@ -380,8 +402,6 @@ export class Run {
     input: RunInput;
   }[] = [];
   private timelineOrder = 0;
-  private finishes = new Map<number, Finish>();
-  private nextFinishIdentity = 100000;
   private issuedRequests = new Map<
     number,
     Extract<CanonicalCommand, { kind: "jevRequestIssued" }>
@@ -434,6 +454,7 @@ export class Run {
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
     this.core = new SharedCore(config.limits ?? defaults, config.seed ?? 1);
+    this.core.configureCollector(config.lifecycles?.collectors);
     if (config.lifecycles?.reuse) this.core.configureCache(config.lifecycles.reuse.entryLimit, config.lifecycles.reuse.byteLimit);
     this.core.configureCredentials(this.environment.credentialReady, this.environment.credentialGeneration ?? 1);
     if (config.session && config.sessions) throw new TypeError("choose session or sessions");
@@ -525,6 +546,31 @@ export class Run {
   subscribe(listener: (o: Observation) => void) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+  /** Source observations do not enter history or consume advance's event budget. */
+  subscribeStructural(listener: (frame: RunStructuralFrame) => void) {
+    this.structuralListeners.add(listener);
+    return () => this.structuralListeners.delete(listener);
+  }
+  runtimeSnapshot(): RunRuntimeSnapshot {
+    const retainedCallbacks = [...this.callbackPayloads].map(([order, value]) => {
+      const fact = this.callbackFacts.get(value.receipt);
+      if (!fact) throw new Error("retained callback lost trusted fact");
+      return { order, receipt: value.receipt, payload: value.payload, fact };
+    });
+    return freezeCanonicalData(copy({ engine: this.core.snapshotState(), queue: this.queue,
+      jobs: [...this.jobs] as const, issuedRequests: [...this.issuedRequests] as const,
+      retainedCallbacks, order: this.order, eventCount: this.count, jevDelay: this.jevDelay,
+      outcome: this.outcome, outcomeWeights: this.outcomeWeights, environment: this.environment,
+      outputProfile: this.outputProfile, generatorPartitions: [...this.generators.keys()] }));
+  }
+  private structuralBefore(): RunRuntimeSnapshot | undefined {
+    return this.structuralListeners.size ? this.runtimeSnapshot() : undefined;
+  }
+  private structuralRecord(before: RunRuntimeSnapshot | undefined, details: () => RunStructuralDetails): void {
+    if (!before || !this.structuralListeners.size) return;
+    const frame = freezeCanonicalData(copy({ ...details(), time: this.clock, before, after: this.runtimeSnapshot() }));
+    for (const listener of this.structuralListeners) listener(frame);
   }
   schedule(input: RunInput) {
     this.enqueue(copy(input));
@@ -681,10 +727,10 @@ export class Run {
       const transition = this.core.lifecycle(scope.partition, scope.agent, value.action);
       const current = this.core.adviceeLifecycles.find(entry => entry.partition === scope.partition);
       if (current && current.status !== "active") {
-        const finish = this.finishes.get(scope.partition);
+        const finish = this.core.stopFind(scope.partition);
         if (finish) {
           this.queue = this.queue.filter(item => item.finishAttempt !== finish.attempt || item.partition !== scope.partition);
-          this.finishes.delete(scope.partition);
+          this.core.stopClose(scope.partition);
         }
       }
       for (const operation of readBendList(transition.cleanup.operations, readNat, 2048)) this.jobs.delete(operation);
@@ -787,7 +833,7 @@ export class Run {
     const partition = this.inputPartition(item);
     const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: partition, lifetime: 1, round: 0 };
     const automaticReview = !(this.config.lifecycles?.cancellation === "suppressed") && (!!this.config.lifecycles?.reuse || !(job && "revisionSubject" in job && job.revisionSubject !== undefined));
-    const automaticCollection = !this.config.lifecycles?.collectors && !this.finishes.has(partition);
+    const automaticCollection = !this.config.lifecycles?.collectors && !this.hasFinish(partition);
     const automaticOutput = this.candidateOutputBytes === undefined && this.outputProfile.outcome !== "failed" && this.outputProfile.delayMs < this.outputProfile.leaseMs;
     const c = item.candidate;
     return { $: "Driver.Context", partition: binding.partition, lifetime: binding.lifetime, round: binding.round,
@@ -809,11 +855,21 @@ export class Run {
     const scoped = { ...item, partition: partition ?? 0 };
     const context = this.driverContext(event, scoped, outcome, job);
     if (partition !== undefined) { context.partition = partition; context.background = this.generators.has(partition); }
-    const handled = decodeDriver(item.responseOrigin ? this.core.responseHandle(event,index,context,item.responseOrigin.target) : this.core.handle(event, index, context));
+    const collector = this.core.collectorHandle(index,context);
+    const stop = this.core.stopHandle(index, context, { now: this.clock, profile: this.outputProfile,
+      ...(this.candidateOutputBytes === undefined ? {} : { bytes: this.candidateOutputBytes }),
+      ...(item.fitFinish === undefined ? {} : { fitAttempt: item.fitFinish }) });
+    const ordinary = collector.handled ? { handled: false, actions: [] } : decodeDriver(item.responseOrigin
+      ? this.core.responseHandle(event,index,context,item.responseOrigin.target) : this.core.handle(event, index, context));
+    const handled = { handled: collector.handled || ordinary.handled || stop.handled,
+      actions: [...collector.actions, ...ordinary.actions, ...stop.actions] };
     if (!handled.handled) return { handled: false, outcome: undefined };
+    if (stop.ended) this.queue = this.queue.filter(queued =>
+      queued.finishAttempt !== stop.ended!.finish.attempt || queued.partition !== stop.ended!.finish.partition);
     for (const action of handled.actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event, partition);
-      const output = (command.kind === "submissionAuthorized" || (command.kind === "submissionBegun" && event.kind === "submissionBegin" && event.authorizeNow))
+      const output = stop.output && stop.output.profile.outcome !== "failed" && action.event.kind === "finishTerminal"
+        ? stop.output : (command.kind === "submissionAuthorized" || (command.kind === "submissionBegun" && event.kind === "submissionBegin" && event.authorizeNow))
         && (action.event.kind === "submissionTerminal" || action.event.kind === "submissionExpiryCheck")
         ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
       const provenance = command.kind === "submissionExpired" ? "canonicalFeedback" : "environment";
@@ -824,11 +880,25 @@ export class Run {
         if (!scheduled) throw new Error("response action lost its original capture");
         scheduled.responseOrigin = item.responseOrigin;
       }
+      if (stop.fitAttempt !== undefined && action.event.kind === "collectionFitCheck") {
+        const scheduled = this.scheduled.get(this.order - 1);
+        if (!scheduled) throw new Error("Stop fit action lost original attempt");
+        scheduled.fitFinish = stop.fitAttempt;
+      }
+      if (stop.ended && action.event.kind === "collectionRetireAdvice") {
+        const advice = action.event.advice;
+        this.queue = this.queue.filter(queued => queued.expiryAdvice !== advice);
+        this.jobs.delete(advice);
+      }
       if (action.candidate) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared driver action lost source facts");
         scheduled.candidate = action.candidate;
       }
+    }
+    if (stop.ended?.finish.recurring) {
+      const session = this.generators.get(stop.ended.finish.partition);
+      if (session) for (const input of session.onFinish(this.clock,stop.ended.continuation)) this.enqueue(input);
     }
     return { handled: true, outcome };
   }
@@ -864,14 +934,19 @@ export class Run {
     const head = this.queue[0];
     if (head?.input.kind === "canonical" && head.input.event.kind === "preparationCompleted") {
       const owner = this.inputPartition(head);
+      const structuralBefore = this.structuralBefore();
+      const original = structuralBefore ? copy(head) : head;
       const prepared = this.core.preprocessSharing(head.input.event, owner, head.order, untilTime);
       if (prepared.frame) {
         for (const followup of readBendList(prepared.events, decodeDriverEvent, 2048)) this.event(owner, followup);
         const frame = prepared.frame;
-        return this.record({ sequence: this.count++, time: this.clock, event: decodeDriverEvent(frame.event),
+        const observation: Observation = { sequence: this.count++, time: this.clock, event: decodeDriverEvent(frame.event),
           commands: frame.result.commands, commandScopes: frame.commandScopes, before: frame.before, after: frame.after,
           ...(frame.result.rejection ? { rejection: frame.result.rejection } : {}), effects: [], capacityMetadata: this.capacityMetadata,
-          ...(owner === 0 ? {} : { partition: owner, agent: this.agentName(owner) }) });
+          ...(owner === 0 ? {} : { partition: owner, agent: this.agentName(owner) }) };
+        this.structuralRecord(structuralBefore,() => ({ kind: "sharing", scheduled: original, observation,
+          transition: this.core.transitionSnapshot() }));
+        return this.record(observation);
       }
     }
     const item = this.queueShift();
@@ -912,15 +987,19 @@ export class Run {
       if (!this.core.preparationActive(event)) {
         return this.step(untilTime);
       }
+      const structuralBefore = this.structuralBefore();
       const preparation = this.core.graphStep(event);
-      return this.record({ sequence: this.count++, time: this.clock, event,
-        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, ...(partition === 0 ? {} : { partition, agent: this.agentName(partition) }) });
+      const observation: Observation = { sequence: this.count++, time: this.clock, event,
+        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, ...(partition === 0 ? {} : { partition, agent: this.agentName(partition) }) };
+      this.structuralRecord(structuralBefore,() => ({ kind: "preparation", scheduled: item, observation,
+        transition: this.core.transitionSnapshot() }));
+      return this.record(observation);
     }
     if (session && !session.valid(item.input))
       return this.step(untilTime);
     if (
       item.finishAttempt !== undefined &&
-      item.finishAttempt !== this.finishes.get(partition)?.attempt
+      item.finishAttempt !== this.core.stopFind(partition)?.attempt
     )
       return this.step(untilTime);
     if (item.input.kind !== "canonical") {
@@ -935,22 +1014,15 @@ export class Run {
       const scope = this.projection.rounds.find((r) => r.partition === partition);
       const round = scope?.id;
       if (item.input.kind === "finish") {
-        if (scope && round && !this.finishes.get(partition)) {
-          const identity = this.nextFinishIdentity++;
-          this.finishes.set(partition, {
-            started: this.clock,
-            lifetime: scope.lifetime,
-            round,
-            attempt: identity,
-            token: identity,
-            deadline: this.clock + (this.config.finishDeadline ?? 200),
-            recurring: "recurring" in item.input && item.input.recurring,
-            selected: [],
-            waiting: false,
-            validating: 0,
-          });
+        if (scope && round && !this.core.stopFind(partition)) {
+          const structuralBefore = this.structuralBefore();
+          const registered = this.core.stopRegister({ partition, lifetime: scope.lifetime, round,
+            started: this.clock, cutoff: this.clock + (this.config.finishDeadline ?? 200),
+            recurring: "recurring" in item.input && item.input.recurring });
+          if (!registered.created || !registered.finish) throw new Error("original Stop registration refused");
           this.pollFinish(partition);
           this.pollFinish(partition, this.config.finishDeadline ?? 200);
+          this.structuralRecord(structuralBefore,() => ({ kind: "finishRegistration", scheduled: item, registration: registered }));
         } else if (
           !round &&
           "recurring" in item.input &&
@@ -1021,7 +1093,7 @@ export class Run {
     if (event.kind === "collectionClaimBackground") Object.assign(this.metadata, { collectors: { capacity: event.capacity } });
     const before = this.projection;
     if (item.generated && event.kind === "quietRoundTick")
-      event = this.core.quietEvent(event,this.quietNativeIdle(event.partition),!this.finishes.has(event.partition));
+      event = this.core.quietEvent(event,this.quietNativeIdle(event.partition),!this.hasFinish(event.partition));
     // Callback identity is checked against issued work, before the product's stale-result fence.
     const completionEvent = event;
     if (
@@ -1042,6 +1114,7 @@ export class Run {
       if (!readBool(completion.ready)) throw new Error("unresolved shared preparation route");
       event = decodeDriverEvent(completion.event);
     }
+    const structuralBefore = this.structuralBefore();
     const result = this.core.step(event, item.cacheFact);
     for (const release of result.writerReleases) {
       this.event(partition,release.event);
@@ -1076,7 +1149,7 @@ export class Run {
     for (const [commandIndex, command] of result.commands.entries()) {
       const driver = this.drive(event, command, commandIndex, item);
       const driven = driver.handled;
-      const finish = this.finishes.get(partition);
+      const finish = this.core.stopFind(partition);
       switch (command.kind) {
         case "permitIssued": {
           if (event.kind !== "issuePermit" || !item.job) break;
@@ -1245,29 +1318,10 @@ export class Run {
           if (!driven) throw new Error("unhandled shared finding retention");
           break;
         }
-        case "collectionEligible": {
-          if (event.kind === "collectionReady" && !this.finishes.has(event.partition)) {
-            if (this.config.lifecycles?.collectors) {
-              this.collectorCandidates.set(event.advice, { advice: event.advice, round: event.round, token: event.advice });
-              emit({ kind: "collectionClaimBackground", group: event.partition, token: event.advice, active: true, capacity: this.config.lifecycles.collectors.capacity });
-            } else if (!driven) this.validateAdvice(partition, event.advice, event.round, event.advice, session ? "background" : "edit");
-          }
-          break;
-        }
+        case "collectionEligible":
         case "collectionBackgroundClaimed":
-          if (event.kind === "collectionClaimBackground" && this.config.lifecycles?.collectors) {
-            const candidate = this.collectorCandidates.get(event.token);
-            if (candidate) this.validateAdvice(partition, candidate.advice, candidate.round, candidate.token, "background");
-            const lifetime = this.config.lifecycles?.collectors?.lifetimeMs ?? 30000;
-            emit({ kind: "collectionExpireBackground", group: event.group, token: event.token, elapsed: lifetime, lifetime }, lifetime);
-          }
-          break;
         case "collectionBackgroundReleased":
-          for (const [token, candidate] of this.collectorCandidates) {
-            const owner = this.projection.work.find(w => w.operation === candidate.advice);
-            if (!owner) { this.collectorCandidates.delete(token); continue; }
-            emit({ kind: "collectionClaimBackground", group: owner.partition, token, active: true, capacity: this.config.lifecycles!.collectors!.capacity });
-          }
+          // The actual accepted command already ran through the shared owner.
           break;
         case "submissionBegun":
           if (event.kind === "submissionBegin" && this.outputProfile.outcome === "failed") {
@@ -1316,15 +1370,9 @@ export class Run {
             break;
           }
         case "collectionFits": {
-          if (!item.candidate && finish?.fitPending && item.fitFinish === finish.attempt) { finish.fitPending = false; this.finishBudget(partition, true); break; }
+          if (driven) break;
           if (item.candidate) {
             const c = item.candidate;
-            if (c.selection && finish) {
-              finish.selected.push(c.advice);
-              finish.validating--;
-              if (finish.validating === 0) this.finishBudget(partition);
-              break;
-            }
             {
               emit({ kind: "collectionReserveLease", advice: c.advice, token: c.token });
               emit({ kind: "submissionBegin", advice: c.advice, group: c.partition, round: c.round,
@@ -1335,13 +1383,6 @@ export class Run {
           break;
         }
         case "collectionLimited":
-          if (!item.candidate && finish?.fitPending && item.fitFinish === finish.attempt) { finish.fitPending = false; finish.selected = []; this.finishBudget(partition, true); break; }
-          if (item.candidate) {
-            const c = item.candidate;
-            this.collectorCandidates.delete(c.token);
-            if (this.projection.collection.claims.some(claim => claim.group === c.partition && claim.owner === c.token)) emit({ kind: "collectionReleaseBackground", group: c.partition, token: c.token });
-            if (c.selection && finish) { finish.validating--; if (!finish.validating) this.finishBudget(partition); }
-          }
           break;
         case "retireCandidate":
           if (driven && item.candidate) {
@@ -1351,10 +1392,6 @@ export class Run {
         case "releaseCandidate":
         case "ignoreCandidate":
         case "submissionSuppresses":
-          if (item.candidate?.selection && finish) {
-            finish.validating--;
-            if (finish.validating === 0) this.finishBudget(partition);
-          }
           break;
         case "jevRequestUnavailable":
           if (event.kind === "jevRequestReady" && before.dispatch.running.some(entry => entry.operation === event.operation)) {
@@ -1370,114 +1407,23 @@ export class Run {
         }
         case "waitForWork":
         case "waitForOutput":
-          if (finish) finish.waiting = true;
-          break;
         case "finishReady":
-        case "finishLimit": {
-          const f = finish;
-          if (!f) break;
-          f.waiting = false;
-          f.selected = [];
-          const candidates = command.kind === "finishLimit" ? [] : this.projection.work.filter(work =>
-            work.partition === partition && work.lifetime === f.lifetime && work.round === f.round && work.kind === "pendingFinding");
-          f.validating = candidates.length;
-          if (!f.validating) this.finishBudget(partition);
-          for (const work of candidates) this.validateAdvice(partition, work.operation, f.round, f.token, "stop", true);
-          break;
-        }
+        case "finishLimit":
         case "roundContinuationAvailable":
-        case "roundContinuationExhausted": {
-          const f = finish;
-          if (!f) break;
-          if (command.kind === "roundContinuationExhausted") f.selected = [];
-          emit({
-            kind: "finishReserve",
-            group: partition,
-            lifetime: f.lifetime,
-            round: f.round,
-            attempt: f.attempt,
-            token: f.token,
-            selected: f.selected,
-            hasNotice: false,
-            passNotices: true,
-            canWrite: true,
-            bindingValid: true,
-            deadlineReached: this.clock >= f.deadline,
-          });
-          break;
-        }
+        case "roundContinuationExhausted":
         case "finishAllowedNoAdvice":
         case "finishAllowedDeadline":
         case "finishAllowedUnavailable":
-          this.endFinish(partition, false);
-          break;
-        case "finishReserved": {
-          const f = finish;
-          if (!f) break;
-          for (const advice of f.selected) {
-            emit({
-              kind: "collectionReserveLease",
-              advice,
-              token: f.token,
-            });
-            emit({
-              kind: "submissionBegin",
-              advice,
-              group: partition,
-              round: f.round,
-              token: f.token,
-              surface: "stop",
-              authorizeNow: false,
-              fingerprints: [advice],
-              units: [advice],
-            });
-          }
-          if (this.outputProfile.outcome === "failed") {
-            emit({ kind: "finishRelease", group: partition, round: f.round, attempt: f.attempt, token: f.token }, this.outputProfile.delayMs);
-            break;
-          }
-          emit({
-            kind: "finishAuthorize",
-            group: partition,
-            round: f.round,
-            attempt: f.attempt,
-            token: f.token,
-            selected: f.selected,
-          });
-          break;
-        }
-        case "finishAuthorized": {
-          const f = finish;
-          if (!f) break;
-          effects.push({ kind: "output", phase: "started", advices: [...f.selected] });
-          const profile = this.outputProfile;
-          const capture: OutputCapture = { attempt: { kind: "finish", group: partition, round: f.round, attempt: f.attempt, token: f.token, selected: [...f.selected] }, started: this.clock, profile: { ...profile } };
-          emitInitialOutput(capture);
-          break;
-        }
-        case "finishRecorded": {
-          const f = finish;
-          if (f) {
-            // FinishReserve already charged this exact provisional continuation.
-            emit({
-              kind: "finishEnd",
-              group: partition,
-              round: f.round,
-              attempt: f.attempt,
-              token: f.token,
-            });
-          }
-          break;
-        }
+        case "finishReserved":
+        case "finishRecorded":
         case "finishReleased":
-          this.endFinish(partition, true);
-          break;
         case "finishEnded":
-          this.endFinish(partition, true);
-          break;
         case "finishRefused":
-          // A product refusal grants no finish or continuation permission.
-          if (finish) finish.waiting = false;
+          if (finish && !driven) throw new Error("unhandled original Stop command");
+          break;
+        case "finishAuthorized":
+          if (!finish || !driven) throw new Error("unhandled original Finish authorization");
+          effects.push({ kind: "output", phase: "started", advices: [...finish.selected] });
           break;
         case "cancelWork":
           effects.push({
@@ -1495,8 +1441,8 @@ export class Run {
       if (parent) this.jobs.delete(parent);
     }
     if (["preparationCompleted", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease"].includes(event.kind)) {
-      for (const [waitingPartition, finish] of this.finishes)
-        if (finish.waiting) this.pollFinish(waitingPartition);
+      for (const finish of this.core.stopEntries())
+        if (finish.waiting) this.pollFinish(finish.partition);
     }
     if (!result.rejection && session && (
       event.kind === "submissionTerminal" && result.commands.some((c) => c.kind === "submissionRecorded") ||
@@ -1527,15 +1473,11 @@ export class Run {
         request: event.request,
       });
     }
-    if (this.config.lifecycles?.collectors && (event.kind === "submissionTerminal" || event.kind === "submissionRelease" || event.kind === "collectionRetireAdvice")) {
-      const token = event.kind === "collectionRetireAdvice" ? event.advice : event.token;
-      const claim = this.projection.collection.claims.find(c => c.owner === token);
-      this.collectorCandidates.delete(token);
-      if (claim) emit({ kind: "collectionReleaseBackground", group: claim.group, token });
-    }
+    for (const action of this.core.collectorAfter())
+      this.event(partition,action.event,action.delay);
     if (this.config.lifecycles?.quietWindowMs) {
       const actions=this.core.quietAfter(event,partition,this.clock,this.config.lifecycles.quietWindowMs,
-        this.quietNativeIdle(partition),!this.finishes.has(partition));
+        this.quietNativeIdle(partition),!this.hasFinish(partition));
       for (const action of actions) emit(action.event,action.delay);
     }
     if (item.writerOrigin) {
@@ -1576,6 +1518,8 @@ export class Run {
       effects,
       capacityMetadata: this.capacityMetadata,
     };
+    this.structuralRecord(structuralBefore,() => ({ kind: "canonical", scheduled: item, observation,
+      transition: this.core.transitionSnapshot(), source: this.core.transitionSourceSnapshot() }));
     return this.record(observation);
   }
   private enqueueResponseActions(actions: unknown, origin: Scheduled["responseOrigin"], fallback: number, writer: Scheduled["writerOrigin"] = undefined): void {
@@ -1614,28 +1558,14 @@ export class Run {
     for (const listener of this.listeners) listener(observation);
     return observation;
   }
-  private finishBudget(partition: number, fitted = false) {
-    const f = this.finishes.get(partition);
-    if (!f) return;
-    const bytes = this.candidateOutputBytes;
-    if (!fitted && bytes !== undefined && f.selected.length) {
-      f.fitPending = true;
-      this.event(partition, { kind: "collectionFitCheck", items: f.selected.length, bytes });
-      this.queue.find(item => item.order === this.order - 1)!.fitFinish = f.attempt;
-      return;
-    }
-    this.event(partition, { kind: "roundContinuationBudgetCheck", active: true,
-      count: this.projection.delivery.counters.find(counter => counter.group === partition && counter.round === f.round)?.used ?? 0 });
+  private hasFinish(partition: number) { return this.core.stopFind(partition) !== undefined; }
+  private finishCapture(partition: number, finish: Finish): StopCapture {
+    return { partition, lifetime: finish.lifetime, round: finish.round, attempt: finish.attempt,
+      token: finish.token, started: finish.started, cutoff: finish.deadline };
   }
   private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" | "collectionFitCheck" }>, candidate: CandidateContext) {
     this.queuePush({ at: this.clock, order: this.order++, generated: true,
       input: { at: this.clock, kind: "canonical", event }, candidate, partition: candidate.partition });
-  }
-  private validateAdvice(partition: number, advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
-    this.candidateEvent({ kind: "finalCandidateCheck", ownerCurrent: true,
-      credentialGeneration: this.credentialGenerationMatches(advice),
-      credentialAuthorized: this.environment.credentialReady, expired: false,
-      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { partition: this.projection.work.find(work => work.operation === advice)?.partition ?? partition, advice, round, token, surface, selection });
   }
   private retireAdvice(partition: number, advice: number) {
     const retained = this.projection.work.find(work =>
@@ -1649,12 +1579,11 @@ export class Run {
     this.jobs.delete(advice);
   }
   private pollFinish(partition: number, delay = 0) {
-    const f = this.finishes.get(partition);
+    const f = this.core.stopFind(partition);
     if (!f) return;
     const at = this.clock + delay;
     if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === partition && item.at === at)) return;
-    const facts = wakeStopFacts({ partition, lifetime: f.lifetime, round: f.round,
-      attempt: f.attempt, token: f.token, started: f.started, cutoff: f.deadline }, at);
+    const facts = wakeStopFacts(this.finishCapture(partition,f),at);
     for (const fact of facts) this.queuePush({ at: fact.at, order: this.order++,
       finishAttempt: f.attempt, partition,
       input: { at: fact.at, kind: "canonical", event: fact.event } });
@@ -1663,34 +1592,6 @@ export class Run {
   private quietNativeIdle(partition: number) {
     const agent=this.agentName(partition);
     return ![...this.jobs.values()].some(job => (("agent" in job ? job.agent : undefined) ?? this.scopes[0]?.agent ?? "agent-1")===agent);
-  }
-  private endFinish(partition: number, continuation: boolean) {
-    const f = this.finishes.get(partition);
-    if (!f) return;
-    this.event(partition, {
-      kind: "stopGroupEnded",
-      group: partition,
-      lifetime: f.lifetime,
-      round: f.round,
-      scopes: [{ partition: partition, round: f.round }],
-    });
-    if (!continuation) {
-      for (const work of this.projection.work)
-        if (work.partition === partition && work.lifetime === f.lifetime && work.round === f.round && work.kind === "pendingFinding")
-          this.retireAdvice(partition, work.operation);
-      this.event(partition, {
-        kind: "retirePartition",
-        partition: partition,
-        lifetime: f.lifetime,
-        round: f.round,
-      });
-    }
-    this.queue = this.queue.filter(item => item.finishAttempt !== f.attempt || item.partition !== partition);
-    this.finishes.delete(partition);
-    const session = this.generators.get(partition);
-    if (f.recurring && session)
-      for (const input of session.onFinish(this.clock, continuation))
-        this.enqueue(input);
   }
   /** Original queued facts only; capsule authority remains private. */
   get queuedFacts() {

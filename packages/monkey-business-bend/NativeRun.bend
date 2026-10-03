@@ -1,5 +1,6 @@
 import Base
 import ./NativeRunTypes.bend as T
+import ./CollectorScenario.bend as CollectorScenario
 import ./Engine.bend as Engine
 import ./Types.bend as EngineTypes
 import ./Advicees.bend as Advicees
@@ -10,6 +11,8 @@ import ./Numeric.bend as Numeric
 import ./PreparationScenario.bend as PreparationScenario
 import ./TreeFacts.bend as TreeFacts
 import ./NativeFinish.bend as NativeFinish
+import ./StopScenario.bend as StopScenario
+import ./OutputScenario.bend as OutputScenario
 import ./Scheduler.bend as Scheduler
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/ImportGraph.bend as ImportGraph
@@ -24,33 +27,32 @@ def core_value(values: List<&2, EngineTypes.State>) -> EngineTypes.State:
 
 def core(state: T.State) -> EngineTypes.State:
   match state:
-    case T.State{value, _, _, _, _, _, _, _, +finishes, +next_finish}: core_value(value)
+    case T.State{value, _, _, _, _, _, _, _}: core_value(value)
 
 def replace_core(state: T.State, value: EngineTypes.State) -> T.State:
   match state:
-    case T.State{_, items, next, count, seed, environment, latest, valid, +finishes, +next_finish}:
-      T.State{[value], items, next, count, seed, environment, latest, valid, finishes, next_finish}
+    case T.State{_, items, next, count, seed, environment, latest, valid}:
+      T.State{[value], items, next, count, seed, environment, latest, valid}
 
 def invalid(state: T.State) -> T.State:
   match state:
-    case T.State{core, items, next, count, seed, environment, latest, _, +finishes, +next_finish}:
-      T.State{core, items, next, count, seed, environment, latest, False{}, finishes, next_finish}
+    case T.State{core, items, next, count, seed, environment, latest, _}:
+      T.State{core, items, next, count, seed, environment, latest, False{}}
 
 def clock(state: T.State) -> Nat:
   Engine.clock(core(state))
 
 def next_order(state: T.State) -> Nat:
   match state:
-    case T.State{_, _, next, _, _, _, _, _, +finishes, +next_finish}: next
+    case T.State{_, _, next, _, _, _, _, _}: next
 
 def maximum() -> Nat:
   Advicees.maximum()
 
 def enqueued(valid: Bool, state: T.State, time: Nat, input: T.Input) -> T.State:
   match valid state:
-    case True{} T.State{core, items, +next, count, seed, environment, latest, valid, finishes, next_finish}:
-      T.State{[Engine.enqueue(core_value(core), time, next)], List.append(&2, T.Item, items, [T.Item{next, input}]),
-        (next + 1n : Nat), count, seed, environment, latest, valid, finishes, next_finish}
+    case True{} T.State{core, items, +next, count, seed, environment, latest, valid}:
+      T.State{[Engine.enqueue(core_value(core), time, next)], List.append(&2, T.Item, items, [T.Item{next, input}]), (next + 1n : Nat), count, seed, environment, latest, valid}
     case False{} state: invalid(state)
 
 def enqueue(+state: T.State, +time: Nat, input: T.Input) -> T.State:
@@ -125,17 +127,17 @@ def initial_environment_supported(environment: T.Environment) -> Bool:
         Nat.is_eq(List.length(&2, Numeric.Words, weights), 6n) && weights_valid(weights) && weights_enabled(weights)
 
 def created(supported: Bool, advicees: List<&2, T.Advicee>, limits: Ledger.Limits,
-    +environment: T.Environment, +seed: Nat) -> T.State:
+    +environment: T.Environment, +seed: Nat, collectors: Maybe<&2,CollectorScenario.Profile>) -> T.State:
   match supported:
     case True{}:
-      configure(advicees, T.State{[initial_core(environment, limits, seed)], [], 0n, 0n, seed, environment, [], True{}, [], 100000n})
+      configure(advicees, T.State{[Engine.collector_configure(initial_core(environment, limits, seed),collectors)], [], 0n, 0n, seed, environment, [], True{}})
     case False{}:
-      T.State{[Engine.initial(limits)], [], 0n, 0n, 0n, environment, [], False{}, [], 100000n}
+      T.State{[Engine.initial(limits)], [], 0n, 0n, 0n, environment, [], False{}}
 
 def create(config: T.Config, +seed: Nat) -> T.State:
   match config:
-    case T.Config{limits, advicees, +environment}:
-      created(Nat.is_le(seed, maximum()) && initial_environment_supported(environment), advicees, limits, environment, seed)
+    case T.Config{limits, advicees, +environment, +collectors}:
+      created(Nat.is_le(seed, maximum()) && initial_environment_supported(environment) && CollectorScenario.profile_valid(collectors), advicees, limits, environment, seed, collectors)
 
 def latest_frame(frames: List<&2, T.Frame>) -> Maybe<&2, T.Frame>:
   match frames:
@@ -144,7 +146,7 @@ def latest_frame(frames: List<&2, T.Frame>) -> Maybe<&2, T.Frame>:
 
 def observed(state: T.State) -> T.Observation:
   match state:
-    case T.State{+core, +items, _, count, _, _, latest, valid, +finishes, +next_finish}:
+    case T.State{+core, +items, _, count, _, _, latest, valid}:
       T.Observation{Engine.clock(core_value(core)), count, Engine.canonical(core_value(core)), latest_frame(latest), List.length(&2, T.Item, items), valid}
 
 def observe(state: T.State) -> T.Observation:
@@ -165,8 +167,8 @@ def locate(items: List<&2, T.Item>, +order: Nat) -> T.Located:
 
 def replaced_items(state: T.State, items: List<&2, T.Item>) -> T.State:
   match state:
-    case T.State{core, _, next, count, seed, environment, latest, valid, +finishes, +next_finish}:
-      T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish}
+    case T.State{core, _, next, count, seed, environment, latest, valid}:
+      T.State{core, items, next, count, seed, environment, latest, valid}
 
 def scheduled_action(valid: Bool, state: T.State, time: Nat, action: Driver.Action, job: Maybe<&2, T.Job>) -> T.State:
   match valid:
@@ -194,39 +196,54 @@ def issued_actions(state: T.State, job: Maybe<&2, T.Job>, issued: Engine.IssuedA
 def issue(+state: T.State, actions: List<&2, Driver.Action>, job: Maybe<&2, T.Job>) -> T.State:
   issued_actions(state, job, Engine.issue_actions(core(state), actions))
 
-def context_environment(job: T.Job, supplied: Bool, action: Driver.Action, outcome: Canonical.RequestOutcome, environment: T.Environment) -> Driver.Context:
+def context_environment(job: T.Job, supplied: Bool, action: Driver.Action, outcome: Canonical.RequestOutcome, environment: T.Environment, collection: Bool) -> Driver.Context:
   match job action environment:
     case T.Job{p, l, r, bytes, _, _, _, _} Driver.Action{_, _, candidate, _, _}
       T.Environment{delay, _, _, _, _, _, output, lease, current, credential, _, readable, lifetime}:
       Driver.Context{p, l, r, bytes, supplied, delay, outcome, current, credential, True{}, readable,
-        lifetime, candidate, True{}, True{}, True{}, True{}, output, lease, True{}, True{}}
+        lifetime, candidate, collection, True{}, True{}, True{}, output, lease, True{}, True{}}
 
-def job_context(job: Maybe<&2, T.Job>, action: Driver.Action, outcome: Canonical.RequestOutcome, environment: T.Environment) -> Driver.Context:
+def job_context(job: Maybe<&2, T.Job>, action: Driver.Action, outcome: Canonical.RequestOutcome, environment: T.Environment, collection: Bool) -> Driver.Context:
   match job:
-    case Some{job}: context_environment(job, True{}, action, outcome, environment)
-    case None{}: context_environment(T.Job{0n, 1n, 0n, 0n, [], 0n, False{}, None{}}, False{}, action, outcome, environment)
+    case Some{job}: context_environment(job, True{}, action, outcome, environment,collection)
+    case None{}: context_environment(T.Job{0n, 1n, 0n, 0n, [], 0n, False{}, None{}}, False{}, action, outcome, environment,collection)
 
-def context(state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>, outcome: Canonical.RequestOutcome) -> Driver.Context:
+def job_partition(job: Maybe<&2,T.Job>) -> Nat:
+  match job:
+    case Some{T.Job{p,_,_,_,_,_,_,_}}: p
+    case None{}: 0n
+
+def finish_present(finish: Maybe<&2,StopScenario.Finish>) -> Bool:
+  match finish:
+    case Some{_}: True{}
+    case None{}: False{}
+
+def active_finish(state: T.State, p: Nat) -> Bool:
+  Engine.stop_active(core(state),p)
+
+def context(+state: T.State, action: Driver.Action, +job: Maybe<&2,T.Job>, outcome: Canonical.RequestOutcome) -> Driver.Context:
   match state:
-    case T.State{_, _, _, _, _, environment, _, _, +finishes, +next_finish}: job_context(job, action, outcome, environment)
+    case T.State{_, _, _, _, _, environment, _, _}:
+      job_context(job,action,outcome,environment,
+        Bool.not(Engine.collector_configured(core(state))) && Bool.not(active_finish(state,job_partition(job))))
 
 def recorded(state: T.State, +frame: T.Frame) -> T.Step:
   match state:
-    case T.State{core, items, next, count, seed, environment, _, valid, +finishes, +next_finish}:
-      T.Step{T.State{core, items, next, Nat.add(count, 1n), seed, environment, [frame], valid, finishes, next_finish}, Some{frame}}
+    case T.State{core, items, next, count, seed, environment, _, valid}:
+      T.Step{T.State{core, items, next, Nat.add(count, 1n), seed, environment, [frame], valid}, Some{frame}}
 
 def product_frame(state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State,
     after: Canonical.State, commands: List<&2, Canonical.Command>, reason: Maybe<&2, Canonical.Reason>) -> T.Step:
   match state:
-    case T.State{+core, items, next, +count, seed, environment, latest, valid, +finishes, +next_finish}:
-      recorded(T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish},
+    case T.State{+core, items, next, +count, seed, environment, latest, valid}:
+      recorded(T.State{core, items, next, count, seed, environment, latest, valid},
         T.ProductFrame{count, Engine.clock(core_value(core)), event, [before], [after], commands, reason})
 
 def graph_frame(state: T.State, key: EngineTypes.GraphKey, position: Nat, fact: ImportGraph.GraphEvent,
     before: ImportGraph.Bounded, after: ImportGraph.Bounded, command: ImportGraph.Command) -> T.Step:
   match state:
-    case T.State{+core, items, next, +count, seed, environment, latest, valid, +finishes, +next_finish}:
-      recorded(T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish},
+    case T.State{+core, items, next, +count, seed, environment, latest, valid}:
+      recorded(T.State{core, items, next, count, seed, environment, latest, valid},
         T.GraphFrame{count, Engine.clock(core_value(core)), key, position, fact, [before], [after], command})
 
 def graph_transition(state: T.State, key: EngineTypes.GraphKey, position: Nat,
@@ -278,13 +295,13 @@ def timed_inputs(inputs: List<&2, T.Input>, state: T.State, +start: Nat, +delay:
 
 def preparation_inputs(+state: T.State, +job: T.Job, operation: Nat) -> List<&2, T.Input>:
   match state job:
-    case T.State{_, _, _, _, seed, T.Environment{_, _, _, _, profile, limits, _, _, _, _, _, _, _}, _, _, +finishes, +next_finish}
+    case T.State{_, _, _, _, seed, T.Environment{_, _, _, _, profile, limits, _, _, _, _, _, _, _}, _, _}
       T.Job{p, l, r, _, units, _, _, _}:
       unit_inputs(units, seed, p, l, r, operation, 0n, profile, limits)
 
 def preparation_delay(state: T.State) -> Nat:
   match state:
-    case T.State{_, _, _, _, _, T.Environment{_, _, _, delay, _, _, _, _, _, _, _, _, _}, _, _, +finishes, +next_finish}: delay
+    case T.State{_, _, _, _, _, T.Environment{_, _, _, delay, _, _, _, _, _, _, _, _, _}, _, _}: delay
 
 def preparation_completed(state: T.State, job: T.Job, operation: Nat, delay: Nat) -> T.State:
   match job:
@@ -316,11 +333,22 @@ def handled_actions(state: T.State, job: Maybe<&2, T.Job>, result: Driver.Handle
   match result:
     case Driver.Handled{_, actions}: issue(state, actions, job)
 
-def handle_outcome(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T.Job>, command: Canonical.Command, value: Canonical.RequestOutcome) -> T.State:
+def action_event(action: Driver.Action) -> Canonical.CanonicalEvent:
   match action:
-    case Driver.Action{+event, delay, candidate, supplied, expiry}:
-      handled_actions(state, job, Engine.handle(core(state), event, command,
-        context(state, Driver.Action{event, delay, candidate, supplied, expiry}, job, value)))
+    case Driver.Action{event,_,_,_,_}: event
+
+def collector_handled(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
+    command: Canonical.Command, value: Canonical.RequestOutcome, changed: Engine.CollectorHandled) -> T.State:
+  match changed:
+    case Engine.CollectorHandled{updated,Driver.Handled{True{},actions}}:
+      issue(replace_core(state,updated),actions,job)
+    case Engine.CollectorHandled{updated,_}:
+      +replaced = replace_core(state,updated)
+      handled_actions(replaced,job,Engine.handle(core(replaced),action_event(action),command,context(replaced,action,job,value)))
+
+def handle_outcome(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command, +value: Canonical.RequestOutcome) -> T.State:
+  collector_handled(state,action,job,command,value,
+    Engine.collector_command(core(state),action_event(action),command,context(state,action,job,value)))
 
 def sampled_command(state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>, command: Canonical.Command, sampled: Engine.OutcomeTransition) -> T.State:
   match sampled:
@@ -328,14 +356,13 @@ def sampled_command(state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>
 
 def weighted_command(+state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>, command: Canonical.Command) -> T.State:
   match state:
-    case T.State{+core, items, next, count, seed, T.Environment{delay, fixed, +weights, prep, tree, limits, output, lease, current, credential, generation, readable, lifetime}, latest, valid, +finishes, +next_finish}:
-      sampled_command(T.State{core, items, next, count, seed,
-        T.Environment{delay, fixed, weights, prep, tree, limits, output, lease, current, credential, generation, readable, lifetime}, latest, valid, finishes, next_finish},
+    case T.State{+core, items, next, count, seed, T.Environment{delay, fixed, +weights, prep, tree, limits, output, lease, current, credential, generation, readable, lifetime}, latest, valid}:
+      sampled_command(T.State{core, items, next, count, seed, T.Environment{delay, fixed, weights, prep, tree, limits, output, lease, current, credential, generation, readable, lifetime}, latest, valid},
         action, job, command, Engine.sample_outcome(core_value(core), weights))
 
 def fixed_outcome(state: T.State) -> Maybe<&2, Canonical.RequestOutcome>:
   match state:
-    case T.State{_, _, _, _, _, T.Environment{_, value, _, _, _, _, _, _, _, _, _, _, _}, _, _, +finishes, +next_finish}: value
+    case T.State{_, _, _, _, _, T.Environment{_, value, _, _, _, _, _, _, _, _, _, _, _}, _, _}: value
 
 def issued_command(state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>, command: Canonical.Command,
     fixed: Maybe<&2, Canonical.RequestOutcome>) -> T.State:
@@ -348,63 +375,36 @@ def prepare_job(state: T.State, job: Maybe<&2, T.Job>, operation: Nat) -> T.Stat
     case Some{job}: prepare(state, job, operation)
     case None{}: invalid(state)
 
-def finish_job(finish: T.Finish) -> T.Job:
+def finish_job(finish: StopScenario.Finish) -> T.Job:
   match finish:
-    case T.Finish{p, l, r, _, _, _, _, _, _, _}: T.Job{p, l, r, 0n, [], 0n, False{}, None{}}
+    case StopScenario.Finish{p, l, r, _, _, _, _, _, _, _, started, fit_pending, output}: T.Job{p, l, r, 0n, [], 0n, False{}, None{}}
 
-def finish_attempt(finish: T.Finish) -> Nat:
+def finish_attempt(finish: StopScenario.Finish) -> Nat:
   match finish:
-    case T.Finish{_, _, _, attempt, _, _, _, _, _, _}: attempt
+    case StopScenario.Finish{_, _, _, attempt, _, _, _, _, _, _, started, fit_pending, output}: attempt
 
-def finish_scopes(state: T.State) -> List<&2, T.Finish>:
-  match state:
-    case T.State{_, _, _, _, _, _, _, _, finishes, _}: finishes
+def finish_scopes(state: T.State) -> List<&2, StopScenario.Finish>:
+  Engine.stop_entries(core(state))
 
-def replace_finishes(state: T.State, finishes: List<&2, T.Finish>) -> T.State:
-  match state:
-    case T.State{core, items, next, count, seed, environment, latest, valid, _, next_finish}:
-      T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish}
-
-def replace_finish(+state: T.State, finish: T.Finish) -> T.State:
-  replace_finishes(state, NativeFinish.replace(finish_scopes(state), finish))
-
-def finish_input(valid: Bool, state: T.State, time: Nat, action: Driver.Action, +finish: T.Finish) -> T.State:
+def finish_input(valid: Bool, state: T.State, time: Nat, action: Driver.Action, +finish: StopScenario.Finish) -> T.State:
   match valid:
     case True{}: enqueue(state, time, T.FinishInput{action, finish_job(finish), finish_attempt(finish)})
     case False{}: invalid(state)
 
-def finish_action(+state: T.State, +action: Driver.Action, finish: T.Finish) -> T.State:
+def finish_action(+state: T.State, +action: Driver.Action, finish: StopScenario.Finish) -> T.State:
   +now = clock(state)
   +delay = action_delay(action)
   finish_input(Nat.is_le(delay, Nat.sub(maximum(), now)), state, Nat.add(now, delay), action, finish)
 
-def finish_actions(actions: List<&2, Driver.Action>, state: T.State, +finish: T.Finish) -> T.State:
+def finish_actions(actions: List<&2, Driver.Action>, state: T.State, +finish: StopScenario.Finish) -> T.State:
   match actions:
     case Nil{}: state
     case action <> tail: finish_actions(tail, finish_action(state, action, finish), finish)
 
-def finish_environment(state: T.State) -> T.Environment:
-  match state:
-    case T.State{_, _, _, _, _, environment, _, _, _, _}: environment
-
-def finish_ready(state: T.State, ready: NativeFinish.Ready) -> T.State:
-  match ready:
-    case NativeFinish.Ready{+finish, actions}: finish_actions(actions, replace_finish(state, finish), finish)
-
-def finish_found(state: T.State, job: Maybe<&2, T.Job>) -> Maybe<&2, T.Finish>:
+def finish_found(state: T.State, job: Maybe<&2,T.Job>) -> Maybe<&2,StopScenario.Finish>:
   match job:
-    case Some{T.Job{p, _, _, _, _, _, _, _}}: NativeFinish.find(finish_scopes(state), p)
+    case Some{T.Job{p,_,_,_,_,_,_,_}}: Engine.stop_find(core(state),p)
     case None{}: None{}
-
-def finish_waiting(state: T.State, found: Maybe<&2, T.Finish>, waiting: Bool) -> T.State:
-  match found:
-    case Some{finish}: replace_finish(state, NativeFinish.waiting(finish, waiting))
-    case None{}: state
-
-def finish_ready_found(+state: T.State, found: Maybe<&2, T.Finish>, limit: Bool) -> T.State:
-  match found:
-    case Some{finish}: finish_ready(state, NativeFinish.ready(finish, Engine.canonical(core(state)), finish_environment(state), limit))
-    case None{}: state
 
 def input_finish(input: T.Input) -> Maybe<&2, Nat>:
   match input:
@@ -426,75 +426,13 @@ def cancel_finish_items(items: List<&2, T.Item>, +state: T.State, +attempt: Nat,
 
 def cancel_finish(state: T.State, attempt: Nat) -> T.State:
   match state:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, finishes, next_finish}:
-      cancel_finish_items(items, T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish}, attempt, [])
+    case T.State{core, +items, next, count, seed, environment, latest, valid}:
+      cancel_finish_items(items, T.State{core, items, next, count, seed, environment, latest, valid}, attempt, [])
 
-def finish_feedback(state: T.State, finish: T.Finish, continuation: Bool) -> T.State:
+def finish_feedback(state: T.State, finish: StopScenario.Finish, continuation: Bool) -> T.State:
   match finish:
-    case T.Finish{p, _, _, _, _, _, True{}, _, _, _}: workload(state, p, Workload.Finished{continuation})
+    case StopScenario.Finish{p, _, _, _, _, _, True{}, _, _, _, started, fit_pending, output}: workload(state, p, Workload.Finished{continuation})
     case _: state
-
-def finish_end(+state: T.State, +finish: T.Finish, +continuation: Bool) -> T.State:
-  +cleared = replace_finishes(cancel_finish(state, finish_attempt(finish)), NativeFinish.remove(finish_scopes(state), NativeFinish.partition(finish)))
-  finish_feedback(issue(cleared, NativeFinish.end_actions(finish, Engine.canonical(core(state)), continuation), Some{finish_job(finish)}), finish, continuation)
-
-def finish_end_found(state: T.State, found: Maybe<&2, T.Finish>, continuation: Bool) -> T.State:
-  match found:
-    case Some{finish}: finish_end(state, finish, continuation)
-    case None{}: state
-
-def finish_reserve_found(+state: T.State, found: Maybe<&2, T.Finish>) -> T.State:
-  match found:
-    case Some{+finish}: finish_action(state, NativeFinish.reserve(finish, clock(state)), finish)
-    case None{}: state
-
-def finish_reserved_found(state: T.State, found: Maybe<&2, T.Finish>) -> T.State:
-  match found:
-    case Some{+finish}: finish_actions(NativeFinish.reserved(finish), state, finish)
-    case None{}: state
-
-def finish_authorized(state: T.State, +finish: T.Finish) -> T.State:
-  match state:
-    case T.State{core, items, next, count, seed, +environment, latest, valid, finishes, next_finish}:
-      match environment:
-        case T.Environment{_, _, _, _, _, _, delay, lease, _, _, _, _, _}:
-          finish_actions(NativeFinish.authorized(finish, delay, lease),
-            T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish}, finish)
-
-def finish_authorized_found(state: T.State, found: Maybe<&2, T.Finish>) -> T.State:
-  match found:
-    case Some{finish}: finish_authorized(state, finish)
-    case None{}: state
-
-def finish_recorded_found(state: T.State, found: Maybe<&2, T.Finish>) -> T.State:
-  match found:
-    case Some{+finish}: finish_actions(NativeFinish.consumed(finish), state, finish)
-    case None{}: state
-
-def finish_exhausted(state: T.State, found: Maybe<&2, T.Finish>) -> T.State:
-  match found:
-    case Some{finish}: replace_finish(state, NativeFinish.empty_selection(finish))
-    case None{}: state
-
-def selected_finish(+state: T.State, +finish: T.Finish) -> T.State:
-  +updated = replace_finish(state, finish)
-  Bool.pick(T.State, Nat.is_eq(NativeFinish.validation_count(finish), 0n),
-    finish_action(updated, NativeFinish.budget(finish, Engine.canonical(core(updated))), finish), updated)
-
-def selected_found(state: T.State, advice: Nat, keep: Bool, found: Maybe<&2, T.Finish>) -> T.State:
-  match found:
-    case Some{finish}: selected_finish(state, NativeFinish.selected(finish, advice, keep))
-    case None{}: state
-
-def selected_candidate(+state: T.State, candidate: Maybe<&2, Driver.Candidate>, keep: Bool) -> T.State:
-  match candidate:
-    case Some{Driver.Candidate{+p, advice, _, _, _, True{}}}:
-      selected_found(state, advice, keep, NativeFinish.find(finish_scopes(state), p))
-    case _: state
-
-def finish_candidate(state: T.State, action: Driver.Action, keep: Bool) -> T.State:
-  match action:
-    case Driver.Action{_, _, candidate, _, _}: selected_candidate(state, candidate, keep)
 
 def expiry_matches(input: T.Input, advice: Nat) -> Bool:
   match input:
@@ -512,8 +450,8 @@ def cancel_expiry_items(items: List<&2, T.Item>, +state: T.State, +advice: Nat, 
 
 def cancel_expiry(state: T.State, advice: Nat) -> T.State:
   match state:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, finishes, next_finish}:
-      cancel_expiry_items(items, T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish}, advice, [])
+    case T.State{core, +items, next, count, seed, environment, latest, valid}:
+      cancel_expiry_items(items, T.State{core, items, next, count, seed, environment, latest, valid}, advice, [])
 
 def cancel_retired(state: T.State, action: Driver.Action) -> T.State:
   match action:
@@ -530,38 +468,41 @@ def expired_action(state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>)
   match action:
     case Driver.Action{_, _, _, _, advice}: expired(state, job, advice)
 
-def ordinary_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T.Job>, command: Canonical.Command) -> T.State:
+def ordinary_fallback(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T.Job>, command: Canonical.Command) -> T.State:
   match command:
     case Canonical.CollectionAdviceRetired{}: cancel_retired(state, action)
     case Canonical.CollectionExpired{}: expired_action(state, action, job)
-    case Canonical.WaitForWork{}: finish_waiting(state, finish_found(state, job), True{})
-    case Canonical.WaitForOutput{}: finish_waiting(state, finish_found(state, job), True{})
-    case Canonical.FinishReady{}: finish_ready_found(state, finish_found(state, job), False{})
-    case Canonical.FinishLimit{}: finish_ready_found(state, finish_found(state, job), True{})
-    case Canonical.RoundContinuationAvailable{}: finish_reserve_found(state, finish_found(state, job))
-    case Canonical.RoundContinuationExhausted{}:
-      +cleared = finish_exhausted(state, finish_found(state, job))
-      finish_reserve_found(cleared, finish_found(cleared, job))
-    case Canonical.FinishAllowedNoAdvice{}: finish_end_found(state, finish_found(state, job), False{})
-    case Canonical.FinishAllowedDeadline{}: finish_end_found(state, finish_found(state, job), False{})
-    case Canonical.FinishAllowedUnavailable{}: finish_end_found(state, finish_found(state, job), False{})
-    case Canonical.FinishReserved{}: finish_reserved_found(state, finish_found(state, job))
-    case Canonical.FinishAuthorized{}: finish_authorized_found(state, finish_found(state, job))
-    case Canonical.FinishRecorded{_}: finish_recorded_found(state, finish_found(state, job))
-    case Canonical.FinishReleased{}: finish_end_found(state, finish_found(state, job), True{})
-    case Canonical.FinishEnded{}: finish_end_found(state, finish_found(state, job), True{})
-    case Canonical.FinishRefused{}: finish_waiting(state, finish_found(state, job), False{})
-    case Canonical.SubmissionUnsuppressed{}:
-      handle_outcome(finish_candidate(state, action, True{}), action, job, Canonical.SubmissionUnsuppressed{}, Canonical.RequestClear{})
-    case Canonical.RetireCandidate{}:
-      handle_outcome(finish_candidate(state, action, False{}), action, job, Canonical.RetireCandidate{}, Canonical.RequestClear{})
-    case Canonical.ReleaseCandidate{}: finish_candidate(state, action, False{})
-    case Canonical.IgnoreCandidate{}: finish_candidate(state, action, False{})
-    case Canonical.SubmissionSuppresses{}: finish_candidate(state, action, False{})
+    case Canonical.SubmissionUnsuppressed{}: handle_outcome(state,action,job,Canonical.SubmissionUnsuppressed{},Canonical.RequestClear{})
+    case Canonical.RetireCandidate{}: handle_outcome(state,action,job,Canonical.RetireCandidate{},Canonical.RequestClear{})
     case Canonical.Prepare{operation, _}: prepare_job(state, job, operation)
     case Canonical.JevRequestIssued{p, l, r, operation, request}:
       issued_command(state, action, job, Canonical.JevRequestIssued{p, l, r, operation, request}, fixed_outcome(state))
     case command: handle_outcome(state, action, job, command, Canonical.RequestClear{})
+
+def native_stop_facts(state: T.State) -> StopScenario.CommandFacts:
+  match state:
+    case T.State{+core,_,_,_,_,T.Environment{_,_,_,_,_,_,delay,lease,_,_,_,_,_},_,_}:
+      StopScenario.CommandFacts{Engine.clock(core_value(core)),OutputScenario.Certain{},delay,lease,None{},None{}}
+
+def native_stop_issue(ended: Maybe<&2,StopScenario.Ended>, original: Maybe<&2,StopScenario.Finish>,
+    state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, output: Maybe<&2,OutputScenario.Capture>) -> T.State:
+  match ended original output:
+    case Some{StopScenario.Ended{+finish,continuation}} _ _:
+      finish_feedback(issue(cancel_finish(state,finish_attempt(finish)),actions,Some{finish_job(finish)}),finish,continuation)
+    case None{} Some{finish} None{}: finish_actions(actions,state,finish)
+    case None{} Some{finish} Some{_}: issue(state,actions,Some{finish_job(finish)})
+    case None{} None{} _: issue(state,actions,job)
+
+def native_stop_handled(state: T.State, changed: Engine.StopHandled, +action: Driver.Action, +job: Maybe<&2,T.Job>,
+    command: Canonical.Command, original: Maybe<&2,StopScenario.Finish>) -> T.State:
+  match changed:
+    case Engine.StopHandled{updated,Driver.Handled{True{},actions},ended,_,output}:
+      native_stop_issue(ended,original,ordinary_fallback(replace_core(state,updated),action,job,command),actions,job,output)
+    case Engine.StopHandled{updated,_,_,_,_}: ordinary_fallback(replace_core(state,updated),action,job,command)
+
+def ordinary_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command) -> T.State:
+  native_stop_handled(state,Engine.stop_command(core(state),action_event(action),command,
+    context(state,action,job,Canonical.RequestClear{}),native_stop_facts(state)),action,job,command,finish_found(state,job))
 
 def ordinary_commands(commands: List<&2, Canonical.Command>, state: T.State,
     +action: Driver.Action, +job: Maybe<&2, T.Job>) -> T.State:
@@ -612,16 +553,16 @@ def queued_poll(items: List<&2, T.Item>, +entries: List<&2, Scheduler.Entry>, +a
 
 def has_poll(state: T.State, attempt: Nat) -> Bool:
   match state:
-    case T.State{+core, items, _, _, _, _, _, _, _, _}: queued_poll(items, scheduler_entries(core_value(core)), attempt, Engine.clock(core_value(core)))
+    case T.State{+core, items, _, _, _, _, _, _}: queued_poll(items, scheduler_entries(core_value(core)), attempt, Engine.clock(core_value(core)))
 
-def wake_finish(+state: T.State, finish: T.Finish) -> T.State:
+def wake_finish(+state: T.State, finish: StopScenario.Finish) -> T.State:
   match finish:
-    case T.Finish{p, l, r, +attempt, token, deadline, recurring, selected, True{}, validating}:
-      +finish = {T.Finish{p, l, r, attempt, token, deadline, recurring, selected, True{}, validating} : T.Finish}
+    case StopScenario.Finish{p, l, r, +attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output}:
+      +finish = {StopScenario.Finish{p, l, r, attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output} : StopScenario.Finish}
       Bool.pick(T.State, has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish))
     case _: state
 
-def wake_finishes(finishes: List<&2, T.Finish>, state: T.State) -> T.State:
+def wake_finishes(finishes: List<&2, StopScenario.Finish>, state: T.State) -> T.State:
   match finishes:
     case Nil{}: state
     case finish <> tail: wake_finishes(tail, wake_finish(state, finish))
@@ -667,8 +608,14 @@ def advice_feedback(accepted: Bool, state: T.State, event: Canonical.CanonicalEv
     case True{}: advice_job(state, event, job)
     case False{}: state
 
-def product_feedback(+state: T.State, +event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>, job: Maybe<&2, T.Job>) -> T.State:
-  advice_feedback(advice_recorded(event, commands), wake_event(state, event), event, job)
+def collector_completed(state: T.State, job: Maybe<&2,T.Job>, changed: Engine.CollectorHandled) -> T.State:
+  match changed:
+    case Engine.CollectorHandled{updated,Driver.Handled{_,actions}}:
+      issue(replace_core(state,updated),actions,job)
+
+def product_feedback(+state: T.State, +event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>, +job: Maybe<&2, T.Job>) -> T.State:
+  advice_feedback(advice_recorded(event, commands),
+    wake_event(collector_completed(state,job,Engine.collector_after(core(state),event)), event), event, job)
 
 def advanced_product(+state: T.State, +event: Canonical.CanonicalEvent, +action: Driver.Action,
     +job: Maybe<&2, T.Job>, before: Canonical.State, +after: Canonical.State, +commands: List<&2, Canonical.Command>, post: List<&2, Driver.Action>) -> T.Step:
@@ -734,19 +681,21 @@ def edit(+state: T.State, +job: T.Job) -> T.State:
     case T.Job{+p, +l, r, bytes, units, revision, repair, duration}:
       edit_planned(state, T.Job{p, l, r, bytes, units, revision, repair, duration}, Engine.edit_attempt(core(state), p, l))
 
-def finish_stored(state: T.State, p: Nat, l: Nat, r: Nat, recurring: Bool) -> T.State:
-  match state:
-    case T.State{+core, items, next, count, seed, environment, latest, valid, +finishes, +next_finish}:
-      +now = Engine.clock(core_value(core))
-      +finish = {T.Finish{p, l, r, next_finish, next_finish, Nat.add(now, 200n), recurring, [], False{}, 0n} : T.Finish}
-      finish_actions([NativeFinish.poll(finish, now, 0n), NativeFinish.poll(finish, now, 200n)],
-        T.State{core, items, next, count, seed, environment, latest, valid, NativeFinish.replace(finishes, finish), Nat.add(next_finish, 1n)}, finish)
+def finish_registered(state: T.State, registered: Engine.StopRegistered) -> T.State:
+  match registered:
+    case Engine.StopRegistered{value,Some{+finish},True{}}:
+      +updated = replace_core(state,value)
+      finish_actions([NativeFinish.poll(finish,clock(updated),0n),NativeFinish.poll(finish,clock(updated),200n)],updated,finish)
+    case Engine.StopRegistered{value,Some{_},False{}}: replace_core(state,value)
+    case _: invalid(state)
+
+def finish_stored(+state: T.State, p: Nat, l: Nat, r: Nat, recurring: Bool) -> T.State:
+  finish_registered(state,Engine.stop_register(core(state),StopScenario.Input{p,l,r,clock(state),Nat.add(clock(state),200n),recurring}))
 
 def next_finish(state: T.State) -> Nat:
-  match state:
-    case T.State{_, _, _, _, _, _, _, _, _, value}: value
+  StopScenario.next_identity(Engine.stop_state(core(state)))
 
-def finish_available(found: Maybe<&2, T.Finish>, +state: T.State, p: Nat, l: Nat, r: Nat, recurring: Bool) -> T.State:
+def finish_available(found: Maybe<&2, StopScenario.Finish>, +state: T.State, p: Nat, l: Nat, r: Nat, recurring: Bool) -> T.State:
   match found:
     case Some{_}: state
     case None{}:
@@ -757,7 +706,7 @@ def finish_round(+state: T.State, +p: Nat, +recurring: Bool, round: Maybe<&2, Ca
   match round:
     case None{}: Bool.pick(T.State, recurring, workload(state, p, Workload.Next{}), state)
     case Some{Canonical.Round{_, l, r, _, _, _, _, _}}:
-      finish_available(NativeFinish.find(finish_scopes(state), p), state, p, l, r, recurring)
+      finish_available(StopScenario.find(finish_scopes(state), p), state, p, l, r, recurring)
 
 def start_finish(+state: T.State, +p: Nat, recurring: Bool) -> T.State:
   finish_round(state, p, recurring, Canonical.find_round(p, Driver.rounds(Engine.canonical(core(state)))))
@@ -784,7 +733,7 @@ def arrival(+state: T.State, emission: Workload.Emission) -> T.State:
       valid_arrival(Engine.workload_valid(core(state), p, generation, recurring), state,
         Workload.Emission{time, p, generation, kind, task, revision, bytes, units, repair, recurring})
 
-def finish_live_found(found: Maybe<&2, T.Finish>, attempt: Nat) -> Bool:
+def finish_live_found(found: Maybe<&2, StopScenario.Finish>, attempt: Nat) -> Bool:
   match found:
     case None{}: False{}
     case Some{finish}: Nat.is_eq(finish_attempt(finish), attempt)
@@ -792,7 +741,7 @@ def finish_live_found(found: Maybe<&2, T.Finish>, attempt: Nat) -> Bool:
 def finish_live(state: T.State, job: T.Job, attempt: Nat) -> Bool:
   match job:
     case T.Job{p, _, _, _, _, _, _, _}:
-      finish_live_found(NativeFinish.find(finish_scopes(state), p), attempt)
+      finish_live_found(StopScenario.find(finish_scopes(state), p), attempt)
 
 def finish_product(live: Bool, state: T.State, action: Driver.Action, job: T.Job) -> T.Step:
   match live:
@@ -823,8 +772,8 @@ def located_run(state: T.State, located: T.Located) -> T.Step:
 
 def take_payload(state: T.State, order: Nat) -> T.Step:
   match state:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, finishes, next_finish}:
-      located_run(T.State{core, items, next, count, seed, environment, latest, valid, finishes, next_finish}, locate(items, order))
+    case T.State{core, +items, next, count, seed, environment, latest, valid}:
+      located_run(T.State{core, items, next, count, seed, environment, latest, valid}, locate(items, order))
 
 def queue_head(entries: List<&2, Scheduler.Entry>) -> Maybe<&2, Scheduler.Entry>:
   match entries:
@@ -844,7 +793,7 @@ def within(entry: Maybe<&2, Scheduler.Entry>, endpoint: Nat) -> Bool:
 
 def state_valid(state: T.State) -> Bool:
   match state:
-    case T.State{_, _, _, _, _, _, _, valid, _, _}: valid
+    case T.State{_, _, _, _, _, _, _, valid}: valid
 
 # Candidate private transport only: keep the entire native state opaque to
 # recursive forwarding. Public T.State and all facts/controls remain unchanged.
@@ -918,8 +867,8 @@ def sharing_input(state: T.State, located: T.Located, order: Nat, endpoint: Nat,
 def sharing_peek(+value: T.State, entry: Maybe<&2, Scheduler.Entry>, endpoint: Nat,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match value entry:
-    case T.State{core,+items,next,count,seed,environment,latest,valid,finishes,next_finish} Some{Scheduler.Entry{_,+order}}:
-      sharing_input(T.State{core,items,next,count,seed,environment,latest,valid,finishes,next_finish},locate(items,order),order,endpoint,rest)
+    case T.State{core, +items, next, count, seed, environment, latest, valid} Some{Scheduler.Entry{_,+order}}:
+      sharing_input(T.State{core, items, next, count, seed, environment, latest, valid},locate(items,order),order,endpoint,rest)
     case value None{}: take_carrier([value],rest)
 
 def sharing_carrier(states: List<&2,T.State>, endpoint: Nat,
@@ -1038,16 +987,14 @@ def revalidate_environment(+state: T.State) -> T.State:
 
 def environment_control(+state: T.State, current: Bool, +ready: Bool, +generation: Nat, readable: Bool) -> T.Controlled:
   match state:
-    case T.State{core, items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, _, _, _, _, lifetime}, latest, valid, +finishes, +next_finish}:
-      +changed = revalidate_environment(T.State{[Engine.configure_credentials(core_value(core), ready, generation)], items, next, count, seed,
-        T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid, finishes, next_finish})
+    case T.State{core, items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, _, _, _, _, lifetime}, latest, valid}:
+      +changed = revalidate_environment(T.State{[Engine.configure_credentials(core_value(core), ready, generation)], items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid})
       atomic_control(state_valid(changed), state, changed)
 
 def jev_control(state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) -> T.Controlled:
   match state:
-    case T.State{core, items, next, count, seed, T.Environment{_, _, _, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid, +finishes, +next_finish}:
-      T.Controlled{T.State{core, items, next, count, seed,
-        T.Environment{delay, None{}, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid, finishes, next_finish}, True{}}
+    case T.State{core, items, next, count, seed, T.Environment{_, _, _, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid}:
+      T.Controlled{T.State{core, items, next, count, seed, T.Environment{delay, None{}, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid}, True{}}
 
 def jev_supported(valid: Bool, state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) -> T.Controlled:
   match valid:

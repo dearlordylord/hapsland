@@ -62,7 +62,7 @@ def member_selected(equal: Bool, scope: Freshness.Scope, index: Nat,
 def member(frames: List<&2,Writer.Frame>, +partition: Nat, index: Nat) -> Maybe<&2,Freshness.Scope>:
   match frames:
     case Nil{}: None{}
-    case Writer.Observed{Edge.CanonicalFrame{_,_,_,_,C.BeginObservedPreparation{+p,l,r,o,_},_},_,_} <> tail:
+    case Writer.Observed{Edge.CanonicalFrame{_,_,_,_,C.BeginObservedPreparation{+p,l,r,o,_},_,_,_,_,_,_},_,_} <> tail:
       member_selected(Nat.is_eq(p,partition),Freshness.Scope{p,l,r,o},index,i => member(tail,partition,i))
     case _ <> tail: member(tail,partition,index)
 

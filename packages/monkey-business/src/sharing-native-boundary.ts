@@ -62,6 +62,12 @@ export function decodeObservedFrame(value: unknown, receipts: CallbackTarget[]) 
   const frame = readRecord(value);
   const observed = readRecord(frame.frame);
   const beforeState = decodeObservedState(observed.before), afterState = decodeObservedState(observed.after);
+  // Full physical runtimes are captured at the actual observer source points;
+  // their states must agree with the separately retained owner snapshots.
+  const runtimeBefore = tagged(single(observed.runtime_before), "advicee_lifecycle_driver.Runtime");
+  const runtimeAfter = tagged(single(observed.runtime_after), "advicee_lifecycle_driver.Runtime");
+  if (!isDeepStrictEqual(runtimeBefore.state,beforeState) || !isDeepStrictEqual(runtimeAfter.state,afterState))
+    throw new TypeError("observed runtime and owner state disagree");
   const before = projectTrustedCanonical(beforeState.canonical), after = projectTrustedCanonical(afterState.canonical);
   const time = readNat(observed.time);
   readNat(observed.order);
@@ -69,10 +75,17 @@ export function decodeObservedFrame(value: unknown, receipts: CallbackTarget[]) 
     const rawResult = single(observed.result);
     const result = decodeTrustedCanonicalStep(rawResult);
     if (!isDeepStrictEqual(projectTrustedCanonical(result.state), after)) throw new TypeError("result and after state disagree");
-    const commandScopes = scopes(frame.scopes);
+    const commandScopes = list(observed.command_scopes).map(value => {
+      const captured = optional(value);
+      return captured === null ? null : readNat(captured);
+    });
+    if (!isDeepStrictEqual(commandScopes,scopes(frame.scopes))) throw new TypeError("outer scopes differ from actual observer capture");
     if (commandScopes.length !== result.commands.length) throw new TypeError("command scope count differs");
     const rawReceipt = optional(frame.receipt);
     const receipt = rawReceipt === null ? null : decodeCallbackTarget(rawReceipt);
+    const physicalReceipt = optional(observed.receipt);
+    const actualReceipt = physicalReceipt === null ? null : decodeCallbackTarget(tagged(physicalReceipt,"Callbacks.Fact").target);
+    if (!isDeepStrictEqual(receipt,actualReceipt)) throw new TypeError("outer receipt differs from actual observer capture");
     if (receipt) receipts.push(receipt);
     if (observed.$ === "advicee_lifecycle_driver.CacheFrame") {
       const fact = tagged(observed.fact, "CacheRuntime.Fact");

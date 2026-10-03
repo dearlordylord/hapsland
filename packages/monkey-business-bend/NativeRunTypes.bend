@@ -2,6 +2,7 @@ import Base
 import ./Types.bend as EngineTypes
 import ./Workload.bend as Workload
 import ./Driver.bend as Driver
+import ./CollectorScenario.bend as CollectorScenario
 import ./CacheRuntime.bend as CacheRuntime
 import ./Numeric.bend as Numeric
 import ./TreeFacts.bend as TreeFacts
@@ -18,7 +19,7 @@ type Environment is Data:
     output_delay: Nat, output_lease: Nat, current_work: Bool, credential_ready: Bool,
     credential_generation: Nat, source_readable: Bool, advice_lifetime: Nat}
 type Config is Data:
-  Config{limits: Ledger.Limits, advicees: List<&2, Advicee>, environment: Environment}
+  Config{limits: Ledger.Limits, advicees: List<&2, Advicee>, environment: Environment, collectors: Maybe<&2,CollectorScenario.Profile>}
 type Job is Data:
   Job{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat, units: List<&2, Nat>,
     revision: Nat, repair: Bool, duration: Maybe<&2, Nat>}
@@ -38,12 +39,9 @@ type Frame is Data:
     before: List<&2, Canonical.State>, after: List<&2, Canonical.State>, commands: List<&2, Canonical.Command>, rejection: Maybe<&2, Canonical.Reason>}
   GraphFrame{sequence: Nat, time: Nat, key: EngineTypes.GraphKey, position: Nat,
     fact: ImportGraph.GraphEvent, before: List<&2, ImportGraph.Bounded>, after: List<&2, ImportGraph.Bounded>, command: ImportGraph.Command}
-type Finish is Data:
-  Finish{partition: Nat, lifetime: Nat, round: Nat, attempt: Nat, token: Nat,
-    deadline: Nat, recurring: Bool, selected: List<&2, Nat>, waiting: Bool, validating: Nat}
 type State is Data:
   State{core: List<&2, EngineTypes.State>, items: List<&2, Item>, next: Nat, count: Nat,
-    seed: Nat, environment: Environment, latest: List<&2, Frame>, valid: Bool, finishes: List<&2, Finish>, next_finish: Nat}
+    seed: Nat, environment: Environment, latest: List<&2, Frame>, valid: Bool}
 type Observation is Data:
   Observation{time: Nat, event_count: Nat, canonical: Canonical.State, latest: Maybe<&2, Frame>, queued: Nat, valid: Bool}
 type Step is Data:

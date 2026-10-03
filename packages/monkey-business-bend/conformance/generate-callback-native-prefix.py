@@ -29,6 +29,7 @@ load(root/'packages/monkey-business-bend/Callbacks.bend')
 load(root/'packages/monkey-business-bend/AdviceeLifecycle.bend')
 load(root/'packages/monkey-business-bend/Types.bend')
 family_roots={
+ 'stop_scenarios':(root/'packages/monkey-business-bend/conformance/stop-observed-wire.bend','Envelope',True),
  'sharing_scenarios':(root/'packages/monkey-business-bend/conformance/sharing-observed-wire.bend','Envelope',False),
  'output_scenarios':(root/'packages/monkey-business-bend/conformance/output-scenario-driver.bend','Envelope',True),
  'writer_scenarios':(root/'packages/monkey-business-bend/conformance/writer-observed-wire.bend','Envelope',False),

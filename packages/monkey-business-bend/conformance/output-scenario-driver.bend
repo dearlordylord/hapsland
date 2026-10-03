@@ -202,48 +202,9 @@ def selected_receipt(originals: List<&2,Callbacks.Original>, +order: Nat) -> May
       receipt_match(Nat.is_eq(id,order),fact,selected_receipt(tail,order))
     case _ <> tail: selected_receipt(tail,order)
 
-def delivered_action(action: Maybe<&2,Driver.Action>, item: Edge.Item) -> Edge.Item:
-  match action item:
-    case Some{action} Edge.Item{at,order,Edge.Event{_,job}}: Edge.Item{at,order,Edge.Event{action,job}}
-    case _ item: item
-
-def deliver_receipt(receipt: Maybe<&2,Callbacks.Fact>, item: Edge.Item, now: Nat) -> Edge.Item:
-  match receipt:
-    case Some{fact}: delivered_action(Engine.output_deliver(fact,now),item)
-    case None{}: item
-
-def deliver_selected(matches: Bool, receipt: Maybe<&2,Callbacks.Fact>, item: Edge.Item, now: Nat) -> Edge.Item:
-  match matches:
-    case True{}: deliver_receipt(receipt,item,now)
-    case False{}: item
-
-def deliver_item(+item: Edge.Item, originals: List<&2,Callbacks.Original>, now: Nat, selected: Nat) -> Edge.Item:
-  match item:
-    case Edge.Item{_,+order,_}: deliver_selected(Nat.is_eq(order,selected),selected_receipt(originals,order),item,now)
-
-def delivery_items(items: List<&2,Edge.Item>, +originals: List<&2,Callbacks.Original>, +now: Nat, +selected: Nat) -> List<&2,Edge.Item>:
-  match items:
-    case Nil{}: Nil{}
-    case item <> tail: deliver_item(item,originals,now,selected) <> delivery_items(tail,originals,now,selected)
-
-def command_scope(command: C.Command, before: List<&2,Types.State>, after: List<&2,Types.State>) -> Maybe<&2,Nat>:
-  match before after:
-    case before <> Nil{} after <> Nil{}: Engine.scope_command(before,after,command,Some{1n})
-    case _ _: None{}
-
-def command_scopes(commands: List<&2,C.Command>, +before: List<&2,Types.State>, +after: List<&2,Types.State>) -> List<&2,Maybe<&2,Nat>>:
-  match commands:
-    case Nil{}: Nil{}
-    case command <> tail: command_scope(command,before,after) <> command_scopes(tail,before,after)
-
-def canonical_scopes(result: List<&2,C.Step>, +before: List<&2,Types.State>, +after: List<&2,Types.State>) -> List<&2,Maybe<&2,Nat>>:
-  match result before after:
-    case C.Advanced{_,commands} <> Nil{} _ <> Nil{} _ <> Nil{}: command_scopes(commands,before,after)
-    case _ _ _: Nil{}
-
 def frame_scopes(frame: Edge.ObservedFrame) -> List<&2,Maybe<&2,Nat>>:
   match frame:
-    case Edge.CanonicalFrame{before,after,_,_,_,result}: canonical_scopes(result,before,after)
+    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_}: scopes
     case _: Nil{}
 
 def observed_frame(+runtime: List<&2,Edge.Runtime>, frame: Maybe<&2,Edge.ObservedFrame>,
@@ -285,21 +246,6 @@ def observed(value: Transport.Stepped<Facts>, previous: Runtime, receipt: Maybe<
     case Transport.Stepped{Edge.Observed{runtime,_,_},_} Runtime{_,issued,frames,_}:
       Runtime{runtime,issued,List.append(&2,Frame,frames,[InvalidTransport{}]),False{}}
 
-def delivery_runtime_items(runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat) -> List<&2,Edge.Item>:
-  match runtime:
-    case Edge.Runtime{state,Edge.Queue{items,_,_},_,_} <> Nil{}:
-      delivery_items(items,Engine.callback_originals(state),at,order)
-    case _: []
-
-def delivery_runtime_ready(items: List<&2,Edge.Item>, runtime: List<&2,Edge.Runtime>) -> List<&2,Edge.Runtime>:
-  match runtime:
-    case Edge.Runtime{state,Edge.Queue{_,sequence,synced},jobs,delay} <> Nil{}:
-      [Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,delay}]
-    case runtime: runtime
-
-def delivery_runtime(+runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat) -> List<&2,Edge.Runtime>:
-  delivery_runtime_ready(delivery_runtime_items(runtime,at,order),runtime)
-
 def step_receipted(receipt: Maybe<&2,Callbacks.Fact>, runtime: List<&2,Edge.Runtime>,
     environment: Edge.Environment, previous: Runtime, +facts: Facts) -> Runtime:
   observed(Transport.step(Facts,runtime,20n,environment,commands => hook(commands,facts)),previous,receipt)
@@ -308,7 +254,7 @@ def step_selected(queue: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtim
     previous: Runtime, facts: Facts) -> Runtime:
   match queue:
     case Scheduler.Entry{at,+order} <> _:
-      step_receipted(selected_receipt(Edge.runtime_originals(runtime),order),delivery_runtime(runtime,at,order),environment,previous,facts)
+      step_receipted(selected_receipt(Edge.runtime_originals(runtime),order),runtime,environment,previous,facts)
     case _: previous
 
 def in_horizon(queue: List<&2,Scheduler.Entry>) -> Bool:
@@ -388,4 +334,4 @@ def initial() -> Runtime:
     Workload.Profile{Session.Settings{1000000,0,1000,500,0,300},7,[97,103,101,110,116,45,49],100n,[100n],None{}}),1n,Workload.Next{}))
 
 def run(outcome: Output.Outcome, +delay: Nat, +lease: Nat) -> Trace:
-  advance(150n,initial(),Edge.Environment{7n,TreeFacts.Profile{1n,1n,0n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n},Edge.graph_limits(),2n,delay,lease},outcome,delay,lease)
+  advance(150n,initial(),Edge.Environment{7n,TreeFacts.Profile{1n,1n,0n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n},Edge.graph_limits(),2n,delay,lease,None{}},outcome,delay,lease)

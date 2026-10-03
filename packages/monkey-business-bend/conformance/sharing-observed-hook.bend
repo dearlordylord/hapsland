@@ -22,6 +22,8 @@ def selected(input: Edge.Input, labels: Originals.Labels,
     case Edge.Edit{job}: Facts{labels,originals,current,None{},now,Some{job}}
     case Edge.Event{Driver.Action{event,_,_,_,_},job}:
       Facts{labels,originals,current,Some{event},now,Some{job}}
+    case Edge.FitEvent{Driver.Action{event,_,_,_,_},job,_}:
+      Facts{labels,originals,current,Some{event},now,Some{job}}
     case Edge.Cache{fact,job}: Facts{labels,originals,current,Some{CacheRuntime.fact_event(fact)},now,Some{job}}
     case _: Facts{labels,originals,current,None{},now,None{}}
 

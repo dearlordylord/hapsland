@@ -113,9 +113,9 @@ def observed_states(before: List<&2,Types.State>, after: List<&2,Types.State>,
 def observed_owner(frame: Edge.ObservedFrame, found: Maybe<&2,Payload>,
     fallback: Maybe<&2,Nat>) -> Maybe<&2,Nat>:
   match frame:
-    case Edge.CanonicalFrame{before,after,_,_,event,_}:
+    case Edge.CanonicalFrame{before,after,_,_,event,_,_,_,_,_,_}:
       observed_states(before,after,event,found,fallback)
-    case Edge.CacheFrame{before,after,_,_,_,event,_}:
+    case Edge.CacheFrame{before,after,_,_,_,event,_,_,_,_,_,_}:
       observed_states(before,after,event,found,fallback)
     case _: provided(found,fallback)
 

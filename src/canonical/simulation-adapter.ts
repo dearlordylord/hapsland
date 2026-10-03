@@ -1,4 +1,6 @@
 import { encodeWriterCapture, encodeWriterTarget, decodeWriterPending, decodeWriterIssuedCapture, type WriterCapture, type WriterTarget } from "../../packages/monkey-business/src/writer-controls.ts";
+import { encodeStopInput, encodeStopProgress, decodeStopFound, decodeStopRegistry, encodeStopCommandFacts, decodeStopCommand, type StopCommandFacts, type StopProgress } from "../../packages/monkey-business/src/stop-codec.ts";
+import { encodeCollectorProfile } from "../../packages/monkey-business/src/collector-codec.ts";
 import { validateCollectionResponseControl, encodeCollectionResponse, encodeCollectionResponseIdentity, decodeCollectionResponseIdentity, type CollectionResponseIdentity, type CollectionResponseControl } from "../../packages/monkey-business/src/collection-scenario.ts";
 import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "../../packages/monkey-business/src/output-controls.ts";
 import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
@@ -79,8 +81,7 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   // bridge key and its predecessor metadata from earlier transitions.
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
   const cacheFacts: readonly SharedCacheFact[] = [];
-  const writerReleases=departureFacts.map(fact=>writerReleaseFact(state,encodeSharedValue(fact.capture),fact.event));
-  return { state: transition.state, result, afterActions, cacheReleases, cacheFacts, writerReleases };
+  return { state: transition.state, result, afterActions, cacheReleases, cacheFacts, writerReleases, structural: transition, structuralSource: undefined };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
   sharedCheck(state);
@@ -90,7 +91,7 @@ export const stepSharedGraph = (state: EngineState, key: unknown, position: bigi
   const result = transition.result;
   projectImportGraph(before);
   decodeImportGraphStep(result);
-  return { state: retain(state, transition.state), before, result };
+  return { state: retain(state, transition.state), before, result, structural: transition };
 };
 export const driveSharedCommand = (state: EngineState, event: CanonicalEvent, index: number, context: unknown): unknown => {
   sharedCheck(state);
@@ -494,7 +495,7 @@ export const preprocessSharedSharing = (state: EngineState, event: CanonicalEven
   const end = horizon === undefined ? { $: "None" } : { $: "Some", value: readNat(horizon) };
   const prepared = SharedEngine.sharing_preprocess(state, encodeSharedValue(encodeCanonicalEvent(event)), BigInt(readNat(order)), encodeSharedValue(end));
   const option = readRecord(prepared.frame);
-  if (option.$ === "None") return { state, frame: undefined, events: decodeSharedValue(prepared.events) };
+  if (option.$ === "None") return { state, frame: undefined, events: decodeSharedValue(prepared.events), structural: prepared };
   if (option.$ !== "Some") throw new TypeError("invalid sharing preprocessing frame");
   const frame = readRecord(option.value);
   const beforeState = frame.before as EngineState;
@@ -518,7 +519,7 @@ export const preprocessSharedSharing = (state: EngineState, event: CanonicalEven
   sharedCommands.set(prepared.state, commands);
   sharedPredecessors.set(prepared.state, Object.freeze({ ...beforeState }));
   return { state: prepared.state, frame: { event: decodeSharedValue(frame.event), result,
-    before: projectionOf(state), after: projectCanonical(result.state), commandScopes }, events: decodeSharedValue(prepared.events) };
+    before: projectionOf(state), after: projectCanonical(result.state), commandScopes }, events: decodeSharedValue(prepared.events), structural: prepared };
 };
 
 export const leaveAllSharedSharing = (state: EngineState, partition: number, lifetime: number) => {
@@ -575,7 +576,7 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   sharedSourceEvents.set(transition.state,capsule.event);
   sharedPredecessors.set(transition.state,Object.freeze({...state}));
   consumedCacheFacts.add(capsule);
-  return { state:transition.state,result,afterActions, cacheFacts:nextFacts, cacheReleases };
+  return { state:transition.state,result,afterActions, cacheFacts:nextFacts, cacheReleases, structural: transition, structuralSource: provenance.raw };
 };
 
 
@@ -763,4 +764,55 @@ export const deliverSharedWriterRelease=(state:EngineState,receipt:SharedWriterR
   const event=peekSharedWriterRelease(state,receipt,now);
   consumedWriterReleases.add(receipt);
   return event;
+export const configureSharedCollector = (state: EngineState, profile: Parameters<typeof encodeCollectorProfile>[0]): EngineState => {
+  sharedCheck(state);
+  return retain(state, SharedEngine.collector_configure(state, encodeSharedValue(encodeCollectorProfile(profile))));
+};
+export const driveSharedCollector = (state: EngineState, index: number, context: unknown) => {
+  sharedCheck(state);
+  const command = sharedCommands.get(state)?.[index];
+  const source = sharedSourceEvents.get(state);
+  if (!command || !source) throw new TypeError("missing original collector command facts");
+  const changed = SharedEngine.collector_command(state, encodeSharedValue(encodeCanonicalEvent(source)), command,
+    encodeSharedValue(context));
+  // All actions are decoded before publishing either state or queued effects.
+  const handled = decodeDriver(decodeSharedValue(changed.handled));
+  return { state: retain(state, changed.state), handled };
+};
+export const afterSharedCollector = (state: EngineState) => {
+  sharedCheck(state);
+  const source = sharedSourceEvents.get(state);
+  if (!source) throw new TypeError("missing original collector completion facts");
+  const changed = SharedEngine.collector_after(state, encodeSharedValue(encodeCanonicalEvent(source)));
+  const handled = decodeDriver(decodeSharedValue(changed.handled));
+  return { state: retain(state, changed.state), handled };
+};
+
+
+export const sharedStopFinish = (state: EngineState, partition: number) =>
+  decodeStopFound(decodeSharedValue(SharedEngine.stop_find(state,BigInt(readNat(partition)))));
+export const sharedStopFinishes = (state: EngineState) =>
+  decodeStopRegistry(decodeSharedValue(SharedEngine.stop_entries(state)));
+export const registerSharedStop = (state: EngineState, input: unknown) => {
+  sharedCheck(state);
+  const registered = SharedEngine.stop_register(state,encodeSharedValue(encodeStopInput(input)));
+  const finish = decodeStopFound(decodeSharedValue(registered.finish));
+  const created = readBool(registered.created);
+  return { state: retain(state,registered.state), finish, created };
+};
+export const progressSharedStop = (state: EngineState, partition: number, attempt: number, change: StopProgress) =>
+  retain(state,SharedEngine.stop_progress(state,BigInt(readNat(partition)),BigInt(readNat(attempt)),encodeSharedValue(encodeStopProgress(change))));
+export const closeSharedStop = (state: EngineState, partition: number) =>
+  retain(state,SharedEngine.stop_close(state,BigInt(readNat(partition))));
+
+
+export const driveSharedStop = (state: EngineState, index: number, context: unknown, facts: StopCommandFacts) => {
+  sharedCheck(state);
+  const command = sharedCommands.get(state)?.[index];
+  const source = sharedSourceEvents.get(state);
+  if (!command || !source) throw new TypeError("missing original Stop command facts");
+  const changed = SharedEngine.stop_command(state,encodeSharedValue(encodeCanonicalEvent(source)),command,
+    encodeSharedValue(context),encodeSharedValue(encodeStopCommandFacts(facts)));
+  const report = decodeStopCommand(decodeSharedValue(changed));
+  return { state: retain(state,changed.state), report };
 };
