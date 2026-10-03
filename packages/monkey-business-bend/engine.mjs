@@ -159,82 +159,252 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
-function $CredentialFacts$initial$() {
-  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
+function $Advicees$initial$() {
+  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
 }
 
-function $CredentialFacts$availability$(_state_0, _available_0) {
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+function $Advicees$maximum$() {
+  const _x_0 = nat_chk(65536 * 4294967295);
+  return nat_chk(_x_0 + 65535);
 }
 
-function $CredentialFacts$rotate$(_state_0) {
-  const _available_0 = _state_0["available"];
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
+function $Advicees$bounded$(_identity_0) {
+  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
 }
 
-function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
-  const _available_0 = _state_0["available"];
-  const _generation_0 = _state_0["generation"];
-  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
+function $Advicees$scope_identity$(_scope_0) {
+  const _identity_0 = _scope_0["identity"];
+  return _identity_0;
 }
 
-function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+function $Advicees$scope_partition$(_scope_0) {
+  const _partition_0 = _scope_0["partition"];
+  return _partition_0;
 }
 
-function $CredentialFacts$lookup$(_items_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
+function $Advicees$found$(_equal_0, _scope_0, _other_0) {
+  if (_equal_0) {
+    return {$: "Some", "value": _scope_0};
+  } else {
+    return _other_0;
+  }
+}
+
+function $Advicees$find_identity$(_scopes_0, _identity_0) {
+  if (_scopes_0.$ === "Nil") {
     return {$: "None"};
   } else {
-    const _t_0 = _items_0["head"];
-    const _candidate_0 = _t_0["operation"];
-    const _generation_0 = _t_0["generation"];
-    const _tail_0 = _items_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
   }
 }
 
-function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
-  if (_found_0.$ === "None") {
-    const _available_0 = _state_0["available"];
-    const _generation_0 = _state_0["generation"];
-    const _issued_0 = _state_0["issued"];
-    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
+function $Advicees$find_partition$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
   } else {
-    return _state_0;
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
   }
 }
 
-function $CredentialFacts$capture$(_state_0, _operation_0) {
-  const __0 = _state_0["available"];
-  const __1 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
+function $Advicees$lookup_identity$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_identity$(_scopes_0, _identity_0);
 }
 
-function $CredentialFacts$captured$(_state_0, _operation_0) {
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$lookup$(_issued_0, _operation_0);
+function $Advicees$lookup_partition$(_registry_0, _partition_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_partition$(_scopes_0, _partition_0);
 }
 
-function $CredentialFacts$generation_found$(_current_0, _found_0) {
-  if (_found_0.$ === "None") {
+function $Advicees$absent$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return true;
+  } else {
     return false;
-  } else {
-    const _generation_0 = _found_0["value"];
-    return $Nat$is_eq$(_current_0, _generation_0);
   }
 }
 
-function $CredentialFacts$matches$(_state_0, _operation_0) {
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
+function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
+  if (_valid_0) {
+    const _next_0 = _registry_0["next"];
+    const _scopes_0 = _registry_0["scopes"];
+    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
+    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
+  } else {
+    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
+  }
+}
+
+function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
+  const _next_0 = _registry_0["next"];
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
+}
+
+function $Advicees$targeted$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
+  } else {
+    const _scope_1 = _scope_0["value"];
+    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
+  }
+}
+
+function $Advicees$targets$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  if (_identity_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
+  } else {
+    const _identity_1 = _identity_0["value"];
+    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
+  }
+}
+
+function $AdviceeLifecycle$partition$(_entry_0) {
+  const _partition_0 = _entry_0["partition"];
+  return _partition_0;
+}
+
+function $AdviceeLifecycle$lifetime$(_entry_0) {
+  const _lifetime_0 = _entry_0["lifetime"];
+  return _lifetime_0;
+}
+
+function $AdviceeLifecycle$active$(_status_0) {
+  if (_status_0.$ === "AdviceeLifecycle.Active") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycle$entry_active$(_entry_0) {
+  const _status_0 = _entry_0["status"];
+  return $AdviceeLifecycle$active$(_status_0);
+}
+
+function $AdviceeLifecycle$found$(_hit_0, _entry_0, _other_0) {
+  if (_hit_0) {
+    return {$: "Some", "value": _entry_0};
+  } else {
+    return _other_0;
+  }
+}
+
+function $AdviceeLifecycle$lookup$(_entries_0, _owner_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _entries_0["head"];
+    const _tail_0 = _entries_0["tail"];
+    return $AdviceeLifecycle$found$(($Nat$is_eq$(($AdviceeLifecycle$partition$(_head_0)), _owner_0)), _head_0, ($AdviceeLifecycle$lookup$(_tail_0, _owner_0)));
+  }
+}
+
+function $AdviceeLifecycle$absent$(_entry_0) {
+  if (_entry_0.$ === "None") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycle$register_valid$(_valid_0, _entries_0, _owner_0) {
+  if (_valid_0) {
+    return $List$append$(_entries_0, {$: "Con", "head": {$: "AdviceeLifecycle.Entry", "partition": _owner_0, "lifetime": 1, "status": {$: "AdviceeLifecycle.Active"}}, "tail": {$: "Nil"}});
+  } else {
+    return _entries_0;
+  }
+}
+
+function $AdviceeLifecycle$register$(_entries_0, _owner_0) {
+  return $AdviceeLifecycle$register_valid$(($Bool$and$(($Advicees$bounded$(_owner_0)), ($AdviceeLifecycle$absent$(($AdviceeLifecycle$lookup$(_entries_0, _owner_0)))))), _entries_0, _owner_0);
+}
+
+function $AdviceeLifecycle$replacement$(_hit_0, _head_0, _updated_0) {
+  if (_hit_0) {
+    return _updated_0;
+  } else {
+    return _head_0;
+  }
+}
+
+function $AdviceeLifecycle$replace$(_entries_0, _updated_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _entries_0["head"];
+    const _tail_0 = _entries_0["tail"];
+    return {$: "Con", "head": ($AdviceeLifecycle$replacement$(($Nat$is_eq$(($AdviceeLifecycle$partition$(_head_0)), ($AdviceeLifecycle$partition$(_updated_0)))), _head_0, _updated_0)), "tail": ($AdviceeLifecycle$replace$(_tail_0, _updated_0))};
+  }
+}
+
+function $AdviceeLifecycle$accepted$(_entries_0, _previous_0, _current_0) {
+  return {$: "AdviceeLifecycle.Changed", "entries": ($AdviceeLifecycle$replace$(_entries_0, _current_0)), "previous": {$: "Some", "value": _previous_0}, "current": {$: "Some", "value": _current_0}, "valid": true};
+}
+
+function $AdviceeLifecycle$refused$(_entries_0, _entry_0) {
+  return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": {$: "Some", "value": _entry_0}, "current": {$: "Some", "value": _entry_0}, "valid": false};
+}
+
+function $AdviceeLifecycle$resumed$(_valid_0, _entries_0, _entry_0) {
+  if (_valid_0) {
+    const _x_0 = ($AdviceeLifecycle$lifetime$(_entry_0));
+    return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": nat_chk(_x_0 + 1), "status": {$: "AdviceeLifecycle.Active"}});
+  } else {
+    return $AdviceeLifecycle$refused$(_entries_0, _entry_0);
+  }
+}
+
+function $AdviceeLifecycle$disconnected_status$(_status_0) {
+  if (_status_0.$ === "AdviceeLifecycle.Removed") {
+    return {$: "AdviceeLifecycle.Removed"};
+  } else {
+    return {$: "AdviceeLifecycle.Disconnected"};
+  }
+}
+
+function $AdviceeLifecycle$disconnected_entry_status$(_entry_0) {
+  const _status_0 = _entry_0["status"];
+  return $AdviceeLifecycle$disconnected_status$(_status_0);
+}
+
+function $AdviceeLifecycle$known$(_entries_0, _found_0, _action_0) {
+  if (_found_0.$ === "None") {
+    return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": {$: "None"}, "current": {$: "None"}, "valid": false};
+  } else {
+    const _entry_0 = _found_0["value"];
+    if (_action_0.$ === "AdviceeLifecycle.Resume") {
+      const _x_0 = ($AdviceeLifecycle$lifetime$(_entry_0));
+      const _x_1 = ($Advicees$maximum$());
+      return $AdviceeLifecycle$resumed$(($Bool$and$(($Bool$and$(($Bool$not$(($AdviceeLifecycle$entry_active$(_entry_0)))), ($Advicees$bounded$(($AdviceeLifecycle$lifetime$(_entry_0)))))), (_x_0 < _x_1))), _entries_0, _entry_0);
+    } else if (_action_0.$ === "AdviceeLifecycle.Remove") {
+      return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": ($AdviceeLifecycle$lifetime$(_entry_0)), "status": {$: "AdviceeLifecycle.Removed"}});
+    } else {
+      return $AdviceeLifecycle$accepted$(_entries_0, _entry_0, {$: "AdviceeLifecycle.Entry", "partition": ($AdviceeLifecycle$partition$(_entry_0)), "lifetime": ($AdviceeLifecycle$lifetime$(_entry_0)), "status": ($AdviceeLifecycle$disconnected_entry_status$(_entry_0))});
+    }
+  }
+}
+
+function $AdviceeLifecycle$change$(_entries_0, _owner_0, _action_0) {
+  return $AdviceeLifecycle$known$(_entries_0, ($AdviceeLifecycle$lookup$(_entries_0, _owner_0)), _action_0);
+}
+
+function $AdviceeLifecycle$valid_entry$(_found_0, _generation_0) {
+  if (_found_0.$ === "Some") {
+    const _entry_0 = _found_0["value"];
+    return $Bool$and$(($AdviceeLifecycle$entry_active$(_entry_0)), ($Nat$is_eq$(($AdviceeLifecycle$lifetime$(_entry_0)), _generation_0)));
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycle$permits_activity$(_entries_0, _owner_0, _generation_0) {
+  return $AdviceeLifecycle$valid_entry$(($AdviceeLifecycle$lookup$(_entries_0, _owner_0)), _generation_0);
 }
 
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -12621,6 +12791,577 @@ function $Driver$revalidate$(_state_0, _context_0) {
   return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
 }
 
+function $AdviceeLifecycleCleanup$select_operation$(_owned_0, _id_0, _tail_0) {
+  if (_owned_0) {
+    return {$: "Con", "head": _id_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $AdviceeLifecycleCleanup$work_operations$(_work_0, _owner_0, _generation_0) {
+  if (_work_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _work_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _id_0 = _t_0["operation"];
+    const _tail_0 = _work_0["tail"];
+    return $AdviceeLifecycleCleanup$select_operation$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), _id_0, ($AdviceeLifecycleCleanup$work_operations$(_tail_0, _owner_0, _generation_0)));
+  }
+}
+
+function $AdviceeLifecycleCleanup$dispatch_operations$(_entries_0, _owner_0, _generation_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _id_0 = _t_0["operation"];
+    const _tail_0 = _entries_0["tail"];
+    return $AdviceeLifecycleCleanup$select_operation$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), _id_0, ($AdviceeLifecycleCleanup$dispatch_operations$(_tail_0, _owner_0, _generation_0)));
+  }
+}
+
+function $AdviceeLifecycleCleanup$release_permits$(_permits_0, _owner_0, _generation_0) {
+  if (_permits_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _permits_0["head"];
+    const _token_0 = _t_0["token"];
+    const _tail_0 = _permits_0["tail"];
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.ReleasePermit", "partition": _owner_0, "lifetime": _generation_0, "token": _token_0}, false)), "tail": ($AdviceeLifecycleCleanup$release_permits$(_tail_0, _owner_0, _generation_0))};
+  }
+}
+
+function $AdviceeLifecycleCleanup$admission_actions$(_active_0, _owner_0, _generation_0, _round_0, _now_0, _permits_0) {
+  if (_active_0) {
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.ClosePermitRound", "partition": _owner_0, "lifetime": _generation_0, "round": _round_0, "at": _now_0}, false)), "tail": {$: "Nil"}};
+  } else {
+    return $AdviceeLifecycleCleanup$release_permits$(_permits_0, _owner_0, _generation_0);
+  }
+}
+
+function $AdviceeLifecycleCleanup$admission_found$(_found_0, _generation_0, _now_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _lifetime_0 = _t_0["lifetime"];
+    const _round_0 = _t_0["round"];
+    const _active_0 = _t_0["active"];
+    const _permits_0 = _t_0["permits"];
+    return $Bool$pick$(($Nat$is_eq$(_lifetime_0, _generation_0)), ($AdviceeLifecycleCleanup$admission_actions$(_active_0, _owner_0, _lifetime_0, _round_0, _now_0, _permits_0)), {$: "Nil"});
+  }
+}
+
+function $AdviceeLifecycleCleanup$retire_found$(_found_0, _generation_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _lifetime_0 = _t_0["lifetime"];
+    const _round_0 = _t_0["id"];
+    return $Bool$pick$(($Nat$is_eq$(_lifetime_0, _generation_0)), {$: "Con", "head": ($Driver$immediate$({$: "Canonical.RetirePartition", "partition": _owner_0, "lifetime": _lifetime_0, "round": _round_0}, false)), "tail": {$: "Nil"}}, {$: "Nil"});
+  }
+}
+
+function $AdviceeLifecycleCleanup$discard_named$(_operations_0) {
+  if (_operations_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _operations_0["head"];
+    const _tail_0 = _operations_0["tail"];
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.DiscardDispatch", "operations": {$: "Con", "head": _head_0, "tail": _tail_0}}, false)), "tail": {$: "Nil"}};
+  }
+}
+
+function $AdviceeLifecycleCleanup$forget_found$(_found_0, _generation_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _lifetime_0 = _t_0["lifetime"];
+    return $Bool$pick$(($Nat$is_eq$(_lifetime_0, _generation_0)), {$: "Con", "head": ($Driver$immediate$({$: "Canonical.ForgetAdmission", "partition": _owner_0, "lifetime": _lifetime_0}, false)), "tail": {$: "Nil"}}, {$: "Nil"});
+  }
+}
+
+function $AdviceeLifecycleCleanup$capture_if$(_owned_0, _capture_0, _tail_0) {
+  if (_owned_0) {
+    return {$: "Con", "head": _capture_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $AdviceeLifecycleCleanup$preparation_facts$($0, $1, $2) {
+  for (;;) {
+    {
+      const _work_0 = $0;
+      const _owner_0 = $1;
+      const _generation_0 = $2;
+      if (_work_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _work_0["head"];
+        const _p_0 = _t_0["partition"];
+        const _l_0 = _t_0["lifetime"];
+        const _r_0 = _t_0["round"];
+        const _op_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.Preparing") {
+          const _parent_0 = _t_0["parent"];
+          const _tail_0 = _work_0["tail"];
+          return $AdviceeLifecycleCleanup$capture_if$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_gt$(_parent_0, 0)))), {$: "AdviceeLifecycleCleanup.CapturedPreparation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _op_0, "parent": _parent_0}, ($AdviceeLifecycleCleanup$preparation_facts$(_tail_0, _owner_0, _generation_0)));
+        } else {
+          const _tail_1 = _work_0["tail"];
+          $0 = _tail_1;
+          $1 = _owner_0;
+          $2 = _generation_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $AdviceeLifecycleCleanup$captured_cleanup$(_state_0, _owner_0, _generation_0, _now_0) {
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _admissions_0 = _state_0["admissions"];
+  const _t_0 = _state_0["dispatch"];
+  const _queued_0 = _t_0["queued"];
+  const _running_0 = _t_0["running"];
+  const _operations_0 = ($List$append$(($AdviceeLifecycleCleanup$dispatch_operations$(_queued_0, _owner_0, _generation_0)), ($AdviceeLifecycleCleanup$dispatch_operations$(_running_0, _owner_0, _generation_0))));
+  return {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": ($List$append$(($AdviceeLifecycleCleanup$admission_found$(($$$$047agent$045flow$045bend$047Canonical$find_admission$(_owner_0, _admissions_0)), _generation_0, _now_0)), ($List$append$(($AdviceeLifecycleCleanup$retire_found$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_owner_0, _rounds_0)), _generation_0)), ($List$append$(($AdviceeLifecycleCleanup$discard_named$(_operations_0)), ($AdviceeLifecycleCleanup$forget_found$(($$$$047agent$045flow$045bend$047Canonical$find_admission$(_owner_0, _admissions_0)), _generation_0)))))))), "operations": ($List$append$(($AdviceeLifecycleCleanup$work_operations$(_work_0, _owner_0, _generation_0)), _operations_0)), "preparations": ($AdviceeLifecycleCleanup$preparation_facts$(_work_0, _owner_0, _generation_0))};
+}
+
+function $AdviceeLifecycleCleanup$cleanup$(_state_0, _entry_0, _now_0) {
+  const _owner_0 = _entry_0["partition"];
+  const _generation_0 = _entry_0["lifetime"];
+  return $AdviceeLifecycleCleanup$captured_cleanup$(_state_0, _owner_0, _generation_0, _now_0);
+}
+
+function $AdviceeLifecycleCleanup$cleanup_if$(_departed_0, _state_0, _entry_0, _now_0) {
+  if (_departed_0) {
+    return $AdviceeLifecycleCleanup$cleanup$(_state_0, _entry_0, _now_0);
+  } else {
+    return {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": {$: "Nil"}, "operations": {$: "Nil"}, "preparations": {$: "Nil"}};
+  }
+}
+
+function $AdviceeLifecycleCleanup$plan$(_state_0, _changed_0, _now_0) {
+  const _t_0 = _changed_0["previous"];
+  if (_t_0.$ === "Some") {
+    const _before_0 = _t_0["value"];
+    const _t_1 = _changed_0["current"];
+    if (_t_1.$ === "Some") {
+      const _after_0 = _t_1["value"];
+      const _t_2 = _changed_0["valid"];
+      if (_t_2) {
+        return $AdviceeLifecycleCleanup$cleanup_if$(($Bool$and$(($AdviceeLifecycle$entry_active$(_before_0)), ($Bool$not$(($AdviceeLifecycle$entry_active$(_after_0)))))), _state_0, _before_0, _now_0);
+      } else {
+        return {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": {$: "Nil"}, "operations": {$: "Nil"}, "preparations": {$: "Nil"}};
+      }
+    } else {
+      return {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": {$: "Nil"}, "operations": {$: "Nil"}, "preparations": {$: "Nil"}};
+    }
+  } else {
+    return {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": {$: "Nil"}, "operations": {$: "Nil"}, "preparations": {$: "Nil"}};
+  }
+}
+
+function $AdviceeLifecycleCleanup$callback_matches$(_capture_0, _event_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _r_0 = _capture_0["round"];
+  const _op_0 = _capture_0["operation"];
+  if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _owner_0 = _event_0["partition"];
+    const _generation_0 = _event_0["lifetime"];
+    const _round_0 = _event_0["round"];
+    const _operation_0 = _event_0["operation"];
+    return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_op_0, _operation_0)));
+  } else {
+    return false;
+  }
+}
+
+function $AdviceeLifecycleCleanup$parent_running$(_entries_0, _capture_0) {
+  if (_entries_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _op_0 = _t_0["operation"];
+    const _preparation_0 = _t_0["preparation"];
+    const _tail_0 = _entries_0["tail"];
+    const _owner_0 = _capture_0["partition"];
+    const _generation_0 = _capture_0["lifetime"];
+    const _round_0 = _capture_0["round"];
+    const _operation_0 = _capture_0["operation"];
+    const _parent_0 = _capture_0["parent"];
+    const _x_0 = ($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(_preparation_0, ($Nat$is_eq$(_p_0, _owner_0)))), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_op_0, _parent_0))));
+    const _x_1 = ($AdviceeLifecycleCleanup$parent_running$(_tail_0, {$: "AdviceeLifecycleCleanup.CapturedPreparation", "partition": _owner_0, "lifetime": _generation_0, "round": _round_0, "operation": _operation_0, "parent": _parent_0}));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $AdviceeLifecycleCleanup$released_parent$(_running_0, _capture_0) {
+  if (_running_0) {
+    const _p_0 = _capture_0["partition"];
+    const _l_0 = _capture_0["lifetime"];
+    const _r_0 = _capture_0["round"];
+    const _parent_0 = _capture_0["parent"];
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.DispatchSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _parent_0}, false)), "tail": {$: "Nil"}};
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $AdviceeLifecycleCleanup$completion_actions$(_state_0, _capture_0) {
+  const _t_0 = _state_0["dispatch"];
+  const _running_0 = _t_0["running"];
+  return $AdviceeLifecycleCleanup$released_parent$(($AdviceeLifecycleCleanup$parent_running$(_running_0, _capture_0)), _capture_0);
+}
+
+function $AdviceeLifecycleCleanup$prepared_hit$(_matches_0, _capture_0, _state_0, _tail_0) {
+  if (_matches_0) {
+    const _remaining_0 = _tail_0["remaining"];
+    const _actions_0 = _tail_0["actions"];
+    return {$: "AdviceeLifecycleCleanup.PreparedSettlement", "remaining": _remaining_0, "actions": ($List$append$(($AdviceeLifecycleCleanup$completion_actions$(_state_0, _capture_0)), _actions_0))};
+  } else {
+    const _remaining_1 = _tail_0["remaining"];
+    const _actions_1 = _tail_0["actions"];
+    return {$: "AdviceeLifecycleCleanup.PreparedSettlement", "remaining": {$: "Con", "head": _capture_0, "tail": _remaining_1}, "actions": _actions_1};
+  }
+}
+
+function $AdviceeLifecycleCleanup$settle_preparations$(_captures_0, _state_0, _event_0) {
+  if (_captures_0.$ === "Nil") {
+    return {$: "AdviceeLifecycleCleanup.PreparedSettlement", "remaining": {$: "Nil"}, "actions": {$: "Nil"}};
+  } else {
+    const _head_0 = _captures_0["head"];
+    const _tail_0 = _captures_0["tail"];
+    return $AdviceeLifecycleCleanup$prepared_hit$(($AdviceeLifecycleCleanup$callback_matches$(_head_0, _event_0)), _head_0, _state_0, ($AdviceeLifecycleCleanup$settle_preparations$(_tail_0, _state_0, _event_0)));
+  }
+}
+
+function $AdviceeActivity$lookup_found$(_found_0, _incarnation_0, _remaining_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _incarnation_0};
+  } else {
+    return _remaining_0;
+  }
+}
+
+function $AdviceeActivity$lookup$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _scopes_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _incarnation_0 = _t_0["incarnation"];
+    const _tail_0 = _scopes_0["tail"];
+    return $AdviceeActivity$lookup_found$(($Nat$is_eq$(_owner_0, _partition_0)), _incarnation_0, ($AdviceeActivity$lookup$(_tail_0, _partition_0)));
+  }
+}
+
+function $AdviceeActivity$register_found$(_found_0, _scopes_0, _partition_0) {
+  if (_found_0.$ === "Some") {
+    return _scopes_0;
+  } else {
+    return $List$append$(_scopes_0, {$: "Con", "head": {$: "AdviceeActivity.Scope", "partition": _partition_0, "incarnation": 1}, "tail": {$: "Nil"}});
+  }
+}
+
+function $AdviceeActivity$register$(_scopes_0, _partition_0) {
+  return $AdviceeActivity$register_found$(($AdviceeActivity$lookup$(_scopes_0, _partition_0)), _scopes_0, _partition_0);
+}
+
+function $AdviceeActivity$captured_valid$(_found_0, _incarnation_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _current_0 = _found_0["value"];
+    return $Nat$is_eq$(_current_0, _incarnation_0);
+  }
+}
+
+function $AdviceeActivity$resumable$(_found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _incarnation_0 = _found_0["value"];
+    const _x_0 = ($Advicees$maximum$());
+    return (_incarnation_0 < _x_0);
+  }
+}
+
+function $AdviceeActivity$active$(_entry_0) {
+  if (_entry_0.$ === "None") {
+    return false;
+  } else {
+    const _entry_1 = _entry_0["value"];
+    return $AdviceeLifecycle$entry_active$(_entry_1);
+  }
+}
+
+function $AdviceeActivity$valid$(_scopes_0, _entries_0, _partition_0, _incarnation_0) {
+  return $Bool$and$(($AdviceeActivity$captured_valid$(($AdviceeActivity$lookup$(_scopes_0, _partition_0)), _incarnation_0)), ($AdviceeActivity$active$(($AdviceeLifecycle$lookup$(_entries_0, _partition_0)))));
+}
+
+function $AdviceeActivity$resumed_head$(_valid_0, _owner_0, _incarnation_0) {
+  if (_valid_0) {
+    return {$: "AdviceeActivity.Scope", "partition": _owner_0, "incarnation": nat_chk(_incarnation_0 + 1)};
+  } else {
+    return {$: "AdviceeActivity.Scope", "partition": _owner_0, "incarnation": _incarnation_0};
+  }
+}
+
+function $AdviceeActivity$resumed$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _scopes_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _incarnation_0 = _t_0["incarnation"];
+    const _tail_0 = _scopes_0["tail"];
+    return {$: "Con", "head": ($AdviceeActivity$resumed_head$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Advicees$bounded$(nat_chk(_incarnation_0 + 1))))), _owner_0, _incarnation_0)), "tail": ($AdviceeActivity$resumed$(_tail_0, _partition_0))};
+  }
+}
+
+function $AdviceeActivity$synchronize_round$(_entries_0, _entry_0, _round_0) {
+  if (_entry_0.$ === "Some") {
+    const _t_0 = _entry_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _status_0 = _t_0["status"];
+    if (_round_0.$ === "Some") {
+      const _t_1 = _round_0["value"];
+      const _lifetime_0 = _t_1["lifetime"];
+      return $AdviceeLifecycle$replace$(_entries_0, {$: "AdviceeLifecycle.Entry", "partition": _owner_0, "lifetime": _lifetime_0, "status": _status_0});
+    } else {
+      return _entries_0;
+    }
+  } else {
+    return _entries_0;
+  }
+}
+
+function $AdviceeActivity$synchronize$(_entries_0, _canonical_0, _partition_0) {
+  const _rounds_0 = _canonical_0["rounds"];
+  return $AdviceeActivity$synchronize_round$(_entries_0, ($AdviceeLifecycle$lookup$(_entries_0, _partition_0)), ($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, _rounds_0)));
+}
+
+function $AdviceeActivity$actual_lifetime$(_found_entry_0, _found_round_0) {
+  if (_found_entry_0.$ === "Some") {
+    const _t_0 = _found_entry_0["value"];
+    const _lifetime_0 = _t_0["lifetime"];
+    if (_found_round_0.$ === "Some") {
+      const _t_1 = _found_round_0["value"];
+      const _lifetime_1 = _t_1["lifetime"];
+      return _lifetime_1;
+    } else {
+      return _lifetime_0;
+    }
+  } else {
+    if (_found_round_0.$ === "Some") {
+      const _t_2 = _found_round_0["value"];
+      const _lifetime_2 = _t_2["lifetime"];
+      return _lifetime_2;
+    } else {
+      return 0;
+    }
+  }
+}
+
+function $AdviceeActivity$lifetime$(_canonical_0, _entries_0, _partition_0) {
+  const _rounds_0 = _canonical_0["rounds"];
+  return $AdviceeActivity$actual_lifetime$(($AdviceeLifecycle$lookup$(_entries_0, _partition_0)), ($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, _rounds_0)));
+}
+
+function $PermitScenario$issue$(_capture_0, _now_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _tool_0 = _capture_0["tool"];
+  const _started_0 = _capture_0["started"];
+  const _deadline_0 = _capture_0["deadline"];
+  const _local_0 = _capture_0["advicee_limit"];
+  const _resident_0 = _capture_0["resident_limit"];
+  return {$: "Canonical.IssuePermit", "partition": _p_0, "lifetime": _l_0, "tool": _tool_0, "started": _started_0, "deadline": _deadline_0, "now": _now_0, "minimum_started": 0, "facts": {$: "Admission.ProspectiveFacts", "clock_valid": true, "hook_window": (_deadline_0 < _started_0 ? 0 : _deadline_0 - _started_0), "started_upper": _started_0, "now_lower": _now_0, "advicee_permit_limit": _local_0, "resident_permit_limit": _resident_0}};
+}
+
+function $PermitScenario$expire$(_p_0, _l_0, _token_0, _delay_0) {
+  return {$: "PermitScenario.Fact", "event": {$: "Canonical.ExpirePermit", "partition": _p_0, "lifetime": _l_0, "token": _token_0, "deadline_reached": true}, "delay": _delay_0, "job": false};
+}
+
+function $PermitScenario$consume$(_p_0, _l_0, _token_0, _tool_0, _now_0, _delay_0) {
+  return {$: "PermitScenario.Fact", "event": {$: "Canonical.ConsumePermit", "partition": _p_0, "lifetime": _l_0, "token": _token_0, "tool": _tool_0, "now": _now_0}, "delay": _delay_0, "job": true};
+}
+
+function $PermitScenario$post$(_outcome_0, _p_0, _l_0, _token_0, _tool_0, _now_0, _delay_0, _expiry_0) {
+  if (_outcome_0.$ === "PermitScenario.Absent") {
+    return {$: "Con", "head": ($PermitScenario$expire$(_p_0, _l_0, _token_0, _expiry_0)), "tail": {$: "Nil"}};
+  } else if (_outcome_0.$ === "PermitScenario.Failed") {
+    return {$: "Con", "head": {$: "PermitScenario.Fact", "event": {$: "Canonical.ReleasePermit", "partition": _p_0, "lifetime": _l_0, "token": _token_0}, "delay": _delay_0, "job": false}, "tail": {$: "Nil"}};
+  } else if (_outcome_0.$ === "PermitScenario.Successful") {
+    return {$: "Con", "head": ($PermitScenario$consume$(_p_0, _l_0, _token_0, _tool_0, _now_0, _delay_0)), "tail": {$: "Nil"}};
+  } else {
+    return {$: "Con", "head": ($PermitScenario$consume$(_p_0, _l_0, _token_0, _tool_0, _now_0, _delay_0)), "tail": {$: "Con", "head": ($PermitScenario$consume$(_p_0, _l_0, _token_0, _tool_0, _now_0, _delay_0)), "tail": {$: "Nil"}}};
+  }
+}
+
+function $PermitScenario$earlier_expiry$(_late_0, _p_0, _l_0, _token_0, _expiry_0, _facts_0) {
+  if (_late_0) {
+    return {$: "Con", "head": ($PermitScenario$expire$(_p_0, _l_0, _token_0, _expiry_0)), "tail": _facts_0};
+  } else {
+    return _facts_0;
+  }
+}
+
+function $PermitScenario$schedule_outcome$(_outcome_0, _p_0, _l_0, _token_0, _tool_0, _started_0, _deadline_0, _delay_0) {
+  if (_outcome_0.$ === "PermitScenario.Absent") {
+    return {$: "Con", "head": ($PermitScenario$expire$(_p_0, _l_0, _token_0, (_deadline_0 < _started_0 ? 0 : _deadline_0 - _started_0))), "tail": {$: "Nil"}};
+  } else {
+    return $PermitScenario$earlier_expiry$(($Nat$is_gt$(nat_chk(_started_0 + _delay_0), _deadline_0)), _p_0, _l_0, _token_0, (_deadline_0 < _started_0 ? 0 : _deadline_0 - _started_0), ($PermitScenario$post$(_outcome_0, _p_0, _l_0, _token_0, _tool_0, nat_chk(_started_0 + _delay_0), _delay_0, (_deadline_0 < _started_0 ? 0 : _deadline_0 - _started_0))));
+  }
+}
+
+function $PermitScenario$issued$(_capture_0, _token_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _tool_0 = _capture_0["tool"];
+  const _started_0 = _capture_0["started"];
+  const _deadline_0 = _capture_0["deadline"];
+  const _delay_0 = _capture_0["post_delay"];
+  const _outcome_0 = _capture_0["outcome"];
+  return $PermitScenario$schedule_outcome$(_outcome_0, _p_0, _l_0, _token_0, _tool_0, _started_0, _deadline_0, _delay_0);
+}
+
+function $PermitScenario$owned_round$(_rounds_0, _p_0, _l_0) {
+  if (_rounds_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _rounds_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _id_0 = _t_0["id"];
+    const _tail_0 = _rounds_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _p_0)), ($Nat$is_eq$(_generation_0, _l_0)))), {$: "Some", "value": _id_0}, ($PermitScenario$owned_round$(_tail_0, _p_0, _l_0)));
+  }
+}
+
+function $PermitScenario$admit$(_round_0, _p_0, _l_0) {
+  if (_round_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _id_0 = _round_0["value"];
+    return {$: "Con", "head": {$: "PermitScenario.Fact", "event": {$: "Canonical.AdmitObservation", "partition": _p_0, "lifetime": _l_0, "round": _id_0}, "delay": 0, "job": true}, "tail": {$: "Nil"}};
+  }
+}
+
+function $PermitScenario$actual_round$(_state_0, _p_0, _l_0) {
+  const _rounds_0 = _state_0["rounds"];
+  return $PermitScenario$owned_round$(_rounds_0, _p_0, _l_0);
+}
+
+function $PermitScenario$consumed$(_state_0, _command_0, _p_0, _l_0) {
+  if (_command_0.$ === "Canonical.PermitConsumed") {
+    return $PermitScenario$admit$(($PermitScenario$actual_round$(_state_0, _p_0, _l_0)), _p_0, _l_0);
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $PermitScenario$absent_post_expires$(_p_0, _l_0, _tool_0, _started_0, _deadline_0, _delay_0, _local_0, _resident_0, _token_0) {
+  return null;
+}
+
+function $CredentialFacts$initial$() {
+  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
+}
+
+function $CredentialFacts$availability$(_state_0, _available_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$rotate$(_state_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
+}
+
+function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
+}
+
+function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$lookup$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["operation"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _items_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
+  }
+}
+
+function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
+  if (_found_0.$ === "None") {
+    const _available_0 = _state_0["available"];
+    const _generation_0 = _state_0["generation"];
+    const _issued_0 = _state_0["issued"];
+    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
+  } else {
+    return _state_0;
+  }
+}
+
+function $CredentialFacts$capture$(_state_0, _operation_0) {
+  const __0 = _state_0["available"];
+  const __1 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
+}
+
+function $CredentialFacts$captured$(_state_0, _operation_0) {
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$lookup$(_issued_0, _operation_0);
+}
+
+function $CredentialFacts$generation_found$(_current_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _generation_0 = _found_0["value"];
+    return $Nat$is_eq$(_current_0, _generation_0);
+  }
+}
+
+function $CredentialFacts$matches$(_state_0, _operation_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
+}
+
 function $CredentialContext$captured_match$(_found_0, _current_0, _supplied_0) {
   if (_found_0.$ === "None") {
     return _supplied_0;
@@ -12811,111 +13552,6 @@ function $PendingEffects$consumed$(_pending_0, _event_0) {
 
 function $PendingEffects$already_issued_batch_coalesces$(_pending_0, _operation_0, _actions_0) {
   return null;
-}
-
-function $Advicees$initial$() {
-  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
-}
-
-function $Advicees$maximum$() {
-  const _x_0 = nat_chk(65536 * 4294967295);
-  return nat_chk(_x_0 + 65535);
-}
-
-function $Advicees$bounded$(_identity_0) {
-  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
-}
-
-function $Advicees$scope_identity$(_scope_0) {
-  const _identity_0 = _scope_0["identity"];
-  return _identity_0;
-}
-
-function $Advicees$scope_partition$(_scope_0) {
-  const _partition_0 = _scope_0["partition"];
-  return _partition_0;
-}
-
-function $Advicees$found$(_equal_0, _scope_0, _other_0) {
-  if (_equal_0) {
-    return {$: "Some", "value": _scope_0};
-  } else {
-    return _other_0;
-  }
-}
-
-function $Advicees$find_identity$(_scopes_0, _identity_0) {
-  if (_scopes_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _scopes_0["head"];
-    const _tail_0 = _scopes_0["tail"];
-    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
-  }
-}
-
-function $Advicees$find_partition$(_scopes_0, _partition_0) {
-  if (_scopes_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _scopes_0["head"];
-    const _tail_0 = _scopes_0["tail"];
-    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
-  }
-}
-
-function $Advicees$lookup_identity$(_registry_0, _identity_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$find_identity$(_scopes_0, _identity_0);
-}
-
-function $Advicees$lookup_partition$(_registry_0, _partition_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$find_partition$(_scopes_0, _partition_0);
-}
-
-function $Advicees$absent$(_scope_0) {
-  if (_scope_0.$ === "None") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
-  if (_valid_0) {
-    const _next_0 = _registry_0["next"];
-    const _scopes_0 = _registry_0["scopes"];
-    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
-    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
-  } else {
-    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
-  }
-}
-
-function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
-  const _next_0 = _registry_0["next"];
-  const _scopes_0 = _registry_0["scopes"];
-  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
-}
-
-function $Advicees$targeted$(_scope_0) {
-  if (_scope_0.$ === "None") {
-    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
-  } else {
-    const _scope_1 = _scope_0["value"];
-    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
-  }
-}
-
-function $Advicees$targets$(_registry_0, _identity_0) {
-  const _scopes_0 = _registry_0["scopes"];
-  if (_identity_0.$ === "None") {
-    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
-  } else {
-    const _identity_1 = _identity_0["value"];
-    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
-  }
 }
 
 function $AdviceeScope$select_if$(_owned_0, _id_0, _tail_0) {
@@ -16195,65 +16831,6 @@ function $Workload$pre_timing$(_advicees_0, _target_0, _now_0, _provided_0, _fal
   return $Workload$pre_captured$(($Bool$pick$(($Nat$is_eq$(_now_0, 0)), 1, _now_0)), ($Workload$pre_duration$(_provided_0, _advicees_0, _target_0, _fallback_0)), _lifetime_0);
 }
 
-function $Workload$pre_action$(_facts_0, _now_0, _timing_0) {
-  const _partition_0 = _facts_0["partition"];
-  const _lifetime_0 = _facts_0["lifetime"];
-  const _tool_0 = _facts_0["tool"];
-  const _permit_lifetime_0 = _facts_0["permit_lifetime"];
-  const _advicee_limit_0 = _facts_0["advicee_limit"];
-  const _resident_limit_0 = _facts_0["resident_limit"];
-  const _started_0 = _timing_0["started"];
-  const _deadline_0 = _timing_0["deadline"];
-  const _t_0 = _timing_0["valid"];
-  if (_t_0) {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.IssuePermit", "partition": _partition_0, "lifetime": _lifetime_0, "tool": _tool_0, "started": _started_0, "deadline": _deadline_0, "now": _started_0, "minimum_started": 0, "facts": {$: "Admission.ProspectiveFacts", "clock_valid": true, "hook_window": _permit_lifetime_0, "started_upper": _started_0, "now_lower": _started_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0}}, "delay": (_started_0 < _now_0 ? 0 : _started_0 - _now_0), "candidate": {$: "None"}, "job": true, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}};
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Workload$issue$(_advicees_0, _now_0, _facts_0) {
-  const _partition_0 = _facts_0["partition"];
-  const _lifetime_0 = _facts_0["lifetime"];
-  const _tool_0 = _facts_0["tool"];
-  const _provided_0 = _facts_0["provided"];
-  const _fallback_0 = _facts_0["fallback"];
-  const _permit_lifetime_0 = _facts_0["permit_lifetime"];
-  const _advicee_limit_0 = _facts_0["advicee_limit"];
-  const _resident_limit_0 = _facts_0["resident_limit"];
-  return $Workload$pre_action$({$: "Workload.PermitFacts", "partition": _partition_0, "lifetime": _lifetime_0, "tool": _tool_0, "provided": {$: "None"}, "fallback": _fallback_0, "permit_lifetime": _permit_lifetime_0, "advicee_limit": _advicee_limit_0, "resident_limit": _resident_limit_0}, _now_0, ($Workload$pre_timing$(_advicees_0, _partition_0, _now_0, _provided_0, _fallback_0, _permit_lifetime_0)));
-}
-
-function $Workload$terminal_action$(_capture_0, _now_0) {
-  const _partition_0 = _capture_0["partition"];
-  const _lifetime_0 = _capture_0["lifetime"];
-  const _token_0 = _capture_0["token"];
-  const _tool_0 = _capture_0["tool"];
-  const __0 = _capture_0["deadline"];
-  const _duration_0 = _capture_0["duration"];
-  const _t_0 = _capture_0["terminal"];
-  if (_t_0 == 0) {
-    return {$: "Driver.Action", "event": {$: "Canonical.ConsumePermit", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "tool": _tool_0, "now": nat_chk(_now_0 + _duration_0)}, "delay": _duration_0, "candidate": {$: "None"}, "job": true, "expiry_advice": {$: "None"}};
-  } else if ((_t_0 & 1) == 0) {
-    return {$: "Driver.Action", "event": {$: "Canonical.ExpirePermit", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "deadline_reached": true}, "delay": (__0 < _now_0 ? 0 : __0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
-  } else if (_t_0 == 1) {
-    return {$: "Driver.Action", "event": {$: "Canonical.ReleasePermit", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0}, "delay": _duration_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
-  } else {
-    return {$: "Driver.Action", "event": {$: "Canonical.ExpirePermit", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "deadline_reached": true}, "delay": (__0 < _now_0 ? 0 : __0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}};
-  }
-}
-
-function $Workload$post_actions$(_capture_0, _now_0) {
-  const _partition_0 = _capture_0["partition"];
-  const _lifetime_0 = _capture_0["lifetime"];
-  const _token_0 = _capture_0["token"];
-  const _tool_0 = _capture_0["tool"];
-  const _deadline_0 = _capture_0["deadline"];
-  const _duration_0 = _capture_0["duration"];
-  const _terminal_0 = _capture_0["terminal"];
-  return {$: "Driver.Handled", "handled": true, "actions": ($Bool$pick$(($Bool$and$((_terminal_0 !== 2), ($Nat$is_gt$(_duration_0, (_deadline_0 < _now_0 ? 0 : _deadline_0 - _now_0))))), {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.ExpirePermit", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "deadline_reached": true}, "delay": (_deadline_0 < _now_0 ? 0 : _deadline_0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": ($Workload$terminal_action$({$: "Workload.PermitCapture", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "tool": _tool_0, "deadline": _deadline_0, "duration": _duration_0, "terminal": _terminal_0}, _now_0)), "tail": {$: "Nil"}}}, {$: "Con", "head": ($Workload$terminal_action$({$: "Workload.PermitCapture", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "tool": _tool_0, "deadline": _deadline_0, "duration": _duration_0, "terminal": _terminal_0}, _now_0)), "tail": {$: "Nil"}}))};
-}
-
 function $Preparation$same$(_key_0, _entry_0) {
   const _partition_0 = _key_0["partition"];
   const _lifetime_0 = _key_0["lifetime"];
@@ -16333,7 +16910,10 @@ function $Preparation$settle$(_state_0, _key_0, _position_0, _before_0, _result_
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "before": _before_0, "result": _result_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "before": _before_0, "result": _result_0};
 }
 
 function $Preparation$expected$(_found_0) {
@@ -16364,8 +16944,11 @@ function $Preparation$step$(_state_0, _key_0, _position_0, _limits_0, _event_0) 
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
   const _found_0 = ($Preparation$find$(_graphs_0, _key_0));
-  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
+  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
 }
 
 function $Preparation$preparing$(_found_0) {
@@ -16536,7 +17119,7 @@ function $Postprocess$actions$(_before_0, _after_0, _event_0) {
 }
 
 function $initial$(_limits_0) {
-  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}, "retiring": {$: "Nil"}};
+  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}, "retiring": {$: "Nil"}, "lifecycles": {$: "Nil"}, "preparations": {$: "Nil"}, "activity_scopes": {$: "Nil"}};
 }
 
 function $captured_commands$($0, $1) {
@@ -16627,16 +17210,49 @@ function $retained_credentials$(_credentials_0, _canonical_0) {
   return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": ($retained_captures$(_issued_0, _canonical_0))};
 }
 
-function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _event_0) {
+function $retained_retirement$(_keep_0, _operation_0, _tail_0) {
+  if (_keep_0) {
+    return {$: "Con", "head": _operation_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $retained_retirements$(_pending_0, _work_0) {
+  if (_pending_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _operation_0 = _pending_0["head"];
+    const _tail_0 = _pending_0["tail"];
+    return $retained_retirement$(($captured_work_present$(_operation_0, _work_0)), _operation_0, ($retained_retirements$(_tail_0, _work_0)));
+  }
+}
+
+function $retirements$(_pending_0, _canonical_0) {
+  const _work_0 = _canonical_0["work"];
+  return $retained_retirements$(_pending_0, _work_0);
+}
+
+function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($PendingEffects$consumed$(_retiring_0, _event_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
   }
+}
+
+function $prepared_remaining$(_settlement_0) {
+  const _remaining_0 = _settlement_0["remaining"];
+  return _remaining_0;
+}
+
+function $prepared_actions$(_settlement_0) {
+  const _actions_0 = _settlement_0["actions"];
+  return _actions_0;
 }
 
 function $step$(_state_0, _event_0) {
@@ -16649,7 +17265,10 @@ function $step$(_state_0, _event_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _event_0);
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, ($prepared_remaining$(($AdviceeLifecycleCleanup$settle_preparations$(_preparations_0, _canonical_0, _event_0)))), _activity_scopes_0, _event_0);
 }
 
 function $canonical$(_state_0) {
@@ -16679,7 +17298,9 @@ function $preparation_completed$(_partition_0, _lifetime_0, _round_0, _operation
 }
 
 function $after$(_before_0, _state_0, _event_0) {
-  return $Postprocess$actions$(($canonical$(_before_0)), ($canonical$(_state_0)), _event_0);
+  const _previous_0 = _before_0["canonical"];
+  const _captures_0 = _before_0["preparations"];
+  return $List$append$(($Postprocess$actions$(_previous_0, ($canonical$(_state_0)), _event_0)), ($prepared_actions$(($AdviceeLifecycleCleanup$settle_preparations$(_captures_0, _previous_0, _event_0)))));
 }
 
 function $enqueue$(_state_0, _at_0, _order_0) {
@@ -16692,13 +17313,16 @@ function $enqueue$(_state_0, _at_0, _order_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
 }
 
-function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
+function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
   const _scheduler_0 = _taken_0["state"];
   const _entry_0 = _taken_0["entry"];
-  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "entry": _entry_0};
+  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "entry": _entry_0};
 }
 
 function $take$(_state_0) {
@@ -16711,7 +17335,10 @@ function $take$(_state_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0);
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
 }
 
 function $queued$(_state_0) {
@@ -16729,7 +17356,10 @@ function $cancel$(_state_0, _order_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
 }
 
 function $fence$(_state_0, _event_0, _generated_0, _context_0) {
@@ -16758,7 +17388,10 @@ function $configure_seed$(_state_0, _seed_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
 }
 
 function $configure_workload$(_state_0, _partition_0, _profile_0) {
@@ -16771,14 +17404,17 @@ function $configure_workload$(_state_0, _partition_0, _profile_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
 }
 
-function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
+function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
   const _workloads_0 = _changed_0["advicees"];
   const _events_0 = _changed_0["events"];
   const _valid_0 = _changed_0["valid"];
-  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "events": _events_0, "valid": _valid_0};
+  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "events": _events_0, "valid": _valid_0};
 }
 
 function $workload_action$(_state_0, _partition_0, _action_0) {
@@ -16791,7 +17427,10 @@ function $workload_action$(_state_0, _partition_0, _action_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0);
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
 }
 
 function $workload_valid$(_state_0, _partition_0, _generation_0, _recurring_0) {
@@ -16804,10 +17443,10 @@ function $workload_duration$(_state_0, _partition_0, _fallback_0) {
   return $Workload$duration$(_workloads_0, _partition_0, _fallback_0);
 }
 
-function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
+function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
   const _random_0 = _sample_0["random"];
   const _outcome_0 = _sample_0["outcome"];
-  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "outcome": _outcome_0};
+  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "outcome": _outcome_0};
 }
 
 function $sample_outcome$(_state_0, _weights_0) {
@@ -16820,7 +17459,10 @@ function $sample_outcome$(_state_0, _weights_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0);
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
 }
 
 function $numeric_add$(_a_0, _b_0) {
@@ -16885,16 +17527,6 @@ function $pre_timing$(_state_0, _partition_0, _provided_0, _fallback_0, _lifetim
   return $Workload$pre_timing$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _provided_0, _fallback_0, _lifetime_0);
 }
 
-function $pre_issue$(_state_0, _facts_0) {
-  const _scheduler_0 = _state_0["scheduler"];
-  const _workloads_0 = _state_0["workloads"];
-  return $Workload$issue$(_workloads_0, ($Scheduler$clock$(_scheduler_0)), _facts_0);
-}
-
-function $permit_actions$(_state_0, _capture_0) {
-  return $Workload$post_actions$(_capture_0, ($clock$(_state_0)));
-}
-
 function $session_delay$(_settings_0, _random_0) {
   return $Session$sample_delay$(_settings_0, _random_0);
 }
@@ -16919,11 +17551,31 @@ function $credential_authorized$(_state_0, _issued_generation_0) {
   return $CredentialFacts$authorized$(_state_0, _issued_generation_0);
 }
 
-function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0, _retiring_0) {
+function $declared_lifecycle$(_entries_0, _scope_0) {
+  if (_scope_0.$ === "None") {
+    return _entries_0;
+  } else {
+    const _t_0 = _scope_0["value"];
+    const _partition_0 = _t_0["partition"];
+    return $AdviceeLifecycle$register$(_entries_0, _partition_0);
+  }
+}
+
+function $declared_activity$(_scopes_0, _scope_0) {
+  if (_scope_0.$ === "None") {
+    return _scopes_0;
+  } else {
+    const _t_0 = _scope_0["value"];
+    const _partition_0 = _t_0["partition"];
+    return $AdviceeActivity$register$(_scopes_0, _partition_0);
+  }
+}
+
+function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
   const _advicees_0 = _declared_0["registry"];
   const _scope_0 = _declared_0["scope"];
   const _valid_0 = _declared_0["valid"];
-  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "scope": _scope_0, "valid": _valid_0};
+  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": ($declared_lifecycle$(_lifecycles_0, _scope_0)), "preparations": _preparations_0, "activity_scopes": ($declared_activity$(_activity_scopes_0, _scope_0))}, "scope": _scope_0, "valid": _valid_0};
 }
 
 function $declare_advicee$(_state_0, _identity_0, _seed_0) {
@@ -16936,7 +17588,10 @@ function $declare_advicee$(_state_0, _identity_0, _seed_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0, _retiring_0);
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
 }
 
 function $advicee_identity$(_state_0, _identity_0) {
@@ -16969,7 +17624,10 @@ function $configure_credentials$(_state_0, _available_0, _generation_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($CredentialFacts$configure$(_credentials_0, _available_0, _generation_0)), "opening": _opening_0, "retiring": _retiring_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($CredentialFacts$configure$(_credentials_0, _available_0, _generation_0)), "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
 }
 
 function $changed_credentials$(_credentials_0, _available_0, _rotation_0) {
@@ -16990,7 +17648,10 @@ function $credential_action$(_state_0, _available_0, _rotation_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0, "retiring": _retiring_0};
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0};
 }
 
 function $generate_tree$(_seed_0, _operation_0, _unit_0, _profile_0, _limits_0) {
@@ -17009,10 +17670,10 @@ function $scope_select$(_bindings_0, _partition_0) {
   return $AdviceeScope$select$(_bindings_0, _partition_0);
 }
 
-function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0, _retiring_0) {
+function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
   const _opening_0 = _attempt_0["pending"];
   const _plan_0 = _attempt_0["plan"];
-  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "plan": _plan_0};
+  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "plan": _plan_0};
 }
 
 function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
@@ -17025,13 +17686,16 @@ function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)), _retiring_0);
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)), _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0);
 }
 
-function $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, _issued_0) {
+function $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, _issued_0, _lifecycles_0, _preparations_0, _activity_scopes_0) {
   const _retiring_0 = _issued_0["pending"];
   const _actions_0 = _issued_0["actions"];
-  return {$: "IssuedActions", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "actions": _actions_0};
+  return {$: "IssuedActions", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0}, "actions": _actions_0};
 }
 
 function $issue_actions$(_state_0, _actions_0) {
@@ -17044,7 +17708,10 @@ function $issue_actions$(_state_0, _actions_0) {
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
   const _retiring_0 = _state_0["retiring"];
-  return $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, ($PendingEffects$issue$(_retiring_0, _actions_0)));
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  return $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, ($PendingEffects$issue$(_retiring_0, _actions_0)), _lifecycles_0, _preparations_0, _activity_scopes_0);
 }
 
 function $credential_captured$(_state_0, _operation_0) {
@@ -17067,6 +17734,195 @@ function $preparation_active$(_state_0, _partition_0, _lifetime_0, _round_0, _op
   return $Preparation$active$(($canonical$(_state_0)), _partition_0, _lifetime_0, _round_0, _operation_0);
 }
 
+function $lifecycle_entries$(_state_0) {
+  const _lifecycles_0 = _state_0["lifecycles"];
+  return _lifecycles_0;
+}
+
+function $lifecycle_entry$(_state_0, _partition_0) {
+  return $AdviceeLifecycle$lookup$(($lifecycle_entries$(_state_0)), _partition_0);
+}
+
+function $activity_scope$(_state_0, _partition_0) {
+  const _scopes_0 = _state_0["activity_scopes"];
+  return $AdviceeActivity$lookup$(_scopes_0, _partition_0);
+}
+
+function $activity_valid$(_state_0, _partition_0, _incarnation_0) {
+  const _entries_0 = _state_0["lifecycles"];
+  const _scopes_0 = _state_0["activity_scopes"];
+  return $AdviceeActivity$valid$(_scopes_0, _entries_0, _partition_0, _incarnation_0);
+}
+
+function $activity_lifetime$(_state_0, _partition_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _entries_0 = _state_0["lifecycles"];
+  return $AdviceeActivity$lifetime$(_canonical_0, _entries_0, _partition_0);
+}
+
+function $inactive_edit$(_state_0) {
+  return {$: "EditAttempt", "state": _state_0, "plan": {$: "Driver.EditPlan", "retry": false, "actions": {$: "Nil"}}};
+}
+
+function $activity_edit_valid$(_valid_0, _state_0, _partition_0) {
+  if (_valid_0) {
+    return $edit_attempt$(_state_0, _partition_0, ($activity_lifetime$(_state_0, _partition_0)));
+  } else {
+    return $inactive_edit$(_state_0);
+  }
+}
+
+function $activity_edit$(_state_0, _partition_0, _incarnation_0) {
+  return $activity_edit_valid$(($activity_valid$(_state_0, _partition_0, _incarnation_0)), _state_0, _partition_0);
+}
+
+function $activity_start$(_event_0) {
+  if (_event_0.$ === "Canonical.OpenRound") {
+    return true;
+  } else if (_event_0.$ === "Canonical.AdmitObservation") {
+    return true;
+  } else if (_event_0.$ === "Canonical.StartObservation") {
+    return true;
+  } else if (_event_0.$ === "Canonical.BeginPreparation") {
+    return true;
+  } else if (_event_0.$ === "Canonical.BeginObservedPreparation") {
+    return true;
+  } else if (_event_0.$ === "Canonical.IssuePermit") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $activity_event_valid$(_state_0, _event_0, _partition_0, _incarnation_0) {
+  const _x_0 = ($Bool$not$(($activity_start$(_event_0))));
+  const _x_1 = ($activity_valid$(_state_0, _partition_0, _incarnation_0));
+  return (_x_0 || _x_1);
+}
+
+function $lifecycle_resumed$(_previous_0, _current_0) {
+  if (_previous_0.$ === "Some") {
+    const _previous_1 = _previous_0["value"];
+    if (_current_0.$ === "Some") {
+      const _current_1 = _current_0["value"];
+      return $Bool$and$(($Bool$not$(($AdviceeLifecycle$entry_active$(_previous_1)))), ($AdviceeLifecycle$entry_active$(_current_1)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $lifecycle_changed_activity$(_valid_0, _previous_0, _current_0) {
+  if (_previous_0.$ === "Some") {
+    const _previous_1 = _previous_0["value"];
+    if (_current_0.$ === "Some") {
+      const _current_1 = _current_0["value"];
+      const _x_0 = ($Bool$and$(($AdviceeLifecycle$entry_active$(_previous_1)), ($Bool$not$(($AdviceeLifecycle$entry_active$(_current_1))))));
+      const _x_1 = ($Bool$and$(($Bool$not$(($AdviceeLifecycle$entry_active$(_previous_1)))), ($AdviceeLifecycle$entry_active$(_current_1))));
+      return $Bool$and$(_valid_0, (_x_0 || _x_1));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $lifecycle_scopes$(_resumed_0, _scopes_0, _partition_0) {
+  if (_resumed_0) {
+    return $AdviceeActivity$resumed$(_scopes_0, _partition_0);
+  } else {
+    return _scopes_0;
+  }
+}
+
+function $lifecycle_opening$(_changed_0, _opening_0, _partition_0) {
+  if (_changed_0) {
+    return $AdmissionAttempts$remove$(_opening_0, _partition_0);
+  } else {
+    return _opening_0;
+  }
+}
+
+function $lifecycle_workload$(_changed_0, _state_0, _partition_0, _current_0) {
+  if (_changed_0) {
+    if (_current_0.$ === "Some") {
+      const _entry_0 = _current_0["value"];
+      return $workload_action$(_state_0, _partition_0, {$: "Workload.Controlled", "control": {$: "Workload.Suspend", "suspended": ($Bool$not$(($AdviceeLifecycle$entry_active$(_entry_0))))}});
+    } else {
+      return {$: "WorkloadTransition", "state": _state_0, "events": {$: "Nil"}, "valid": true};
+    }
+  } else {
+    return {$: "WorkloadTransition", "state": _state_0, "events": {$: "Nil"}, "valid": true};
+  }
+}
+
+function $lifecycle_installed$(_transition_0, _changed_0, _cleanup_0, _partition_0) {
+  const _t_0 = _transition_0["state"];
+  const _canonical_0 = _t_0["canonical"];
+  const _graphs_0 = _t_0["graphs"];
+  const _scheduler_0 = _t_0["scheduler"];
+  const _workloads_0 = _t_0["workloads"];
+  const _random_0 = _t_0["random"];
+  const _advicees_0 = _t_0["advicees"];
+  const _credentials_0 = _t_0["credentials"];
+  const _opening_0 = _t_0["opening"];
+  const _retiring_0 = _t_0["retiring"];
+  const _captures_0 = _t_0["preparations"];
+  const _scopes_0 = _t_0["activity_scopes"];
+  const _events_0 = _transition_0["events"];
+  const _entries_0 = _changed_0["entries"];
+  const _previous_0 = _changed_0["previous"];
+  const _current_0 = _changed_0["current"];
+  const _valid_0 = _changed_0["valid"];
+  const _actions_0 = _cleanup_0["actions"];
+  const _operations_0 = _cleanup_0["operations"];
+  const _preparations_0 = _cleanup_0["preparations"];
+  return {$: "LifecycleTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": ($lifecycle_opening$(($lifecycle_changed_activity$(_valid_0, _previous_0, _current_0)), _opening_0, _partition_0)), "retiring": _retiring_0, "lifecycles": _entries_0, "preparations": ($List$append$(_captures_0, _preparations_0)), "activity_scopes": ($lifecycle_scopes$(($Bool$and$(_valid_0, ($lifecycle_resumed$(_previous_0, _current_0)))), _scopes_0, _partition_0))}, "changed": {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": _previous_0, "current": _current_0, "valid": _valid_0}, "cleanup": {$: "AdviceeLifecycleCleanup.CleanupPlan", "actions": _actions_0, "operations": _operations_0, "preparations": _preparations_0}, "events": _events_0};
+}
+
+function $lifecycle_changed$(_state_0, _partition_0, _changed_0) {
+  const _entries_0 = _changed_0["entries"];
+  const _previous_0 = _changed_0["previous"];
+  const _current_0 = _changed_0["current"];
+  const _valid_0 = _changed_0["valid"];
+  return $lifecycle_installed$(($lifecycle_workload$(($lifecycle_changed_activity$(_valid_0, _previous_0, _current_0)), _state_0, _partition_0, _current_0)), {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": _previous_0, "current": _current_0, "valid": _valid_0}, ($AdviceeLifecycleCleanup$plan$(($canonical$(_state_0)), {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": _previous_0, "current": _current_0, "valid": _valid_0}, ($clock$(_state_0)))), _partition_0);
+}
+
+function $lifecycle_resume$(_valid_0, _entries_0, _partition_0) {
+  if (_valid_0) {
+    return $AdviceeLifecycle$change$(_entries_0, _partition_0, {$: "AdviceeLifecycle.Resume"});
+  } else {
+    return {$: "AdviceeLifecycle.Changed", "entries": _entries_0, "previous": ($AdviceeLifecycle$lookup$(_entries_0, _partition_0)), "current": ($AdviceeLifecycle$lookup$(_entries_0, _partition_0)), "valid": false};
+  }
+}
+
+function $lifecycle_requested$(_entries_0, _partition_0, _action_0, _scope_0) {
+  if (_action_0.$ === "AdviceeLifecycle.Resume") {
+    return $lifecycle_resume$(($AdviceeActivity$resumable$(_scope_0)), _entries_0, _partition_0);
+  } else {
+    return $AdviceeLifecycle$change$(_entries_0, _partition_0, _action_0);
+  }
+}
+
+function $lifecycle_action$(_state_0, _partition_0, _action_0) {
+  return $lifecycle_changed$(_state_0, _partition_0, ($lifecycle_requested$(($AdviceeActivity$synchronize$(($lifecycle_entries$(_state_0)), ($canonical$(_state_0)), _partition_0)), _partition_0, _action_0, ($activity_scope$(_state_0, _partition_0)))));
+}
+
+function $permit_issue$(_capture_0, _now_0) {
+  return $PermitScenario$issue$(_capture_0, _now_0);
+}
+
+function $permit_issued$(_capture_0, _token_0) {
+  return $PermitScenario$issued$(_capture_0, _token_0);
+}
+
+function $permit_consumed$(_state_0, _command_0, _partition_0, _lifetime_0) {
+  return $PermitScenario$consumed$(($canonical$(_state_0)), _command_0, _partition_0, _lifetime_0);
+}
+
 function $Bool$and$(_a_0, _b_0) {
   if (!_a_0) {
     return false;
@@ -17075,20 +17931,16 @@ function $Bool$and$(_a_0, _b_0) {
   }
 }
 
-function $Nat$is_eq$(_a_0, _b_0) {
-  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
-}
-
-function $Bool$pick$(_c_0, _a_0, _b_0) {
-  if (!_c_0) {
-    return _b_0;
-  } else {
-    return _a_0;
-  }
-}
-
 function $Nat$is_gt$(_a_0, _b_0) {
   return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_eq$(_a_0, _b_0) {
+  return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
 
 function $List$append$(_xs_0, _ys_0) {
@@ -17101,8 +17953,20 @@ function $List$append$(_xs_0, _ys_0) {
   }
 }
 
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Bool$pick$(_c_0, _a_0, _b_0) {
+  if (!_c_0) {
+    return _b_0;
+  } else {
+    return _a_0;
+  }
 }
 
 function $List$length$(_xs_0) {
@@ -17116,14 +17980,6 @@ function $List$length$(_xs_0) {
 
 function $Nat$is_ge$(_a_0, _b_0) {
   return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
-}
-
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
 }
 
 function $List$is_empty$(_xs_0) {
@@ -17158,14 +18014,6 @@ function $List$reverse$(_xs_0) {
   return $List$reverse$go$(_xs_0, {$: "Nil"});
 }
 
-function $Cmp$is_eq$(_c_0) {
-  if (_c_0.$ === "EQ") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function $Cmp$is_gt$(_c_0) {
   if (_c_0.$ === "GT") {
     return true;
@@ -17179,6 +18027,14 @@ function $Cmp$is_le$(_c_0) {
     return false;
   } else {
     return true;
+  }
+}
+
+function $Cmp$is_eq$(_c_0) {
+  if (_c_0.$ === "EQ") {
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -17222,8 +18078,8 @@ function $0m2(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "CredentialFacts.Capture": at = at[key] = {...v, "operation": BigInt(v["operation"]), "generation": BigInt(v["generation"])}; return top[0];
-      default: throw "bend: CredentialFacts.Capture has no tag " + v?.$ + " (its tags: CredentialFacts.Capture); a tag names its constructor as the"
+      case "Advicees.Scope": at = at[key] = {...v, "identity": BigInt(v["identity"]), "partition": BigInt(v["partition"])}; return top[0];
+      default: throw "bend: Advicees.Scope has no tag " + v?.$ + " (its tags: Advicees.Scope); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -17244,7 +18100,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:c5530f1f9cf8ff2b0d6e70f731c25217796c890175ddd83d3343189502be2322";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6068624829af3ea351465b0e922be80189f897ec15331fd04fc14ef397334552";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -17260,6 +18116,17 @@ const facts = value => {
   return value;
 };
 export default {
+ activity_event_valid: (state, event, partition, incarnation) => run_loop($activity_event_valid$(state, facts(event), facts(partition), facts(incarnation))),
+ lifecycle_entries: (state) => run_loop($lifecycle_entries$(state)),
+ lifecycle_entry: (state, partition) => run_loop($lifecycle_entry$(state, facts(partition))),
+ lifecycle_action: (state, partition, action) => run_loop($lifecycle_action$(state, facts(partition), facts(action))),
+ activity_scope: (state, partition) => run_loop($activity_scope$(state, facts(partition))),
+ activity_valid: (state, partition, incarnation) => run_loop($activity_valid$(state, facts(partition), facts(incarnation))),
+ activity_lifetime: (state, partition) => run_loop($activity_lifetime$(state, facts(partition))),
+ activity_edit: (state, partition, incarnation) => run_loop($activity_edit$(state, facts(partition), facts(incarnation))),
+ permit_issue: (capture, now) => run_loop($permit_issue$(facts(capture), facts(now))),
+ permit_issued: (capture, token) => run_loop($permit_issued$(facts(capture), facts(token))),
+ permit_consumed: (state, command, partition, lifetime) => run_loop($permit_consumed$(state, facts(command), facts(partition), facts(lifetime))),
  preparation_active: (state, partition, lifetime, round, operation) => run_loop($preparation_active$(state, facts(partition), facts(lifetime), facts(round), facts(operation))),
  context_credentials: (state, event, context) => run_loop($context_credentials$(state, facts(event), facts(context))),
  credential_captured: (state, operation) => run_loop($credential_captured$(state, facts(operation))),
@@ -17293,8 +18160,6 @@ export default {
  cancel: (state, order) => run_loop($cancel$(state, facts(order))),
  fence: (state, event, generated, context) => run_loop($fence$(state, facts(event), generated, facts(context))),
  revalidate: (state, context) => run_loop($revalidate$(state, facts(context))),
- pre_issue: (state, factsInput) => run_loop($pre_issue$(state, facts(factsInput))),
- permit_actions: (state, capture) => run_loop($permit_actions$(state, facts(capture))),
  session_delay: (settings, random) => run_loop($session_delay$(facts(settings), random)),
  clock: state => run_loop($clock$(state)),
  configure_seed: (state, seed) => run_loop($configure_seed$(state, facts(seed))),

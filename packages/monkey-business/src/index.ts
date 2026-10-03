@@ -310,7 +310,10 @@ export class Run {
     }
   }
   private queuePush(item: Scheduled) {
-    if (item.activityScope === undefined) item.activityScope = this.core.activityScope(this.inputPartition(item));
+    if (item.activityScope === undefined) {
+      const scope = this.core.activityScope(this.inputPartition(item));
+      if (scope !== undefined) item.activityScope = scope;
+    }
     this.core.enqueue(item.at, item.order);
     this.scheduled.set(item.order, item);
   }
