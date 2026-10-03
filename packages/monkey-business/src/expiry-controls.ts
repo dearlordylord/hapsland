@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { decodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
 import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 import { decodeDriverEvent } from "./driver-codec.ts";
 
@@ -15,20 +16,11 @@ export const validateExpiryControl = (value: unknown): ExpiryControl => {
   const control = readControl(value);
   return Object.freeze({ ...control, profile: Object.freeze(control.profile) });
 };
-const FindingClockSchema = Schema.Struct({ partition: PositiveNat, lifetime: PositiveNat, round: PositiveNat, advice: PositiveNat, retainedAt: Nat, durationMs: Duration })
-  .check(Schema.makeFilter(value => value.retainedAt <= 2 ** 48 - 1 - value.durationMs));
 const NoticeClockSchema = Schema.Struct({ partition: PositiveNat, group: PositiveNat, key: PositiveNat, retainedAt: Nat,
   pendingMs: Duration, leaseStarted: Nat, leaseMs: Duration, cooldownStarted: Nat, cooldownMs: Duration })
   .check(Schema.makeFilter(value => value.retainedAt <= 2 ** 48 - 1 - value.pendingMs && value.leaseStarted <= 2 ** 48 - 1 - value.leaseMs && value.cooldownStarted <= 2 ** 48 - 1 - value.cooldownMs));
-export type FindingExpiryClock = typeof FindingClockSchema.Type;
 export type NoticeExpiryClock = typeof NoticeClockSchema.Type;
-const readFindingClock = decoder(FindingClockSchema);
 const readNoticeClock = decoder(NoticeClockSchema);
-export const encodeFindingExpiryClock = (value: unknown) => {
-  const clock = readFindingClock(value);
-  return Object.freeze({ $: "ExpiryScenario.FindingClock", partition: clock.partition, lifetime: clock.lifetime, round: clock.round,
-    advice: clock.advice, retained_at: clock.retainedAt, duration: clock.durationMs });
-};
 export const encodeNoticeExpiryClock = (value: unknown) => {
   const clock = readNoticeClock(value);
   return Object.freeze({ $: "ExpiryScenario.NoticeClock", partition: clock.partition, group: clock.group, key: clock.key,
@@ -36,7 +28,7 @@ export const encodeNoticeExpiryClock = (value: unknown) => {
     lease_duration: clock.leaseMs, cooldown_started: clock.cooldownStarted, cooldown_duration: clock.cooldownMs });
 };
 /** The host does no timestamp comparisons, selection or ownership inference. */
-export const decodeExpiryEvents = (value: unknown) => Object.freeze(readBendList(value, decodeDriverEvent, 3));
+export const decodeExpiryEvents = (value: unknown) => Object.freeze(readBendList(value, value => decodeDriverEvent(decodeSharedValue(value)), 3));
 
 export const encodeExpiryProfile = (value: unknown) => {
   const profile = readProfile(value);
