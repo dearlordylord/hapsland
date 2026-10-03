@@ -8,7 +8,7 @@ const callbacks = (run: Run) => run.observe() as ReturnType<Run["observe"]> & {
   readonly callbackTargets: readonly CallbackTarget[]; readonly callbackReports: readonly CallbackReport[];
 };
 const apply = (run: Run, target: CallbackTarget, action: CallbackControl["action"]) =>
-  run.applyControl({ kind: "callback", target, action } as never);
+  run.applyControl({ kind: "callback", target, action });
 const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], outcome: "clear" as const };
 const reach = (run: Run, condition: () => boolean) => {
   for (let fuel = 0; fuel < 100 && !condition(); fuel++) run.step();
@@ -114,7 +114,7 @@ it("retires replaced queued provenance after the actual replacement settles whil
   expect(run.projection.dispatch.requests).toEqual([]);
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
   expect(run.observe().callbackTargets).not.toContainEqual(original);
-  expect(run.observe().callbackTargets).not.toContainEqual(started);
+  expect(run.observe().callbackTargets).toContainEqual(started);
   const replacement = run.observations.find(frame => frame.event.kind === "jevRequestSettled")!;
   expect(replacement.callbackReceipt).toBeDefined();
   expect(run.observe().callbackTargets).toContainEqual(replacement.callbackReceipt!.target);

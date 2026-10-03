@@ -104,17 +104,9 @@ def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workl
     case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycle_accepted(lifecycles, state, event), preparations, activity_scopes, RuntimeScenarios.retain(scenarios, state)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}, Canonical.Rejected{state, reason}}
 
-def prepared_remaining(settlement: AdviceeLifecycleCleanup.PreparedSettlement) -> List<&2, AdviceeLifecycleCleanup.CapturedPreparation>:
-  match settlement:
-    case AdviceeLifecycleCleanup.PreparedSettlement{remaining, _}: remaining
-
-def prepared_actions(settlement: AdviceeLifecycleCleanup.PreparedSettlement) -> List<&2, Driver.Action>:
-  match settlement:
-    case AdviceeLifecycleCleanup.PreparedSettlement{_, actions}: actions
-
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
   match state:
-    case Types.State{+canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, opening, retiring, lifecycles, prepared_remaining(AdviceeLifecycleCleanup.settle_preparations(preparations, canonical, event)), activity_scopes, scenarios, event)
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, opening, retiring, lifecycles, AdviceeLifecycleCleanup.remaining_preparations(preparations, event), activity_scopes, scenarios, event)
 
 def canonical(state: Types.State) -> Canonical.State:
   match state:
@@ -136,10 +128,14 @@ def edit(state: Types.State, partition: Nat, lifetime: Nat) -> Driver.EditPlan:
 def preparation_completed(partition: Nat, lifetime: Nat, round: Nat, operation: Nat, unit_bytes: List<&2, Nat>, delay: Nat) -> Driver.Action:
   Driver.preparation_completed(partition, lifetime, round, operation, unit_bytes, delay)
 
+def preparation_running(state: Canonical.State) -> List<&2,Dispatch.Entry>:
+  match state:
+    case Canonical.State{_,_,_,_,_,_,Dispatch.State{_,running,_,_,_},_,_}: running
+
 def after(before: Types.State, state: Types.State, +event: Canonical.CanonicalEvent) -> List<&2, Driver.Action>:
   match before:
     case Types.State{+previous, _, _, _, _, _, _, _, _, _, captures, _, scenarios}:
-      List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), prepared_actions(AdviceeLifecycleCleanup.settle_preparations(captures, previous, event)))
+      List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), AdviceeLifecycleCleanup.preparation_actions(captures, preparation_running(previous), event))
 
 type Taken is Data:
   Taken{state: Types.State, entry: Maybe<&2, Scheduler.Entry>}
