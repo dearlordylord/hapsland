@@ -1,3 +1,5 @@
+import { semanticIdentity, type ReviewInput } from "../../../src/direct-event/model.ts";
+import { TYPE_INPUT_CONTRACT } from "../../../src/rules/targets.ts";
 import {expect,it} from "vitest";
 import {initialCanonical,stepCanonical,projectCanonical,type CanonicalEvent} from "../../../src/canonical/adapter.ts";
 import {sharingIdentityLabel,captureSharingIdentityFacts,type SharingIdentityFacts} from "./sharing-controls.ts";
@@ -46,3 +48,30 @@ it("compares native original namespace routes to the emitted public Canonical bo
  // graph/request/output agreement claim. Original capture acquisition remains
  // central #188/#189 wiring, never inferred from an unrelated global counter.
 },30000);
+
+// Production semantic identity contains provider/model/full destination. The
+// work cohort and credentials remain separately captured resident namespaces.
+it("captures provider destination independently from work and credential namespace", () => {
+ const declaration = { id: "type.ts::Count", kind: "type-alias" as const, name: "Count",
+  source: "type Count = number", sourceHash: "count-number" };
+ const input: ReviewInput = { providerIdentity: { provider: "jev", model: "jev-latest", destination: "https://review.example/one" },
+  contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "type.ts", declaration,
+  unit: { root: { artifact: declaration, references: [] } }, rules: [],
+  interpretation: "probability-strictly-greater-than-threshold" };
+ const preparedIdentity = semanticIdentity(input);
+ const captured = captureSharingIdentityFacts({ ...original, preparedIdentity });
+ for (const providerIdentity of [
+  { ...input.providerIdentity, provider: "cloudflare" as const },
+  { ...input.providerIdentity, model: "another-model" },
+  { ...input.providerIdentity, destination: "https://review.example/two" },
+ ]) {
+  const changed = captureSharingIdentityFacts({ ...captured, preparedIdentity: semanticIdentity({ ...input, providerIdentity }) });
+  expect(changed.workId).toBe("cohort-A");
+  expect(changed.credentialGeneration).toBe(3);
+  expect(changed.preparedIdentity).not.toBe(captured.preparedIdentity);
+  expect(sharingIdentityLabel(changed)).not.toBe(sharingIdentityLabel(captured));
+ }
+ const snapshot = { ...input, sourceFingerprints: [{ path: "type.ts", contentHash: "fresh", byteLength: 19 }] };
+ expect(semanticIdentity(snapshot)).toBe(preparedIdentity);
+ expect(captured).toEqual({ ...original, preparedIdentity });
+});

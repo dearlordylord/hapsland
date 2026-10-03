@@ -12,7 +12,7 @@ import ./FreshnessScenario.bend as Freshness
 # captured credential generation) plus prepared.identity, while partition is
 # the logical ledger owner. Credential generation is not semantic input content.
 type Offer is Data:
-  Offer{id: Nat, key: Sharing.Key, original: Freshness.Scope,
+  Offer{id: Nat, key: Sharing.SharingKey, original: Freshness.Scope,
     bytes: Nat, outcome: C.RequestOutcome}
 type Payload is Data:
   Payload{offer: Offer, reservation: Nat}
@@ -30,7 +30,7 @@ def offer_id(offer: Offer) -> Nat:
 
 def offer_partition(offer: Offer) -> Nat:
   match offer:
-    case Offer{_,Sharing.Key{partition,_},_,_,_}: partition
+    case Offer{_,Sharing.SharingKey{partition,_},_,_,_}: partition
 
 def payload_id(payload: Payload) -> Nat:
   match payload:
@@ -50,7 +50,7 @@ def successful(outcome: C.RequestOutcome) -> Bool:
 
 def valid(offer: Offer) -> Bool:
   match offer:
-    case Offer{id,Sharing.Key{partition,prepared},Freshness.Scope{owner,lifetime,round,operation},_,outcome}:
+    case Offer{id,Sharing.SharingKey{partition,prepared},Freshness.Scope{owner,lifetime,round,operation},_,outcome}:
       Nat.is_gt(id,0n) && Nat.is_gt(partition,0n) && Nat.is_gt(prepared,0n) && Nat.is_eq(partition,owner) && Nat.is_gt(lifetime,0n) && Nat.is_gt(round,0n) && Nat.is_gt(operation,0n) && successful(outcome)
 
 def find(items: List<&2,Payload>, +id: Nat) -> Maybe<&2,Payload>:
@@ -67,7 +67,7 @@ def lookup(state: State, id: Nat) -> Maybe<&2,Payload>:
   match state:
     case State{items}: find(items,id)
 
-def key_lookup(items: List<&2,Payload>, +key: Sharing.Key) -> Maybe<&2,Payload>:
+def key_lookup(items: List<&2,Payload>, +key: Sharing.SharingKey) -> Maybe<&2,Payload>:
   match items:
     case []: None{}
     case +head <> tail:
@@ -76,7 +76,7 @@ def key_lookup(items: List<&2,Payload>, +key: Sharing.Key) -> Maybe<&2,Payload>:
 
 # Lookup only supplies an existing id for Canonical.ReuseRoute/Touch. It is not
 # a cache hit. Delivery must require actual ReuseCached plus exact live entry.
-def key_id(state: State, key: Sharing.Key) -> Maybe<&2,Nat>:
+def key_id(state: State, key: Sharing.SharingKey) -> Maybe<&2,Nat>:
   match state:
     case State{items}: found_id(key_lookup(items,key))
 
@@ -87,7 +87,7 @@ def found_id(found: Maybe<&2,Payload>) -> Maybe<&2,Nat>:
 
 def entry_matches(payload: Payload, entry: Reuse.Entry) -> Bool:
   match payload entry:
-    case Payload{Offer{id,Sharing.Key{partition,_},_,bytes,_},reservation} Reuse.Entry{other,owner,size,charge}:
+    case Payload{Offer{id,Sharing.SharingKey{partition,_},_,bytes,_},reservation} Reuse.Entry{other,owner,size,charge}:
       Nat.is_eq(id,other) && Nat.is_eq(partition,owner) && Nat.is_eq(bytes,size) && Nat.is_eq(reservation,charge)
 
 def cached(commands: List<&2,C.Command>) -> Bool:
@@ -122,11 +122,11 @@ def prepare(offer: Offer, entry_limit: Nat, byte_limit: Nat) -> C.CanonicalEvent
 
 def reserve(offer: Offer) -> C.CanonicalEvent:
   match offer:
-    case Offer{_,Sharing.Key{partition,_},_,bytes,_}: C.ReserveCapacity{partition,bytes,Ledger.StoredResult{}}
+    case Offer{_,Sharing.SharingKey{partition,_},_,bytes,_}: C.ReserveCapacity{partition,bytes,Ledger.StoredResult{}}
 
 def commit(offer: Offer, reservation: Nat, entry_limit: Nat, byte_limit: Nat) -> C.CanonicalEvent:
   match offer:
-    case Offer{id,Sharing.Key{partition,_},_,bytes,_}:
+    case Offer{id,Sharing.SharingKey{partition,_},_,bytes,_}:
       C.CacheCommit{id,partition,bytes,reservation,entry_limit,byte_limit}
 
 def committed(commands: List<&2,C.Command>) -> Bool:
@@ -208,7 +208,7 @@ def ledger_charges(state: C.State) -> List<&2,Ledger.Charge>:
 
 def refused_release(+before: C.State, offer: Offer, +reservation: Nat, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
   match offer:
-    case Offer{_,Sharing.Key{partition,_},_,bytes,_}:
+    case Offer{_,Sharing.SharingKey{partition,_},_,bytes,_}:
       match Collection.reuse_state(C.collection_of(before)):
         case Reuse.State{_,entries}:
           refused_release_checked(refused(commands) && C.cache_charge_valid(Ledger.find(reservation,ledger_charges(before)),partition,bytes) &&

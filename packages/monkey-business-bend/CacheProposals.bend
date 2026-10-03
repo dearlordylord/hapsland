@@ -19,7 +19,7 @@ law absent_cached_command_never_authorizes_payload:
 
 law exact_cache_provenance:
   for +id: Nat
-  for +key: Sharing.Key
+  for +key: Sharing.SharingKey
   for +scope: Freshness.Scope
   for +bytes: Nat
   for +outcome: C.RequestOutcome

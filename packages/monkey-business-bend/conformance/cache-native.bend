@@ -37,7 +37,7 @@ def send(runtime: Runtime, event: C.CanonicalEvent) -> Runtime:
     case Runtime{+state,cache}: apply_feedback(state,cache,C.step(state,event))
 
 def offer(id: Nat, +partition: Nat) -> Cache.Offer:
-  Cache.Offer{id,Sharing.Key{partition,id},Freshness.Scope{partition,1n,1n,id},5n,C.RequestClear{}}
+  Cache.Offer{id,Sharing.SharingKey{partition,id},Freshness.Scope{partition,1n,1n,id},5n,C.RequestClear{}}
 
 def commit_result(+before: C.State, +cache: Cache.State, +offer: Cache.Offer, +reservation: Nat, result: C.Step) -> Runtime:
   match result:
