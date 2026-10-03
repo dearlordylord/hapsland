@@ -5,8 +5,8 @@ import { arch, platform, release, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// User-authorized 2026-10-03 amendment: C emission alone increases from 5s to 8s.
-export const NATIVE_C_EMISSION_TIMEOUT_MS = 8000;
+// User-authorized 2026-10-03 amendment: C emission alone increases to 10s.
+export const NATIVE_C_EMISSION_TIMEOUT_MS = 10000;
 
 const CLANG_FLAGS = Object.freeze(["-O0", "-Wno-unused-value"]);
 const CLANG_LIBRARIES = Object.freeze(["-lm", "-pthread"]);

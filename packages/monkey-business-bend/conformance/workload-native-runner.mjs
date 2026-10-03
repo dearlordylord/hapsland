@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NATIVE_C_EMISSION_TIMEOUT_MS, validateNativeFixture } from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
-// C emission uses the user-authorized 8s bound; JS emission and execution stay
+// C emission uses the user-authorized 10s bound; JS emission and execution stay
 // at 5s. External C compilation retains its separately authorized 15s bound.
 export function runWorkloadNative(fixture) {
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;

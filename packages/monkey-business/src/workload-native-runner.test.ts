@@ -9,7 +9,7 @@ it("bounds every fresh native phase to 16MiB and keeps the phase timeouts", () =
   spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
   expect(runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
   expect(spawn.mock.calls).toHaveLength(3);
-  expect(spawn.mock.calls.map(call => call[2])).toEqual([8000, 15000, 5000].map(timeout => ({
+  expect(spawn.mock.calls.map(call => call[2])).toEqual([10000, 15000, 5000].map(timeout => ({
     encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024,
   })));
   const binary = spawn.mock.calls[2]?.[0];
