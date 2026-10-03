@@ -3,14 +3,14 @@ import { createRun, restoreReplay, type RunConfig } from "./index.ts";
 const complete = (config: RunConfig) => { const run = createRun({ retention: 10000, inputs: [], ...config }); expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle"); return run; };
 const edits = [0, 0, 4].map(at => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5] }));
 it("permits refuse shared saturation and recover after consumption with exact replay", () => {
- const run = complete({ inputs: edits, outcome: "clear", lifecycles: { permits: { adviceeLimit: 1, residentLimit: 1, holdMs: 2 } } });
+ const run = complete({ inputs: edits, outcome: "clear", editPermitLimits: { perAdvicee: 1, resident: 1 }, permitProfile: { outcome: "success", durationMs: 2, lifetimeMs: 30000 } });
  expect(run.observations.filter(o => o.commands.some(c => c.kind === "permitConsumed"))).toHaveLength(2);
  expect(run.observations.some(o => o.rejection)).toBe(true);
  expect(run.projection.admissions.flatMap(a => a.permits)).toEqual([]);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
 it.each(["release", "expire"] as const)("%s permit never admits an edit", terminal => {
- const run = complete({ inputs: [edits[0]!], lifecycles: { permits: { adviceeLimit: 2, residentLimit: 2, terminal, lifetimeMs: 2 } } });
+ const run = complete({ inputs: [edits[0]!], editPermitLimits: { perAdvicee: 2, resident: 2 }, permitProfile: { outcome: terminal === "release" ? "failure" : "absent", durationMs: 0, lifetimeMs: 2 } });
  expect(run.observations.some(o => o.commands.some(c => c.kind === "observationAdmitted"))).toBe(false);
  expect(run.projection.admissions.flatMap(a => a.permits)).toEqual([]);
  expect(run.projection.rounds).toEqual([]);
@@ -38,7 +38,7 @@ it("synthetic oversized candidate never reserves or starts output", () => {
  expect(run.observations.some(o => o.commands.some(c => c.kind === "collectionLeaseReserved" || c.kind === "submissionAuthorized"))).toBe(false);
 });
 it("quiet inactivity retires the settled round", () => {
- const run = complete({ inputs: [edits[0]!], outcome: "clear", lifecycles: { permits: { adviceeLimit: 1, residentLimit: 1 }, quietWindowMs: 10 } });
+ const run = complete({ inputs: [edits[0]!], outcome: "clear", editPermitLimits: { perAdvicee: 1, resident: 1 }, permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 }, lifecycles: { quietWindowMs: 10 } });
  expect(run.observations.some(o => o.commands.some(c => c.kind === "quietRoundExpired"))).toBe(true);
  expect(run.projection.rounds).toEqual([]);
  expect(restoreReplay(run.exportReplay()).projection).toEqual(run.projection);
@@ -119,13 +119,13 @@ it("wrong-token collector release cannot unlock writer; expiry permits recovery"
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
 it("expired prospective invocation releases capacity and permits later edits", () => {
- const run = complete({ inputs: [0, 8].map(at => ({ ...edits[0]!, at })), outcome: "clear", lifecycles: { permits: { adviceeLimit: 1, residentLimit: 1, holdMs: 5, lifetimeMs: 3 } } });
+ const run = complete({ inputs: [0, 8].map(at => ({ ...edits[0]!, at })), outcome: "clear", editPermitLimits: { perAdvicee: 1, resident: 1 }, permitProfile: { outcome: "success", durationMs: 5, lifetimeMs: 3 } });
  expect(run.observations.filter(o => o.commands.some(c => c.kind === "permitIssued"))).toHaveLength(2);
  expect(run.projection.admissions.flatMap(a => a.permits)).toEqual([]);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
 it("permit consumption at its inclusive deadline remains valid", () => {
- const run = complete({ inputs: [edits[0]!], outcome: "clear", lifecycles: { permits: { adviceeLimit: 1, residentLimit: 1, holdMs: 2, lifetimeMs: 2 } } });
+ const run = complete({ inputs: [edits[0]!], outcome: "clear", editPermitLimits: { perAdvicee: 1, resident: 1 }, permitProfile: { outcome: "success", durationMs: 2, lifetimeMs: 2 } });
  expect(run.observations.some(o => o.commands.some(c => c.kind === "permitConsumed"))).toBe(true);
 });
 it("quiet closure waits for held collector ownership and resets after activity", () => {
@@ -134,7 +134,7 @@ it("quiet closure waits for held collector ownership and resets after activity",
  { at: 8, kind: "canonical" as const, event: { kind: "collectionClaimBackground" as const, group: 1, token: 99, active: true, capacity: 1 } },
  { at: 25, kind: "canonical" as const, event: { kind: "collectionExpireBackground" as const, group: 1, token: 99, elapsed: 17, lifetime: 17 } },
  ];
- const run = complete({ inputs, outcome: "clear", lifecycles: { permits: { adviceeLimit: 2, residentLimit: 2 }, quietWindowMs: 10 } });
+ const run = complete({ inputs, outcome: "clear", editPermitLimits: { perAdvicee: 2, resident: 2 }, permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 }, lifecycles: { quietWindowMs: 10 } });
  const closure = run.observations.find(o => o.commands.some(c => c.kind === "quietRoundExpired"));
  expect(closure?.time).toBe(35);
  expect(run.observations.some(o => o.time === 12 && o.event.kind === "quietRoundReset")).toBe(true);
@@ -142,7 +142,7 @@ it("quiet closure waits for held collector ownership and resets after activity",
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
 it("quiet closure waits for output leases and retained advice to settle", () => {
- const run = complete({ inputs: [edits[0]!], outcome: "finding", adviceLifetime: 60, outputProfile: { outcome: "certain", delayMs: 40, leaseMs: 50 }, lifecycles: { permits: { adviceeLimit: 2, residentLimit: 2 }, quietWindowMs: 10 } });
+ const run = complete({ inputs: [edits[0]!], outcome: "finding", adviceLifetime: 60, outputProfile: { outcome: "certain", delayMs: 40, leaseMs: 50 }, editPermitLimits: { perAdvicee: 2, resident: 2 }, permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 }, lifecycles: { quietWindowMs: 10 } });
  const closure = run.observations.find(o => o.commands.some(c => c.kind === "quietRoundExpired"));
  expect(closure?.time).toBeGreaterThanOrEqual(77);
  expect(run.projection.rounds).toEqual([]);
@@ -188,7 +188,7 @@ it("a refused changed revision cannot supersede an accepted active evaluation", 
    { at: 12, kind: "edit", bytes: 10, unitBytes: [5], revisionSubject: "root", revisionInput: "refused-change" },
    { at: 40, kind: "canonical", event: { kind: "releasePermit", partition: 1, lifetime: 1, token: 2 } },
   ],
-  outcome: "finding", jevDelay: 30, lifecycles: { permits: { adviceeLimit: 1, residentLimit: 1 } },
+  outcome: "finding", jevDelay: 30, editPermitLimits: { perAdvicee: 1, resident: 1 }, permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 },
  });
  expect(run.observations.some(o => o.time === 12 && o.rejection)).toBe(true);
  expect(run.observations.filter(o => o.event.kind === "revisionRegister")).toHaveLength(1);
@@ -244,7 +244,7 @@ it("effective permit limits preserve partition scope and the exact historical bo
  const unknownPartition = run.capacityMetadata.permits?.adviceeLimits?.find(scope => scope.partition === 3)?.limit ?? run.capacityMetadata.permits?.adviceeLimit;
  expect(unknownPartition).toBeUndefined();
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
- const configured = complete({ lifecycles: { permits: { adviceeLimit: 7, residentLimit: 8 } }, inputs: [issue(1, 2, 1), issue(2, 3, 2)] });
+ const configured = complete({ editPermitLimits: { perAdvicee: 7, resident: 8 }, permitProfile: { outcome: "success", durationMs: 0, lifetimeMs: 30000 }, inputs: [issue(1, 2, 1), issue(2, 3, 2)] });
  expect(configured.capacityMetadata.permits).toEqual({ adviceeLimit: 7, residentLimit: 4, adviceeLimits: [{ partition: 1, limit: 2 }, { partition: 2, limit: 3 }] });
  expect(configured.observations[0]!.capacityMetadata.permits?.adviceeLimits).toEqual([{ partition: 1, limit: 2 }]);
  expect(restoreReplay(configured.exportReplay()).observations).toEqual(configured.observations);
@@ -252,7 +252,7 @@ it("effective permit limits preserve partition scope and the exact historical bo
 it.each([0, 1, 2, 5].flatMap(delay => [1, 2, 5].map(pace => ({ delay, pace }))))("settled pending results drain late joiners across two agents ($delay ms / $pace ms)", ({ delay, pace }) => {
  const run = createRun({ seed: 7, retention: 20000, outcome: "clear", jevDelay: delay,
   sessions: [1, 2].map(seed => ({ agent: `agent-${seed}`, seed, editIntervalMs: pace, variationMs: 0, editsPerTask: 1024, bytes: 10 })),
-  lifecycles: { permits: { adviceeLimit: 2, residentLimit: 4, holdMs: 1 }, reuse: { entryLimit: 2, byteLimit: 100 } },
+  editPermitLimits: { perAdvicee: 2, resident: 4 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 30000 }, lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } },
  });
  expect(run.advance({ untilTime: 60, maxEvents: 5000 }).reason).toBe("timeLimit");
  run.applyControl({ kind: "suspendArrivals", suspended: true });
@@ -271,7 +271,7 @@ it.each([0, 1, 2, 5].flatMap(delay => [1, 2, 5].map(pace => ({ delay, pace }))))
 it("the original two-agent late-join case drains with the default history retention", () => {
  const run = createRun({ seed: 7, outcome: "clear", jevDelay: 1,
   sessions: [1, 2].map(seed => ({ agent: `agent-${seed}`, seed, editIntervalMs: 1, variationMs: 0, editsPerTask: 1024, bytes: 10 })),
-  lifecycles: { permits: { adviceeLimit: 2, residentLimit: 4, holdMs: 1 }, reuse: { entryLimit: 2, byteLimit: 100 } },
+  editPermitLimits: { perAdvicee: 2, resident: 4 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 30000 }, lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } },
  });
  run.advance({ untilTime: 60, maxEvents: 5000 });
  run.applyControl({ kind: "suspendArrivals", suspended: true });

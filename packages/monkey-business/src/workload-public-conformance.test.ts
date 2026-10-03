@@ -19,7 +19,7 @@ const session: RunConfig = {
   retention: 10000, outcome: "clear",
   session: { agent: "writer", seed: 7, editIntervalMs: 10, variationMs: 0,
     editsPerTask: 1, editDurationMs: 30, bytes: 10, unitBytes: [5] },
-  lifecycles: { permits: { adviceeLimit: 4, residentLimit: 4, holdMs: 1, lifetimeMs: 100 } },
+  editPermitLimits: { perAdvicee: 4, resident: 4 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 100 },
 };
 
 it("restores controls at an endpoint with no subsequent product event", () => {
@@ -78,7 +78,7 @@ it("rejects a zero profile before recording controls or consuming the random str
 it.each([9, 10, 11])("retains a PRE-captured duration of %i across suspension and profile changes", duration => {
   const run = createRun({ ...session,
     session: { ...session.session, editDurationMs: duration },
-    lifecycles: { permits: { adviceeLimit: 2, residentLimit: 2, holdMs: 1, lifetimeMs: 10 } },
+    editPermitLimits: { perAdvicee: 2, resident: 2 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 10 },
   });
   run.advance({ untilTime: 11, maxEvents: 100 });
   const issued = run.observations.filter(frame => frame.event.kind === "issuePermit");
@@ -119,7 +119,7 @@ it("orders equal-time advicees identically under stepping and bounded advancemen
   const { session: generatedSession, ...base } = session;
   const config: RunConfig = { ...base,
     sessions: ["first", "second"].map(agent => ({ ...generatedSession, agent })),
-    lifecycles: { permits: { adviceeLimit: 4, residentLimit: 8, holdMs: 1, lifetimeMs: 100 } },
+    editPermitLimits: { perAdvicee: 4, resident: 8 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 100 },
   };
   const batched = createRun(config);
   batched.advance({ untilTime: 11, maxEvents: 100 });
@@ -166,7 +166,7 @@ it("executes an original continuous arrival through the native shared workload a
   for (const [index, duration] of [9, 10, 11].entries()) {
     const permitRun = createRun({ ...session,
       session: { ...session.session, editDurationMs: duration },
-      lifecycles: { permits: { adviceeLimit: 2, residentLimit: 2, holdMs: 1, lifetimeMs: 10 } },
+      editPermitLimits: { perAdvicee: 2, resident: 2 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 10 },
     });
     permitRun.advance({ untilTime: 11, maxEvents: 100 });
     permitRun.applyControl({ kind: "editDuration", agent: "writer", durationMs: 0 });

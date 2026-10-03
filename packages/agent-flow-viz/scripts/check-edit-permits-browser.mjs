@@ -37,7 +37,7 @@ try {
   };
   const owners = ['agent-1', 'agent-2', 'agent-3'];
   const sessions = owners.map(agent => ({ agent, editIntervalMs: 1000000 }));
-  const ordinary = createRun({ sessions, inputs: [0, 0, 1].map((index, revision) => ({ agent: owners[index], generation: 0, recurring: false, revision: revision + 1, at: 0, kind: 'edit', bytes: 10, unitBytes: [5], outcome: 'clear' })), lifecycles: { permits: { adviceeLimit: 16, residentLimit: 64, holdMs: 1000, lifetimeMs: 2000 }, collectors: { capacity: 3 } } });
+  const ordinary = createRun({ sessions, inputs: [0, 0, 1].map((index, revision) => ({ agent: owners[index], generation: 0, recurring: false, revision: revision + 1, at: 0, kind: 'edit', bytes: 10, unitBytes: [5], outcome: 'clear' })), editPermitLimits: { perAdvicee: 16, resident: 64 }, permitProfile: { outcome: "success", durationMs: 1000, lifetimeMs: 2000 }, lifecycles: { collectors: { capacity: 3 } } });
   ordinary.advance({ untilTime: 5, maxEvents: 1000 });
   assert.deepEqual(owners.map((_, index) => ordinary.projection.admissions.find(scope => scope.partition === index + 1)?.permits.length ?? 0), [2, 1, 0]);
   assert.ok(ordinary.observations.every(frame => frame.event.kind === 'issuePermit' && frame.commands.some(command => command.kind === 'permitIssued')));

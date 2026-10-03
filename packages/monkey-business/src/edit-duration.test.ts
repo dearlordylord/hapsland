@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createRun, restoreReplay, type RunConfig } from './index.ts';
-const config: RunConfig = { retention:10000,outcome:'clear',sessions:[1,2].map(i=>({agent:`agent-${i}`,seed:i,editIntervalMs:10,variationMs:0,editsPerTask:1,editDurationMs:300,bytes:10})),lifecycles:{permits:{adviceeLimit:4,residentLimit:8,holdMs:1,lifetimeMs:1000}} };
+const config: RunConfig = { retention:10000,outcome:'clear',sessions:[1,2].map(i=>({agent:`agent-${i}`,seed:i,editIntervalMs:10,variationMs:0,editsPerTask:1,editDurationMs:300,bytes:10})),editPermitLimits: { perAdvicee: 4, resident: 8 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 1000 } };
 it('captures per-agent PRE-to-POST timing without changing in-flight edits and replays exactly',()=>{
  const run=createRun(config);run.advance({untilTime:11,maxEvents:100});
  expect(run.projection.admissions.flatMap(a=>a.permits)).toHaveLength(2);
@@ -15,7 +15,7 @@ it('captures per-agent PRE-to-POST timing without changing in-flight edits and r
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);expect(restoreReplay(run.exportReplay()).projection).toEqual(run.projection);
 });
 it.each([0,10,11])('handles duration %i against a fixed 10ms deadline without reviving expired authority',duration=>{
- const run=createRun({...config,sessions:[{agent:'agent-1',editIntervalMs:10,variationMs:0,editsPerTask:1,editDurationMs:duration}],lifecycles:{permits:{adviceeLimit:2,residentLimit:2,holdMs:1,lifetimeMs:10}}});run.advance({untilTime:11,maxEvents:100});run.applyControl({kind:'editDuration',agent:'agent-1',durationMs:0});run.applyControl({kind:'suspendArrivals',suspended:true});run.advance({untilTime:100,maxEvents:500});
+ const run=createRun({...config,sessions:[{agent:'agent-1',editIntervalMs:10,variationMs:0,editsPerTask:1,editDurationMs:duration}],editPermitLimits: { perAdvicee: 2, resident: 2 }, permitProfile: { outcome: "success", durationMs: 1, lifetimeMs: 10 }});run.advance({untilTime:11,maxEvents:100});run.applyControl({kind:'editDuration',agent:'agent-1',durationMs:0});run.applyControl({kind:'suspendArrivals',suspended:true});run.advance({untilTime:100,maxEvents:500});
  expect(run.observations.filter(o=>o.commands.some(c=>c.kind==='permitConsumed'))).toHaveLength(duration<=10?1:0);
  expect(run.projection.admissions.flatMap(a=>a.permits)).toEqual([]);if(duration>10)expect(run.projection.rounds).toEqual([]);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);

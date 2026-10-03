@@ -41,8 +41,8 @@ try {
   await click('Export replay');
   const configured=JSON.parse(await page.getByLabel('Replay JSON',{exact:true}).inputValue());
   assert.equal(configured.config.resourceScenarios.notices,true);
-  assert.equal(configured.config.lifecycles.permits.adviceeLimit,16);
-  assert.equal(configured.config.lifecycles.permits.residentLimit,64);
+  assert.equal(configured.config.editPermitLimits.perAdvicee,16);
+  assert.equal(configured.config.editPermitLimits.resident,64);
   assert.equal(configured.config.lifecycles.reuse.entryLimit,6);
   assert.equal(configured.config.lifecycles.reuse.byteLimit,49152);
   await resident.screenshot({path:'/tmp/hapsland-demo-limits-390.png'});
