@@ -13,7 +13,7 @@ hapsland setup pi
 hapsland doctor pi
 ```
 
-Setup previews the owned extension before applying it. It preserves unrelated extensions, settings, model/provider configuration, and credentials. The extension lives at `<pi-home>/extensions/hapsland.ts` and imports the retained package's compiled extension. Restart Pi after setup or an update. Global agent-home extension loading and project-local trust are separate boundaries; installation does not prove execution or native trust approval.
+Setup previews the owned extension before applying it. It preserves unrelated extensions, settings, model/provider configuration, and credentials. The extension lives at `<pi-home>/extensions/hapsland.ts` and imports the retained package's compiled extension. Its generated command binds the verified Hapsland Node 24.20.0 runtime and retained CLI entrypoint; Pi's own host Node version remains separate. Restart Pi after setup or an update. Global agent-home extension loading and project-local trust are separate boundaries; installation does not prove execution or native trust approval.
 
 Select another executable and profile explicitly:
 
