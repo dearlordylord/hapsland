@@ -27,8 +27,7 @@ it.each([
   const run = createRun(config(true, next, preparationDelay));
   advance(run, next);
   expect(run.observations.filter(frame => frame.event.kind === "revisionRegister")).toHaveLength(2);
-  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "revisionReplaced")
-    .map(command => command.generation)).toEqual([1, 2]);
+  expect(run.observations.flatMap(frame => frame.commands).flatMap(command => command.kind === "revisionReplaced" ? [command.generation] : [])).toEqual([1, 2]);
   expect(run.projection.global).toEqual({ items: 2, bytes: preparationDelay === 5 ? 24 : 19 });
   expect(run.projection.dispatch.running).toHaveLength(2);
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "retainFinding")).toEqual([]);
@@ -55,10 +54,8 @@ it.each([
 it("same input preserves both captured generation members during overlapping preparation", () => {
   const run = createRun(config(false, 1, 5));
   advance(run, 1);
-  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "revisionReplaced")
-    .map(command => command.generation)).toEqual([1]);
-  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "revisionReused")
-    .map(command => command.generation)).toEqual([1]);
+  expect(run.observations.flatMap(frame => frame.commands).flatMap(command => command.kind === "revisionReplaced" ? [command.generation] : [])).toEqual([1]);
+  expect(run.observations.flatMap(frame => frame.commands).flatMap(command => command.kind === "revisionReused" ? [command.generation] : [])).toEqual([1]);
   expect(run.projection.global).toEqual({ items: 2, bytes: 24 });
   advance(run, 30);
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "revisionStale")).toEqual([]);

@@ -12981,6 +12981,53 @@ function $Callbacks$drop_only_cancels_delivery$(_target_0, _original_at_0, _acti
   return null;
 }
 
+function $Callbacks$replaced_order$(_orders_0, _order_0) {
+  if (_orders_0.$ === "Nil") {
+    return false;
+  } else {
+    const _head_0 = _orders_0["head"];
+    const _tail_0 = _orders_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_head_0, _order_0));
+    const _x_1 = ($Callbacks$replaced_order$(_tail_0, _order_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $Callbacks$replaced_queued$(_hit_0, _fact_0, _order_0) {
+  if (_hit_0) {
+    return {$: "Callbacks.Original", "fact": _fact_0, "status": {$: "Callbacks.Dropped"}, "scheduled_order": _order_0};
+  } else {
+    return {$: "Callbacks.Original", "fact": _fact_0, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0};
+  }
+}
+
+function $Callbacks$replaced_original$(_original_0, _orders_0) {
+  const _fact_0 = _original_0["fact"];
+  const _t_0 = _original_0["status"];
+  if (_t_0.$ === "Callbacks.Queued") {
+    const _order_0 = _original_0["scheduled_order"];
+    return $Callbacks$replaced_queued$(($Callbacks$replaced_order$(_orders_0, _order_0)), _fact_0, _order_0);
+  } else {
+    const _order_1 = _original_0["scheduled_order"];
+    return {$: "Callbacks.Original", "fact": _fact_0, "status": _t_0, "scheduled_order": _order_1};
+  }
+}
+
+function $Callbacks$replaced_list$(_originals_0, _orders_0) {
+  if (_originals_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _originals_0["head"];
+    const _tail_0 = _originals_0["tail"];
+    return {$: "Con", "head": ($Callbacks$replaced_original$(_head_0, _orders_0)), "tail": ($Callbacks$replaced_list$(_tail_0, _orders_0))};
+  }
+}
+
+function $Callbacks$replaced$(_state_0, _orders_0) {
+  const _originals_0 = _state_0["originals"];
+  return {$: "Callbacks.State", "originals": ($Callbacks$replaced_list$(_originals_0, _orders_0))};
+}
+
 function $NoticeScenario$initial$() {
   return {$: "NoticeScenario.State", "pending": {$: "Nil"}};
 }
@@ -19008,6 +19055,10 @@ function $notice_acknowledge$(_state_0, _partition_0, _group_0, _key_0) {
   return $NoticeScenario$scoped_acknowledge$(_clocks_0, _partition_0, _group_0, _key_0);
 }
 
+function $callback_replaced$(_state_0, _orders_0) {
+  return $with_callbacks$(_state_0, ($Callbacks$replaced$(($callback_state$(_state_0)), _orders_0)));
+}
+
 function $Nat$is_eq$(_a_0, _b_0) {
   return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
@@ -19160,7 +19211,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:50378cd491b0c4526795720cd828c8ec16b8a11830c12c998f0eb1871a450096";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:dc7030a4db7495b0d0b3a0507a3fe4f47545c96573f0c9ddb0db5fc4d6755fdc";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -19181,6 +19232,7 @@ export default {
  notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),
  notice_lease: (state,partition,group,key) => run_loop($notice_lease$(state,facts(partition),facts(group),facts(key))),
  notice_acknowledge: (state,partition,group,key) => run_loop($notice_acknowledge$(state,facts(partition),facts(group),facts(key))),
+ callback_replaced: (state,orders) => run_loop($callback_replaced$(state,facts(orders))),
  callback_owner: (state,event) => run_loop($callback_owner$(state,facts(event))),
  callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
  callback_delivered: (state,order) => run_loop($callback_delivered$(state,facts(order))),
