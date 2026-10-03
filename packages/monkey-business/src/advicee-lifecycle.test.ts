@@ -240,9 +240,9 @@ function lifecycleRow(frame: Observation): number[] {
         : event.kind === "preparationCompleted" ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0];
   const commands = frame.commands.flatMap((command, index) => {
     const value = command as unknown as Record<string, unknown>;
-    const id = ["roundStarted", "observationAdmitted", "preparationReleased", "reservationReleased", "partitionRetired"].includes(command.kind) ? value.id
+    const id = ["roundStarted", "observationAdmitted", "preparationReleased", "reservationReleased"].includes(command.kind) ? value.id
       : ["dispatchStarted", "prepare", "unitAdmitted", "cancelWork", "dispatchDiscarded"].includes(command.kind) ? value.operation
-        : command.kind === "jevRequestIssued" ? value.request : command.kind === "permitRoundClosed" ? value.round : 0;
+        : command.kind === "jevRequestIssued" ? value.request : ["permitRoundClosed", "partitionRetired"].includes(command.kind) ? value.round : 0;
     if (lifecycleCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`);
     return [lifecycleCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, Number(id ?? 0)];
   });
