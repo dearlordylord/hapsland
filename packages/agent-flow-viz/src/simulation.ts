@@ -1,3 +1,4 @@
+import { noticeAction, noticeControls } from "./notice-controls";
 import { callbackAction, callbackControls } from "./callback-controls";
 import { adviceeLifecycleAction, adviceeLifecycleControls } from "./advicee-lifecycle-controls";
 import { permitAction, permitControls } from "./permit-controls";
@@ -456,6 +457,12 @@ export const actSimulation = (
       run.applyControl(control);
       return { ...model, selected: -1, revision: model.revision + 1, feedback: `Applied ${control.kind} at ${run.now} virtual ms; issued facts keep their original capture.` };
     }
+    const notice = noticeAction(action);
+    if (notice) {
+      if (!run || replaySource) return { ...model, feedback: "Start a live resident run before applying notice controls." };
+      run.applyControl(notice);
+      return { ...model, selected: -1, revision: model.revision + 1, feedback: `Requested ${notice.kind} at ${run.now} virtual ms.` };
+    }
     const delivery = callbackAction(action);
     if (delivery && run) {
       if (replaySource) return { ...model, feedback: "Finish recorded replay before changing completion delivery." };
@@ -889,6 +896,7 @@ export const simulationView = <Message>(
       ...(run ? [adviceeLifecycleControls(h, run.observe().adviceeLifecycles, run.agentScopes, action, Boolean(replaySource)), permitControls(h, run.editPermitLimits, run.futurePermitProfile, action, Boolean(replaySource))] : []),
       controlForm("permitLimits", [input("permitPerAdvicee", "Per-advicee pending permits", model.permitPerAdvicee), input("permitResident", "Resident-wide pending permits", model.permitResident), submit("Apply permit limits")]),
       controlForm("permitTiming", [input("permitDuration", "PRE to POST duration (virtual ms)", model.permitDuration), input("permitLifetime", "Permit lifetime (virtual ms)", model.permitLifetime), submit("Apply PRE/POST timing")]),
+      ...(run ? [noticeControls(h, run.projection, run.agentScopes, action, Boolean(replaySource))] : []),
       ...(run ? [callbackControls(h, run.observe().callbackTargets, run.observe().callbackReports, action, Boolean(replaySource))] : []),
       ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
       controlForm("graphLimits", [graphLimitControls(h, graphDrafts(model), (field, value) => changed(graphFields[field], value)), submit("Apply graph limits")]),
