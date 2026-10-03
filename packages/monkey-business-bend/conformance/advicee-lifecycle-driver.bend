@@ -370,13 +370,13 @@ def workload_changed(changed: Engine.WorkloadTransition, queue: Queue, jobs: Lis
     case Engine.WorkloadTransition{+state, events, True{}}: ih(Runtime{state, emissions(events, queue, state), jobs, delay})
     case _: [[97n]]
 
-def arrival_valid(valid: Bool, event: Workload.Emission, lifetime: Nat, +state: Types.State,
+def arrival_valid(valid: Bool, event: Workload.Emission, +lifetime: Nat, +state: Types.State,
     queue: Queue, jobs: List<&2, Stored>, delay: Nat, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match valid event:
     case False{} _: ih(Runtime{state, queue, jobs, delay})
     case True{} Workload.Emission{_, owner, _, 0, _, _, _, _, _, _}:
       workload_changed(Engine.workload_action(state, owner, Workload.Next{}), queue, jobs, delay, ih)
-    case True{} Workload.Emission{at, owner, _, 1, _, _, bytes, units, _, _}:
+    case True{} Workload.Emission{at, +owner, _, 1, _, _, bytes, units, _, _}:
       edit_plan(Engine.edit_attempt(state, owner, lifetime), queue, jobs, Job{owner, lifetime, bytes, units, Canonical.RequestFinding{}}, at, delay, ih)
     case True{} _: ih(Runtime{state, queue, jobs, delay})
 
