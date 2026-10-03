@@ -27,9 +27,14 @@ function nativeAction(value: unknown) {
   return decodeDriver({ handled: true, actions: { $: "Con", head: value, tail: { $: "Nil" } } }).actions[0];
 }
 function compareJob(value: unknown, source: RunRuntimeSnapshot["jobs"][number][1] | undefined,
-    context: unknown, field: string): void {
+    context: unknown, field: string, captured?: RunRuntimeSnapshot["queue"][number]["driverSourceJob"]): void {
   const job = readRecord(value);
   if (job.$ !== "advicee_lifecycle_driver.Job") throw new TypeError("missing actual native source job");
+  if (captured) {
+    same([readNat(job.partition),readNat(job.lifetime),readNat(job.bytes),list(job.units),job.outcome],
+      [captured.partition,captured.lifetime,captured.bytes,captured.units,captured.outcome], `${field} full captured source job`);
+    return;
+  }
   const facts = readRecord(context);
   same(readNat(job.partition), facts.partition, `${field} partition`);
   same(readNat(job.lifetime), facts.lifetime, `${field} lifetime`);
@@ -70,7 +75,7 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       } else {
         if (!publicItem.driverAction) throw new Error("missing actual public queued Driver action");
         same(nativeAction(input.action), publicItem.driverAction, `${field} item ${order} full action`);
-        compareJob(input.job, publicItem.job, publicItem.driverContext, `${field} item ${order} source job`);
+        compareJob(input.job, publicItem.job, publicItem.driverContext, `${field} item ${order} source job`, publicItem.driverSourceJob);
       }
       same(input.$ === "advicee_lifecycle_driver.FitEvent" ? readNat(input.attempt) : undefined,
         publicItem.fitFinish, `${field} item ${order} original fit attempt`);

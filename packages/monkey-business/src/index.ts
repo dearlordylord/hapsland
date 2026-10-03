@@ -229,6 +229,7 @@ type Scheduled = {
   responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl | WriterControl; readonly sequence: number };
   driverAction?: DriverAction;
   driverContext?: unknown;
+  driverSourceJob?: { readonly partition: number; readonly lifetime: number; readonly bytes: number; readonly units: readonly number[]; readonly outcome: ReturnType<typeof encodeDriverOutcome> };
   stopFact?: { readonly at: number; readonly event: CanonicalEvent };
   stopCapture?: StopCapture;
   noticeScope?: ReturnType<typeof encodeNoticeScope>;
@@ -896,6 +897,12 @@ export class Run {
         ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
       const provenance = command.kind === "submissionExpired" ? "canonicalFeedback" : "environment";
       this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, provenance, output, action, context);
+      if (job) {
+        const scheduled = this.scheduled.get(this.order - 1);
+        if (!scheduled) throw new Error("shared driver action lost original source job");
+        scheduled.driverSourceJob = freezeCanonicalData(copy({ partition: context.partition, lifetime: context.lifetime,
+          bytes: job.bytes, units: job.unitBytes, outcome: context.outcome }));
+      }
       if (item.responseOrigin && action.event.kind !== "submissionTerminal" && action.event.kind !== "submissionExpiryCheck"
         && action.event.kind !== "collectionLeaseCheck" && action.event.kind !== "collectionReleaseLease") {
         const scheduled = this.scheduled.get(this.order - 1);
