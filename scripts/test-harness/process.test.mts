@@ -35,6 +35,8 @@ it('preserves normal outputs and nonzero exits rather than converting assertion 
   expect(await execFileAsync(process.execPath, ['-e', "process.stdout.write('async')"])).toEqual({ stdout: 'async', stderr: '' });
   await expect(execFileAsync(process.execPath, ['-e', 'process.exitCode=9'])).rejects.toMatchObject({ code: 9 });
   expect(() => spawnSync(process.execPath, [], { timeout: 0 })).toThrow(/child configuration/u);
+  expect(() => spawnSync(process.execPath, [], { killSignal: 'SIGTERM' })).toThrow(/requires SIGKILL/u);
+  await expect(execFileAsync(process.execPath, [], { killSignal: 'SIGTERM' })).rejects.toThrow(/requires SIGKILL/u);
   expect(DEFAULT_CHILD_TIMEOUT_MS).toBeLessThan(PROCESS_TEST_TIMEOUT_MS);
 });
 

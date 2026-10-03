@@ -78,7 +78,7 @@ The [child helper](../scripts/test-harness/process.mjs) supplies a finite
 30-second default for synchronous children and promise-based `execFile` fixtures;
 ordinary short child watchdogs use this shared allowance. Longer explicit
 bounds remain finite; deliberate hang probes retain their strict one-second
-child deadlines. Its default timeout signal is SIGKILL.
+child deadlines. Its timeout signal must be SIGKILL; weaker signals are rejected before spawning.
 Four Claude selection/batching fixtures confirm resident readiness in their complete
 fixture environment before invoking hooks, with a 20-second preparation bound.
 Their assertions concern findings handoff, rather than cold startup latency;

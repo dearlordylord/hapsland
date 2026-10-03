@@ -11,6 +11,8 @@ const childLabel = (command, args) => {
 
 const childOptions = options => {
   const result = { ...options, killSignal: options?.killSignal ?? 'SIGKILL', timeout: options?.timeout ?? DEFAULT_CHILD_TIMEOUT_MS };
+  if (result.killSignal !== 'SIGKILL')
+    throw new RangeError('Test harness phase=child configuration: bounded cleanup requires SIGKILL');
   if (!Number.isSafeInteger(result.timeout) || result.timeout <= 0)
     throw new RangeError('Test harness phase=child configuration: deadline must be a finite positive integer');
   return result;
