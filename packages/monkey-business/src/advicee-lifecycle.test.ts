@@ -145,6 +145,50 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 });
 
+it.each([1, 2] as const)("resumed lifetime after %i reaches Finish and further continuous rounds", previousLifetime => {
+  const original = scenario();
+  const run = createRun({ ...original, outcome: "clear", sessions: advicees.map((agent, index) => ({
+    agent, seed: index + 11, editIntervalMs: 10, variationMs: 0, editsPerTask: 1,
+    taskPauseMs: 10, adviceResponse: "ignore", bytes: index ? 20 : 10, unitBytes: [index ? 7 : 5],
+  })), inputs: previousLifetime === 2
+    ? [{ at: 0, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime: 2 } }]
+    : [],
+  });
+  // At 20 the task has issued review and entered Finish while the physical
+  // callback remains due at 32. Departure must not invent its completion.
+  advance(run, 20, 240);
+  const old = run.projection.dispatch.requests.find(request => request.partition === 1)!;
+  expect(old).toMatchObject({ partition: 1, lifetime: previousLifetime, started: true });
+  expect(run.observations.some(frame => frame.event.kind === "stopPolled"
+    && frame.event.partition === 1 && frame.event.lifetime === previousLifetime)).toBe(true);
+  run.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "disconnect" });
+  advance(run, 20, 64);
+  expect(run.projection.dispatch.requests.find(request => request.request === old.request)).toEqual(old);
+  const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())));
+  expect(restored.observe()).toEqual(run.observe());
+  const nextLifetime = previousLifetime + 1;
+  for (const candidate of [run, restored]) {
+    candidate.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "resume" });
+    advance(candidate, 200, 600);
+  }
+  expect(restored.observe()).toEqual(run.observe());
+  expect(run.observe().adviceeLifecycles[0]).toEqual({ partition: 1, lifetime: nextLifetime, status: "active" });
+  const stops = run.observations.filter(frame => frame.event.kind === "stopPolled"
+    && frame.event.partition === 1 && frame.event.lifetime === nextLifetime);
+  expect(stops.length).toBeGreaterThanOrEqual(2);
+  expect(stops.every(frame => frame.rejection === undefined)).toBe(true);
+  expect(stops.flatMap(frame => frame.commands).some(command => command.kind === "finishReady")).toBe(true);
+  const rounds = run.observations.filter(frame => frame.event.kind === "openRound"
+    && frame.event.partition === 1 && frame.event.lifetime === nextLifetime);
+  expect(rounds.length).toBeGreaterThanOrEqual(2);
+  const completedRounds = new Set(run.observations.flatMap(frame => frame.event.kind === "stopGroupEnded"
+    && frame.event.group === 1 && frame.event.lifetime === nextLifetime ? [frame.event.round] : []));
+  expect(completedRounds.size).toBeGreaterThanOrEqual(2);
+  expect(run.observations.some(frame => frame.event.kind === "jevRequestSettled"
+    && frame.event.partition === 2 && frame.event.currentWork)).toBe(true);
+  expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
+});
+
 it("preserves unaffected and fresh advicee progress in finite healthy departure campaigns", () => {
   fc.assert(fc.property(fc.integer({ min: 1, max: 0xffffffff }), fc.integer({ min: 6, max: 25 }),
     fc.constantFrom("disconnect" as const, "remove" as const), (seed, delay, action) => {
