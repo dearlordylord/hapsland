@@ -166,6 +166,7 @@ def event_reference(value: Canonical.CanonicalEvent) -> Reference:
     case Canonical.JevRequestSettled{partition, _, _, _, _, _, _}: Direct{partition}
     case Canonical.ReviewCompleted{partition, _, _, _, _}: Direct{partition}
     case Canonical.RetireReview{partition, _, _, _}: Direct{partition}
+    case Canonical.CancelReview{partition, _, _, _}: Direct{partition}
     case Canonical.ReviewObserved{partition, _, _, _, _, _}: Direct{partition}
     case Canonical.FindingCountUpdated{partition, _, _, _, _}: Direct{partition}
     case Canonical.QueueDispatch{partition, _, _, _}: Direct{partition}

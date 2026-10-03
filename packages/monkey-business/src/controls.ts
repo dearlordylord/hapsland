@@ -1,3 +1,4 @@
+import { validateSharingControl, type SharingControl } from "./sharing-controls.ts";
 import { validateNoticeControl, type NoticeControl } from "./notice-controls.ts";
 import { validateCallbackControl, type CallbackControl } from "./callback-controls.ts";
 import { validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
@@ -14,7 +15,7 @@ export type OutputProfile = { readonly outcome: "certain" | "uncertain" | "faile
 export type OutcomeChoice =
   | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
   | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights };
-export type LiveControl = NoticeControl | CallbackControl | AdviceeLifecycleControl | PermitControl | { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
+export type LiveControl = SharingControl | NoticeControl | CallbackControl | AdviceeLifecycleControl | PermitControl | { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
 /** Bounds protect finite synthetic workload; they are not empirical Jev limits. */
 export const validateLiveControl = (control: LiveControl): LiveControl => {
   if (!control || typeof control !== "object") throw new TypeError("invalid live control");
@@ -27,6 +28,7 @@ export const validateLiveControl = (control: LiveControl): LiveControl => {
     case "noticeLease":
     case "noticeAcknowledge": return validateNoticeControl(control);
     case "callback": return validateCallbackControl(control);
+    case "sharingMember": return validateSharingControl(control);
     case "adviceeLifecycle": return validateAdviceeLifecycle(control);
     case "editPermitLimits":
     case "permitProfile": return validatePermitControl(control);

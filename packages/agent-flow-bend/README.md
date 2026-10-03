@@ -163,3 +163,14 @@ law's own proof. No third-party test dependency is added. Each checker invocatio
 has a five-second limit. Review the laws and mutation coverage whenever request
 settlement, handoff/reoffer eligibility, dispatch closure or orchestration
 assumptions change.
+
+`Canonical.CancelReview` is an explicit logical cancellation fact for one exact
+partition/lifetime/round/operation in `Reviewing` or `AtJev`. It releases that
+work's reservation once, removes its logical work, and discards only its queued
+or running dispatch operation. Issued physical requests remain unchanged until
+their original callback settles them. The commands are `ReservationReleased`,
+`CancelWork`, and applicable `DispatchDiscarded`; cancellation does not record a
+review outcome. Missing/wrong tuples and other work kinds refuse atomically.
+This represents the existing scoped release behavior in `src/resident/capacity.ts`
+without using a fabricated backend completion; accepted release/retention
+behavior remains owned by `docs/advicing-target-contract.md`.

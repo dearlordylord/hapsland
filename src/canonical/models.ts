@@ -959,6 +959,7 @@ export const CanonicalEventSchema = Schema.Union([
     kind: Schema.Union([
       Schema.Literal("startReview"),
       Schema.Literal("retireReview"),
+      Schema.Literal("cancelReview"),
     ]),
     partition: PositiveNat,
     lifetime: PositiveNat,

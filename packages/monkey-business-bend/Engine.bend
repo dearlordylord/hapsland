@@ -141,10 +141,17 @@ def preparation_running(state: Canonical.State) -> List<&2,Dispatch.Entry>:
   match state:
     case Canonical.State{_,_,_,_,_,_,Dispatch.State{_,running,_,_,_},_,_}: running
 
-def after(before: Types.State, state: Types.State, +event: Canonical.CanonicalEvent) -> List<&2, Driver.Action>:
+def sharing_actions(events: List<&2,Canonical.CanonicalEvent>) -> List<&2,Driver.Action>:
+  match events:
+    case Nil{}: []
+    case event <> tail: Driver.immediate(event,False{}) <> sharing_actions(tail)
+
+def after(+before: Types.State, +state: Types.State, +event: Canonical.CanonicalEvent) -> List<&2, Driver.Action>:
   match before:
     case Types.State{+previous, _, _, _, _, _, _, _, _, _, captures, _, scenarios}:
-      List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), AdviceeLifecycleCleanup.preparation_actions(captures, preparation_running(previous), event))
+      List.append(&2, Driver.Action,
+        sharing_actions(SharingRuntime.postprocess(RuntimeScenarios.sharing(scenarios),sharing_runtime(state),canonical(state),freshness_state(state),event)),
+        List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), AdviceeLifecycleCleanup.preparation_actions(captures, preparation_running(previous), event)))
 
 type Taken is Data:
   Taken{state: Types.State, entry: Maybe<&2, Scheduler.Entry>}
@@ -706,7 +713,7 @@ def sharing_departed(+state: Types.State, departure: SharingRuntime.Departure) -
     case SharingRuntime.Departure{_,_,False{}}: SharingDeparture{state,[],False{}}
 
 def sharing_leave(+state: Types.State, scope: FreshnessScenario.Scope) -> SharingDeparture:
-  sharing_departed(state,SharingRuntime.depart(sharing_runtime(state),scope))
+  sharing_departed(state,SharingRuntime.depart_canonical(sharing_runtime(state),canonical(state),scope))
 
 # A still-queued original callback may need source-free route decisions first.
 # One actual Canonical step per call preserves public event budgets and lets
@@ -771,3 +778,7 @@ def sharing_preprocess(+state: Types.State, event: Canonical.CanonicalEvent, ord
 
 def sharing_after(before: Types.State, +after: Types.State, event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> List<&2,Canonical.CanonicalEvent>:
   SharingRuntime.fanout(sharing_runtime(before),sharing_runtime(after),canonical(after),freshness_state(after),event,commands)
+
+
+def sharing_leave_all(+state: Types.State, partition: Nat, lifetime: Nat) -> SharingDeparture:
+  sharing_departed(state,SharingRuntime.depart_all(sharing_runtime(state),canonical(state),partition,lifetime))

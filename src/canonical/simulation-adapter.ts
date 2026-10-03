@@ -449,3 +449,9 @@ export const preprocessSharedSharing = (state: EngineState, event: CanonicalEven
   return { state: prepared.state, frame: { event: decodeSharedValue(frame.event), result,
     before: projectionOf(state), after: projectCanonical(result.state), commandScopes }, events: decodeSharedValue(prepared.events) };
 };
+
+export const leaveAllSharedSharing = (state: EngineState, partition: number, lifetime: number) => {
+  sharedCheck(state);
+  const result = SharedEngine.sharing_leave_all(state, BigInt(readNat(partition)), BigInt(readNat(lifetime)));
+  return { state: retain(state, result.state), events: decodeSharedValue(result.events), valid: decodeSharedValue(result.valid) };
+};

@@ -12,6 +12,7 @@ declare const Engine: {
  sharing_after(before: EngineState,after: EngineState,event: unknown,commands: unknown): unknown;
  sharing_admitted(state: EngineState,scope: unknown,source: unknown,command: unknown): {state: EngineState; source: unknown; actions: unknown};
  sharing_preprocess(state: EngineState,event: unknown,order: bigint,horizon: unknown): {state: EngineState; frame: unknown; events: unknown};
+ sharing_leave_all(state: EngineState,partition: bigint,lifetime: bigint): {state: EngineState; events: unknown; valid: unknown};
  sharing_leave(state: EngineState,scope: unknown): {state: EngineState; events: unknown; valid: unknown};
  sharing_prepare(state: EngineState,scope: unknown,keys: unknown,sizes: unknown): {state: EngineState; routes: unknown; valid: unknown};
  sharing_route(state: EngineState,route: unknown): unknown;

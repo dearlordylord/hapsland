@@ -1,4 +1,4 @@
-import { prepareSharedSharing, routeSharedSharing, routedSharedSharing, leaveSharedSharing, completeSharedSharing, preprocessSharedSharing } from "../../../src/canonical/simulation-adapter.ts";
+import { prepareSharedSharing, routeSharedSharing, routedSharedSharing, leaveSharedSharing, leaveAllSharedSharing, completeSharedSharing, preprocessSharedSharing } from "../../../src/canonical/simulation-adapter.ts";
 import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canonical/simulation-adapter.ts";
 import { encodeFreshnessScope, encodeFreshnessSource, type FreshnessScope, type FreshnessSource } from "./freshness-codec.ts";
 import { replaceSharedCallbacks } from "../../../src/canonical/simulation-adapter.ts";
@@ -96,6 +96,11 @@ export class SharedCore {
     const prepared = preprocessSharedSharing(this.state, event, partition, order, horizon);
     this.state = prepared.state;
     return prepared;
+  }
+  leaveAllSharing(partition: number, lifetime: number) {
+    const result = leaveAllSharedSharing(this.state, partition, lifetime);
+    this.state = result.state;
+    return { events: result.events, valid: result.valid };
   }
   completeSharing(event: CanonicalEvent) { return completeSharedSharing(this.state, event); }
   routeSharing(route: unknown) { return routeSharedSharing(this.state, route); }

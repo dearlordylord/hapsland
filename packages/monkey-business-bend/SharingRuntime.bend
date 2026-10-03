@@ -578,8 +578,8 @@ def source_current(found: Maybe<&2,Bool>) -> Bool:
 def member_facts(+canonical: C.State, +freshness: Freshness.State, members: List<&2,Sharing.Member>, +outcome: C.RequestOutcome, +advice: Maybe<&2,Freshness.Scope>) -> List<&2,C.CanonicalEvent>:
   match members:
     case Nil{}: []
-    case Sharing.Member{scope,_,_} <> tail:
-      C.ReuseMemberCheck{joined_outcome(outcome),False{},source_current(Freshness.current(freshness,canonical,scope)),Sharing.live_advice(canonical,freshness,advice)} <>
+    case Sharing.Member{+scope,+source,+generation} <> tail:
+      C.ReuseMemberCheck{joined_outcome(outcome),False{},source_current(Freshness.current_binding(canonical,Some{Freshness.Binding{scope,source,generation}})),Sharing.live_advice(canonical,freshness,advice)} <>
         member_facts(canonical,freshness,tail,outcome,advice)
 
 def fanout_found(canonical: C.State, freshness: Freshness.State, outcome: C.RequestOutcome, found: Maybe<&2,Sharing.Evaluation>) -> List<&2,C.CanonicalEvent>:
@@ -599,3 +599,100 @@ def fanout(before: State, after: State, canonical: C.State, freshness: Freshness
         case False{}: []
         case True{}: fanout_binding(canonical,freshness,after,outcome,lookup_binding(before,Freshness.Scope{p,l,r,o}))
     case _: []
+
+
+# Only the authentic first terminal removes the captured physical tuple. A
+# rejected duplicate/wrong tuple leaves it unchanged and gets no fanout.
+def physical_consumed(before: Maybe<&2,Sharing.Evaluation>, after: Maybe<&2,Sharing.Evaluation>, physical: Sharing.Physical) -> Bool:
+  match before after:
+    case Some{Sharing.Evaluation{_,_,_,captured,_}} Some{Sharing.Evaluation{_,_,_,remaining,_}}:
+      Sharing.physical_equal(captured,physical) && Bool.not(Sharing.physical_equal(remaining,physical))
+    case Some{Sharing.Evaluation{_,_,_,captured,_}} None{}: Sharing.physical_equal(captured,physical)
+    case None{} _: False{}
+
+def result_advice(found: Maybe<&2,Sharing.Evaluation>) -> Maybe<&2,Freshness.Scope>:
+  match found:
+    case Some{Sharing.Evaluation{_,_,_,_,advice}}: advice
+    case None{}: None{}
+
+def terminal_members(canonical: C.State, freshness: Freshness.State, before: Maybe<&2,Sharing.Evaluation>, after: Maybe<&2,Sharing.Evaluation>, outcome: C.RequestOutcome) -> List<&2,C.CanonicalEvent>:
+  match before:
+    case Some{Sharing.Evaluation{_,_,members,_,_}}: member_facts(canonical,freshness,members,outcome,result_advice(after))
+    case None{}: []
+
+def postprocess_binding(before: State, after: State, canonical: C.State, freshness: Freshness.State, physical: Sharing.Physical, outcome: C.RequestOutcome, binding: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
+  match binding:
+    case None{}: []
+    case Some{Binding{_,+evaluation,_}}:
+      Bool.pick(List<&2,C.CanonicalEvent>,physical_consumed(Sharing.lookup(sharing(before),evaluation),Sharing.lookup(sharing(after),evaluation),physical),
+        terminal_members(canonical,freshness,Sharing.lookup(sharing(before),evaluation),Sharing.lookup(sharing(after),evaluation),outcome),[])
+
+def postprocess(+before: State, after: State, canonical: C.State, freshness: Freshness.State, event: C.CanonicalEvent) -> List<&2,C.CanonicalEvent>:
+  match event:
+    case C.JevRequestSettled{+p,+l,+r,+o,+request,outcome,_}:
+      postprocess_binding(before,after,canonical,freshness,Sharing.Physical{p,l,r,o,request},outcome,lookup_binding(before,Freshness.Scope{p,l,r,o}))
+    case _: []
+
+def empty_evaluation(found: Maybe<&2,Sharing.Evaluation>) -> Bool:
+  match found:
+    case Some{Sharing.Evaluation{_,_,Nil{},_,_}}: True{}
+    case _: False{}
+
+def canceled_work(found: Maybe<&2,C.Work>) -> List<&2,C.CanonicalEvent>:
+  match found:
+    case Some{C.Work{p,l,r,o,_,C.Reviewing{},_}}: [C.CancelReview{p,l,r,o}]
+    case Some{C.Work{p,l,r,o,_,C.AtJev{},_}}: [C.CancelReview{p,l,r,o}]
+    case Some{C.Work{p,l,r,o,_,C.PendingFinding{_},_}}: [C.RetireReview{p,l,r,o}]
+    case _: []
+
+def cancellation_scope(canonical: C.State, scope: Freshness.Scope) -> List<&2,C.CanonicalEvent>:
+  match canonical scope:
+    case C.State{_,_,work,_,_,_,_,_,_} Freshness.Scope{p,l,r,o}:
+      canceled_work(C.find_work(p,l,r,o,work))
+
+def canceled_binding(canonical: C.State, before: Sharing.State, state: Sharing.State, binding: Binding) -> List<&2,C.CanonicalEvent>:
+  match binding:
+    case Binding{scope,evaluation,_}:
+      Bool.pick(List<&2,C.CanonicalEvent>,Bool.not(empty_evaluation(Sharing.lookup(before,evaluation))) && empty_evaluation(Sharing.lookup(state,evaluation)),cancellation_scope(canonical,scope),[])
+
+def cancellation_bindings(bindings: List<&2,Binding>, +canonical: C.State, +before: Sharing.State, +state: Sharing.State) -> List<&2,C.CanonicalEvent>:
+  match bindings:
+    case Nil{}: []
+    case binding <> tail:
+      List.append(&2,C.CanonicalEvent,canceled_binding(canonical,before,state,binding),cancellation_bindings(tail,canonical,before,state))
+
+def departure_cancellation(+before: State, canonical: C.State, departure: Departure) -> Departure:
+  match before departure:
+    case State{original,_,bindings,_} Departure{+state,events,True{}}:
+      Departure{state,List.append(&2,C.CanonicalEvent,events,cancellation_bindings(bindings,canonical,original,sharing(state))),True{}}
+    case _ Departure{state,events,False{}}: Departure{state,events,False{}}
+
+def depart_canonical(+state: State, canonical: C.State, scope: Freshness.Scope) -> Departure:
+  departure_cancellation(state,canonical,depart(state,scope))
+
+
+def scoped_members(scopes: List<&2,Freshness.Scope>, +partition: Nat, +lifetime: Nat) -> List<&2,Freshness.Scope>:
+  match scopes:
+    case Nil{}: []
+    case +scope <> tail:
+      match scope:
+        case Freshness.Scope{p,l,_,_}:
+          match Nat.is_eq(p,partition) && Nat.is_eq(l,lifetime):
+            case True{}: scope <> scoped_members(tail,partition,lifetime)
+            case False{}: scoped_members(tail,partition,lifetime)
+
+def departures_joined(events: List<&2,C.CanonicalEvent>, valid: Bool, tail: Departure) -> Departure:
+  match tail:
+    case Departure{state,rest,next}: Departure{state,List.append(&2,C.CanonicalEvent,events,rest),valid || next}
+
+def departed_tail(departure: Departure, canonical: C.State, scopes: List<&2,Freshness.Scope>) -> Departure:
+  match departure:
+    case Departure{state,events,valid}: departures_joined(events,valid,depart_scopes(state,canonical,scopes))
+
+def depart_scopes(+state: State, +canonical: C.State, scopes: List<&2,Freshness.Scope>) -> Departure:
+  match scopes:
+    case Nil{}: Departure{state,[],False{}}
+    case scope <> tail: departed_tail(depart_canonical(state,canonical,scope),canonical,tail)
+
+def depart_all(+state: State, canonical: C.State, partition: Nat, lifetime: Nat) -> Departure:
+  depart_scopes(state,canonical,scoped_members(source_references(state),partition,lifetime))

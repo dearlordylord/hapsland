@@ -1,4 +1,4 @@
-import { captureSharingIdentityFacts, type SharingIdentityFacts } from "./sharing-controls.ts";
+import { captureSharingIdentityFacts, encodeSharingKey, sharingIdentityLabel, type SharingIdentityFacts } from "./sharing-controls.ts";
 export * from "./sharing-controls.ts";
 import { encodeNoticeScope, type OperationalNoticeKind } from "./notice-controls.ts";
 export * from "./notice-controls.ts";
@@ -268,36 +268,9 @@ export class Run {
   private get candidateOutputBytes(): number | undefined { return this.config.lifecycles?.encodedOutputBytes ?? (this.config.resourceScenarios?.outputBytes ?? (this.resourceScenarios?.config.outputFit ? this.resourceScenarios.config.outputBytes : undefined)); }
   private identityIds = new Map<string, number>();
   private nextIdentity = 1;
-  private evaluations = new Map<number, { id: number; bytes: number }>();
-  private evaluationWaiters = new Map<number, number[]>();
-  /** A fulfilled native promise remains joinable while Bend still retains its pending claim. */
-  private fulfilledEvaluations = new Map<number, "clear" | "finding" | "unavailable">();
-  private supplyEvaluation(operation: number, outcome: "clear" | "finding" | "unavailable") {
-    if (outcome !== "unavailable") { this.supplyReuse(operation, outcome); return; }
-    const work = this.projection.work.find(work => work.operation === operation);
-    if (work) this.event(work.partition, { kind: "reviewCompleted", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome });
-  }
   private cachedOutcomes = new Map<number, "clear" | "finding">();
   private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
   private annotate(fields: Partial<Pick<Scheduled, "reuseOperation" | "reuseOutcome" | "cacheId" | "cacheBytes" | "cacheOutcome">>) { Object.assign(this.queue.find(item => item.order === this.order - 1)!, fields); }
-  private supplyReuse(operation: number, outcome: "clear" | "finding") {
-    const owner = this.projection.work.find(work => work.operation === operation);
-    if (!owner) return;
-    const checks = decodeDriver({ handled: true, actions: this.core.freshnessChecks(owner) }).actions;
-    if (checks.length) {
-      for (const check of checks) {
-        this.event(owner.partition, check.event, check.delay);
-        this.annotate({ reuseOperation: operation, reuseOutcome: outcome });
-      }
-      return;
-    }
-    this.observeReuse(operation, outcome, this.environment.currentWork);
-  }
-  private observeReuse(operation: number, outcome: "clear" | "finding", currentWork: boolean) {
-    const work = this.projection.work.find(w => w.operation === operation);
-    if (!work) return;
-    this.event(work.partition, { kind: "reviewObserved", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome, currentWork });
-  }
   private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
   private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
   get capacityMetadata(): CapacityMetadata {
@@ -559,7 +532,15 @@ export class Run {
       throw new RangeError("unknown agent control target");
     if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
-    if (value.kind === "noticeCollect") {
+    if (value.kind === "sharingMember") {
+      const owner = this.scopes.find(scope => scope.agent === value.agent)!;
+      const partition = value.action === "leave" ? value.target.partition : value.partition;
+      if (partition !== owner.partition) throw new TypeError("sharing target does not belong to advicee");
+      const departure = value.action === "leave"
+        ? this.core.leaveSharing({ $: "FreshnessScenario.Scope", ...value.target })
+        : this.core.leaveAllSharing(value.partition, value.lifetime);
+      for (const event of readBendList(departure.events, decodeDriverEvent, 2048)) this.event(partition, event);
+    } else if (value.kind === "noticeCollect") {
       this.event(value.partition, { kind: "noticeSelect", partition: value.partition, group: value.group,
         composed: value.composed, authorityBound: value.authorityBound, allowed: [...value.allowed] });
     } else if (value.kind === "noticeFailure" || value.kind === "noticeLease" || value.kind === "noticeAcknowledge") {
@@ -701,7 +682,7 @@ export class Run {
   private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
     const partition = this.inputPartition(item);
     const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: partition, lifetime: 1, round: 0 };
-    const automaticReview = !this.config.lifecycles?.reuse && !(this.config.lifecycles?.cancellation === "suppressed") && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
+    const automaticReview = !(this.config.lifecycles?.cancellation === "suppressed") && (!!this.config.lifecycles?.reuse || !(job && "revisionSubject" in job && job.revisionSubject !== undefined));
     const automaticCollection = !this.config.lifecycles?.collectors && !this.finishes.has(partition);
     const automaticOutput = this.candidateOutputBytes === undefined && this.outputProfile.outcome !== "failed" && this.outputProfile.delayMs < this.outputProfile.leaseMs;
     const c = item.candidate;
@@ -713,13 +694,13 @@ export class Run {
       candidate: c ? { $: "Some", value: { $: "Driver.Candidate", partition: c.partition, advice: c.advice, round: c.round,
         token: c.token, surface: { $: `Handoff.${c.surface[0]!.toUpperCase()}${c.surface.slice(1)}` }, selection: c.selection ?? false } } : { $: "None" },
       automatic_collection: automaticCollection, automatic_review: automaticReview, automatic_output: automaticOutput,
-      output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: this.generators.has(partition), automatic_dispatch: !(this.config.lifecycles?.reuse && job && "evaluationInputs" in job && job.evaluationInputs) };
+      output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: this.generators.has(partition), automatic_dispatch: true };
   }
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
     const partition = this.core.commandScope(index, this.inputPartition(item));
     const job = ("operation" in command ? this.jobs.get(command.operation) : undefined)
       ?? (partition === this.inputPartition(item) ? item.job : undefined);
-    const sampling = command.kind === "jevRequestIssued" && !this.config.lifecycles?.reuse && this.config.lifecycles?.cancellation !== "suppressed" && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
+    const sampling = command.kind === "jevRequestIssued" && this.config.lifecycles?.cancellation !== "suppressed" && (!!this.config.lifecycles?.reuse || !(job && "revisionSubject" in job && job.revisionSubject !== undefined));
     const outcome = job?.outcome ?? this.outcome ?? (sampling ? this.core.sample(this.outcomeWeights) : "clear");
     const scoped = { ...item, partition: partition ?? 0 };
     const context = this.driverContext(event, scoped, outcome, job);
@@ -746,6 +727,20 @@ export class Run {
       return;
     if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? ""))
       return;
+    const head = this.queue[0];
+    if (head?.input.kind === "canonical" && head.input.event.kind === "preparationCompleted") {
+      const owner = this.inputPartition(head);
+      const prepared = this.core.preprocessSharing(head.input.event, owner, head.order, untilTime);
+      if (prepared.frame) {
+        this.clock = this.core.now;
+        for (const followup of readBendList(prepared.events, decodeDriverEvent, 2048)) this.event(owner, followup);
+        const frame = prepared.frame;
+        return this.record({ sequence: this.count++, time: this.clock, event: decodeDriverEvent(frame.event),
+          commands: frame.result.commands, commandScopes: frame.commandScopes, before: frame.before, after: frame.after,
+          ...(frame.result.rejection ? { rejection: frame.result.rejection } : {}), effects: [], capacityMetadata: this.capacityMetadata,
+          ...(owner === 0 ? {} : { partition: owner, agent: this.agentName(owner) }) });
+      }
+    }
     const item = this.queueShift();
     if (!item) return;
     const partition = this.inputPartition(item);
@@ -828,6 +823,11 @@ export class Run {
         if (item.input.evaluationIdentityFacts.length !== item.input.unitBytes.length) throw new TypeError("evaluationIdentityFacts must capture every prepared review unit");
         item.input = { ...item.input, evaluationIdentityFacts: Object.freeze(item.input.evaluationIdentityFacts.map(captureSharingIdentityFacts)) };
       }
+      if (this.config.lifecycles?.reuse && "evaluationInputs" in item.input && item.input.evaluationInputs && !("revisionSubject" in item.input && item.input.revisionSubject !== undefined)) {
+        // A source-free standalone input explicitly supplies its complete
+        // prepared identities; this is an edge label, never a work-cohort id.
+        item.input = { ...item.input, revisionSubject: "standalone-prepared-root", revisionInput: JSON.stringify(item.input.evaluationInputs) };
+      }
       if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
       if (permits) {
         const timing = this.core.preTiming(partition, item.input.editDurationMs, this.permitProfile.durationMs, this.permitProfile.lifetimeMs);
@@ -880,6 +880,11 @@ export class Run {
       )
     )
       throw new Error("mismatched completion identity");
+    if (event.kind === "preparationCompleted") {
+      const completion = readRecord(this.core.completeSharing(event));
+      if (!readBool(completion.ready)) throw new Error("unresolved shared preparation route");
+      event = decodeDriverEvent(completion.event);
+    }
     const result = this.core.step(event);
     if (item.generated && event.kind === "cacheCommit" && !result.commands.some(command => command.kind === "cacheCommitted")) {
       emit({ kind: "releaseCapacity", reservation: event.reservation });
@@ -939,7 +944,7 @@ export class Run {
             const actions = this.core.admitFreshness({ ...scope, operation: command.id }, {
               subject: this.identity(JSON.stringify(["revision-subject-label", item.job.revisionSubject])),
               input: this.identity(JSON.stringify(["revision-input-label", item.job.revisionInput])),
-            }, commandIndex);
+            }, commandIndex, !!this.config.lifecycles?.reuse);
             for (const action of decodeDriver({ handled: true, actions }).actions) emit(action.event, action.delay);
           }
           if (!driven) throw new Error("unhandled shared observation dispatch");
@@ -974,6 +979,19 @@ export class Run {
             due: this.clock + (this.config.preparationDelay ?? 2),
           });
           const preparingJob = item.job;
+          if (this.config.lifecycles?.reuse && "evaluationInputs" in preparingJob && preparingJob.evaluationInputs) {
+            const keys = preparingJob.evaluationInputs.map((preparedIdentity, unit) => {
+              const original = "evaluationIdentityFacts" in preparingJob ? preparingJob.evaluationIdentityFacts?.[unit] : undefined;
+              // No WorkCohort/dispatch credential property exists on a
+              // standalone synthetic input. Authenticated callers supply its
+              // immutable original facts explicitly; provider mode is unused.
+              const facts = original ?? { partition: this.agentName(scope.partition), workId: null, credentialGeneration: null, preparedIdentity };
+              return encodeSharingKey({ partition: scope.partition, prepared: this.identity(sharingIdentityLabel(facts)) });
+            });
+            const capture = this.core.prepareSharing({ $: "FreshnessScenario.Scope", ...scope, operation: command.operation }, keys, preparingJob.unitBytes);
+            if (!readBool(capture.valid)) throw new Error("missing original admitted sharing source");
+          }
+
           const facts = preparingJob.unitBytes.flatMap((_bytes, unit) => {
             const tree = generateFileTree(this.config.seed!, "evaluationTreeIdentity" in preparingJob && preparingJob.evaluationTreeIdentity !== undefined ? preparingJob.evaluationTreeIdentity : command.operation, unit, "evaluationTreeProfile" in preparingJob && preparingJob.evaluationTreeProfile ? preparingJob.evaluationTreeProfile : this.fileTrees,
               "evaluationGraphLimits" in preparingJob && preparingJob.evaluationGraphLimits ? preparingJob.evaluationGraphLimits : this.graphLimits);
@@ -998,13 +1016,7 @@ export class Run {
               "unhandled required command: unitAdmitted lacks job",
             );
           this.jobs.set(command.operation, item.job);
-          const inputs = "evaluationInputs" in item.job ? item.job.evaluationInputs : undefined;
-          if (this.config.lifecycles?.reuse && inputs) {
-            const id = this.identity(JSON.stringify([scope.partition, "evaluation", inputs[command.position - 1]]));
-            this.evaluations.set(command.operation, { id, bytes: command.bytes });
-            emit({ kind: "reuseRoute", id, liveAdvice: false });
-            this.annotate({ reuseOperation: command.operation });
-          } else if (!driven) throw new Error("unhandled shared review unit dispatch");
+          if (!driven) throw new Error("unhandled shared review unit dispatch");
           break;
         }
         case "revisionReused":
@@ -1012,35 +1024,12 @@ export class Run {
           break;
         case "revisionStale":
         case "revisionCurrent":
-          if (item.reuseOperation !== undefined) {
-            if (item.reuseOutcome) this.observeReuse(item.reuseOperation, item.reuseOutcome, command.kind === "revisionCurrent" && this.environment.currentWork);
-          }
-          break;
         case "reuseOwn":
-          if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
-            this.fulfilledEvaluations.delete(event.id);
-            const work = this.projection.work.find(w => w.operation === item.reuseOperation)!;
-            emit({ kind: "reuseAttach", id: event.id });
-            emit({ kind: "queueDispatch", partition: work.partition, lifetime: work.lifetime, round: work.round, operation: work.operation });
-          }
-          break;
+        case "reuseJoinAdvice":
         case "reuseJoinPending":
         case "reuseJoinClaimed":
-          if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
-            const fulfilled = this.fulfilledEvaluations.get(event.id);
-            if (fulfilled) this.supplyEvaluation(item.reuseOperation, fulfilled);
-            else this.evaluationWaiters.set(event.id, [...(this.evaluationWaiters.get(event.id) ?? []), item.reuseOperation]);
-          }
-          break;
         case "reuseReleased":
-          if (event.kind === "reuseRelease") this.fulfilledEvaluations.delete(event.id);
-          break;
         case "reuseCached":
-          if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
-            const outcome = this.cachedOutcomes.get(event.id);
-            if (!outcome) throw new Error("cached evaluation lacks supplied result");
-            this.supplyReuse(item.reuseOperation, outcome);
-          }
           break;
         case "cacheDiscarded":
           for (const id of command.ids) {
@@ -1099,7 +1088,6 @@ export class Run {
           if (selectedOutcome === "interrupted") emit({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
           for (const check of decodeDriver({ handled: true, actions: this.core.freshnessChecks(binding) }).actions) {
             emit(check.event, this.jevDelay);
-            this.annotate({ reuseOperation: command.operation });
           }
           emit(
             {
@@ -1250,16 +1238,6 @@ export class Run {
           }
           break;
         case "jevRequestUnavailable":
-          if (event.kind === "jevRequestReady") {
-            const evaluation = this.evaluations.get(event.operation);
-            if (evaluation) {
-              this.fulfilledEvaluations.set(evaluation.id, "unavailable");
-              for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyEvaluation(operation, "unavailable");
-              emit({ kind: "reuseRelease", id: evaluation.id });
-              this.evaluationWaiters.delete(evaluation.id);
-              this.evaluations.delete(event.operation);
-            }
-          }
           if (event.kind === "jevRequestReady" && before.dispatch.running.some(entry => entry.operation === event.operation)) {
             if (!driven) throw new Error("unhandled shared request refusal");
             this.jobs.delete(event.operation);
@@ -1432,7 +1410,6 @@ export class Run {
       for (const input of session.onAdvice(this.clock))
         this.enqueue(input);
     if (event.kind === "reviewObserved" || event.kind === "reviewCompleted" || event.kind === "retireReview") {
-      this.evaluations.delete(event.operation);
       if (!this.projection.pendingFindings.some(f => f.operation === event.operation)) this.jobs.delete(event.operation);
     }
     if (event.kind === "preparationCompleted") {
@@ -1444,22 +1421,6 @@ export class Run {
       });
     }
     if (event.kind === "jevRequestSettled") {
-      const evaluation = this.evaluations.get(event.operation);
-      if (evaluation) {
-        if (["clear", "finding"].includes(event.outcome) && !result.rejection && event.currentWork) {
-          const outcome = event.outcome as "clear" | "finding";
-          this.fulfilledEvaluations.set(evaluation.id, outcome);
-          emit({ kind: "cachePrepare", id: evaluation.id, bytes: evaluation.bytes, entryLimit: this.config.lifecycles!.reuse!.entryLimit, byteLimit: this.config.lifecycles!.reuse!.byteLimit });
-          this.annotate({ cacheOutcome: outcome });
-          for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyReuse(operation, outcome);
-        } else {
-          this.fulfilledEvaluations.set(evaluation.id, "unavailable");
-          for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyEvaluation(operation, "unavailable");
-        }
-        emit({ kind: "reuseRelease", id: evaluation.id });
-        this.evaluationWaiters.delete(evaluation.id);
-        this.evaluations.delete(event.operation);
-      }
       this.issuedRequests.delete(event.request);
       if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
         this.jobs.delete(event.operation);

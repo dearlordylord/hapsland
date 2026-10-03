@@ -135,9 +135,9 @@ export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => {
     case "beginObservedPreparation": return { $: "Canonical.BeginObservedPreparation", ...identity(event), round: event.round, observation: event.observation, bytes: event.bytes };
     case "interruptPreparation": return { $: "Canonical.InterruptPreparation", ...identity(event), round: event.round, operation: event.operation };
     case "preparationCompleted": return { $: "Canonical.PreparationCompleted", ...identity(event), round: event.round, operation: event.operation, unit_bytes: list(event.unitBytes) };
-    case "startReview": case "retireReview": {
+    case "startReview": case "retireReview": case "cancelReview": {
 
-      return { $: event.kind === "startReview" ? "Canonical.StartReview" : "Canonical.RetireReview", ...identity(event), round: event.round, operation: event.operation };
+      return { $: { startReview: "Canonical.StartReview", retireReview: "Canonical.RetireReview", cancelReview: "Canonical.CancelReview" }[event.kind], ...identity(event), round: event.round, operation: event.operation };
     }
     case "jevRequestReady":
 
