@@ -360,3 +360,25 @@ def advice_retired(state: State, found: Maybe<&2,Evaluation>, accepted: Bool) ->
 
 def retirement_feedback(+state: State, evaluation_id: Nat, accepted: Bool) -> State:
   advice_retired(state,lookup(state,evaluation_id),accepted)
+
+# A retained cache payload supplies its original id before fresh allocation.
+# It cannot change the key or overwrite another evaluation's original owner.
+def register_cached(+state: State, +key: SharingKey, +member: Member, cached: Maybe<&2,Nat>) -> Registration:
+  match cached:
+    case None{}: register(state,key,member)
+    case Some{id}: cached_scoped(state,key,member,id,Nat.is_gt(id,0n) && Nat.is_eq(key_partition(key),member_partition(member)))
+
+def cached_scoped(state: State, key: SharingKey, member: Member, id: Nat, allowed: Bool) -> Registration:
+  match state allowed:
+    case State{+items,next} True{}:
+      cached_existing(State{items,next},key,member,id,find_live_key(items,key))
+    case _ False{}: Registration{state,None{}}
+
+def cached_existing(state: State, key: SharingKey, member: Member, id: Nat, found: Maybe<&2,Evaluation>) -> Registration:
+  match state found:
+    case State{items,next} None{}:
+      Registration{State{Evaluation{id,key,[member],None{},None{}} <> items,next},Some{id}}
+    case state Some{evaluation}: Registration{state,Some{evaluation_id(evaluation)}}
+
+def evaluation_id(evaluation: Evaluation) -> Nat:
+  id(evaluation)

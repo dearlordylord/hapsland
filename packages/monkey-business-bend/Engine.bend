@@ -677,7 +677,7 @@ def sharing_captured(+state: Types.State, capture: SharingRuntime.Captured) -> S
 def sharing_prepare_found(+state: Types.State, +scope: FreshnessScenario.Scope, keys: List<&2,SharingScenario.SharingKey>, sizes: List<&2,Nat>, found: Maybe<&2,Canonical.Work>) -> SharingCapture:
   match found:
     case Some{Canonical.Work{p,l,r,_,_,Canonical.Preparing{},parent}}:
-      sharing_captured(state,SharingRuntime.capture(sharing_runtime(state),freshness_state(state),scope,FreshnessScenario.Scope{p,l,r,parent},keys,sizes))
+      sharing_captured(state,SharingRuntime.capture(sharing_runtime(state),freshness_state(state),scope,FreshnessScenario.Scope{p,l,r,parent},keys,sizes,RuntimeScenarios.cache(scenarios(state)),canonical(state)))
     case _: SharingCapture{state,[],False{}}
 
 def sharing_prepare(+state: Types.State, +scope: FreshnessScenario.Scope, keys: List<&2,SharingScenario.SharingKey>, sizes: List<&2,Nat>) -> SharingCapture:

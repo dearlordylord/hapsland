@@ -1,4 +1,5 @@
 import Base
+import ./CacheRuntime.bend as CacheRuntime
 import ../agent-flow-bend/CollectionState.bend as Collection
 import ../agent-flow-bend/ReuseState.bend as Reuse
 import ../agent-flow-bend/Reuse.bend as ReusePolicy
@@ -91,8 +92,8 @@ def captured_registration(state: State, +scope: Freshness.Scope, +member: Sharin
     case Sharing.Registration{sharing,Some{+evaluation}}:
       CaptureStep{append_unit(with_sharing(state,sharing),scope,member,PreparedUnit{position,bytes,key,evaluation,Awaiting{}}),Some{Route{scope,member,position,evaluation}},True{}}
 
-def captured_step(+state: State, +scope: Freshness.Scope, +member: Sharing.Member, position: Nat, bytes: Nat, +key: Sharing.SharingKey) -> CaptureStep:
-  captured_registration(state,scope,member,position,bytes,key,Sharing.register(sharing(state),key,member))
+def captured_step(+state: State, +scope: Freshness.Scope, +member: Sharing.Member, position: Nat, bytes: Nat, +key: Sharing.SharingKey, cache: CacheRuntime.State, canonical: C.State) -> CaptureStep:
+  captured_registration(state,scope,member,position,bytes,key,Sharing.register_cached(sharing(state),key,member,CacheRuntime.lookup_key(cache,canonical,key)))
 
 def step_state(step: CaptureStep) -> State:
   match step:
@@ -103,21 +104,21 @@ def captured_tail(step: CaptureStep, tail: Captured) -> Captured:
     case CaptureStep{_,None{},valid} Captured{state,routes,accepted}: Captured{state,routes,valid && accepted}
     case CaptureStep{_,Some{route},valid} Captured{state,routes,accepted}: Captured{state,route <> routes,valid && accepted}
 
-def capture_units(keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, +scope: Freshness.Scope, +member: Sharing.Member, +position: Nat, state: State) -> Captured:
+def capture_units(keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, +scope: Freshness.Scope, +member: Sharing.Member, +position: Nat, state: State, +cache: CacheRuntime.State, +canonical: C.State) -> Captured:
   match keys sizes:
     case Nil{} Nil{}: Captured{state,[],True{}}
     case key <> tail size <> rest:
-      +next = captured_step(state,scope,member,position,size,key)
-      captured_tail(next,capture_units(tail,rest,scope,member,(position + 1n : Nat),step_state(next)))
+      +next = captured_step(state,scope,member,position,size,key,cache,canonical)
+      captured_tail(next,capture_units(tail,rest,scope,member,(position + 1n : Nat),step_state(next),cache,canonical))
     case _ _: Captured{state,[],False{}}
 
-def capture_found(state: State, scope: Freshness.Scope, keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, found: Maybe<&2,Sharing.Member>) -> Captured:
+def capture_found(state: State, scope: Freshness.Scope, keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, found: Maybe<&2,Sharing.Member>, cache: CacheRuntime.State, canonical: C.State) -> Captured:
   match found:
     case None{}: Captured{state,[],False{}}
-    case Some{member}: capture_units(keys,sizes,scope,member,1n,state)
+    case Some{member}: capture_units(keys,sizes,scope,member,1n,state,cache,canonical)
 
-def capture(state: State, freshness: Freshness.State, scope: Freshness.Scope, parent: Freshness.Scope, keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>) -> Captured:
-  capture_found(state,scope,keys,sizes,member(Freshness.lookup(Freshness.bindings(freshness),parent)))
+def capture(state: State, freshness: Freshness.State, scope: Freshness.Scope, parent: Freshness.Scope, keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, cache: CacheRuntime.State, canonical: C.State) -> Captured:
+  capture_found(state,scope,keys,sizes,member(Freshness.lookup(Freshness.bindings(freshness),parent)),cache,canonical)
 
 def route_unit(units: List<&2,PreparedUnit>, +position: Nat, +evaluation: Nat) -> Bool:
   match units:
