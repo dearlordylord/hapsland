@@ -105,7 +105,7 @@ if(process.argv.includes('--pi-hook')){
   const events=[...lines(eventPath),...nativeMessages],requests=lines(summaryPath),outcomes=lines(outcomePath).map(o=>({toolUseHash:typeof o.toolUseId==='string'?hash(o.toolUseId):null,outcome:o.outcome}));
   const source=readFileSync(join(repo,fixture.entry),'utf8');
   const compile=spawnSync('npm',['test'],{cwd:repo,env,encoding:'utf8',timeout:30000});
-  writeFileSync(join(repo,'invalid.ts'),"import type {PaymentState} from './payment';\n// @ts-expect-error success requires receipt\nconst missing: PaymentState = {status:'succeeded'};\n// @ts-expect-error pending excludes simultaneous results\nconst both: PaymentState = {status:'pending',receipt:{value:''},failure_reason:'failed'};\n");
+  writeFileSync(join(repo,'invalid.ts'),"import type {PaymentState} from './payment';\n// @ts-expect-error success requires receipt\nconst missing: PaymentState = {status:'succeeded',receipt:null,failure_reason:null};\n// @ts-expect-error pending excludes simultaneous results\nconst both: PaymentState = {status:'pending',receipt:{value:''},failure_reason:'failed'};\n");
   const invalid=spawnSync('npm',['test'],{cwd:repo,env,encoding:'utf8',timeout:30000});
   const activityStages=[];
   const visit=path=>{if(!existsSync(path))return;for(const entry of readdirSync(path,{withFileTypes:true})){const child=join(path,entry.name);if(entry.isDirectory())visit(child);else{try{const marker=JSON.parse(readFileSync(child,'utf8'));if(typeof marker.stage==='string')activityStages.push(marker.stage)}catch{}}}};visit(activity);
