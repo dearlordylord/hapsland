@@ -222,8 +222,6 @@ type Scheduled = {
   fitFinish?: number;
   expiryAdvice?: number;
   generated?: boolean;
-  reuseOperation?: number;
-  reuseOutcome?: "clear" | "finding";
   cacheId?: number;
   cacheBytes?: number;
   cacheOutcome?: "clear" | "finding";
@@ -270,7 +268,7 @@ export class Run {
   private nextIdentity = 1;
   private cachedOutcomes = new Map<number, "clear" | "finding">();
   private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
-  private annotate(fields: Partial<Pick<Scheduled, "reuseOperation" | "reuseOutcome" | "cacheId" | "cacheBytes" | "cacheOutcome">>) { Object.assign(this.queue.find(item => item.order === this.order - 1)!, fields); }
+  private annotate(fields: Partial<Pick<Scheduled, "cacheId" | "cacheBytes" | "cacheOutcome">>) { Object.assign(this.queue.find(item => item.order === this.order - 1)!, fields); }
   private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
   private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
   get capacityMetadata(): CapacityMetadata {

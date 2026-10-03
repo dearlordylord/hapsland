@@ -4,10 +4,13 @@ import {validateSharingControl,type SharingControl,type SharingScope} from "./sh
 
 // Source-only central seam. Shared preparation must route BEFORE allocating
 // unit reservations; joined members must not acquire a second review charge.
-const apply=(run:Run,value:SharingControl)=>run.applyControl(validateSharingControl(value) as Parameters<Run["applyControl"]>[0]);
+const apply=(run:Run,value:SharingControl)=>run.applyControl(validateSharingControl(value));
 const edit=(agent:string,at=0,input="same-prepared-identity",subject="same-subject",revision="same-input"):RunInput=>({at,kind:"edit",agent,
  bytes:10,unitBytes:[5],evaluationInputs:[input],revisionSubject:subject,revisionInput:revision});
-const config=(inputs:RunInput[],jevDelay=30)=>({retention:3000,inputs,preparationDelay:2,jevDelay,outcome:"finding" as const,lifecycles:{reuse:{entryLimit:8,byteLimit:1}}});
+const config=(inputs:RunInput[],jevDelay=30)=>({retention:3000,inputs,
+ sessions:[...new Set(inputs.flatMap(input=>"agent" in input && input.agent ? [input.agent] : []))].map((agent,index)=>({
+  agent,seed:index+11,editIntervalMs:1000000,variationMs:0,editsPerTask:1000,bytes:10,unitBytes:[5]})),
+ preparationDelay:2,jevDelay,outcome:"finding" as const,lifecycles:{reuse:{entryLimit:8,byteLimit:1}}});
 const replay=(run:Run)=>expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 const member=(run:Run,index:number):SharingScope=>{
  const frames=run.observations.filter(f=>f.event.kind==="beginObservedPreparation");
