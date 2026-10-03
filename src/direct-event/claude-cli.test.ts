@@ -1,7 +1,7 @@
 import { runClient } from "../test-support/client-runtime.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { spawn, spawnSync } from "node:child_process";
+import { execFile, spawn, spawnSync } from "node:child_process";
 import { createConnection, createServer } from "node:net";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -29,6 +29,14 @@ const preClaudeEdit = (event: Readonly<Record<string, unknown>>, env: NodeJS.Pro
   spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=claude-code"], {
     cwd: process.cwd(), input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
     encoding: "utf8", timeout: 7_000, env,
+  });
+
+const preClaudeEditAsync = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
+  new Promise<void>((resolve, reject) => {
+    const child = execFile(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=claude-code"], {
+      cwd: process.cwd(), timeout: 7_000, env,
+    }, error => error === null ? resolve() : reject(error));
+    child.stdin!.end(JSON.stringify({ ...event, hook_event_name: "PreToolUse" }));
   });
 
 const CLAUDE_EDIT_FLAGS = ["src/cli.ts", "--claude-hook", "--controlled-reviewer",
@@ -405,7 +413,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
     const firstPending = runDelayed(first);
     await waitForFile(acceptedPath);
-    expect(preClaudeEdit(second, delayedEnv).status).toBe(0);
+    await preClaudeEditAsync(second, delayedEnv);
     const secondPending = runDelayed(second);
     const [firstResult, secondResult] = await Promise.all([firstPending, secondPending]);
     expect(firstResult.code, firstResult.stderr).toBe(0);

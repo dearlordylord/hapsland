@@ -1,10 +1,14 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { expect } from "vitest";
 import { configuredRules } from "../policy/rules.ts";
 import { pathToFileURL } from "node:url";
+import { residentRequestEffect } from "../resident/client.ts";
+import { residentPaths } from "../resident/paths.ts";
+import { runClient } from "./client-runtime.ts";
+import type { ResidentResponse } from "../resident/protocol.ts";
 
 let createPiExtension: typeof import("../pi/extension.ts")["createPiExtension"];
 export let installedCli: string;
@@ -39,14 +43,42 @@ export const cleanupInstalledPi = () => {
 
 type Handler = (event: any, context: any) => Promise<any>;
 const roots: string[] = [];
-export const cleanupPiFixtures = () => {
+const preparedResidents = new Map<string, ChildProcess>();
+const stopPreparedResident = async (child: ChildProcess) => {
+  if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise<void>(resolve => {
+    const timer = setTimeout(() => child.kill("SIGKILL"), 3_000);
+    child.once("close", () => { clearTimeout(timer); resolve(); });
+    child.kill("SIGTERM");
+  });
+};
+export const cleanupPiFixtures = async () => {
   for (const root of roots.splice(0)) {
-    try {
-      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
-      process.kill(owner.pid, "SIGTERM");
-    } catch { /* A refused event need not start the resident. */ }
+    const prepared = preparedResidents.get(root);
+    preparedResidents.delete(root);
+    if (prepared !== undefined) await stopPreparedResident(prepared);
+    else {
+      try {
+        const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
+        process.kill(owner.pid, "SIGTERM");
+      } catch { /* A refused event need not start the resident. */ }
+    }
     rmSync(root, { recursive: true, force: true });
   }
+};
+
+const waitForResidentStats = async (root: string, ready: (stats: Extract<ResidentResponse, { status: "stats" }>) => boolean) => {
+  const paths = residentPaths(join(root, "runtime"));
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    try {
+      const owner = JSON.parse(readFileSync(paths.owner, "utf8")) as { lifetime: string };
+      const stats = await runClient(residentRequestEffect(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
+      if (stats.status === "stats" && ready(stats)) return;
+    } catch { /* The exact fixture resident may still be starting. */ }
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  throw new Error("Pi fixture resident did not reach the required IPC state");
 };
 
 export const fixture = (gated = false, control: Record<string, unknown> = {}, options: { commandFactory?: (cli: string, root: string) => readonly string[]; env?: NodeJS.ProcessEnv } = {}) => {
@@ -55,19 +87,20 @@ export const fixture = (gated = false, control: Record<string, unknown> = {}, op
   execFileSync("git", ["init", "--quiet", root]);
   const capturePath = join(root, "backend-calls");
   const handlers = new Map<string, Handler>();
+  const environment = () => ({
+    ...process.env,
+    REVIEW_RESIDENT_DIR: join(root, "runtime"),
+    REVIEW_STATE_PATH: join(root, "state"),
+    REVIEW_USER_CONFIG_PATH: join(root, "user.json"),
+    ...(gated ? { REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, "backend.gate"), REVIEW_RESIDENT_CONTROLLED: "1" } : {}),
+    REVIEW_CONTROL_JSON: JSON.stringify({ capturePath, answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }])), ...control }),
+    ...options.env,
+  });
   const reload = () => {
     handlers.clear();
     createPiExtension({
       ...(options.commandFactory !== undefined ? { command: options.commandFactory(installedCli, root) } : fixtureMode === "source" ? { command: installedCommand } : {}),
-      env: {
-        ...process.env,
-        REVIEW_RESIDENT_DIR: join(root, "runtime"),
-        REVIEW_STATE_PATH: join(root, "state"),
-        REVIEW_USER_CONFIG_PATH: join(root, "user.json"),
-        ...(gated ? { REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, "backend.gate"), REVIEW_RESIDENT_CONTROLLED: "1" } : {}),
-        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath, answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }])), ...control }),
-        ...options.env,
-      },
+      env: environment(),
     })({ on: (name: string, handler: Handler) => { handlers.set(name, handler); } });
   };
   reload();
@@ -77,7 +110,20 @@ export const fixture = (gated = false, control: Record<string, unknown> = {}, op
     expect(handler, `registered ${name} handler`).toBeDefined();
     return handler!(event, ctx);
   };
-  return { root, capturePath, call, context, reload };
+  const prepareResident = async () => {
+    // Opt-in healthy-resident precondition for lifecycle witnesses. Cold-start
+    // and refusal tests still exercise their original first-event startup.
+    const directory = join(root, "runtime");
+    const command = fixtureMode === "source"
+      ? [process.execPath, join(dirname(installedCli), "resident", "main.ts"), directory]
+      : [join(dirname(installedCommand[0]!), "hapsland-resident"), directory];
+    const child = spawn(command[0]!, command.slice(1), { env: environment(), stdio: "ignore" });
+    preparedResidents.set(root, child);
+    await new Promise<void>((resolve, reject) => { child.once("spawn", resolve); child.once("error", reject); });
+    await waitForResidentStats(root, () => true);
+  };
+  const waitForWork = (count: number) => waitForResidentStats(root, stats => stats.queued + stats.running === count);
+  return { root, capturePath, call, context, reload, prepareResident, waitForWork };
 };
 
 export const input = { path: "type.ts", edits: [{ oldText: "type Count = string", newText: "type OrderCount = number" }] };
@@ -88,4 +134,3 @@ export const result = {
   structuredContent: { nativeEditCount: 1 },
   details: { patch: "--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-type Count = string\n+type OrderCount = number\n" },
 };
-

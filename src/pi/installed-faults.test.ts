@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { configuredRules } from "../policy/rules.ts";
 import { setupInstalledPi, cleanupInstalledPi, cleanupPiFixtures, fixture, before, result, installedCommand } from "../test-support/pi-installed.ts";
 
-afterEach(() => { vi.restoreAllMocks(); cleanupPiFixtures(); });
+afterEach(async () => { vi.restoreAllMocks(); await cleanupPiFixtures(); });
 const settle = { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" };
 const source = "type OrderCount = number\n";
 const freshAdvice = async (f: ReturnType<typeof fixture>, id = "fresh-after-fault") => {
@@ -145,6 +145,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
 
   it("a delayed acknowledgment cannot cross a session-switch epoch", async () => {
     const f = fixture(true, {}, { commandFactory: faultWrapper });
+    await f.prepareResident();
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
     expect(await f.call("tool_result", result)).toBeUndefined();

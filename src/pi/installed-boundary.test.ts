@@ -11,16 +11,19 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
   afterEach(cleanupPiFixtures);
   it("waits for every unfinished review after the first finding is ready", async () => {
     const control = { delayMs: 500 };
-    const { root, call, reload } = fixture(true, control);
+    const { root, call, reload, prepareResident, waitForWork } = fixture(true, control);
+    await prepareResident();
     await call("tool_call", before);
     writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
     expect(await call("tool_result", result)).toBeUndefined();
+    await waitForWork(1);
     control.delayMs = 2_000;
     reload();
     const other = { ...before, toolCallId: "slow-second", input: { path: "other.ts", edits: [{ oldText: "type Before = string", newText: "type OtherCount = number" }] } };
     await call("tool_call", other);
     writeFileSync(join(root, "other.ts"), "type OtherCount = number\n");
     expect(await call("tool_result", { ...result, ...other, details: { patch: "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Before = string\n+type OtherCount = number\n" } })).toBeUndefined();
+    await waitForWork(2);
     let completed = false;
     const finishing = call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" }).then(value => { completed = true; return value; });
     writeFileSync(join(root, "backend.gate"), "release\n");
@@ -87,7 +90,8 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
   });
 
   it("abandons admitted delayed work on session switch before reviewing a fresh edit", async () => {
-    const { root, call } = fixture(true);
+    const { root, call, prepareResident } = fixture(true);
+    await prepareResident();
     await call("tool_call", before);
     writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
     expect(await call("tool_result", result)).toBeUndefined();
@@ -101,7 +105,8 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
     expect(output ?? settled).toBeDefined();
   });
   it.each(["replaced", "final-refusal", "aborted"])("closes offered advice after %s composition and permits a fresh edit", async (composition) => {
-    const { root, capturePath, call } = fixture(true);
+    const { root, capturePath, call, prepareResident } = fixture(true);
+    await prepareResident();
     await call("tool_call", before);
     writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
     expect(await call("tool_result", result)).toBeUndefined();
@@ -218,7 +223,8 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
     { name: "session_shutdown", event: {} },
     { name: "agent_settled", event: {} },
   ])("retires pending permits on $name", async ({ name, event }) => {
-    const { root, capturePath, call } = fixture();
+    const { root, capturePath, call, prepareResident } = fixture();
+    await prepareResident();
     await call("agent_start", {});
     await call("tool_call", before);
     await call(name, event);
