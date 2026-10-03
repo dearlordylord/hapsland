@@ -26,12 +26,11 @@ it("issues an authentic cache result once across retained states and retries a f
     if (retryChecked) return apply(state, capsule);
     const original = boundary.projectSharedCanonical(state);
     const queued = boundary.queuedShared(state);
-    // Fail after the pure transition, before the bridge publishes decoded outputs.
-    const failure = vi.spyOn(SharedEngine, "after").mockImplementationOnce(() => {
-      throw new Error("injected cache output decode failure");
-    });
+    // The pure transition succeeds; its malformed output must fail the real decoder
+    // before publication or capability consumption.
+    const failure = vi.spyOn(SharedEngine, "after").mockReturnValueOnce({ $: "Foreign.After" });
     try {
-      expect(() => apply(state, capsule)).toThrow("injected cache output decode failure");
+      expect(() => apply(state, capsule)).toThrow("invalid shared constructor namespace");
       expect(boundary.projectSharedCanonical(state)).toBe(original);
       expect(boundary.queuedShared(state)).toEqual(queued);
     } finally {
