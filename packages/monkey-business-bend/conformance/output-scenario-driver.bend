@@ -338,4 +338,4 @@ def initial() -> Runtime:
     Workload.Profile{Session.Settings{1000000,0,1000,500,0,300},7,[97,103,101,110,116,45,49],100n,[100n],None{}}),1n,Workload.Next{}))
 
 def run(outcome: Output.Outcome, +delay: Nat, +lease: Nat) -> Trace:
-  advance(150n,initial(),Edge.OutputCompletion{7n,TreeFacts.Profile{1n,1n,0n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n},Edge.graph_limits(),2n,delay,lease,Output.Certain{}},outcome,delay,lease)
+  advance(150n,initial(),Edge.Environment{7n,TreeFacts.Profile{1n,1n,0n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n},Edge.graph_limits(),2n,delay,lease},outcome,delay,lease)

@@ -2,7 +2,6 @@ import Base
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Driver.bend as Driver
-import ../OutputScenario.bend as Output
 import ../Advicees.bend as Advicees
 import ../AdviceeScope.bend as Scope
 import ../AdviceeLifecycle.bend as Lifecycle
@@ -270,8 +269,6 @@ def actions(list: List<&2, Driver.Action>, queue: Queue, +now: Nat, +job: Job) -
 type Environment is Data:
   Environment{seed: Nat, tree: TreeFacts.Profile, graph: Graph.Limits,
     preparation_delay: Nat, output_delay: Nat, output_lease: Nat}
-  OutputCompletion{seed: Nat, tree: TreeFacts.Profile, graph: Graph.Limits,
-    preparation_delay: Nat, output_delay: Nat, output_lease: Nat, outcome: Output.Outcome}
 
 def default_environment() -> Environment:
   Environment{7n,tree_profile(),graph_limits(),2n,0n,30n}
@@ -279,23 +276,14 @@ def default_environment() -> Environment:
 def environment_graph(environment: Environment) -> Graph.Limits:
   match environment:
     case Environment{_,_,graph,_,_,_}: graph
-    case OutputCompletion{_,_,graph,_,_,_,_}: graph
-
-def context_profile(state: Types.State, job: Job, delay: Nat,
-    candidate: Maybe<&2,Driver.Candidate>, output_delay: Nat, output_lease: Nat) -> Driver.Context:
-  match job:
-    case Job{+partition,+lifetime,bytes,_,outcome}:
-      Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),bytes,True{},delay,
-        outcome,True{},True{},True{},True{},600000n,candidate,True{},True{},True{},True{},
-        output_delay,output_lease,True{},True{}}
 
 def context_with(environment: Environment, state: Types.State, job: Job, delay: Nat,
     candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
-  match environment:
-    case Environment{_,_,_,_,output_delay,output_lease}:
-      context_profile(state,job,delay,candidate,output_delay,output_lease)
-    case OutputCompletion{_,_,_,_,output_delay,output_lease,_}:
-      context_profile(state,job,delay,candidate,output_delay,output_lease)
+  match environment job:
+    case Environment{_,_,_,_,output_delay,output_lease} Job{+partition,+lifetime,bytes,_,outcome}:
+      Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),bytes,True{},delay,
+        outcome,True{},True{},True{},True{},600000n,candidate,True{},True{},True{},True{},
+        output_delay,output_lease,True{},True{}}
 
 def context(state: Types.State, job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
   context_with(default_environment(),state,job,delay,candidate)
@@ -342,7 +330,7 @@ def edit_plan(attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2, Stored>,
     case Engine.EditAttempt{state, Driver.EditPlan{retry, emitted}}:
       ih(Runtime{state, retry_edit(retry, actions(emitted, queue, now, job), now, job), jobs, delay})
 
-def interpret_default_with(environment: Environment, value: Canonical.Command, +state: Types.State,
+def interpret_with(environment: Environment, value: Canonical.Command, +state: Types.State,
     +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, +now: Nat,
     +job: Job, +delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
   match environment value:
@@ -351,37 +339,6 @@ def interpret_default_with(environment: Environment, value: Canonical.Command, +
         now,operation,round(Engine.canonical(state),job_partition(job)),job,preparation_delay),jobs,delay}
     case environment command:
       handled(Engine.handle(state,event,command,context_with(environment,state,job,delay,candidate)),state,queue,jobs,now,job,delay)
-
-# Initial environmental output generation uses the production captured profile
-# before actions receive queue orders. Existing Environment callers retain their
-# original Driver path; only the explicit output family selects this profile.
-def output_capture(event: Canonical.CanonicalEvent, now: Nat, outcome: Output.Outcome,
-    delay: Nat, lease: Nat) -> Maybe<&2,Output.Capture>:
-  match event:
-    case Canonical.SubmissionBegin{advice,_,_,token,_,True{},_,_}:
-      Some{Output.Capture{Output.Individual{advice,token},now,outcome,delay,lease}}
-    case Canonical.SubmissionAuthorize{advice,token}:
-      Some{Output.Capture{Output.Individual{advice,token},now,outcome,delay,lease}}
-    case _: None{}
-
-def output_initial(capture: Maybe<&2,Output.Capture>, environment: Environment, command: Canonical.Command,
-    +state: Types.State, +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>,
-    +now: Nat, +job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
-  match capture:
-    case Some{capture}: handled(Driver.Handled{True{},Output.issued(capture)},state,queue,jobs,now,job,delay)
-    case None{}: interpret_default_with(environment,command,state,event,queue,jobs,now,job,delay,candidate)
-
-def interpret_with(environment: Environment, +value: Canonical.Command, +state: Types.State,
-    +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, +now: Nat,
-    +job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
-  match environment value:
-    case OutputCompletion{seed,tree,graph,prep,+due,+lease,outcome} Canonical.SubmissionAuthorized{}:
-      output_initial(output_capture(event,now,outcome,due,lease),Environment{seed,tree,graph,prep,due,lease},value,state,event,queue,jobs,now,job,delay,candidate)
-    case OutputCompletion{seed,tree,graph,prep,+due,+lease,outcome} Canonical.SubmissionBegun{}:
-      output_initial(output_capture(event,now,outcome,due,lease),Environment{seed,tree,graph,prep,due,lease},value,state,event,queue,jobs,now,job,delay,candidate)
-    case OutputCompletion{seed,tree,graph,prep,due,lease,_} value:
-      interpret_default_with(Environment{seed,tree,graph,prep,due,lease},value,state,event,queue,jobs,now,job,delay,candidate)
-    case environment value: interpret_default_with(environment,value,state,event,queue,jobs,now,job,delay,candidate)
 
 def interpret(value: Canonical.Command, state: Types.State, event: Canonical.CanonicalEvent,
     queue: Queue, jobs: List<&2,Stored>, now: Nat, job: Job, delay: Nat,

@@ -1,4 +1,5 @@
 import Base
+import ../Driver.bend as Driver
 import ../Callbacks.bend as Callbacks
 import ../OutputScenario.bend as Output
 import ../../agent-flow-bend/Canonical.bend as C
@@ -27,7 +28,7 @@ def owned(initial: C.State, slots: List<&2,Delivery.Slot>) -> C.State:
 def original() -> Callbacks.State:
   Callbacks.State{[Callbacks.Original{Callbacks.Fact{
     Callbacks.Target{Callbacks.Owner{1n,2n,3n,7n},Callbacks.FinishTerminal{1n,3n,5n,11n,[7n,9n]},17n},25n,
-    Output.action(C.FinishTerminal{1n,3n,5n,11n,[7n,9n],C.Unknown{}},5n),
+    Driver.output_action(Output.action(C.FinishTerminal{1n,3n,5n,11n,[7n,9n],C.Unknown{}},5n)),
     Some{Output.Capture{Output.Finish{1n,3n,5n,11n,[7n,9n]},20n,Output.Uncertain{},5n,10n}}},Callbacks.Dropped{},17n}]}
 
 def count(state: Callbacks.State) -> Nat:

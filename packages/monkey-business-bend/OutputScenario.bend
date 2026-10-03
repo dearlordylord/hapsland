@@ -1,5 +1,4 @@
 import Base
-import ./Driver.bend as Driver
 import ../agent-flow-bend/Canonical.bend as Canonical
 
 # Environmental output facts. Canonical owns token authority, atomic committed
@@ -14,8 +13,11 @@ type Attempt is Data:
 type Capture is Data:
   Capture{attempt: Attempt, started: Nat, outcome: Outcome, delay: Nat, lease: Nat}
 
-def action(event: Canonical.CanonicalEvent, delay: Nat) -> Driver.Action:
-  Driver.Action{event,delay,None{},False{},None{}}
+type Scheduled is Data:
+  Scheduled{event: Canonical.CanonicalEvent, delay: Nat}
+
+def action(event: Canonical.CanonicalEvent, delay: Nat) -> Scheduled:
+  Scheduled{event,delay}
 
 def write(outcome: Outcome, expired: Bool) -> Canonical.WriteOutcome:
   match outcome expired:
@@ -23,34 +25,34 @@ def write(outcome: Outcome, expired: Bool) -> Canonical.WriteOutcome:
     case Certain{} False{}: Canonical.Acknowledged{}
     case _ _: Canonical.Unknown{}
 
-def individual_terminal(outcome: Outcome, expired: Bool, advice: Nat, token: Nat, due: Nat, +lease: Nat) -> Driver.Action:
+def individual_terminal(outcome: Outcome, expired: Bool, advice: Nat, token: Nat, due: Nat, +lease: Nat) -> Scheduled:
   match outcome expired:
     case Failed{} _: action(Canonical.SubmissionRelease{advice,token},due)
     case +other True{}: action(Canonical.SubmissionExpiryCheck{advice,token,lease,lease},due)
     case Certain{} False{}: action(Canonical.SubmissionTerminal{advice,token,True{}},due)
     case Uncertain{} False{}: action(Canonical.SubmissionTerminal{advice,token,False{}},due)
 
-def release(+advice: Nat, +token: Nat, +due: Nat, expired: Bool) -> List<&2,Driver.Action>:
+def release(+advice: Nat, +token: Nat, +due: Nat, expired: Bool) -> List<&2,Scheduled>:
   [action(Canonical.CollectionLeaseCheck{advice,token,expired,False{},True{},False{}},due),
    action(Canonical.CollectionReleaseLease{advice,token},due)]
 
-def member_release(outcome: Outcome, +expired: Bool, +advice: Nat, +token: Nat, +due: Nat) -> List<&2,Driver.Action>:
+def member_release(outcome: Outcome, +expired: Bool, +advice: Nat, +token: Nat, +due: Nat) -> List<&2,Scheduled>:
   match outcome:
     case Failed{}: [action(Canonical.SubmissionRelease{advice,token},due),action(Canonical.CollectionReleaseLease{advice,token},due)]
     case _: release(advice,token,due,expired)
 
-def individual(+outcome: Outcome, +expired: Bool, +advice: Nat, +token: Nat, +due: Nat, lease: Nat) -> List<&2,Driver.Action>:
+def individual(+outcome: Outcome, +expired: Bool, +advice: Nat, +token: Nat, +due: Nat, lease: Nat) -> List<&2,Scheduled>:
   match outcome:
     case Failed{}: member_release(Failed{},False{},advice,token,due)
     case +other: individual_terminal(other,expired,advice,token,due,lease) <> release(advice,token,due,expired)
 
-def members(selected: List<&2,Nat>, +outcome: Outcome, +expired: Bool, +token: Nat, +due: Nat, +lease: Nat) -> List<&2,Driver.Action>:
+def members(selected: List<&2,Nat>, +outcome: Outcome, +expired: Bool, +token: Nat, +due: Nat, +lease: Nat) -> List<&2,Scheduled>:
   match selected:
     case Nil{}: []
     case advice <> tail:
-      List.append(&2,Driver.Action,member_release(outcome,expired,advice,token,due),members(tail,outcome,expired,token,due,lease))
+      List.append(&2,Scheduled,member_release(outcome,expired,advice,token,due),members(tail,outcome,expired,token,due,lease))
 
-def terminal(attempt: Attempt, +outcome: Outcome, +expired: Bool, +due: Nat, +lease: Nat) -> List<&2,Driver.Action>:
+def terminal(attempt: Attempt, +outcome: Outcome, +expired: Bool, +due: Nat, +lease: Nat) -> List<&2,Scheduled>:
   match attempt:
     case Individual{advice,token}: individual(outcome,expired,advice,token,due,lease)
     case Finish{group,round,id,+token,+selected}:
@@ -62,7 +64,7 @@ def selected_count(attempt: Attempt) -> Nat:
     case Individual{_,_}: 1n
     case Finish{_,_,_,_,selected}: List.length(&2,Nat,selected)
 
-def late_ack(late: Bool, count: Nat, delay: Nat, actions: List<&2,Driver.Action>) -> List<&2,Driver.Action>:
+def late_ack(late: Bool, count: Nat, delay: Nat, actions: List<&2,Scheduled>) -> List<&2,Scheduled>:
   match late:
     case False{}: actions
     case True{}: action(Canonical.DeliveryAcknowledgeCheck{count,True{}},delay) <> actions
@@ -87,7 +89,7 @@ def late(outcome: Outcome, delay: Nat, lease: Nat) -> Bool:
 # pre-output preparation failure path. NEVER regenerate this list when an
 # outputAttempt control changes an existing authorized completion: use
 # OutputCompletion.replace and preserve captured original scheduling instead.
-def issued(capture: Capture) -> List<&2,Driver.Action>:
+def issued(capture: Capture) -> List<&2,Scheduled>:
   match capture:
     case Capture{+attempt,_,+outcome,+delay,+lease}:
       late_ack(late(outcome,delay,lease),selected_count(attempt),delay,
@@ -95,17 +97,17 @@ def issued(capture: Capture) -> List<&2,Driver.Action>:
 
 # A failed individual already released its own resources. Its enclosing Finish
 # receives only the actual owner-generated terminal, never member releases twice.
-def finish_terminal_tail(+action: Driver.Action, tail: List<&2,Driver.Action>) -> List<&2,Driver.Action>:
+def finish_terminal_tail(+action: Scheduled, tail: List<&2,Scheduled>) -> List<&2,Scheduled>:
   match action:
-    case Driver.Action{Canonical.FinishTerminal{_,_,_,_,_,_},_,_,_,_}: action <> tail
+    case Scheduled{Canonical.FinishTerminal{_,_,_,_,_,_},_}: action <> tail
     case _: tail
 
-def finish_terminals(actions: List<&2,Driver.Action>) -> List<&2,Driver.Action>:
+def finish_terminals(actions: List<&2,Scheduled>) -> List<&2,Scheduled>:
   match actions:
     case Nil{}: []
     case action <> tail: finish_terminal_tail(action,finish_terminals(tail))
 
-def initial_actions(capture: Capture, terminal_only: Bool) -> List<&2,Driver.Action>:
+def initial_actions(capture: Capture, terminal_only: Bool) -> List<&2,Scheduled>:
   match terminal_only:
     case False{}: issued(capture)
     case True{}: finish_terminals(issued(capture))
@@ -121,6 +123,6 @@ law captured_failure_is_release:
   for +delay: Nat
   for lease: Nat
   {terminal(Individual{advice,token},Failed{},False{},delay,lease) ==
-    [action(Canonical.SubmissionRelease{advice,token},delay), action(Canonical.CollectionReleaseLease{advice,token},delay)] : List<&2,Driver.Action>}
+    [action(Canonical.SubmissionRelease{advice,token},delay), action(Canonical.CollectionReleaseLease{advice,token},delay)] : List<&2,Scheduled>}
 def captured_failure_is_release(advice,token,started,delay,lease):
   {==}

@@ -28,7 +28,7 @@ type Provenance is Data:
 def feedback(command: C.Command, event: C.CanonicalEvent) -> List<&2,Driver.Action>:
   match command event:
     case C.SubmissionExpired{} C.SubmissionExpiryCheck{advice,token,_,_}:
-      [Output.action(C.SubmissionTerminal{advice,token,False{}},0n)]
+      [Driver.output_action(Output.action(C.SubmissionTerminal{advice,token,False{}},0n))]
     case _ _: []
 
 def elapsed(started: Nat, now: Nat) -> Nat:

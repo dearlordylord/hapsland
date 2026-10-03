@@ -651,7 +651,7 @@ def output_intervene(+state: Types.State, target: Callbacks.Target, outcome: Out
   output_intervened(state,OutputCompletion.intervene_receipt(callback_state(state),target,outcome,receipt,queued(state),clock(state)))
 
 def output_initial(capture: OutputScenario.Capture, terminal_only: Bool) -> List<&2,Driver.Action>:
-  OutputScenario.initial_actions(capture,terminal_only)
+  Driver.output_actions(OutputScenario.initial_actions(capture,terminal_only))
 
 def output_deliver(receipt: Callbacks.Fact, now: Nat) -> Maybe<&2,Driver.Action>:
   OutputCompletion.delivered_fact(receipt,now)

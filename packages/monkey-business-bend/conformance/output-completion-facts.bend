@@ -13,7 +13,7 @@ def capture() -> Output.Capture:
 def target(order: Nat) -> Callbacks.Target:
   Callbacks.Target{Callbacks.Owner{1n,2n,3n,4n},Callbacks.OutputTerminal{7n,9n},order}
 def original() -> Callbacks.Fact:
-  Callbacks.Fact{target(17n),15n,Output.action(C.SubmissionTerminal{7n,9n,True{}},5n),Some{capture()}}
+  Callbacks.Fact{target(17n),15n,Driver.output_action(Output.action(C.SubmissionTerminal{7n,9n,True{}},5n)),Some{capture()}}
 def boolean(value: Bool) -> Nat:
   match value:
     case True{}: 1n
@@ -41,7 +41,7 @@ def row(fact: Maybe<&2,Callbacks.Fact>) -> List<&2,Nat>:
 def finish_capture() -> Output.Capture:
   Output.Capture{Output.Finish{1n,3n,5n,9n,[7n,11n]},10n,Output.Certain{},5n,10n}
 def finish_action() -> Driver.Action:
-  Output.action(C.FinishTerminal{1n,3n,5n,9n,[7n,11n],C.Acknowledged{}},5n)
+  Driver.output_action(Output.action(C.FinishTerminal{1n,3n,5n,9n,[7n,11n],C.Acknowledged{}},5n))
 
 def main() -> IO(Unit):
   IO.print(Minimal.bracket(Minimal.show_rows([
@@ -51,11 +51,11 @@ def main() -> IO(Unit):
     row(Completion.replace(original(),capture(),target(18n),Output.Certain{},Completion.EnvironmentCompletion{})),
     row(Completion.replace(original(),capture(),Callbacks.Target{Callbacks.Owner{1n,99n,3n,4n},Callbacks.OutputTerminal{7n,9n},17n},Output.Certain{},Completion.EnvironmentCompletion{})),
     row(Completion.replace(original(),capture(),Callbacks.Target{Callbacks.Owner{1n,2n,3n,4n},Callbacks.OutputTerminal{7n,99n},17n},Output.Certain{},Completion.EnvironmentCompletion{})),
-    action_words(Completion.rewrite(capture(),Output.action(C.SubmissionTerminal{7n,9n,True{}},5n),Output.Certain{},19n,Completion.EnvironmentCompletion{})),
-    action_words(Completion.rewrite(capture(),Output.action(C.SubmissionTerminal{7n,9n,True{}},5n),Output.Certain{},20n,Completion.EnvironmentCompletion{})),
-    action_words(Completion.rewrite(capture(),Output.action(C.SubmissionTerminal{7n,9n,True{}},5n),Output.Certain{},21n,Completion.EnvironmentCompletion{})),
+    action_words(Completion.rewrite(capture(),Driver.output_action(Output.action(C.SubmissionTerminal{7n,9n,True{}},5n)),Output.Certain{},19n,Completion.EnvironmentCompletion{})),
+    action_words(Completion.rewrite(capture(),Driver.output_action(Output.action(C.SubmissionTerminal{7n,9n,True{}},5n)),Output.Certain{},20n,Completion.EnvironmentCompletion{})),
+    action_words(Completion.rewrite(capture(),Driver.output_action(Output.action(C.SubmissionTerminal{7n,9n,True{}},5n)),Output.Certain{},21n,Completion.EnvironmentCompletion{})),
     action_words(Completion.rewrite(finish_capture(),finish_action(),Output.Failed{},15n,Completion.EnvironmentCompletion{})),
-    action_words(Completion.rewrite(finish_capture(),Output.action(C.FinishTerminal{1n,3n,5n,9n,[11n,7n],C.Acknowledged{}},5n),Output.Uncertain{},15n,Completion.EnvironmentCompletion{})),
-    action_words(Completion.rewrite(capture(),Output.action(C.DeliveryAcknowledgeCheck{1n,True{}},11n),Output.Certain{},21n,Completion.EnvironmentCompletion{})),
-    action_words(Completion.rewrite(capture(),Output.action(C.SubmissionTerminal{7n,9n,False{}},0n),Output.Certain{},21n,Completion.CanonicalFeedback{})),
-    action_words(Completion.deliver(capture(),Output.action(C.SubmissionTerminal{7n,9n,False{}},0n),Output.Certain{},21n,Completion.CanonicalFeedback{}))])))
+    action_words(Completion.rewrite(finish_capture(),Driver.output_action(Output.action(C.FinishTerminal{1n,3n,5n,9n,[11n,7n],C.Acknowledged{}},5n)),Output.Uncertain{},15n,Completion.EnvironmentCompletion{})),
+    action_words(Completion.rewrite(capture(),Driver.output_action(Output.action(C.DeliveryAcknowledgeCheck{1n,True{}},11n)),Output.Certain{},21n,Completion.EnvironmentCompletion{})),
+    action_words(Completion.rewrite(capture(),Driver.output_action(Output.action(C.SubmissionTerminal{7n,9n,False{}},0n)),Output.Certain{},21n,Completion.CanonicalFeedback{})),
+    action_words(Completion.deliver(capture(),Driver.output_action(Output.action(C.SubmissionTerminal{7n,9n,False{}},0n)),Output.Certain{},21n,Completion.CanonicalFeedback{}))])))

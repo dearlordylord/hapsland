@@ -20,5 +20,5 @@ def rows(actions: List<&2,Driver.Action>) -> List<&2,List<&2,Nat>>:
     case head <> tail: row(head) <> rows(tail)
 
 def main() -> IO(Unit):
-  IO.print(Minimal.bracket(Minimal.show_rows(rows(Output.issued(
-    Output.Capture{Output.Finish{3n,4n,5n,6n,[7n,9n]},20n,Output.Uncertain{},5n,10n})))))
+  IO.print(Minimal.bracket(Minimal.show_rows(rows(Driver.output_actions(Output.issued(
+    Output.Capture{Output.Finish{3n,4n,5n,6n,[7n,9n]},20n,Output.Uncertain{},5n,10n}))))))

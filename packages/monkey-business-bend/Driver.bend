@@ -1,5 +1,6 @@
 import Base
 import ./JevEffects.bend as JevEffects
+import ./OutputScenario.bend as Output
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/Handoff.bend as Handoff
 import ../agent-flow-bend/Dispatch.bend as Dispatch
@@ -80,8 +81,26 @@ def reserve(candidate: Maybe<&2, Candidate>) -> Handled:
       Handled{True{}, [immediate(Canonical.CollectionReserveLease{advice, token}, False{}), immediate(Canonical.SubmissionBegin{advice, p, round, token, surface, True{}, [advice], [advice]}, False{})]}
     case _: Handled{False{}, Nil{}}
 
-def output(p: Nat, +advice: Nat, +token: Nat, certain: Bool, +delay: Nat, lease: Nat) -> Handled:
-  Handled{True{}, [Action{Canonical.SubmissionTerminal{advice, token, certain}, delay, None{}, False{}, None{}}, Action{Canonical.CollectionLeaseCheck{advice, token, False{}, False{}, True{}, False{}}, delay, None{}, False{}, None{}}, Action{Canonical.CollectionReleaseLease{advice, token}, delay, None{}, False{}, None{}}]}
+# Scheduled is an ephemeral owner result. The public Action fields and tags
+# remain unchanged; this is their single conversion boundary.
+def output_action(scheduled: Output.Scheduled) -> Action:
+  match scheduled:
+    case Output.Scheduled{event,delay}: Action{event,delay,None{},False{},None{}}
+
+def output_actions(scheduled: List<&2,Output.Scheduled>) -> List<&2,Action>:
+  match scheduled:
+    case Nil{}: []
+    case head <> tail: output_action(head) <> output_actions(tail)
+
+def output_outcome(certain: Bool) -> Output.Outcome:
+  match certain:
+    case True{}: Output.Certain{}
+    case False{}: Output.Uncertain{}
+
+# This relative command profile has no issuance timestamp; issued ignores
+# started. Actual environmental receipts capture the current clock separately.
+def output(p: Nat, advice: Nat, token: Nat, certain: Bool, delay: Nat, lease: Nat) -> Handled:
+  Handled{True{},output_actions(Output.issued(Output.Capture{Output.Individual{advice,token},0n,output_outcome(certain),delay,lease}))}
 
 def work_list(state: Canonical.State) -> List<&2, Canonical.Work>:
   match state:
