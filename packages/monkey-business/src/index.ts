@@ -347,6 +347,9 @@ export class Run {
     const item = this.scheduled.get(entry.order);
     if (!item) throw new Error("shared scheduler lost source facts");
     this.scheduled.delete(entry.order);
+    // Delivery consumes an authentic issued queue receipt independently of the
+    // Canonical result or whether the transition emits any commands.
+    if (item.callbackReceipt) this.core.deliverCallback(entry.order);
     return item;
   }
   private order = 0;
@@ -698,9 +701,6 @@ export class Run {
       }
   }
   private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
-    if (item.callbackReceipt) {
-      this.core.deliverCallback(item.order);
-    }
     const partition = this.inputPartition(item);
     const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: partition, lifetime: 1, round: 0 };
     const automaticReview = !this.config.lifecycles?.reuse && !(this.config.lifecycles?.cancellation === "suppressed") && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);

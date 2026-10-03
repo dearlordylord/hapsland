@@ -23,7 +23,7 @@ it("bounds collection facts before traversing them", () => {
   const decoded = validateNoticeControl(collect);
   collect.allowed.push(900001);
   expect(decoded).toEqual({ ...collect, allowed: [900000] });
-  expect(() => validateNoticeControl({ ...collect, allowed: Array(2049).fill(1) })).toThrow(TypeError);
+  expect(() => validateNoticeControl({ ...collect, allowed: Array(1025).fill(1) })).toThrow(TypeError);
   expect(() => validateNoticeControl({ ...collect, allowed: [2 ** 48] })).toThrow(TypeError);
 });
 it("keeps fixture maxima synthetic and rejects derived timestamp overflow", () => {
@@ -33,4 +33,18 @@ it("keeps fixture maxima synthetic and rejects derived timestamp overflow", () =
   expect(() => validateNoticeExercise({ ...exercise, maximumKeys: 65 })).toThrow(TypeError);
   expect(() => validateNoticeExercise({ ...exercise, startAt: 2 ** 48 - 10 })).toThrow(TypeError);
   expect(() => validateNoticeExercise({ ...exercise, key: 2 ** 48 - 1 })).toThrow(TypeError);
+});
+
+
+it("rejects notice selection facts atomically before publishing a control or queue item", async () => {
+  const { createRun } = await import("./index.ts");
+  const run = createRun({ inputs: [] });
+  const before = run.observe();
+  const control = { kind: "noticeCollect" as const, partition: 1, group: 7, composed: false, authorityBound: true };
+  for (const allowed of [Array(1025).fill(1), [2 ** 47], [0]]) {
+    expect(() => run.applyControl({ ...control, allowed })).toThrow(TypeError);
+    expect(run.observe()).toEqual(before);
+    expect(run.exportReplay().controls).toEqual([]);
+  }
+  expect(validateNoticeControl({ ...control, allowed: Array(1024).fill(2 ** 47 - 1) })).toBeDefined();
 });

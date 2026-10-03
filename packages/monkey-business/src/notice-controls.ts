@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { boundedArray, decoder, Nat, PositiveNat } from "../../../src/canonical/boundary-schema.ts";
+import { boundedArray, decoder, Nat, PositiveNat, ByteCount } from "../../../src/canonical/boundary-schema.ts";
 
 /** Explicit diagnostic exercises, independent of Jev request outcomes. */
 export const OperationalNoticeKindSchema = Schema.Literals(["capacity", "backend", "credential", "output-limit"]);
@@ -11,7 +11,7 @@ const FailureSchema = Schema.Struct({
 const CollectSchema = Schema.Struct({
   kind: Schema.Literal("noticeCollect"), partition: PositiveNat, group: PositiveNat,
   composed: Schema.Boolean, authorityBound: Schema.Boolean,
-  allowed: boundedArray(PositiveNat, 2048),
+  allowed: boundedArray(ByteCount, 1024),
 });
 const LeaseSchema = Schema.Struct({ kind: Schema.Literal("noticeLease"), target: TargetSchema });
 const AcknowledgeSchema = Schema.Struct({ kind: Schema.Literal("noticeAcknowledge"), target: TargetSchema });

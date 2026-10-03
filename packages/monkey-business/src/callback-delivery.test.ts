@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { createRun, restoreReplay, type Run } from "./index.ts";
+import { createRun, restoreReplay, type Run, DEFAULT_FILE_TREE_PROFILE } from "./index.ts";
 import type { CallbackControl, CallbackReport, CallbackTarget } from "./callback-controls.ts";
 
 // TDD seam awaiting the integrator-owned public control/observe union. These
@@ -118,5 +118,34 @@ it("retires replaced queued provenance after the actual replacement settles whil
   const replacement = run.observations.find(frame => frame.event.kind === "jevRequestSettled")!;
   expect(replacement.callbackReceipt).toBeDefined();
   expect(run.observe().callbackTargets).toContainEqual(replacement.callbackReceipt!.target);
+  replay(run);
+});
+
+
+it("consumes a rejected physical preparation receipt even without commands and evicts only its bounded history", () => {
+  const run = createRun({ retention: 2, preparationDelay: 2,
+    sessions: [{ agent: "departing", editIntervalMs: 1000000, variationMs: 0, editsPerTask: 1000 }],
+    fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 1, maxFiles: 1, maxImports: 0 },
+    inputs: [{ ...edit, agent: "departing", generation: 0, recurring: false }],
+  });
+  run.advance({ untilTime: 0, maxEvents: 100 });
+  const target = run.observe().callbackTargets.find(target => target.effect.kind === "preparationCompleted")!;
+  expect(target).toBeDefined();
+  run.applyControl({ kind: "adviceeLifecycle", agent: "departing", action: "disconnect" });
+  run.advance({ untilTime: 2, maxEvents: 100 });
+  const rejected = run.observations.find(frame => frame.event.kind === "preparationCompleted")!;
+  expect(rejected.rejection).toBeDefined();
+  expect(rejected.commands).toEqual([]);
+  expect(rejected.callbackReceipt?.target).toEqual(target);
+  expect(run.projection.dispatch.running).toEqual([]);
+  apply(run, target, "hold");
+  expect(run.observe().callbackReports.at(-1)?.result).toBe("missing");
+  for (const at of [3,4,5]) run.schedule({ at, kind: "canonical", event: { kind: "collectionFitCheck", items: 1, bytes: 1 } });
+  run.advance({ untilTime: 5, maxEvents: 10 });
+  expect(run.observe().callbackTargets).not.toContainEqual(target);
+  const before = run.projection;
+  apply(run, target, "duplicate");
+  expect(run.observe().callbackReports.at(-1)?.result).toBe("missing");
+  expect(run.projection).toEqual(before);
   replay(run);
 });
