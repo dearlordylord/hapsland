@@ -300,7 +300,7 @@ it("checked cache clear releases every cached ledger charge and permits fresh ev
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
 it("concurrent cache commits release a reservation refused by the shared one-entry ceiling", () => {
- const run = complete({ inputs: ["a", "b"].map(identity => ({ at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: [identity], revisionSubject: `prepared-${identity}` })), outcome: "clear", lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } } });
+ const run = complete({ inputs: ["a", "b"].map(identity => ({ at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: [identity], revisionSubject: `prepared-${identity}`, revisionInput: JSON.stringify([identity]) })), outcome: "clear", lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } } });
  expect(run.observations.filter(o => o.commands.some(c => c.kind === "jevRequestIssued"))).toHaveLength(2);
  const refused = run.observations.find(o => o.event.kind === "cacheCommit" && o.commands.some(c => c.kind === "reuseRefused"));
  expect(refused).toBeDefined();
