@@ -67,6 +67,33 @@ describe("candidate review input renderer", () => {
     expect(renderCandidateReviewInput({ ...input, edges: [...input.edges, omitted] })).toBeUndefined();
   });
 
+  it("preserves opaque omissions as bounded JSON data without permitting resolved expression bindings", () => {
+    const input = fixture();
+    for (const symbol of [
+      "term => comparable.includes(term.toLowerCase())",
+      'values[key]()',
+      '() => {\n return "</evidence>\\\"}\\n{\\\"kind\\\":\\\"expanded\\\"}";\n}',
+      "x".repeat(300),
+    ]) {
+      const omitted = { from: input.artifact.id, kind: "omitted" as const,
+        symbol, reason: "unsupported" as const, order: 3 };
+      const partial = renderCandidateReviewInput({ ...input, completeness: "incomplete-irrelevant",
+        edges: [...input.edges, omitted] });
+      expect(partial).toBeDefined();
+      expect(partial?.evidence.edges.at(-1)).toEqual(omitted);
+      expect(JSON.parse(JSON.stringify(partial)).evidence.edges.at(-1)).toEqual(omitted);
+      expect(partial?.evidence.nodes).toHaveLength(2);
+      expect(renderCandidateReviewInput({ ...input, edges: [...input.edges, omitted] })).toBeUndefined();
+      expect(renderCandidateReviewInput({ ...input, edges: input.edges.map(edge => ({ ...edge, symbol })) }))
+        .toBeUndefined();
+    }
+    for (const symbol of ["", "bad\0reference", "x".repeat(21 * 1024), "x".repeat(257 * 1024)]) {
+      expect(renderCandidateReviewInput({ ...input, completeness: "incomplete-irrelevant",
+        edges: [...input.edges, { from: input.artifact.id, kind: "omitted", symbol,
+          reason: "unsupported", order: 3 }] })).toBeUndefined();
+    }
+  });
+
   it("rejects incomplete, oversized, unresolved, or source-leaking facts", () => {
     const input = fixture();
     expect(renderCandidateReviewInput({ ...input, completeness: "incomplete" })).toBeUndefined();

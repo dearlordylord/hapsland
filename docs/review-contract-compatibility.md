@@ -42,7 +42,12 @@ The active input contracts are direct-event/type-shape/v1 and
 direct-event/function/v1. Each request carries one changed root and its
 bounded evidence tree with marked omissions. Supporting declarations can come from other
 selected files through supported local imports. They do not become separate
-edited roots. The request contains neither a whole file nor an edit diff,
+edited roots. Omitted reference sites may contain opaque expression text, such
+as an anonymous callback or dynamic call, rather than a named binding. This
+text remains a bounded JSON string with its omission reason; it neither adds
+a resolved node nor makes the graph complete. Resolved edges retain their
+named-reference grammar, and the aggregate evidence-size limit still applies.
+The request contains neither a whole file nor an edit diff,
 agent transcript, absolute path, or unrelated source.
 
 Hapsland selects each rule only when its declared evidence needs are met. A
