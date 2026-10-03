@@ -1,6 +1,7 @@
 import Base
 import ../agent-flow-bend/CollectionState.bend as Collection
 import ../agent-flow-bend/ReuseState.bend as Reuse
+import ../agent-flow-bend/Reuse.bend as ReusePolicy
 import ../agent-flow-bend/Canonical.bend as C
 import ../agent-flow-bend/Dispatch.bend as Dispatch
 import ./FreshnessScenario.bend as Freshness
@@ -559,3 +560,42 @@ def pending(state: State, event: C.CanonicalEvent) -> List<&2,Route>:
     case State{_,preparations,_,_} C.PreparationCompleted{p,l,r,o,_}:
       pending_found(find_preparation(preparations,Freshness.Scope{p,l,r,o}))
     case _ _: []
+
+# Member disposition is decided by actual ReuseMemberCheck. The environmental
+# result and original retained source scope are inputs, never copied outcomes
+# turned into another Jev callback or another review-unit reservation.
+def joined_outcome(outcome: C.RequestOutcome) -> ReusePolicy.JoinedState:
+  match outcome:
+    case C.RequestFinding{}: ReusePolicy.JoinedFinding{}
+    case C.RequestClear{}: ReusePolicy.JoinedClear{}
+    case _: ReusePolicy.JoinedUnavailable{}
+
+def source_current(found: Maybe<&2,Bool>) -> Bool:
+  match found:
+    case Some{current}: current
+    case None{}: False{}
+
+def member_facts(+canonical: C.State, +freshness: Freshness.State, members: List<&2,Sharing.Member>, +outcome: C.RequestOutcome, +advice: Maybe<&2,Freshness.Scope>) -> List<&2,C.CanonicalEvent>:
+  match members:
+    case Nil{}: []
+    case Sharing.Member{scope,_,_} <> tail:
+      C.ReuseMemberCheck{joined_outcome(outcome),False{},source_current(Freshness.current(freshness,canonical,scope)),Sharing.live_advice(canonical,freshness,advice)} <>
+        member_facts(canonical,freshness,tail,outcome,advice)
+
+def fanout_found(canonical: C.State, freshness: Freshness.State, outcome: C.RequestOutcome, found: Maybe<&2,Sharing.Evaluation>) -> List<&2,C.CanonicalEvent>:
+  match found:
+    case None{}: []
+    case Some{Sharing.Evaluation{_,_,members,_,advice}}: member_facts(canonical,freshness,members,outcome,advice)
+
+def fanout_binding(canonical: C.State, freshness: Freshness.State, state: State, outcome: C.RequestOutcome, found: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
+  match found:
+    case None{}: []
+    case Some{Binding{_,evaluation,_}}: fanout_found(canonical,freshness,outcome,Sharing.lookup(sharing(state),evaluation))
+
+def fanout(before: State, after: State, canonical: C.State, freshness: Freshness.State, event: C.CanonicalEvent, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
+  match event:
+    case C.JevRequestSettled{p,l,r,o,_,outcome,_}:
+      match original_consumed(commands):
+        case False{}: []
+        case True{}: fanout_binding(canonical,freshness,after,outcome,lookup_binding(before,Freshness.Scope{p,l,r,o}))
+    case _: []

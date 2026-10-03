@@ -9,6 +9,7 @@ declare const Engine: {
  notice_failure(state: EngineState,scope: unknown,now: bigint,key: bigint,sequence: bigint): unknown;
  notice_lease(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
  notice_acknowledge(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
+ sharing_after(before: EngineState,after: EngineState,event: unknown,commands: unknown): unknown;
  sharing_admitted(state: EngineState,scope: unknown,source: unknown,command: unknown): {state: EngineState; source: unknown; actions: unknown};
  sharing_preprocess(state: EngineState,event: unknown,order: bigint,horizon: unknown): {state: EngineState; frame: unknown; events: unknown};
  sharing_leave(state: EngineState,scope: unknown): {state: EngineState; events: unknown; valid: unknown};

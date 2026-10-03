@@ -767,3 +767,7 @@ def sharing_preprocess(+state: Types.State, event: Canonical.CanonicalEvent, ord
   match state:
     case Types.State{_,_,scheduler,_,_,_,_,_,_,_,_,_,_}:
       sharing_at_head(state,event,order,horizon,Scheduler.peek(scheduler))
+
+
+def sharing_after(before: Types.State, +after: Types.State, event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>) -> List<&2,Canonical.CanonicalEvent>:
+  SharingRuntime.fanout(sharing_runtime(before),sharing_runtime(after),canonical(after),freshness_state(after),event,commands)
