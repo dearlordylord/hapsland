@@ -267,7 +267,8 @@ it.each([0, 1, 2, 5].flatMap(delay => [1, 2, 5].map(pace => ({ delay, pace }))))
  expect(retained.map(charge => charge.id).sort()).toEqual(run.projection.reuse.cache.map(entry => entry.reservation).sort());
  expect(run.projection.global.bytes).toBe(run.projection.reuse.cache.reduce((bytes, entry) => bytes + entry.bytes, 0));
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
-});
+ // Dense arrival schedules also replay the complete retained history under coverage.
+}, 10_000);
 it("the original two-agent late-join case drains with the default history retention", () => {
  const run = createRun({ seed: 7, outcome: "clear", jevDelay: 1,
   sessions: [1, 2].map(seed => ({ agent: `agent-${seed}`, seed, editIntervalMs: 1, variationMs: 0, editsPerTask: 1024, bytes: 10 })),
