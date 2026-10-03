@@ -17,7 +17,6 @@ import { sharedNoticeExercise, afterSharedNotice, suppliedSharedNotice, ownedSha
 import { interveneSharedOutput, deliverSharedOutput, issueSharedCallback, sharedCallbackOriginals, deliverSharedCallback, actSharedCallback } from "../../../src/canonical/simulation-adapter.ts";
 import { encodePreparationGraphLimits } from "./file-trees.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
-import { encodeStopCapture, decodeStopActions, decodeStopCandidates, type StopCapture } from "./stop-codec.ts";
 import SharedEngine, { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
 import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
@@ -73,9 +72,6 @@ export class SharedCore {
     return this.stopFind(partition);
   }
   stopClose(partition: number) { this.state = closeSharedStop(this.state,partition); }
-  stopBudget(capture: StopCapture) { return decodeStopActions(SharedEngine.stop_budget(this.state, encodeStopCapture(capture))); }
-  stopEnd(capture: StopCapture, continuation: boolean) { return decodeStopActions(SharedEngine.stop_end(this.state, encodeStopCapture(capture), continuation)); }
-  stopCandidates(capture: StopCapture) { return decodeStopCandidates(SharedEngine.stop_candidates(this.state, encodeStopCapture(capture))); }
   declareAdvicee(identity: number, seed: number) {
     const declared = declareSharedAdvicee(this.state, identity, seed);
     this.state = declared.state;

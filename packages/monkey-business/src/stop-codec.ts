@@ -2,7 +2,7 @@ import { decodeOutputCapture, encodeOutputCapture, OutputScenarioProfileSchema, 
 import SharedEngine from "../../monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
 import { decoder, Nat, PositiveNat, readBendList, readNat } from "../../../src/canonical/boundary-schema.ts";
-import { validateLiveControl, type OutputProfile } from "./controls.ts";
+import { validateLiveControl } from "./controls.ts";
 import { decodeDriver, type DriverAction, decodeDriverEvent } from "./driver-codec.ts";
 
 /** Original Stop identity and safe hook cutoff; no new deadline policy. */
@@ -42,26 +42,6 @@ export const decodeStopActions = (value: unknown): DriverAction[] => readBendLis
   if (!decoded) throw new TypeError("missing Stop action");
   return decoded;
 }, 6146);
-export const decodeStopCandidates = (value: unknown) => readBendList(value, readNat, 2048);
-export const reserveStopActions = (capture: StopCapture, selected: readonly number[], now: number) =>
-  decodeStopActions(SharedEngine.stop_reserve(encodeStopCapture(capture), readSelected(selected), decoder(Nat)(now)));
-export const continuedStopActions = (capture: StopCapture) =>
-  decodeStopActions(SharedEngine.stop_continued(encodeStopCapture(capture)));
-export const reservedStopActions = (capture: StopCapture, selected: readonly number[], profile: OutputProfile) => {
-  const checked = validateLiveControl({ kind: "outputProfile", ...profile });
-  if (checked.kind !== "outputProfile") throw new TypeError("invalid Stop output profile");
-  return decodeStopActions(SharedEngine.stop_reserved(encodeStopCapture(capture), readSelected(selected),
-    checked.outcome === "failed", checked.delayMs));
-};
-
-const ValidationFacts = Schema.Struct({ current: Schema.Boolean, credential: Schema.Boolean,
-  generation: Schema.Boolean, readable: Schema.Boolean });
-export const validationStopActions = (capture: StopCapture, advice: number, facts: typeof ValidationFacts.Type) => {
-  const checked = decoder(ValidationFacts)(facts);
-  return decodeStopActions(SharedEngine.stop_validation(encodeStopCapture(capture), decoder(PositiveNat)(advice),
-    checked.current, checked.credential, checked.generation, checked.readable));
-};
-
 /** Checked snapshots of the single Engine-owned original Finish registry. */
 const FinishFields = Schema.Struct({
   $: Schema.Literal("StopScenario.Finish"), partition: PositiveNat, lifetime: PositiveNat,
