@@ -76,7 +76,7 @@ it("compares original generated PRE scripts through actual native preparation, J
       expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")).toHaveLength(scenario.review === "finding" ? 1 : 0);
       expect(run.observations.some(frame => frame.preparation)).toBe(true);
       expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "preparationReleased")).toHaveLength(1);
-      expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "reservationReleased")).toHaveLength(1);
+      expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "reservationReleased")).toHaveLength(scenario.review === "finding" ? 0 : 1);
       expect(run.observations.filter(frame => frame.event.kind === "consumePermit")).toHaveLength(scenario.outcome === "duplicate" ? 2 : 1);
       expect(run.observations.filter(frame => frame.rejection)).toHaveLength(scenario.outcome === "duplicate" ? 1 : 0);
     } else {
@@ -85,7 +85,21 @@ it("compares original generated PRE scripts through actual native preparation, J
       if (scenario.durationMs === 11) expect(consumed?.rejection).toBeDefined();
     }
     expect(run.projection.admissions.flatMap(owner => owner.permits)).toEqual([]);
-    expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+    const retainedFinding = scenario.review === "finding" && scenario.durationMs === 5 &&
+      (scenario.outcome === "success" || scenario.outcome === "duplicate");
+    expect(run.projection.global).toEqual(retainedFinding ? { items: 1, bytes: 5 } : { items: 0, bytes: 0 });
+    // advicing-target-contract.md:308–315 permits only legitimately owned
+    // eligible advice resources after transient request resources drain.
+    expect(run.projection.pendingFindings).toHaveLength(retainedFinding ? 1 : 0);
+    const owned = run.projection.work.filter(work => work.kind === "pendingFinding");
+    expect(owned).toHaveLength(retainedFinding ? 1 : 0);
+    if (retainedFinding) {
+      expect(owned[0]).toMatchObject({ partition: 1, lifetime: 1, round: 2 });
+      expect(owned[0]!.parent).toBeGreaterThan(0);
+      expect(run.projection.charges).toEqual([{ id: owned[0]!.reservation, partition: 1, bytes: 5, purpose: "storedResult" }]);
+    }
+    expect(run.projection.dispatch.requests).toEqual([]);
+    expect(run.projection.collection.leases).toEqual([]);
     expect(run.projection.dispatch.running).toEqual([]);
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
   }

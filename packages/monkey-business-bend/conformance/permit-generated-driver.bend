@@ -15,7 +15,7 @@ import ./advicee-lifecycle-driver.bend as Edge
 def facts(list: List<&2, Permit.Fact>, queue: Edge.Queue, +anchor: Nat, +job: Edge.Job) -> Edge.Queue:
   match list:
     case Nil{}: queue
-    case Permit.Fact{event, delay, binding} <> tail:
+    case Permit.Fact{event, +delay, binding} <> tail:
       facts(tail, Edge.append(queue, (anchor + delay : Nat),
         Edge.Event{Driver.Action{event, delay, None{}, binding, None{}}, job}), anchor, job)
 
@@ -39,15 +39,15 @@ def permits(list: List<&2, Admission.AdmissionState>) -> Nat:
 
 def counts(state: Canonical.State) -> List<&2, Nat>:
   match state:
-    case Canonical.State{_, _, _, _, _, admissions, _, _, _}:
+    case Canonical.State{_, _, _, _, _, +admissions, _, _, _}:
       permits(admissions) <> Edge.state_counts(state)
 
-def permit_row(event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>, state: Types.State,
+def permit_row(event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>, +state: Types.State,
     now: Nat, rejected: Nat) -> List<&2, Nat>:
   match event:
     case Canonical.IssuePermit{p, l, tool, started, deadline, _, _, _}:
       List.append(&2, Nat, [90n, now, p, l, tokens(commands), tool, started, deadline, rejected], counts(Engine.canonical(state)))
-    case Canonical.ConsumePermit{p, l, token, _, _}:
+    case Canonical.ConsumePermit{+p, l, token, _, _}:
       List.append(&2, Nat, [91n, now, p, l, token, generation(commands), Edge.round(Engine.canonical(state),p), 0n, rejected], counts(Engine.canonical(state)))
     case Canonical.ReleasePermit{p, l, token}:
       List.append(&2, Nat, [92n, now, p, l, token, 0n, 0n, 0n, rejected], counts(Engine.canonical(state)))
@@ -97,22 +97,45 @@ def event(action: Driver.Action, +state: Types.State, queue: Edge.Queue, jobs: L
         case Canonical.ExpirePermit{_,_,_,_}: permit_transition(Engine.step(state,ev),ev,queue,jobs,job,now,delay,capture,ih)
         case ev: Edge.input(Edge.Event{Driver.Action{ev,0n,candidate,True{},None{}},job},state,queue,jobs,now,delay,ih)
 
+def selected(input: Edge.Input, +state: Types.State, queue: Edge.Queue,
+    jobs: List<&2,Edge.Stored>, +now: Nat, delay: Nat, capture: Permit.Capture,
+    ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
+  match input:
+    case Edge.Event{action,job}: event(action,state,queue,jobs,job,now,delay,capture,ih)
+    case input: Edge.input(input,state,queue,jobs,now,delay,ih)
+
 def taken(taken: Engine.Taken, +items: List<&2,Edge.Item>, +sequence: Nat,
     jobs: List<&2,Edge.Stored>, delay: Nat, capture: Permit.Capture,
     ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
   match taken:
     case Engine.Taken{state,Some{Scheduler.Entry{+now,+order}}}:
-      +q = Edge.Queue{Edge.remove(items,order),sequence,sequence}
-      match Edge.lookup(items,order):
-        case Edge.Event{action,job}: event(action,state,q,jobs,job,now,delay,capture,ih)
-        case input: Edge.input(input,state,q,jobs,now,delay,ih)
+      selected(Edge.lookup(items,order),state,Edge.Queue{Edge.remove(items,order),sequence,sequence},jobs,now,delay,capture,ih)
     case Engine.Taken{_,None{}}: []
+
+def bounded(valid: Bool, state: Types.State, items: List<&2,Edge.Item>, sequence: Nat,
+    jobs: List<&2,Edge.Stored>, delay: Nat, capture: Permit.Capture,
+    ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
+  match valid:
+    case True{}: taken(Engine.take(state),items,sequence,jobs,delay,capture,ih)
+    case False{}: []
+
+def selected_time(entries: List<&2,Scheduler.Entry>, state: Types.State, items: List<&2,Edge.Item>, sequence: Nat,
+    jobs: List<&2,Edge.Stored>, delay: Nat, capture: Permit.Capture,
+    ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
+  match entries:
+    case Nil{}: []
+    case Scheduler.Entry{at,_} <> _: bounded(Nat.is_le(at,30n),state,items,sequence,jobs,delay,capture,ih)
+
+def published(+state: Types.State, items: List<&2,Edge.Item>, sequence: Nat,
+    jobs: List<&2,Edge.Stored>, delay: Nat, capture: Permit.Capture,
+    ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
+  selected_time(Engine.queued(state),state,items,sequence,jobs,delay,capture,ih)
 
 def loop(fuel: Nat, runtime: Edge.Runtime, +capture: Permit.Capture) -> List<&2,List<&2,Nat>>:
   match fuel runtime:
     case 0n _: [[98n]]
     case 1n+rest Edge.Runtime{state,Edge.Queue{+items,+sequence,synced},jobs,delay}:
-      taken(Engine.take(Edge.sync(items,state,synced)),items,sequence,jobs,delay,capture,next => loop(rest,next,capture))
+      published(Edge.sync(items,state,synced),items,sequence,jobs,delay,capture,next => loop(rest,next,capture))
 
 # A different partition already owns canonical round 1. Admission generation 1
 # for partition 1 must resolve canonical round 2 after successful consumption.
