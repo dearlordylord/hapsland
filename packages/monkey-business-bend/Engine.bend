@@ -1,6 +1,7 @@
 import Base
 import ./QuietScenario.bend as QuietScenario
 import ./CollectionScenario.bend as CollectionScenario
+import ./WriterScenario.bend as WriterScenario
 import ./CacheRuntime.bend as CacheRuntime
 import ./CacheScenario.bend as CacheScenario
 import ./SharingRuntime.bend as SharingRuntime
@@ -204,7 +205,7 @@ def handle_output(+state: Types.State, +event: Canonical.CanonicalEvent, +comman
     case command: handle_cached(state,event,command,context,SharingRuntime.cached_review(RuntimeScenarios.sharing(scenarios(state)),command))
 
 def handle(+state: Types.State, +event: Canonical.CanonicalEvent, +command: Canonical.Command, +context: Driver.Context) -> Driver.Handled:
-  CollectionScenario.handled(RuntimeScenarios.collection(scenarios(state)),command,context,handle_output(state,event,command,CollectionScenario.driver_context(RuntimeScenarios.collection(scenarios(state)),context,False{})))
+  WriterScenario.handled(RuntimeScenarios.writers(scenarios(state)),command,context,CollectionScenario.handled(RuntimeScenarios.collection(scenarios(state)),command,context,handle_output(state,event,command,WriterScenario.driver_context(RuntimeScenarios.writers(scenarios(state)),CollectionScenario.driver_context(RuntimeScenarios.collection(scenarios(state)),context,False{})))))
 
 def edit(state: Types.State, partition: Nat, lifetime: Nat) -> Driver.EditPlan:
   Driver.edit(canonical(state), partition, lifetime)
@@ -230,7 +231,7 @@ def after(+before: Types.State, +state: Types.State, +event: Canonical.Canonical
     case Types.State{+previous, _, _, _, _, _, _, _, _, _, captures, _, scenarios}:
       List.append(&2, Driver.Action,
         sharing_actions(SharingRuntime.postprocess(RuntimeScenarios.sharing(scenarios),sharing_runtime(state),canonical(state),freshness_state(state),event)),
-        List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), AdviceeLifecycleCleanup.preparation_actions(captures, preparation_running(previous), event)))
+        List.append(&2, Driver.Action, WriterScenario.departure_actions(WriterScenario.retired(RuntimeScenarios.writers(scenarios),previous,canonical(state),event),RuntimeScenarios.collection(scenarios)),List.append(&2, Driver.Action, Postprocess.actions(previous, canonical(state), event), AdviceeLifecycleCleanup.preparation_actions(captures, preparation_running(previous), event))))
 
 type Taken is Data:
   Taken{state: Types.State, entry: Maybe<&2, Scheduler.Entry>}
@@ -698,7 +699,7 @@ def callback_delivered(+state: Types.State, order: Nat) -> Types.State:
 
 def callback_originals(state: Types.State) -> List<&2, Callbacks.Original>:
   match state:
-    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _, _,_}}: originals
+    case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, RuntimeScenarios.State{Callbacks.State{originals}, _, _, _, _, _, _,_,_}}: originals
 
 type CallbackTransition is Data:
   CallbackTransition{state: Types.State, result: Callbacks.Applicability, cancel: List<&2,Nat>, schedule: List<&2,Callbacks.Scheduled>}
@@ -758,18 +759,18 @@ type NoticeTransition is Data:
 
 def notice_followed(state: Types.State, followup: NoticeScenario.Followup) -> NoticeTransition:
   match state followup:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing,cache,collection}} NoticeScenario.Followup{notices,events}:
-      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection}},events}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing,cache,collection,writers}} NoticeScenario.Followup{notices,events}:
+      NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}},events}
 
 def notice_clocked(state: Types.State, scope: NoticeScenario.Scope, key: Nat, now: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing,cache,collection}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing,cache,collection,writers}}
 
 def notice_pruned(state: Types.State, key: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing,cache,collection}}
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing,cache,collection,writers}}
 
 # Called with this event's actual accepted commands and captured exercise scope.
 # The before state is required for releasing only a genuinely dropped key.
@@ -791,15 +792,15 @@ def notice_exercise(scope: NoticeScenario.Scope) -> List<&2,NoticeScenario.Sched
 
 def notice_failure(state: Types.State, scope: NoticeScenario.Scope, now: Nat, key: Nat, sequence: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_}}: NoticeScenario.supplied_failure(scope,clocks,now,key,sequence)
 
 def notice_lease(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_}}: NoticeScenario.scoped_lease(clocks,partition,group,key)
 
 def notice_acknowledge(state: Types.State, partition: Nat, group: Nat, key: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   match state:
-    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
+    case Types.State{_,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_}}: NoticeScenario.scoped_acknowledge(clocks,partition,group,key)
 
 def callback_replaced(+state: Types.State, orders: List<&2,Nat>) -> Types.State:
   with_callbacks(state,Callbacks.replaced(callback_state(state),orders))
@@ -1086,20 +1087,125 @@ def collection_response_attempt(+state: Types.State, id: Nat, p: Nat, l: Nat, r:
 def collection_response_after(+state: Types.State, target: CollectionScenario.Identity, event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>) -> ResponseTransition:
   collection_changed(state,CollectionScenario.after(RuntimeScenarios.collection(scenarios(state)),target,event,commands,canonical(state)))
 
-def collection_response_valid(+state: Types.State, target: CollectionScenario.Identity, now: Nat) -> Bool:
-  CollectionScenario.valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state))
+def collection_response_valid(+state: Types.State, +target: CollectionScenario.Identity, +now: Nat) -> Bool:
+  WriterScenario.response_fence(RuntimeScenarios.writers(scenarios(state)),target,canonical(state),now) && CollectionScenario.valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state))
 
 def collection_response_automatic(state: Types.State, partition: Nat) -> Bool:
   CollectionScenario.automatic(RuntimeScenarios.collection(scenarios(state)),partition)
 
 
 def collection_response_handle(+state: Types.State, event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context, target: CollectionScenario.Identity) -> Driver.Handled:
-  CollectionScenario.handle_response(canonical(state),event,command,CollectionScenario.driver_context(RuntimeScenarios.collection(scenarios(state)),context,True{}),target)
+  WriterScenario.handle_response(RuntimeScenarios.writers(scenarios(state)),canonical(state),event,command,CollectionScenario.driver_context(RuntimeScenarios.collection(scenarios(state)),context,True{}),target)
 
 
-def collection_response_expire(+state: Types.State, now: Nat) -> ResponseTransition:
-  collection_changed(state,CollectionScenario.expire(RuntimeScenarios.collection(scenarios(state)),now))
+def writer_with(state: Types.State, writers: WriterScenario.State) -> Types.State:
+  match state:
+    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,scenarios}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.with_writers(scenarios,writers)}
 
+def writer_reconciled(state: Types.State, change: WriterScenario.Reconciled) -> ResponseTransition:
+  match change:
+    case WriterScenario.Reconciled{writers,responses,actions}:
+      ResponseTransition{writer_with(collection_with(state,responses),writers),ResponseResult{CollectionScenario.Applied{},None{}},actions}
+
+def writer_reconcile(+state: Types.State, now: Nat) -> ResponseTransition:
+  writer_reconciled(state,WriterScenario.reconcile(RuntimeScenarios.writers(scenarios(state)),RuntimeScenarios.collection(scenarios(state)),canonical(state),now))
+
+def collection_expired_change(state: Types.State, release: List<&2,Driver.Action>, changed: CollectionScenario.Change) -> ResponseTransition:
+  match changed:
+    case CollectionScenario.Change{collection,result,issued,actions}:
+      ResponseTransition{collection_with(state,collection),ResponseResult{result,issued},List.append(&2,Driver.Action,release,actions)}
+
+def collection_expired_writer(change: ResponseTransition, now: Nat) -> ResponseTransition:
+  match change:
+    case ResponseTransition{+state,_,release}:
+      collection_expired_change(state,release,CollectionScenario.expire(RuntimeScenarios.collection(scenarios(state)),now))
+
+# Writer ownership is reconciled before generic response expiry/publication.
+# Physical authorized output remains owned by its existing submission lease.
+def collection_response_expire(+state: Types.State, +now: Nat) -> ResponseTransition:
+  collection_expired_writer(writer_reconcile(state,now),now)
+
+
+def collection_response_delivery_valid(+state: Types.State, +target: CollectionScenario.Identity, +now: Nat, event: Canonical.CanonicalEvent) -> Bool:
+  WriterScenario.response_fence(RuntimeScenarios.writers(scenarios(state)),target,canonical(state),now) && CollectionScenario.delivery_valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state),event)
+
+# A pending trigger has no response identity and no advice lease. Credential,
+# start and cutoff are captured once here; a later claim grant does not refresh
+# them. The host only transports this immutable original pending capsule.
+type WriterPrepared is Data:
+  WriterPrepared{state: Types.State, pending: Maybe<&2,WriterScenario.Pending>, actions: List<&2,Driver.Action>}
+
+def writer_prepared(valid: Bool, +state: Types.State, +facts: WriterScenario.ClaimFacts) -> WriterPrepared:
+  match valid:
+    case False{}: WriterPrepared{state,None{},[]}
+    case True{}:
+      WriterPrepared{writer_with(state,WriterScenario.declare(RuntimeScenarios.writers(scenarios(state)),facts,canonical(state))),Some{WriterScenario.Pending{facts,current_credential_generation(credential_state(state))}},[Driver.immediate(WriterScenario.claim_facts(facts,canonical(state),clock(state)),False{})]}
+
+def writer_prepare(+state: Types.State, +facts: WriterScenario.ClaimFacts) -> WriterPrepared:
+  writer_prepared(WriterScenario.original_time(facts,clock(state)) && WriterScenario.facts_live(facts,canonical(state),clock(state)),state,facts)
+
+# Rebuild ONLY the original queued claim's current active bit before Canonical
+# mutates. All source owner/token/capacity/clock fields come from Pending.
+def writer_claim_event(+state: Types.State, pending: WriterScenario.Pending, now: Nat) -> Canonical.CanonicalEvent:
+  WriterScenario.pending_claim(pending,canonical(state),now)
+
+def writer_issued(+state: Types.State, +facts: WriterScenario.ClaimFacts, change: CollectionScenario.Change, now: Nat) -> ResponseTransition:
+  match change:
+    case CollectionScenario.Change{collection,result,Some{+identity},actions}:
+      +capture: WriterScenario.Capture = WriterScenario.issued_capture(facts,identity)
+      ResponseTransition{writer_with(collection_with(state,collection),WriterScenario.retain(RuntimeScenarios.writers(scenarios(state)),capture,True{})),ResponseResult{result,Some{identity}},List.append(&2,Driver.Action,actions,[WriterScenario.expiry_action(capture,now)])}
+    case CollectionScenario.Change{collection,result,None{},actions}:
+      ResponseTransition{collection_with(state,collection),ResponseResult{result,None{}},List.append(&2,Driver.Action,actions,[Driver.immediate(WriterScenario.facts_release(facts),False{})])}
+
+def writer_granted(valid: Bool, +state: Types.State, pending: WriterScenario.Pending, now: Nat) -> ResponseTransition:
+  match valid pending:
+    case False{} _: ResponseTransition{state,ResponseResult{CollectionScenario.Missing{},None{}},[]}
+    case True{} WriterScenario.Pending{+facts,credential}:
+      writer_issued(state,facts,CollectionScenario.issue(RuntimeScenarios.collection(scenarios(state)),WriterScenario.facts_response(facts),credential,canonical(state)),now)
+
+# Only the actual original Canonical grant can mint this response. Bridge
+# publication must validate complete reports/actions before retaining state and
+# may call this only with its private original event/commands predecessor.
+def writer_feedback(+state: Types.State, +pending: WriterScenario.Pending,
+    event: Canonical.CanonicalEvent, commands: List<&2,Canonical.Command>, +now: Nat) -> ResponseTransition:
+  writer_granted(WriterScenario.pending_granted(pending,event,commands,canonical(state),now),state,pending,now)
+
+def writer_release(state: Types.State, target: WriterScenario.Target) -> List<&2,Canonical.CanonicalEvent>:
+  WriterScenario.release(RuntimeScenarios.writers(scenarios(state)),target)
+
+def writer_expire(state: Types.State, target: WriterScenario.Target, now: Nat) -> List<&2,Canonical.CanonicalEvent>:
+  WriterScenario.expire(RuntimeScenarios.writers(scenarios(state)),target,now)
+
+type WriterAttempt is Data:
+  WriterAttempt{changed: ResponseTransition, target: Maybe<&2,CollectionScenario.Identity>}
+
+def writer_attempt_identity(state: Types.State, identity: CollectionScenario.Identity, now: Nat, current_block: Bool) -> WriterAttempt:
+  match identity:
+    case CollectionScenario.Identity{+id,+p,+l,+r}:
+      WriterAttempt{collection_response_attempt(state,id,p,l,r,now,current_block),Some{CollectionScenario.Identity{id,p,l,r}}}
+
+def writer_attempt_live(valid: Bool, state: Types.State, capture: WriterScenario.Capture, now: Nat, current_block: Bool) -> WriterAttempt:
+  match valid:
+    case False{}: WriterAttempt{ResponseTransition{state,ResponseResult{CollectionScenario.Missing{},None{}},[]},None{}}
+    case True{}: writer_attempt_identity(state,WriterScenario.response_identity(capture),now,current_block)
+
+def writer_attempt_found(found: Maybe<&2,WriterScenario.Capture>, +state: Types.State, +now: Nat, current_block: Bool) -> WriterAttempt:
+  match found:
+    case None{}: WriterAttempt{ResponseTransition{state,ResponseResult{CollectionScenario.Missing{},None{}},[]},None{}}
+    case Some{+capture}: writer_attempt_live(WriterScenario.capture_live(capture,canonical(state),now),state,capture,now,current_block)
+
+def writer_attempt(+state: Types.State, target: WriterScenario.Target, now: Nat, current_block: Bool) -> WriterAttempt:
+  writer_attempt_found(WriterScenario.lookup(RuntimeScenarios.writers(scenarios(state)),target),state,now,current_block)
+
+def writer_capture(state: Types.State, target: WriterScenario.Target) -> Maybe<&2,WriterScenario.Capture>:
+  WriterScenario.lookup(RuntimeScenarios.writers(scenarios(state)),target)
+
+def writer_departures(+before: Types.State, +state: Types.State, event: Canonical.CanonicalEvent) -> List<&2,WriterScenario.PhysicalRelease>:
+  WriterScenario.retired(RuntimeScenarios.writers(scenarios(before)),canonical(before),canonical(state),event)
+
+def writer_release_delivery(+state: Types.State, capture: WriterScenario.Capture, event: Canonical.CanonicalEvent, now: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
+  WriterScenario.release_delivery(RuntimeScenarios.writers(scenarios(state)),canonical(state),capture,event,now)
 
 def collection_response_delivery_valid(+state: Types.State, target: CollectionScenario.Identity, now: Nat, event: Canonical.CanonicalEvent) -> Bool:
   CollectionScenario.delivery_valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state),event)
@@ -1122,3 +1228,5 @@ def quiet_after(state: Types.State, event: Canonical.CanonicalEvent, partition: 
 
 def quiet_command(state: Types.State, command: Canonical.Command, event: Canonical.CanonicalEvent, partition: Nat, now: Nat) -> List<&2,Driver.Action>:
   QuietScenario.command(canonical(state),command,event,partition,now)
+def writer_unissued_release_delivery(+state: Types.State, pending: WriterScenario.Pending, now: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
+  WriterScenario.unissued_release(RuntimeScenarios.writers(scenarios(state)),canonical(state),pending,now)

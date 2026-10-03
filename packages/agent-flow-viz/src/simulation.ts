@@ -1,3 +1,4 @@
+import { writerAction, writerControls } from "./writer-controls";
 import { collectionResponseAction, collectionResponseControls } from "./collection-response-controls";
 import { outputAttemptAction, outputAttemptControls } from "./output-attempt-controls";
 import { noticeAction, noticeControls } from "./notice-controls";
@@ -462,6 +463,13 @@ export const actSimulation = (
       run.applyControl(control);
       return { ...model, selected: -1, revision: model.revision + 1, feedback: `Applied ${control.kind} at ${run.now} virtual ms; issued facts keep their original capture.` };
     }
+    const writer = writerAction(action);
+    if (writer) {
+      if (!run || replaySource) return { ...model, feedback: "Start a live run before changing background advice waiters." };
+      run.applyControl(writer);
+      const report = run.observe().writerReports.at(-1);
+      return { ...model, selected: -1, revision: model.revision + 1, feedback: report?.result ?? "Background waiter requested" };
+    }
     const response = collectionResponseAction(action);
     if (response) {
       if (!run || replaySource) return { ...model, feedback: "Start a live run before changing edit response collection." };
@@ -918,7 +926,7 @@ export const simulationView = <Message>(
       controlForm("permitLimits", [input("permitPerAdvicee", "Per-advicee pending permits", model.permitPerAdvicee), input("permitResident", "Resident-wide pending permits", model.permitResident), submit("Apply permit limits")]),
       controlForm("permitTiming", [input("permitDuration", "PRE to POST duration (virtual ms)", model.permitDuration), input("permitLifetime", "Permit lifetime (virtual ms)", model.permitLifetime), submit("Apply PRE/POST timing")]),
       ...(run ? [noticeControls(h, run.projection, run.agentScopes, action, Boolean(replaySource))] : []),
-      ...(run ? [collectionResponseControls(h,run.projection,run.agentScopes,run.now,run.observe().collectionResponseReports,action,Boolean(replaySource))] : []),
+      ...(run ? [writerControls(h,run.projection,run.agentScopes,run.now,run.observe().writerReports,action,Boolean(replaySource),run.capacityMetadata.collectors?.capacity ?? 1), collectionResponseControls(h,run.projection,run.agentScopes,run.now,run.observe().collectionResponseReports,action,Boolean(replaySource))] : []),
       ...(run ? [callbackControls(h, run.observe().callbackTargets, run.observe().callbackReports, action, Boolean(replaySource))] : []),
       ...(run ? [outputAttemptControls(h, run.observe().outputAttempts, run.observe().outputReports, action, Boolean(replaySource))] : []),
       ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),

@@ -31,6 +31,7 @@ load(root/'packages/monkey-business-bend/Types.bend')
 family_roots={
  'sharing_scenarios':(root/'packages/monkey-business-bend/conformance/sharing-observed-wire.bend','Envelope',False),
  'output_scenarios':(root/'packages/monkey-business-bend/conformance/output-scenario-driver.bend','Envelope',True),
+ 'writer_scenarios':(root/'packages/monkey-business-bend/conformance/writer-observed-wire.bend','Envelope',False),
 }
 for path,_,_ in family_roots.values():load(path)
 needed={}; order=[]
@@ -78,6 +79,9 @@ for name in sorted(generated_names):
  retention=re.sub(r'^def '+re.escape(name)+r'\([^\n]*\n[\s\S]*?(?=^def |^#|\Z)', '',retention,flags=re.M)
 metadata={};lines=['import Base','import ./callback-native-driver.bend as Run','import ../Engine.bend as Engine']
 for p,alias in sorted(aliases.items(),key=lambda x:x[1]):
+ # The retained envelope already imports Engine. A newly reached Engine ADT
+ # uses that same owner alias instead of publishing a duplicate import.
+ if p == (root/'packages/monkey-business-bend/Engine.bend').resolve():continue
  rel=os.path.relpath(p,out.parent)
  if not rel.startswith('.'):rel='./'+rel
  lines.append(f'import {rel} as {alias}')

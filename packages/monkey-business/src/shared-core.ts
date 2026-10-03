@@ -1,4 +1,6 @@
 import { commandSharedQuiet, afterSharedQuiet, generatedSharedQuiet } from "../../../src/canonical/simulation-adapter.ts";
+import { peekSharedWriterRelease, deliverSharedWriterRelease, type SharedWriterRelease, attemptSharedWriter, prepareSharedWriter, claimSharedWriter, afterSharedWriter, releaseSharedWriter, type SharedWriterPending } from "../../../src/canonical/simulation-adapter.ts";
+import type { WriterCapture, WriterTarget } from "./writer-controls.ts";
 import { controlSharedResponse, afterSharedResponse, expireSharedResponses, driveSharedResponse, deliverySharedResponse } from "../../../src/canonical/simulation-adapter.ts";
 import type { CollectionResponseControl, CollectionResponseIdentity } from "./collection-scenario.ts";
 import { beginSharedCache, stepSharedCache, configureSharedCache, type SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
@@ -184,10 +186,10 @@ export class SharedCore {
     const result = beginSharedCache(this.state,event); this.state=result.state; return result;
   }
   step(event: CanonicalEvent, cacheFact?: SharedCacheFact) {
-    const transition = cacheFact ? stepSharedCache(this.state,cacheFact) : stepSharedCanonical(this.state, event);
+    const transition = cacheFact ? { ...stepSharedCache(this.state,cacheFact), writerReleases: [] } : stepSharedCanonical(this.state, event);
     const result = transition.result;
     this.state = transition.state;
-    return { ...result, afterActions: transition.afterActions, cacheReleases: transition.cacheReleases, cacheFacts: transition.cacheFacts };
+    return { ...result, afterActions: transition.afterActions, cacheReleases: transition.cacheReleases, cacheFacts: transition.cacheFacts, writerReleases: transition.writerReleases };
   }
   graphStep(event: PreparationEvent): PreparationFrame {
     const limits = encodePreparationGraphLimits(event.graphLimits ?? GRAPH_LIMIT_CEILINGS);
@@ -212,6 +214,25 @@ export class SharedCore {
   }
   revalidate(context: unknown) { return revalidateSharedCanonical(this.state, context); }
   fence(event: CanonicalEvent, generated: boolean, context: unknown) { return fenceSharedCanonical(this.state, event, generated, context); }
+  writerPrepare(capture: WriterCapture) {
+    const changed = prepareSharedWriter(this.state, capture);
+    this.state = changed.state;
+    return changed;
+  }
+  writerClaim(pending: SharedWriterPending, now: number) { return claimSharedWriter(this.state, pending, now); }
+  writerAfter(pending: SharedWriterPending, now: number) {
+    const changed = afterSharedWriter(this.state, pending, now);
+    this.state = changed.state;
+    return changed;
+  }
+  writerAttempt(target: WriterTarget, now: number, currentBlock: boolean) {
+    const changed = attemptSharedWriter(this.state, target, now, currentBlock);
+    this.state = changed.state;
+    return changed;
+  }
+  writerReleaseDelivery(receipt: SharedWriterRelease, now: number) { return deliverSharedWriterRelease(this.state,receipt,now); }
+  writerReleaseValid(receipt: SharedWriterRelease, now: number) { return peekSharedWriterRelease(this.state,receipt,now) !== undefined; }
+  writerRelease(target: WriterTarget, now?: number) { return releaseSharedWriter(this.state, target, now); }
   responseControl(control: CollectionResponseControl, now: number) {
     const change = controlSharedResponse(this.state,control,now);
     this.state = change.state;

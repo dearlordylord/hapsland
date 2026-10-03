@@ -1,5 +1,6 @@
 import Base
 import ./CollectionScenario.bend as CollectionScenario
+import ./WriterScenario.bend as WriterScenario
 import ./CacheRuntime.bend as CacheRuntime
 import ./SharingRuntime.bend as SharingRuntime
 import ./FreshnessScenario.bend as Freshness
@@ -9,70 +10,70 @@ import ./Callbacks.bend as Callbacks
 import ./NoticeScenario.bend as NoticeScenario
 
 type State is Data:
-  State{callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2, NoticeScenario.Clock>, freshness: Freshness.State, sources: ScopedRevision.State, sharing: SharingRuntime.State, cache: CacheRuntime.State, collection: CollectionScenario.State}
+  State{callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2, NoticeScenario.Clock>, freshness: Freshness.State, sources: ScopedRevision.State, sharing: SharingRuntime.State, cache: CacheRuntime.State, collection: CollectionScenario.State, writers: WriterScenario.State}
 
 def initial() -> State:
-  State{Callbacks.initial(), NoticeScenario.initial(), Nil{}, Freshness.initial(), ScopedRevision.initial(), SharingRuntime.initial(), CacheRuntime.initial(), CollectionScenario.initial()}
+  State{Callbacks.initial(), NoticeScenario.initial(), Nil{}, Freshness.initial(), ScopedRevision.initial(), SharingRuntime.initial(), CacheRuntime.initial(), CollectionScenario.initial(),WriterScenario.initial()}
 
 def callbacks(state: State) -> Callbacks.State:
   match state:
-    case State{callbacks, _, _, _, _, _, _, collection}: callbacks
+    case State{callbacks, _, _, _, _, _, _, collection,writers}: callbacks
 
 def with_callbacks(state: State, callbacks: Callbacks.State) -> State:
   match state:
-    case State{_, notices, clocks, freshness, sources, sharing, cache, collection}: State{callbacks, notices, clocks, freshness, sources, sharing, cache, collection}
+    case State{_, notices, clocks, freshness, sources, sharing, cache, collection,writers}: State{callbacks, notices, clocks, freshness, sources, sharing, cache, collection,writers}
 
-def retained_state(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, +freshness: Freshness.State, sources: ScopedRevision.State, +canonical: Canonical.State, sharing: SharingRuntime.State, cache: CacheRuntime.State, collection: CollectionScenario.State) -> State:
-  State{callbacks,notices,clocks,freshness,ScopedRevision.retain(sources,canonical,Freshness.bindings(freshness)),sharing,cache, CollectionScenario.retain(collection,canonical)}
+def retained_state(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, +freshness: Freshness.State, sources: ScopedRevision.State, +canonical: Canonical.State, sharing: SharingRuntime.State, cache: CacheRuntime.State, +collection: CollectionScenario.State, writers: WriterScenario.State) -> State:
+  State{callbacks,notices,clocks,freshness,ScopedRevision.retain(sources,canonical,Freshness.bindings(freshness)),sharing,cache, CollectionScenario.retain(collection,canonical),WriterScenario.retain_current(writers,canonical,CollectionScenario.retain(collection,canonical))}
 
-def retained_sharing(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, freshness: Freshness.State, sources: ScopedRevision.State, +canonical: Canonical.State, +sharing: SharingRuntime.State, +cache: CacheRuntime.State, collection: CollectionScenario.State) -> State:
-  retained_state(callbacks,notices,clocks,Freshness.retained_references(CacheRuntime.restored_sources(freshness,cache),canonical,List.append(&2,Freshness.Scope,SharingRuntime.source_references(sharing),CacheRuntime.references(cache))),sources,canonical,sharing,cache,collection)
+def retained_sharing(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, freshness: Freshness.State, sources: ScopedRevision.State, +canonical: Canonical.State, +sharing: SharingRuntime.State, +cache: CacheRuntime.State, +collection: CollectionScenario.State, writers: WriterScenario.State) -> State:
+  retained_state(callbacks,notices,clocks,Freshness.retained_references(CacheRuntime.restored_sources(freshness,cache),canonical,List.append(&2,Freshness.Scope,SharingRuntime.source_references(sharing),CacheRuntime.references(cache))),sources,canonical,sharing,cache,collection,writers)
 
 def retain(state: State, +canonical: Canonical.State) -> State:
   match state:
-    case State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection}:
-      retained_sharing(Callbacks.retain(callbacks,canonical),notices,clocks,freshness,sources,canonical,SharingRuntime.retain(sharing,canonical),CacheRuntime.retain(cache,canonical),collection)
+    case State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection,writers}:
+      retained_sharing(Callbacks.retain(callbacks,canonical),notices,clocks,freshness,sources,canonical,SharingRuntime.retain(sharing,canonical),CacheRuntime.retain(cache,canonical),collection,writers)
 
 def notice_requested(state: State, scope: NoticeScenario.Scope, key: Nat, sequence: Nat, commands: List<&2,Canonical.Command>, now: Nat) -> NoticeScenario.Followup:
   match state:
-    case State{_, notices, _, _, _, _, _, collection}: NoticeScenario.request(notices, scope, key, sequence, commands)
+    case State{_, notices, _, _, _, _, _, collection,writers}: NoticeScenario.request(notices, scope, key, sequence, commands)
 
 def notice_reserved(state: State, partition: Nat, commands: List<&2,Canonical.Command>) -> NoticeScenario.Followup:
   match state:
-    case State{_, NoticeScenario.State{pending}, _, _, _, _, _, collection}: NoticeScenario.reserved(pending,partition,commands)
+    case State{_, NoticeScenario.State{pending}, _, _, _, _, _, collection,writers}: NoticeScenario.reserved(pending,partition,commands)
 
 def freshness(state: State) -> Freshness.State:
   match state:
-    case State{_,_,_,freshness,_,_,_, collection}: freshness
+    case State{_,_,_,freshness,_,_,_, collection,writers}: freshness
 
 def sources(state: State) -> ScopedRevision.State:
   match state:
-    case State{_,_,_,_,sources,_,_, collection}: sources
+    case State{_,_,_,_,sources,_,_, collection,writers}: sources
 
 def with_freshness(state: State, freshness: Freshness.State) -> State:
   match state:
-    case State{callbacks,notices,clocks,_,sources,sharing,cache, collection}: State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection}
+    case State{callbacks,notices,clocks,_,sources,sharing,cache, collection,writers}: State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection,writers}
 
 def with_sources(state: State, sources: ScopedRevision.State) -> State:
   match state:
-    case State{callbacks,notices,clocks,freshness,_,sharing,cache, collection}: State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection}
+    case State{callbacks,notices,clocks,freshness,_,sharing,cache, collection,writers}: State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection,writers}
 
 def sharing(state: State) -> SharingRuntime.State:
   match state:
-    case State{_,_,_,_,_,sharing,_, collection}: sharing
+    case State{_,_,_,_,_,sharing,_, collection,writers}: sharing
 
 def with_sharing(state: State, sharing: SharingRuntime.State) -> State:
   match state:
-    case State{callbacks,notices,clocks,freshness,sources,_,cache, collection}: State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection}
+    case State{callbacks,notices,clocks,freshness,sources,_,cache, collection,writers}: State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection,writers}
 
 def cache(state: State) -> CacheRuntime.State:
   match state:
-    case State{_,_,_,_,_,_,cache, collection}: cache
+    case State{_,_,_,_,_,_,cache, collection,writers}: cache
 
 def with_cache(state: State, cache: CacheRuntime.State) -> State:
   match state:
-    case State{callbacks,notices,clocks,freshness,sources,sharing,_, collection}:
-      State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection}
+    case State{callbacks,notices,clocks,freshness,sources,sharing,_, collection,writers}:
+      State{callbacks,notices,clocks,freshness,sources,sharing,cache, collection,writers}
 
 def cache_feedback_state(feedback: CacheRuntime.Feedback) -> CacheRuntime.State:
   match feedback:
@@ -88,9 +89,19 @@ def accepted(+state: State, before: Canonical.State, canonical: Canonical.State,
 
 def collection(state: State) -> CollectionScenario.State:
   match state:
-    case State{_,_,_,_,_,_,_,collection}: collection
+    case State{_,_,_,_,_,_,_,collection,writers}: collection
 
 def with_collection(state: State, collection: CollectionScenario.State) -> State:
   match state:
-    case State{callbacks,notices,clocks,freshness,sources,sharing,cache,_}:
-      State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection}
+    case State{callbacks,notices,clocks,freshness,sources,sharing,cache,_,writers}:
+      State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}
+
+
+def writers(state: State) -> WriterScenario.State:
+  match state:
+    case State{_,_,_,_,_,_,_,_,writers}: writers
+
+def with_writers(state: State, writers: WriterScenario.State) -> State:
+  match state:
+    case State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,_}:
+      State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers}

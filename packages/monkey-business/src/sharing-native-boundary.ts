@@ -25,7 +25,7 @@ function optional(value: unknown): unknown | null {
   if (record.$ !== "Some") throw new TypeError("malformed private Maybe");
   return record.value;
 }
-function state(value: unknown) {
+export function decodeObservedState(value: unknown) {
   const record = tagged(single(value), "Types.State");
   // Every retained graph is also validated by its production representation
   // owner, including entries not present in the final observation history.
@@ -43,7 +43,7 @@ function targets(record: Record<string, unknown>, receipts: readonly CallbackTar
   for (const receipt of receipts) if (!targets.some(target => isDeepStrictEqual(target, receipt))) targets.push(receipt);
   return targets;
 }
-function endpoint(record: Record<string, unknown>, receipts: readonly CallbackTarget[]) {
+export function stateEndpoint(record: Record<string, unknown>, receipts: readonly CallbackTarget[]) {
   return { time: readNat(tagged(record.scheduler, "Scheduler.State").now),
     projection: projectTrustedCanonical(record.canonical), targets: targets(record, receipts),
     lifecycles: decodeAdviceeLifecycles(record.lifecycles) };
@@ -55,6 +55,42 @@ function scopes(value: unknown) {
     const scope = optional(value);
     return scope === null ? null : readNat(scope);
   });
+}
+
+/** Common factual Edge projection; owner codecs validate every complete frame. */
+export function decodeObservedFrame(value: unknown, receipts: CallbackTarget[]) {
+  const frame = readRecord(value);
+  const observed = readRecord(frame.frame);
+  const beforeState = decodeObservedState(observed.before), afterState = decodeObservedState(observed.after);
+  const before = projectTrustedCanonical(beforeState.canonical), after = projectTrustedCanonical(afterState.canonical);
+  const time = readNat(observed.time);
+  readNat(observed.order);
+  if (observed.$ === "advicee_lifecycle_driver.CanonicalFrame" || observed.$ === "advicee_lifecycle_driver.CacheFrame") {
+    const rawResult = single(observed.result);
+    const result = decodeTrustedCanonicalStep(rawResult);
+    if (!isDeepStrictEqual(projectTrustedCanonical(result.state), after)) throw new TypeError("result and after state disagree");
+    const commandScopes = scopes(frame.scopes);
+    if (commandScopes.length !== result.commands.length) throw new TypeError("command scope count differs");
+    const rawReceipt = optional(frame.receipt);
+    const receipt = rawReceipt === null ? null : decodeCallbackTarget(rawReceipt);
+    if (receipt) receipts.push(receipt);
+    if (observed.$ === "advicee_lifecycle_driver.CacheFrame") {
+      const fact = tagged(observed.fact, "CacheRuntime.Fact");
+      if (!isDeepStrictEqual(decodePrefixCanonicalEvent(fact.event), decodePrefixCanonicalEvent(observed.event)))
+        throw new TypeError("cache event lost its original capsule");
+    }
+    return { kind: "canonical", time, before, after, event: decodePrefixCanonicalEvent(observed.event),
+      commands: result.commands, commandScopes, rejection: result.rejection ?? null, receipt };
+  } else if (observed.$ === "advicee_lifecycle_driver.GraphFrame") {
+    const transition = tagged(single(observed.result), "Types.GraphTransition");
+    const result = decodeImportGraphStep(transition.result);
+    const key = tagged(observed.key, "Types.GraphKey");
+    const scope = { partition: readNat(key.partition), lifetime: readNat(key.lifetime), round: readNat(key.round),
+      operation: readNat(key.operation), unit: readNat(key.unit) };
+    return { kind: "graph", time, before, after, scope, position: readNat(observed.position),
+      event: decodePrefixGraphEvent(observed.event), graph: { before: projectImportGraph(transition.before),
+        after: projectImportGraph(result.state), command: result.command } };
+  } else throw new TypeError("unexpected sharing observer frame");
 }
 
 /** Full raw owner DTOs are compared separately between native and emitted JS.
@@ -69,42 +105,12 @@ export function decodeSharingNativeBoundary(value: unknown) {
   for (const input of list(trace.frames)) {
     const frame = readRecord(input);
     if (frame.$ === "sharing_observed_driver.Observed") {
-      const observed = readRecord(frame.frame);
-      const beforeState = state(observed.before), afterState = state(observed.after);
-      const before = projectTrustedCanonical(beforeState.canonical), after = projectTrustedCanonical(afterState.canonical);
-      const time = readNat(observed.time);
-      readNat(observed.order);
-      if (observed.$ === "advicee_lifecycle_driver.CanonicalFrame" || observed.$ === "advicee_lifecycle_driver.CacheFrame") {
-        const rawResult = single(observed.result);
-        const result = decodeTrustedCanonicalStep(rawResult);
-        if (!isDeepStrictEqual(projectTrustedCanonical(result.state), after)) throw new TypeError("result and after state disagree");
-        const commandScopes = scopes(frame.scopes);
-        if (commandScopes.length !== result.commands.length) throw new TypeError("command scope count differs");
-        const rawReceipt = optional(frame.receipt);
-        const receipt = rawReceipt === null ? null : decodeCallbackTarget(rawReceipt);
-        if (receipt) receipts.push(receipt);
-        if (observed.$ === "advicee_lifecycle_driver.CacheFrame") {
-          const fact = tagged(observed.fact, "CacheRuntime.Fact");
-          if (!isDeepStrictEqual(decodePrefixCanonicalEvent(fact.event), decodePrefixCanonicalEvent(observed.event)))
-            throw new TypeError("cache event lost its original capsule");
-        }
-        frames.push({ kind: "canonical", time, before, after, event: decodePrefixCanonicalEvent(observed.event),
-          commands: result.commands, commandScopes, rejection: result.rejection ?? null, receipt });
-      } else if (observed.$ === "advicee_lifecycle_driver.GraphFrame") {
-        const transition = tagged(single(observed.result), "Types.GraphTransition");
-        const result = decodeImportGraphStep(transition.result);
-        const key = tagged(observed.key, "Types.GraphKey");
-        const scope = { partition: readNat(key.partition), lifetime: readNat(key.lifetime), round: readNat(key.round),
-          operation: readNat(key.operation), unit: readNat(key.unit) };
-        frames.push({ kind: "graph", time, before, after, scope, position: readNat(observed.position),
-          event: decodePrefixGraphEvent(observed.event), graph: { before: projectImportGraph(transition.before),
-            after: projectImportGraph(result.state), command: result.command } });
-      } else throw new TypeError("unexpected sharing observer frame");
+      frames.push(decodeObservedFrame(frame, receipts));
     } else if (frame.$ === "sharing_observed_driver.Control") {
       if (!readBool(frame.applied)) throw new TypeError("original sharing control refused");
       const input = readRecord(frame.input);
       if (typeof input.agent !== "string") throw new TypeError("original control agent missing");
-      const beforeState = state(frame.before), afterState = state(frame.after);
+      const beforeState = decodeObservedState(frame.before), afterState = decodeObservedState(frame.after);
       const original = optional(frame.target);
       let control;
       if (input.$ === "sharing_original_inputs.Leave" && original !== null) {
@@ -123,12 +129,12 @@ export function decodeSharingNativeBoundary(value: unknown) {
         after: projectTrustedCanonical(afterState.canonical), control, applied: true });
     } else if (frame.$ === "sharing_observed_driver.Boundary") {
       boundaries.push({ endpoint: readNat(frame.endpoint), budget: readNat(frame.budget), consumed: readNat(frame.consumed),
-        state: endpoint(state(frame.state), receipts) });
+        state: stateEndpoint(decodeObservedState(frame.state), receipts) });
     } else throw new TypeError("invalid sharing trace frame");
   }
   const runtime = tagged(single(trace.runtime), "advicee_lifecycle_driver.Runtime");
   const finalState = tagged(runtime.state, "Types.State");
   if (readNat(trace.consumed) !== frames.length) throw new TypeError("observation budget accounting differs");
   return freezeCanonicalData({ frames, controls, sources: [], boundaries,
-    endpoint: endpoint(finalState, receipts), eventCount: readNat(trace.consumed) });
+    endpoint: stateEndpoint(finalState, receipts), eventCount: readNat(trace.consumed) });
 }

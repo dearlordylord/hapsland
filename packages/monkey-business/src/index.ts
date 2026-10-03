@@ -1,4 +1,7 @@
 import { wakeStopFacts } from "./stop-codec.ts";
+import type { WriterControl, WriterReport } from "./writer-controls.ts";
+export * from "./writer-controls.ts";
+import type { SharedWriterPending, SharedWriterRelease } from "../../../src/canonical/simulation-adapter.ts";
 import { type CollectionResponseControl, type CollectionResponseIdentity, type CollectionResponseReport } from "./collection-scenario.ts";
 import { initialOutputActions, decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
 export * from "./output-controls.ts";
@@ -157,6 +160,7 @@ export type Observation = {
 };
 /** One synchronous viewing boundary; presentation never owns simulator state. */
 export type RunObservation = {
+  readonly writerReports: readonly WriterReport[];
   readonly collectionResponseReports: readonly CollectionResponseReport[];
   readonly callbackTargets: readonly CallbackTarget[];
   readonly callbackReports: readonly CallbackReport[];
@@ -218,7 +222,9 @@ export type Replay = {
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
-  responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl; readonly sequence: number };
+  writerRelease?: SharedWriterRelease;
+  writerOrigin?: { readonly pending: SharedWriterPending; readonly control: Extract<WriterControl, {action:"claim"}>; readonly sequence: number };
+  responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl | WriterControl; readonly sequence: number };
   noticeScope?: ReturnType<typeof encodeNoticeScope>;
   noticeDiagnostic?: OperationalNoticeKind;
   callbackReceipt?: CallbackReceipt;
@@ -268,6 +274,7 @@ const defaults = {
 };
 /** Equal-time items follow insertion order; effects appended by a transition follow already queued items. */
 export class Run {
+  private writerReports: WriterReport[] = [];
   private collectionResponseReports: CollectionResponseReport[] = [];
   private core: SharedCore;
   private nextTool = 1;
@@ -511,7 +518,7 @@ export class Run {
     return this.count;
   }
   observe(): RunObservation {
-    return freezeCanonicalData({ collectionResponseReports: [...this.collectionResponseReports], adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
+    return freezeCanonicalData({ writerReports: [...this.writerReports], collectionResponseReports: [...this.collectionResponseReports], adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
       projection: this.projection, observations: [...this.history],
       capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions, callbackTargets: this.callbackTargets, callbackReports: [...this.callbackReports], outputReports: [...this.outputReports], outputAttempts: this.outputAttempts });
   }
@@ -573,7 +580,32 @@ export class Run {
       throw new RangeError("unknown agent control target");
     if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
-    if (value.kind === "collectionResponse") {
+    if (value.kind === "backgroundWriter") {
+      const owner = this.scopes.find(scope => scope.agent === value.agent)!;
+      const target = value.action === "claim" ? value.capture.target : value.target;
+      if (target.partition !== owner.partition) throw new TypeError("writer does not belong to advicee");
+      if (value.action === "claim") {
+        const changed = this.core.writerPrepare(value.capture);
+        this.writerReports.push({ at: this.clock, controlSequence: this.timelineOrder, control: value,
+          result: changed.pending ? "queued" : "wrongScope" });
+        this.enqueueResponseActions(changed.actions,undefined,target.partition,changed.pending
+          ? { pending: changed.pending, control: value, sequence: this.timelineOrder } : undefined);
+      } else if (value.action === "attempt") {
+        const changed = this.core.writerAttempt(value.target,this.clock,value.currentBlock);
+        this.writerReports.push({ at: this.clock, controlSequence: this.timelineOrder, control: value,
+          result: changed.result, ...(changed.target ? { target: changed.target } : {}) });
+        this.enqueueResponseActions(changed.actions,changed.target
+          ? { target: changed.target, control: value, sequence: this.timelineOrder } : undefined,target.partition);
+      } else {
+        const events = this.core.writerRelease(value.target,value.action === "expire" ? this.clock : undefined);
+        this.writerReports.push({ at: this.clock, controlSequence: this.timelineOrder, control: value,
+          result: events.length ? "queued" : "missing" });
+        for (const fact of events) {
+          this.event(target.partition,fact.event);
+          this.scheduled.get(this.order-1)!.writerRelease=fact.receipt;
+        }
+      }
+    } else if (value.kind === "collectionResponse") {
       const owner = this.scopes.find(scope => scope.agent === value.agent);
       if (!owner) throw new RangeError("unknown response advicee");
       const target = value.action === "open" ? value.response : value.target;
@@ -800,6 +832,10 @@ export class Run {
     }
     return { handled: true, outcome };
   }
+  private expireResponsesAtClock() {
+    const changed = this.core.responseExpire(this.clock);
+    this.enqueueResponseActions(changed.actions,undefined,0);
+  }
   step(untilTime?: number): Observation | undefined {
     if (
       untilTime !== undefined &&
@@ -807,8 +843,24 @@ export class Run {
       this.queue[0].at > untilTime
     )
       return;
-    if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? ""))
+    if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? "")) {
+      const head = this.queue[0];
+      // A refused original writer fact advances physical queue time without
+      // a Canonical observation. Replay must consume that same head before
+      // its viewing endpoint fence; an eligible event remains blocked.
+      if (head?.input.kind === "canonical" && (
+        (head.responseOrigin?.control.kind === "backgroundWriter"
+          && !this.core.responseValid(head.responseOrigin.target,head.at,head.input.event))
+        || (head.writerRelease && !this.core.writerReleaseValid(head.writerRelease,head.at)))) {
+        const consumed = this.queueShift();
+        if (consumed?.order !== head.order) throw new Error("quiet writer replay lost its queue head");
+        this.expireResponsesAtClock();
+        if (consumed.writerRelease && this.core.writerReleaseDelivery(consumed.writerRelease,this.clock))
+          throw new Error("quiet original writer release became eligible");
+        return this.step(untilTime);
+      }
       return;
+    }
     const head = this.queue[0];
     if (head?.input.kind === "canonical" && head.input.event.kind === "preparationCompleted") {
       const owner = this.inputPartition(head);
@@ -825,10 +877,19 @@ export class Run {
     const item = this.queueShift();
     if (!item) return;
     const partition = this.inputPartition(item);
-    const expiredResponses = this.core.responseExpire(this.clock);
-    this.enqueueResponseActions(expiredResponses.actions,undefined,0);
+    this.expireResponsesAtClock();
+    if (item.writerRelease && item.input.kind === "canonical") {
+      const event = this.core.writerReleaseDelivery(item.writerRelease,this.clock);
+      if (!event) return this.step(untilTime);
+      item.input = { ...item.input,event };
+    }
+    if (item.writerOrigin && item.input.kind === "canonical") {
+      item.input = { ...item.input, event: this.core.writerClaim(item.writerOrigin.pending,this.clock) };
+    }
     if (item.responseOrigin && item.input.kind === "canonical" && !this.core.responseValid(item.responseOrigin.target,this.clock,item.input.event)) {
-      this.collectionResponseReports.push({ at: this.clock, controlSequence: item.responseOrigin.sequence,
+      // Writer controls record original Gating admission and actual grant /
+      // release frames. A pre-Canonical quiet drop adds no delayed report.
+      if (item.responseOrigin.control.kind === "collectionResponse") this.collectionResponseReports.push({ at: this.clock, controlSequence: item.responseOrigin.sequence,
         control: item.responseOrigin.control, result: "missing" });
       return this.step(untilTime);
     }
@@ -982,6 +1043,10 @@ export class Run {
       event = decodeDriverEvent(completion.event);
     }
     const result = this.core.step(event, item.cacheFact);
+    for (const release of result.writerReleases) {
+      this.event(partition,release.event);
+      this.scheduled.get(this.order-1)!.writerRelease=release.receipt;
+    }
     const cachePublished = this.config.lifecycles?.reuse && event.kind === "jevRequestSettled"
       ? this.core.beginCache(event) : undefined;
     for (const fact of [...result.cacheFacts, ...(cachePublished?.facts ?? [])]) {
@@ -1473,6 +1538,16 @@ export class Run {
         this.quietNativeIdle(partition),!this.finishes.has(partition));
       for (const action of actions) emit(action.event,action.delay);
     }
+    if (item.writerOrigin) {
+      const changed = this.core.writerAfter(item.writerOrigin.pending,this.clock);
+      this.writerReports.push({ at: this.clock, controlSequence: item.writerOrigin.sequence,
+        control: item.writerOrigin.control, result: changed.result,
+        ...(changed.issued ? { issued: changed.issued } : {}) });
+      for (const release of changed.writerReleases) {
+        this.event(partition,release.event,release.delay);
+        this.scheduled.get(this.order-1)!.writerRelease=release.receipt;
+      }
+    }
     if (item.responseOrigin && !result.rejection) {
       const changed = this.core.responseAfter(item.responseOrigin.target);
       this.enqueueResponseActions(changed.actions,item.responseOrigin,partition);
@@ -1503,13 +1578,14 @@ export class Run {
     };
     return this.record(observation);
   }
-  private enqueueResponseActions(actions: unknown, origin: Scheduled["responseOrigin"], fallback: number): void {
+  private enqueueResponseActions(actions: unknown, origin: Scheduled["responseOrigin"], fallback: number, writer: Scheduled["writerOrigin"] = undefined): void {
     for (const action of decodeDriver({ handled: true, actions }).actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event,fallback) ?? fallback;
       this.event(owner,action.event,action.delay,undefined,action.expiryAdvice);
       const item = this.scheduled.get(this.order - 1);
       if (!item) throw new Error("response action lost its issued queue entry");
       if (origin) item.responseOrigin = origin;
+      if (writer) item.writerOrigin = writer;
       if (action.candidate) item.candidate = action.candidate;
     }
   }
@@ -1616,6 +1692,28 @@ export class Run {
       for (const input of session.onFinish(this.clock, continuation))
         this.enqueue(input);
   }
+  /** Original queued facts only; capsule authority remains private. */
+  get queuedFacts() {
+    return freezeCanonicalData(this.queue.map(item => ({ at: item.at, order: item.order, input: item.input,
+      ...(item.responseOrigin ? { response: item.responseOrigin.target } : {}),
+      ...(item.writerOrigin ? { writerTrigger: item.writerOrigin.control.capture } : {}),
+      ...(item.callbackReceipt ? { callback: item.callbackReceipt.target } : {}) })));
+  }
+  private normalizeQuietWriterBoundary() {
+    const changed = this.core.responseExpire(this.clock);
+    this.enqueueResponseActions(changed.actions,undefined,0);
+    // Both live and replay viewing boundaries settle source-owned context
+    // closure and consume already-due refused writer facts. Canonical events,
+    // physical output and future callback facts retain their original order.
+    for (;;) {
+      const head = this.queue[0];
+      if (!head || head.at > this.clock || head.input.kind !== "canonical"
+        || head.responseOrigin?.control.kind !== "backgroundWriter"
+        || this.core.responseValid(head.responseOrigin.target,this.clock,head.input.event)) return;
+      this.core.cancel(head.order);
+      this.scheduled.delete(head.order);
+    }
+  }
   advance(options: AdvanceOptions = {}) {
     const { untilTime, maxEvents = 1000 } = decodeAdvanceOptions(options);
     integer(maxEvents, "event limit");
@@ -1626,12 +1724,17 @@ export class Run {
     }
     let events = 0;
     while (events < maxEvents && this.queue.length) {
-      if (untilTime !== undefined && this.queue[0]!.at > untilTime)
+      if (untilTime !== undefined && this.queue[0]!.at > untilTime) {
+        this.normalizeQuietWriterBoundary();
         return { reason: "timeLimit" as const, events, now: this.clock };
+      }
       if (this.step(untilTime)) events++;
-      else if (this.queue.length)
+      else if (this.queue.length) {
+        this.normalizeQuietWriterBoundary();
         return { reason: "timeLimit" as const, events, now: this.clock };
+      }
     }
+    this.normalizeQuietWriterBoundary();
     return {
       reason: this.queue.length ? ("eventLimit" as const) : ("idle" as const),
       events,

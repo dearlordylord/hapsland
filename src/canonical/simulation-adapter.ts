@@ -1,3 +1,4 @@
+import { encodeWriterCapture, encodeWriterTarget, decodeWriterPending, decodeWriterIssuedCapture, type WriterCapture, type WriterTarget } from "../../packages/monkey-business/src/writer-controls.ts";
 import { validateCollectionResponseControl, encodeCollectionResponse, encodeCollectionResponseIdentity, decodeCollectionResponseIdentity, type CollectionResponseIdentity, type CollectionResponseControl } from "../../packages/monkey-business/src/collection-scenario.ts";
 import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "../../packages/monkey-business/src/output-controls.ts";
 import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
@@ -61,6 +62,11 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   const result = decodeTrustedCanonicalStep(transition.result);
   const projection = projectCanonical(result.state);
   const afterActions = decodeSharedValue(SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(event))));
+  decodeDriver({handled:true,actions:afterActions});
+  const departureFacts = readList(SharedEngine.writer_departures(state,transition.state,encodeSharedValue(encodeCanonicalEvent(event))),value=>{
+    const raw=decoder(Schema.Struct({$:Schema.Literal("WriterScenario.PhysicalRelease"),capture:Schema.Unknown,event:Schema.Unknown}))(decodeSharedValue(value));
+    return {capture:decodeWriterIssuedCapture(raw.capture),event:decodeDriverEvent(raw.event)};
+  });
   const raw = readRecord(transition.result);
   const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, x => x) : [];
   const cacheReleases = readList(SharedEngine.cache_removed(state, originalCommandList(commands)), value => decodeDriverEvent(decodeSharedValue(value)));
@@ -73,7 +79,8 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   // bridge key and its predecessor metadata from earlier transitions.
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
   const cacheFacts: readonly SharedCacheFact[] = [];
-  return { state: transition.state, result, afterActions, cacheReleases, cacheFacts };
+  const writerReleases=departureFacts.map(fact=>writerReleaseFact(state,encodeSharedValue(fact.capture),fact.event));
+  return { state: transition.state, result, afterActions, cacheReleases, cacheFacts, writerReleases };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
   sharedCheck(state);
@@ -656,4 +663,104 @@ export const commandSharedQuiet = (state: EngineState,event: CanonicalEvent,inde
   if (!command || sharedSourceEvents.get(state)!==event) throw new TypeError("missing original quiet command");
   return decodeDriver({handled:true,actions:decodeSharedValue(SharedEngine.quiet_command(state,command,
     encodeSharedValue(encodeCanonicalEvent(event)),BigInt(readNat(partition)),BigInt(readNat(now))))}).actions;
+};
+
+/** A source-owned queued trigger, not a caller-created writer ID. */
+export interface SharedWriterPending { readonly kind: "writerPending" }
+const writerPendingFacts = new WeakMap<SharedWriterPending,{ readonly raw:unknown; readonly owner:object; event?:CanonicalEvent }>();
+const consumedWriterPending = new WeakSet<SharedWriterPending>();
+const writerPreparedEnvelope = decoder(Schema.Struct({$:Schema.Literal("WriterPrepared"),state:Schema.Unknown,pending:Schema.Unknown,actions:Schema.Unknown}));
+const writerPendingOption = decoder(Schema.Union([
+  Schema.Struct({$:Schema.Literal("None")}),
+  Schema.Struct({$:Schema.Literal("Some"),value:Schema.Unknown}),
+]));
+const pendingWriterFact = (state:EngineState,capsule:SharedWriterPending) => {
+  sharedCheck(state);
+  const fact=writerPendingFacts.get(capsule);
+  if (!fact || fact.owner!==residentOf(state) || consumedWriterPending.has(capsule)) throw new TypeError("foreign or consumed original writer trigger");
+  return fact;
+};
+export const prepareSharedWriter = (state:EngineState,capture:WriterCapture) => {
+  sharedCheck(state);
+  const transition=writerPreparedEnvelope(SharedEngine.writer_prepare(state,encodeSharedValue(encodeWriterCapture(capture))));
+  const option=writerPendingOption(decodeSharedValue(transition.pending));
+  const raw=option.$==="Some" ? decodeWriterPending(option.value) : undefined;
+  const actions=decodeSharedValue(transition.actions);
+  decodeDriver({handled:true,actions});
+  // Entire capsule/action envelope must decode before retaining either state
+  // or its once-issued source provenance, including malformed late actions.
+  const next=retain(state,transition.state as EngineState);
+  const pending:SharedWriterPending|undefined=raw===undefined ? undefined : Object.freeze({kind:"writerPending" as const});
+  if (pending && raw) writerPendingFacts.set(pending,{raw:encodeSharedValue(raw),owner:residentOf(next)});
+  return {state:next,pending,actions};
+};
+export const claimSharedWriter = (state:EngineState,pending:SharedWriterPending,now:number):CanonicalEvent => {
+  const fact=pendingWriterFact(state,pending);
+  const event=freezeCanonicalData(decodeDriverEvent(decodeSharedValue(SharedEngine.writer_claim_event(state,fact.raw,BigInt(readNat(now))))));
+  fact.event=event;
+  return event;
+};
+export const afterSharedWriter = (state:EngineState,pending:SharedWriterPending,now:number) => {
+  const fact=pendingWriterFact(state,pending),event=sharedSourceEvents.get(state),commands=sharedCommands.get(state);
+  if (!event || event!==fact.event || !commands) throw new TypeError("missing original writer source transition");
+  const transition=SharedEngine.writer_feedback(state,fact.raw,encodeSharedValue(encodeCanonicalEvent(event)),originalCommandList(commands),BigInt(readNat(now)));
+  const originalTarget=readRecord(readRecord(fact.raw).facts).target;
+  const captureOption=writerPendingOption(decodeSharedValue(SharedEngine.writer_capture(transition.state,originalTarget)));
+  const capture=captureOption.$==="Some" ? decodeWriterIssuedCapture(captureOption.value) : undefined;
+  const actions=decodeDriver({handled:true,actions:decodeSharedValue(transition.actions)}).actions;
+  const changed=responseTransition(state,transition);
+  const writerReleases=actions.filter(action=>action.event.kind==="collectionExpireBackground" || action.event.kind==="collectionReleaseBackground")
+    .map(action=>({...writerReleaseFact(state,capture===undefined ? undefined : encodeSharedValue(capture),action.event,capture===undefined ? fact.raw : undefined),delay:action.delay}));
+  consumedWriterPending.add(pending);
+  return {...changed,writerReleases};
+};
+export const releaseSharedWriter = (state:EngineState,target:WriterTarget,now?:number) => {
+  sharedCheck(state);
+  const raw=now===undefined ? SharedEngine.writer_release(state,encodeSharedValue(encodeWriterTarget(target)))
+    : SharedEngine.writer_expire(state,encodeSharedValue(encodeWriterTarget(target)),BigInt(readNat(now)));
+  const option=writerPendingOption(decodeSharedValue(SharedEngine.writer_capture(state,encodeSharedValue(encodeWriterTarget(target)))));
+  const capture=option.$==="Some" ? decodeWriterIssuedCapture(option.value) : undefined;
+  const events=readList(raw,event=>decodeDriverEvent(decodeSharedValue(event)));
+  if (capture===undefined && events.length) throw new TypeError("missing original writer release capture");
+  return capture===undefined ? [] : events.map(event=>writerReleaseFact(state,encodeSharedValue(capture),event));
+};
+
+const writerAttemptEnvelope=decoder(Schema.Struct({$:Schema.Literal("WriterAttempt"),changed:Schema.Unknown,target:Schema.Unknown}));
+export const attemptSharedWriter=(state:EngineState,target:WriterTarget,now:number,currentBlock:boolean)=>{
+  sharedCheck(state);
+  const envelope=writerAttemptEnvelope(SharedEngine.writer_attempt(state,encodeSharedValue(encodeWriterTarget(target)),BigInt(readNat(now)),currentBlock));
+  const option=writerPendingOption(decodeSharedValue(envelope.target));
+  const responseTarget=option.$==="Some" ? decodeCollectionResponseIdentity((()=>{
+    const raw=readRecord(option.value);
+    const identity=decoder(Schema.Struct({$:Schema.Literal("CollectionScenario.Identity"),id:Nat,partition:Nat,lifetime:Nat,round:Nat}))(raw);
+    const {$: _tag,...fields}=identity;
+    return fields;
+  })()) : undefined;
+  const changed=responseTransition(state,envelope.changed as ReturnType<typeof SharedEngine.collection_response_open>);
+  return {...changed,target:responseTarget};
+};
+
+export interface SharedWriterRelease { readonly kind:"writerRelease" }
+const writerReleaseFacts=new WeakMap<SharedWriterRelease,{readonly capture:unknown;readonly pending:unknown;readonly event:CanonicalEvent;readonly owner:object}>();
+const consumedWriterReleases=new WeakSet<SharedWriterRelease>();
+const writerReleaseFact=(state:EngineState,capture:unknown,event:CanonicalEvent,pending:unknown=undefined)=>{
+  const receipt:SharedWriterRelease=Object.freeze({kind:"writerRelease" as const});
+  const frozen=freezeCanonicalData(event);
+  writerReleaseFacts.set(receipt,{capture,pending,event:frozen,owner:residentOf(state)});
+  return {event:frozen,receipt};
+};
+/** Read the original receipt's owner decision without consuming its custody. */
+export const peekSharedWriterRelease=(state:EngineState,receipt:SharedWriterRelease,now:number):CanonicalEvent|undefined=>{
+  sharedCheck(state);
+  const fact=writerReleaseFacts.get(receipt);
+  if (!fact || fact.owner!==residentOf(state) || consumedWriterReleases.has(receipt)) throw new TypeError("foreign or consumed original writer release");
+  const raw=fact.pending===undefined ? SharedEngine.writer_release_delivery(state,fact.capture,encodeSharedValue(encodeCanonicalEvent(fact.event)),BigInt(readNat(now)))
+    : SharedEngine.writer_unissued_release_delivery(state,fact.pending,BigInt(readNat(now)));
+  const option=writerPendingOption(decodeSharedValue(raw));
+  return option.$==="Some" ? decodeDriverEvent(option.value) : undefined;
+};
+export const deliverSharedWriterRelease=(state:EngineState,receipt:SharedWriterRelease,now:number):CanonicalEvent|undefined=>{
+  const event=peekSharedWriterRelease(state,receipt,now);
+  consumedWriterReleases.add(receipt);
+  return event;
 };

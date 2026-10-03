@@ -8,6 +8,16 @@ declare const Engine: {
  quiet_command(state: EngineState,command: unknown,event: unknown,partition: bigint,now: bigint): unknown;
  quiet_event(state: EngineState,event: unknown,nativeIdle: boolean,stopAbsent: boolean): unknown;
  quiet_after(state: EngineState,event: unknown,partition: bigint,now: bigint,window: bigint,nativeIdle: boolean,stopAbsent: boolean): unknown;
+ writer_unissued_release_delivery(state:EngineState,pending:unknown,now:bigint):unknown;
+ writer_capture(state:EngineState,target:unknown):unknown;
+ writer_departures(before:EngineState,state:EngineState,event:unknown):unknown;
+ writer_release_delivery(state:EngineState,capture:unknown,event:unknown,now:bigint):unknown;
+ writer_attempt(state:EngineState,target:unknown,now:bigint,block:boolean):{ $:"WriterAttempt"; changed:ResponseTransition; target:unknown };
+ writer_prepare(state:EngineState,fact:unknown):{ $:"WriterPrepared";state:EngineState;pending:unknown;actions:unknown };
+ writer_claim_event(state:EngineState,pending:unknown,now:bigint):unknown;
+ writer_feedback(state:EngineState,pending:unknown,event:unknown,commands:unknown,now:bigint):ResponseTransition;
+ writer_release(state:EngineState,target:unknown):unknown;
+ writer_expire(state:EngineState,target:unknown,now:bigint):unknown;
  collection_response_delivery_valid(state:EngineState,target:unknown,now:bigint,event:unknown):unknown;
  collection_response_open(state:EngineState,response:unknown):ResponseTransition;
  collection_response_close(state:EngineState,id:bigint,p:bigint,l:bigint,r:bigint):ResponseTransition;
