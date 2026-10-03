@@ -8,7 +8,7 @@
 
 ## Owner goals and sequence
 
-The owner wants to learn how to find imbalance and eventually balance towers, workload difficulty and investment choices. Development-time automatic parameter search is the intended direction; adaptive difficulty during play is a separate feature and is not requested. The present task ranks teaching mechanisms and prepares specifications, not implementation or new balance trials.
+The owner wants to learn how to find imbalance and eventually balance towers, workload difficulty and investment choices. Development-time automatic parameter search is the intended direction; adaptive difficulty during play is a separate feature and is not requested. The present task ranks teaching mechanisms and prepares specifications, not implementation or new balance trials. The owner clarified that Monkey Business is currently being rewritten in Bend: finish the specification now, and wait for its required public scenario/action capabilities before implementing the laboratory.
 
 The seven existing towers and their abilities are candidates. They are not a retention requirement. A laboratory must allow an enabled subset, parameter changes, ability replacement and removal, and later changes to the game's principles without creating a second business engine. The correct research outcome may be "replace this ability", not merely a numerical nerf.
 
