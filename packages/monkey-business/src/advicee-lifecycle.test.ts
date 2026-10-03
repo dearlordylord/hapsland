@@ -146,7 +146,7 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
 });
 
 it.each([1, 2] as const)("resumed lifetime after %i reaches Finish and further continuous rounds", previousLifetime => {
-  const original = scenario();
+  const { outcome: _outcome, outcomeWeights: _weights, ...original } = scenario();
   const run = createRun({ ...original, outcome: "clear", sessions: advicees.map((agent, index) => ({
     agent, seed: index + 11, editIntervalMs: 10, variationMs: 0, editsPerTask: 1,
     taskPauseMs: 10, adviceResponse: "ignore", bytes: index ? 20 : 10, unitBytes: [index ? 7 : 5],

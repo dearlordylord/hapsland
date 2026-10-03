@@ -62,9 +62,10 @@ The #180 workload owner stores each advicee's Session settings/stream and future
 PRE duration alongside the actual business state. Next/task/finish/advice,
 pace, bursts, sizes and suspension all execute in `Workload.bend`. Suspension
 invalidates recurring arrivals only; issued finite work, repairs and bursts keep
-their committed facts. `pre_issue` and `permit_actions` share the captured PRE
-clock, duration, original permit deadline and early/equality/late POST schedule
-between the public host and native scenarios. The scheduler owns absolute time;
+their committed facts. `PermitScenario.bend` owns captured PRE facts through
+`permit_issue`, `permit_issued` and `permit_consumed`, preserving the original
+clock, duration, permit deadline and early/equality/late POST schedule between
+the public host and native scenarios. The scheduler owns absolute time;
 metadata-only task transitions can advance it without another business frame.
 
 `Random.bend` owns u48 root-seed folding, named outcome/fault streams and outcome
