@@ -57,12 +57,10 @@ export const cleanupPiFixtures = async () => {
     const prepared = preparedResidents.get(root);
     preparedResidents.delete(root);
     if (prepared !== undefined) await stopPreparedResident(prepared);
-    else {
-      try {
-        const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
-        process.kill(owner.pid, "SIGTERM");
-      } catch { /* A refused event need not start the resident. */ }
-    }
+    try {
+      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
+      if (owner.pid !== prepared?.pid) process.kill(owner.pid, "SIGTERM");
+    } catch { /* A refused event need not start the resident. */ }
     rmSync(root, { recursive: true, force: true });
   }
 };
