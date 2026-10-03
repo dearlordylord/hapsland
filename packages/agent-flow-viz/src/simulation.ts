@@ -481,7 +481,7 @@ export const actSimulation = (
     if (notice) {
       if (!run || replaySource) return { ...model, feedback: "Start a live resident run before applying notice controls." };
       run.applyControl(notice);
-      return { ...model, selected: -1, revision: model.revision + 1, feedback: `Requested ${notice.kind} at ${run.now} virtual ms.` };
+      return { ...model, selected: -1, revision: model.revision + 1, feedback: notice.kind === "expiryProfile" ? "Updated lifetimes for newly retained notices." : `Requested notice action at ${run.now} virtual ms.` };
     }
     const delivery = callbackAction(action);
     if (delivery && run) {

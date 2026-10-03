@@ -1,4 +1,5 @@
 import Base
+import ./ExpiryScenario.bend as Expiry
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/Ledger.bend as Ledger
 import ../agent-flow-bend/CollectionState.bend as Collection
@@ -123,20 +124,20 @@ def acknowledge(key: Nat) -> Canonical.CanonicalEvent:
 
 # Clock facts are retained by the scenario, separate from Canonical policy.
 type Clock is Data:
-  Clock{partition: Nat, group: Nat, key: Nat, next_allowed: Nat}
+  Clock{partition: Nat, group: Nat, key: Nat, next_allowed: Nat, expiry: Maybe<&2, Expiry.NoticeClock>}
 
 def remaining(found: Maybe<&2, Clock>, now: Nat) -> Maybe<&2, Nat>:
   match found:
     case None{}: None{}
-    case Some{Clock{_, _, _, next_allowed}}: Some{(next_allowed - now : Nat)}
+    case Some{Clock{_, _, _, next_allowed, _}}: Some{(next_allowed - now : Nat)}
 
 def clock_key(clock: Clock) -> Nat:
   match clock:
-    case Clock{_, _, key, _}: key
+    case Clock{_, _, key, _, _}: key
 
 def clock_owned(clock: Clock, partition: Nat, group: Nat) -> Bool:
   match clock:
-    case Clock{owner, delivery, _, _}: Nat.is_eq(owner, partition) && Nat.is_eq(delivery, group)
+    case Clock{owner, delivery, _, _, _}: Nat.is_eq(owner, partition) && Nat.is_eq(delivery, group)
 
 def find_clock(clocks: List<&2, Clock>, +key: Nat) -> Maybe<&2, Clock>:
   match clocks:
@@ -176,10 +177,19 @@ def without_clock(clocks: List<&2, Clock>, +key: Nat) -> List<&2, Clock>:
     case []: []
     case +head <> tail: keep_clock(Nat.is_eq(clock_key(head), key), head, without_clock(tail, key))
 
-def clock_refreshed(clocks: List<&2, Clock>, scope: Scope, +key: Nat, now: Nat, refresh: Bool) -> List<&2, Clock>:
+def clock_expiry(found: Maybe<&2, Clock>) -> Maybe<&2, Expiry.NoticeClock>:
+  match found:
+    case None{}: None{}
+    case Some{Clock{_,_,_,_,expiry}}: expiry
+
+def refreshed_clock(partition: Nat, group: Nat, key: Nat, now: Nat,
+    cooldown: Nat, existing: Maybe<&2, Clock>) -> Clock:
+  Clock{partition,group,key,(now + cooldown : Nat),clock_expiry(existing)}
+
+def clock_refreshed(+clocks: List<&2, Clock>, scope: Scope, +key: Nat, now: Nat, refresh: Bool) -> List<&2, Clock>:
   match scope refresh:
     case Scope{partition, group, _, _, _, cooldown, _} True{}:
-      Clock{partition, group, key, (now + cooldown : Nat)} <> without_clock(clocks, key)
+      refreshed_clock(partition,group,key,now,cooldown,find_clock(clocks,key)) <> without_clock(clocks,key)
     case _ False{}: clocks
 
 def clock_feedback(clocks: List<&2, Clock>, scope: Scope, key: Nat, now: Nat,
@@ -226,3 +236,100 @@ def clocks_pruned(clocks: List<&2, Clock>, key: Nat, dropped: Bool) -> List<&2, 
 
 def prune_clocks(clocks: List<&2, Clock>, key: Nat, commands: List<&2, Canonical.Command>) -> List<&2, Clock>:
   clocks_pruned(clocks, key, dropped_key(commands))
+
+# Only an actual new pending record starts a pending lifetime. Merge/KeepLeased
+# refresh cooldown but retain both original pending and lease facts.
+def new_pending(commands: List<&2, Canonical.Command>) -> Bool:
+  match commands:
+    case []: False{}
+    case Canonical.NoticeCommitted{} <> _: True{}
+    case Canonical.NoticeCreatePending{_} <> _: True{}
+    case _ <> tail: new_pending(tail)
+
+def refreshed_expiry(existing: Maybe<&2, Expiry.NoticeClock>, after: Canonical.State,
+    key: Nat, now: Nat, profile: Expiry.Profile, created: Bool) -> Maybe<&2, Expiry.NoticeClock>:
+  match existing profile created:
+    case _ +profile True{}: Expiry.notice_capture(after,key,now,profile)
+    case Some{clock} Expiry.Profile{_,_,cooldown} False{}:
+      Some{Expiry.cooldown_refreshed(clock,now,cooldown)}
+    case None{} _ False{}: None{}
+
+def expiry_clock_feedback(clock: Clock, after: Canonical.State, now: Nat,
+    profile: Expiry.Profile, commands: List<&2, Canonical.Command>) -> Clock:
+  match clock:
+    case Clock{partition,group,+key,next_allowed,expiry}:
+      Clock{partition,group,key,next_allowed,
+        refreshed_expiry(expiry,after,key,now,profile,new_pending(commands))}
+
+def expiry_feedback_entries(clocks: List<&2, Clock>, +key: Nat, +after: Canonical.State,
+    +now: Nat, +profile: Expiry.Profile, +commands: List<&2, Canonical.Command>) -> List<&2, Clock>:
+  match clocks:
+    case []: []
+    case +clock <> tail:
+      Bool.pick(Clock,Nat.is_eq(clock_key(clock),key),
+        expiry_clock_feedback(clock,after,now,profile,commands),clock) <>
+        expiry_feedback_entries(tail,key,after,now,profile,commands)
+
+def expiry_refreshed(clocks: List<&2, Clock>, key: Nat, after: Canonical.State,
+    now: Nat, profile: Expiry.Profile, commands: List<&2, Canonical.Command>,
+    accepted: Bool) -> List<&2, Clock>:
+  match accepted:
+    case True{}: expiry_feedback_entries(clocks,key,after,now,profile,commands)
+    case False{}: clocks
+
+def expiry_feedback(clocks: List<&2, Clock>, key: Nat, after: Canonical.State,
+    now: Nat, profile: Expiry.Profile, +commands: List<&2, Canonical.Command>) -> List<&2, Clock>:
+  expiry_refreshed(clocks,key,after,now,profile,commands,refresh_commands(commands))
+
+def collection_check(expiry: Maybe<&2, Expiry.NoticeClock>, before: Canonical.State,
+    partition: Nat, group: Nat, now: Nat) -> List<&2, Canonical.CanonicalEvent>:
+  match expiry:
+    case None{}: []
+    case Some{clock}: Expiry.scoped_notice_check(before,clock,partition,group,now)
+
+def collection_prune(clocks: List<&2, Clock>, +before: Canonical.State,
+    +partition: Nat, +group: Nat, +now: Nat) -> List<&2, Canonical.CanonicalEvent>:
+  match clocks:
+    case []: []
+    case Clock{_,_,_,_,expiry} <> tail:
+      List.append(&2,Canonical.CanonicalEvent,
+        collection_check(expiry,before,partition,group,now),
+        collection_prune(tail,before,partition,group,now))
+
+def lease_accepted(commands: List<&2, Canonical.Command>) -> Bool:
+  match commands:
+    case []: False{}
+    case Canonical.NoticeLeased{} <> _: True{}
+    case _ <> tail: lease_accepted(tail)
+
+# Repeating the leased fact is not the production's separate renew operation.
+def was_leased(record: Maybe<&2, Notices.Record>) -> Bool:
+  match record:
+    case Some{Notices.Record{_,_,_,_,_,pending}}: Notices.pending_leased(pending)
+    case None{}: False{}
+
+def new_lease(before: Canonical.State, key: Nat,
+    commands: List<&2, Canonical.Command>) -> Bool:
+  lease_accepted(commands) && Bool.not(was_leased(Notices.find_record(key,
+    Notices.records_of(Collection.notice_state(Canonical.collection_of(before))))))
+
+def leased_expiry(expiry: Maybe<&2, Expiry.NoticeClock>, now: Nat,
+    duration: Nat, accepted: Bool) -> Maybe<&2, Expiry.NoticeClock>:
+  match expiry accepted:
+    case Some{clock} True{}: Some{Expiry.lease_captured(clock,now,duration)}
+    case +existing _: existing
+
+def lease_clock_feedback(clock: Clock, now: Nat, duration: Nat,
+    accepted: Bool) -> Clock:
+  match clock:
+    case Clock{partition,group,key,next_allowed,expiry}:
+      Clock{partition,group,key,next_allowed,leased_expiry(expiry,now,duration,accepted)}
+
+def lease_feedback(clocks: List<&2, Clock>, +key: Nat, +now: Nat,
+    +duration: Nat, +accepted: Bool) -> List<&2, Clock>:
+  match clocks:
+    case []: []
+    case +clock <> tail:
+      Bool.pick(Clock,Nat.is_eq(clock_key(clock),key),
+        lease_clock_feedback(clock,now,duration,accepted),clock) <>
+        lease_feedback(tail,key,now,duration,accepted)

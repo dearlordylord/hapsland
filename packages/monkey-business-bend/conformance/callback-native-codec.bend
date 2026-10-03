@@ -21,6 +21,7 @@ import ../../agent-flow-bend/DeliveryState.bend as DeliveryState
 import ../../agent-flow-bend/Dispatch.bend as Dispatch
 import ../Driver.bend as Driver
 import ../../agent-flow-bend/EditHistory.bend as EditHistory
+import ../ExpiryScenario.bend as ExpiryScenario
 import ../FreshnessScenario.bend as FreshnessScenario
 import ../../agent-flow-bend/Handoff.bend as Handoff
 import ../../agent-flow-bend/ImportGraph.bend as ImportGraph
@@ -1580,9 +1581,20 @@ def noticescenario_state(values: List<&2,NoticeScenario.State>, suffix: List<&2,
     case NoticeScenario.State{v0} <> Nil{}: 0n <> list_noticescenario_pending([v0],suffix)
     case _: 999999n <> suffix
 
+def expiryscenario_noticeclock(values: List<&2,ExpiryScenario.NoticeClock>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case ExpiryScenario.NoticeClock{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> v7 <> v8 <> suffix
+    case _: 999999n <> suffix
+
+def maybe_expiryscenario_noticeclock(values: List<&2,Maybe<&2,ExpiryScenario.NoticeClock>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> expiryscenario_noticeclock([value],suffix)
+    case _: 999999n <> suffix
+
 def noticescenario_clock(values: List<&2,NoticeScenario.Clock>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case NoticeScenario.Clock{v0,v1,v2,v3} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> suffix
+    case NoticeScenario.Clock{v0,v1,v2,v3,v4} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> maybe_expiryscenario_noticeclock([v4],suffix)
     case _: 999999n <> suffix
 
 def list_noticescenario_clock_items(values: List<&2,List<&2,NoticeScenario.Clock>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

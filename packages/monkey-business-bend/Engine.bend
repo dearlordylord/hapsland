@@ -15,6 +15,7 @@ import ./CollectorScenario.bend as CollectorScenario
 import ./OutputScenario.bend as OutputScenario
 import ./OutputCompletion.bend as OutputCompletion
 import ./NoticeScenario.bend as NoticeScenario
+import ./ExpiryScenario.bend as ExpiryScenario
 import ./RuntimeScenarios.bend as RuntimeScenarios
 import ./AdviceeLifecycle.bend as AdviceeLifecycle
 import ./AdviceeLifecycleCleanup.bend as AdviceeLifecycleCleanup
@@ -773,27 +774,35 @@ def notice_followed(state: Types.State, followup: NoticeScenario.Followup) -> No
     case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,_,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}} NoticeScenario.Followup{notices,events}:
       NoticeTransition{Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}},events}
 
-def notice_clocked(state: Types.State, scope: NoticeScenario.Scope, key: Nat, now: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
+def notice_clocked(state: Types.State, scope: NoticeScenario.Scope, +key: Nat, +now: Nat, +commands: List<&2,Canonical.Command>, profile: ExpiryScenario.Profile) -> Types.State:
   match state:
-    case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}}:
-      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.clock_feedback(clocks,scope,key,now,commands),freshness,sources,sharing,cache,collection,writers,background_collection,stop}}
+    case Types.State{+canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}}:
+      Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.expiry_feedback(NoticeScenario.clock_feedback(clocks,scope,key,now,commands),key,canonical,now,profile,commands),freshness,sources,sharing,cache,collection,writers,background_collection,stop}}
 
 def notice_pruned(state: Types.State, key: Nat, commands: List<&2,Canonical.Command>) -> Types.State:
   match state:
     case Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}}:
       Types.State{canonical,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.prune_clocks(clocks,key,commands),freshness,sources,sharing,cache,collection,writers,background_collection,stop}}
 
+def notice_lease_clocked(before: Types.State, state: Types.State, +key: Nat, now: Nat,
+    commands: List<&2, Canonical.Command>, profile: ExpiryScenario.Profile) -> Types.State:
+  match state profile:
+    case Types.State{core,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,clocks,freshness,sources,sharing,cache,collection,writers,background_collection,stop}} ExpiryScenario.Profile{_,duration,_}:
+      Types.State{core,graphs,scheduler,workloads,random,advicees,credentials,opening,retiring,lifecycles,preparations,activity_scopes,RuntimeScenarios.State{callbacks,notices,NoticeScenario.lease_feedback(clocks,key,now,duration,NoticeScenario.new_lease(canonical(before),key,commands)),freshness,sources,sharing,cache,collection,writers,background_collection,stop}}
+
 # Called with this event's actual accepted commands and captured exercise scope.
 # The before state is required for releasing only a genuinely dropped key.
 def notice_after(before: Types.State, +state: Types.State, +scope: NoticeScenario.Scope,
-    event: Canonical.CanonicalEvent, +commands: List<&2,Canonical.Command>, +now: Nat) -> NoticeTransition:
+    event: Canonical.CanonicalEvent, +commands: List<&2,Canonical.Command>, +now: Nat, profile: ExpiryScenario.Profile) -> NoticeTransition:
   match event:
     case Canonical.NoticeAdvance{+key,_,_,_,sequence,_}:
-      notice_followed(notice_clocked(state,scope,key,now,commands),RuntimeScenarios.notice_requested(scenarios(state),scope,key,sequence,commands,now))
+      notice_followed(notice_clocked(state,scope,key,now,commands,profile),RuntimeScenarios.notice_requested(scenarios(state),scope,key,sequence,commands,now))
     case Canonical.ReserveCapacity{partition,_,Ledger.OperationalNotice{}}:
       notice_followed(state,RuntimeScenarios.notice_reserved(scenarios(state),partition,commands))
     case Canonical.NoticeCommit{key,_,_,reservation,_,_,_}:
-      NoticeTransition{notice_clocked(state,scope,key,now,commands),NoticeScenario.commit_feedback(reservation,commands)}
+      NoticeTransition{notice_clocked(state,scope,key,now,commands,profile),NoticeScenario.commit_feedback(reservation,commands)}
+    case Canonical.NoticeLease{key,True{}}:
+      NoticeTransition{notice_lease_clocked(before,state,key,now,commands,profile),Nil{}}
     case Canonical.NoticePrune{+key,_,_,_,_}:
       NoticeTransition{notice_pruned(state,key,commands),NoticeScenario.prune_feedback(canonical(before),key,commands)}
     case _: NoticeTransition{state,Nil{}}
@@ -1388,3 +1397,12 @@ def stop_command_valid(valid: Bool, +state: Types.State, event: Canonical.Canoni
 def stop_command(+state: Types.State, event: Canonical.CanonicalEvent, command: Canonical.Command,
     +context: Driver.Context, facts: StopScenario.CommandFacts) -> StopHandled:
   stop_command_valid(stop_active(state,collector_partition(context)),state,event,command,context,facts)
+
+
+# Sample expiry facts before ordinary collection; returned events still pass
+# through the same Canonical step and notice feedback as every other event.
+def notice_collection_prune(state: Types.State, partition: Nat, group: Nat,
+    now: Nat) -> List<&2, Canonical.CanonicalEvent>:
+  match state:
+    case Types.State{canonical,_,_,_,_,_,_,_,_,_,_,_,RuntimeScenarios.State{_,_,clocks,_,_,_,_,_,_,_,_}}:
+      NoticeScenario.collection_prune(clocks,canonical,partition,group,now)

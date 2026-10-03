@@ -20,6 +20,20 @@ try {
   assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '0 / 32');
   assert.match(await page.locator('.stage-preparation-total').first().textContent(),/0 \/ 8/);
   assert.equal(await page.locator('.admission-permit-global').first().getAttribute('aria-label'), 'Edit permits, all agents: 0 of 64');
+  const noticesPanel = page.getByText('Operational notices', { exact: true }).locator('..');
+  await noticesPanel.locator('summary').click(); await settle();
+  await click('Use short notice lifetimes');
+  await click('Export replay');
+  const shortLifetimes = JSON.parse(await page.getByLabel('Replay JSON', { exact: true }).inputValue());
+  assert.deepEqual(shortLifetimes.controls.at(-1).control,
+    { kind: 'expiryProfile', profile: { pendingMs: 100, leaseMs: 20, cooldownMs: 200 } });
+  await click('Use ordinary notice lifetimes');
+  await click('Export replay');
+  const ordinaryLifetimes = JSON.parse(await page.getByLabel('Replay JSON', { exact: true }).inputValue());
+  assert.deepEqual(ordinaryLifetimes.controls.at(-1).control,
+    { kind: 'expiryProfile', profile: { pendingMs: 600000, leaseMs: 30000, cooldownMs: 60000 } });
+  assert.equal(ordinaryLifetimes.endpoint.eventCount, 0);
+  await noticesPanel.locator('summary').click(); await settle();
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
   await click('Focus selected advicee');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-current-flat-1512.png'});

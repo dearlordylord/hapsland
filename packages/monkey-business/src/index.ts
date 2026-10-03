@@ -2,6 +2,7 @@ import { wakeStopFacts, type StopCapture } from "./stop-codec.ts";
 import type { WriterControl, WriterReport } from "./writer-controls.ts";
 export * from "./writer-controls.ts";
 import type { SharedWriterPending, SharedWriterRelease } from "../../../src/canonical/simulation-adapter.ts";
+import { encodeExpiryProfile, validateExpiryProfile, type ExpiryProfile } from "./expiry-controls.ts";
 import { type CollectionResponseControl, type CollectionResponseIdentity, type CollectionResponseReport } from "./collection-scenario.ts";
 import { initialOutputActions, decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
 export * from "./output-controls.ts";
@@ -182,6 +183,7 @@ export const AdvanceOptionsSchema = Schema.Struct({
 export type AdvanceOptions = typeof AdvanceOptionsSchema.Type;
 const decodeAdvanceOptions = decoder(AdvanceOptionsSchema);
 export type RunConfig = {
+  readonly expiryProfile?: ExpiryProfile;
   readonly editPermitLimits?: Partial<PermitLimits>;
   readonly permitProfile?: PermitProfile;
   readonly graphLimits?: GraphLimits;
@@ -420,6 +422,7 @@ export class Run {
   private outcomeWeights: OutcomeWeights;
   private environment: EnvironmentProfile;
   private outputProfile: OutputProfile;
+  private expiryProfile: ExpiryProfile;
   private fileTrees: FileTreeProfile;
   private graphLimits: GraphLimits;
   private permitLimits: PermitLimits;
@@ -450,6 +453,7 @@ export class Run {
     this.graphLimits = validateGraphLimits(config.graphLimits ?? GRAPH_LIMIT_CEILINGS);
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
+    this.expiryProfile = validateExpiryProfile(config.expiryProfile ?? { pendingMs: config.adviceLifetime ?? 600000, leaseMs: config.outputProfile?.leaseMs ?? 30000, cooldownMs: config.resourceScenarios?.cooldownMs ?? 60000 });
     this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
@@ -669,13 +673,23 @@ export class Run {
         ? this.core.leaveSharing({ $: "FreshnessScenario.Scope", ...value.target })
         : this.core.leaveAllSharing(value.partition, value.lifetime);
       for (const event of readBendList(departure.events, decodeDriverEvent, 2048)) this.event(partition, event);
+    } else if (value.kind === "expiryProfile") {
+      this.expiryProfile = value.profile;
     } else if (value.kind === "noticeCollect") {
+      const c = this.resourceScenarios?.config;
+      const scope = encodeNoticeScope({ partition: value.partition, group: value.group, key: 900000,
+        maximumKeys: c?.noticeMaximumKeys ?? 8, reservationBytes: c?.noticeReservationBytes ?? 128,
+        cooldownMs: this.expiryProfile.cooldownMs, startAt: this.clock });
+      for (const raw of this.core.noticePrune(value.partition,value.group,this.clock)) {
+        this.event(value.partition,decodeDriverEvent(raw));
+        this.scheduled.get(this.order - 1)!.noticeScope = scope;
+      }
       this.event(value.partition, { kind: "noticeSelect", partition: value.partition, group: value.group,
         composed: value.composed, authorityBound: value.authorityBound, allowed: [...value.allowed] });
     } else if (value.kind === "noticeFailure" || value.kind === "noticeLease" || value.kind === "noticeAcknowledge") {
       const c = this.resourceScenarios?.config;
       const scope = encodeNoticeScope({ ...value.target, maximumKeys: c?.noticeMaximumKeys ?? 8,
-        reservationBytes: c?.noticeReservationBytes ?? 128, cooldownMs: c?.cooldownMs ?? 60000, startAt: this.clock });
+        reservationBytes: c?.noticeReservationBytes ?? 128, cooldownMs: this.expiryProfile.cooldownMs, startAt: this.clock });
       const raw = readRecord(value.kind === "noticeFailure" ? this.core.noticeFailure(scope,this.clock,value.target.key,this.timelineOrder)
         : this.core.noticeOwned(value.target.partition,value.target.group,value.target.key,value.kind === "noticeLease" ? "lease" : "acknowledge"));
       if (raw.$ === "Some") {
@@ -1133,7 +1147,7 @@ export class Run {
       const command = result.commands.find(c => c.kind === "collectionFits" || c.kind === "collectionLimited");
       if (command) Object.assign(this.metadata, { encodedOutput: { ...this.metadata.encodedOutput!, decision: command.kind === "collectionFits" ? "fits" : "limited" } });
     }
-    if (item.noticeScope) for (const followup of this.core.noticeAfter(item.noticeScope,event,this.clock)) {
+    if (item.noticeScope) for (const followup of this.core.noticeAfter(item.noticeScope,event,this.clock,encodeExpiryProfile(this.expiryProfile))) {
       emit(decodeDriverEvent(followup));
       this.scheduled.get(this.order - 1)!.noticeScope = item.noticeScope;
     }

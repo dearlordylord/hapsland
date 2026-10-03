@@ -423,13 +423,18 @@ export const deliverSharedOutput = (receipt: object, now: number) => {
 };
 
 export const sharedNoticeExercise = (scope: unknown) => readList(decodeSharedValue(SharedEngine.notice_exercise(encodeSharedValue(scope))), readRecord);
-export const afterSharedNotice = (state: EngineState, scope: unknown, event: CanonicalEvent, now: number) => {
+export const afterSharedNotice = (state: EngineState, scope: unknown, event: CanonicalEvent, now: number, profile: unknown) => {
   sharedCheck(state);
   const before = sharedPredecessors.get(state), commands = sharedCommands.get(state);
   if (!before || !commands) throw new TypeError("missing actual notice feedback");
   const transition = SharedEngine.notice_after(before, state, encodeSharedValue(scope), encodeSharedValue(encodeCanonicalEvent(event)),
-    originalCommandList(commands), BigInt(readNat(now)));
+    originalCommandList(commands), BigInt(readNat(now)), encodeSharedValue(profile));
   return { state: retain(state, transition.state), events: readList(decodeSharedValue(transition.events), x => x) };
+};
+export const pruneSharedNotices = (state: EngineState, partition: number, group: number, now: number) => {
+  sharedCheck(state);
+  return readList(decodeSharedValue(SharedEngine.notice_collection_prune(state,
+    BigInt(readNat(partition)), BigInt(readNat(group)), BigInt(readNat(now)))), x => x);
 };
 export const suppliedSharedNotice = (state: EngineState, scope: unknown, now: number, key: number, sequence: number) => {
   sharedCheck(state);

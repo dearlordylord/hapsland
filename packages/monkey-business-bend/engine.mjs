@@ -21134,6 +21134,169 @@ function $OutputCompletion$delivered_fact$(_fact_0, _now_0) {
   }
 }
 
+function $ExpiryScenario$notice_check$(_clock_0, _now_0, _excepted_0) {
+  const _key_0 = _clock_0["key"];
+  const _retained_at_0 = _clock_0["retained_at"];
+  const _pending_duration_0 = _clock_0["pending_duration"];
+  const _lease_started_0 = _clock_0["lease_started"];
+  const _lease_duration_0 = _clock_0["lease_duration"];
+  const _cooldown_started_0 = _clock_0["cooldown_started"];
+  const _cooldown_duration_0 = _clock_0["cooldown_duration"];
+  return {$: "Canonical.NoticePrune", "key": _key_0, "lease_expired": ($$$$047agent$045flow$045bend$047Collection$expired$((_now_0 < _lease_started_0 ? 0 : _now_0 - _lease_started_0), _lease_duration_0)), "pending_expired": ($$$$047agent$045flow$045bend$047Collection$expired$((_now_0 < _retained_at_0 ? 0 : _now_0 - _retained_at_0), _pending_duration_0)), "excepted": _excepted_0, "cooldown_expired": ($$$$047agent$045flow$045bend$047Collection$expired$((_now_0 < _cooldown_started_0 ? 0 : _now_0 - _cooldown_started_0), _cooldown_duration_0))};
+}
+
+function $ExpiryScenario$key_dropped$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticePruned") {
+          const _t_1 = _t_0["drop_key"];
+          if (_t_1) {
+            return true;
+          } else {
+            const __3 = _commands_0["tail"];
+            $0 = __3;
+            continue;
+          }
+        } else if (_t_0.$ === "Canonical.NoticeDropped") {
+          return true;
+        } else {
+          const __5 = _commands_0["tail"];
+          $0 = __5;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $ExpiryScenario$notice_release$(_record_0, _partition_0, _group_0, _dropped_0) {
+  if (_record_0.$ === "Some") {
+    const _t_0 = _record_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _delivery_0 = _t_0["group"];
+    const _reservation_0 = _t_0["reservation"];
+    if (_dropped_0) {
+      return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_delivery_0, _group_0)))), {$: "Con", "head": {$: "Canonical.ReleaseCapacity", "reservation": _reservation_0}, "tail": {$: "Nil"}}, {$: "Nil"});
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $ExpiryScenario$notice_feedback$(_before_0, _clock_0, _commands_0) {
+  const _partition_0 = _clock_0["partition"];
+  const _group_0 = _clock_0["group"];
+  const _key_0 = _clock_0["key"];
+  return $ExpiryScenario$notice_release$(($$$$047agent$045flow$045bend$047NoticeState$find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$records_of$(($$$$047agent$045flow$045bend$047CollectionState$notice_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_before_0)))))))), _partition_0, _group_0, ($ExpiryScenario$key_dropped$(_commands_0)));
+}
+
+function $ExpiryScenario$notice_owned$(_record_0, _partition_0, _group_0) {
+  if (_record_0.$ === "None") {
+    return false;
+  } else {
+    const _t_0 = _record_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _delivery_0 = _t_0["group"];
+    return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_delivery_0, _group_0)));
+  }
+}
+
+function $ExpiryScenario$notice_sampled$(_owned_0, _clock_0, _now_0, _excepted_0) {
+  if (!_owned_0) {
+    return {$: "Nil"};
+  } else {
+    return {$: "Con", "head": ($ExpiryScenario$notice_check$(_clock_0, _now_0, _excepted_0)), "tail": {$: "Nil"}};
+  }
+}
+
+function $ExpiryScenario$notice_sample$(_state_0, _clock_0, _now_0, _excepted_0) {
+  const _partition_0 = _clock_0["partition"];
+  const _group_0 = _clock_0["group"];
+  const _key_0 = _clock_0["key"];
+  const __0 = _clock_0["retained_at"];
+  const __1 = _clock_0["pending_duration"];
+  const __2 = _clock_0["lease_started"];
+  const __3 = _clock_0["lease_duration"];
+  const __4 = _clock_0["cooldown_started"];
+  const __5 = _clock_0["cooldown_duration"];
+  return $ExpiryScenario$notice_sampled$(($ExpiryScenario$notice_owned$(($$$$047agent$045flow$045bend$047NoticeState$find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$records_of$(($$$$047agent$045flow$045bend$047CollectionState$notice_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_state_0)))))))), _partition_0, _group_0)), {$: "ExpiryScenario.NoticeClock", "partition": _partition_0, "group": _group_0, "key": _key_0, "retained_at": __0, "pending_duration": __1, "lease_started": __2, "lease_duration": __3, "cooldown_started": __4, "cooldown_duration": __5}, _now_0, _excepted_0);
+}
+
+function $ExpiryScenario$fresh_notice$(_record_0, _key_0, _now_0, _profile_0) {
+  if (_record_0.$ === "Some") {
+    const _t_0 = _record_0["value"];
+    const _partition_0 = _t_0["partition"];
+    const _group_0 = _t_0["group"];
+    const _t_1 = _t_0["pending"];
+    if (_t_1.$ === "Some") {
+      const _pending_duration_0 = _profile_0["pending_duration"];
+      const _lease_duration_0 = _profile_0["lease_duration"];
+      const _cooldown_duration_0 = _profile_0["cooldown_duration"];
+      return {$: "Some", "value": {$: "ExpiryScenario.NoticeClock", "partition": _partition_0, "group": _group_0, "key": _key_0, "retained_at": _now_0, "pending_duration": _pending_duration_0, "lease_started": _now_0, "lease_duration": _lease_duration_0, "cooldown_started": _now_0, "cooldown_duration": _cooldown_duration_0}};
+    } else {
+      return {$: "None"};
+    }
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $ExpiryScenario$notice_capture$(_after_0, _key_0, _now_0, _profile_0) {
+  return $ExpiryScenario$fresh_notice$(($$$$047agent$045flow$045bend$047NoticeState$find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$records_of$(($$$$047agent$045flow$045bend$047CollectionState$notice_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_after_0)))))))), _key_0, _now_0, _profile_0);
+}
+
+function $ExpiryScenario$cooldown_refreshed$(_clock_0, _now_0, _cooldown_duration_0) {
+  const _partition_0 = _clock_0["partition"];
+  const _group_0 = _clock_0["group"];
+  const _key_0 = _clock_0["key"];
+  const _retained_at_0 = _clock_0["retained_at"];
+  const _pending_duration_0 = _clock_0["pending_duration"];
+  const _lease_started_0 = _clock_0["lease_started"];
+  const _lease_duration_0 = _clock_0["lease_duration"];
+  return {$: "ExpiryScenario.NoticeClock", "partition": _partition_0, "group": _group_0, "key": _key_0, "retained_at": _retained_at_0, "pending_duration": _pending_duration_0, "lease_started": _lease_started_0, "lease_duration": _lease_duration_0, "cooldown_started": _now_0, "cooldown_duration": _cooldown_duration_0};
+}
+
+function $ExpiryScenario$lease_captured$(_clock_0, _now_0, _lease_duration_0) {
+  const _partition_0 = _clock_0["partition"];
+  const _group_0 = _clock_0["group"];
+  const _key_0 = _clock_0["key"];
+  const _retained_at_0 = _clock_0["retained_at"];
+  const _pending_duration_0 = _clock_0["pending_duration"];
+  const _cooldown_started_0 = _clock_0["cooldown_started"];
+  const _cooldown_duration_0 = _clock_0["cooldown_duration"];
+  return {$: "ExpiryScenario.NoticeClock", "partition": _partition_0, "group": _group_0, "key": _key_0, "retained_at": _retained_at_0, "pending_duration": _pending_duration_0, "lease_started": _now_0, "lease_duration": _lease_duration_0, "cooldown_started": _cooldown_started_0, "cooldown_duration": _cooldown_duration_0};
+}
+
+function $ExpiryScenario$scoped_notice_check$(_before_0, _clock_0, _partition_0, _group_0, _now_0) {
+  const _owner_0 = _clock_0["partition"];
+  const _delivery_0 = _clock_0["group"];
+  const __0 = _clock_0["key"];
+  const __1 = _clock_0["retained_at"];
+  const __2 = _clock_0["pending_duration"];
+  const __3 = _clock_0["lease_started"];
+  const __4 = _clock_0["lease_duration"];
+  const __5 = _clock_0["cooldown_started"];
+  const __6 = _clock_0["cooldown_duration"];
+  return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_delivery_0, _group_0)))), ($ExpiryScenario$notice_sample$(_before_0, {$: "ExpiryScenario.NoticeClock", "partition": _owner_0, "group": _delivery_0, "key": __0, "retained_at": __1, "pending_duration": __2, "lease_started": __3, "lease_duration": __4, "cooldown_started": __5, "cooldown_duration": __6}, _now_0, false)), {$: "Nil"});
+}
+
+function $ExpiryScenario$scoped_notice_checks$(_clocks_0, _before_0, _partition_0, _group_0, _now_0) {
+  if (_clocks_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _clock_0 = _clocks_0["head"];
+    const _tail_0 = _clocks_0["tail"];
+    return $List$append$(($ExpiryScenario$scoped_notice_check$(_before_0, _clock_0, _partition_0, _group_0, _now_0)), ($ExpiryScenario$scoped_notice_checks$(_tail_0, _before_0, _partition_0, _group_0, _now_0)));
+  }
+}
+
 function $NoticeScenario$initial$() {
   return {$: "NoticeScenario.State", "pending": {$: "Nil"}};
 }
@@ -21404,12 +21567,26 @@ function $NoticeScenario$without_clock$(_clocks_0, _key_0) {
   }
 }
 
+function $NoticeScenario$clock_expiry$(_found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _expiry_0 = _t_0["expiry"];
+    return _expiry_0;
+  }
+}
+
+function $NoticeScenario$refreshed_clock$(_partition_0, _group_0, _key_0, _now_0, _cooldown_0, _existing_0) {
+  return {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": nat_chk(_now_0 + _cooldown_0), "expiry": ($NoticeScenario$clock_expiry$(_existing_0))};
+}
+
 function $NoticeScenario$clock_refreshed$(_clocks_0, _scope_0, _key_0, _now_0, _refresh_0) {
   const _partition_0 = _scope_0["partition"];
   const _group_0 = _scope_0["group"];
   const _cooldown_0 = _scope_0["cooldown"];
   if (_refresh_0) {
-    return {$: "Con", "head": {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": nat_chk(_now_0 + _cooldown_0)}, "tail": ($NoticeScenario$without_clock$(_clocks_0, _key_0))};
+    return {$: "Con", "head": ($NoticeScenario$refreshed_clock$(_partition_0, _group_0, _key_0, _now_0, _cooldown_0, ($NoticeScenario$find_clock$(_clocks_0, _key_0)))), "tail": ($NoticeScenario$without_clock$(_clocks_0, _key_0))};
   } else {
     return _clocks_0;
   }
@@ -21501,6 +21678,165 @@ function $NoticeScenario$clocks_pruned$(_clocks_0, _key_0, _dropped_0) {
 
 function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
   return $NoticeScenario$clocks_pruned$(_clocks_0, _key_0, ($NoticeScenario$dropped_key$(_commands_0)));
+}
+
+function $NoticeScenario$new_pending$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticeCommitted") {
+          return true;
+        } else if (_t_0.$ === "Canonical.NoticeCreatePending") {
+          return true;
+        } else {
+          const __3 = _commands_0["tail"];
+          $0 = __3;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$refreshed_expiry$(_existing_0, _after_0, _key_0, _now_0, _profile_0, _created_0) {
+  if (_existing_0.$ === "Some") {
+    const _clock_0 = _existing_0["value"];
+    const __0 = _profile_0["pending_duration"];
+    const __1 = _profile_0["lease_duration"];
+    const _cooldown_0 = _profile_0["cooldown_duration"];
+    if (_created_0) {
+      return $ExpiryScenario$notice_capture$(_after_0, _key_0, _now_0, {$: "ExpiryScenario.Profile", "pending_duration": __0, "lease_duration": __1, "cooldown_duration": _cooldown_0});
+    } else {
+      return {$: "Some", "value": ($ExpiryScenario$cooldown_refreshed$(_clock_0, _now_0, _cooldown_0))};
+    }
+  } else {
+    if (_created_0) {
+      return $ExpiryScenario$notice_capture$(_after_0, _key_0, _now_0, _profile_0);
+    } else {
+      return {$: "None"};
+    }
+  }
+}
+
+function $NoticeScenario$expiry_clock_feedback$(_clock_0, _after_0, _now_0, _profile_0, _commands_0) {
+  const _partition_0 = _clock_0["partition"];
+  const _group_0 = _clock_0["group"];
+  const _key_0 = _clock_0["key"];
+  const _next_allowed_0 = _clock_0["next_allowed"];
+  const _expiry_0 = _clock_0["expiry"];
+  return {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": _next_allowed_0, "expiry": ($NoticeScenario$refreshed_expiry$(_expiry_0, _after_0, _key_0, _now_0, _profile_0, ($NoticeScenario$new_pending$(_commands_0))))};
+}
+
+function $NoticeScenario$expiry_feedback_entries$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0) {
+  if (_clocks_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _clock_0 = _clocks_0["head"];
+    const _tail_0 = _clocks_0["tail"];
+    return {$: "Con", "head": ($Bool$pick$(($Nat$is_eq$(($NoticeScenario$clock_key$(_clock_0)), _key_0)), ($NoticeScenario$expiry_clock_feedback$(_clock_0, _after_0, _now_0, _profile_0, _commands_0)), _clock_0)), "tail": ($NoticeScenario$expiry_feedback_entries$(_tail_0, _key_0, _after_0, _now_0, _profile_0, _commands_0))};
+  }
+}
+
+function $NoticeScenario$expiry_refreshed$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0, _accepted_0) {
+  if (_accepted_0) {
+    return $NoticeScenario$expiry_feedback_entries$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0);
+  } else {
+    return _clocks_0;
+  }
+}
+
+function $NoticeScenario$expiry_feedback$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0) {
+  return $NoticeScenario$expiry_refreshed$(_clocks_0, _key_0, _after_0, _now_0, _profile_0, _commands_0, ($NoticeScenario$refresh_commands$(_commands_0)));
+}
+
+function $NoticeScenario$collection_check$(_expiry_0, _before_0, _partition_0, _group_0, _now_0) {
+  if (_expiry_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _clock_0 = _expiry_0["value"];
+    return $ExpiryScenario$scoped_notice_check$(_before_0, _clock_0, _partition_0, _group_0, _now_0);
+  }
+}
+
+function $NoticeScenario$collection_prune$(_clocks_0, _before_0, _partition_0, _group_0, _now_0) {
+  if (_clocks_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _clocks_0["head"];
+    const _expiry_0 = _t_0["expiry"];
+    const _tail_0 = _clocks_0["tail"];
+    return $List$append$(($NoticeScenario$collection_check$(_expiry_0, _before_0, _partition_0, _group_0, _now_0)), ($NoticeScenario$collection_prune$(_tail_0, _before_0, _partition_0, _group_0, _now_0)));
+  }
+}
+
+function $NoticeScenario$lease_accepted$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.NoticeLeased") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $NoticeScenario$was_leased$(_record_0) {
+  if (_record_0.$ === "Some") {
+    const _t_0 = _record_0["value"];
+    const _pending_0 = _t_0["pending"];
+    return $$$$047agent$045flow$045bend$047NoticeState$pending_leased$(_pending_0);
+  } else {
+    return false;
+  }
+}
+
+function $NoticeScenario$new_lease$(_before_0, _key_0, _commands_0) {
+  return $Bool$and$(($NoticeScenario$lease_accepted$(_commands_0)), ($Bool$not$(($NoticeScenario$was_leased$(($$$$047agent$045flow$045bend$047NoticeState$find_record$(_key_0, ($$$$047agent$045flow$045bend$047NoticeState$records_of$(($$$$047agent$045flow$045bend$047CollectionState$notice_state$(($$$$047agent$045flow$045bend$047Canonical$collection_of$(_before_0)))))))))))));
+}
+
+function $NoticeScenario$leased_expiry$(_expiry_0, _now_0, _duration_0, _accepted_0) {
+  if (_expiry_0.$ === "Some") {
+    const _clock_0 = _expiry_0["value"];
+    if (_accepted_0) {
+      return {$: "Some", "value": ($ExpiryScenario$lease_captured$(_clock_0, _now_0, _duration_0))};
+    } else {
+      return {$: "Some", "value": _clock_0};
+    }
+  } else {
+    return _expiry_0;
+  }
+}
+
+function $NoticeScenario$lease_clock_feedback$(_clock_0, _now_0, _duration_0, _accepted_0) {
+  const _partition_0 = _clock_0["partition"];
+  const _group_0 = _clock_0["group"];
+  const _key_0 = _clock_0["key"];
+  const _next_allowed_0 = _clock_0["next_allowed"];
+  const _expiry_0 = _clock_0["expiry"];
+  return {$: "NoticeScenario.Clock", "partition": _partition_0, "group": _group_0, "key": _key_0, "next_allowed": _next_allowed_0, "expiry": ($NoticeScenario$leased_expiry$(_expiry_0, _now_0, _duration_0, _accepted_0))};
+}
+
+function $NoticeScenario$lease_feedback$(_clocks_0, _key_0, _now_0, _duration_0, _accepted_0) {
+  if (_clocks_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _clock_0 = _clocks_0["head"];
+    const _tail_0 = _clocks_0["tail"];
+    return {$: "Con", "head": ($Bool$pick$(($Nat$is_eq$(($NoticeScenario$clock_key$(_clock_0)), _key_0)), ($NoticeScenario$lease_clock_feedback$(_clock_0, _now_0, _duration_0, _accepted_0)), _clock_0)), "tail": ($NoticeScenario$lease_feedback$(_tail_0, _key_0, _now_0, _duration_0, _accepted_0))};
+  }
 }
 
 function $RuntimeScenarios$initial$() {
@@ -27387,7 +27723,7 @@ function $notice_followed$(_state_0, _followup_0) {
   return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}}, "events": _events_0};
 }
 
-function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
+function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0, _profile_0) {
   const _canonical_0 = _state_0["canonical"];
   const _graphs_0 = _state_0["graphs"];
   const _scheduler_0 = _state_0["scheduler"];
@@ -27412,7 +27748,7 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
   const _writers_0 = _t_0["writers"];
   const _background_collection_0 = _t_0["background_collection"];
   const _stop_0 = _t_0["stop"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$expiry_feedback$(($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), _key_0, _canonical_0, _now_0, _profile_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
 function $notice_pruned$(_state_0, _key_0, _commands_0) {
@@ -27443,11 +27779,40 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
-function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
+function $notice_lease_clocked$(_before_0, _state_0, _key_0, _now_0, _commands_0, _profile_0) {
+  const _core_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _t_0 = _state_0["scenarios"];
+  const _callbacks_0 = _t_0["callbacks"];
+  const _notices_0 = _t_0["notices"];
+  const _clocks_0 = _t_0["clocks"];
+  const _freshness_0 = _t_0["freshness"];
+  const _sources_0 = _t_0["sources"];
+  const _sharing_0 = _t_0["sharing"];
+  const _cache_0 = _t_0["cache"];
+  const _collection_0 = _t_0["collection"];
+  const _writers_0 = _t_0["writers"];
+  const _background_collection_0 = _t_0["background_collection"];
+  const _stop_0 = _t_0["stop"];
+  const _duration_0 = _profile_0["lease_duration"];
+  return {$: "Types.State", "canonical": _core_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$lease_feedback$(_clocks_0, _key_0, _now_0, _duration_0, ($NoticeScenario$new_lease$(($canonical$(_before_0)), _key_0, _commands_0)))), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
+}
+
+function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0, _profile_0) {
   if (_event_0.$ === "Canonical.NoticeAdvance") {
     const _key_0 = _event_0["key"];
     const _sequence_0 = _event_0["sequence"];
-    return $notice_followed$(($notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0)), ($RuntimeScenarios$notice_requested$(($scenarios$(_state_0)), _scope_0, _key_0, _sequence_0, _commands_0, _now_0)));
+    return $notice_followed$(($notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0, _profile_0)), ($RuntimeScenarios$notice_requested$(($scenarios$(_state_0)), _scope_0, _key_0, _sequence_0, _commands_0, _now_0)));
   } else if (_event_0.$ === "Canonical.ReserveCapacity") {
     const _partition_0 = _event_0["partition"];
     const _t_0 = _event_0["purpose"];
@@ -27459,10 +27824,18 @@ function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _n
   } else if (_event_0.$ === "Canonical.NoticeCommit") {
     const _key_1 = _event_0["key"];
     const _reservation_0 = _event_0["reservation"];
-    return {$: "NoticeTransition", "state": ($notice_clocked$(_state_0, _scope_0, _key_1, _now_0, _commands_0)), "events": ($NoticeScenario$commit_feedback$(_reservation_0, _commands_0))};
-  } else if (_event_0.$ === "Canonical.NoticePrune") {
+    return {$: "NoticeTransition", "state": ($notice_clocked$(_state_0, _scope_0, _key_1, _now_0, _commands_0, _profile_0)), "events": ($NoticeScenario$commit_feedback$(_reservation_0, _commands_0))};
+  } else if (_event_0.$ === "Canonical.NoticeLease") {
     const _key_2 = _event_0["key"];
-    return {$: "NoticeTransition", "state": ($notice_pruned$(_state_0, _key_2, _commands_0)), "events": ($NoticeScenario$prune_feedback$(($canonical$(_before_0)), _key_2, _commands_0))};
+    const _t_1 = _event_0["leased"];
+    if (_t_1) {
+      return {$: "NoticeTransition", "state": ($notice_lease_clocked$(_before_0, _state_0, _key_2, _now_0, _commands_0, _profile_0)), "events": {$: "Nil"}};
+    } else {
+      return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
+    }
+  } else if (_event_0.$ === "Canonical.NoticePrune") {
+    const _key_3 = _event_0["key"];
+    return {$: "NoticeTransition", "state": ($notice_pruned$(_state_0, _key_3, _commands_0)), "events": ($NoticeScenario$prune_feedback$(($canonical$(_before_0)), _key_3, _commands_0))};
   } else {
     return {$: "NoticeTransition", "state": _state_0, "events": {$: "Nil"}};
   }
@@ -28334,6 +28707,13 @@ function $stop_command$(_state_0, _event_0, _command_0, _context_0, _facts_0) {
   return $stop_command_valid$(($stop_active$(_state_0, ($collector_partition$(_context_0)))), _state_0, _event_0, _command_0, _context_0, _facts_0);
 }
 
+function $notice_collection_prune$(_state_0, _partition_0, _group_0, _now_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _t_0 = _state_0["scenarios"];
+  const _clocks_0 = _t_0["clocks"];
+  return $NoticeScenario$collection_prune$(_clocks_0, _canonical_0, _partition_0, _group_0, _now_0);
+}
+
 function $Bool$and$(_a_0, _b_0) {
   if (!_a_0) {
     return false;
@@ -28536,7 +28916,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:890df011c0ec7f7f501283066628ba14f97820fd5453cd582b48cc5c73be0d54";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:3c48d78977f6df7b172e888fb42341f73e7647ef8b3c614e9397730c2566f5f4";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -28592,7 +28972,8 @@ export default {
  freshness_admitted: (state,scope,source,command) => run_loop($freshness_admitted$(state,facts(scope),facts(source),facts(command))),
  freshness_current: (state,scope) => run_loop($freshness_current$(state,facts(scope))),
  freshness_checks: (state,scope) => run_loop($freshness_checks$(state,facts(scope))),
- notice_after: (before,state,scope,event,commands,now) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now))),
+ notice_after: (before,state,scope,event,commands,now,profile) => run_loop($notice_after$(before,state,facts(scope),facts(event),facts(commands),facts(now),facts(profile))),
+ notice_collection_prune: (state,partition,group,now) => run_loop($notice_collection_prune$(state,facts(partition),facts(group),facts(now))),
  notice_exercise: (scope) => run_loop($notice_exercise$(facts(scope))),
  notice_failure: (state,scope,now,key,sequence) => run_loop($notice_failure$(state,facts(scope),facts(now),facts(key),facts(sequence))),
  notice_lease: (state,partition,group,key) => run_loop($notice_lease$(state,facts(partition),facts(group),facts(key))),
