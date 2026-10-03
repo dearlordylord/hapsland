@@ -62,7 +62,7 @@ it("captures provider destination independently from work and credential namespa
  const captured = captureSharingIdentityFacts({ ...original, preparedIdentity });
  for (const providerIdentity of [
   { ...input.providerIdentity, provider: "cloudflare" as const },
-  { ...input.providerIdentity, model: "another-model" },
+  { ...input.providerIdentity, model: "clef" as const },
   { ...input.providerIdentity, destination: "https://review.example/two" },
  ]) {
   const changed = captureSharingIdentityFacts({ ...captured, preparedIdentity: semanticIdentity({ ...input, providerIdentity }) });
