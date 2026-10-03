@@ -1,6 +1,7 @@
 import Base
 import ./jev-recovery.bend as Scenario
 import ./minimal-scenario.bend as Minimal
+import ./jev-native-step.bend as Step
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Scheduler.bend as Scheduler
@@ -25,9 +26,9 @@ def input(+input: Minimal.Input, state: Types.State, queue: Minimal.Queue, +now:
     ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
   match input stage:
     case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_,_,_,3n,_},_,_,_,_}} 0n:
-      Minimal.input(input,state,queue,now,Scenario.config(Canonical.RequestFinding{},now),pair => controlled(pair,now,3n,pair => ih((pair,1n))))
+      Step.resume(Step.interpreted(input,state,queue,now),pair => controlled(pair,now,3n,pair => ih((pair,1n))))
     case _ _:
-      Minimal.input(input,state,queue,now,Scenario.config(Canonical.RequestFinding{},now),pair => ih((pair,stage)))
+      Step.resume(Step.interpreted(input,state,queue,now),pair => ih((pair,stage)))
 
 def endpoint(pair: Types.State & Minimal.Queue, stage: Nat,
     ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
