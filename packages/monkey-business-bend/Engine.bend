@@ -1207,9 +1207,6 @@ def writer_departures(+before: Types.State, +state: Types.State, event: Canonica
 def writer_release_delivery(+state: Types.State, capture: WriterScenario.Capture, event: Canonical.CanonicalEvent, now: Nat) -> Maybe<&2,Canonical.CanonicalEvent>:
   WriterScenario.release_delivery(RuntimeScenarios.writers(scenarios(state)),canonical(state),capture,event,now)
 
-def collection_response_delivery_valid(+state: Types.State, target: CollectionScenario.Identity, now: Nat, event: Canonical.CanonicalEvent) -> Bool:
-  CollectionScenario.delivery_valid(RuntimeScenarios.collection(scenarios(state)),target,canonical(state),now,credential_state(state),event)
-
 # Original safe-hook facts; Canonical retains all Finish decision authority.
 def stop_initial(capture: StopScenario.Capture) -> List<&2,StopScenario.Fact>:
   StopScenario.initial(capture)
