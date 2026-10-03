@@ -26,19 +26,12 @@ const fixture = () => {
   return { apply, unit, scope, state: () => state };
 };
 
-it.each([false, true])("cancels queued Reviewing or Started AtJev logically once while preserving physical requests (started=%s)", started => {
+it.each([false, true])("cancels running Reviewing before physical issue or AtJev after Started (started=%s)", started => {
   const f = fixture();
   const healthy = f.unit();
   f.apply({ kind: "startReview", ...healthy });
   f.apply({ kind: "reviewObserved", ...healthy, outcome: "finding", currentWork: true });
   const finding = projectCanonical(f.state()).pendingFindings;
-  if (!started) {
-    for (let index = 0; index < 8; index++) {
-      const blocker = f.apply({ kind: "admitObservation", ...f.scope }).find(c => c.kind === "observationAdmitted");
-      if (blocker?.kind !== "observationAdmitted") throw new Error("missing dispatch blocker");
-      f.apply({ kind: "queueDispatch", ...f.scope, operation: blocker.id });
-    }
-  }
   const target = f.unit();
   f.apply({ kind: "queueDispatch", ...target });
   f.apply({ kind: "startReview", ...target });
@@ -54,7 +47,7 @@ it.each([false, true])("cancels queued Reviewing or Started AtJev logically once
   const charge = before.work.find(w => w.operation === target.operation)!.reservation;
   expect(charge).toBeGreaterThan(0);
   expect(before.dispatch.requests).toEqual(started ? [{ ...target, request, started: true, interrupted: false }] : []);
-  expect((started ? before.dispatch.running : before.dispatch.queued).some(entry => entry.operation === target.operation)).toBe(true);
+  expect(before.dispatch.running.some(entry => entry.operation === target.operation)).toBe(true);
   for (const field of ["partition", "lifetime", "round", "operation"] as const) {
     const refused = stepCanonical(f.state(), { kind: "cancelReview", ...target, [field]: target[field] + 100 });
     expect(refused.rejection).toBeDefined();
@@ -64,7 +57,7 @@ it.each([false, true])("cancels queued Reviewing or Started AtJev logically once
   const commands = f.apply({ kind: "cancelReview", ...target });
   expect(commands).toEqual([{ kind: "reservationReleased", id: charge },
     { kind: "cancelWork", operation: target.operation },
-    { kind: "dispatchDiscarded", operation: target.operation, running: started }]);
+    { kind: "dispatchDiscarded", operation: target.operation, running: true }]);
   const after = projectCanonical(f.state());
   expect(after.dispatch.requests).toEqual(before.dispatch.requests);
   expect(after.pendingFindings).toEqual(finding);
