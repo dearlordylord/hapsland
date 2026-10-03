@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "at": "2026-10-02T23:56:45.552Z",
+  "scoreDigests": {
+    "r1_inferred_case/native/blind-scores.json": "97e9608ea66629b2c01f014653616f32c9ab2cb196394672356b96883ec8b70c",
+    "r2_meaningless_combinations/native/blind-scores.json": "aa61d25f162df241f649fb05ef4b06005cc72dc1e13b8223024e99e5f51b0259",
+    "r3_split_correlations/native/blind-scores.json": "e3070fa047ae3c454795e9259af41bb8d88c998758ff43a0f058bf1e06ed0e5b",
+    "r5_absence_confusion/native/blind-scores.json": "a86b2c02e7d7dacdce719526ea940b32f5a6a340de5acf4719fc03edf64a4fc8",
+    "r6_bare_domain_value/native/blind-scores.json": "6229a8a762eca93705e58b8058a4e4890556b3547789f6672a3755b7d0f080b8",
+    "r7_name_wider_than_type/native/blind-scores.json": "c2ce1a6c145a737f26371f9cb5ad0faa9fd9d21cab6cacc55dbf603a724bb287",
+    "r8_name_claims_resource/native/blind-scores.json": "3f5130c0220107e976650187cca3f76e0ac5ec910691841ef30e572c2c1c178e",
+    "r9_body_reaches_undeclared/native/blind-scores.json": "6d7e1caa8795a0f95994b048e0db68b54e08d21fc1fa8f99e9be4332176bc5df"
+  },
+  "manualDigests": {
+    "manual/r1_inferred_case.json": "45170fe7be56cb1482dcdd303fe60a44314de9f9953f248e5ececf7dfabf7f5c",
+    "manual/r6_bare_domain_value.json": "293c8bac9cfb6331b4560e52e73ee70c6ab2e4da095332f0facad1986ccb03d6",
+    "manual/r8_name_claims_resource.json": "978ae864ec2b41b1c06b55c59acb9ba35458841d7fe6540127f23f8516d50369",
+    "manual/r9_body_reaches_undeclared.json": "6bcdfac525a979a437ed86db8b3d7e6754583be67c2221cb59d65bada8913039"
+  },
+  "manualRuleDeclarationDigest": "fbc93b92f5eabc319d46c4cebc876bce9257a361321283e0c073b306b6c70b5e"
+}

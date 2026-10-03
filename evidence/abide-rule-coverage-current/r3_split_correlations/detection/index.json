@@ -1,0 +1,116 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T23:13:52.020Z",
+  "records": [
+    {
+      "stage": "A",
+      "id": "color-channels",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "color-channels",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "color-channels",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "color-channels",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "color-channels",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "color-channels",
+      "candidate": "abide",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "calibration-pair",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "calibration-pair",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "calibration-pair",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "calibration-pair",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "calibration-pair",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "calibration-pair",
+      "candidate": "abide",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "clean-independent-measurements",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "clean-independent-measurements",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "clean-independent-measurements",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "clean-independent-measurements",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "clean-independent-measurements",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "clean-independent-measurements",
+      "candidate": "abide",
+      "pass": 2
+    }
+  ],
+  "attempts": 54,
+  "hostUncachedPlusOutputTokens": 0
+}

@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "render-pool-small-defect",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "a9479773929bf07a7e5e3e9f4b833655107b8560a70057e47a283666a722f980",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r7_name_wider_than_type"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r7_name_wider_than_type"
+        ],
+        "findingIds": [
+          "r7_name_wider_than_type"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "58cef47e-f37a-4783-b143-981386b171a5",
+      "at": 1790989791953,
+      "candidate": "hapsland",
+      "caseId": "render-pool-small-defect",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 3194,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r7_name_wider_than_type"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "58cef47e-f37a-4783-b143-981386b171a5",
+      "at": 1790989791953,
+      "candidate": "hapsland",
+      "caseId": "render-pool-small-defect",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 187,
+      "answers": {
+        "r7_name_wider_than_type": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 1138,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

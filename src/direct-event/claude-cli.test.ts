@@ -183,8 +183,8 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     } });
     expect(result.stdout).toBe(encodeClaudeHostOutputLine(advice as ClaudeHostOutput));
     expect(advice.decision).toBeUndefined();
-    expect(advice.hookSpecificOutput?.additionalContext).toContain("Please repair each finding");
-    expect(advice.hookSpecificOutput?.additionalContext).toContain("r6_bare_domain_value");
+    expect(advice.hookSpecificOutput?.additionalContext).toContain("Fix valid issues and verify");
+    expect(advice.hookSpecificOutput?.additionalContext).toContain("A domain value appears to use an overly broad primitive type.");
     expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
@@ -196,9 +196,9 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const block = JSON.parse(blockResult.stdout) as { decision?: string; reason?: string };
     expect(block).toMatchObject({
       decision: "block",
-      reason: expect.stringContaining("r6_bare_domain_value"),
+      reason: expect.stringContaining("A domain value appears to use an overly broad primitive type."),
     });
-    expect(block.reason).toContain("Repair the listed finding(s)");
+    expect(block.reason).toContain("Fix valid issues and verify");
     expect(blockResult.stdout).toBe(`${JSON.stringify(block)}\n`);
     expect(Object.keys(block).sort()).toEqual(["decision", "reason"]);
     expect(Buffer.byteLength(blockResult.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
@@ -461,7 +461,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(result.status).toBe(0);
     const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
     const context = output.hookSpecificOutput?.additionalContext ?? "";
-    const findingCount = [...context.matchAll(/\[r6_bare_domain_value/g)].length;
+    const findingCount = [...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)].length;
     expect(findingCount).toBeGreaterThan(0);
     expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
@@ -521,7 +521,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const output = JSON.parse(stop.stdout) as { decision?: string; reason?: string };
     expect(output.decision).toBe("block");
     const context = output.reason ?? "";
-    expect([...context.matchAll(/\[r6_bare_domain_value/g)]).toHaveLength(6);
+    expect([...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)]).toHaveLength(6);
     for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
     expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);

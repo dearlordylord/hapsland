@@ -9,7 +9,7 @@ const MAX_CANDIDATE_NODES = 128;
 const MAX_CANDIDATE_EDGES = 128;
 const sha256 = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");
 export const CANDIDATE_RENDERER_DIGEST = sha256(
-  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order]):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
+  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order];omitted-symbol=bounded-opaque-source):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
 );
 
 type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function";
@@ -62,6 +62,11 @@ const kind = (value: unknown): value is Kind =>
   value === "interface" || value === "type-alias" || value === "struct" || value === "enum" || value === "datatype" || value === "function";
 const source = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_CANDIDATE_SOURCE_BYTES;
+// An omission describes a reference site, not a resolved binding. Dynamic calls
+// and anonymous callbacks can contain arbitrary source syntax. Preserve that
+// text only as a bounded JSON string; the aggregate tree limit still applies.
+const omittedReference = (value: unknown): value is string =>
+  source(value) && value.length > 0 && !value.includes("\0");
 const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined => {
   const item = record(value);
   if (item === undefined || !exactKeys(item,
@@ -74,7 +79,8 @@ const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined
 };
 const edge = (value: unknown): Edge | undefined => {
   const item = record(value);
-  if (item === undefined || !identifier(item.from) || !referenceName(item.symbol) ||
+  if (item === undefined || !identifier(item.from) ||
+    !(item.kind === "omitted" ? omittedReference(item.symbol) : referenceName(item.symbol)) ||
     !Number.isSafeInteger(item.order) || Number(item.order) < 0) return undefined;
   if (item.kind === "omitted") {
     if (!exactKeys(item, ["from", "kind", "symbol", "reason", "order"]) ||

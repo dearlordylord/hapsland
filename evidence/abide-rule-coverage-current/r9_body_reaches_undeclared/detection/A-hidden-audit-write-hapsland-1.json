@@ -1,0 +1,73 @@
+{
+  "stage": "A",
+  "caseId": "hidden-audit-write",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "incomplete",
+    "ready": 0,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "incomplete",
+        "analysisReason": null,
+        "analysisFailures": [
+          {
+            "reason": "missing-evidence",
+            "root": "CaseState"
+          }
+        ]
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "omissions": [
+          {
+            "declaration": "CaseState",
+            "path": "subject.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "text.trim"
+            }
+          },
+          {
+            "declaration": "recordAudit",
+            "path": "support.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "auditEntries.push"
+            }
+          },
+          {
+            "declaration": "recordAudit",
+            "path": "support.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "auditEntries"
+            }
+          }
+        ]
+      }
+    ],
+    "preparedUnits": [],
+    "evaluations": []
+  },
+  "requests": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

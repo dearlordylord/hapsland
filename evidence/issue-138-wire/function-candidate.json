@@ -33,7 +33,7 @@
       "completeness": "complete",
       "projectionFingerprint": "17cbdf6822f42347e8b8b528d0d3a0ed580af09a4fdc23894304b2f7aa8538e3",
       "rendererVersion": "candidate-semantic-evidence/1",
-      "rendererDigest": "5c3b2bd71f8797f88d241c131397441ff5bbe9c0b06e231cd89d8bf36cbbfe04"
+      "rendererDigest": "7b4e5b6d01b7f22febad7376a0a1ffa3e9684d4dbb6ac9d94d071bf23a2fa5ca"
     }
   },
   "completeRequest": {
@@ -71,7 +71,7 @@
         "completeness": "complete",
         "projectionFingerprint": "17cbdf6822f42347e8b8b528d0d3a0ed580af09a4fdc23894304b2f7aa8538e3",
         "rendererVersion": "candidate-semantic-evidence/1",
-        "rendererDigest": "5c3b2bd71f8797f88d241c131397441ff5bbe9c0b06e231cd89d8bf36cbbfe04"
+        "rendererDigest": "7b4e5b6d01b7f22febad7376a0a1ffa3e9684d4dbb6ac9d94d071bf23a2fa5ca"
       }
     },
     "decisions": {

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-02T22:03:50.700Z",
+  "mode": "live",
+  "fixturesSha256": "83d2814ceae05df350701db8417b4b33735abb848d3038b3e1c4e3322e7ff46a",
+  "fixtureModuleSha256": "5bb5fdb45b8fc2478df87aa4235eb994c37aca78de5cad1130287fe4d2c118c4",
+  "scripts": {
+    "run-abide-quality.mjs": "10c0d48888d25344f8fdffb903e73ffa8e5e0a422754eac6afb4265cf0571dab",
+    "abide-quality-capture.mjs": "78b286f3c64db2a32b1894f0606e8daf51d929cd2b5d86c49abc24457a86d850",
+    "abide-quality-observer.mjs": "1a4dbf7acc4ebec90009eb63570624a1fcbe052aef9a78fc67a390e915e4ee7f"
+  },
+  "hapslandCommit": "6c36462dd846c66fff95f8fce2453e63216b017a",
+  "codexVersion": "codex-cli 0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "abideVersion": "0.0.7",
+  "abideHookSha256": "77626436f4e84a18b1907181c6b970a345b86b03381a9325947dcdb00accc0b1",
+  "requestCap": 180,
+  "sharedAttemptLog": "/workspace/typescript/jev-worktrees/contextual-review-study/evidence/abide-contextual-current/attempts.jsonl",
+  "stageACells": 0,
+  "stageBSessions": 18,
+  "deliveryDebug": true,
+  "debugEditDelayMs": 0,
+  "debugStopDelayMs": 0,
+  "productionAdapterSha256": "f4a0dd7e4e79bd2cecce05725797a5a0a9584f0f30dc4d007cac2907b943c9dc",
+  "feedbackReceiptProbe": true,
+  "onlyCandidate": null,
+  "selectedTaskIds": [
+    "build-provenance",
+    "audio-encoding",
+    "storage-envelope",
+    "session-grant",
+    "clean-audio-resampling",
+    "clean-storage-repack"
+  ],
+  "taskProfile": "ordinary-maintenance",
+  "sourceCheckoutHapsland": true,
+  "manuallyActiveAbideNoulRubric": true,
+  "nativeTrustBypassed": true,
+  "hostSandboxBypassed": true,
+  "automaticRetries": 0,
+  "maximumHostMs": 300000,
+  "tokenCaps": {
+    "perSession": 100000,
+    "cumulative": 1000000,
+    "observedAtCompletionOnly": true
+  },
+  "amendment": "Current runtime-neutral feedback comparison authorized by the owner. Six frozen previously selected cases (four contextual duplicate-encoding defects and two independent-fact controls), repeated fresh native sessions, identical ordinary-maintenance tasks across arms, manually active common Noul rule, instrumented cooperative receipt and independent anonymous finite-domain probes. No file exclusions or injected transport faults. Detection and repair stages are distinct; all outcomes retained with no favorable replacements. Parent declaration owns repetitions and shared physical request budget."
+}

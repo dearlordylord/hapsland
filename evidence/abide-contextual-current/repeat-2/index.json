@@ -1,0 +1,116 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T22:15:42.799Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "contextual-1-build-provenance",
+      "candidate": "baseline",
+      "blindId": "11a4f2985fad"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-1-build-provenance",
+      "candidate": "hapsland",
+      "blindId": "dc9c10541a0f"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-1-build-provenance",
+      "candidate": "abide",
+      "blindId": "942de5b5be79"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-2-audio-encoding",
+      "candidate": "hapsland",
+      "blindId": "05889700fa5e"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-2-audio-encoding",
+      "candidate": "abide",
+      "blindId": "a79fe2283e3e"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-2-audio-encoding",
+      "candidate": "baseline",
+      "blindId": "a0cfa981ef21"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-3-storage-envelope",
+      "candidate": "abide",
+      "blindId": "e1498c41a66d"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-3-storage-envelope",
+      "candidate": "baseline",
+      "blindId": "480234eac583"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-3-storage-envelope",
+      "candidate": "hapsland",
+      "blindId": "c7c348a06943"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-4-session-grant",
+      "candidate": "baseline",
+      "blindId": "79e5b853fe42"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-4-session-grant",
+      "candidate": "abide",
+      "blindId": "2f97197eff36"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-4-session-grant",
+      "candidate": "hapsland",
+      "blindId": "e6eb1f1ed9f4"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-5-clean-audio-resampling",
+      "candidate": "abide",
+      "blindId": "f9057a5e64ef"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-5-clean-audio-resampling",
+      "candidate": "hapsland",
+      "blindId": "64214d2e3e91"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-5-clean-audio-resampling",
+      "candidate": "baseline",
+      "blindId": "c18fc7f9e87b"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-6-clean-storage-repack",
+      "candidate": "hapsland",
+      "blindId": "4b7f753b1ebd"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-6-clean-storage-repack",
+      "candidate": "baseline",
+      "blindId": "401157351346"
+    },
+    {
+      "stage": "B",
+      "id": "contextual-6-clean-storage-repack",
+      "candidate": "abide",
+      "blindId": "a2176c9f44cc"
+    }
+  ],
+  "attempts": 78,
+  "hostUncachedPlusOutputTokens": 300678
+}

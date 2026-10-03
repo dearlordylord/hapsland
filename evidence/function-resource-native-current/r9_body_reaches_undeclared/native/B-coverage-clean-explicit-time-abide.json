@@ -1,0 +1,415 @@
+{
+  "stage": "B",
+  "taskId": "coverage-clean-explicit-time",
+  "candidate": "abide",
+  "ordinal": 2,
+  "blindId": "95d045552cdf",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 48823,
+  "usage": {
+    "input_tokens": 85210,
+    "cached_input_tokens": 76288,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2024,
+    "reasoning_output_tokens": 1190
+  },
+  "uncachedPlusOutputTokens": 10946,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790988243628,
+      "pid": 73670,
+      "invocation": "a6c8516fe2279975",
+      "trace": "process-start",
+      "elapsedMs": 18.470649
+    },
+    {
+      "at": 1790988243728,
+      "pid": 73670,
+      "invocation": "a6c8516fe2279975",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 117.946827
+    },
+    {
+      "at": 1790988243788,
+      "pid": 73705,
+      "invocation": "a50e1d9a218642c3",
+      "trace": "process-start",
+      "elapsedMs": 19.180697
+    },
+    {
+      "at": 1790988243931,
+      "pid": 73705,
+      "invocation": "a50e1d9a218642c3",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 162.150643
+    },
+    {
+      "at": 1790988268463,
+      "pid": 76947,
+      "invocation": "4c34bf7b3d4d8249",
+      "trace": "process-start",
+      "elapsedMs": 30.571871
+    },
+    {
+      "at": 1790988268936,
+      "pid": 76947,
+      "invocation": "4c34bf7b3d4d8249",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 503.778318
+    },
+    {
+      "at": 1790988288527,
+      "pid": 81721,
+      "invocation": "9a9194fe80c3e464",
+      "trace": "process-start",
+      "elapsedMs": 27.898475
+    },
+    {
+      "at": 1790988288862,
+      "pid": 81721,
+      "invocation": "9a9194fe80c3e464",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 362.937555
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "a6c8516fe2279975",
+      "kind": "session-start",
+      "at": 1790988243606,
+      "event": "SessionStart",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "a6c8516fe2279975",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "session-start",
+      "at": 1790988243606,
+      "doneAt": 1790988243735,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "6126bf7712f375564c00a24e740e64b4310b93953a30908dc780f80c3084a8c3"
+    },
+    {
+      "trace": "start",
+      "invocation": "a50e1d9a218642c3",
+      "kind": "turn-start",
+      "at": 1790988243765,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "a50e1d9a218642c3",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "turn-start",
+      "at": 1790988243765,
+      "doneAt": 1790988243938,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "6126bf7712f375564c00a24e740e64b4310b93953a30908dc780f80c3084a8c3"
+    },
+    {
+      "trace": "start",
+      "invocation": "4c34bf7b3d4d8249",
+      "kind": "post-tool-use",
+      "at": 1790988268423,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "4c34bf7b3d4d8249",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790988268423,
+      "doneAt": 1790988268985,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495"
+    },
+    {
+      "trace": "start",
+      "invocation": "9a9194fe80c3e464",
+      "kind": "stop",
+      "at": 1790988288496,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "9a9194fe80c3e464",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790988288496,
+      "doneAt": 1790988288907,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495"
+    }
+  ],
+  "requests": [
+    {
+      "id": "ecb43ada-7d72-420e-8182-711752c0a145",
+      "at": 1790988268672,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 3051,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r9-body-reaches-undeclared"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "ecb43ada-7d72-420e-8182-711752c0a145",
+      "at": 1790988268672,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 259,
+      "answers": {
+        "r9_body_reaches_undeclared": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 888,
+        "output_tokens": 27
+      }
+    },
+    {
+      "id": "176aad42-579a-4d58-bd51-cd6788c19210",
+      "at": 1790988288663,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 3125,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r9-body-reaches-undeclared"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "176aad42-579a-4d58-bd51-cd6788c19210",
+      "at": 1790988288663,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 195,
+      "answers": {
+        "r9_body_reaches_undeclared": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 910,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "91705cc8101f282a9e635cd06feb04e314b908149eeb6f90669fb44ac8a95abe",
+    "requestedByHook": false,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+  "changed": true
+}

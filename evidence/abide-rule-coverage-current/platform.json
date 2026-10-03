@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "recordedAt": "2026-10-02T23:15:27.368Z",
+  "timing": "During detection, before native sessions; not a retroactive pre-execution declaration.",
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "arm64",
+  "versions": {
+    "codex": "0.155.1",
+    "abide": "0.0.7",
+    "effect": "4.0.0",
+    "typesafe": "4.0.0",
+    "typescript": "7.0.2",
+    "oracleTypescript": "5.9.3"
+  },
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "codexCliVersion": "codex-cli 0.155.1",
+  "abideHookSha256": "77626436f4e84a18b1907181c6b970a345b86b03381a9325947dcdb00accc0b1",
+  "offlineChecks": {
+    "preflightCases": 24,
+    "preflightPhases": 48,
+    "preparedPhases": 44,
+    "knownUncheckedPhases": 4,
+    "oracleSelfChecks": 67,
+    "controlledHarnessCells": 48,
+    "livePreparationRequests": 0
+  }
+}

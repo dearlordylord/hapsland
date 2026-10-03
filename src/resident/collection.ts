@@ -1,6 +1,7 @@
+import { formatReviewFeedback } from "../feedback/message.ts";
 import { Effect } from "effect";
 import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.ts";
-import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
+import { toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
 import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
@@ -18,10 +19,6 @@ export type OperationalNotice = {
 };
 
 export type ClaudeOutputMode = "advisory" | "block-current-findings";
-
-const CLAUDE_ADVISORY_HEADING = "Advisory: Edit succeeded. Please repair each finding.";
-const CLAUDE_BLOCK_HEADING =
-  "Hapsland found a current rule finding after this edit succeeded. Repair the listed finding(s) in the file, then continue.";
 
 export type CollectionCandidate = {
   readonly sequence: number;
@@ -92,14 +89,10 @@ export const combinedReviewOutput = (
   findings: ReadonlyArray<Finding>,
   notices: ReadonlyArray<OperationalNotice>,
 ): CodexDirectEventOutput => {
-  const findingOutput = toCodexDirectEventOutput(findings);
   return {
     hookSpecificOutput: {
-      ...findingOutput.hookSpecificOutput,
-      additionalContext: [
-        findingOutput.hookSpecificOutput.additionalContext,
-        ...notices.map(noticeText),
-      ].join("\n"),
+      hookEventName: "PostToolUse",
+      additionalContext: formatReviewFeedback(findings, notices.map(noticeText)),
     },
   };
 };
@@ -110,25 +103,10 @@ export const combinedClaudeOutput = (
   notices: ReadonlyArray<OperationalNotice>,
   mode: ClaudeOutputMode,
 ): ClaudeHostOutput => {
-  const formatted = toCodexDirectEventOutput(findings).hookSpecificOutput.additionalContext;
-  if (mode === "block-current-findings" && findings.length > 0) {
-    return {
-      decision: "block",
-      reason: [
-        CLAUDE_BLOCK_HEADING + formatted.slice(DIRECT_EVENT_ADVISORY_HEADING.length),
-        ...(notices.length === 0 ? [] : ["Informational notices:", ...notices.map(noticeText)]),
-      ].join("\n"),
-    };
-  }
-  const context = findings.length > 0
-    ? CLAUDE_ADVISORY_HEADING + formatted.slice(DIRECT_EVENT_ADVISORY_HEADING.length)
-    : formatted;
-  return {
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse",
-      additionalContext: [context, ...notices.map(noticeText)].join("\n"),
-    },
-  };
+  const text = formatReviewFeedback(findings, notices.map(noticeText));
+  return mode === "block-current-findings" && findings.length > 0
+    ? { decision: "block", reason: text }
+    : { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: text } };
 };
 
 export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =>

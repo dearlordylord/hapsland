@@ -1,0 +1,1877 @@
+{
+  "stage": "B",
+  "taskId": "coverage-load-preview",
+  "candidate": "hapsland",
+  "ordinal": 1,
+  "blindId": "2eac6d63dad9",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 69242,
+  "usage": {
+    "input_tokens": 70275,
+    "cached_input_tokens": 62208,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2241,
+    "reasoning_output_tokens": 1488
+  },
+  "uncachedPlusOutputTokens": 10308,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790984845160,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "process-start",
+      "elapsedMs": 57.840807
+    },
+    {
+      "at": 1790984846635,
+      "pid": 4097566,
+      "invocation": "d48c2e528afca365",
+      "trace": "process-start",
+      "elapsedMs": 20.506585
+    },
+    {
+      "at": 1790984847462,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984847466,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984847467,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "ipc-request",
+      "operation": "prompt-marker",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984847472,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984847473,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 2370.97865
+    },
+    {
+      "at": 1790984847474,
+      "pid": 4097477,
+      "invocation": "d48c2e528afca365",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2371.418987
+    },
+    {
+      "at": 1790984853540,
+      "pid": 4097771,
+      "invocation": "163c85337ec51055",
+      "trace": "process-start",
+      "elapsedMs": 223.122913
+    },
+    {
+      "at": 1790984854249,
+      "pid": 4097771,
+      "invocation": "163c85337ec51055",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 932.071684
+    },
+    {
+      "at": 1790984854255,
+      "pid": 4097771,
+      "invocation": "163c85337ec51055",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 938.670863
+    },
+    {
+      "at": 1790984854412,
+      "pid": 4097883,
+      "invocation": "863284eacf51d699",
+      "trace": "process-start",
+      "elapsedMs": 29.348282
+    },
+    {
+      "at": 1790984854412,
+      "pid": 4097882,
+      "invocation": "d6c23b9373d8ee23",
+      "trace": "process-start",
+      "elapsedMs": 31.341257
+    },
+    {
+      "at": 1790984855117,
+      "pid": 4097882,
+      "invocation": "d6c23b9373d8ee23",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 736.718208
+    },
+    {
+      "at": 1790984855143,
+      "pid": 4097882,
+      "invocation": "d6c23b9373d8ee23",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 761.785621
+    },
+    {
+      "at": 1790984855168,
+      "pid": 4097883,
+      "invocation": "863284eacf51d699",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984855176,
+      "pid": 4097883,
+      "invocation": "863284eacf51d699",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984855178,
+      "pid": 4097883,
+      "invocation": "863284eacf51d699",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "35f5a01a-0392-4c11-a310-f111a46c9ff5"
+    },
+    {
+      "at": 1790984855184,
+      "pid": 4097883,
+      "invocation": "863284eacf51d699",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984855186,
+      "pid": 4097883,
+      "invocation": "863284eacf51d699",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 804.003634
+    },
+    {
+      "at": 1790984859572,
+      "pid": 4098001,
+      "invocation": "910eb6a31aab9689",
+      "trace": "process-start",
+      "elapsedMs": 19.572203
+    },
+    {
+      "at": 1790984859573,
+      "pid": 4097995,
+      "invocation": "fd4a422ec34bea2d",
+      "trace": "process-start",
+      "elapsedMs": 24.198199
+    },
+    {
+      "at": 1790984859577,
+      "pid": 4098002,
+      "invocation": "4e9316d2ced5a7c1",
+      "trace": "process-start",
+      "elapsedMs": 23.77332
+    },
+    {
+      "at": 1790984860191,
+      "pid": 4098001,
+      "invocation": "910eb6a31aab9689",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 639.063032
+    },
+    {
+      "at": 1790984860193,
+      "pid": 4097995,
+      "invocation": "fd4a422ec34bea2d",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 643.818988
+    },
+    {
+      "at": 1790984860195,
+      "pid": 4097995,
+      "invocation": "fd4a422ec34bea2d",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 645.541919
+    },
+    {
+      "at": 1790984860217,
+      "pid": 4098001,
+      "invocation": "910eb6a31aab9689",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 664.780535
+    },
+    {
+      "at": 1790984860219,
+      "pid": 4098002,
+      "invocation": "4e9316d2ced5a7c1",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 665.407664
+    },
+    {
+      "at": 1790984860235,
+      "pid": 4098002,
+      "invocation": "4e9316d2ced5a7c1",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 682.297636
+    },
+    {
+      "at": 1790984860335,
+      "pid": 4098041,
+      "invocation": "7518162d4248cd58",
+      "trace": "process-start",
+      "elapsedMs": 52.078344
+    },
+    {
+      "at": 1790984860399,
+      "pid": 4098053,
+      "invocation": "2b23af8344f347ed",
+      "trace": "process-start",
+      "elapsedMs": 75.882414
+    },
+    {
+      "at": 1790984860412,
+      "pid": 4098066,
+      "invocation": "7a0098b9a5e78c89",
+      "trace": "process-start",
+      "elapsedMs": 79.553111
+    },
+    {
+      "at": 1790984860477,
+      "pid": 4098091,
+      "invocation": "9b7ed23ec53d170a",
+      "trace": "process-start",
+      "elapsedMs": 76.934548
+    },
+    {
+      "at": 1790984860481,
+      "pid": 4098092,
+      "invocation": "064d2de92f8795e1",
+      "trace": "process-start",
+      "elapsedMs": 66.970091
+    },
+    {
+      "at": 1790984860489,
+      "pid": 4098104,
+      "invocation": "55942ba3ef89e9aa",
+      "trace": "process-start",
+      "elapsedMs": 39.797951
+    },
+    {
+      "at": 1790984861599,
+      "pid": 4098041,
+      "invocation": "7518162d4248cd58",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1316.462253
+    },
+    {
+      "at": 1790984861601,
+      "pid": 4098041,
+      "invocation": "7518162d4248cd58",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1318.460311
+    },
+    {
+      "at": 1790984861641,
+      "pid": 4098053,
+      "invocation": "2b23af8344f347ed",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984861643,
+      "pid": 4098053,
+      "invocation": "2b23af8344f347ed",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984861645,
+      "pid": 4098053,
+      "invocation": "2b23af8344f347ed",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "e441ec33-4068-4648-bb0d-167211b1f92f"
+    },
+    {
+      "at": 1790984861650,
+      "pid": 4098053,
+      "invocation": "2b23af8344f347ed",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984861651,
+      "pid": 4098053,
+      "invocation": "2b23af8344f347ed",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1327.502053
+    },
+    {
+      "at": 1790984861676,
+      "pid": 4098066,
+      "invocation": "7a0098b9a5e78c89",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1343.893437
+    },
+    {
+      "at": 1790984861709,
+      "pid": 4098066,
+      "invocation": "7a0098b9a5e78c89",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1377.065042
+    },
+    {
+      "at": 1790984861721,
+      "pid": 4098092,
+      "invocation": "064d2de92f8795e1",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1306.842341
+    },
+    {
+      "at": 1790984861722,
+      "pid": 4098092,
+      "invocation": "064d2de92f8795e1",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1308.268437
+    },
+    {
+      "at": 1790984861775,
+      "pid": 4098104,
+      "invocation": "55942ba3ef89e9aa",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984861777,
+      "pid": 4098104,
+      "invocation": "55942ba3ef89e9aa",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984861779,
+      "pid": 4098104,
+      "invocation": "55942ba3ef89e9aa",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "5e67527c-c62a-4b2e-a49a-a9c9b1784b59"
+    },
+    {
+      "at": 1790984861789,
+      "pid": 4098104,
+      "invocation": "55942ba3ef89e9aa",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984861790,
+      "pid": 4098104,
+      "invocation": "55942ba3ef89e9aa",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1340.774327
+    },
+    {
+      "at": 1790984861829,
+      "pid": 4098091,
+      "invocation": "9b7ed23ec53d170a",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984861831,
+      "pid": 4098091,
+      "invocation": "9b7ed23ec53d170a",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984861832,
+      "pid": 4098091,
+      "invocation": "9b7ed23ec53d170a",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "d63482ed-0f81-4643-a810-cd1d82234108"
+    },
+    {
+      "at": 1790984861834,
+      "pid": 4098091,
+      "invocation": "9b7ed23ec53d170a",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984861835,
+      "pid": 4098091,
+      "invocation": "9b7ed23ec53d170a",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1435.095393
+    },
+    {
+      "at": 1790984880560,
+      "pid": 4098317,
+      "invocation": "8ddb9a6345f1f010",
+      "trace": "process-start",
+      "elapsedMs": 29.569451
+    },
+    {
+      "at": 1790984881921,
+      "pid": 4097566,
+      "invocation": "d48c2e528afca365",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 35306.404637
+    },
+    {
+      "at": 1790984882096,
+      "pid": 4098335,
+      "invocation": "8ddb9a6345f1f010",
+      "trace": "process-start",
+      "elapsedMs": 47.698224
+    },
+    {
+      "at": 1790984883537,
+      "pid": 4098317,
+      "invocation": "8ddb9a6345f1f010",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 3006.311651
+    },
+    {
+      "at": 1790984883810,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "process-start",
+      "elapsedMs": 57.9261
+    },
+    {
+      "at": 1790984884100,
+      "pid": 4098399,
+      "invocation": "b9af113ecb559302",
+      "trace": "process-start",
+      "elapsedMs": 197.846123
+    },
+    {
+      "at": 1790984885966,
+      "pid": 4098472,
+      "invocation": "7d685081e476e410",
+      "trace": "process-start",
+      "elapsedMs": 43.170437
+    },
+    {
+      "at": 1790984885976,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984886003,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984886121,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984886126,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984886129,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "ipc-request",
+      "operation": "admit",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984886206,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "ipc-response",
+      "status": "rejected-stale",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984886209,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 2456.346559
+    },
+    {
+      "at": 1790984886215,
+      "pid": 4098392,
+      "invocation": "7d685081e476e410",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2462.947322
+    },
+    {
+      "at": 1790984886390,
+      "pid": 4098399,
+      "invocation": "b9af113ecb559302",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984886392,
+      "pid": 4098399,
+      "invocation": "b9af113ecb559302",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984886395,
+      "pid": 4098399,
+      "invocation": "b9af113ecb559302",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "e5cdcb10-3994-40df-8261-4f7dd20e7df4"
+    },
+    {
+      "at": 1790984886410,
+      "pid": 4098399,
+      "invocation": "b9af113ecb559302",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984886412,
+      "pid": 4098399,
+      "invocation": "b9af113ecb559302",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2529.884745
+    },
+    {
+      "at": 1790984886657,
+      "pid": 4098472,
+      "invocation": "7d685081e476e410",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 734.938026
+    },
+    {
+      "at": 1790984892399,
+      "pid": 4098529,
+      "invocation": "38bbf0995f5f5122",
+      "trace": "process-start",
+      "elapsedMs": 27.542768
+    },
+    {
+      "at": 1790984892400,
+      "pid": 4098531,
+      "invocation": "0ea49948629bb009",
+      "trace": "process-start",
+      "elapsedMs": 25.119456
+    },
+    {
+      "at": 1790984892402,
+      "pid": 4098530,
+      "invocation": "468e9198e83a8867",
+      "trace": "process-start",
+      "elapsedMs": 28.836612
+    },
+    {
+      "at": 1790984892938,
+      "pid": 4098529,
+      "invocation": "38bbf0995f5f5122",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 566.625313
+    },
+    {
+      "at": 1790984892953,
+      "pid": 4098531,
+      "invocation": "0ea49948629bb009",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 577.303567
+    },
+    {
+      "at": 1790984892954,
+      "pid": 4098531,
+      "invocation": "0ea49948629bb009",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 578.381784
+    },
+    {
+      "at": 1790984892958,
+      "pid": 4098530,
+      "invocation": "468e9198e83a8867",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 584.984005
+    },
+    {
+      "at": 1790984892960,
+      "pid": 4098530,
+      "invocation": "468e9198e83a8867",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 586.565185
+    },
+    {
+      "at": 1790984892961,
+      "pid": 4098529,
+      "invocation": "38bbf0995f5f5122",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 589.3725
+    },
+    {
+      "at": 1790984893074,
+      "pid": 4098614,
+      "invocation": "93cc7ccd892b5eba",
+      "trace": "process-start",
+      "elapsedMs": 19.691245
+    },
+    {
+      "at": 1790984893083,
+      "pid": 4098620,
+      "invocation": "2c6939569a16134b",
+      "trace": "process-start",
+      "elapsedMs": 20.201415
+    },
+    {
+      "at": 1790984893250,
+      "pid": 4098701,
+      "invocation": "14499cd79bf35296",
+      "trace": "process-start",
+      "elapsedMs": 29.716577
+    },
+    {
+      "at": 1790984893251,
+      "pid": 4098707,
+      "invocation": "0e16b586ad9e0e10",
+      "trace": "process-start",
+      "elapsedMs": 23.500109
+    },
+    {
+      "at": 1790984893254,
+      "pid": 4098700,
+      "invocation": "3a39c52dea337adc",
+      "trace": "process-start",
+      "elapsedMs": 33.676068
+    },
+    {
+      "at": 1790984893262,
+      "pid": 4098719,
+      "invocation": "41037daa3bb940e5",
+      "trace": "process-start",
+      "elapsedMs": 25.868337
+    },
+    {
+      "at": 1790984893907,
+      "pid": 4098614,
+      "invocation": "93cc7ccd892b5eba",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 852.533366
+    },
+    {
+      "at": 1790984893935,
+      "pid": 4098614,
+      "invocation": "93cc7ccd892b5eba",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 880.686388
+    },
+    {
+      "at": 1790984893938,
+      "pid": 4098620,
+      "invocation": "2c6939569a16134b",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984893941,
+      "pid": 4098620,
+      "invocation": "2c6939569a16134b",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984893943,
+      "pid": 4098620,
+      "invocation": "2c6939569a16134b",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "b41544a0-2337-4ef5-b3f1-a35e1e793fad"
+    },
+    {
+      "at": 1790984893950,
+      "pid": 4098620,
+      "invocation": "2c6939569a16134b",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984893951,
+      "pid": 4098620,
+      "invocation": "2c6939569a16134b",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 889.150749
+    },
+    {
+      "at": 1790984894003,
+      "pid": 4098700,
+      "invocation": "3a39c52dea337adc",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 783.481883
+    },
+    {
+      "at": 1790984894024,
+      "pid": 4098701,
+      "invocation": "14499cd79bf35296",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 803.085461
+    },
+    {
+      "at": 1790984894033,
+      "pid": 4098700,
+      "invocation": "3a39c52dea337adc",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 812.967583
+    },
+    {
+      "at": 1790984894045,
+      "pid": 4098701,
+      "invocation": "14499cd79bf35296",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 824.70293
+    },
+    {
+      "at": 1790984894063,
+      "pid": 4098719,
+      "invocation": "41037daa3bb940e5",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984894063,
+      "pid": 4098707,
+      "invocation": "0e16b586ad9e0e10",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984894067,
+      "pid": 4098719,
+      "invocation": "41037daa3bb940e5",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984894068,
+      "pid": 4098719,
+      "invocation": "41037daa3bb940e5",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "b67f2e21-bc55-491c-a64c-66d5a89a562c"
+    },
+    {
+      "at": 1790984894069,
+      "pid": 4098707,
+      "invocation": "0e16b586ad9e0e10",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984894070,
+      "pid": 4098707,
+      "invocation": "0e16b586ad9e0e10",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "cf9acd21-2acf-4230-a912-a0b622d1b17e"
+    },
+    {
+      "at": 1790984894072,
+      "pid": 4098719,
+      "invocation": "41037daa3bb940e5",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984894073,
+      "pid": 4098719,
+      "invocation": "41037daa3bb940e5",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 837.153989
+    },
+    {
+      "at": 1790984894086,
+      "pid": 4098707,
+      "invocation": "0e16b586ad9e0e10",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984894087,
+      "pid": 4098707,
+      "invocation": "0e16b586ad9e0e10",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 859.552756
+    },
+    {
+      "at": 1790984903990,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "process-start",
+      "elapsedMs": 25.923129
+    },
+    {
+      "at": 1790984905274,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984905277,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984905279,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-request",
+      "operation": "prompt-marker",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984905280,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984905294,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790984905297,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984905299,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-request",
+      "operation": "begin-stop",
+      "mode": null,
+      "token": "172bf043-6c77-4a7c-b5bc-a00748f13336"
+    },
+    {
+      "at": 1790984905301,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790984905302,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1338.201931
+    },
+    {
+      "at": 1790984905303,
+      "pid": 4098843,
+      "invocation": "b74eaac247730bad",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1338.761978
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "d48c2e528afca365",
+      "kind": "prompt",
+      "at": 1790984845093,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "d48c2e528afca365",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "prompt",
+      "at": 1790984845093,
+      "doneAt": 1790984847659,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "start",
+      "invocation": "163c85337ec51055",
+      "kind": "before-edit",
+      "at": 1790984853275,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "163c85337ec51055",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984853275,
+      "doneAt": 1790984854265,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "start",
+      "invocation": "d6c23b9373d8ee23",
+      "kind": "edit",
+      "at": 1790984854375,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "863284eacf51d699",
+      "kind": "background",
+      "at": 1790984854378,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "d6c23b9373d8ee23",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984854375,
+      "doneAt": 1790984855151,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "863284eacf51d699",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984854378,
+      "doneAt": 1790984855197,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "start",
+      "invocation": "fd4a422ec34bea2d",
+      "kind": "before-edit",
+      "at": 1790984859545,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "910eb6a31aab9689",
+      "kind": "before-edit",
+      "at": 1790984859549,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "4e9316d2ced5a7c1",
+      "kind": "before-edit",
+      "at": 1790984859550,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "fd4a422ec34bea2d",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984859545,
+      "doneAt": 1790984860206,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "910eb6a31aab9689",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984859549,
+      "doneAt": 1790984860227,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "4e9316d2ced5a7c1",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984859550,
+      "doneAt": 1790984860245,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "start",
+      "invocation": "7518162d4248cd58",
+      "kind": "edit",
+      "at": 1790984860277,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "2b23af8344f347ed",
+      "kind": "background",
+      "at": 1790984860289,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "7a0098b9a5e78c89",
+      "kind": "edit",
+      "at": 1790984860323,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "064d2de92f8795e1",
+      "kind": "edit",
+      "at": 1790984860385,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "9b7ed23ec53d170a",
+      "kind": "background",
+      "at": 1790984860373,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "55942ba3ef89e9aa",
+      "kind": "background",
+      "at": 1790984860434,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "7518162d4248cd58",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984860277,
+      "doneAt": 1790984861614,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "2b23af8344f347ed",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984860289,
+      "doneAt": 1790984861661,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "7a0098b9a5e78c89",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984860323,
+      "doneAt": 1790984861721,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "064d2de92f8795e1",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984860385,
+      "doneAt": 1790984861734,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "55942ba3ef89e9aa",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984860434,
+      "doneAt": 1790984861806,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "complete",
+      "invocation": "9b7ed23ec53d170a",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984860373,
+      "doneAt": 1790984861847,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "start",
+      "invocation": "8ddb9a6345f1f010",
+      "kind": "before-edit",
+      "at": 1790984880524,
+      "event": "PreToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "8ddb9a6345f1f010",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984880524,
+      "doneAt": 1790984883560,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8c449a1a5d4a9f794097d2d2bd7bed419fec4b64d53d7b78bc8298286732ce6c"
+    },
+    {
+      "trace": "start",
+      "invocation": "7d685081e476e410",
+      "kind": "edit",
+      "at": 1790984883741,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "start",
+      "invocation": "b9af113ecb559302",
+      "kind": "background",
+      "at": 1790984883839,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "7d685081e476e410",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984883741,
+      "doneAt": 1790984886270,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "b9af113ecb559302",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984883839,
+      "doneAt": 1790984886463,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "start",
+      "invocation": "38bbf0995f5f5122",
+      "kind": "before-edit",
+      "at": 1790984892367,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "468e9198e83a8867",
+      "kind": "before-edit",
+      "at": 1790984892369,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "0ea49948629bb009",
+      "kind": "before-edit",
+      "at": 1790984892371,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "0ea49948629bb009",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984892371,
+      "doneAt": 1790984892968,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "38bbf0995f5f5122",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984892367,
+      "doneAt": 1790984892971,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "468e9198e83a8867",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790984892369,
+      "doneAt": 1790984892975,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "start",
+      "invocation": "93cc7ccd892b5eba",
+      "kind": "edit",
+      "at": 1790984893050,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "2c6939569a16134b",
+      "kind": "background",
+      "at": 1790984893059,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "3a39c52dea337adc",
+      "kind": "edit",
+      "at": 1790984893215,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "14499cd79bf35296",
+      "kind": "edit",
+      "at": 1790984893216,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "0e16b586ad9e0e10",
+      "kind": "background",
+      "at": 1790984893222,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "41037daa3bb940e5",
+      "kind": "background",
+      "at": 1790984893231,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "93cc7ccd892b5eba",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984893050,
+      "doneAt": 1790984893950,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "2c6939569a16134b",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984893059,
+      "doneAt": 1790984893972,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "3a39c52dea337adc",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984893215,
+      "doneAt": 1790984894052,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "14499cd79bf35296",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790984893216,
+      "doneAt": 1790984894057,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "41037daa3bb940e5",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984893231,
+      "doneAt": 1790984894090,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "complete",
+      "invocation": "0e16b586ad9e0e10",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790984893222,
+      "doneAt": 1790984894098,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    },
+    {
+      "trace": "start",
+      "invocation": "b74eaac247730bad",
+      "kind": "stop",
+      "at": 1790984903960,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "b74eaac247730bad",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790984903960,
+      "doneAt": 1790984905313,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712"
+    }
+  ],
+  "requests": [],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "ec3620b18351558b6d95afe3c53c2f7a91cb78a02cd747f773a4648ebbd53bfe",
+    "requestedByHook": false,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712",
+  "changed": true
+}

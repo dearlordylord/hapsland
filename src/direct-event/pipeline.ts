@@ -1,3 +1,4 @@
+import { formatReviewFeedback } from "../feedback/message.ts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
@@ -754,19 +755,12 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   return { status: "evaluated", findings } satisfies Evaluation;
 });
 
-export const DIRECT_EVENT_ADVISORY_HEADING =
-  "Advisory direct-event review (the edit already succeeded):";
-
 export const toCodexDirectEventOutput = (
   findings: ReadonlyArray<Finding>,
 ): CodexDirectEventOutput => ({
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
-    additionalContext: [
-      DIRECT_EVENT_ADVISORY_HEADING,
-      ...findings.map((finding) =>
-        `${finding.path} :: ${finding.declaration} [${finding.ruleId}, p=${finding.probability.toFixed(2)}]: ${finding.message}`),
-    ].join("\n"),
+    additionalContext: formatReviewFeedback(findings),
   },
 });
 

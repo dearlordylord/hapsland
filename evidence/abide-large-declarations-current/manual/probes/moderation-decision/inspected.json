@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "blinded": true,
+  "rows": [
+    {
+      "blindId": "21b8471a6e52",
+      "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": false,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "2496ae2e6b7a",
+      "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": true,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "435a68020492",
+      "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": false,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "49ad7457bbaa",
+      "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": false,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "7265cec68ba2",
+      "sourceDigest": "0d35f76ccbc90d2986e8390d6e70342509feeab91843b2a85b53b6a323f04731",
+      "supportingDigest": "a983995b9aa6837229440dbd3ed06c06f01622e08a918f2dd51422b7e21125a4",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": true,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "7f5e4a31cf4e",
+      "sourceDigest": "0c9667f01a11cbce29b9357d64cb95d0be76608e33daa8b47645d155b3e0ea17",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": true,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "8a0e000fa490",
+      "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": false,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "a48555eb7bca",
+      "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": true,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "ad8aca9fcfd3",
+      "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": true,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "da8b81cc5f73",
+      "sourceDigest": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": true,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "f6f7e096a7b1",
+      "sourceDigest": "311a6f6b3e3c0b41d4c62244b19213b51f34b12a11012d8eed09aa04edb3e8dd",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": false,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    },
+    {
+      "blindId": "fc775ad11be9",
+      "sourceDigest": "c3c13ddcab71d7d43f367601190665603dc62fcbd24e1480843a6dc168e671df",
+      "supportingDigest": "4298d6aa8d5c501d77a287e53d74ba3271b2b9ac2c3a94d5e3a8958e1df984bf",
+      "safeToExecute": true,
+      "argumentShape": "object",
+      "explicitDependency": false,
+      "inspection": "Source and supporting source manually inspected: only ./support import, local string/array operations, and declared or imported audit append; no external IO, dynamic code, or unfamiliar runtime shape."
+    }
+  ]
+}

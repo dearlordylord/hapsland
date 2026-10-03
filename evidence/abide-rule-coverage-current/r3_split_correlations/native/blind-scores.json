@@ -1,0 +1,597 @@
+{
+  "version": 1,
+  "blinded": true,
+  "scorerDigest": "810c6e87536e324a0a35a2f42959762c9ce718ebb5f2ef4a19d691ae39053990",
+  "fixtureDigest": "829d471819121b812ac298c73482a5d941d6227ed274b564b2a24c82b82a1ac0",
+  "typescriptVersion": "5.9.3",
+  "scores": [
+    {
+      "blindId": "05ddeb9318b8",
+      "caseId": "calibration-pair",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "581d07e4f1cc85167866e8bf0d237e5af3610c7b1f41f33a000916f411712d79",
+      "supportingDigest": "839bddf3a9c54422170d848ba351aa98b537ccb7806b808f2123b6dde5853479",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "calibration.raw",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "calibration.reference",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 1,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"calibration\":{\"raw\":19.4,\"reference\":20}}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"calibration\":{\"reference\":20}}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "3f17e0620c99",
+      "caseId": "clean-independent-measurements",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "fe782565ef64c74b9ce6d9c9f9645ccb84d79d49e4856390c0c432b04a0b1867",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "temperatureCelsius",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "humidityPercent",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"temperatureCelsius\":21}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"humidityPercent\":50}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"temperatureCelsius\":21,\"humidityPercent\":50}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "42c31e840e5c",
+      "caseId": "clean-independent-measurements",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "fe782565ef64c74b9ce6d9c9f9645ccb84d79d49e4856390c0c432b04a0b1867",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "temperatureCelsius",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "humidityPercent",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"temperatureCelsius\":21}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"humidityPercent\":50}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"temperatureCelsius\":21,\"humidityPercent\":50}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "536aba90b34d",
+      "caseId": "color-channels",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "81e4c198b1aff64bb92dcdfea94060871baa9a73671a875e0745bde44a454d45",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "red",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "green",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "blue",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 2,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"red\":0,\"green\":1,\"blue\":2}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"red\":255}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"green\":1,\"blue\":2}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "8590ac7b03ba",
+      "caseId": "color-channels",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "81e4c198b1aff64bb92dcdfea94060871baa9a73671a875e0745bde44a454d45",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "red",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "green",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "blue",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 2,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"red\":0,\"green\":1,\"blue\":2}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"red\":255}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"green\":1,\"blue\":2}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "92d4492be360",
+      "caseId": "calibration-pair",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "b19b2218b0d44305d9be2a39b9b307a1b9dafc671286a2f33ae6dc9892c4f485",
+      "supportingDigest": "839bddf3a9c54422170d848ba351aa98b537ccb7806b808f2123b6dde5853479",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "calibration.raw",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "calibration.reference",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 1,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"calibration\":{\"raw\":19.4,\"reference\":20}}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"calibration\":{\"reference\":20}}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "9bc8cad0a592",
+      "caseId": "color-channels",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "4b27353f9f79e19fd0ac549ebdbeaef5edb614d75234f791f24f2e05e3227572",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": false,
+        "checks": [
+          {
+            "path": "red",
+            "present": true,
+            "optionalExpected": null,
+            "optional": false,
+            "typePreserved": false,
+            "passed": false
+          },
+          {
+            "path": "green",
+            "present": true,
+            "optionalExpected": null,
+            "optional": false,
+            "typePreserved": false,
+            "passed": false
+          },
+          {
+            "path": "blue",
+            "present": true,
+            "optionalExpected": null,
+            "optional": false,
+            "typePreserved": false,
+            "passed": false
+          }
+        ]
+      },
+      "underlyingGold": true,
+      "status": "unassessed",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "d73eb74237fd",
+      "caseId": "calibration-pair",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "419e6bedd898044848fcd0698861fd826b2503c68b00bb06dd286767adda76cd",
+      "supportingDigest": "839bddf3a9c54422170d848ba351aa98b537ccb7806b808f2123b6dde5853479",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "calibration.raw",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "calibration.reference",
+            "present": true,
+            "optionalExpected": null,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 1,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"calibration\":{\"raw\":19.4,\"reference\":20}}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"calibration\":{\"reference\":20}}",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "fa8c3027b909",
+      "caseId": "clean-independent-measurements",
+      "ruleId": "r3_split_correlations",
+      "sourceDigest": "fe782565ef64c74b9ce6d9c9f9645ccb84d79d49e4856390c0c432b04a0b1867",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "temperatureCelsius",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "humidityPercent",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"temperatureCelsius\":21}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"humidityPercent\":50}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"temperatureCelsius\":21,\"humidityPercent\":50}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T23:14:11.788Z",
+  "records": [
+    {
+      "stage": "A",
+      "id": "muted-topics",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "muted-topics",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "muted-topics",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "muted-topics",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "muted-topics",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "muted-topics",
+      "candidate": "abide",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "required-recipients",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "required-recipients",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "required-recipients",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "required-recipients",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "required-recipients",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "required-recipients",
+      "candidate": "abide",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "clean-known-empty-set",
+      "candidate": "hapsland",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "clean-known-empty-set",
+      "candidate": "abide",
+      "pass": 0
+    },
+    {
+      "stage": "A",
+      "id": "clean-known-empty-set",
+      "candidate": "abide",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "clean-known-empty-set",
+      "candidate": "hapsland",
+      "pass": 1
+    },
+    {
+      "stage": "A",
+      "id": "clean-known-empty-set",
+      "candidate": "hapsland",
+      "pass": 2
+    },
+    {
+      "stage": "A",
+      "id": "clean-known-empty-set",
+      "candidate": "abide",
+      "pass": 2
+    }
+  ],
+  "attempts": 72,
+  "hostUncachedPlusOutputTokens": 0
+}

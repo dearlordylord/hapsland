@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { formatReviewFeedback } from "./feedback/message.ts";
 import { isHookInvocation, parseInvocation, type ClientArguments } from "./cli-command.ts";
 import { hookMonotonicMillis, monotonicNow } from "./resident/hook-clock.ts";
 import { readMaskedCredential } from "./credentials/masked-input.ts";
@@ -1287,7 +1288,12 @@ const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* 
   return { diagnosis, status: checked.status, exitCode: result.exitCode };
 });
 
-if (cliSwitch("package-identity")) {
+if (cliSwitch("feedback-preview")) {
+  process.stdout.write("Synthetic example; no review was run.\n\n" + formatReviewFeedback([{
+    path: "example.ts", declaration: "ExampleState",
+    message: "This is a sample finding. Actual messages come from the configured rule.",
+  }]) + "\n");
+} else if (cliSwitch("package-identity")) {
   process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", runtime: process.execPath, entrypoint: fileURLToPath(import.meta.url) }) + "\n");
 } else if (cliSwitch("pilot") || invocation.kind === "lifecycle") {
   try {

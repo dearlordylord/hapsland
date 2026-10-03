@@ -1,3 +1,4 @@
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts";
 type Stats = { readonly status: "stats"; readonly queued: number; readonly running: number; readonly pendingAdvice: number; readonly pendingFindingBatches: number; readonly pendingOperationalNotices: number; readonly pendingEvaluations: number; readonly successfulCacheEntries: number };
 export type HostOutputKind = "none" | "invalid" | "findings" | "operational-notice" | "findings-and-operational-notice";
 const record = (value: unknown): Readonly<Record<string, unknown>> | undefined => typeof value === "object" && value !== null && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : undefined;
@@ -6,8 +7,8 @@ export const classifyHookOutput = (value: unknown): HostOutputKind => {
   if (hook === undefined) return Object.keys(output ?? {}).length === 0 ? "none" : "invalid";
   if (hook.hookEventName !== "PostToolUse" || typeof hook.additionalContext !== "string") return "invalid";
   const lines = hook.additionalContext.split("\n").filter((line) => line.length > 0);
-  if (lines[0] !== "Advisory direct-event review (the edit already succeeded):") return "invalid";
-  const body = lines.slice(1); const notices = body.filter((line) => line.startsWith("Operational notice:")); const findings = body.length - notices.length;
+  if (lines[0] !== REVIEW_FEEDBACK_HEADING) return "invalid";
+  const body = lines.slice(1).filter(line => line !== REVIEW_FEEDBACK_INSTRUCTIONS); const notices = body.filter((line) => line.startsWith("Operational notice:")); const findings = body.length - notices.length;
   if (findings > 0 && notices.length > 0) return "findings-and-operational-notice";
   if (findings > 0) return "findings";
   if (notices.length > 0) return "operational-notice";
