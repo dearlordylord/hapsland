@@ -24,7 +24,8 @@ def with_callbacks(state: State, callbacks: Callbacks.State) -> State:
     case State{_, notices, clocks, freshness, sources, sharing, cache, collection,writers}: State{callbacks, notices, clocks, freshness, sources, sharing, cache, collection,writers}
 
 def retained_state(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, +freshness: Freshness.State, sources: ScopedRevision.State, +canonical: Canonical.State, sharing: SharingRuntime.State, cache: CacheRuntime.State, +collection: CollectionScenario.State, writers: WriterScenario.State) -> State:
-  State{callbacks,notices,clocks,freshness,ScopedRevision.retain(sources,canonical,Freshness.bindings(freshness)),sharing,cache, CollectionScenario.retain(collection,canonical),WriterScenario.retain_current(writers,canonical,CollectionScenario.retain(collection,canonical))}
+  +retained : CollectionScenario.State = CollectionScenario.retain(collection,canonical)
+  State{callbacks,notices,clocks,freshness,ScopedRevision.retain(sources,canonical,Freshness.bindings(freshness)),sharing,cache,retained,WriterScenario.retain_current(writers,canonical,retained)}
 
 def retained_sharing(callbacks: Callbacks.State, notices: NoticeScenario.State, clocks: List<&2,NoticeScenario.Clock>, freshness: Freshness.State, sources: ScopedRevision.State, +canonical: Canonical.State, +sharing: SharingRuntime.State, +cache: CacheRuntime.State, +collection: CollectionScenario.State, writers: WriterScenario.State) -> State:
   retained_state(callbacks,notices,clocks,Freshness.retained_references(CacheRuntime.restored_sources(freshness,cache),canonical,List.append(&2,Freshness.Scope,SharingRuntime.source_references(sharing),CacheRuntime.references(cache))),sources,canonical,sharing,cache,collection,writers)
