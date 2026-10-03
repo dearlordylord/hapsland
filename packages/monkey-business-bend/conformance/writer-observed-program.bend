@@ -77,7 +77,7 @@ def replace(items: List<&2,Edge.Item>, +order: Nat, +event: C.CanonicalEvent) ->
 def dropped(value: Engine.Taken, runtime: List<&2,Edge.Runtime>, input: Edge.Input, +order: Nat) -> Guarded:
   match value runtime:
     case Engine.Taken{state,Some{_}} Edge.Runtime{_,Edge.Queue{items,sequence,synced},jobs,delay} <> Nil{}:
-      Guarded{[Edge.Runtime{Transport.delivered(input,state,order),Edge.Queue{Edge.remove(items,order),sequence,synced},jobs,delay}],False{},True{}}
+      Guarded{[Edge.Runtime{Edge.delivered_state(input,state,order),Edge.Queue{Edge.remove(items,order),sequence,synced},jobs,delay}],False{},True{}}
     case _ runtime: Guarded{runtime,False{},False{}}
 
 def guarded_event(found: Maybe<&2,C.CanonicalEvent>, +runtime: List<&2,Edge.Runtime>, input: Edge.Input,
