@@ -91,11 +91,11 @@ def receipt_target(receipt: Maybe<&2,Callbacks.Fact>) -> Maybe<&2,Callbacks.Targ
     case None{}: None{}
 
 def take_receipted(-F: Data, +receipt: Maybe<&2,Callbacks.Fact>, runtime: List<&2,Edge.Runtime>,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   Stepped{Edge.observe_step_with(F,runtime,receipt,environment,factory),receipt_target(receipt)}
 
 def take_selected(-F: Data, +runtime: List<&2,Edge.Runtime>, input: Edge.Input, +order: Nat,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   take_receipted(F,Edge.frame_receipt(runtime,order),runtime,environment,factory)
 
 # Finish actions and hook construction while complete state stays inside next.
@@ -124,15 +124,15 @@ def routed_mode(next: List<&2,Engine.SharingNext>) -> Nat:
 
 def routed_selected(-F: Data, mode: Nat, +next: List<&2,Engine.SharingNext>, +runtime: List<&2,Edge.Runtime>,
     input: Edge.Input, +now: Nat, order: Nat, job: Edge.Job,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match mode:
-    case 2n: routed_ready(F,routed_queue(next,runtime,now,job),next,runtime,now,order,factory([]))
+    case 2n: routed_ready(F,routed_queue(next,runtime,now,job),next,runtime,now,order,Edge.transition_commands(F,factory([])))
     case 1n: take_selected(F,runtime,input,order,environment,factory)
-    case _: Stepped{Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},factory([])},None{}}
+    case _: Stepped{Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},Edge.transition_commands(F,factory([]))},None{}}
 
 def routed(-F: Data, +next: List<&2,Engine.SharingNext>, runtime: List<&2,Edge.Runtime>, input: Edge.Input,
     now: Nat, order: Nat, job: Edge.Job,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   routed_selected(F,routed_mode(next),next,runtime,input,now,order,job,environment,factory)
 
 def preprocess_next(runtime: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
@@ -143,7 +143,7 @@ def preprocess_next(runtime: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
     case _: []
 
 def preprocess(-F: Data, input: Edge.Input, +runtime: List<&2,Edge.Runtime>, now: Nat, +order: Nat,
-    endpoint: Nat, environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    endpoint: Nat, environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match input:
     case Edge.Event{Driver.Action{+event,delay,candidate,binding,expiry},+job}:
       routed(F,preprocess_next(runtime,event,order,endpoint),runtime,
@@ -154,28 +154,28 @@ def preprocess(-F: Data, input: Edge.Input, +runtime: List<&2,Edge.Runtime>, now
     case input: take_selected(F,runtime,input,order,environment,factory)
 
 def within(-F: Data, allowed: Bool, input: Edge.Input, runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat,
-    endpoint: Nat, environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    endpoint: Nat, environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match allowed:
     case True{}: preprocess(F,input,runtime,at,order,endpoint,environment,factory)
-    case False{}: Stepped{Edge.Observed{runtime,None{},factory([])},None{}}
+    case False{}: Stepped{Edge.Observed{runtime,None{},Edge.transition_commands(F,factory([]))},None{}}
 
 def selected(-F: Data, head: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>, +endpoint: Nat,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match head:
     case Scheduler.Entry{+at,+order} <> _:
       within(F,Nat.is_le(at,endpoint),Edge.lookup(Edge.runtime_items(runtime),order),runtime,at,order,endpoint,environment,factory)
-    case Nil{}: Stepped{Edge.Observed{runtime,None{},factory([])},None{}}
+    case Nil{}: Stepped{Edge.Observed{runtime,None{},Edge.transition_commands(F,factory([]))},None{}}
 
 def step_valid(-F: Data, valid: Bool, +runtime: List<&2,Edge.Runtime>, endpoint: Nat,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match valid:
     case True{}: selected(F,Edge.runtime_entries(runtime),runtime,endpoint,environment,factory)
-    case False{}: Stepped{Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},factory([])},None{}}
+    case False{}: Stepped{Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},Edge.transition_commands(F,factory([]))},None{}}
 
 def step_synced(-F: Data, +runtime: List<&2,Edge.Runtime>, endpoint: Nat,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   step_valid(F,Edge.runtime_valid(runtime),runtime,endpoint,environment,factory)
 
 def step(-F: Data, runtime: List<&2,Edge.Runtime>, endpoint: Nat,
-    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.CommandHook<F>) -> Stepped<F>:
+    environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   step_synced(F,Edge.runtime_sync(runtime),endpoint,environment,factory)

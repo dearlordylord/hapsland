@@ -75,7 +75,7 @@ def observed(value: Transport.Stepped<Facts>, input: Inputs.Scenario, frames: Li
 def selected(runtime: List<&2,Edge.Runtime>, issued: Nat, input: Inputs.Scenario,
     frames: List<&2,Wire.Frame>, observations: Nat, environment: Edge.Environment, endpoint: Nat,
     ih: Nat -> Running -> Running) -> Running:
-  observed(Transport.step(Facts,runtime,endpoint,environment,commands => hook(commands,Facts{issued})),
+  observed(Transport.step(Facts,runtime,endpoint,environment,commands => Edge.transition_hook(Facts,hook(commands,Facts{issued}))),
     input,frames,observations,ih)
 
 def in_horizon(entries: List<&2,Scheduler.Entry>, endpoint: Nat) -> Bool:

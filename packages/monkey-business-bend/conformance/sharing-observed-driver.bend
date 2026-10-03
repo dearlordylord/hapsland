@@ -109,7 +109,7 @@ def selected(head: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>,
     case Scheduler.Entry{at,+order} <> _ Trace{_,_,+queued,+labels,+originals,_,_,_,_}:
       +facts=Hook.selected(Edge.lookup(Edge.runtime_items(runtime),order),labels,originals,Provenance.original(queued,order),at)
       stepped(Transport.step(Hook.Facts,runtime,endpoint,
-        environment,commands => Hook.factory(commands,facts)),Edge.runtime_sequence(runtime),previous)
+        environment,commands => Edge.transition_hook(Hook.Facts,Hook.factory(commands,facts))),Edge.runtime_sequence(runtime),previous)
     case _ previous: fail(previous)
 
 def captured_synced(+runtime: List<&2,Edge.Runtime>, issued: Nat, environment: Edge.Environment,

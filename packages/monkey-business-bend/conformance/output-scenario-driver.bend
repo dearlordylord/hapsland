@@ -248,7 +248,7 @@ def observed(value: Transport.Stepped<Facts>, previous: Runtime, receipt: Maybe<
 
 def step_receipted(receipt: Maybe<&2,Callbacks.Fact>, runtime: List<&2,Edge.Runtime>,
     environment: Edge.Environment, previous: Runtime, +facts: Facts) -> Runtime:
-  observed(Transport.step(Facts,runtime,20n,environment,commands => hook(commands,facts)),previous,receipt)
+  observed(Transport.step(Facts,runtime,20n,environment,commands => Edge.transition_hook(Facts,hook(commands,facts))),previous,receipt)
 
 def step_selected(queue: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>, environment: Edge.Environment,
     previous: Runtime, facts: Facts) -> Runtime:

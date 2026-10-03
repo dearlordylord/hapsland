@@ -279,7 +279,7 @@ def selected_guard(guarded: Guarded, +input: Edge.Input, +at: Nat, +order: Nat,
       +payload=Context.preparation(Originals.lookup_context(bindings,order),input,Edge.runtime_states(runtime))
       +facts=SharingHook.selected(input,labels,originals,sharing_original(queued,order),at)
       observed(Transport.step(Hook.Facts,runtime,endpoint,environment,
-        commands => Hook.factory(commands,Hook.Facts{facts,Originals.consume(bindings,order),original,issued,environment,payload})),
+        commands => Edge.transition_hook(Hook.Facts,Hook.factory(commands,Hook.Facts{facts,Originals.consume(bindings,order),original,issued,environment,payload}))),
         input_job(input),Edge.runtime_sequence(runtime),previous)
     case Guarded{runtime,False{},True{}} Trace{Writer.Runtime{_,bindings,frames,consumed,valid},agents,queued,labels,originals,issued}:
       Trace{Writer.Runtime{runtime,Originals.consume(bindings,order),frames,consumed,valid},agents,queued,labels,originals,issued}
