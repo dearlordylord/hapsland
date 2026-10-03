@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared } from "./simulation-adapter.ts";
+import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, beginSharedCache, stepSharedCache } from "./simulation-adapter.ts";
 import { encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts";
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 };
@@ -25,6 +25,19 @@ describe("trusted simulation composition boundary", () => {
     expect(queuedShared(state)).toEqual([]);
     expect(Object.isFrozen(taken.state)).toBe(true);
     expect(Object.isFrozen(projection)).toBe(true);
+  });
+  it("rejects forged cache metadata without changing original ownership", () => {
+    const state = initialSharedCanonical(limits);
+    const projection = projectSharedCanonical(state);
+    const event = { kind: "openRound", partition: 1, lifetime: 1 } as const;
+    const forged = Object.freeze({ event, partition: 1 });
+
+    expect(() => stepSharedCache(state, forged)).toThrow("foreign or consumed cache metadata fact");
+    expect(() => stepSharedCache(state, structuredClone(forged))).toThrow("foreign or consumed cache metadata fact");
+    expect(() => beginSharedCache(structuredClone(state), event)).toThrow("foreign shared engine state");
+    expect(() => stepSharedCache(structuredClone(state), forged)).toThrow("foreign shared engine state");
+    expect(projectSharedCanonical(state)).toBe(projection);
+    expect(queuedShared(state)).toEqual([]);
   });
   it("rejects numeric narrowing and foreign namespaces while preserving U32 words", () => {
     expect(() => decodeSharedValue(281474976710656n)).toThrow();
