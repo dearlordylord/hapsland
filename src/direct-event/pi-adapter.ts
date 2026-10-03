@@ -4,7 +4,7 @@ import { discoverPhysicalWorkingTreeRoot } from "../repository/root.ts";
 import { loadConfiguration } from "../configuration/load.ts";
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "./capture.ts";
 import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts";
-import type { DirectAdvicee, DirectObservation } from "./model.ts";
+import type { DirectAdvicee, DirectObservation, PhysicalRootIdentity } from "./model.ts";
 import type { VerifiedPatchHunk } from "./edit-attribution.ts";
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -28,25 +28,34 @@ export const adaptPiHookIdentity = Effect.fn("DirectEvent.adaptPiHookIdentity")(
   return root._tag === "None" ? undefined : { root: root.value.root, advicee: identified.advicee };
 });
 
-/** Compare only native hunk material, never construct a previous file image. */
-const verifyNativeReplacements = (before: string, after: string, edits: readonly { oldText: string; newText: string }[], consumed: Set<number>): boolean => {
-  const replacements: { start: number; oldText: string; newText: string; index: number }[] = [];
+type NativeEdit = { oldText: string; newText: string };
+type Replacement = NativeEdit & { start: number; index: number };
+const normalizeLF = (text: string): string => text.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+const matchingReplacements = (before: string, edits: readonly NativeEdit[], consumed: Set<number>): Replacement[] | undefined => {
+  const matches: Replacement[] = [];
   for (const [index, edit] of edits.entries()) {
-    const oldText = edit.oldText.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+    const oldText = normalizeLF(edit.oldText);
     const start = before.indexOf(oldText);
     if (start < 0) continue;
-    if (consumed.has(index) || before.indexOf(oldText, start + 1) >= 0) return false;
-    replacements.push({ start, oldText, newText: edit.newText.replaceAll("\r\n", "\n").replaceAll("\r", "\n"), index });
+    if (consumed.has(index) || before.indexOf(oldText, start + 1) >= 0) return undefined;
+    matches.push({ start, oldText, newText: normalizeLF(edit.newText), index });
   }
-  replacements.sort((a, b) => a.start - b.start);
+  return matches.sort((a, b) => a.start - b.start);
+};
+const replaceHunkMaterial = (before: string, replacements: readonly Replacement[]): string | undefined => {
   let cursor = 0;
   let expected = "";
   for (const edit of replacements) {
-    if (edit.start < cursor) return false;
+    if (edit.start < cursor) return undefined;
     expected += before.slice(cursor, edit.start) + edit.newText;
     cursor = edit.start + edit.oldText.length;
   }
-  if (expected + before.slice(cursor) !== after) return false;
+  return expected + before.slice(cursor);
+};
+/** Compare only native hunk material, never construct a previous file image. */
+const verifyNativeReplacements = (before: string, after: string, edits: readonly NativeEdit[], consumed: Set<number>): boolean => {
+  const replacements = matchingReplacements(before, edits, consumed);
+  if (replacements === undefined || replaceHunkMaterial(before, replacements) !== after) return false;
   for (const edit of replacements) consumed.add(edit.index);
   return true;
 };
@@ -110,10 +119,20 @@ const verifyPatchBody = (lines: string[], header: Header, frame: PatchFrame,
   if (body.oldLines.length !== header.oldCount || body.newLines.length !== header.newCount) return false;
   return verifyNativeReplacements(bodyText(body.oldLines, body.oldNoNewline), bodyText(body.newLines, body.newNoNewline), edits, consumed);
 };
-/** Pi's unified patch contains post-image coordinates, never display-diff coordinates. */
-const verifyPatch = (patch: string, path: string, source: string, relativePath: string, edits: readonly { oldText: string; newText: string }[]) => {
+const patchBodyLines = (patch: string, path: string): string[] | undefined => {
   const lines = patch.split("\n");
   if (lines.pop() !== "" || lines.shift() !== `--- ${path}` || lines.shift() !== `+++ ${path}`) return undefined;
+  return lines;
+};
+const patchBodyEnd = (lines: readonly string[], start: number): number => {
+  let end = start;
+  while (end < lines.length && !lines[end]!.startsWith("@@")) end += 1;
+  return end;
+};
+/** Pi's unified patch contains post-image coordinates, never display-diff coordinates. */
+const verifyPatch = (patch: string, path: string, source: string, relativePath: string, edits: readonly { oldText: string; newText: string }[]) => {
+  const lines = patchBodyLines(patch, path);
+  if (lines === undefined) return undefined;
   const frame: PatchFrame = { current: source.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n"),
     source, relativePath, hunks: [], addedLines: [], priorOldEnd: 1, priorNewEnd: 1 };
   const consumed = new Set<number>();
@@ -122,7 +141,7 @@ const verifyPatch = (patch: string, path: string, source: string, relativePath: 
     const header = parseHeader(lines[index++]!);
     if (header === undefined || !validCoordinates(header, frame)) return undefined;
     const start = index;
-    while (index < lines.length && !lines[index]!.startsWith("@@")) index += 1;
+    index = patchBodyEnd(lines, index);
     if (!verifyPatchBody(lines.slice(start, index), header, frame, edits, consumed)) return undefined;
     frame.priorOldEnd = header.oldPosition + header.oldCount;
     frame.priorNewEnd = header.newPosition + header.newCount;
@@ -130,23 +149,55 @@ const verifyPatch = (patch: string, path: string, source: string, relativePath: 
   if (consumed.size !== edits.length || !frame.addedLines.some((line) => line.trim().length > 0)) return undefined;
   return { hunks: frame.hunks, addedLines: frame.addedLines };
 };
-const payload = (event: Record<string, unknown>) => {
-  const input = record(event.input);
-  const details = record(event.details);
-  if (event.tool_name !== "edit" || event.isError !== false || input === undefined || details === undefined ||
-    !nonempty(input.path) || !nonempty(details.patch) || !Array.isArray(input.edits) ||
-    input.edits.length < 1 || input.edits.length > 64 || Buffer.byteLength(input.path) > 16_384 ||
-    Buffer.byteLength(details.patch) > MAX_SOURCE_BYTES || !ascii(details.patch) || !ascii(input.path)) return undefined;
+const boundedAscii = (value: unknown, maxBytes: number): value is string =>
+  nonempty(value) && Buffer.byteLength(value) <= maxBytes && ascii(value);
+const nativeEdit = (value: unknown): NativeEdit | undefined => {
+  const edit = record(value);
+  if (edit === undefined || !nonempty(edit.oldText) || typeof edit.newText !== "string") return undefined;
+  if (!ascii(edit.oldText) || !ascii(edit.newText)) return undefined;
+  return { oldText: edit.oldText, newText: edit.newText };
+};
+const nativeEdits = (value: unknown): NativeEdit[] | undefined => {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 64) return undefined;
   let bytes = 0;
-  for (const value of input.edits) {
-    const edit = record(value);
-    if (edit === undefined || !nonempty(edit.oldText) || typeof edit.newText !== "string" ||
-      !ascii(edit.oldText) || !ascii(edit.newText)) return undefined;
+  const edits: NativeEdit[] = [];
+  for (const item of value) {
+    const edit = nativeEdit(item);
+    if (edit === undefined) return undefined;
     bytes += Buffer.byteLength(edit.oldText) + Buffer.byteLength(edit.newText);
     if (bytes > MAX_SOURCE_BYTES) return undefined;
+    edits.push(edit);
   }
-  return { path: input.path, patch: details.patch, edits: input.edits as { oldText: string; newText: string }[] };
+  return edits;
 };
+const successfulNativeEdit = (event: Record<string, unknown>): boolean => event.tool_name === "edit" && event.isError === false;
+const payload = (event: Record<string, unknown>) => {
+  if (!successfulNativeEdit(event)) return undefined;
+  const input = record(event.input);
+  const details = record(event.details);
+  if (input === undefined || details === undefined) return undefined;
+  if (!boundedAscii(input.path, 16_384) || !boundedAscii(details.patch, MAX_SOURCE_BYTES)) return undefined;
+  const edits = nativeEdits(input.edits);
+  return edits === undefined ? undefined : { path: input.path, patch: details.patch, edits };
+};
+type AdapterOptions = { readonly userConfigPath?: string; readonly captureHooks?: CaptureHooks };
+const rootRelativePath = (root: string, cwd: string, namedPath: string): string | undefined => {
+  const path = relative(root, resolve(cwd, namedPath));
+  return isAbsolute(path) || path === ".." || path.startsWith(`..${sep}`) ? undefined : path;
+};
+const captureSelectedPiFile = Effect.fn("DirectEvent.captureSelectedPiFile")(function* (
+  root: {
+    root: string; rootIdentity: PhysicalRootIdentity;
+  }, cwd: string, namedPath: string, options: AdapterOptions,
+) {
+  const path = rootRelativePath(root.root, cwd, namedPath);
+  if (path === undefined) return undefined;
+  const configuration = yield* loadConfiguration(root.root, options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath });
+  const eligible = yield* eligibleNamedPath(root.root, path, resolvedDirectFilePolicy(configuration.policy), root.rootIdentity);
+  if (eligible === undefined) return undefined;
+  const source = yield* captureStable(root.root, eligible, options.captureHooks, root.rootIdentity);
+  return source === undefined || !ascii(source.text) ? undefined : { source, eligible };
+});
 export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(function* (
   value: unknown,
   options: { readonly userConfigPath?: string; readonly captureHooks?: CaptureHooks } = {},
@@ -158,13 +209,9 @@ export const adaptPiDirectEvent = Effect.fn("DirectEvent.adaptPiDirectEvent")(fu
   const cwd = identified.event.cwd as string;
   const root = yield* discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.option);
   if (root._tag === "None") return undefined;
-  const path = relative(root.value.root, resolve(cwd, input.path));
-  if (isAbsolute(path) || path === ".." || path.startsWith(`..${sep}`)) return undefined;
-  const configuration = yield* loadConfiguration(root.value.root, options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath });
-  const eligible = yield* eligibleNamedPath(root.value.root, path, resolvedDirectFilePolicy(configuration.policy), root.value.rootIdentity);
-  if (eligible === undefined) return undefined;
-  const source = yield* captureStable(root.value.root, eligible, options.captureHooks, root.value.rootIdentity);
-  if (source === undefined || !ascii(source.text)) return undefined;
+  const captured = yield* captureSelectedPiFile(root.value, cwd, input.path, options);
+  if (captured === undefined) return undefined;
+  const { source, eligible } = captured;
   const evidence = verifyPatch(input.patch, input.path, source.text, eligible.relativePath, input.edits);
   if (evidence === undefined) return undefined;
   return {
