@@ -20,10 +20,10 @@ type Preparation is Data:
   Preparation{scope: Freshness.Scope, member: Sharing.Member, units: List<&2,PreparedUnit>}
 type Binding is Data:
   Binding{scope: Freshness.Scope, evaluation: Nat, bytes: Nat}
-type Result is Data:
-  Result{evaluation: Nat, outcome: C.RequestOutcome, original: Freshness.Scope, bytes: Nat}
+type SharingResult is Data:
+  SharingResult{evaluation: Nat, outcome: C.RequestOutcome, original: Freshness.Scope, bytes: Nat}
 type State is Data:
-  State{sharing: Sharing.State, preparations: List<&2,Preparation>, bindings: List<&2,Binding>, results: List<&2,Result>}
+  State{sharing: Sharing.State, preparations: List<&2,Preparation>, bindings: List<&2,Binding>, results: List<&2,SharingResult>}
 type Route is Data:
   Route{preparation: Freshness.Scope, member: Sharing.Member, position: Nat, evaluation: Nat}
 type Captured is Data:
@@ -45,10 +45,8 @@ def with_sharing(state: State, sharing: Sharing.State) -> State:
 def member(binding: Maybe<&2,Freshness.Binding>) -> Maybe<&2,Sharing.Member>:
   match binding:
     case None{}: None{}
-    case Some{Freshness.Binding{scope,source,generation}}:
-      match Nat.is_gt(generation,0n):
-        case True{}: Some{Sharing.Member{scope,source,generation}}
-        case False{}: None{}
+    case Some{Freshness.Binding{scope,source,+generation}}:
+      Bool.pick(Maybe<&2,Sharing.Member>,Nat.is_gt(generation,0n),Some{Sharing.Member{scope,source,generation}},None{})
 
 def find_preparation(items: List<&2,Preparation>, +scope: Freshness.Scope) -> Maybe<&2,Preparation>:
   match items:
@@ -105,7 +103,7 @@ def captured_tail(step: CaptureStep, tail: Captured) -> Captured:
     case CaptureStep{_,None{},valid} Captured{state,routes,accepted}: Captured{state,routes,valid && accepted}
     case CaptureStep{_,Some{route},valid} Captured{state,routes,accepted}: Captured{state,route <> routes,valid && accepted}
 
-def capture_units(keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, +scope: Freshness.Scope, +member: Sharing.Member, position: Nat, state: State) -> Captured:
+def capture_units(keys: List<&2,Sharing.SharingKey>, sizes: List<&2,Nat>, +scope: Freshness.Scope, +member: Sharing.Member, +position: Nat, state: State) -> Captured:
   match keys sizes:
     case Nil{} Nil{}: Captured{state,[],True{}}
     case key <> tail size <> rest:
@@ -139,11 +137,9 @@ def route_valid(state: State, +route: Route) -> Bool:
       route_found(route,find_preparation(preparations,scope))
 
 def route_event(canonical: C.State, freshness: Freshness.State, +state: State, +route: Route) -> List<&2,C.CanonicalEvent>:
-  match route_valid(state,route):
-    case False{}: []
-    case True{}:
-      match route:
-        case Route{_,_,_,evaluation}: Sharing.route(canonical,freshness,sharing(state),evaluation)
+  match route:
+    case Route{_,_,_,evaluation}:
+      Bool.pick(List<&2,C.CanonicalEvent>,route_valid(state,route),Sharing.route(canonical,freshness,sharing(state),evaluation),[])
 
 def own(commands: List<&2,C.Command>) -> Bool:
   match commands:
@@ -151,13 +147,8 @@ def own(commands: List<&2,C.Command>) -> Bool:
     case C.ReuseOwn{} <> _: True{}
     case _ <> tail: own(tail)
 
-def disposition(commands: List<&2,C.Command>) -> Disposition:
-  match own(commands):
-    case True{}: Owned{}
-    case False{}:
-      match Sharing.join_command(commands):
-        case True{}: Joined{}
-        case False{}: Awaiting{}
+def disposition(+commands: List<&2,C.Command>) -> Disposition:
+  Bool.pick(Disposition,own(commands),Owned{},Bool.pick(Disposition,Sharing.join_command(commands),Joined{},Awaiting{}))
 
 def unit_route(units: List<&2,PreparedUnit>, +position: Nat, +evaluation: Nat, +next: Disposition) -> List<&2,PreparedUnit>:
   match units:
@@ -165,9 +156,9 @@ def unit_route(units: List<&2,PreparedUnit>, +position: Nat, +evaluation: Nat, +
     case PreparedUnit{+p,bytes,key,+id,previous} <> tail:
       PreparedUnit{p,bytes,key,id,Bool.pick(Disposition,Nat.is_eq(p,position) && Nat.is_eq(id,evaluation),next,previous)} <> unit_route(tail,position,evaluation,next)
 
-def routed_found(state: State, route: Route, commands: List<&2,C.Command>, found: Maybe<&2,Preparation>) -> State:
+def routed_found(+state: State, route: Route, +commands: List<&2,C.Command>, found: Maybe<&2,Preparation>) -> State:
   match route found:
-    case Route{scope,+member,+position,+evaluation} Some{Preparation{_,original,units}}:
+    case Route{scope,+member,+position,+evaluation} Some{Preparation{_,+original,+units}}:
       Bool.pick(State,Sharing.same_member(member,original) && route_unit(units,position,evaluation),
         prepared(with_sharing(state,Sharing.routed(sharing(state),evaluation,member,commands)),scope,original,unit_route(units,position,evaluation,disposition(commands))),state)
     case _ _: state
@@ -200,7 +191,7 @@ def completion(state: State, +event: C.CanonicalEvent) -> Completion:
       completion_found(event,find_preparation(preparations,Freshness.Scope{p,l,r,o}))
     case _ _: Completion{event,True{}}
 
-def own_at(units: List<&2,PreparedUnit>, index: Nat) -> Maybe<&2,PreparedUnit>:
+def own_at(units: List<&2,PreparedUnit>, +index: Nat) -> Maybe<&2,PreparedUnit>:
   match units:
     case Nil{}: None{}
     case +head <> tail:
@@ -209,7 +200,7 @@ def own_at(units: List<&2,PreparedUnit>, index: Nat) -> Maybe<&2,PreparedUnit>:
           Bool.pick(Maybe<&2,PreparedUnit>,Nat.is_eq(index,1n),Some{head},own_at(tail,(index - 1n : Nat)))
         case _: own_at(tail,index)
 
-def bound_unit(state: State, scope: Freshness.Scope, bytes: Nat, unit: Maybe<&2,PreparedUnit>) -> State:
+def bound_unit(+state: State, scope: Freshness.Scope, +bytes: Nat, unit: Maybe<&2,PreparedUnit>) -> State:
   match state unit:
     case State{sharing,preparations,bindings,results} Some{PreparedUnit{_,expected,_,evaluation,_}}:
       Bool.pick(State,Nat.is_eq(bytes,expected),State{sharing,preparations,Binding{scope,evaluation,bytes} <> bindings,results},state)
@@ -239,7 +230,7 @@ def lookup_binding(state: State, scope: Freshness.Scope) -> Maybe<&2,Binding>:
   match state:
     case State{_,_,bindings,_}: binding_found(bindings,scope)
 
-def issued_found(state: State, physical: Sharing.Physical, binding: Maybe<&2,Binding>) -> State:
+def issued_found(+state: State, physical: Sharing.Physical, binding: Maybe<&2,Binding>) -> State:
   match binding:
     case None{}: state
     case Some{Binding{_,evaluation,_}}: with_sharing(state,Sharing.issued(sharing(state),evaluation,physical))
@@ -263,21 +254,21 @@ def original_consumed(commands: List<&2,C.Command>) -> Bool:
     case C.JevRequestOutcomeRecorded{_} <> _: True{}
     case _ <> tail: original_consumed(tail)
 
-def kept_result(remove: Bool, value: Result, tail: List<&2,Result>) -> List<&2,Result>:
+def kept_result(remove: Bool, value: SharingResult, tail: List<&2,SharingResult>) -> List<&2,SharingResult>:
   match remove:
     case True{}: tail
     case False{}: value <> tail
 
-def without_result(items: List<&2,Result>, +evaluation: Nat) -> List<&2,Result>:
+def without_result(items: List<&2,SharingResult>, +evaluation: Nat) -> List<&2,SharingResult>:
   match items:
     case Nil{}: []
-    case Result{+id,outcome,original,bytes} <> tail:
-      kept_result(Nat.is_eq(id,evaluation),Result{id,outcome,original,bytes},without_result(tail,evaluation))
+    case SharingResult{+id,outcome,original,bytes} <> tail:
+      kept_result(Nat.is_eq(id,evaluation),SharingResult{id,outcome,original,bytes},without_result(tail,evaluation))
 
-def result_record(state: State, evaluation: Nat, outcome: C.RequestOutcome, original: Freshness.Scope, bytes: Nat) -> State:
+def result_record(state: State, +evaluation: Nat, outcome: C.RequestOutcome, original: Freshness.Scope, bytes: Nat) -> State:
   match state:
     case State{sharing,preparations,bindings,results}:
-      State{sharing,preparations,bindings,Result{evaluation,outcome,original,bytes} <> without_result(results,evaluation)}
+      State{sharing,preparations,bindings,SharingResult{evaluation,outcome,original,bytes} <> without_result(results,evaluation)}
 
 def terminal_found(+state: State, +scope: Freshness.Scope, physical: Sharing.Physical, outcome: C.RequestOutcome, +commands: List<&2,C.Command>, binding: Maybe<&2,Binding>) -> State:
   match binding:
@@ -308,10 +299,10 @@ def completed(state: State, event: C.CanonicalEvent) -> State:
 def feedback(state: State, +event: C.CanonicalEvent, +commands: List<&2,C.Command>) -> State:
   completed(terminal(commands_feedback(commands,state,event),event,commands),event)
 
-def result_found(results: List<&2,Result>, +evaluation: Nat) -> Maybe<&2,C.RequestOutcome>:
+def result_found(results: List<&2,SharingResult>, +evaluation: Nat) -> Maybe<&2,C.RequestOutcome>:
   match results:
     case Nil{}: None{}
-    case Result{id,outcome,original,bytes} <> tail:
+    case SharingResult{id,outcome,original,bytes} <> tail:
       Bool.pick(Maybe<&2,C.RequestOutcome>,Nat.is_eq(id,evaluation),Some{outcome},result_found(tail,evaluation))
 
 def result(state: State, evaluation: Nat) -> Maybe<&2,C.RequestOutcome>:
@@ -348,16 +339,16 @@ def claim_live(view: Authority, +evaluation: Nat) -> Bool:
   match view:
     case Authority{_,_,claims,cache}: claim_found(Reuse.find_claim(evaluation,claims)) || cache_found(Reuse.find_entry(evaluation,cache))
 
+def request_live(found: Maybe<&2,Dispatch.Request>) -> Bool:
+  match found:
+    case None{}: False{}
+    case Some{_}: True{}
+
 def physical_live(view: Authority, captured: Maybe<&2,Sharing.Physical>) -> Bool:
   match view captured:
     case Authority{_,requests,_,_} Some{Sharing.Physical{p,l,r,o,request}}:
       request_live(Dispatch.request_phase(requests,p,l,r,o,request))
     case _ None{}: False{}
-
-def request_live(found: Maybe<&2,Dispatch.Request>) -> Bool:
-  match found:
-    case None{}: False{}
-    case Some{_}: True{}
 
 def advice_live(view: Authority, captured: Maybe<&2,Freshness.Scope>) -> Bool:
   match view captured:
@@ -379,7 +370,7 @@ def binding_reference(bindings: List<&2,Binding>, +evaluation: Nat) -> Bool:
     case Nil{}: False{}
     case Binding{_,id,_} <> tail: Nat.is_eq(id,evaluation) || binding_reference(tail,evaluation)
 
-def evaluation_live(view: Authority, preparations: List<&2,Preparation>, bindings: List<&2,Binding>, evaluation: Sharing.Evaluation) -> Bool:
+def evaluation_live(+view: Authority, preparations: List<&2,Preparation>, bindings: List<&2,Binding>, evaluation: Sharing.Evaluation) -> Bool:
   match evaluation:
     case Sharing.Evaluation{+id,_,_,physical,advice}:
       claim_live(view,id) || physical_live(view,physical) || advice_live(view,advice) || preparation_reference(preparations,id) || binding_reference(bindings,id)
@@ -412,7 +403,7 @@ def retained_evaluations(evaluations: List<&2,Sharing.Evaluation>, +view: Author
     case +head <> tail:
       kept_evaluation(evaluation_live(view,preparations,bindings,head),head,retained_evaluations(tail,view,preparations,bindings))
 
-def kept_result(keep: Bool, result: Result, tail: List<&2,Result>) -> List<&2,Result>:
+def kept_owned_result(keep: Bool, result: SharingResult, tail: List<&2,SharingResult>) -> List<&2,SharingResult>:
   match keep:
     case True{}: result <> tail
     case False{}: tail
@@ -422,13 +413,13 @@ def result_owned(found: Maybe<&2,Sharing.Evaluation>) -> Bool:
     case None{}: False{}
     case Some{_}: True{}
 
-def retained_results(results: List<&2,Result>, +evaluations: List<&2,Sharing.Evaluation>) -> List<&2,Result>:
+def retained_results(results: List<&2,SharingResult>, +evaluations: List<&2,Sharing.Evaluation>) -> List<&2,SharingResult>:
   match results:
     case Nil{}: []
-    case Result{+id,+outcome,+original,+bytes} <> tail:
-      kept_result(result_owned(Sharing.find(evaluations,id)),Result{id,outcome,original,bytes},retained_results(tail,evaluations))
+    case SharingResult{+id,+outcome,+original,+bytes} <> tail:
+      kept_owned_result(result_owned(Sharing.find(evaluations,id)),SharingResult{id,outcome,original,bytes},retained_results(tail,evaluations))
 
-def retained_state(sharing: Sharing.State, +preparations: List<&2,Preparation>, +bindings: List<&2,Binding>, results: List<&2,Result>, view: Authority) -> State:
+def retained_state(sharing: Sharing.State, +preparations: List<&2,Preparation>, +bindings: List<&2,Binding>, results: List<&2,SharingResult>, view: Authority) -> State:
   match sharing:
     case Sharing.State{evaluations,next}:
       +retained = retained_evaluations(evaluations,view,preparations,bindings)
@@ -472,22 +463,25 @@ def member_scope(items: List<&2,Sharing.Member>, +scope: Freshness.Scope) -> May
         case Sharing.Member{owner,_,_}:
           Bool.pick(Maybe<&2,Sharing.Member>,Freshness.same(owner,scope),Some{head},member_scope(tail,scope))
 
+def kept_prepared_member(remove: Bool, head: Sharing.Member, tail: List<&2,Sharing.Member>) -> List<&2,Sharing.Member>:
+  match remove:
+    case True{}: tail
+    case False{}: head <> tail
+
 def departed_member(items: List<&2,Sharing.Member>, +scope: Freshness.Scope) -> List<&2,Sharing.Member>:
   match items:
     case Nil{}: []
     case +head <> tail:
       match head:
         case Sharing.Member{owner,_,_}:
-          match Freshness.same(owner,scope):
-            case True{}: departed_member(tail,scope)
-            case False{}: head <> departed_member(tail,scope)
+          kept_prepared_member(Freshness.same(owner,scope),head,departed_member(tail,scope))
 
 def selected_member(first: Maybe<&2,Sharing.Member>, tail: Maybe<&2,Sharing.Member>) -> Maybe<&2,Sharing.Member>:
   match first:
     case None{}: tail
     case Some{member}: Some{member}
 
-def removed_evaluation(id: Nat, key: Sharing.SharingKey, members: List<&2,Sharing.Member>, physical: Maybe<&2,Sharing.Physical>, advice: Maybe<&2,Freshness.Scope>, found: Maybe<&2,Sharing.Member>, tail: Removed) -> Removed:
+def removed_evaluation(+id: Nat, key: Sharing.SharingKey, +members: List<&2,Sharing.Member>, physical: Maybe<&2,Sharing.Physical>, advice: Maybe<&2,Freshness.Scope>, found: Maybe<&2,Sharing.Member>, tail: Removed) -> Removed:
   match tail:
     case Removed{evaluations,events,last}:
       Removed{Sharing.Evaluation{id,key,members,physical,advice} <> evaluations,
@@ -498,12 +492,10 @@ def preserved_evaluation(head: Sharing.Evaluation, tail: Removed) -> Removed:
     case Removed{evaluations,events,member}: Removed{head <> evaluations,events,member}
 
 def removed_found(+head: Sharing.Evaluation, +scope: Freshness.Scope, found: Maybe<&2,Sharing.Member>, tail: Removed) -> Removed:
-  match found:
-    case None{}: preserved_evaluation(head,tail)
-    case Some{member}:
-      match head:
-        case Sharing.Evaluation{id,key,members,physical,advice}:
-          removed_evaluation(id,key,departed_member(members,scope),physical,advice,Some{member},tail)
+  match head found:
+    case _ None{}: preserved_evaluation(head,tail)
+    case Sharing.Evaluation{id,key,members,physical,advice} Some{member}:
+      removed_evaluation(id,key,departed_member(members,scope),physical,advice,Some{member},tail)
 
 def removed_scopes(items: List<&2,Sharing.Evaluation>, +scope: Freshness.Scope) -> Removed:
   match items:
@@ -528,14 +520,8 @@ def depart(+state: State, scope: Freshness.Scope) -> Departure:
 # Attach only an actual Own result for the exact retained route. This is a
 # source-free follow-up fact; Canonical remains claim/attachment authority.
 def attached_route(route: Route, valid: Bool, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
-  match valid:
-    case False{}: []
-    case True{}:
-      match own(commands):
-        case False{}: []
-        case True{}:
-          match route:
-            case Route{_,_,_,evaluation}: [C.ReuseAttach{evaluation}]
+  match route:
+    case Route{_,_,_,evaluation}: Bool.pick(List<&2,C.CanonicalEvent>,valid && own(commands),[C.ReuseAttach{evaluation}],[])
 
 def route_followups(+state: State, +route: Route, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
   attached_route(route,route_valid(state,route),commands)
@@ -595,15 +581,13 @@ def fanout_binding(canonical: C.State, freshness: Freshness.State, state: State,
 def fanout(before: State, after: State, canonical: C.State, freshness: Freshness.State, event: C.CanonicalEvent, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
   match event:
     case C.JevRequestSettled{p,l,r,o,_,outcome,_}:
-      match original_consumed(commands):
-        case False{}: []
-        case True{}: fanout_binding(canonical,freshness,after,outcome,lookup_binding(before,Freshness.Scope{p,l,r,o}))
+      Bool.pick(List<&2,C.CanonicalEvent>,original_consumed(commands),fanout_binding(canonical,freshness,after,outcome,lookup_binding(before,Freshness.Scope{p,l,r,o})),[])
     case _: []
 
 
 # Only the authentic first terminal removes the captured physical tuple. A
 # rejected duplicate/wrong tuple leaves it unchanged and gets no fanout.
-def physical_consumed(before: Maybe<&2,Sharing.Evaluation>, after: Maybe<&2,Sharing.Evaluation>, physical: Sharing.Physical) -> Bool:
+def physical_consumed(before: Maybe<&2,Sharing.Evaluation>, after: Maybe<&2,Sharing.Evaluation>, +physical: Sharing.Physical) -> Bool:
   match before after:
     case Some{Sharing.Evaluation{_,_,_,captured,_}} Some{Sharing.Evaluation{_,_,_,remaining,_}}:
       Sharing.physical_equal(captured,physical) && Bool.not(Sharing.physical_equal(remaining,physical))
@@ -620,7 +604,7 @@ def terminal_members(canonical: C.State, freshness: Freshness.State, before: May
     case Some{Sharing.Evaluation{_,_,members,_,_}}: member_facts(canonical,freshness,members,outcome,result_advice(after))
     case None{}: []
 
-def postprocess_binding(before: State, after: State, canonical: C.State, freshness: Freshness.State, physical: Sharing.Physical, outcome: C.RequestOutcome, binding: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
+def postprocess_binding(+before: State, +after: State, canonical: C.State, freshness: Freshness.State, +physical: Sharing.Physical, outcome: C.RequestOutcome, binding: Maybe<&2,Binding>) -> List<&2,C.CanonicalEvent>:
   match binding:
     case None{}: []
     case Some{Binding{_,+evaluation,_}}:
@@ -652,7 +636,7 @@ def cancellation_scope(canonical: C.State, scope: Freshness.Scope) -> List<&2,C.
 
 def canceled_binding(canonical: C.State, before: Sharing.State, state: Sharing.State, binding: Binding) -> List<&2,C.CanonicalEvent>:
   match binding:
-    case Binding{scope,evaluation,_}:
+    case Binding{scope,+evaluation,_}:
       Bool.pick(List<&2,C.CanonicalEvent>,Bool.not(empty_evaluation(Sharing.lookup(before,evaluation))) && empty_evaluation(Sharing.lookup(state,evaluation)),cancellation_scope(canonical,scope),[])
 
 def cancellation_bindings(bindings: List<&2,Binding>, +canonical: C.State, +before: Sharing.State, +state: Sharing.State) -> List<&2,C.CanonicalEvent>:
@@ -671,28 +655,31 @@ def depart_canonical(+state: State, canonical: C.State, scope: Freshness.Scope) 
   departure_cancellation(state,canonical,depart(state,scope))
 
 
+def kept_scoped_member(keep: Bool, scope: Freshness.Scope, tail: List<&2,Freshness.Scope>) -> List<&2,Freshness.Scope>:
+  match keep:
+    case True{}: scope <> tail
+    case False{}: tail
+
 def scoped_members(scopes: List<&2,Freshness.Scope>, +partition: Nat, +lifetime: Nat) -> List<&2,Freshness.Scope>:
   match scopes:
     case Nil{}: []
     case +scope <> tail:
       match scope:
         case Freshness.Scope{p,l,_,_}:
-          match Nat.is_eq(p,partition) && Nat.is_eq(l,lifetime):
-            case True{}: scope <> scoped_members(tail,partition,lifetime)
-            case False{}: scoped_members(tail,partition,lifetime)
+          kept_scoped_member(Nat.is_eq(p,partition) && Nat.is_eq(l,lifetime),scope,scoped_members(tail,partition,lifetime))
 
 def departures_joined(events: List<&2,C.CanonicalEvent>, valid: Bool, tail: Departure) -> Departure:
   match tail:
     case Departure{state,rest,next}: Departure{state,List.append(&2,C.CanonicalEvent,events,rest),valid || next}
 
-def departed_tail(departure: Departure, canonical: C.State, scopes: List<&2,Freshness.Scope>) -> Departure:
+def departed_tail(departure: Departure, rest: State -> Departure) -> Departure:
   match departure:
-    case Departure{state,events,valid}: departures_joined(events,valid,depart_scopes(state,canonical,scopes))
+    case Departure{state,events,valid}: departures_joined(events,valid,rest(state))
 
-def depart_scopes(+state: State, +canonical: C.State, scopes: List<&2,Freshness.Scope>) -> Departure:
+def depart_scopes(scopes: List<&2,Freshness.Scope>, +state: State, +canonical: C.State) -> Departure:
   match scopes:
     case Nil{}: Departure{state,[],False{}}
-    case scope <> tail: departed_tail(depart_canonical(state,canonical,scope),canonical,tail)
+    case scope <> tail: departed_tail(depart_canonical(state,canonical,scope),next => depart_scopes(tail,next,canonical))
 
 def depart_all(+state: State, canonical: C.State, partition: Nat, lifetime: Nat) -> Departure:
-  depart_scopes(state,canonical,scoped_members(source_references(state),partition,lifetime))
+  depart_scopes(scoped_members(source_references(state),partition,lifetime),state,canonical)
