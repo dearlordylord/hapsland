@@ -339,7 +339,7 @@ def graph_valid(valid: Bool, +state: Types.State, queue: Queue, jobs: List<&2, S
     ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match valid:
     case True{}: graph_result(Engine.graph_step(state, Types.GraphKey{p, l, r, op, 0n}, position, graph_limits(), event), queue, jobs, p, op, now, delay, ih)
-    case False{}: ih(Runtime{Engine.retire(state, op), queue, jobs, delay})
+    case False{}: ih(Runtime{state, queue, jobs, delay})
 
 
 
