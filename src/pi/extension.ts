@@ -69,7 +69,8 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     const id = identity(ctx, "finish", randomUUID());
     const generation = epoch;
     if (event.outcome !== "completed") { await send(id, "close"); return; }
-    const result = await send(id, "finish", { canContinue: event.context?.canContinue === true });
+    // Pi rebuilds canContinue after our entry: an initial assistant-only preview is false.
+    const result = await send(id, "finish");
     if (result.status !== "advice" || generation !== epoch) return;
     await send(id, "ack", { token: result.token, lifetime: result.lifetime, stopToken: result.stopToken, continued: result.continued });
     return { entries: [...event.entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };

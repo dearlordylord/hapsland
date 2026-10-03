@@ -46,7 +46,7 @@ const admitEdit = Effect.fn("Pi.admit")(function* (context: Context, dispatch: R
 type Advice = Extract<AdviceeCollectionOutcome, { status: "advice" }>["advice"];
 const offerAdvice = Effect.fn("Pi.offer")(function* (context: Context, advice: Advice, stopToken: string | undefined) {
   const finish = stopToken !== undefined;
-  const continued = finish && advice.findingCount > 0 && context.event.canContinue === true;
+  const continued = finish && advice.findingCount > 0;
   if (advice.findingCount > 0 && !(yield* beginComposedSubmissionEffect(advice, finish ? "stop" : "edit"))) return incomplete;
   return { status: "advice", text: advice.output.hookSpecificOutput.additionalContext, token: advice.token, lifetime: advice.lifetime, findingCount: advice.findingCount, continued, ...(stopToken === undefined ? {} : { stopToken }) };
 });
@@ -75,7 +75,7 @@ const review = Effect.fn("Pi.review")(function* (context: Context) {
 const handlers = { before, retire, ack: acknowledge, close, edit: review, finish: review };
 export const runPiHook = Effect.fn("Pi.transport")(function* (input: unknown, options: Options) {
   const event = object(input);
-  if (event === undefined || typeof event.operation !== "string" || !(event.operation in handlers)) return incomplete;
+  if (event === undefined || typeof event.operation !== "string" || !Object.hasOwn(handlers, event.operation)) return incomplete;
   const identity = yield* adaptPiHookIdentity(event);
   if (identity === undefined) return incomplete;
   const paths = yield* resolveResidentPaths();
