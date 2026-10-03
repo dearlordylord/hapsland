@@ -9358,6 +9358,89 @@ function $$$$047agent$045flow$045bend$047Canonical$cancel_scoped_dispatch$(_disp
   return $List$append$(($$$$047agent$045flow$045bend$047Canonical$cancel_dispatch_entries$(_queued_0, _work_0, _lifetime_0, _scopes_0)), ($$$$047agent$045flow$045bend$047Canonical$cancel_dispatch_entries$(_running_0, _work_0, _lifetime_0, _scopes_0)));
 }
 
+function $$$$047agent$045flow$045bend$047Canonical$stop_output_work$($0, $1, $2, $3) {
+  for (;;) {
+    {
+      const _work_0 = $0;
+      const _advice_0 = $1;
+      const _lifetime_0 = $2;
+      const _scopes_0 = $3;
+      if (_work_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _work_0["head"];
+        const _p_0 = _t_0["partition"];
+        const _l_0 = _t_0["lifetime"];
+        const _r_0 = _t_0["round"];
+        const _o_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _tail_0 = _work_0["tail"];
+          const _x_0 = ($Bool$and$(($Bool$and$(($Nat$is_eq$(_o_0, _advice_0)), ($Nat$is_eq$(_l_0, _lifetime_0)))), ($$$$047agent$045flow$045bend$047Canonical$scope_contains$(_scopes_0, _p_0, _r_0))));
+          const _x_1 = ($$$$047agent$045flow$045bend$047Canonical$stop_output_work$(_tail_0, _advice_0, _lifetime_0, _scopes_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _tail_1 = _work_0["tail"];
+          $0 = _tail_1;
+          $1 = _advice_0;
+          $2 = _lifetime_0;
+          $3 = _scopes_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Canonical$stop_output_batch$(_batch_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
+  const _advice_0 = _batch_0["advice"];
+  const _owner_0 = _batch_0["group"];
+  const _current_0 = _batch_0["round"];
+  const _token_0 = _batch_0["token"];
+  const _t_0 = _batch_0["phase"];
+  if (_t_0.$ === "Delivery.Authorized") {
+    return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_owner_0, _group_0)), ($Nat$is_eq$(_current_0, _round_0)))), ($$$$047agent$045flow$045bend$047CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)))), ($$$$047agent$045flow$045bend$047Canonical$stop_output_work$(_work_0, _advice_0, _lifetime_0, _scopes_0)));
+  } else {
+    return false;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Canonical$stop_output_batches$(_batches_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
+  if (_batches_0.$ === "Nil") {
+    return false;
+  } else {
+    const _batch_0 = _batches_0["head"];
+    const _tail_0 = _batches_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Canonical$stop_output_batch$(_batch_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Canonical$stop_output_batches$(_tail_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Canonical$stop_group_authorized_output$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0) {
+  const _work_0 = _state_0["work"];
+  const _t_0 = _state_0["collection"];
+  const _leases_0 = _t_0["leases"];
+  const _t_1 = _t_0["delivery"];
+  const _t_2 = _t_1["submissions"];
+  const _batches_0 = _t_2["batches"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Round$max_continuations$());
+  return $Bool$and$((_continuations_0 < _x_0), ($$$$047agent$045flow$045bend$047Canonical$stop_output_batches$(_batches_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Canonical$stop_authorized_output$(_state_0, _p_0, _l_0, _r_0) {
+  const _work_0 = _state_0["work"];
+  const _t_0 = _state_0["collection"];
+  const _leases_0 = _t_0["leases"];
+  const _t_1 = _t_0["delivery"];
+  const _counters_0 = _t_1["counters"];
+  const _t_2 = _t_1["submissions"];
+  const _batches_0 = _t_2["batches"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047DeliveryState$count$(_p_0, _r_0, _counters_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Round$max_continuations$());
+  return $Bool$and$((_x_0 < _x_1), ($$$$047agent$045flow$045bend$047Canonical$stop_output_batches$(_batches_0, _work_0, _leases_0, _p_0, _l_0, _r_0, {$: "Con", "head": {$: "Canonical.StopScope", "partition": _p_0, "round": _r_0}, "tail": {$: "Nil"}})));
+}
+
 function $$$$047agent$045flow$045bend$047Canonical$stop_group_wait$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -9397,7 +9480,9 @@ function $$$$047agent$045flow$045bend$047Canonical$stop_group_checked$(_state_0,
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
     const _x_0 = ($$$$047agent$045flow$045bend$047Canonical$scoped_pending$(_work_0, _lifetime_0, _scopes_0));
-    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$same_round$(_group_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$is_deciding$(_current_0)))), ($$$$047agent$045flow$045bend$047Canonical$valid_stop_scopes$(_rounds_0, _lifetime_0, _scopes_0)))))), ($Bool$pick$(($Bool$and$(($Bool$not$(_deadline_0)), (_extra_pending_0 || _x_0))), ($$$$047agent$045flow$045bend$047Canonical$stop_group_wait$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0)), ($$$$047agent$045flow$045bend$047Canonical$stop_group_ready$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+    const _x_1 = ($$$$047agent$045flow$045bend$047Canonical$stop_group_authorized_output$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0));
+    const _x_2 = (_x_0 || _x_1);
+    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$same_round$(_group_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$is_deciding$(_current_0)))), ($$$$047agent$045flow$045bend$047Canonical$valid_stop_scopes$(_rounds_0, _lifetime_0, _scopes_0)))))), ($Bool$pick$(($Bool$and$(($Bool$not$(_deadline_0)), (_extra_pending_0 || _x_2))), ($$$$047agent$045flow$045bend$047Canonical$stop_group_wait$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0)), ($$$$047agent$045flow$045bend$047Canonical$stop_group_ready$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -9477,16 +9562,18 @@ function $$$$047agent$045flow$045bend$047Canonical$stop_ready$(_state_0, _partit
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($$$$047agent$045flow$045bend$047Canonical$release_unfinished_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($$$$047agent$045flow$045bend$047Canonical$retain_after_stop$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": ($List$append$(($$$$047agent$045flow$045bend$047Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($$$$047agent$045flow$045bend$047Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$stop_output$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0) {
-  if (!_deadline_0) {
-    if (_write_0.$ === "Some") {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.WaitForOutput"}, "tail": {$: "Nil"}}};
-    } else {
-      return $$$$047agent$045flow$045bend$047Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, false, _uncertain_0);
-    }
+function $$$$047agent$045flow$045bend$047Canonical$stop_output_decision$(_wait_0, _state_0, _p_0, _l_0, _r_0, _deadline_0, _uncertain_0) {
+  if (_wait_0) {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.WaitForOutput"}, "tail": {$: "Nil"}}};
   } else {
-    return $$$$047agent$045flow$045bend$047Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0);
+    return $$$$047agent$045flow$045bend$047Canonical$stop_ready$(_state_0, _p_0, _l_0, _r_0, _deadline_0, _uncertain_0);
   }
+}
+
+function $$$$047agent$045flow$045bend$047Canonical$stop_output$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0) {
+  const _x_0 = ($Bool$not$(($Maybe$is_none$(_write_0))));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Canonical$stop_authorized_output$(_state_0, _partition_0, _lifetime_0, _round_0));
+  return $$$$047agent$045flow$045bend$047Canonical$stop_output_decision$(($Bool$and$(($Bool$not$(_deadline_0)), (_x_0 || _x_1))), _state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0);
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$stop_current$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _has_pending_0, _write_0, _uncertain_0) {
@@ -18361,6 +18448,41 @@ function $Callbacks$replaced$(_state_0, _orders_0) {
   return {$: "Callbacks.State", "originals": ($Callbacks$replaced_list$(_originals_0, _orders_0))};
 }
 
+function $StopScenario$cutoff_poll$(_p_0, _l_0, _r_0, _cutoff_0, _now_0) {
+  return {$: "Canonical.StopPolled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "deadline": ($Nat$is_le$(_cutoff_0, _now_0))};
+}
+
+function $StopScenario$poll$(_capture_0, _now_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _r_0 = _capture_0["round"];
+  const _cutoff_0 = _capture_0["cutoff"];
+  return $StopScenario$cutoff_poll$(_p_0, _l_0, _r_0, _cutoff_0, _now_0);
+}
+
+function $StopScenario$initial_distinct$(_distinct_0, _capture_0, _started_0, _cutoff_0) {
+  if (_distinct_0) {
+    return {$: "Con", "head": {$: "StopScenario.Fact", "at": _started_0, "event": ($StopScenario$poll$(_capture_0, _started_0))}, "tail": {$: "Con", "head": {$: "StopScenario.Fact", "at": _cutoff_0, "event": ($StopScenario$poll$(_capture_0, _cutoff_0))}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Con", "head": {$: "StopScenario.Fact", "at": _started_0, "event": ($StopScenario$poll$(_capture_0, _started_0))}, "tail": {$: "Nil"}};
+  }
+}
+
+function $StopScenario$initial$(_capture_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _r_0 = _capture_0["round"];
+  const _attempt_0 = _capture_0["attempt"];
+  const _token_0 = _capture_0["token"];
+  const _started_0 = _capture_0["started"];
+  const _cutoff_0 = _capture_0["cutoff"];
+  return $StopScenario$initial_distinct$(($Bool$not$(($Nat$is_eq$(_started_0, _cutoff_0)))), {$: "StopScenario.Capture", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0, "started": _started_0, "cutoff": _cutoff_0}, _started_0, _cutoff_0);
+}
+
+function $StopScenario$wake$(_capture_0, _now_0) {
+  return {$: "StopScenario.Fact", "at": _now_0, "event": ($StopScenario$poll$(_capture_0, _now_0))};
+}
+
 function $Scheduler$precedes$(_a_0, _b_0) {
   const _at_0 = _a_0["at"];
   const _order_0 = _a_0["order"];
@@ -23769,11 +23891,97 @@ function $lifecycle_accepted$(_entries_0, _canonical_0, _event_0) {
   }
 }
 
+function $preparation_capture_present$(_items_0, _capture_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _o_0 = _t_0["operation"];
+    const _parent_0 = _t_0["parent"];
+    const _tail_0 = _items_0["tail"];
+    const _cp_0 = _capture_0["partition"];
+    const _cl_0 = _capture_0["lifetime"];
+    const _cr_0 = _capture_0["round"];
+    const _co_0 = _capture_0["operation"];
+    const _cparent_0 = _capture_0["parent"];
+    const _x_0 = ($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _cp_0)), ($Nat$is_eq$(_l_0, _cl_0)))), ($Nat$is_eq$(_r_0, _cr_0)))), ($Nat$is_eq$(_o_0, _co_0)))), ($Nat$is_eq$(_parent_0, _cparent_0))));
+    const _x_1 = ($preparation_capture_present$(_tail_0, {$: "AdviceeLifecycleCleanup.CapturedPreparation", "partition": _cp_0, "lifetime": _cl_0, "round": _cr_0, "operation": _co_0, "parent": _cparent_0}));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $preparation_capture_insert$(_present_0, _capture_0, _items_0) {
+  if (_present_0) {
+    return _items_0;
+  } else {
+    return $List$append$(_items_0, {$: "Con", "head": _capture_0, "tail": {$: "Nil"}});
+  }
+}
+
+function $canceled_preparation_parent$(_parent_valid_0, _capture_0, _items_0) {
+  if (!_parent_valid_0) {
+    return _items_0;
+  } else {
+    return $preparation_capture_insert$(($preparation_capture_present$(_items_0, _capture_0)), _capture_0, _items_0);
+  }
+}
+
+function $canceled_preparation$(_found_0, _items_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _o_0 = _t_0["operation"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Preparing") {
+      const _parent_0 = _t_0["parent"];
+      return $canceled_preparation_parent$(($Nat$is_gt$(_parent_0, 0)), {$: "AdviceeLifecycleCleanup.CapturedPreparation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "parent": _parent_0}, _items_0);
+    } else {
+      return _items_0;
+    }
+  } else {
+    return _items_0;
+  }
+}
+
+function $cancellation_preparations$($0, $1, $2) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      const _work_0 = $1;
+      const _items_0 = $2;
+      if (_commands_0.$ === "Nil") {
+        return _items_0;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "Canonical.CancelWork") {
+          const _operation_0 = _t_0["operation"];
+          const _tail_0 = _commands_0["tail"];
+          $0 = _tail_0;
+          $1 = _work_0;
+          $2 = ($canceled_preparation$(($Driver$find_operation$(_work_0, _operation_0)), _items_0));
+          continue;
+        } else {
+          const _tail_1 = _commands_0["tail"];
+          $0 = _tail_1;
+          $1 = _work_0;
+          $2 = _items_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
 function $settle$(_before_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0, _event_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$accepted$(_scenarios_0, _before_0, _state_0, _event_0, _commands_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($retirements$(($PendingEffects$consumed$(_retiring_0, _event_0)), _state_0)), "lifecycles": ($lifecycle_accepted$(_lifecycles_0, _state_0, _event_0)), "preparations": ($cancellation_preparations$(_commands_0, ($Driver$work_list$(_before_0)), _preparations_0)), "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$accepted$(_scenarios_0, _before_0, _state_0, _event_0, _commands_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -25480,6 +25688,14 @@ function $collection_response_delivery_valid$(_state_0, _target_0, _now_0, _even
   return $CollectionScenario$delivery_valid$(($RuntimeScenarios$collection$(($scenarios$(_state_0)))), _target_0, ($canonical$(_state_0)), _now_0, ($credential_state$(_state_0)), _event_0);
 }
 
+function $stop_initial$(_capture_0) {
+  return $StopScenario$initial$(_capture_0);
+}
+
+function $stop_wake$(_capture_0, _now_0) {
+  return {$: "Con", "head": ($StopScenario$wake$(_capture_0, _now_0)), "tail": {$: "Nil"}};
+}
+
 function $Bool$pick$(_c_0, _a_0, _b_0) {
   if (!_c_0) {
     return _b_0;
@@ -25645,7 +25861,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4de7704e8dbbce6ef485414e9780b95dd69a4eee1e71f61d050095775b27ef52";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:2ae249f667d23500859cad15ba4dee804603ac23da0c911b899afeb63fd87f8a";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -25698,6 +25914,8 @@ export default {
  callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
  callback_issue_output: (state,owner,order,at,action,capture) => run_loop($callback_issue_output$(state,facts(owner),facts(order),facts(at),facts(action),facts(capture))),
  output_intervene: (state,target,outcome,receipt) => run_loop($output_intervene$(state,facts(target),facts(outcome),facts(receipt))),
+ stop_initial: (capture) => run_loop($stop_initial$(facts(capture))),
+ stop_wake: (capture,now) => run_loop($stop_wake$(facts(capture),facts(now))),
  output_initial: (capture,terminalOnly) => run_loop($output_initial$(facts(capture),facts(terminalOnly))),
  output_deliver: (receipt,now) => run_loop($output_deliver$(facts(receipt),facts(now))),
  callback_delivered: (state,order) => run_loop($callback_delivered$(state,facts(order))),

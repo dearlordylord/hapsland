@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:b41ae37afc4f1884383095a6dc917578f07d545acf3c177d6da1dff87a6781eb
+// hapsland-bend-source-sha256:1b3c5b3471a4cd94b1504e24f4158bedefea7f84655443b4e7ef606f0dbf723e
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -3299,7 +3299,9 @@ function $Canonical$stop_group_checked$(_state_0, _group_0, _lifetime_0, _round_
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
     const _x_0 = ($Canonical$scoped_pending$(_work_0, _lifetime_0, _scopes_0));
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_group_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Canonical$valid_stop_scopes$(_rounds_0, _lifetime_0, _scopes_0)))))), ($Bool$pick$(($Bool$and$(($Bool$not$(_deadline_0)), (_extra_pending_0 || _x_0))), ($Canonical$stop_group_wait$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0)), ($Canonical$stop_group_ready$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+    const _x_1 = ($Canonical$stop_group_authorized_output$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0));
+    const _x_2 = (_x_0 || _x_1);
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_group_0, _lifetime_0, _round_0, _current_0)), ($Bool$and$(($Bool$not$(($Canonical$is_deciding$(_current_0)))), ($Canonical$valid_stop_scopes$(_rounds_0, _lifetime_0, _scopes_0)))))), ($Bool$pick$(($Bool$and$(($Bool$not$(_deadline_0)), (_extra_pending_0 || _x_2))), ($Canonical$stop_group_wait$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0)), ($Canonical$stop_group_ready$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -5127,6 +5129,17 @@ function $Canonical$scoped_pending$(_items_0, _lifetime_0, _scopes_0) {
   }
 }
 
+function $Canonical$stop_group_authorized_output$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0, _continuations_0) {
+  const _work_0 = _state_0["work"];
+  const _t_0 = _state_0["collection"];
+  const _leases_0 = _t_0["leases"];
+  const _t_1 = _t_0["delivery"];
+  const _t_2 = _t_1["submissions"];
+  const _batches_0 = _t_2["batches"];
+  const _x_0 = ($Round$max_continuations$());
+  return $Bool$and$((_continuations_0 < _x_0), ($Canonical$stop_output_batches$(_batches_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0)));
+}
+
 function $Canonical$stop_group_wait$(_state_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -6439,6 +6452,18 @@ function $Canonical$unfinished$(_kind_0) {
   }
 }
 
+function $Canonical$stop_output_batches$(_batches_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
+  if (_batches_0.$ === "Nil") {
+    return false;
+  } else {
+    const _batch_0 = _batches_0["head"];
+    const _tail_0 = _batches_0["tail"];
+    const _x_0 = ($Canonical$stop_output_batch$(_batch_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0));
+    const _x_1 = ($Canonical$stop_output_batches$(_tail_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0));
+    return (_x_0 || _x_1);
+  }
+}
+
 function $Canonical$mark_stop_rounds$(_items_0, _group_0, _lifetime_0, _round_0, _scopes_0, _waiting_0, _deciding_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
@@ -7567,21 +7592,28 @@ function $Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
 }
 
 function $Canonical$stop_output$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _write_0, _uncertain_0) {
-  if (!_deadline_0) {
-    if (_write_0.$ === "Some") {
-      return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.WaitForOutput"}, "tail": {$: "Nil"}}};
-    } else {
-      return $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, false, _uncertain_0);
-    }
-  } else {
-    return $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0);
-  }
+  const _x_0 = ($Bool$not$(($Maybe$is_none$(_write_0))));
+  const _x_1 = ($Canonical$stop_authorized_output$(_state_0, _partition_0, _lifetime_0, _round_0));
+  return $Canonical$stop_output_decision$(($Bool$and$(($Bool$not$(_deadline_0)), (_x_0 || _x_1))), _state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0);
 }
 
 function $Canonical$scope_matches$(_scope_0, _partition_0, _round_0) {
   const _owner_0 = _scope_0["partition"];
   const _current_0 = _scope_0["round"];
   return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_current_0, _round_0)));
+}
+
+function $Canonical$stop_output_batch$(_batch_0, _work_0, _leases_0, _group_0, _lifetime_0, _round_0, _scopes_0) {
+  const _advice_0 = _batch_0["advice"];
+  const _owner_0 = _batch_0["group"];
+  const _current_0 = _batch_0["round"];
+  const _token_0 = _batch_0["token"];
+  const _t_0 = _batch_0["phase"];
+  if (_t_0.$ === "Delivery.Authorized") {
+    return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_owner_0, _group_0)), ($Nat$is_eq$(_current_0, _round_0)))), ($CollectionState$lease_owned$(_advice_0, _token_0, _leases_0)))), ($Canonical$stop_output_work$(_work_0, _advice_0, _lifetime_0, _scopes_0)));
+  } else {
+    return false;
+  }
 }
 
 function $Canonical$mark_stop_rounds_one$(_item_0, _tail_0, _hit_0, _waiting_0, _deciding_0) {
@@ -8228,17 +8260,59 @@ function $Dispatch$cancelled_entry$(_entry_0) {
   return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
 }
 
-function $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0) {
-  const _ledger_0 = _state_0["ledger"];
-  const _rounds_0 = _state_0["rounds"];
+function $Canonical$stop_output_decision$(_wait_0, _state_0, _p_0, _l_0, _r_0, _deadline_0, _uncertain_0) {
+  if (_wait_0) {
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.WaitForOutput"}, "tail": {$: "Nil"}}};
+  } else {
+    return $Canonical$stop_ready$(_state_0, _p_0, _l_0, _r_0, _deadline_0, _uncertain_0);
+  }
+}
+
+function $Canonical$stop_authorized_output$(_state_0, _p_0, _l_0, _r_0) {
   const _work_0 = _state_0["work"];
-  const _next_round_0 = _state_0["next_round"];
-  const _next_operation_0 = _state_0["next_operation"];
-  const _admissions_0 = _state_0["admissions"];
-  const _dispatch_0 = _state_0["dispatch"];
-  const _collection_0 = _state_0["collection"];
-  const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_unfinished_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_after_stop$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
+  const _t_0 = _state_0["collection"];
+  const _leases_0 = _t_0["leases"];
+  const _t_1 = _t_0["delivery"];
+  const _counters_0 = _t_1["counters"];
+  const _t_2 = _t_1["submissions"];
+  const _batches_0 = _t_2["batches"];
+  const _x_0 = ($DeliveryState$count$(_p_0, _r_0, _counters_0));
+  const _x_1 = ($Round$max_continuations$());
+  return $Bool$and$((_x_0 < _x_1), ($Canonical$stop_output_batches$(_batches_0, _work_0, _leases_0, _p_0, _l_0, _r_0, {$: "Con", "head": {$: "Canonical.StopScope", "partition": _p_0, "round": _r_0}, "tail": {$: "Nil"}})));
+}
+
+function $Canonical$stop_output_work$($0, $1, $2, $3) {
+  for (;;) {
+    {
+      const _work_0 = $0;
+      const _advice_0 = $1;
+      const _lifetime_0 = $2;
+      const _scopes_0 = $3;
+      if (_work_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _work_0["head"];
+        const _p_0 = _t_0["partition"];
+        const _l_0 = _t_0["lifetime"];
+        const _r_0 = _t_0["round"];
+        const _o_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _tail_0 = _work_0["tail"];
+          const _x_0 = ($Bool$and$(($Bool$and$(($Nat$is_eq$(_o_0, _advice_0)), ($Nat$is_eq$(_l_0, _lifetime_0)))), ($Canonical$scope_contains$(_scopes_0, _p_0, _r_0))));
+          const _x_1 = ($Canonical$stop_output_work$(_tail_0, _advice_0, _lifetime_0, _scopes_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _tail_1 = _work_0["tail"];
+          $0 = _tail_1;
+          $1 = _advice_0;
+          $2 = _lifetime_0;
+          $3 = _scopes_0;
+          continue;
+        }
+      }
+    }
+  }
 }
 
 function $Canonical$mark_stop_rounds_hit$(_item_0, _tail_0, _waiting_0, _deciding_0) {
@@ -8562,65 +8636,17 @@ function $Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed
   }
 }
 
-function $Canonical$release_unfinished_charges$($0, $1, $2, $3, $4) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      const _ledger_0 = $1;
-      const _partition_0 = $2;
-      const _lifetime_0 = $3;
-      const _round_0 = $4;
-      if (_items_0.$ === "Nil") {
-        return _ledger_0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _owner_0 = _t_0["partition"];
-        const _generation_0 = _t_0["lifetime"];
-        const _current_0 = _t_0["round"];
-        const _charge_0 = _t_0["charge"];
-        const _kind_0 = _t_0["kind"];
-        const _rest_0 = _items_0["tail"];
-        $0 = _rest_0;
-        $1 = ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))), ($Canonical$release_charge$(_ledger_0, _charge_0)), _ledger_0));
-        $2 = _partition_0;
-        $3 = _lifetime_0;
-        $4 = _round_0;
-        continue;
-      }
-    }
-  }
-}
-
-function $Canonical$retain_after_stop$(_items_0, _partition_0, _lifetime_0, _round_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const __0 = _t_0["operation"];
-    const __1 = _t_0["charge"];
-    const _kind_0 = _t_0["kind"];
-    const __2 = _t_0["parent"];
-    const _rest_0 = _items_0["tail"];
-    return $Canonical$retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($Canonical$retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))));
-  }
-}
-
-function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _charge_0 = _t_0["charge"];
-    const _kind_0 = _t_0["kind"];
-    const _rest_0 = _items_0["tail"];
-    return $Canonical$release_pick$(_charge_0, ($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))));
-  }
+function $Canonical$stop_ready$(_state_0, _partition_0, _lifetime_0, _round_0, _deadline_0, _uncertain_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  const _history_0 = _state_0["history"];
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_unfinished_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _round_0, "waiting": false, "deciding": true, "write": {$: "None"}, "uncertain": _uncertain_0, "quiet_since": {$: "None"}}, "tail": ($Canonical$remove_round$(_partition_0, _rounds_0))}, "work": ($Canonical$retain_after_stop$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": ($List$append$(($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": ($Bool$pick$(($Bool$and$(_uncertain_0, ($Bool$not$(_deadline_0)))), {$: "Canonical.ReofferAtStop"}, {$: "Canonical.FinishReady"})), "tail": {$: "Nil"}}))))};
 }
 
 function $SubmissionState$terminal_one_result$(_result_0) {
@@ -8727,6 +8753,67 @@ function $Dispatch$prepend_waiting$(_entry_0, _result_0) {
   } else {
     const _state_0 = _result_0["state"];
     return {$: "Dispatch.Denied", "state": _state_0};
+  }
+}
+
+function $Canonical$release_unfinished_charges$($0, $1, $2, $3, $4) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      const _ledger_0 = $1;
+      const _partition_0 = $2;
+      const _lifetime_0 = $3;
+      const _round_0 = $4;
+      if (_items_0.$ === "Nil") {
+        return _ledger_0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _owner_0 = _t_0["partition"];
+        const _generation_0 = _t_0["lifetime"];
+        const _current_0 = _t_0["round"];
+        const _charge_0 = _t_0["charge"];
+        const _kind_0 = _t_0["kind"];
+        const _rest_0 = _items_0["tail"];
+        $0 = _rest_0;
+        $1 = ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))), ($Canonical$release_charge$(_ledger_0, _charge_0)), _ledger_0));
+        $2 = _partition_0;
+        $3 = _lifetime_0;
+        $4 = _round_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $Canonical$retain_after_stop$(_items_0, _partition_0, _lifetime_0, _round_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const __0 = _t_0["operation"];
+    const __1 = _t_0["charge"];
+    const _kind_0 = _t_0["kind"];
+    const __2 = _t_0["parent"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($Canonical$retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))));
+  }
+}
+
+function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _charge_0 = _t_0["charge"];
+    const _kind_0 = _t_0["kind"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$release_pick$(_charge_0, ($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))));
   }
 }
 
