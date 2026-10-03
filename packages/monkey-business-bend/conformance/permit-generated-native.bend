@@ -9,4 +9,5 @@ def main() -> IO(Unit):
     Driver.run(Permit.Successful{},5n,Canonical.RequestFinding{}),
     Driver.run(Permit.Successful{},5n,Canonical.RequestClear{}),
     Driver.run(Permit.Failed{},5n,Canonical.RequestFinding{}),
-    Driver.run(Permit.Successful{},11n,Canonical.RequestFinding{})])))
+    Driver.run(Permit.Successful{},11n,Canonical.RequestFinding{}),
+    Driver.run(Permit.Duplicate{},5n,Canonical.RequestFinding{})])))

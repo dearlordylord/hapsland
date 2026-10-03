@@ -44,6 +44,7 @@ it("compares original generated PRE scripts through actual native preparation, J
     { outcome: "success", durationMs: 5, review: "clear" },
     { outcome: "failure", durationMs: 5, review: "finding" },
     { outcome: "success", durationMs: 11, review: "finding" },
+    { outcome: "duplicate", durationMs: 5, review: "finding" },
   ] as const;
   for (const [index, scenario] of cases.entries()) {
     const run = createRun({ seed: 7, retention: 1000, preparationDelay: 2, jevDelay: 5,
@@ -65,7 +66,7 @@ it("compares original generated PRE scripts through actual native preparation, J
     const rows = run.observations.flatMap(frame => { const row = publicRow(frame); return row ? [row] : []; });
     expect(native[index]?.map(nativeRow)).toEqual(rows);
     const consumed = run.observations.find(frame => frame.event.kind === "consumePermit");
-    if (scenario.outcome === "success" && scenario.durationMs === 5) {
+    if ((scenario.outcome === "success" || scenario.outcome === "duplicate") && scenario.durationMs === 5) {
       expect(consumed?.time).toBe(6);
       expect(consumed?.commands).toContainEqual({ kind: "permitConsumed", round: 1 });
       expect(consumed?.after.rounds.find(round => round.partition === 1)?.id).toBe(2);
@@ -74,6 +75,10 @@ it("compares original generated PRE scripts through actual native preparation, J
       expect(started[0]?.after.dispatch.running.filter(work => !work.preparation)).toHaveLength(1);
       expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")).toHaveLength(scenario.review === "finding" ? 1 : 0);
       expect(run.observations.some(frame => frame.preparation)).toBe(true);
+      expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "preparationReleased")).toHaveLength(1);
+      expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "reservationReleased")).toHaveLength(1);
+      expect(run.observations.filter(frame => frame.event.kind === "consumePermit")).toHaveLength(scenario.outcome === "duplicate" ? 2 : 1);
+      expect(run.observations.filter(frame => frame.rejection)).toHaveLength(scenario.outcome === "duplicate" ? 1 : 0);
     } else {
       expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toEqual([]);
       expect(run.observations.some(frame => frame.preparation)).toBe(false);
