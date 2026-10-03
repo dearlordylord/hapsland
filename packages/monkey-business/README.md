@@ -119,11 +119,12 @@ The environment follows issued source admission, checked preparation and review 
 
 `outputProfile` configuration and `{kind:'outputProfile',outcome,delayMs,leaseMs}` controls set new output attempts. `outcome` is `certain`, `uncertain`, or `failed`; failure is a known preauthorization failure and releases its provisional reservation without a submission claim. Profile timing is captured at authorization. An attempt whose output delay reaches its lease lifetime supplies checked submission expiry and records uncertainty; the original delayed callback still occurs at its original due time as a checked expired acknowledgment, without authorizing a stale writer. Stop revalidates candidate source/credentials and checked suppression before reservation: uncertain background output can be reoffered once in its active round with the existing advice identity and no additional Jev call. Uncertain Stop output consumes that reoffer. Later fresh edits continue independently. These virtual host-output/lease facts model the accepted outcomes; no IPC writer, partial byte stream or model-visible acknowledgment is executed.
 
-`lifecycles` enables additional checked generated orchestration. `permits` takes
-`adviceeLimit`, `residentLimit`, optional `holdMs`, `lifetimeMs` and terminal
-`consume`, `release` or `expire`. Prospective invocations acquire a checked permit
-before synthetic admission; late invocations expire and release capacity, while
-consumption at the inclusive deadline remains valid. `collectors` takes
+`editPermitLimits` supplies per-advicee and resident limits (production defaults
+32 and 4096). `permitProfile` supplies `outcome` (`success`, `failure`,
+`duplicate` or `absent`), `durationMs` and `lifetimeMs`. Original PRE captures
+retain these facts; late POST reaches the checked expiry fence, and consumption
+at the inclusive deadline remains valid. `lifecycles` enables additional checked
+generated orchestration. `collectors` takes
 `capacity` and optional `lifetimeMs`; generated background candidates acquire
 resident writer claims and follow checked release/expiry. Shared limits are
 resident-wide across agent partitions.
@@ -189,7 +190,7 @@ Jev delay; it does not serialize a native agent's tools or measure native work.
 `applyControl({ kind: "editDuration", agent, durationMs })` changes future edits
 for that agent; omitting `agent` targets all generators. The duration is captured
 at PRE issuance, so in-flight POST timing and the original permit deadline stay
-unchanged. Scripted edits retain the shared lifecycle `holdMs` default unless an
+unchanged. Scripted edits retain the captured `permitProfile.durationMs` unless an
 explicit edit duration is supplied. Bend still decides admission/expiry; a
 late POST cannot revive an expired permit. Replay remains format 1 and records
 session duration and targeted controls. The dashboard starts at 1 ms and places

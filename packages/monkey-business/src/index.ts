@@ -226,6 +226,7 @@ const integer = (n: number, name: string) => {
 const copy = <T>(x: T): T => structuredClone(x);
 const restoreEndpoint = Symbol("restore replay endpoint");
 type Finish = {
+  lifetime: number;
   round: number;
   attempt: number;
   token: number;
@@ -366,16 +367,12 @@ export class Run {
   private permitProfile: PermitProfile;
   private permitsEnabled: boolean;
   constructor(config: RunConfig = {}) {
-    if (config.lifecycles?.permits?.lifetimeMs !== undefined && integer(config.lifecycles.permits.lifetimeMs, "permit lifetime") === 0) throw new RangeError("permit lifetime must be positive");
-    if (config.lifecycles?.permits?.terminal !== undefined && !["consume", "release", "expire"].includes(config.lifecycles.permits.terminal)) throw new TypeError("invalid permit terminal");
     if (config.lifecycles?.cancellation !== undefined && !["lateCallback", "suppressed"].includes(config.lifecycles.cancellation)) throw new TypeError("invalid cancellation outcome");
     if (config.lifecycles?.reuse) for (const [name, value] of Object.entries(config.lifecycles.reuse)) if (integer(value, name) === 0) throw new RangeError(`${name} must be positive`);
     if (config.lifecycles?.encodedOutputBytes !== undefined) integer(config.lifecycles.encodedOutputBytes, "encoded output bytes");
     if (config.lifecycles?.collectors?.lifetimeMs !== undefined && integer(config.lifecycles.collectors.lifetimeMs, "collector lifetime") === 0) throw new RangeError("collector lifetime must be positive");
-    for (const [name, value] of Object.entries(config.lifecycles?.permits ?? {})) if (typeof value === "number") { integer(value, name); if (name.endsWith("Limit") && value === 0) throw new RangeError(`${name} must be positive`); }
     if (config.lifecycles?.collectors && integer(config.lifecycles.collectors.capacity, "collector capacity") === 0) throw new RangeError("collector capacity must be positive");
     if (config.lifecycles?.quietWindowMs !== undefined && integer(config.lifecycles.quietWindowMs, "quiet window") === 0) throw new RangeError("quiet window must be positive");
-    if (config.lifecycles?.permits) Object.assign(this.metadata, { permits: { adviceeLimit: config.lifecycles.permits.adviceeLimit, residentLimit: config.lifecycles.permits.residentLimit } });
     if (config.lifecycles?.reuse) Object.assign(this.metadata, { reuse: { entryLimit: config.lifecycles.reuse.entryLimit, byteLimit: config.lifecycles.reuse.byteLimit } });
     const demoLimits = demoResourceLimits(config.sessions?.length ?? 1);
     if (config.demoAgentCount !== undefined) {
@@ -387,9 +384,9 @@ export class Run {
     if (config.resourceScenarios) config = { ...config, resourceScenarios: { noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
     if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 8 } });
     if (config.lifecycles?.collectors) Object.assign(this.metadata, { collectors: { capacity: config.lifecycles.collectors.capacity } });
-    this.permitLimits = validatePermitLimits(config.editPermitLimits ?? (config.lifecycles?.permits ? { perAdvicee: config.lifecycles.permits.adviceeLimit, resident: config.lifecycles.permits.residentLimit } : {}));
-    this.permitProfile = validatePermitProfile(config.permitProfile ?? { ...DEFAULT_PERMIT_PROFILE, ...(config.lifecycles?.permits ? { outcome: config.lifecycles.permits.terminal === "release" ? "failure" : config.lifecycles.permits.terminal === "expire" ? "absent" : "success", durationMs: config.lifecycles.permits.holdMs ?? 0, lifetimeMs: config.lifecycles.permits.lifetimeMs ?? 30000 } : {}) });
-    this.permitsEnabled = config.editPermitLimits !== undefined || config.permitProfile !== undefined || config.lifecycles?.permits !== undefined;
+    this.permitLimits = validatePermitLimits(config.editPermitLimits ?? {});
+    this.permitProfile = validatePermitProfile(config.permitProfile ?? DEFAULT_PERMIT_PROFILE);
+    this.permitsEnabled = config.editPermitLimits !== undefined || config.permitProfile !== undefined;
     if (this.permitsEnabled) Object.assign(this.metadata, { permits: { adviceeLimit: this.permitLimits.perAdvicee, residentLimit: this.permitLimits.resident } });
     this.graphLimits = validateGraphLimits(config.graphLimits ?? GRAPH_LIMIT_CEILINGS);
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
@@ -515,6 +512,14 @@ export class Run {
       const scope = this.scopes.find(scope => scope.agent === value.agent);
       if (!scope) throw new RangeError("unknown advicee lifecycle target");
       const transition = this.core.lifecycle(scope.partition, scope.agent, value.action);
+      const current = this.core.adviceeLifecycles.find(entry => entry.partition === scope.partition);
+      if (current && current.status !== "active") {
+        const finish = this.finishes.get(scope.partition);
+        if (finish) {
+          this.queue = this.queue.filter(item => item.finishAttempt !== finish.attempt || item.partition !== scope.partition);
+          this.finishes.delete(scope.partition);
+        }
+      }
       for (const operation of readBendList(transition.cleanup.operations, readNat, 2048)) this.jobs.delete(operation);
       for (const action of decodeDriver({ handled: true, actions: transition.cleanup.actions }).actions) this.event(scope.partition, action.event, action.delay);
       for (const input of transition.events) this.enqueue(input);
@@ -693,9 +698,10 @@ export class Run {
       const scope = this.projection.rounds.find((r) => r.partition === partition);
       const round = scope?.id;
       if (item.input.kind === "finish") {
-        if (round && !this.finishes.get(partition)) {
+        if (scope && round && !this.finishes.get(partition)) {
           const identity = this.nextFinishIdentity++;
           this.finishes.set(partition, {
+            lifetime: scope.lifetime,
             round,
             attempt: identity,
             token: identity,
@@ -1190,7 +1196,7 @@ export class Run {
           f.waiting = false;
           f.selected = [];
           const candidates = command.kind === "finishLimit" ? [] : this.projection.work.filter(work =>
-            work.partition === partition && work.round === f.round && work.kind === "pendingFinding");
+            work.partition === partition && work.lifetime === f.lifetime && work.round === f.round && work.kind === "pendingFinding");
           f.validating = candidates.length;
           if (!f.validating) this.finishBudget(partition);
           for (const work of candidates) this.validateAdvice(partition, work.operation, f.round, f.token, "stop", true);
@@ -1204,7 +1210,7 @@ export class Run {
           emit({
             kind: "finishReserve",
             group: partition,
-            lifetime: 1,
+            lifetime: f.lifetime,
             round: f.round,
             attempt: f.attempt,
             token: f.token,
@@ -1491,7 +1497,7 @@ export class Run {
         event: {
           kind: "stopPolled",
           partition: partition,
-          lifetime: 1,
+          lifetime: f.lifetime,
           round: f.round,
           deadline: this.clock + delay >= f.deadline,
         },
@@ -1504,18 +1510,18 @@ export class Run {
     this.event(partition, {
       kind: "stopGroupEnded",
       group: partition,
-      lifetime: 1,
+      lifetime: f.lifetime,
       round: f.round,
       scopes: [{ partition: partition, round: f.round }],
     });
     if (!continuation) {
       for (const work of this.projection.work)
-        if (work.partition === partition && work.round === f.round && work.kind === "pendingFinding")
+        if (work.partition === partition && work.lifetime === f.lifetime && work.round === f.round && work.kind === "pendingFinding")
           this.retireAdvice(partition, work.operation);
       this.event(partition, {
         kind: "retirePartition",
         partition: partition,
-        lifetime: 1,
+        lifetime: f.lifetime,
         round: f.round,
       });
     }

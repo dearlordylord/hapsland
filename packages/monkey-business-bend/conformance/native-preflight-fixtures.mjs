@@ -9,6 +9,7 @@ export const nativePreflightFixtures = Object.freeze([
   "advicee-removal.bend",
   "advicee-preparation-departure.bend",
   "permit-scenario.bend",
+  "permit-generated-native.bend",
 ].map((name) => new URL(name, import.meta.url)));
 
 export function usesNativePreflight(fixture) {

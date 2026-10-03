@@ -1,12 +1,5 @@
 /** Source-free environment facts; all eligibility and capacity decisions remain in Bend. */
 export type LifecycleProfile = {
-  readonly permits?: {
-    readonly adviceeLimit: number;
-    readonly residentLimit: number;
-    readonly holdMs?: number;
-    readonly lifetimeMs?: number;
-    readonly terminal?: "consume" | "release" | "expire";
-  };
   readonly collectors?: { readonly capacity: number; readonly lifetimeMs?: number };
   readonly reuse?: { readonly entryLimit: number; readonly byteLimit: number };
   /** Quiet closure requires an active admission, normally supplied by permits. */
