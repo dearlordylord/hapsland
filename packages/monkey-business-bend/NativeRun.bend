@@ -850,17 +850,65 @@ def take_carrier(states: List<&2, T.State>, rest: Carrier -> List<&2, T.Step>) -
     case +state <> _: taken_carrier(Engine.take(core(state)),[state],rest)
     case Nil{}: []
 
-def take_allowed(allowed: Bool, states: List<&2, T.State>,
+# Metadata uses the same core owner as the public consumer. The original
+# payload and scheduler entry stay untouched until its genuine take boundary.
+def sharing_followups(events: List<&2, Canonical.CanonicalEvent>, state: T.State) -> T.State:
+  match events:
+    case Nil{}: state
+    case event <> tail:
+      sharing_followups(tail, schedule_action(state, Driver.Action{event,0n,None{},False{},None{}}, None{}))
+
+def sharing_frame(state: T.State, frame: Engine.SharingFrame) -> T.Step:
+  match frame:
+    case Engine.SharingFrame{before,after,event,Canonical.Advanced{canonical,commands}}:
+      product_frame(state,event,Engine.canonical(before),canonical,commands,None{})
+    case Engine.SharingFrame{before,after,event,Canonical.Rejected{canonical,reason}}:
+      product_frame(state,event,Engine.canonical(before),canonical,[],Some{reason})
+
+def sharing_selected(state: T.State, next: Engine.SharingNext,
+    rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
+  match next:
+    case Engine.SharingNext{updated,Some{frame},events}:
+      [sharing_frame(sharing_followups(events,replace_core(state,updated)),frame)]
+    case Engine.SharingNext{_,None{},_}: take_carrier([state],rest)
+
+def sharing_action(+state: T.State, action: Driver.Action, order: Nat, endpoint: Nat,
+    rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
+  match action:
+    case Driver.Action{event,_,_,_,_}:
+      sharing_selected(state,Engine.sharing_preprocess(core(state),event,order,Some{endpoint}),rest)
+
+def sharing_input(state: T.State, located: T.Located, order: Nat, endpoint: Nat,
+    rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
+  match located:
+    case T.Located{Some{T.Event{action,_}},_}: sharing_action(state,action,order,endpoint,rest)
+    case T.Located{Some{T.FinishInput{action,_,_}},_}: sharing_action(state,action,order,endpoint,rest)
+    case _: take_carrier([state],rest)
+
+def sharing_peek(+state: T.State, head: Maybe<&2, Scheduler.Entry>, endpoint: Nat,
+    rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
+  match head state:
+    case Some{Scheduler.Entry{_,+order}} T.State{core,+items,next,count,seed,environment,latest,valid,finishes,next_finish}:
+      sharing_input(T.State{core,items,next,count,seed,environment,latest,valid,finishes,next_finish},locate(items,order),order,endpoint,rest)
+    case None{} state: take_carrier([state],rest)
+
+def sharing_carrier(states: List<&2,T.State>, endpoint: Nat,
+    rest: Carrier -> List<&2,T.Step>) -> List<&2,T.Step>:
+  match states:
+    case +state <> _: sharing_peek(state,peek(state),endpoint,rest)
+    case Nil{}: []
+
+def take_allowed(allowed: Bool, states: List<&2, T.State>, endpoint: Nat,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match allowed:
-    case True{}: take_carrier(states,rest)
+    case True{}: sharing_carrier(states,endpoint,rest)
     case False{}: finished_step(states)
 
 def selected_state(states: List<&2, T.State>, endpoint: Nat,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match states:
     case +state <> _:
-      take_allowed(state_valid(state) && within(peek(state),endpoint),[state],rest)
+      take_allowed(state_valid(state) && within(peek(state),endpoint),[state],endpoint,rest)
     case Nil{}: []
 
 def selected_carrier(value: Carrier, endpoint: Nat,
