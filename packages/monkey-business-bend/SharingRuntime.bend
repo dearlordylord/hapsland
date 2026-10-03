@@ -538,3 +538,24 @@ def attached_route(route: Route, valid: Bool, commands: List<&2,C.Command>) -> L
 
 def route_followups(+state: State, +route: Route, commands: List<&2,C.Command>) -> List<&2,C.CanonicalEvent>:
   attached_route(route,route_valid(state,route),commands)
+
+# These route facts derive from the retained original plan, not from a host
+# completion payload or a current partition lookup. Only unresolved routes
+# need preprocessing at the single physical callback boundary.
+def unit_routes(units: List<&2,PreparedUnit>, +scope: Freshness.Scope, +member: Sharing.Member) -> List<&2,Route>:
+  match units:
+    case Nil{}: []
+    case PreparedUnit{position,_,_,evaluation,Awaiting{}} <> tail:
+      Route{scope,member,position,evaluation} <> unit_routes(tail,scope,member)
+    case _ <> tail: unit_routes(tail,scope,member)
+
+def pending_found(found: Maybe<&2,Preparation>) -> List<&2,Route>:
+  match found:
+    case None{}: []
+    case Some{Preparation{scope,member,units}}: unit_routes(units,scope,member)
+
+def pending(state: State, event: C.CanonicalEvent) -> List<&2,Route>:
+  match state event:
+    case State{_,preparations,_,_} C.PreparationCompleted{p,l,r,o,_}:
+      pending_found(find_preparation(preparations,Freshness.Scope{p,l,r,o}))
+    case _ _: []

@@ -690,3 +690,67 @@ def sharing_departed(+state: Types.State, departure: SharingRuntime.Departure) -
 
 def sharing_leave(+state: Types.State, scope: FreshnessScenario.Scope) -> SharingDeparture:
   sharing_departed(state,SharingRuntime.depart(sharing_runtime(state),scope))
+
+# The physical PRE callback is delivered once. Canonical offers and releases
+# its Preparing work atomically, so retained reuse route decisions must run
+# before that one completion. Each real reducer step remains observable.
+type SharingFrame is Data:
+  SharingFrame{before: Types.State, after: Types.State, event: Canonical.CanonicalEvent, result: Canonical.Step}
+type SharingPrepared is Data:
+  SharingPrepared{state: Types.State, frames: List<&2,SharingFrame>, event: Canonical.CanonicalEvent, ready: Bool}
+type SharingSteps is Data:
+  SharingSteps{state: Types.State, frames: List<&2,SharingFrame>}
+
+def sharing_event_done(+before: Types.State, +event: Canonical.CanonicalEvent, transition: Transition) -> SharingSteps:
+  match transition:
+    case Transition{+state,result}: SharingSteps{state,[SharingFrame{before,state,event,result}]}
+
+def sharing_event(+state: Types.State, +event: Canonical.CanonicalEvent) -> SharingSteps:
+  sharing_event_done(state,event,step(state,event))
+
+def sharing_joined_steps(head: List<&2,SharingFrame>, tail: SharingSteps) -> SharingSteps:
+  match tail:
+    case SharingSteps{state,frames}: SharingSteps{state,List.append(&2,SharingFrame,head,frames)}
+
+def sharing_events_tail(steps: SharingSteps, events: List<&2,Canonical.CanonicalEvent>) -> SharingSteps:
+  match steps:
+    case SharingSteps{state,frames}: sharing_joined_steps(frames,sharing_events(state,events))
+
+def sharing_events(state: Types.State, events: List<&2,Canonical.CanonicalEvent>) -> SharingSteps:
+  match events:
+    case Nil{}: SharingSteps{state,[]}
+    case +event <> tail: sharing_events_tail(sharing_event(state,event),tail)
+
+# A route creates exactly one event. Refusal leaves its disposition Awaiting,
+# and therefore cannot manufacture a review-unit offer or claim attachment.
+def sharing_route_result(+before: Types.State, +route: SharingRuntime.Route, +event: Canonical.CanonicalEvent, transition: Transition) -> SharingSteps:
+  match transition:
+    case Transition{+state,Canonical.Advanced{+canonical,+commands}}:
+      match sharing_routed(state,route,commands):
+        case SharingRouted{next,events}:
+          sharing_joined_steps([SharingFrame{before,next,event,Canonical.Advanced{canonical,commands}}],sharing_events(next,events))
+    case Transition{+state,+result}: SharingSteps{state,[SharingFrame{before,state,event,result}]}
+
+def sharing_route_events(state: Types.State, +route: SharingRuntime.Route, events: List<&2,Canonical.CanonicalEvent>) -> SharingSteps:
+  match events:
+    case Nil{}: SharingSteps{state,[]}
+    case +event <> Nil{}: sharing_route_result(state,route,event,step(state,event))
+    case _ <> _ <> _: SharingSteps{state,[]}
+
+def sharing_route_tail(steps: SharingSteps, routes: List<&2,SharingRuntime.Route>) -> SharingSteps:
+  match steps:
+    case SharingSteps{state,frames}: sharing_joined_steps(frames,sharing_routes(state,routes))
+
+def sharing_routes(+state: Types.State, routes: List<&2,SharingRuntime.Route>) -> SharingSteps:
+  match routes:
+    case Nil{}: SharingSteps{state,[]}
+    case +route <> tail: sharing_route_tail(sharing_route_events(state,route,sharing_route(state,route)),tail)
+
+def sharing_prepared(steps: SharingSteps, +event: Canonical.CanonicalEvent) -> SharingPrepared:
+  match steps:
+    case SharingSteps{+state,frames}:
+      match sharing_completion(state,event):
+        case SharingRuntime.Completion{completion,ready}: SharingPrepared{state,frames,completion,ready}
+
+def sharing_preprocess(+state: Types.State, +event: Canonical.CanonicalEvent) -> SharingPrepared:
+  sharing_prepared(sharing_routes(state,SharingRuntime.pending(sharing_runtime(state),event)),event)
