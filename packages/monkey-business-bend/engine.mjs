@@ -19462,6 +19462,1206 @@ function $StopScenario$wake$(_capture_0, _now_0) {
   return {$: "StopScenario.Fact", "at": _now_0, "event": ($StopScenario$poll$(_capture_0, _now_0))};
 }
 
+function $StopScenario$reserve_fields$(_p_0, _l_0, _r_0, _attempt_0, _token_0, _cutoff_0, _selected_0, _now_0) {
+  return $Driver$immediate$({$: "Canonical.FinishReserve", "group": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "has_notice": false, "pass_notices": true, "can_write": true, "binding_valid": true, "deadline_reached": ($Nat$is_le$(_cutoff_0, _now_0))}, false);
+}
+
+function $StopScenario$reserve$(_capture_0, _selected_0, _now_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _r_0 = _capture_0["round"];
+  const _attempt_0 = _capture_0["attempt"];
+  const _token_0 = _capture_0["token"];
+  const _cutoff_0 = _capture_0["cutoff"];
+  return $StopScenario$reserve_fields$(_p_0, _l_0, _r_0, _attempt_0, _token_0, _cutoff_0, _selected_0, _now_0);
+}
+
+function $StopScenario$ended_fields$(_p_0, _l_0, _r_0) {
+  return $Driver$immediate$({$: "Canonical.StopGroupEnded", "group": _p_0, "lifetime": _l_0, "round": _r_0, "scopes": {$: "Con", "head": {$: "Canonical.StopScope", "partition": _p_0, "round": _r_0}, "tail": {$: "Nil"}}}, false);
+}
+
+function $StopScenario$continued_fields$(_p_0, _r_0, _attempt_0, _token_0) {
+  return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.FinishEnd", "group": _p_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0}, false)), "tail": {$: "Nil"}};
+}
+
+function $StopScenario$continued$(_capture_0) {
+  const _p_0 = _capture_0["partition"];
+  const _r_0 = _capture_0["round"];
+  const _attempt_0 = _capture_0["attempt"];
+  const _token_0 = _capture_0["token"];
+  return $StopScenario$continued_fields$(_p_0, _r_0, _attempt_0, _token_0);
+}
+
+function $StopScenario$reserve_selected$(_selected_0, _p_0, _r_0, _token_0) {
+  if (_selected_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _advice_0 = _selected_0["head"];
+    const _tail_0 = _selected_0["tail"];
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReserveLease", "advice": _advice_0, "token": _token_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionBegin", "advice": _advice_0, "group": _p_0, "round": _r_0, "token": _token_0, "surface": {$: "Handoff.Stop"}, "authorize_now": false, "fingerprints": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}, "units": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}}, false)), "tail": ($StopScenario$reserve_selected$(_tail_0, _p_0, _r_0, _token_0))}};
+  }
+}
+
+function $StopScenario$reserved_permission$(_failed_0, _p_0, _r_0, _attempt_0, _token_0, _selected_0, _delay_0) {
+  if (_failed_0) {
+    return {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.FinishRelease", "group": _p_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}};
+  } else {
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.FinishAuthorize", "group": _p_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0}, false)), "tail": {$: "Nil"}};
+  }
+}
+
+function $StopScenario$reserved_fields$(_p_0, _r_0, _attempt_0, _token_0, _selected_0, _failed_0, _delay_0) {
+  return $List$append$(($StopScenario$reserve_selected$(_selected_0, _p_0, _r_0, _token_0)), ($StopScenario$reserved_permission$(_failed_0, _p_0, _r_0, _attempt_0, _token_0, _selected_0, _delay_0)));
+}
+
+function $StopScenario$reserved$(_capture_0, _selected_0, _failed_0, _delay_0) {
+  const _p_0 = _capture_0["partition"];
+  const _r_0 = _capture_0["round"];
+  const _attempt_0 = _capture_0["attempt"];
+  const _token_0 = _capture_0["token"];
+  return $StopScenario$reserved_fields$(_p_0, _r_0, _attempt_0, _token_0, _selected_0, _failed_0, _delay_0);
+}
+
+function $StopScenario$candidate_owned$(_work_0, _p_0, _l_0, _r_0) {
+  const _wp_0 = _work_0["partition"];
+  const _wl_0 = _work_0["lifetime"];
+  const _wr_0 = _work_0["round"];
+  const _o_0 = _work_0["operation"];
+  const _t_0 = _work_0["kind"];
+  if (_t_0.$ === "Canonical.PendingFinding") {
+    return $Bool$pick$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _wp_0)), ($Nat$is_eq$(_l_0, _wl_0)))), ($Nat$is_eq$(_r_0, _wr_0)))), {$: "Some", "value": _o_0}, {$: "None"});
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $StopScenario$candidate_cons$(_value_0, _rest_0) {
+  if (_value_0.$ === "Some") {
+    const _o_0 = _value_0["value"];
+    return {$: "Con", "head": _o_0, "tail": _rest_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $StopScenario$candidates$(_work_0, _p_0, _l_0, _r_0) {
+  if (_work_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _work_0["head"];
+    const _tail_0 = _work_0["tail"];
+    return $StopScenario$candidate_cons$(($StopScenario$candidate_owned$(_head_0, _p_0, _l_0, _r_0)), ($StopScenario$candidates$(_tail_0, _p_0, _l_0, _r_0)));
+  }
+}
+
+function $StopScenario$continuation_count$(_state_0, _p_0, _r_0) {
+  const _t_0 = _state_0["collection"];
+  const _t_1 = _t_0["delivery"];
+  const _counters_0 = _t_1["counters"];
+  return $$$$047agent$045flow$045bend$047DeliveryState$count$(_p_0, _r_0, _counters_0);
+}
+
+function $StopScenario$budget_fields$(_state_0, _p_0, _r_0) {
+  return $Driver$immediate$({$: "Canonical.RoundContinuationBudgetCheck", "active": true, "count": ($StopScenario$continuation_count$(_state_0, _p_0, _r_0))}, false);
+}
+
+function $StopScenario$budget$(_state_0, _capture_0) {
+  const _p_0 = _capture_0["partition"];
+  const _r_0 = _capture_0["round"];
+  return $StopScenario$budget_fields$(_state_0, _p_0, _r_0);
+}
+
+function $StopScenario$retired_actions$(_handled_0) {
+  const _actions_0 = _handled_0["actions"];
+  return _actions_0;
+}
+
+function $StopScenario$retire_candidate$(_value_0, _work_0) {
+  if (_value_0.$ === "Some") {
+    const _advice_0 = _value_0["value"];
+    return $StopScenario$retired_actions$(($Driver$retired_work$({$: "Some", "value": _work_0}, _advice_0)));
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $StopScenario$retire_pending$(_work_0, _p_0, _l_0, _r_0) {
+  if (_work_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _work_0["head"];
+    const _tail_0 = _work_0["tail"];
+    return $List$append$(($StopScenario$retire_candidate$(($StopScenario$candidate_owned$(_head_0, _p_0, _l_0, _r_0)), _head_0)), ($StopScenario$retire_pending$(_tail_0, _p_0, _l_0, _r_0)));
+  }
+}
+
+function $StopScenario$cleanup$(_continuation_0, _work_0, _p_0, _l_0, _r_0) {
+  if (_continuation_0) {
+    return {$: "Nil"};
+  } else {
+    return $List$append$(($StopScenario$retire_pending$(_work_0, _p_0, _l_0, _r_0)), {$: "Con", "head": ($Driver$immediate$({$: "Canonical.RetirePartition", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, false)), "tail": {$: "Nil"}});
+  }
+}
+
+function $StopScenario$end_fields$(_state_0, _p_0, _l_0, _r_0, _continuation_0) {
+  return {$: "Con", "head": ($StopScenario$ended_fields$(_p_0, _l_0, _r_0)), "tail": ($StopScenario$cleanup$(_continuation_0, ($Driver$work_list$(_state_0)), _p_0, _l_0, _r_0))};
+}
+
+function $StopScenario$end$(_state_0, _capture_0, _continuation_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _r_0 = _capture_0["round"];
+  return $StopScenario$end_fields$(_state_0, _p_0, _l_0, _r_0, _continuation_0);
+}
+
+function $StopScenario$validation$(_advice_0, _p_0, _r_0, _token_0, _current_0, _credential_0, _generation_0, _readable_0) {
+  return $Driver$candidate_action$({$: "Canonical.FinalCandidateCheck", "owner_current": true, "credential_generation": _generation_0, "credential_authorized": _credential_0, "expired": false, "work_current": ($Bool$and$(_current_0, _readable_0)), "has_findings": true}, {$: "Driver.Candidate", "partition": _p_0, "advice": _advice_0, "round": _r_0, "token": _token_0, "surface": {$: "Handoff.Stop"}, "selection": true});
+}
+
+function $StopScenario$registry_initial$() {
+  return {$: "StopScenario.State", "finishes": {$: "Nil"}, "next_identity": 100000};
+}
+
+function $StopScenario$finish_partition$(_finish_0) {
+  const _p_0 = _finish_0["partition"];
+  return _p_0;
+}
+
+function $StopScenario$find_value$(_found_0, _finish_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _finish_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $StopScenario$find$(_finishes_0, _p_0) {
+  if (_finishes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _finishes_0["head"];
+    const _tail_0 = _finishes_0["tail"];
+    return $StopScenario$find_value$(($Nat$is_eq$(($StopScenario$finish_partition$(_head_0)), _p_0)), _head_0, ($StopScenario$find$(_tail_0, _p_0)));
+  }
+}
+
+function $StopScenario$entries$(_state_0) {
+  const _finishes_0 = _state_0["finishes"];
+  return _finishes_0;
+}
+
+function $StopScenario$active_found$(_found_0) {
+  if (_found_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $StopScenario$active$(_state_0, _p_0) {
+  return $StopScenario$active_found$(($StopScenario$find$(($StopScenario$entries$(_state_0)), _p_0)));
+}
+
+function $StopScenario$next_identity$(_state_0) {
+  const _next_0 = _state_0["next_identity"];
+  return _next_0;
+}
+
+function $StopScenario$replaced$(_found_0, _head_0, _tail_0, _finish_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Con", "head": _finish_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _rest_0};
+  }
+}
+
+function $StopScenario$replace$(_finishes_0, _finish_0) {
+  if (_finishes_0.$ === "Nil") {
+    return {$: "Con", "head": _finish_0, "tail": {$: "Nil"}};
+  } else {
+    const _head_0 = _finishes_0["head"];
+    const _tail_0 = _finishes_0["tail"];
+    return $StopScenario$replaced$(($Nat$is_eq$(($StopScenario$finish_partition$(_head_0)), ($StopScenario$finish_partition$(_finish_0)))), _head_0, _tail_0, _finish_0, ($StopScenario$replace$(_tail_0, _finish_0)));
+  }
+}
+
+function $StopScenario$put$(_state_0, _finish_0) {
+  const _finishes_0 = _state_0["finishes"];
+  const _next_0 = _state_0["next_identity"];
+  return {$: "StopScenario.State", "finishes": ($StopScenario$replace$(_finishes_0, _finish_0)), "next_identity": _next_0};
+}
+
+function $StopScenario$keep_finish$(_keep_0, _head_0, _tail_0) {
+  if (_keep_0) {
+    return {$: "Con", "head": _head_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $StopScenario$remove$(_finishes_0, _p_0) {
+  if (_finishes_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _finishes_0["head"];
+    const _tail_0 = _finishes_0["tail"];
+    return $StopScenario$keep_finish$(($Bool$not$(($Nat$is_eq$(($StopScenario$finish_partition$(_head_0)), _p_0)))), _head_0, ($StopScenario$remove$(_tail_0, _p_0)));
+  }
+}
+
+function $StopScenario$close$(_state_0, _p_0) {
+  const _finishes_0 = _state_0["finishes"];
+  const _next_0 = _state_0["next_identity"];
+  return {$: "StopScenario.State", "finishes": ($StopScenario$remove$(_finishes_0, _p_0)), "next_identity": _next_0};
+}
+
+function $StopScenario$retained_scope$(_found_0, _finish_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    const _owner_0 = _finish_0["partition"];
+    const _generation_0 = _finish_0["lifetime"];
+    const _round_0 = _finish_0["round"];
+    return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)));
+  } else {
+    return false;
+  }
+}
+
+function $StopScenario$retained_finishes$(_finishes_0, _canonical_0) {
+  if (_finishes_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _finish_0 = _finishes_0["head"];
+    const _tail_0 = _finishes_0["tail"];
+    return $StopScenario$keep_finish$(($StopScenario$retained_scope$(($$$$047agent$045flow$045bend$047Canonical$find_round$(($StopScenario$finish_partition$(_finish_0)), ($Driver$rounds$(_canonical_0)))), _finish_0)), _finish_0, ($StopScenario$retained_finishes$(_tail_0, _canonical_0)));
+  }
+}
+
+function $StopScenario$retain$(_state_0, _canonical_0) {
+  const _finishes_0 = _state_0["finishes"];
+  const _next_0 = _state_0["next_identity"];
+  return {$: "StopScenario.State", "finishes": ($StopScenario$retained_finishes$(_finishes_0, _canonical_0)), "next_identity": _next_0};
+}
+
+function $StopScenario$finish_capture$(_finish_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _attempt_0 = _finish_0["attempt"];
+  const _token_0 = _finish_0["token"];
+  const _cutoff_0 = _finish_0["deadline"];
+  const _started_0 = _finish_0["started"];
+  return {$: "StopScenario.Capture", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0, "started": _started_0, "cutoff": _cutoff_0};
+}
+
+function $StopScenario$input_capture$(_finish_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _cutoff_0 = _finish_0["deadline"];
+  const _recurring_0 = _finish_0["recurring"];
+  const _started_0 = _finish_0["started"];
+  return {$: "StopScenario.Input", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "started": _started_0, "cutoff": _cutoff_0, "recurring": _recurring_0};
+}
+
+function $StopScenario$registered$(_valid_0, _state_0, _input_0) {
+  if (_valid_0) {
+    const _finishes_0 = _state_0["finishes"];
+    const _next_0 = _state_0["next_identity"];
+    const _p_0 = _input_0["partition"];
+    const _l_0 = _input_0["lifetime"];
+    const _r_0 = _input_0["round"];
+    const _started_0 = _input_0["started"];
+    const _cutoff_0 = _input_0["cutoff"];
+    const _recurring_0 = _input_0["recurring"];
+    const _finish_0 = {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _next_0, "token": _next_0, "deadline": _cutoff_0, "recurring": _recurring_0, "selected": {$: "Nil"}, "waiting": false, "validating": 0, "started": _started_0, "fit_pending": false, "output": {$: "Nil"}};
+    return {$: "StopScenario.Registered", "state": {$: "StopScenario.State", "finishes": ($StopScenario$replace$(_finishes_0, _finish_0)), "next_identity": nat_chk(_next_0 + 1)}, "finish": {$: "Some", "value": _finish_0}, "created": true};
+  } else {
+    return {$: "StopScenario.Registered", "state": _state_0, "finish": {$: "None"}, "created": false};
+  }
+}
+
+function $StopScenario$register_found$(_found_0, _state_0, _input_0, _valid_0) {
+  if (_found_0.$ === "Some") {
+    const _finish_0 = _found_0["value"];
+    return {$: "StopScenario.Registered", "state": _state_0, "finish": {$: "Some", "value": _finish_0}, "created": false};
+  } else {
+    const _x_0 = nat_chk(65536 * 4294967295);
+    const _x_1 = ($StopScenario$next_identity$(_state_0));
+    const _x_2 = nat_chk(_x_0 + 65535);
+    return $StopScenario$registered$(($Bool$and$(_valid_0, (_x_1 < _x_2))), _state_0, _input_0);
+  }
+}
+
+function $StopScenario$register$(_state_0, _input_0, _valid_0) {
+  const _p_0 = _input_0["partition"];
+  const __0 = _input_0["lifetime"];
+  const __1 = _input_0["round"];
+  const _started_0 = _input_0["started"];
+  const _cutoff_0 = _input_0["cutoff"];
+  const __2 = _input_0["recurring"];
+  return $StopScenario$register_found$(($StopScenario$find$(($StopScenario$entries$(_state_0)), _p_0)), _state_0, {$: "StopScenario.Input", "partition": _p_0, "lifetime": __0, "round": __1, "started": _started_0, "cutoff": _cutoff_0, "recurring": __2}, ($Bool$and$(_valid_0, ($Nat$is_le$(_started_0, _cutoff_0)))));
+}
+
+function $StopScenario$progress_waiting$(_finish_0, _value_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["token"];
+  const _d_0 = _finish_0["deadline"];
+  const _c_0 = _finish_0["recurring"];
+  const _s_0 = _finish_0["selected"];
+  const _v_0 = _finish_0["validating"];
+  const _start_0 = _finish_0["started"];
+  const _fit_0 = _finish_0["fit_pending"];
+  const _output_0 = _finish_0["output"];
+  return {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _a_0, "token": _t_0, "deadline": _d_0, "recurring": _c_0, "selected": _s_0, "waiting": _value_0, "validating": _v_0, "started": _start_0, "fit_pending": _fit_0, "output": _output_0};
+}
+
+function $StopScenario$progress_ready$(_finish_0, _count_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["token"];
+  const _d_0 = _finish_0["deadline"];
+  const _c_0 = _finish_0["recurring"];
+  const _start_0 = _finish_0["started"];
+  const _fit_0 = _finish_0["fit_pending"];
+  const _output_0 = _finish_0["output"];
+  return {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _a_0, "token": _t_0, "deadline": _d_0, "recurring": _c_0, "selected": {$: "Nil"}, "waiting": false, "validating": _count_0, "started": _start_0, "fit_pending": _fit_0, "output": _output_0};
+}
+
+function $StopScenario$progress_clear$(_finish_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["token"];
+  const _d_0 = _finish_0["deadline"];
+  const _c_0 = _finish_0["recurring"];
+  const _w_0 = _finish_0["waiting"];
+  const _v_0 = _finish_0["validating"];
+  const _start_0 = _finish_0["started"];
+  const _fit_0 = _finish_0["fit_pending"];
+  const _output_0 = _finish_0["output"];
+  return {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _a_0, "token": _t_0, "deadline": _d_0, "recurring": _c_0, "selected": {$: "Nil"}, "waiting": _w_0, "validating": _v_0, "started": _start_0, "fit_pending": _fit_0, "output": _output_0};
+}
+
+function $StopScenario$progress_selected$(_finish_0, _advice_0, _keep_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["token"];
+  const _d_0 = _finish_0["deadline"];
+  const _c_0 = _finish_0["recurring"];
+  const _selected_0 = _finish_0["selected"];
+  const _w_0 = _finish_0["waiting"];
+  const _v_0 = _finish_0["validating"];
+  const _start_0 = _finish_0["started"];
+  const _fit_0 = _finish_0["fit_pending"];
+  const _output_0 = _finish_0["output"];
+  return {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _a_0, "token": _t_0, "deadline": _d_0, "recurring": _c_0, "selected": ($Bool$pick$(_keep_0, ($List$append$(_selected_0, {$: "Con", "head": _advice_0, "tail": {$: "Nil"}})), _selected_0)), "waiting": _w_0, "validating": (_v_0 < 1 ? 0 : _v_0 - 1), "started": _start_0, "fit_pending": _fit_0, "output": _output_0};
+}
+
+function $StopScenario$progress_fit$(_finish_0, _value_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["token"];
+  const _d_0 = _finish_0["deadline"];
+  const _c_0 = _finish_0["recurring"];
+  const _s_0 = _finish_0["selected"];
+  const _w_0 = _finish_0["waiting"];
+  const _v_0 = _finish_0["validating"];
+  const _start_0 = _finish_0["started"];
+  const _output_0 = _finish_0["output"];
+  return {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _a_0, "token": _t_0, "deadline": _d_0, "recurring": _c_0, "selected": _s_0, "waiting": _w_0, "validating": _v_0, "started": _start_0, "fit_pending": _value_0, "output": _output_0};
+}
+
+function $StopScenario$progress_output$(_finish_0, _output_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["token"];
+  const _d_0 = _finish_0["deadline"];
+  const _c_0 = _finish_0["recurring"];
+  const _s_0 = _finish_0["selected"];
+  const _w_0 = _finish_0["waiting"];
+  const _v_0 = _finish_0["validating"];
+  const _start_0 = _finish_0["started"];
+  const _fit_0 = _finish_0["fit_pending"];
+  return {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": _a_0, "token": _t_0, "deadline": _d_0, "recurring": _c_0, "selected": _s_0, "waiting": _w_0, "validating": _v_0, "started": _start_0, "fit_pending": _fit_0, "output": {$: "Con", "head": _output_0, "tail": {$: "Nil"}}};
+}
+
+function $StopScenario$progressed$(_finish_0, _progress_0) {
+  if (_progress_0.$ === "StopScenario.Waiting") {
+    const _value_0 = _progress_0["value"];
+    return $StopScenario$progress_waiting$(_finish_0, _value_0);
+  } else if (_progress_0.$ === "StopScenario.Ready") {
+    const _count_0 = _progress_0["count"];
+    return $StopScenario$progress_ready$(_finish_0, _count_0);
+  } else if (_progress_0.$ === "StopScenario.Selected") {
+    const _advice_0 = _progress_0["advice"];
+    const _keep_0 = _progress_0["keep"];
+    return $StopScenario$progress_selected$(_finish_0, _advice_0, _keep_0);
+  } else if (_progress_0.$ === "StopScenario.Clear") {
+    return $StopScenario$progress_clear$(_finish_0);
+  } else if (_progress_0.$ === "StopScenario.Fit") {
+    const _value_1 = _progress_0["value"];
+    return $StopScenario$progress_fit$(_finish_0, _value_1);
+  } else {
+    const _capture_0 = _progress_0["capture"];
+    return $StopScenario$progress_output$(_finish_0, _capture_0);
+  }
+}
+
+function $StopScenario$finish_attempt$(_finish_0) {
+  const _attempt_0 = _finish_0["attempt"];
+  return _attempt_0;
+}
+
+function $StopScenario$progress_owned$(_valid_0, _state_0, _finish_0, _progress_0) {
+  if (_valid_0) {
+    return $StopScenario$put$(_state_0, ($StopScenario$progressed$(_finish_0, _progress_0)));
+  } else {
+    return _state_0;
+  }
+}
+
+function $StopScenario$progress_found$(_state_0, _found_0, _attempt_0, _progress_0) {
+  if (_found_0.$ === "Some") {
+    const _finish_0 = _found_0["value"];
+    return $StopScenario$progress_owned$(($Nat$is_eq$(($StopScenario$finish_attempt$(_finish_0)), _attempt_0)), _state_0, _finish_0, _progress_0);
+  } else {
+    return _state_0;
+  }
+}
+
+function $StopScenario$progress$(_state_0, _partition_0, _attempt_0, _change_0) {
+  return $StopScenario$progress_found$(_state_0, ($StopScenario$find$(($StopScenario$entries$(_state_0)), _partition_0)), _attempt_0, _change_0);
+}
+
+function $StopScenario$output_capture$(_finish_0, _now_0, _outcome_0, _delay_0, _lease_0) {
+  const _p_0 = _finish_0["partition"];
+  const _r_0 = _finish_0["round"];
+  const _attempt_0 = _finish_0["attempt"];
+  const _token_0 = _finish_0["token"];
+  const _selected_0 = _finish_0["selected"];
+  return {$: "OutputScenario.Capture", "attempt": {$: "OutputScenario.Finish", "group": _p_0, "round": _r_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0}, "started": _now_0, "outcome": _outcome_0, "delay": _delay_0, "lease": _lease_0};
+}
+
+function $StopScenario$output_actions$(_capture_0) {
+  return $Driver$output_actions$(($OutputScenario$issued$(_capture_0)));
+}
+
+function $StopScenario$command_changed$(_state_0, _actions_0) {
+  return {$: "StopScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": true, "actions": _actions_0}, "ended": {$: "None"}, "fit_attempt": {$: "None"}, "output": {$: "None"}};
+}
+
+function $StopScenario$command_unhandled$(_state_0) {
+  return {$: "StopScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}, "ended": {$: "None"}, "fit_attempt": {$: "None"}, "output": {$: "None"}};
+}
+
+function $StopScenario$command_wait$(_state_0, _finish_0, _waiting_0) {
+  return $StopScenario$command_changed$(($StopScenario$put$(_state_0, ($StopScenario$progress_waiting$(_finish_0, _waiting_0)))), {$: "Nil"});
+}
+
+function $StopScenario$command_budget_fit$(_fit_0, _state_0, _finish_0, _canonical_0, _bytes_0) {
+  if (_fit_0) {
+    const __0 = _finish_0["partition"];
+    const __1 = _finish_0["lifetime"];
+    const __2 = _finish_0["round"];
+    const _attempt_0 = _finish_0["attempt"];
+    const __3 = _finish_0["token"];
+    const __4 = _finish_0["deadline"];
+    const __5 = _finish_0["recurring"];
+    const _selected_0 = _finish_0["selected"];
+    const __6 = _finish_0["waiting"];
+    const __7 = _finish_0["validating"];
+    const __8 = _finish_0["started"];
+    const __9 = _finish_0["fit_pending"];
+    const __10 = _finish_0["output"];
+    return {$: "StopScenario.Changed", "state": ($StopScenario$put$(_state_0, ($StopScenario$progress_fit$({$: "StopScenario.Finish", "partition": __0, "lifetime": __1, "round": __2, "attempt": _attempt_0, "token": __3, "deadline": __4, "recurring": __5, "selected": _selected_0, "waiting": __6, "validating": __7, "started": __8, "fit_pending": __9, "output": __10}, true)))), "handled": {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionFitCheck", "items": ($List$length$(_selected_0)), "bytes": _bytes_0}, false)), "tail": {$: "Nil"}}}, "ended": {$: "None"}, "fit_attempt": {$: "Some", "value": _attempt_0}, "output": {$: "None"}};
+  } else {
+    return $StopScenario$command_changed$(($StopScenario$put$(_state_0, ($StopScenario$progress_fit$(_finish_0, false)))), {$: "Con", "head": ($StopScenario$budget$(_canonical_0, ($StopScenario$finish_capture$(_finish_0)))), "tail": {$: "Nil"}});
+  }
+}
+
+function $StopScenario$command_budget_bytes$(_bytes_0, _state_0, _finish_0, _canonical_0, _fitted_0) {
+  if (_bytes_0.$ === "Some") {
+    const _bytes_1 = _bytes_0["value"];
+    const __0 = _finish_0["partition"];
+    const __1 = _finish_0["lifetime"];
+    const __2 = _finish_0["round"];
+    const __3 = _finish_0["attempt"];
+    const __4 = _finish_0["token"];
+    const __5 = _finish_0["deadline"];
+    const __6 = _finish_0["recurring"];
+    const _selected_0 = _finish_0["selected"];
+    const __7 = _finish_0["waiting"];
+    const __8 = _finish_0["validating"];
+    const __9 = _finish_0["started"];
+    const __10 = _finish_0["fit_pending"];
+    const __11 = _finish_0["output"];
+    return $StopScenario$command_budget_fit$(($Bool$and$(($Bool$not$(_fitted_0)), ($Nat$is_gt$(($List$length$(_selected_0)), 0)))), _state_0, {$: "StopScenario.Finish", "partition": __0, "lifetime": __1, "round": __2, "attempt": __3, "token": __4, "deadline": __5, "recurring": __6, "selected": _selected_0, "waiting": __7, "validating": __8, "started": __9, "fit_pending": __10, "output": __11}, _canonical_0, _bytes_1);
+  } else {
+    return $StopScenario$command_changed$(($StopScenario$put$(_state_0, ($StopScenario$progress_fit$(_finish_0, false)))), {$: "Con", "head": ($StopScenario$budget$(_canonical_0, ($StopScenario$finish_capture$(_finish_0)))), "tail": {$: "Nil"}});
+  }
+}
+
+function $StopScenario$command_budget$(_state_0, _finish_0, _canonical_0, _facts_0, _fitted_0) {
+  const _bytes_0 = _facts_0["bytes"];
+  return $StopScenario$command_budget_bytes$(_bytes_0, _state_0, _finish_0, _canonical_0, _fitted_0);
+}
+
+function $StopScenario$command_validations$(_advicees_0, _p_0, _r_0, _token_0, _current_0, _credential_0, _generation_0, _readable_0) {
+  if (_advicees_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _advice_0 = _advicees_0["head"];
+    const _tail_0 = _advicees_0["tail"];
+    return {$: "Con", "head": ($StopScenario$validation$(_advice_0, _p_0, _r_0, _token_0, _current_0, _credential_0, _generation_0, _readable_0)), "tail": ($StopScenario$command_validations$(_tail_0, _p_0, _r_0, _token_0, _current_0, _credential_0, _generation_0, _readable_0))};
+  }
+}
+
+function $StopScenario$command_ready_nonempty$(_empty_0, _state_0, _finish_0, _canonical_0, _facts_0, _advicees_0, _context_0) {
+  if (_empty_0) {
+    return $StopScenario$command_budget$(_state_0, _finish_0, _canonical_0, _facts_0, false);
+  } else {
+    const _p_0 = _finish_0["partition"];
+    const __0 = _finish_0["lifetime"];
+    const _r_0 = _finish_0["round"];
+    const __1 = _finish_0["attempt"];
+    const _token_0 = _finish_0["token"];
+    const __2 = _finish_0["deadline"];
+    const __3 = _finish_0["recurring"];
+    const __4 = _finish_0["selected"];
+    const __5 = _finish_0["waiting"];
+    const __6 = _finish_0["validating"];
+    const __7 = _finish_0["started"];
+    const __8 = _finish_0["fit_pending"];
+    const __9 = _finish_0["output"];
+    const _current_0 = _context_0["current_work"];
+    const _credential_0 = _context_0["credential_ready"];
+    const _generation_0 = _context_0["credential_generation"];
+    const _readable_0 = _context_0["source_readable"];
+    return $StopScenario$command_changed$(($StopScenario$put$(_state_0, {$: "StopScenario.Finish", "partition": _p_0, "lifetime": __0, "round": _r_0, "attempt": __1, "token": _token_0, "deadline": __2, "recurring": __3, "selected": __4, "waiting": __5, "validating": __6, "started": __7, "fit_pending": __8, "output": __9})), ($StopScenario$command_validations$(_advicees_0, _p_0, _r_0, _token_0, _current_0, _credential_0, _generation_0, _readable_0)));
+  }
+}
+
+function $StopScenario$command_ready_selected$(_state_0, _finish_0, _canonical_0, _facts_0, _advicees_0, _context_0) {
+  return $StopScenario$command_ready_nonempty$(($Nat$is_eq$(($List$length$(_advicees_0)), 0)), _state_0, ($StopScenario$progress_ready$(_finish_0, ($List$length$(_advicees_0)))), _canonical_0, _facts_0, _advicees_0, _context_0);
+}
+
+function $StopScenario$command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, _limit_0) {
+  const _p_0 = _finish_0["partition"];
+  const _l_0 = _finish_0["lifetime"];
+  const _r_0 = _finish_0["round"];
+  const __0 = _finish_0["attempt"];
+  const __1 = _finish_0["token"];
+  const __2 = _finish_0["deadline"];
+  const __3 = _finish_0["recurring"];
+  const __4 = _finish_0["selected"];
+  const __5 = _finish_0["waiting"];
+  const __6 = _finish_0["validating"];
+  const __7 = _finish_0["started"];
+  const __8 = _finish_0["fit_pending"];
+  const __9 = _finish_0["output"];
+  return $StopScenario$command_ready_selected$(_state_0, {$: "StopScenario.Finish", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "attempt": __0, "token": __1, "deadline": __2, "recurring": __3, "selected": __4, "waiting": __5, "validating": __6, "started": __7, "fit_pending": __8, "output": __9}, _canonical_0, _facts_0, ($Bool$pick$(_limit_0, {$: "Nil"}, ($StopScenario$candidates$(($Driver$work_list$(_canonical_0)), _p_0, _l_0, _r_0)))), _context_0);
+}
+
+function $StopScenario$finish_selected$(_finish_0) {
+  const _selected_0 = _finish_0["selected"];
+  return _selected_0;
+}
+
+function $StopScenario$command_reserve_mode$(_exhausted_0, _state_0, _finish_0, _now_0) {
+  if (_exhausted_0) {
+    const _cleared_0 = ($StopScenario$progress_clear$(_finish_0));
+    return $StopScenario$command_changed$(($StopScenario$put$(_state_0, _cleared_0)), {$: "Con", "head": ($StopScenario$reserve$(($StopScenario$finish_capture$(_cleared_0)), ($StopScenario$finish_selected$(_cleared_0)), _now_0)), "tail": {$: "Nil"}});
+  } else {
+    return $StopScenario$command_changed$(_state_0, {$: "Con", "head": ($StopScenario$reserve$(($StopScenario$finish_capture$(_finish_0)), ($StopScenario$finish_selected$(_finish_0)), _now_0)), "tail": {$: "Nil"}});
+  }
+}
+
+function $StopScenario$command_reserve$(_state_0, _finish_0, _facts_0, _exhausted_0) {
+  const _now_0 = _facts_0["now"];
+  return $StopScenario$command_reserve_mode$(_exhausted_0, _state_0, _finish_0, _now_0);
+}
+
+function $StopScenario$command_end$(_state_0, _finish_0, _canonical_0, _continuation_0) {
+  return {$: "StopScenario.Changed", "state": ($StopScenario$close$(_state_0, ($StopScenario$finish_partition$(_finish_0)))), "handled": {$: "Driver.Handled", "handled": true, "actions": ($StopScenario$end$(_canonical_0, ($StopScenario$finish_capture$(_finish_0)), _continuation_0))}, "ended": {$: "Some", "value": {$: "StopScenario.Ended", "finish": _finish_0, "continuation": _continuation_0}}, "fit_attempt": {$: "None"}, "output": {$: "None"}};
+}
+
+function $StopScenario$command_failed$(_outcome_0) {
+  if (_outcome_0.$ === "OutputScenario.Failed") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $StopScenario$command_reserved$(_state_0, _finish_0, _facts_0) {
+  const _outcome_0 = _facts_0["outcome"];
+  const _delay_0 = _facts_0["delay"];
+  return $StopScenario$command_changed$(_state_0, ($StopScenario$reserved$(($StopScenario$finish_capture$(_finish_0)), ($StopScenario$finish_selected$(_finish_0)), ($StopScenario$command_failed$(_outcome_0)), _delay_0)));
+}
+
+function $StopScenario$command_output$(_state_0, _finish_0, _capture_0) {
+  return {$: "StopScenario.Changed", "state": ($StopScenario$put$(_state_0, ($StopScenario$progress_output$(_finish_0, _capture_0)))), "handled": {$: "Driver.Handled", "handled": true, "actions": ($StopScenario$output_actions$(_capture_0))}, "ended": {$: "None"}, "fit_attempt": {$: "None"}, "output": {$: "Some", "value": _capture_0}};
+}
+
+function $StopScenario$command_authorized$(_state_0, _finish_0, _facts_0) {
+  const _now_0 = _facts_0["now"];
+  const _outcome_0 = _facts_0["outcome"];
+  const _delay_0 = _facts_0["delay"];
+  const _lease_0 = _facts_0["lease"];
+  return $StopScenario$command_output$(_state_0, _finish_0, ($StopScenario$output_capture$(_finish_0, _now_0, _outcome_0, _delay_0, _lease_0)));
+}
+
+function $StopScenario$command_recorded$(_state_0, _finish_0) {
+  return $StopScenario$command_changed$(_state_0, ($StopScenario$continued$(($StopScenario$finish_capture$(_finish_0)))));
+}
+
+function $StopScenario$finish_validating$(_finish_0) {
+  const _validating_0 = _finish_0["validating"];
+  return _validating_0;
+}
+
+function $StopScenario$command_selected_complete$(_done_0, _state_0, _finish_0, _canonical_0, _facts_0) {
+  if (_done_0) {
+    return $StopScenario$command_budget$(_state_0, _finish_0, _canonical_0, _facts_0, false);
+  } else {
+    return $StopScenario$command_changed$(($StopScenario$put$(_state_0, _finish_0)), {$: "Nil"});
+  }
+}
+
+function $StopScenario$command_selected$(_state_0, _finish_0, _canonical_0, _facts_0, _advice_0, _keep_0) {
+  const _updated_0 = ($StopScenario$progress_selected$(_finish_0, _advice_0, _keep_0));
+  return $StopScenario$command_selected_complete$(($Nat$is_eq$(($StopScenario$finish_validating$(_updated_0)), 0)), _state_0, _updated_0, _canonical_0, _facts_0);
+}
+
+function $StopScenario$command_fit_matches$(_finish_0, _attempt_0) {
+  const _a_0 = _finish_0["attempt"];
+  const _t_0 = _finish_0["fit_pending"];
+  if (_t_0) {
+    if (_attempt_0.$ === "Some") {
+      const _other_0 = _attempt_0["value"];
+      return $Nat$is_eq$(_a_0, _other_0);
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $StopScenario$command_fit_result$(_matches_0, _state_0, _finish_0, _canonical_0, _facts_0, _keep_0) {
+  if (_matches_0) {
+    if (_keep_0) {
+      return $StopScenario$command_budget$(_state_0, _finish_0, _canonical_0, _facts_0, true);
+    } else {
+      return $StopScenario$command_budget$(_state_0, ($StopScenario$progress_clear$(_finish_0)), _canonical_0, _facts_0, true);
+    }
+  } else {
+    return $StopScenario$command_unhandled$(_state_0);
+  }
+}
+
+function $StopScenario$command_candidate_owned$(_candidate_0, _finish_0) {
+  const _p_0 = _candidate_0["partition"];
+  const _r_0 = _candidate_0["round"];
+  const _t_0 = _candidate_0["token"];
+  const _t_1 = _candidate_0["surface"];
+  if (_t_1.$ === "Handoff.Stop") {
+    const _t_2 = _candidate_0["selection"];
+    if (_t_2) {
+      const _owner_0 = _finish_0["partition"];
+      const _round_0 = _finish_0["round"];
+      const _token_0 = _finish_0["token"];
+      return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_t_0, _token_0)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $StopScenario$command_candidate_valid$(_valid_0, _state_0, _finish_0, _canonical_0, _facts_0, _candidate_0, _keep_0) {
+  if (_valid_0) {
+    const _advice_0 = _candidate_0["advice"];
+    return $StopScenario$command_selected$(_state_0, _finish_0, _canonical_0, _facts_0, _advice_0, _keep_0);
+  } else {
+    return $StopScenario$command_unhandled$(_state_0);
+  }
+}
+
+function $StopScenario$command_candidate_fit$(_state_0, _finish_0, _canonical_0, _facts_0, _keep_0) {
+  const __0 = _facts_0["now"];
+  const __1 = _facts_0["outcome"];
+  const __2 = _facts_0["delay"];
+  const __3 = _facts_0["lease"];
+  const __4 = _facts_0["bytes"];
+  const _attempt_0 = _facts_0["fit_attempt"];
+  return $StopScenario$command_fit_result$(($StopScenario$command_fit_matches$(_finish_0, _attempt_0)), _state_0, _finish_0, _canonical_0, {$: "StopScenario.CommandFacts", "now": __0, "outcome": __1, "delay": __2, "lease": __3, "bytes": __4, "fit_attempt": _attempt_0}, _keep_0);
+}
+
+function $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, _keep_0) {
+  const _t_0 = _context_0["candidate"];
+  if (_t_0.$ === "Some") {
+    const _candidate_0 = _t_0["value"];
+    return $StopScenario$command_candidate_valid$(($StopScenario$command_candidate_owned$(_candidate_0, _finish_0)), _state_0, _finish_0, _canonical_0, _facts_0, _candidate_0, _keep_0);
+  } else {
+    return $StopScenario$command_candidate_fit$(_state_0, _finish_0, _canonical_0, _facts_0, _keep_0);
+  }
+}
+
+function $StopScenario$command_finish$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, _command_0) {
+  if (_command_0.$ === "Canonical.WaitForWork") {
+    return $StopScenario$command_wait$(_state_0, _finish_0, true);
+  } else if (_command_0.$ === "Canonical.WaitForOutput") {
+    return $StopScenario$command_wait$(_state_0, _finish_0, true);
+  } else if (_command_0.$ === "Canonical.FinishReady") {
+    return $StopScenario$command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  } else if (_command_0.$ === "Canonical.FinishLimit") {
+    return $StopScenario$command_ready$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
+  } else if (_command_0.$ === "Canonical.RoundContinuationAvailable") {
+    return $StopScenario$command_reserve$(_state_0, _finish_0, _facts_0, false);
+  } else if (_command_0.$ === "Canonical.RoundContinuationExhausted") {
+    return $StopScenario$command_reserve$(_state_0, _finish_0, _facts_0, true);
+  } else if (_command_0.$ === "Canonical.FinishAllowedNoAdvice") {
+    return $StopScenario$command_end$(_state_0, _finish_0, _canonical_0, false);
+  } else if (_command_0.$ === "Canonical.FinishAllowedDeadline") {
+    return $StopScenario$command_end$(_state_0, _finish_0, _canonical_0, false);
+  } else if (_command_0.$ === "Canonical.FinishAllowedUnavailable") {
+    return $StopScenario$command_end$(_state_0, _finish_0, _canonical_0, false);
+  } else if (_command_0.$ === "Canonical.FinishReserved") {
+    return $StopScenario$command_reserved$(_state_0, _finish_0, _facts_0);
+  } else if (_command_0.$ === "Canonical.FinishAuthorized") {
+    return $StopScenario$command_authorized$(_state_0, _finish_0, _facts_0);
+  } else if (_command_0.$ === "Canonical.FinishRecorded") {
+    return $StopScenario$command_recorded$(_state_0, _finish_0);
+  } else if (_command_0.$ === "Canonical.FinishReleased") {
+    return $StopScenario$command_end$(_state_0, _finish_0, _canonical_0, true);
+  } else if (_command_0.$ === "Canonical.FinishEnded") {
+    return $StopScenario$command_end$(_state_0, _finish_0, _canonical_0, true);
+  } else if (_command_0.$ === "Canonical.FinishRefused") {
+    return $StopScenario$command_wait$(_state_0, _finish_0, false);
+  } else if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
+  } else if (_command_0.$ === "Canonical.CollectionFits") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, true);
+  } else if (_command_0.$ === "Canonical.CollectionLimited") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  } else if (_command_0.$ === "Canonical.RetireCandidate") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  } else if (_command_0.$ === "Canonical.ReleaseCandidate") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  } else if (_command_0.$ === "Canonical.IgnoreCandidate") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  } else if (_command_0.$ === "Canonical.SubmissionSuppresses") {
+    return $StopScenario$command_candidate$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, false);
+  } else {
+    return $StopScenario$command_unhandled$(_state_0);
+  }
+}
+
+function $StopScenario$command_found$(_state_0, _found_0, _canonical_0, _facts_0, _context_0, _command_0) {
+  if (_found_0.$ === "Some") {
+    const _finish_0 = _found_0["value"];
+    return $StopScenario$command_finish$(_state_0, _finish_0, _canonical_0, _facts_0, _context_0, _command_0);
+  } else {
+    return $StopScenario$command_unhandled$(_state_0);
+  }
+}
+
+function $StopScenario$command_partition$(_context_0) {
+  const _p_0 = _context_0["partition"];
+  return _p_0;
+}
+
+function $StopScenario$handle$(_state_0, _canonical_0, _facts_0, _context_0, _command_0) {
+  return $StopScenario$command_found$(_state_0, ($StopScenario$find$(($StopScenario$entries$(_state_0)), ($StopScenario$command_partition$(_context_0)))), _canonical_0, _facts_0, _context_0, _command_0);
+}
+
+function $CollectorScenario$initial$() {
+  return {$: "CollectorScenario.State", "profile": {$: "None"}, "candidates": {$: "Nil"}};
+}
+
+function $CollectorScenario$capacity$(_profile_0) {
+  const _value_0 = _profile_0["capacity"];
+  return _value_0;
+}
+
+function $CollectorScenario$profile_valid$(_profile_0) {
+  if (_profile_0.$ === "None") {
+    return true;
+  } else {
+    const _t_0 = _profile_0["value"];
+    const _capacity_0 = _t_0["capacity"];
+    const _lifetime_0 = _t_0["lifetime"];
+    const _x_0 = nat_chk(65536 * 4294967295);
+    const _x_1 = nat_chk(65536 * 4294967295);
+    return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_gt$(_capacity_0, 0)), ($Nat$is_le$(_capacity_0, nat_chk(_x_0 + 65535))))), ($Nat$is_gt$(_lifetime_0, 0)))), ($Nat$is_le$(_lifetime_0, nat_chk(_x_1 + 65535))));
+  }
+}
+
+function $CollectorScenario$configured$(_state_0) {
+  const _t_0 = _state_0["profile"];
+  if (_t_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $CollectorScenario$configure$(_state_0, _profile_0) {
+  const _candidates_0 = _state_0["candidates"];
+  return {$: "CollectorScenario.State", "profile": _profile_0, "candidates": _candidates_0};
+}
+
+function $CollectorScenario$candidate_token$(_candidate_0) {
+  const _token_0 = _candidate_0["token"];
+  return _token_0;
+}
+
+function $CollectorScenario$select_candidate$(_found_0, _head_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _head_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $CollectorScenario$lookup$(_candidates_0, _token_0) {
+  if (_candidates_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _candidates_0["head"];
+    const _tail_0 = _candidates_0["tail"];
+    return $CollectorScenario$select_candidate$(($Nat$is_eq$(($CollectorScenario$candidate_token$(_head_0)), _token_0)), _head_0, ($CollectorScenario$lookup$(_tail_0, _token_0)));
+  }
+}
+
+function $CollectorScenario$insert_selected$(_found_0, _head_0, _tail_0, _candidate_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Con", "head": _candidate_0, "tail": _tail_0};
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _rest_0};
+  }
+}
+
+function $CollectorScenario$insert$(_items_0, _candidate_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Con", "head": _candidate_0, "tail": {$: "Nil"}};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectorScenario$insert_selected$(($Nat$is_eq$(($CollectorScenario$candidate_token$(_head_0)), ($CollectorScenario$candidate_token$(_candidate_0)))), _head_0, _tail_0, _candidate_0, ($CollectorScenario$insert$(_tail_0, _candidate_0)));
+  }
+}
+
+function $CollectorScenario$keep_candidate$(_keep_0, _candidate_0, _tail_0) {
+  if (_keep_0) {
+    return {$: "Con", "head": _candidate_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $CollectorScenario$remove$(_items_0, _token_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectorScenario$keep_candidate$(($Bool$not$(($Nat$is_eq$(($CollectorScenario$candidate_token$(_head_0)), _token_0)))), _head_0, ($CollectorScenario$remove$(_tail_0, _token_0)));
+  }
+}
+
+function $CollectorScenario$claim$(_p_0, _token_0, _capacity_0) {
+  return $Driver$immediate$({$: "Canonical.CollectionClaimBackground", "group": _p_0, "token": _token_0, "active": true, "capacity": _capacity_0}, false);
+}
+
+function $CollectorScenario$registered$(_stop_0, _p_0, _l_0, _r_0, _advice_0, _profile_0, _candidates_0) {
+  if (_stop_0) {
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "Some", "value": _profile_0}, "candidates": _candidates_0}, "handled": {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}}};
+  } else {
+    const _capacity_0 = _profile_0["capacity"];
+    const __0 = _profile_0["lifetime"];
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "Some", "value": {$: "CollectorScenario.Profile", "capacity": _capacity_0, "lifetime": __0}}, "candidates": ($CollectorScenario$insert$(_candidates_0, {$: "CollectorScenario.Candidate", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "advice": _advice_0, "token": _advice_0}))}, "handled": {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($CollectorScenario$claim$(_p_0, _advice_0, _capacity_0)), "tail": {$: "Nil"}}}};
+  }
+}
+
+function $CollectorScenario$eligible$(_event_0, _state_0, _stop_0) {
+  if (_event_0.$ === "Canonical.CollectionReady") {
+    const _advice_0 = _event_0["advice"];
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _t_0 = _state_0["profile"];
+    if (_t_0.$ === "Some") {
+      const _profile_0 = _t_0["value"];
+      const _candidates_0 = _state_0["candidates"];
+      return $CollectorScenario$registered$(_stop_0, _p_0, _l_0, _r_0, _advice_0, _profile_0, _candidates_0);
+    } else {
+      const _candidates_1 = _state_0["candidates"];
+      return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": _t_0, "candidates": _candidates_1}, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+    }
+  } else {
+    return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$validate$(_candidate_0, _context_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _r_0 = _t_0["round"];
+    const _advice_0 = _t_0["advice"];
+    const _token_0 = _t_0["token"];
+    const _current_0 = _context_0["current_work"];
+    const _credential_0 = _context_0["credential_ready"];
+    const _generation_0 = _context_0["credential_generation"];
+    const _readable_0 = _context_0["source_readable"];
+    return {$: "Con", "head": ($Driver$candidate_action$({$: "Canonical.FinalCandidateCheck", "owner_current": true, "credential_generation": _generation_0, "credential_authorized": _credential_0, "expired": false, "work_current": ($Bool$and$(_current_0, _readable_0)), "has_findings": true}, {$: "Driver.Candidate", "partition": _p_0, "advice": _advice_0, "round": _r_0, "token": _token_0, "surface": {$: "Handoff.Background"}, "selection": false})), "tail": {$: "Nil"}};
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $CollectorScenario$claimed$(_event_0, _state_0, _context_0) {
+  if (_event_0.$ === "Canonical.CollectionClaimBackground") {
+    const _p_0 = _event_0["group"];
+    const _token_0 = _event_0["token"];
+    const _t_0 = _state_0["profile"];
+    if (_t_0.$ === "Some") {
+      const _t_1 = _t_0["value"];
+      const __2 = _t_1["capacity"];
+      const _lifetime_0 = _t_1["lifetime"];
+      const _candidates_0 = _state_0["candidates"];
+      return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "Some", "value": {$: "CollectorScenario.Profile", "capacity": __2, "lifetime": _lifetime_0}}, "candidates": _candidates_0}, "handled": {$: "Driver.Handled", "handled": true, "actions": ($List$append$(($CollectorScenario$validate$(($CollectorScenario$lookup$(_candidates_0, _token_0)), _context_0)), {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpireBackground", "group": _p_0, "token": _token_0, "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}))}};
+    } else {
+      const _candidates_1 = _state_0["candidates"];
+      return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": _t_0, "candidates": _candidates_1}, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+    }
+  } else {
+    return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$retry_live$(_work_0, _candidate_0, _capacity_0) {
+  if (_work_0.$ === "Some") {
+    const _t_0 = _work_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.PendingFinding") {
+      const _cp_0 = _candidate_0["partition"];
+      const _cl_0 = _candidate_0["lifetime"];
+      const _cr_0 = _candidate_0["round"];
+      const _token_0 = _candidate_0["token"];
+      return $Bool$pick$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _cp_0)), ($Nat$is_eq$(_l_0, _cl_0)))), ($Nat$is_eq$(_r_0, _cr_0)))), {$: "Con", "head": ($CollectorScenario$claim$(_p_0, _token_0, _capacity_0)), "tail": {$: "Nil"}}, {$: "Nil"});
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $CollectorScenario$retry$(_candidates_0, _work_0, _capacity_0) {
+  if (_candidates_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _candidates_0["head"];
+    const _tail_0 = _candidates_0["tail"];
+    return $List$append$(($CollectorScenario$retry_live$(($Driver$find_operation$(_work_0, ($CollectorScenario$candidate_token$(_head_0)))), _head_0, _capacity_0)), ($CollectorScenario$retry$(_tail_0, _work_0, _capacity_0)));
+  }
+}
+
+function $CollectorScenario$exists$(_work_0) {
+  if (_work_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $CollectorScenario$retain$(_candidates_0, _work_0) {
+  if (_candidates_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _candidates_0["head"];
+    const _tail_0 = _candidates_0["tail"];
+    return $CollectorScenario$keep_candidate$(($CollectorScenario$exists$(($Driver$find_operation$(_work_0, ($CollectorScenario$candidate_token$(_head_0)))))), _head_0, ($CollectorScenario$retain$(_tail_0, _work_0)));
+  }
+}
+
+function $CollectorScenario$released$(_state_0, _canonical_0) {
+  const _t_0 = _state_0["profile"];
+  if (_t_0.$ === "Some") {
+    const _profile_0 = _t_0["value"];
+    const _candidates_0 = _state_0["candidates"];
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "Some", "value": _profile_0}, "candidates": ($CollectorScenario$retain$(_candidates_0, ($Driver$work_list$(_canonical_0))))}, "handled": {$: "Driver.Handled", "handled": true, "actions": ($CollectorScenario$retry$(_candidates_0, ($Driver$work_list$(_canonical_0)), ($CollectorScenario$capacity$(_profile_0))))}};
+  } else {
+    const _candidates_1 = _state_0["candidates"];
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "None"}, "candidates": _candidates_1}, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$claims$(_canonical_0) {
+  const _t_0 = _canonical_0["collection"];
+  const _claims_0 = _t_0["claims"];
+  return _claims_0;
+}
+
+function $CollectorScenario$release_matching$(_found_0, _group_0, _token_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReleaseBackground", "group": _group_0, "token": _token_0}, false)), "tail": {$: "Nil"}};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $CollectorScenario$release_claim$(_items_0, _token_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _group_0 = _t_0["group"];
+    const _owner_0 = _t_0["owner"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectorScenario$release_matching$(($Nat$is_eq$(_owner_0, _token_0)), _group_0, _token_0, ($CollectorScenario$release_claim$(_tail_0, _token_0)));
+  }
+}
+
+function $CollectorScenario$release_group_matching$(_found_0, _group_0, _token_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReleaseBackground", "group": _group_0, "token": _token_0}, false)), "tail": {$: "Nil"}};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $CollectorScenario$release_group$(_items_0, _group_0, _token_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _p_0 = _t_0["group"];
+    const _owner_0 = _t_0["owner"];
+    const _tail_0 = _items_0["tail"];
+    return $CollectorScenario$release_group_matching$(($Bool$and$(($Nat$is_eq$(_p_0, _group_0)), ($Nat$is_eq$(_owner_0, _token_0)))), _group_0, _token_0, ($CollectorScenario$release_group$(_tail_0, _group_0, _token_0)));
+  }
+}
+
+function $CollectorScenario$limited$(_state_0, _canonical_0, _context_0) {
+  const _profile_0 = _state_0["profile"];
+  const _candidates_0 = _state_0["candidates"];
+  const _t_0 = _context_0["candidate"];
+  if (_t_0.$ === "Some") {
+    const _t_1 = _t_0["value"];
+    const _p_0 = _t_1["partition"];
+    const _token_0 = _t_1["token"];
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": _profile_0, "candidates": ($CollectorScenario$remove$(_candidates_0, _token_0))}, "handled": {$: "Driver.Handled", "handled": true, "actions": ($CollectorScenario$release_group$(($CollectorScenario$claims$(_canonical_0)), _p_0, _token_0))}};
+  } else {
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": _profile_0, "candidates": _candidates_0}, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$handle$(_state_0, _event_0, _command_0, _canonical_0, _context_0, _stop_0) {
+  if (_command_0.$ === "Canonical.CollectionLimited") {
+    return $CollectorScenario$limited$(_state_0, _canonical_0, _context_0);
+  } else if (_command_0.$ === "Canonical.CollectionEligible") {
+    return $CollectorScenario$eligible$(_event_0, _state_0, _stop_0);
+  } else if (_command_0.$ === "Canonical.CollectionBackgroundClaimed") {
+    return $CollectorScenario$claimed$(_event_0, _state_0, _context_0);
+  } else if (_command_0.$ === "Canonical.CollectionBackgroundReleased") {
+    return $CollectorScenario$released$(_state_0, _canonical_0);
+  } else {
+    return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$completed_token$(_state_0, _canonical_0, _token_0) {
+  const _t_0 = _state_0["profile"];
+  if (_t_0.$ === "Some") {
+    const _profile_0 = _t_0["value"];
+    const _candidates_0 = _state_0["candidates"];
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "Some", "value": _profile_0}, "candidates": ($CollectorScenario$remove$(_candidates_0, _token_0))}, "handled": {$: "Driver.Handled", "handled": true, "actions": ($CollectorScenario$release_claim$(($CollectorScenario$claims$(_canonical_0)), _token_0))}};
+  } else {
+    const _candidates_1 = _state_0["candidates"];
+    return {$: "CollectorScenario.Changed", "state": {$: "CollectorScenario.State", "profile": {$: "None"}, "candidates": _candidates_1}, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$after$(_state_0, _canonical_0, _event_0) {
+  if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    const _token_0 = _event_0["token"];
+    return $CollectorScenario$completed_token$(_state_0, _canonical_0, _token_0);
+  } else if (_event_0.$ === "Canonical.SubmissionRelease") {
+    const _token_1 = _event_0["token"];
+    return $CollectorScenario$completed_token$(_state_0, _canonical_0, _token_1);
+  } else if (_event_0.$ === "Canonical.CollectionRetireAdvice") {
+    const _advice_0 = _event_0["advice"];
+    return $CollectorScenario$completed_token$(_state_0, _canonical_0, _advice_0);
+  } else {
+    return {$: "CollectorScenario.Changed", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}};
+  }
+}
+
+function $CollectorScenario$with_candidate$(_candidate_0, _context_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _r_0 = _t_0["round"];
+    const _advice_0 = _t_0["advice"];
+    const _token_0 = _t_0["token"];
+    const _l_0 = _context_0["lifetime"];
+    const _bytes_0 = _context_0["bytes"];
+    const _job_0 = _context_0["job"];
+    const _delay_0 = _context_0["jev_delay"];
+    const _outcome_0 = _context_0["outcome"];
+    const _current_0 = _context_0["current_work"];
+    const _credential_0 = _context_0["credential_ready"];
+    const _generation_0 = _context_0["credential_generation"];
+    const _readable_0 = _context_0["source_readable"];
+    const _lifetime_0 = _context_0["advice_lifetime"];
+    const _collection_0 = _context_0["automatic_collection"];
+    const _review_0 = _context_0["automatic_review"];
+    const _output_0 = _context_0["automatic_output"];
+    const _certain_0 = _context_0["output_certain"];
+    const _output_delay_0 = _context_0["output_delay"];
+    const _lease_0 = _context_0["output_lease"];
+    const _background_0 = _context_0["background"];
+    const _dispatch_0 = _context_0["automatic_dispatch"];
+    return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": {$: "Some", "value": {$: "Driver.Candidate", "partition": _p_0, "advice": _advice_0, "round": _r_0, "token": _token_0, "surface": {$: "Handoff.Background"}, "selection": false}}, "automatic_collection": _collection_0, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+  } else {
+    return _context_0;
+  }
+}
+
+function $CollectorScenario$candidate_context$(_state_0, _event_0, _context_0) {
+  const _candidates_0 = _state_0["candidates"];
+  if (_event_0.$ === "Canonical.CollectionClaimBackground") {
+    const _token_0 = _event_0["token"];
+    return $CollectorScenario$with_candidate$(($CollectorScenario$lookup$(_candidates_0, _token_0)), _context_0);
+  } else {
+    return _context_0;
+  }
+}
+
 function $Scheduler$precedes$(_a_0, _b_0) {
   const _at_0 = _a_0["at"];
   const _order_0 = _a_0["order"];
@@ -20304,7 +21504,7 @@ function $NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0) {
 }
 
 function $RuntimeScenarios$initial$() {
-  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$()), "collection": ($CollectionScenario$initial$()), "writers": ($WriterScenario$initial$())};
+  return {$: "RuntimeScenarios.State", "callbacks": ($Callbacks$initial$()), "notices": ($NoticeScenario$initial$()), "clocks": {$: "Nil"}, "freshness": ($FreshnessScenario$initial$()), "sources": ($ScopedRevision$initial$()), "sharing": ($SharingRuntime$initial$()), "cache": ($CacheRuntime$initial$()), "collection": ($CollectionScenario$initial$()), "writers": ($WriterScenario$initial$()), "background_collection": ($CollectorScenario$initial$()), "stop": ($StopScenario$registry_initial$())};
 }
 
 function $RuntimeScenarios$callbacks$(_state_0) {
@@ -20321,16 +21521,18 @@ function $RuntimeScenarios$with_callbacks$(_state_0, _callbacks_0) {
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
   const _writers_0 = _state_0["writers"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
-function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0) {
+function $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0, _background_collection_0, _stop_0) {
   const _retained_0 = ($CollectionScenario$retain$(_collection_0, _canonical_0));
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0, "collection": _retained_0, "writers": ($WriterScenario$retain_current$(_writers_0, _canonical_0, _retained_0))};
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": ($ScopedRevision$retain$(_sources_0, _canonical_0, ($FreshnessScenario$bindings$(_freshness_0)))), "sharing": _sharing_0, "cache": _cache_0, "collection": _retained_0, "writers": ($WriterScenario$retain_current$(_writers_0, _canonical_0, _retained_0)), "background_collection": _background_collection_0, "stop": ($StopScenario$retain$(_stop_0, _canonical_0))};
 }
 
-function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0) {
-  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0);
+function $RuntimeScenarios$retained_sharing$(_callbacks_0, _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0, _background_collection_0, _stop_0) {
+  return $RuntimeScenarios$retained_state$(_callbacks_0, _notices_0, _clocks_0, ($FreshnessScenario$retained_references$(($CacheRuntime$restored_sources$(_freshness_0, _cache_0)), _canonical_0, ($List$append$(($SharingRuntime$source_references$(_sharing_0)), ($CacheRuntime$references$(_cache_0)))))), _sources_0, _canonical_0, _sharing_0, _cache_0, _collection_0, _writers_0, _background_collection_0, _stop_0);
 }
 
 function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
@@ -20343,7 +21545,9 @@ function $RuntimeScenarios$retain$(_state_0, _canonical_0) {
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
   const _writers_0 = _state_0["writers"];
-  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)), _collection_0, _writers_0);
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return $RuntimeScenarios$retained_sharing$(($Callbacks$retain$(_callbacks_0, _canonical_0)), _notices_0, _clocks_0, _freshness_0, _sources_0, _canonical_0, ($SharingRuntime$retain$(_sharing_0, _canonical_0)), ($CacheRuntime$retain$(_cache_0, _canonical_0)), _collection_0, _writers_0, _background_collection_0, _stop_0);
 }
 
 function $RuntimeScenarios$notice_requested$(_state_0, _scope_0, _key_0, _sequence_0, _commands_0, _now_0) {
@@ -20376,7 +21580,9 @@ function $RuntimeScenarios$with_freshness$(_state_0, _freshness_0) {
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
   const _writers_0 = _state_0["writers"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
 function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
@@ -20388,7 +21594,9 @@ function $RuntimeScenarios$with_sources$(_state_0, _sources_0) {
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
   const _writers_0 = _state_0["writers"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
 function $RuntimeScenarios$sharing$(_state_0) {
@@ -20405,7 +21613,9 @@ function $RuntimeScenarios$with_sharing$(_state_0, _sharing_0) {
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
   const _writers_0 = _state_0["writers"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
 function $RuntimeScenarios$cache$(_state_0) {
@@ -20422,7 +21632,9 @@ function $RuntimeScenarios$with_cache$(_state_0, _cache_0) {
   const _sharing_0 = _state_0["sharing"];
   const _collection_0 = _state_0["collection"];
   const _writers_0 = _state_0["writers"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
 function $RuntimeScenarios$cache_feedback_state$(_feedback_0) {
@@ -20452,7 +21664,9 @@ function $RuntimeScenarios$with_collection$(_state_0, _collection_0) {
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
   const _writers_0 = _state_0["writers"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
 function $RuntimeScenarios$writers$(_state_0) {
@@ -20469,7 +21683,47 @@ function $RuntimeScenarios$with_writers$(_state_0, _writers_0) {
   const _sharing_0 = _state_0["sharing"];
   const _cache_0 = _state_0["cache"];
   const _collection_0 = _state_0["collection"];
-  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0};
+  const _background_collection_0 = _state_0["background_collection"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
+}
+
+function $RuntimeScenarios$background_collection$(_state_0) {
+  const _background_collection_0 = _state_0["background_collection"];
+  return _background_collection_0;
+}
+
+function $RuntimeScenarios$with_background_collection$(_state_0, _background_collection_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  const _sharing_0 = _state_0["sharing"];
+  const _cache_0 = _state_0["cache"];
+  const _collection_0 = _state_0["collection"];
+  const _writers_0 = _state_0["writers"];
+  const _stop_0 = _state_0["stop"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
+}
+
+function $RuntimeScenarios$stop$(_state_0) {
+  const _stop_0 = _state_0["stop"];
+  return _stop_0;
+}
+
+function $RuntimeScenarios$with_stop$(_state_0, _stop_0) {
+  const _callbacks_0 = _state_0["callbacks"];
+  const _notices_0 = _state_0["notices"];
+  const _clocks_0 = _state_0["clocks"];
+  const _freshness_0 = _state_0["freshness"];
+  const _sources_0 = _state_0["sources"];
+  const _sharing_0 = _state_0["sharing"];
+  const _cache_0 = _state_0["cache"];
+  const _collection_0 = _state_0["collection"];
+  const _writers_0 = _state_0["writers"];
+  const _background_collection_0 = _state_0["background_collection"];
+  return {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0};
 }
 
 function $AdviceeLifecycle$partition$(_entry_0) {
@@ -25266,6 +26520,19 @@ function $workload_valid$(_state_0, _partition_0, _generation_0, _recurring_0) {
   return $Workload$valid$(_workloads_0, _partition_0, _generation_0, _recurring_0);
 }
 
+function $workload_present$(_found_0) {
+  if (_found_0.$ === "Some") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $workload_configured$(_state_0, _partition_0) {
+  const _workloads_0 = _state_0["workloads"];
+  return $workload_present$(($Workload$find$(_workloads_0, _partition_0)));
+}
+
 function $workload_duration$(_state_0, _partition_0, _fallback_0) {
   const _workloads_0 = _state_0["workloads"];
   return $Workload$duration$(_workloads_0, _partition_0, _fallback_0);
@@ -26113,9 +27380,11 @@ function $notice_followed$(_state_0, _followup_0) {
   const _cache_0 = _t_0["cache"];
   const _collection_0 = _t_0["collection"];
   const _writers_0 = _t_0["writers"];
+  const _background_collection_0 = _t_0["background_collection"];
+  const _stop_0 = _t_0["stop"];
   const _notices_0 = _followup_0["state"];
   const _events_0 = _followup_0["events"];
-  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0}}, "events": _events_0};
+  return {$: "NoticeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": _clocks_0, "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}}, "events": _events_0};
 }
 
 function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
@@ -26141,7 +27410,9 @@ function $notice_clocked$(_state_0, _scope_0, _key_0, _now_0, _commands_0) {
   const _cache_0 = _t_0["cache"];
   const _collection_0 = _t_0["collection"];
   const _writers_0 = _t_0["writers"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0}};
+  const _background_collection_0 = _t_0["background_collection"];
+  const _stop_0 = _t_0["stop"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$clock_feedback$(_clocks_0, _scope_0, _key_0, _now_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
 function $notice_pruned$(_state_0, _key_0, _commands_0) {
@@ -26167,7 +27438,9 @@ function $notice_pruned$(_state_0, _key_0, _commands_0) {
   const _cache_0 = _t_0["cache"];
   const _collection_0 = _t_0["collection"];
   const _writers_0 = _t_0["writers"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0}};
+  const _background_collection_0 = _t_0["background_collection"];
+  const _stop_0 = _t_0["stop"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": {$: "RuntimeScenarios.State", "callbacks": _callbacks_0, "notices": _notices_0, "clocks": ($NoticeScenario$prune_clocks$(_clocks_0, _key_0, _commands_0)), "freshness": _freshness_0, "sources": _sources_0, "sharing": _sharing_0, "cache": _cache_0, "collection": _collection_0, "writers": _writers_0, "background_collection": _background_collection_0, "stop": _stop_0}};
 }
 
 function $notice_after$(_before_0, _state_0, _scope_0, _event_0, _commands_0, _now_0) {
@@ -26855,6 +28128,212 @@ function $writer_unissued_release_delivery$(_state_0, _pending_0, _now_0) {
   return $WriterScenario$unissued_release$(($RuntimeScenarios$writers$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _pending_0, _now_0);
 }
 
+function $stop_reserve$(_capture_0, _selected_0, _now_0) {
+  return {$: "Con", "head": ($StopScenario$reserve$(_capture_0, _selected_0, _now_0)), "tail": {$: "Nil"}};
+}
+
+function $stop_continued$(_capture_0) {
+  return $StopScenario$continued$(_capture_0);
+}
+
+function $stop_reserved$(_capture_0, _selected_0, _failed_0, _delay_0) {
+  return $StopScenario$reserved$(_capture_0, _selected_0, _failed_0, _delay_0);
+}
+
+function $stop_budget$(_state_0, _capture_0) {
+  return {$: "Con", "head": ($StopScenario$budget$(($canonical$(_state_0)), _capture_0)), "tail": {$: "Nil"}};
+}
+
+function $stop_candidates$(_state_0, _capture_0) {
+  const _p_0 = _capture_0["partition"];
+  const _l_0 = _capture_0["lifetime"];
+  const _r_0 = _capture_0["round"];
+  return $StopScenario$candidates$(($Driver$work_list$(($canonical$(_state_0)))), _p_0, _l_0, _r_0);
+}
+
+function $stop_end$(_state_0, _capture_0, _continuation_0) {
+  return $StopScenario$end$(($canonical$(_state_0)), _capture_0, _continuation_0);
+}
+
+function $stop_validation$(_capture_0, _advice_0, _current_0, _credential_0, _generation_0, _readable_0) {
+  const _p_0 = _capture_0["partition"];
+  const _r_0 = _capture_0["round"];
+  const _token_0 = _capture_0["token"];
+  return {$: "Con", "head": ($StopScenario$validation$(_advice_0, _p_0, _r_0, _token_0, _current_0, _credential_0, _generation_0, _readable_0)), "tail": {$: "Nil"}};
+}
+
+function $collector_with$(_state_0, _collector_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  const _lifecycles_0 = _state_0["lifecycles"];
+  const _preparations_0 = _state_0["preparations"];
+  const _activity_scopes_0 = _state_0["activity_scopes"];
+  const _scenarios_0 = _state_0["scenarios"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0, "lifecycles": _lifecycles_0, "preparations": _preparations_0, "activity_scopes": _activity_scopes_0, "scenarios": ($RuntimeScenarios$with_background_collection$(_scenarios_0, _collector_0))};
+}
+
+function $collector_changed$(_state_0, _changed_0) {
+  const _collector_0 = _changed_0["state"];
+  const _handled_0 = _changed_0["handled"];
+  return {$: "CollectorHandled", "state": ($collector_with$(_state_0, _collector_0)), "handled": _handled_0};
+}
+
+function $collector_configure$(_state_0, _profile_0) {
+  return $collector_with$(_state_0, ($CollectorScenario$configure$(($RuntimeScenarios$background_collection$(($scenarios$(_state_0)))), _profile_0)));
+}
+
+function $collector_configured$(_state_0) {
+  return $CollectorScenario$configured$(($RuntimeScenarios$background_collection$(($scenarios$(_state_0)))));
+}
+
+function $stop_state$(_state_0) {
+  return $RuntimeScenarios$stop$(($scenarios$(_state_0)));
+}
+
+function $stop_with$(_state_0, _stop_0) {
+  return $with_scenarios$(_state_0, ($RuntimeScenarios$with_stop$(($scenarios$(_state_0)), _stop_0)));
+}
+
+function $stop_entries$(_state_0) {
+  return $StopScenario$entries$(($stop_state$(_state_0)));
+}
+
+function $stop_find$(_state_0, _partition_0) {
+  return $StopScenario$find$(($stop_entries$(_state_0)), _partition_0);
+}
+
+function $stop_scope_active$(_finish_0, _current_0) {
+  if (_finish_0.$ === "Some") {
+    const _t_0 = _finish_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    if (_current_0.$ === "Some") {
+      const _t_1 = _current_0["value"];
+      const _owner_0 = _t_1["partition"];
+      const _generation_0 = _t_1["lifetime"];
+      const _round_0 = _t_1["id"];
+      return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $stop_active$(_state_0, _partition_0) {
+  return $stop_scope_active$(($stop_find$(_state_0, _partition_0)), ($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, ($Driver$rounds$(($canonical$(_state_0)))))));
+}
+
+function $stop_put$(_state_0, _finish_0) {
+  return $stop_with$(_state_0, ($StopScenario$put$(($stop_state$(_state_0)), _finish_0)));
+}
+
+function $stop_close$(_state_0, _partition_0) {
+  return $stop_with$(_state_0, ($StopScenario$close$(($stop_state$(_state_0)), _partition_0)));
+}
+
+function $stop_registered$(_state_0, _registered_0) {
+  const _stop_0 = _registered_0["state"];
+  const _finish_0 = _registered_0["finish"];
+  const _created_0 = _registered_0["created"];
+  return {$: "StopRegistered", "state": ($stop_with$(_state_0, _stop_0)), "finish": _finish_0, "created": _created_0};
+}
+
+function $stop_original_scope$(_found_0, _input_0, _now_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    const _owner_0 = _input_0["partition"];
+    const _generation_0 = _input_0["lifetime"];
+    const _round_0 = _input_0["round"];
+    const _started_0 = _input_0["started"];
+    const _cutoff_0 = _input_0["cutoff"];
+    const _x_0 = nat_chk(65536 * 4294967295);
+    return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_started_0, _now_0)))), ($Nat$is_le$(_started_0, _cutoff_0)))), ($Nat$is_le$(_cutoff_0, nat_chk(_x_0 + 65535))));
+  } else {
+    return false;
+  }
+}
+
+function $stop_registration_valid$(_state_0, _input_0) {
+  const _p_0 = _input_0["partition"];
+  const __0 = _input_0["lifetime"];
+  const __1 = _input_0["round"];
+  const __2 = _input_0["started"];
+  const __3 = _input_0["cutoff"];
+  const __4 = _input_0["recurring"];
+  return $stop_original_scope$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_p_0, ($Driver$rounds$(($canonical$(_state_0)))))), {$: "StopScenario.Input", "partition": _p_0, "lifetime": __0, "round": __1, "started": __2, "cutoff": __3, "recurring": __4}, ($clock$(_state_0)));
+}
+
+function $stop_register$(_state_0, _input_0) {
+  return $stop_registered$(_state_0, ($StopScenario$register$(($stop_state$(_state_0)), _input_0, ($stop_registration_valid$(_state_0, _input_0)))));
+}
+
+function $stop_start_scope$(_found_0, _state_0, _started_0, _cutoff_0, _recurring_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    return $stop_register$(_state_0, {$: "StopScenario.Input", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "started": _started_0, "cutoff": _cutoff_0, "recurring": _recurring_0});
+  } else {
+    return {$: "StopRegistered", "state": _state_0, "finish": {$: "None"}, "created": false};
+  }
+}
+
+function $stop_start$(_state_0, _partition_0, _started_0, _cutoff_0, _recurring_0) {
+  return $stop_start_scope$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, ($Driver$rounds$(($canonical$(_state_0)))))), _state_0, _started_0, _cutoff_0, _recurring_0);
+}
+
+function $stop_progress$(_state_0, _partition_0, _attempt_0, _change_0) {
+  return $stop_with$(_state_0, ($StopScenario$progress$(($stop_state$(_state_0)), _partition_0, _attempt_0, _change_0)));
+}
+
+function $collector_partition$(_context_0) {
+  const _partition_0 = _context_0["partition"];
+  return _partition_0;
+}
+
+function $collector_command$(_state_0, _event_0, _command_0, _context_0) {
+  return $collector_changed$(_state_0, ($CollectorScenario$handle$(($RuntimeScenarios$background_collection$(($scenarios$(_state_0)))), _event_0, _command_0, ($canonical$(_state_0)), ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, ($CollectorScenario$candidate_context$(($RuntimeScenarios$background_collection$(($scenarios$(_state_0)))), _event_0, _context_0)))), ($stop_active$(_state_0, ($collector_partition$(_context_0)))))));
+}
+
+function $collector_after$(_state_0, _event_0) {
+  return $collector_changed$(_state_0, ($CollectorScenario$after$(($RuntimeScenarios$background_collection$(($scenarios$(_state_0)))), ($canonical$(_state_0)), _event_0)));
+}
+
+function $stop_changed$(_state_0, _changed_0) {
+  const _stop_0 = _changed_0["state"];
+  const _handled_0 = _changed_0["handled"];
+  const _ended_0 = _changed_0["ended"];
+  const _fit_attempt_0 = _changed_0["fit_attempt"];
+  const _output_0 = _changed_0["output"];
+  return {$: "StopHandled", "state": ($stop_with$(_state_0, _stop_0)), "handled": _handled_0, "ended": _ended_0, "fit_attempt": _fit_attempt_0, "output": _output_0};
+}
+
+function $stop_command_valid$(_valid_0, _state_0, _event_0, _command_0, _context_0, _facts_0) {
+  if (_valid_0) {
+    return $stop_changed$(_state_0, ($StopScenario$handle$(($stop_state$(_state_0)), ($canonical$(_state_0)), _facts_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)), _command_0)));
+  } else {
+    return {$: "StopHandled", "state": _state_0, "handled": {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}}, "ended": {$: "None"}, "fit_attempt": {$: "None"}, "output": {$: "None"}};
+  }
+}
+
+function $stop_command$(_state_0, _event_0, _command_0, _context_0, _facts_0) {
+  return $stop_command_valid$(($stop_active$(_state_0, ($collector_partition$(_context_0)))), _state_0, _event_0, _command_0, _context_0, _facts_0);
+}
+
 function $Bool$and$(_a_0, _b_0) {
   if (!_a_0) {
     return false;
@@ -27057,7 +28536,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:e26af72f58757048785f45403b1c0dc57916893f982bb897fe6127cea89d6511";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:890df011c0ec7f7f501283066628ba14f97820fd5453cd582b48cc5c73be0d54";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -27123,6 +28602,24 @@ export default {
  callback_issue: (state,owner,order,at,action) => run_loop($callback_issue$(state,facts(owner),facts(order),facts(at),facts(action))),
  callback_issue_output: (state,owner,order,at,action,capture) => run_loop($callback_issue_output$(state,facts(owner),facts(order),facts(at),facts(action),facts(capture))),
  output_intervene: (state,target,outcome,receipt) => run_loop($output_intervene$(state,facts(target),facts(outcome),facts(receipt))),
+ stop_reserve: (capture,selected,now) => run_loop($stop_reserve$(facts(capture),facts(selected),facts(now))),
+ stop_continued: (capture) => run_loop($stop_continued$(facts(capture))),
+ stop_reserved: (capture,selected,failed,delay) => run_loop($stop_reserved$(facts(capture),facts(selected),facts(failed),facts(delay))),
+ stop_budget: (state,capture) => run_loop($stop_budget$(state,facts(capture))),
+ stop_candidates: (state,capture) => run_loop($stop_candidates$(state,facts(capture))),
+ stop_end: (state,capture,continuation) => run_loop($stop_end$(state,facts(capture),facts(continuation))),
+ stop_validation: (capture,advice,current,credential,generation,readable) => run_loop($stop_validation$(facts(capture),facts(advice),facts(current),facts(credential),facts(generation),facts(readable))),
+ collector_configure: (state,profile) => run_loop($collector_configure$(state,facts(profile))),
+ collector_configured: (state) => run_loop($collector_configured$(state)),
+ collector_command: (state,event,command,context) => run_loop($collector_command$(state,facts(event),facts(command),facts(context))),
+ collector_after: (state,event) => run_loop($collector_after$(state,facts(event))),
+ stop_command: (state,event,command,context,factsInput) => run_loop($stop_command$(state,facts(event),facts(command),facts(context),facts(factsInput))),
+ stop_register: (state,input) => run_loop($stop_register$(state,facts(input))),
+ stop_find: (state,p) => run_loop($stop_find$(state,facts(p))),
+ stop_entries: (state) => run_loop($stop_entries$(state)),
+ stop_active: (state,p) => run_loop($stop_active$(state,facts(p))),
+ stop_progress: (state,p,a,change) => run_loop($stop_progress$(state,facts(p),facts(a),facts(change))),
+ stop_close: (state,p) => run_loop($stop_close$(state,facts(p))),
  stop_initial: (capture) => run_loop($stop_initial$(facts(capture))),
  stop_wake: (capture,now) => run_loop($stop_wake$(facts(capture),facts(now))),
  output_initial: (capture,terminalOnly) => run_loop($output_initial$(facts(capture),facts(terminalOnly))),
