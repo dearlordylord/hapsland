@@ -674,3 +674,16 @@ def sharing_binding(state: Types.State, scope: FreshnessScenario.Scope) -> Maybe
 
 def sharing_result(state: Types.State, evaluation: Nat) -> Maybe<&2,Canonical.RequestOutcome>:
   SharingRuntime.result(sharing_runtime(state),evaluation)
+
+
+type SharingDeparture is Data:
+  SharingDeparture{state: Types.State, events: List<&2,Canonical.CanonicalEvent>, valid: Bool}
+
+def sharing_departed(+state: Types.State, departure: SharingRuntime.Departure) -> SharingDeparture:
+  match departure:
+    case SharingRuntime.Departure{sharing,events,True{}}:
+      SharingDeparture{with_sharing_runtime(state,sharing),events,True{}}
+    case SharingRuntime.Departure{_,_,False{}}: SharingDeparture{state,[],False{}}
+
+def sharing_leave(+state: Types.State, scope: FreshnessScenario.Scope) -> SharingDeparture:
+  sharing_departed(state,SharingRuntime.depart(sharing_runtime(state),scope))

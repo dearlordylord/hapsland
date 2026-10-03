@@ -454,3 +454,71 @@ def references(evaluations: List<&2,Sharing.Evaluation>) -> List<&2,Freshness.Sc
 def source_references(state: State) -> List<&2,Freshness.Scope>:
   match state:
     case State{Sharing.State{evaluations,_},_,_,_}: references(evaluations)
+
+# One original admission can supply several units. Its revision membership is
+# released once; per-evaluation logical claims are separate. Physical captures
+# remain attached to their original issued tuple until genuine terminal facts.
+type Departure is Data:
+  Departure{state: State, events: List<&2,C.CanonicalEvent>, valid: Bool}
+type Removed is Data:
+  Removed{evaluations: List<&2,Sharing.Evaluation>, events: List<&2,C.CanonicalEvent>, member: Maybe<&2,Sharing.Member>}
+
+def member_scope(items: List<&2,Sharing.Member>, +scope: Freshness.Scope) -> Maybe<&2,Sharing.Member>:
+  match items:
+    case Nil{}: None{}
+    case +head <> tail:
+      match head:
+        case Sharing.Member{owner,_,_}:
+          Bool.pick(Maybe<&2,Sharing.Member>,Freshness.same(owner,scope),Some{head},member_scope(tail,scope))
+
+def departed_member(items: List<&2,Sharing.Member>, +scope: Freshness.Scope) -> List<&2,Sharing.Member>:
+  match items:
+    case Nil{}: []
+    case +head <> tail:
+      match head:
+        case Sharing.Member{owner,_,_}:
+          match Freshness.same(owner,scope):
+            case True{}: departed_member(tail,scope)
+            case False{}: head <> departed_member(tail,scope)
+
+def selected_member(first: Maybe<&2,Sharing.Member>, tail: Maybe<&2,Sharing.Member>) -> Maybe<&2,Sharing.Member>:
+  match first:
+    case None{}: tail
+    case Some{member}: Some{member}
+
+def removed_evaluation(id: Nat, key: Sharing.SharingKey, members: List<&2,Sharing.Member>, physical: Maybe<&2,Sharing.Physical>, advice: Maybe<&2,Freshness.Scope>, found: Maybe<&2,Sharing.Member>, tail: Removed) -> Removed:
+  match tail:
+    case Removed{evaluations,events,last}:
+      Removed{Sharing.Evaluation{id,key,members,physical,advice} <> evaluations,
+        List.append(&2,C.CanonicalEvent,Sharing.release_claim(id,Sharing.present(members)),events),selected_member(found,last)}
+
+def preserved_evaluation(head: Sharing.Evaluation, tail: Removed) -> Removed:
+  match tail:
+    case Removed{evaluations,events,member}: Removed{head <> evaluations,events,member}
+
+def removed_found(+head: Sharing.Evaluation, +scope: Freshness.Scope, found: Maybe<&2,Sharing.Member>, tail: Removed) -> Removed:
+  match found:
+    case None{}: preserved_evaluation(head,tail)
+    case Some{member}:
+      match head:
+        case Sharing.Evaluation{id,key,members,physical,advice}:
+          removed_evaluation(id,key,departed_member(members,scope),physical,advice,Some{member},tail)
+
+def removed_scopes(items: List<&2,Sharing.Evaluation>, +scope: Freshness.Scope) -> Removed:
+  match items:
+    case Nil{}: Removed{[],[],None{}}
+    case +head <> tail:
+      match head:
+        case Sharing.Evaluation{_,_,members,_,_}:
+          removed_found(head,scope,member_scope(members,scope),removed_scopes(tail,scope))
+
+def departure_found(+state: State, removed: Removed) -> Departure:
+  match state removed:
+    case State{Sharing.State{_,next},preparations,bindings,results} Removed{evaluations,events,Some{member}}:
+      Departure{State{Sharing.State{evaluations,next},preparations,bindings,results},Sharing.release_revision(member) <> events,True{}}
+    case _ Removed{_,_,None{}}: Departure{state,[],False{}}
+
+def depart(+state: State, scope: Freshness.Scope) -> Departure:
+  match state:
+    case State{Sharing.State{evaluations,_},_,_,_}:
+      departure_found(state,removed_scopes(evaluations,scope))
