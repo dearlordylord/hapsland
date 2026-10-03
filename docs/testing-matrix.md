@@ -64,6 +64,11 @@ threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
+Coverage runs allow a 30-second test-runner watchdog for instrumentation
+overhead; ordinary tests keep Vitest's five-second default, and explicit
+fixture/product deadlines remain unchanged. The bounded Monkey Business
+lifecycle replay stress cases have their own 30-second watchdog in both modes.
+These runner limits are not product latency requirements.
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
 from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
 uses the pinned V8 provider while keeping Vite and native Node offsets separate

@@ -2,6 +2,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    // Coverage instruments native subprocesses as well as test workers. This
+    // watchdog bounds the test runner, not product deadlines or performance.
+    testTimeout: process.argv.includes("--coverage") ? 30_000 : 5_000,
     include: [
       "src/**/*.test.ts",
       "scripts/**/*.test.mts",
