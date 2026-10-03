@@ -94,6 +94,57 @@ it.each(["disconnect", "remove"] as const)("%s ends only the declared advicee li
   departAndResume(action);
 });
 
+it("resumes after an accepted explicit lifetime without reparenting prequeued activity", () => {
+  const original = scenario();
+  const run = createRun({ ...original, inputs: [
+    { at: 0, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime: 2 } },
+    ...(original.inputs ?? []),
+  ] });
+  advance(run, 2);
+  const opened = run.observations.find(frame => frame.event.kind === "openRound" && frame.event.partition === 1)!;
+  expect(opened.event).toEqual({ kind: "openRound", partition: 1, lifetime: 2 });
+  expect(opened.rejection).toBeUndefined();
+  expect(run.observe().adviceeLifecycles).toEqual([
+    { partition: 1, lifetime: 2, status: "active" }, { partition: 2, lifetime: 1, status: "active" },
+  ]);
+  const old = run.projection.dispatch.requests.find(request => request.partition === 1)!;
+  expect(old).toMatchObject({ partition: 1, lifetime: 2, round: 1, started: true });
+  run.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "disconnect" });
+  advance(run, 2, 32);
+  expect(run.observe().adviceeLifecycles[0]).toEqual({ partition: 1, lifetime: 2, status: "departed" });
+  expect(run.projection.global).toEqual({ items: 1, bytes: 7 });
+  expect(run.projection.dispatch.requests.find(request => request.request === old.request)).toEqual(old);
+  const retirement = run.observations.find(frame => frame.event.kind === "retirePartition")!;
+  expect(retirement.event).toEqual({ kind: "retirePartition", partition: 1, lifetime: 2, round: 1 });
+  expect(retirement.commands.filter(command => command.kind === "cancelWork"))
+    .toEqual([{ kind: "cancelWork", operation: old.operation }]);
+  const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())));
+  expect(restored.observe()).toEqual(run.observe());
+  for (const candidate of [run, restored]) {
+    candidate.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "resume" });
+    expect(candidate.observe().adviceeLifecycles[0]).toEqual({ partition: 1, lifetime: 3, status: "active" });
+    candidate.schedule({ at: 3, kind: "edit", agent: advicees[0], generation: 0, recurring: false,
+      revision: 3, bytes: 10, unitBytes: [5], outcome: "finding" });
+    advance(candidate, 30);
+  }
+  expect(restored.observe()).toEqual(run.observe());
+  const oldCallback = run.observations.find(frame => frame.event.kind === "jevRequestSettled"
+    && frame.event.request === old.request)!;
+  expect(oldCallback.event).toMatchObject({ partition: 1, lifetime: 2, round: 1,
+    operation: old.operation, request: old.request, outcome: "finding" });
+  expect(oldCallback.commands).toEqual([{ kind: "jevObservationIgnored" }]);
+  expect(oldCallback.partition).toBe(1);
+  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "jevRequestIssued"))
+    .toContainEqual(expect.objectContaining({ partition: 1, lifetime: 3, round: 3 }));
+  expect(run.observations.some(frame => frame.workload?.revision === 90)).toBe(false);
+  expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")
+    .map(frame => [frame.time, frame.partition])).toEqual([[22, 2], [25, 1]]);
+  expect(run.projection.global).toEqual({ items: 2, bytes: 12 });
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.dispatch.running).toEqual([]);
+  expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
+});
+
 it("preserves unaffected and fresh advicee progress in finite healthy departure campaigns", () => {
   fc.assert(fc.property(fc.integer({ min: 1, max: 0xffffffff }), fc.integer({ min: 6, max: 25 }),
     fc.constantFrom("disconnect" as const, "remove" as const), (seed, delay, action) => {
