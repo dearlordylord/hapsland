@@ -109,9 +109,6 @@ def plan(state: Canonical.State, changed: Lifecycle.Changed, now: Nat) -> Cleanu
 
 # A late completion releases only the physical parent slot captured before the
 # departure, even when Canonical rejects its now-stale logical preparation.
-type PreparedSettlement is Data:
-  PreparedSettlement{remaining: List<&2, CapturedPreparation>, actions: List<&2, Driver.Action>}
-
 def callback_matches(capture: CapturedPreparation, event: Canonical.CanonicalEvent) -> Bool:
   match capture event:
     case CapturedPreparation{p, l, r, op, _} Canonical.PreparationCompleted{owner, generation, round, operation, _}:
@@ -130,20 +127,34 @@ def released_parent(running: Bool, capture: CapturedPreparation) -> List<&2, Dri
     case True{} CapturedPreparation{p, l, r, _, parent}: [Driver.immediate(Canonical.DispatchSettled{p, l, r, parent}, False{})]
     case False{} _: []
 
-def completion_actions(state: Canonical.State, +capture: CapturedPreparation) -> List<&2, Driver.Action>:
-  match state:
-    case Canonical.State{_, _, _, _, _, _, Dispatch.State{_, running, _, _, _}, _, _}:
-      released_parent(parent_running(running, capture), capture)
+# Capture consumption is independent of whether its stale logical completion is
+# accepted. A wrong tuple keeps the original capture available for its callback.
+def remaining_hit(matches: Bool, capture: CapturedPreparation,
+    tail: List<&2, CapturedPreparation>) -> List<&2, CapturedPreparation>:
+  match matches:
+    case True{}: tail
+    case False{}: capture <> tail
 
-def prepared_hit(matches: Bool, +capture: CapturedPreparation, state: Canonical.State, tail: PreparedSettlement) -> PreparedSettlement:
-  match matches tail:
-    case True{} PreparedSettlement{remaining, actions}:
-      PreparedSettlement{remaining, List.append(&2, Driver.Action, completion_actions(state, capture), actions)}
-    case False{} PreparedSettlement{remaining, actions}: PreparedSettlement{capture <> remaining, actions}
-
-def settle_preparations(captures: List<&2, CapturedPreparation>, +state: Canonical.State,
-    +event: Canonical.CanonicalEvent) -> PreparedSettlement:
+def remaining_preparations(captures: List<&2, CapturedPreparation>,
+    +event: Canonical.CanonicalEvent) -> List<&2, CapturedPreparation>:
   match captures:
-    case Nil{}: PreparedSettlement{[], []}
+    case Nil{}: []
     case +head <> tail:
-      prepared_hit(callback_matches(head, event), head, state, settle_preparations(tail, state, event))
+      remaining_hit(callback_matches(head, event), head, remaining_preparations(tail, event))
+
+# Physical settlement uses the actual running entries before the callback. It
+# never infers completion from departure intent or from the current lifetime.
+def preparation_hit(matches: Bool, +capture: CapturedPreparation,
+    running: List<&2, Dispatch.Entry>, tail: List<&2, Driver.Action>) -> List<&2, Driver.Action>:
+  match matches:
+    case True{}:
+      List.append(&2, Driver.Action, released_parent(parent_running(running, capture), capture), tail)
+    case False{}: tail
+
+def preparation_actions(captures: List<&2, CapturedPreparation>,
+    +before_running: List<&2, Dispatch.Entry>, +event: Canonical.CanonicalEvent) -> List<&2, Driver.Action>:
+  match captures:
+    case Nil{}: []
+    case +head <> tail:
+      preparation_hit(callback_matches(head, event), head, before_running,
+        preparation_actions(tail, before_running, event))
