@@ -519,7 +519,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       });
     expect(stop.status).toBe(0);
     const output = JSON.parse(stop.stdout) as { decision?: string; reason?: string };
-    expect(output.decision).toBe("block");
+    expect(output.decision, JSON.stringify(output)).toBe("block");
     const context = output.reason ?? "";
     expect([...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)]).toHaveLength(6);
     for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
