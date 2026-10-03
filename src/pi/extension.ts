@@ -94,7 +94,6 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   };
   api.on("session_before_switch", cleanup);
   api.on("session_shutdown", cleanup);
-  api.on("agent_end", async event => { if (event.outcome === "aborted" || event.outcome === "error") await cleanup(); });
   api.on("agent_settled", async () => {
     const origin = boundary ?? active; boundary = undefined; active = undefined;
     if (origin !== undefined && origin.generation === epoch) await send(origin.id, "close");
