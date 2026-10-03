@@ -11,6 +11,11 @@ export type PostEditPatchHunk = {
   };
 };
 
+export const parsePatchLine = (line: string): PatchLine | undefined => {
+  const kind = line[0];
+  return kind === " " || kind === "+" || kind === "-" ? { kind, text: line.slice(1) } : undefined;
+};
+
 const location = (startLine: number, endLine: number, sourceLines: ReadonlyArray<string>): PostEditLocation => {
   const start = { line: startLine + 1, column: 1 };
   const end =
@@ -93,6 +98,12 @@ const addedPostLocations = (lines: ReadonlyArray<PatchLine>, path: string, match
   return result;
 };
 
+const validPostCoordinates = (start: number, end: number, previousEnd: number, sourceLength: number): boolean =>
+  Number.isSafeInteger(start) && start >= previousEnd && start < sourceLength && end <= sourceLength;
+const validFinalNewline = (
+  markedLine: number | undefined, postLength: number, end: number, sourceLines: ReadonlyArray<string>, source: string,
+): boolean => markedLine === undefined ||
+  (markedLine === postLength && end === sourceLines.length && !source.endsWith("\n"));
 const postLocation = (
   hunk: PostEditPatchHunk, postLines: ReadonlyArray<string>, sourceLines: ReadonlyArray<string>,
   source: string, previousEnd: number,
@@ -100,9 +111,8 @@ const postLocation = (
   if (hunk.placement.kind === "unique-text") return uniquePostLocation(postLines, sourceLines, previousEnd);
   const start = hunk.placement.startLine - 1;
   const end = start + postLines.length;
-  if (!Number.isSafeInteger(start) || start < previousEnd || start >= sourceLines.length || end > sourceLines.length) return undefined;
-  if (hunk.placement.noFinalNewlineAt !== undefined &&
-    (hunk.placement.noFinalNewlineAt !== postLines.length || end !== sourceLines.length || source.endsWith("\n"))) return undefined;
+  if (!validPostCoordinates(start, end, previousEnd, sourceLines.length)) return undefined;
+  if (!validFinalNewline(hunk.placement.noFinalNewlineAt, postLines.length, end, sourceLines, source)) return undefined;
   return postLines.every((line, offset) => sourceLines[start + offset] === line) ? start : undefined;
 };
 

@@ -1,5 +1,5 @@
 import type { VerifiedPatchHunk } from "./edit-attribution.ts";
-import { verifyPostEditPatchHunks, type PatchLine } from "./patch-hunks.ts";
+import { parsePatchLine, verifyPostEditPatchHunks, type PatchLine } from "./patch-hunks.ts";
 
 type PatchSection = {
   readonly path: string;
@@ -56,23 +56,12 @@ const beginHunk = (state: PatchParserState, section: MutableSection): boolean =>
   return true;
 };
 
-const patchLineKind = (value: string | undefined): PatchLine["kind"] | undefined => {
-  switch (value) {
-    case " ":
-    case "+":
-    case "-":
-      return value;
-    default:
-      return undefined;
-  }
-};
-
 const appendPatchContent = (state: PatchParserState, section: MutableSection, line: string): boolean => {
   if (section.operation === "add") return line.startsWith("+");
   if (section.operation !== "update" && section.operation !== "move") return false;
-  const kind = patchLineKind(line[0]);
-  if (state.hunk === undefined || kind === undefined) return false;
-  state.hunk.push({ kind, text: line.slice(1) });
+  const entry = parsePatchLine(line);
+  if (state.hunk === undefined || entry === undefined) return false;
+  state.hunk.push(entry);
   return true;
 };
 

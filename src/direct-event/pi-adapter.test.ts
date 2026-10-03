@@ -187,3 +187,18 @@ it("rejects an intermediate no-newline marker even when a final marker follows",
   const patch = "--- a.ts\n+++ a.ts\n@@ -1,2 +1,2 @@\n-a\n-b\n+c\n\\ No newline at end of file\n+d\n\\ No newline at end of file\n";
   expect(await Effect.runPromise(adaptPiDirectEvent({ ...event, details: { patch } }))).toBeUndefined();
 });
+
+it("enforces the aggregate added-line bound across separate native hunks", async () => {
+  const { root, event } = await fixture();
+  const after = Array.from({ length: 65 }, (_, index) => `value${index}`).join("\n") + "\n";
+  await writeFile(join(root, "a.ts"), after);
+  const hunks = Array.from({ length: 65 }, (_, index) =>
+    `@@ -${index + 1} +${index + 1} @@\n-old${index}\n+value${index}\n`);
+  const bounded = await Effect.runPromise(adaptPiDirectEvent({ ...event,
+    details: { patch: `--- a.ts\n+++ a.ts\n${hunks.slice(0, 64).join("")}` },
+  }));
+  expect(bounded?.verifiedPostEditHunks?.hunks).toHaveLength(64);
+  expect(await Effect.runPromise(adaptPiDirectEvent({ ...event,
+    details: { patch: `--- a.ts\n+++ a.ts\n${hunks.join("")}` },
+  }))).toBeUndefined();
+});
