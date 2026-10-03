@@ -94,6 +94,6 @@ it("reorders the original completion ahead of a held start, exposes WrongStage, 
   expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBeUndefined();
   expect(run.projection.dispatch.requests).toEqual([]);
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
-  expect(run.observations.filter(frame => frame.commands.some(command => command.kind === "releaseCapacity"))).toHaveLength(1);
+  expect(run.observations.filter(frame => frame.commands.some(command => command.kind === "reservationReleased"))).toHaveLength(1);
   replay(run);
 });
