@@ -919,10 +919,10 @@ def observed_collector_finished(-F: Data, changed: Engine.CollectorHandled, emit
     +result: Canonical.Step, hook: CommandHook<F>) -> Observed<F>:
   match changed:
     case Engine.CollectorHandled{+state,Driver.Handled{_,following}}:
-      +after:List<&2,Runtime>=[Runtime{state,stop_wake_queue(stop_wake_event(event),state,
-          actions(List.append(&2,Driver.Action,emitted,following),queue,now,job),now),jobs,delay}]
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,stop_wake_queue(stop_wake_event(event),state,
+          actions(List.append(&2,Driver.Action,emitted,following),queue,now,job),now),jobs,delay}])
       Observed{after,
-        Some{CanonicalFrame{runtime_states(before),[state],now,order,event,[result],before,after,Some{job_partition(job)},frame_scopes(result,before,after,Some{job_partition(job)}),None{},[]}},hook}
+        Some{CanonicalFrame{runtime_states(before),runtime_states(after),now,order,event,[result],before,after,Some{job_partition(job)},frame_scopes(result,before,after,Some{job_partition(job)}),None{},[]}},hook}
 
 def observed_finished_ready(-F: Data, emitted: List<&2,Driver.Action>, runtime: List<&2,Runtime>,
     before: List<&2,Runtime>, +event: Canonical.CanonicalEvent, now: Nat, order: Nat,
@@ -954,7 +954,7 @@ def observed_finished(-F: Data, runtime: List<&2,Runtime>, +before: List<&2,Runt
 def observed_following(-F: Data, pair: List<&2,Runtime> & CommandHook<F>,
     ih: List<&2,Runtime> -> CommandHook<F> -> Commanded<F>) -> Commanded<F>:
   (next,following)=pair
-  ih(next,following)
+  ih(runtime_sync(next),following)
 
 # The event remains in its direct linear carrier; callbacks keep the incoming
 # runtime carrier instead of exposing all fields in their continuation.
@@ -971,7 +971,7 @@ def observed_interpreted(-F: Data, result: Interpreted, facts: F, +command: Cano
     apply: F -> Canonical.Command -> List<&2,Runtime> -> (List<&2,Runtime> & CommandHook<F>),
     ih: List<&2,Runtime> -> CommandHook<F> -> Commanded<F>) -> Commanded<F>:
   match result:
-    case Interpreted{runtime,True{}}: observed_following(F,apply(facts,command,runtime),ih)
+    case Interpreted{runtime,True{}}: observed_following(F,apply(facts,command,runtime_sync(runtime)),ih)
     case Interpreted{runtime,False{}}: Commanded{runtime,HookFault{facts},False{}}
 
 def observed_apply(-F: Data, valid: Bool, events: Array<Canonical.CanonicalEvent>, runtime: List<&2,Runtime>,
@@ -1008,9 +1008,9 @@ def observed_result(-F: Data, +result: Canonical.Step, runtime: List<&2,Runtime>
     factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
   match result:
     case Canonical.Advanced{_,+list}:
-      observed_commanded(F,observed_commands(F,list,runtime,event,now,job,candidate,environment,factory(list)),before,event,now,order,job,result)
+      observed_commanded(F,observed_commands(F,list,runtime_sync(runtime),event,now,job,candidate,environment,factory(list)),before,event,now,order,job,result)
     case Canonical.Rejected{_,_}:
-      observed_finished(F,runtime,before,event,now,order,job,result,factory([]))
+      observed_finished(F,runtime_sync(runtime),before,event,now,order,job,result,factory([]))
 
 def cache_facts(list: List<&2,CacheRuntime.Fact>, queue: Queue, +now: Nat, +job: Job) -> Queue:
   match list:
@@ -1166,24 +1166,24 @@ def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: Lis
     +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
   match attempt:
     case Engine.EditAttempt{state,Driver.EditPlan{retry,emitted}}:
-      Observed{[Runtime{state,retry_edit(retry,actions(emitted,queue,now,job),now,job),jobs,delay}],None{},hook}
+      Observed{runtime_sync([Runtime{state,retry_edit(retry,actions(emitted,queue,now,job),now,job),jobs,delay}]),None{},hook}
 
 def observed_graph(-F: Data, +result: Types.GraphTransition, +before: List<&2,Runtime>, queue: Queue,
     jobs: List<&2,Stored>, now: Nat, order: Nat, key: Types.GraphKey, position: Nat,
     event: Graph.GraphEvent, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
   match result:
     case Types.GraphTransition{+state,_,_}:
-      +after:List<&2,Runtime>=[Runtime{state,queue,jobs,delay}]
-      Observed{after,Some{GraphFrame{runtime_states(before),[state],now,order,key,position,event,[result],before,after,None{},[],None{},[]}},hook}
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,queue,jobs,delay}])
+      Observed{after,Some{GraphFrame{runtime_states(before),runtime_states(after),now,order,key,position,event,[result],before,after,None{},[],None{},[]}},hook}
     case Types.GraphRejected{+state}:
-      +after:List<&2,Runtime>=[Runtime{state,queue,jobs,delay}]
-      Observed{after,Some{GraphFrame{runtime_states(before),[state],now,order,key,position,event,[result],before,after,None{},[],None{},[]}},hook}
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,queue,jobs,delay}])
+      Observed{after,Some{GraphFrame{runtime_states(before),runtime_states(after),now,order,key,position,event,[result],before,after,None{},[],None{},[]}},hook}
 
 def observed_workload(-F: Data, result: Engine.WorkloadTransition, queue: Queue,
     jobs: List<&2,Stored>, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
   match result:
     case Engine.WorkloadTransition{+state,events,True{}}:
-      Observed{[Runtime{state,emissions(events,queue,state),jobs,delay}],None{},hook}
+      Observed{runtime_sync([Runtime{state,emissions(events,queue,state),jobs,delay}]),None{},hook}
     case Engine.WorkloadTransition{state,_,False{}}:
       Observed{[Runtime{state,queue,jobs,delay}],Some{UnexpectedInput{}},hook}
 
@@ -1273,9 +1273,9 @@ def observed_finish_registered(-F: Data, registered: Engine.StopRegistered, +bef
     hook: CommandHook<F>) -> Observed<F>:
   match registered:
     case Engine.StopRegistered{+state,+finish,+created}:
-      +after:List<&2,Runtime>=[Runtime{state,stop_registration_queue(created,finish,queue,stop_input_job(input)),jobs,delay}]
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,stop_registration_queue(created,finish,queue,stop_input_job(input)),jobs,delay}])
       Observed{after,
-        Some{FinishFrame{runtime_states(before),[state],now,order,input,finish,created,before,after,Some{job_partition(stop_input_job(input))},[],None{},[]}},hook}
+        Some{FinishFrame{runtime_states(before),runtime_states(after),now,order,input,finish,created,before,after,Some{job_partition(stop_input_job(input))},[],None{},[]}},hook}
 
 def observed_finish(-F: Data, +runtime: List<&2,Runtime>, +input: StopScenario.Input, now: Nat, order: Nat,
     hook: CommandHook<F>) -> Observed<F>:
