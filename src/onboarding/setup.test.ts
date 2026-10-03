@@ -1,3 +1,4 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts";
 import {
   chmodSync,
@@ -11,7 +12,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs";
 import { afterEach, describe, expect, it } from "vitest";
 
 const roots: Array<string> = [];
@@ -72,7 +74,7 @@ const invoke = (
       ...request,
     }),
     encoding: "utf8",
-    timeout: 10_000,
+    timeout: DEFAULT_CHILD_TIMEOUT_MS,
   });
   expect(child.stderr).toBe("");
   const output = JSON.parse(child.stdout) as SetupOutput;
@@ -154,7 +156,7 @@ const invokeMaskedSetup = async (
     const timeout = setTimeout(() => {
       child.kill("SIGKILL");
       rejectExit(new Error(`interactive setup timed out: ${output}`));
-    }, 5_000);
+    }, DEFAULT_CHILD_TIMEOUT_MS);
     child.once("exit", (code) => { clearTimeout(timeout); resolveExit(code); });
     child.once("error", rejectExit);
   });
@@ -166,7 +168,7 @@ const invokeMaskedSetup = async (
   return JSON.parse(encoded) as SetupOutput;
 };
 
-describe("public resumable setup operation", { timeout: 30_000 }, () => {
+describe("public resumable setup operation", () => {
   it("installs with exact approval and effective file settings without a repository grant", () => {
     const test = fixture();
     const preview = invoke(test, {});
@@ -353,7 +355,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       const timeout = setTimeout(() => {
         child.kill("SIGKILL");
         rejectExit(new Error(`interactive setup timed out: ${output}`));
-      }, 5_000);
+      }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("exit", (code) => { clearTimeout(timeout); resolveExit(code); });
       child.once("error", rejectExit);
     });
@@ -369,7 +371,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       expect.objectContaining({ stage: "host-trust", status: "unknown" }),
     ]));
     expect(result.providerCalls).toBe(0);
-  }, 10_000);
+  });
 
   it("reports cancelled masked input without falling back to stale missing state", () => {
     const test = fixture();
@@ -425,7 +427,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
         expect(recovery?.action).toContain("hapsland --logout");
       }
     }
-  }, 45_000);
+  });
 });
 
 describe("setup repository failures", () => {
@@ -482,7 +484,7 @@ describe("Claude setup shares the resumable credential and repository workflow",
     expect(targetApplied.stages.find(stage => stage.stage === "installation")?.status).toBe("complete");
     expect(readFileSync(join(claudeHome, "settings.json"), "utf8")).toContain(targetEntrypoint);
 
-  }, 15_000);
+  });
   it("rejects an unsupported Claude profile before writing hooks", () => {
     const test = fixture();
     const claudeHome = join(test.root, "claude-home");

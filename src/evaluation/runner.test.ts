@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { ConfigProvider } from "effect";
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "../../scripts/test-harness/process.mjs";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
 import {

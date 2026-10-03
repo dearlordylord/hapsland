@@ -1,9 +1,10 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { runClient } from "../test-support/client-runtime.ts";
 import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
 import { reviewControlsLayer } from "../test-support/review-controls.ts";
 import { Layer } from "effect";
 import { ResidentPreparationControls, defaultPreparationControls } from "./preparation-controls.ts";
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "../../scripts/test-harness/process.mjs";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import * as HttpClient from "effect/http/HttpClient";
@@ -170,11 +171,11 @@ describe("resident session analytics", () => {
       const env = { ...process.env, REVIEW_USER_CONFIG_PATH: f.dispatch.userConfigPath ?? "",
         REVIEW_ACTIVITY_PATH: f.dispatch.activityPath ?? "", REVIEW_RESIDENT_DIR: join(f.root, "runtime"),
         REVIEW_CREDENTIAL_STATE_PATH: join(f.root, "credentials"), TYPESAFE_API_KEY: "STATUS_SYNTHETIC_KEY" };
-      const json = spawnSync(process.execPath, ["src/cli.ts", "--status"], { env, input, encoding: "utf8", timeout: 10000 });
+      const json = spawnSync(process.execPath, ["src/cli.ts", "--status"], { env, input, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS });
       expect(json.status).toBe(0);
       expect(JSON.parse(json.stdout)).toMatchObject({ analytics: { enabled: true, status: "recorded",
         totals: { requestsStarted: 0 }, controlledTotals: { requestsStarted: 1, clearReviews: 1 } } });
-      const human = spawnSync(process.execPath, ["src/cli.ts", "--status", "--status-human"], { env, input, encoding: "utf8", timeout: 10000 });
+      const human = spawnSync(process.execPath, ["src/cli.ts", "--status", "--status-human"], { env, input, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS });
       expect(human.status).toBe(0);
       expect(human.stdout).toContain("analytics: recorded (recording=enabled)");
       expect(human.stdout).toContain("controlled request-clear");

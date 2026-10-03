@@ -1,5 +1,7 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts";
-import { spawn, execFileSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { execFileSync } from "../../scripts/test-harness/process.mjs";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -27,7 +29,7 @@ const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer
   });
   child.stderr.on("data", (chunk: Buffer) => { output += chunk.toString(); });
   const code = await new Promise<number | null>((resolve, reject) => {
-    const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error(`interactive command timed out: ${output.slice(-1500)}`)); }, 15_000);
+    const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error(`interactive command timed out: ${output.slice(-1500)}`)); }, DEFAULT_CHILD_TIMEOUT_MS);
     child.once("close", code => { clearTimeout(timer); resolve(code); });
     child.once("error", error => { clearTimeout(timer); reject(error); });
   });
@@ -116,7 +118,7 @@ it.skipIf(process.platform !== "linux")("existing clients are checked and desele
   expect(result.answered).toBe(false);
   expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toBe(claude);
   expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toBe(codex);
-}, 20_000);
+});
 it.skipIf(process.platform !== "linux")("cancelling client selection writes no registrations", async () => {
   const test = fixture(); const clients = bothClients(test);
   const result = await terminal(test, ["setup", ...clients.flags], "y", "\x1b");
@@ -139,7 +141,7 @@ it.skipIf(process.platform !== "linux")("bare update previews both installed cli
   expect(requests[3].codexHome).toBe(clients.codexHome);
   expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1);
   expect(result.output).toContain("claude: updated."); expect(result.output).toContain("codex: updated.");
-}, 20_000);
+});
 it.skipIf(process.platform !== "linux")("a failed client update reports failure and still updates the other installed client", async () => {
   const test = fixture(); const clients = bothClients(test);
   expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
@@ -148,7 +150,7 @@ it.skipIf(process.platform !== "linux")("a failed client update reports failure 
   expect(result.code).toBe(6);
   expect(recordedRequests(target.requests).map(r => `${r.host}:${r.operation}`)).toEqual(["claude:update-preview", "codex:update-preview", "claude:update", "codex:update"]);
   expect(result.output).toContain("claude: failed."); expect(result.output).toContain("codex: updated.");
-}, 20_000);
+});
 it.skipIf(process.platform !== "linux")("bare update acquires one target for both installed clients", async () => {
   const test = fixture(); const clients = bothClients(test);
   expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
@@ -169,7 +171,7 @@ else if(args[0]==='install'){
   expect(recordedRequests(npmCalls).map(args => args[0])).toEqual(["view", "install"]);
   expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1);
   expect(recordedRequests(target.requests).map(r => `${r.host}:${r.operation}`)).toEqual(["claude:update-preview", "codex:update-preview", "claude:update", "codex:update"]);
-}, 20_000);
+});
 
 it.skipIf(process.platform !== "linux")("public setup uses the active package and cannot silently revert to the command in PATH", async () => {
   const test = fixture(); const clients = bothClients(test);

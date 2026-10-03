@@ -13,6 +13,7 @@
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
+| Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
 | Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
@@ -64,11 +65,39 @@ threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
-Coverage runs allow a 30-second test-runner watchdog for instrumentation
-overhead; ordinary tests keep Vitest's five-second default, and explicit
-fixture/product deadlines remain unchanged. The bounded Monkey Business
-lifecycle replay stress cases have their own 30-second watchdog in both modes.
-These runner limits are not product latency requirements.
+The [harness policy](../scripts/test-harness/policy.mjs) applies a five-second per-test watchdog in ordinary unit files and a
+60-second per-test watchdog in process-capable or explicitly named bounded
+scenario files, in ordinary and coverage runs alike.
+`npm run test:harness:inventory` derives the classification from transitive
+runtime imports and reports the dependency that caused each process classification.
+Type-only imports and fixture source strings do not classify a file as process-capable.
+The classification is conservative: a process-capable file need not spawn a child
+in every test. New large pure scenarios must be named with their reason in the policy.
+
+The [child helper](../scripts/test-harness/process.mjs) supplies a finite
+30-second default for synchronous children and promise-based `execFile` fixtures;
+ordinary short child watchdogs use this shared allowance. Longer explicit
+bounds remain finite; deliberate hang probes retain their strict one-second
+child deadlines. Its default timeout signal is SIGKILL.
+Four Claude selection/batching fixtures confirm resident readiness in their complete
+fixture environment before invoking hooks, with a 20-second preparation bound.
+Their assertions concern findings handoff, rather than cold startup latency;
+the hooks still use their original product deadlines.
+Timeout errors name the child and execution phase; per-test runner watchdog errors name
+the test, file, class, and test or cleanup phase. Deliberately hung-child tests
+verify a finite failure and that the immediate child has been reaped.
+Asynchronous `spawn` fixtures retain their explicit lifecycle and cleanup controls.
+These scheduling allowances are harness limits, not product latency requirements;
+product runtime deadlines, retries, and supported profiles are unchanged.
+
+`npm run test:contention` runs canonical `npm test` on Linux with `taskset`:
+the runner, suite, and two busy workers share the first four allowed CPUs
+(or fewer when unavailable). Worker readiness is acknowledged through IPC.
+A 30-minute fixture bound kills the suite process group; completion or interruption
+kills and reaps the owned pressure workers. This is a bounded scheduling-pressure
+check, not a throughput benchmark or proof for arbitrary host starvation.
+No sleep is used to establish correctness or concurrency ordering.
+
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
 from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
 uses the pinned V8 provider while keeping Vite and native Node offsets separate

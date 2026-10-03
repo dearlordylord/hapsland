@@ -1,8 +1,5 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, type RunConfig } from "./index.ts";
-// These bounded synchronous runs replay thousands of events under coverage;
-// their assertions establish lifecycle behavior, not a wall-clock performance budget.
-const replayTestTimeoutMs = 30_000;
 const complete = (config: RunConfig) => { const run = createRun({ retention: 10000, inputs: [], ...config }); expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle"); return run; };
 const edits = [0, 0, 4].map(at => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5] }));
 it("permits refuse shared saturation and recover after consumption with exact replay", () => {
@@ -270,7 +267,7 @@ it.each([0, 1, 2, 5].flatMap(delay => [1, 2, 5].map(pace => ({ delay, pace }))))
  expect(retained.map(charge => charge.id).sort()).toEqual(run.projection.reuse.cache.map(entry => entry.reservation).sort());
  expect(run.projection.global.bytes).toBe(run.projection.reuse.cache.reduce((bytes, entry) => bytes + entry.bytes, 0));
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
-}, replayTestTimeoutMs);
+});
 it("the original two-agent late-join case drains with the default history retention", () => {
  const run = createRun({ seed: 7, outcome: "clear", jevDelay: 1,
   sessions: [1, 2].map(seed => ({ agent: `agent-${seed}`, seed, editIntervalMs: 1, variationMs: 0, editsPerTask: 1024, bytes: 10 })),
@@ -284,7 +281,7 @@ it("the original two-agent late-join case drains with the default history retent
  expect(run.projection.dispatch.requests).toEqual([]);
  expect(run.observations).toHaveLength(1000);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
-}, replayTestTimeoutMs);
+});
 it("unavailable owner results terminate joined work without leaving a fulfilled claim", () => {
  const run = complete({ inputs: [0, 0].map(at => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5], evaluationInputs: ["same"] })), environment: { currentWork: true, credentialReady: false }, lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } } });
  expect(run.observations.some(o => o.commands.some(c => c.kind === "reuseJoinClaimed" || c.kind === "reuseJoinPending"))).toBe(true);

@@ -4,10 +4,9 @@ import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as TestClock from "effect/testing/TestClock";
 import type * as DecisionModel from "effect/ai/DecisionModel";
-import { execFile } from "node:child_process";
+import { execFileAsync } from "../../scripts/test-harness/process.mjs";
 import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { configuredRules } from "../policy/rules.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import {
@@ -30,7 +29,6 @@ import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixt
 import { adaptCodexAdd } from "./adapter.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
-const execFileAsync = promisify(execFile);
 
 const findingAnswers = (): Readonly<Record<string, DecisionModel.ProviderAnswer>> =>
   Object.fromEntries(configuredRules.map((rule) => [

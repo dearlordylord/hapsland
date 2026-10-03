@@ -1,7 +1,9 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { spawnSync } from "../../scripts/test-harness/process.mjs";
 import { describe, expect, it } from "vitest";
 
 describe("public credential CLI", () => {
@@ -14,13 +16,13 @@ describe("public credential CLI", () => {
     const environment = { ...process.env, HOME: root };
     const login = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
       cwd: root, env: { ...environment, REVIEW_CREDENTIAL_HELPER: "", REVIEW_CREDENTIAL_STATE_PATH: join(root, "state") },
-      input: "synthetic-key\n", encoding: "utf8", timeout: 10_000,
+      input: "synthetic-key\n", encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
     });
     expect(login.status).toBe(6);
     expect(JSON.parse(login.stdout)).toMatchObject({ operation: "login", status: "unavailable" });
     const logout = spawnSync(process.execPath, [entrypoint, "--logout"], {
       cwd: root, env: { ...environment, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: "" },
-      encoding: "utf8", timeout: 10_000,
+      encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
     });
     expect(logout.status).toBe(6);
     expect(JSON.parse(logout.stdout)).toMatchObject({ operation: "logout", stateLock: "unavailable", savedCredentialUse: "suspended" });
@@ -93,7 +95,7 @@ else if (operation === "delete") { const found=existsSync(vault); rmSync(vault,{
       action: expect.stringContaining("retry logout"),
     });
     expect(`${indeterminateLogout.stdout}${indeterminateLogout.stderr}`).not.toContain(marker);
-  }, 20_000);
+  });
 
   it("returns a versioned busy result while a live process owns the credential lock", () => {
     const root = mkdtempSync(join(tmpdir(), "credential-cli-busy-"));
@@ -146,7 +148,7 @@ console.log('{"version":1,"status":"missing"}');
 `, { mode: 0o700 });
     const quote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
     const child = spawnSync("script", ["-qfec", `${quote(process.execPath)} ${quote(entrypoint)} --logout`, "/dev/null"], {
-      cwd: root, encoding: "utf8", timeout: 5_000,
+      cwd: root, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
       env: { ...process.env, ALT_KEY: "synthetic-terminal-logout-marker", REVIEW_CREDENTIAL_HELPER: helper,
         REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json") },
     });
@@ -192,7 +194,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     });
     child.stderr.on("data", (chunk: Buffer) => { output += chunk.toString("utf8"); });
     await new Promise<void>((resolveExit, rejectExit) => {
-      const timeout = setTimeout(() => { child.kill("SIGKILL"); rejectExit(new Error(`PTY cancellation timed out: ${output}`)); }, 3_000);
+      const timeout = setTimeout(() => { child.kill("SIGKILL"); rejectExit(new Error(`PTY cancellation timed out: ${output}`)); }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("exit", () => { clearTimeout(timeout); resolveExit(); });
       child.once("error", rejectExit);
     });
@@ -200,7 +202,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     expect(modes, output).not.toBeNull();
     expect(modes?.[2]).toBe(modes?.[1]);
     expect(Number(modes?.[3])).not.toBe(0);
-  }, 10_000);
+  });
 
   it.skipIf(process.platform !== "linux")("does not disable echo when the original terminal mode cannot be captured", () => {
     const root = mkdtempSync(join(tmpdir(), "credential-pty-capture-"));
@@ -227,7 +229,7 @@ exit 1
         REVIEW_CREDENTIAL_STATE_PATH: join(root, "state.json"),
       },
       encoding: "utf8",
-      timeout: 10_000,
+      timeout: DEFAULT_CHILD_TIMEOUT_MS,
     });
     expect(child.status).not.toBe(0);
     expect(readFileSync(log, "utf8")).toContain("-F /dev/tty -g");

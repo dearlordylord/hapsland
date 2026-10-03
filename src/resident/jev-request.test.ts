@@ -269,7 +269,7 @@ describe("canonical Jev request boundary", () => {
       release.resolve();
       await Effect.runPromise(server.close);
     }
-  }, 15_000);
+  });
 
   it("holds started Jev permits through round interruption until settlement, then reuses one", async () => {
     const root = await makeGitFixture();
@@ -370,7 +370,7 @@ describe("canonical Jev request boundary", () => {
       await Effect.runPromise(server.whenIdle());
       await Effect.runPromise(server.close);
     }
-  }, 15_000);
+  });
 
   it("holds eight started permits until one Jev timeout settles, then reuses exactly one", async () => {
     const root = await makeGitFixture();
@@ -455,7 +455,7 @@ describe("canonical Jev request boundary", () => {
       await Effect.runPromise(server.close);
       vi.useRealTimers();
     }
-  }, 15_000);
+  });
 
   it("keeps an interrupted canonical Jev permit charged until its settlement", () => {
     // Resident abort interrupts the controlled Effect promptly. Hold the

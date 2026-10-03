@@ -112,7 +112,7 @@ describe("security wire prototype", () => {
       for (const marker of manifest.positive.unrelated) expect(request.body).not.toContain(marker);
       expect(request.body).not.toContain(root);
       expect(request.body).not.toContain("WIRE_KEY_SENTINEL");
-    }), 20_000,
+    }),
   );
 
   it.effect("does not read or submit an excluded file", () =>
@@ -127,7 +127,7 @@ describe("security wire prototype", () => {
       expect(prepared.outcomes).toEqual([{ status: "skipped", path: manifest.excluded.path }]);
       expect(reads).toEqual([]);
       expect(requests).toEqual([]);
-    }), 20_000,
+    }),
   );
 
   it.effect("reads but never submits an unresolved root", () =>
@@ -140,6 +140,6 @@ describe("security wire prototype", () => {
       expect(reads).toEqual([manifest.unsupported.path, manifest.unsupported.path]);
       expect(prepared.outcomes).toEqual([{ status: "skipped", path: manifest.unsupported.path }]);
       expect(requests).toEqual([]);
-    }), 20_000,
+    }),
   );
 });

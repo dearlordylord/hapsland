@@ -15,7 +15,8 @@ import {
 import { createHash, randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { spawnSync } from "../../scripts/test-harness/process.mjs";
 import { afterEach, describe, expect, it } from "vitest";
 import { inspectCodexInstallation, installCodexIntegration, previewCodexInstallation, uninstallCodexIntegration, updateCodexIntegration } from "./codex-installation.ts";
 
@@ -173,7 +174,7 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
   return { child, closed };
 };
 
-describe("public Codex installation operations", { timeout: 30_000 }, () => {
+describe("public Codex installation operations", () => {
   it.each(["REVIEW_INSTALL_RUNTIME", "REVIEW_INSTALL_ENTRYPOINT", "REVIEW_INSTALL_CONTROLLED", "REVIEW_INSTALL_FAIL_AFTER_WRITES"])("rejects empty %s before installation state is written", async (key) => {
     const { home, bin } = fixture();
     const result = await Effect.runPromise(installCodexIntegration({ codexHome: home, codexExecutable: bin }).pipe(
@@ -962,7 +963,7 @@ responses_websockets_v2 = true`);
     expect(resumed).toMatchObject({ status: "updated", resumed: true });
     expect(existsSync(lockPath)).toBe(true);
     expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
-  }, 30_000);
+  });
 
   it("bounds lock acquisition and reports no mutation", () => {
     const { home, bin } = fixture();
@@ -1033,7 +1034,7 @@ responses_websockets_v2 = true`);
   });
 });
 
-describe("Codex update and explicit reinstall journeys", { timeout: 30_000 }, () => {
+describe("Codex update and explicit reinstall journeys", () => {
   it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground"])("updates deleted Codex %s without losing settings", (missing) => {
     const { root, home, bin } = fixture();
     const entrypoint = localPackage(root, "0.1.0");

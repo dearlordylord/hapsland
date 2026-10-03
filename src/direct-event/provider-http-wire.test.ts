@@ -148,5 +148,5 @@ describe("offline provider HTTP framing for proposed #138 study arms", () => {
     expect(evidence).toEqual(await readFixture<typeof evidence>("provider-http-observations.json"));
     expect(observations.map((entry) => entry.id)).toEqual([...new Set(observations.map((entry) => entry.id))]);
     expect(observations.every((entry) => entry.httpBodyBytes - entry.localRequestBytes === 14)).toBe(true);
-  }, 30_000);
+  });
 });
