@@ -204,7 +204,7 @@ def selected_receipt(originals: List<&2,Callbacks.Original>, +order: Nat) -> May
 
 def frame_scopes(frame: Edge.ObservedFrame) -> List<&2,Maybe<&2,Nat>>:
   match frame:
-    case Edge.CanonicalFrame{before,after,_,_,_,result,_,_,_,_,_,_}: canonical_scopes(result,before,after)
+    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_,_}: scopes
     case _: Nil{}
 
 def observed_frame(+runtime: List<&2,Edge.Runtime>, frame: Maybe<&2,Edge.ObservedFrame>,
