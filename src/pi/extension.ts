@@ -35,8 +35,13 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   const calls = new Map<string, { id: Identity; input: string; expires: number }>();
   const partitions = new Map<string, Identity>();
   let epoch = 0;
+  let boundary: { id: Identity; generation: number } | undefined;
+  let active: { id: Identity; generation: number } | undefined;
   const send = (id: Identity, operation: string, fields: Event = {}) => command(options, { ...id, operation, ...fields });
   const prune = () => { for (const [key, call] of calls) if (call.expires <= Date.now()) calls.delete(key); };
+  api.on("agent_start", async (_event, ctx) => {
+    active = { id: identity(ctx, "finish", randomUUID()), generation: epoch };
+  });
   api.on("tool_call", async (event, ctx) => {
     prune();
     if (!supported(event) || calls.size >= 64) return;
@@ -63,20 +68,25 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     if (result.status !== "advice" || generation !== epoch) { if (result.status === "incomplete") await send(call.id, "retire"); return; }
     // This ack proves our native handler offered these bytes; later handlers may replace them.
     await send(call.id, "ack", { token: result.token, lifetime: result.lifetime });
+    if (generation !== epoch) return;
     return { content: [...event.content, { type: "text", text: result.text }], ...(event.structuredContent === undefined ? {} : { structuredContent: event.structuredContent }) };
   });
   api.on("agent_before_settle", async (event, ctx) => {
     const id = identity(ctx, "finish", randomUUID());
     const generation = epoch;
+    boundary = { id, generation };
     if (event.outcome !== "completed") { await send(id, "close"); return; }
     // Pi rebuilds canContinue after our entry: an initial assistant-only preview is false.
     const result = await send(id, "finish");
     if (result.status !== "advice" || generation !== epoch) return;
     await send(id, "ack", { token: result.token, lifetime: result.lifetime, stopToken: result.stopToken, continued: result.continued });
+    if (generation !== epoch) return;
     return { entries: [...event.entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };
   });
   const cleanup = async () => {
     epoch++;
+    boundary = undefined;
+    active = undefined;
     const ownedCalls = [...calls.values()]; calls.clear();
     const ownedPartitions = [...partitions.values()]; partitions.clear();
     await Promise.all(ownedCalls.map(call => send(call.id, "retire")));
@@ -85,6 +95,9 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   api.on("session_before_switch", cleanup);
   api.on("session_shutdown", cleanup);
   api.on("agent_end", async event => { if (event.outcome === "aborted" || event.outcome === "error") await cleanup(); });
-  api.on("agent_settled", async (_event, ctx) => { await send(identity(ctx, "finish", randomUUID()), "close"); });
+  api.on("agent_settled", async () => {
+    const origin = boundary ?? active; boundary = undefined; active = undefined;
+    if (origin !== undefined && origin.generation === epoch) await send(origin.id, "close");
+  });
 };
 export default createPiExtension();
