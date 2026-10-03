@@ -116,11 +116,11 @@ export const decodeStopCommand = (value: unknown) => {
   const report = decoder(Schema.Struct({ $: Schema.Literal("StopHandled"), state: Schema.Unknown,
     handled: Schema.Unknown,
     ended: Schema.Unknown, fit_attempt: Schema.Unknown, output: Schema.Unknown }))(value);
-  const handled = decodeDriver(decodeSharedValue(report.handled));
+  const handled = decoder(Schema.Struct({ $: Schema.Literal("Driver.Handled"), handled: Schema.Boolean, actions: Schema.Unknown }))(decodeSharedValue(report.handled));
   const ended = optionalWire(decodeSharedValue(report.ended), value => {
     const fact = decoder(Schema.Struct({ $: Schema.Literal("StopScenario.Ended"), finish: Schema.Unknown, continuation: Schema.Boolean }))(value);
     return { finish: decodeStopFinish(fact.finish), continuation: fact.continuation };
   });
-  return { handled: handled.handled, actions: handled.actions, ended,
+  return { handled: handled.handled, actions: decodeStopActions(handled.actions), ended,
     fitAttempt: optionalWire(decodeSharedValue(report.fit_attempt), readNat), output: optionalWire(decodeSharedValue(report.output), decodeOutputCapture) };
 };
