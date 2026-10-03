@@ -54,7 +54,7 @@ Canonical/Graph events, states, commands, rejection, scopes, receipts, controls,
 advance endpoints and ordinary replay with the independent public scenarios.
 The aggregate `conformance/sharing-native.bend` remains a convenience entrypoint;
 the mandatory gate runs each original separately. Native phases retain fresh
-five-second C emission, fifteen-second clang and five-second execution bounds;
+twelve-second C emission, fifteen-second clang and five-second execution bounds;
 emitted JavaScript uses separate fresh five-second emission/execution phases.
 An earlier checker pass does not establish any of those execution results.
 
