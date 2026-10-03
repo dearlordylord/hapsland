@@ -1,0 +1,80 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-03T01:39:25.769Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "large-reservation-window-small-defect",
+      "candidate": "baseline",
+      "blindId": "572a424b2193"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-small-defect",
+      "candidate": "hapsland",
+      "blindId": "cff9268f656d"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-small-defect",
+      "candidate": "abide",
+      "blindId": "4374c4ec9a8b"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-small-clean",
+      "candidate": "hapsland",
+      "blindId": "19cec6505450"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-small-clean",
+      "candidate": "abide",
+      "blindId": "b1d80e80fc35"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-small-clean",
+      "candidate": "baseline",
+      "blindId": "53a86c6f2c49"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-large-separated-defect",
+      "candidate": "abide",
+      "blindId": "f31a729e290e"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-large-separated-defect",
+      "candidate": "baseline",
+      "blindId": "d3a5c67039b1"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-large-separated-defect",
+      "candidate": "hapsland",
+      "blindId": "aa670314cf4b"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-large-separated-clean",
+      "candidate": "baseline",
+      "blindId": "f79a6afe8710"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-large-separated-clean",
+      "candidate": "abide",
+      "blindId": "8a34f2bfa8de"
+    },
+    {
+      "stage": "B",
+      "id": "large-reservation-window-large-separated-clean",
+      "candidate": "hapsland",
+      "blindId": "db43a3206bef"
+    }
+  ],
+  "attempts": 202,
+  "hostUncachedPlusOutputTokens": 204885
+}

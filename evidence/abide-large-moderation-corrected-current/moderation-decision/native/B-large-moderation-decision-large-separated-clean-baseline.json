@@ -1,0 +1,180 @@
+{
+  "stage": "B",
+  "taskId": "large-moderation-decision-large-separated-clean",
+  "candidate": "baseline",
+  "ordinal": 3,
+  "blindId": "410c471ff5d3",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 42436,
+  "usage": {
+    "input_tokens": 115906,
+    "cached_input_tokens": 105472,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1701,
+    "reasoning_output_tokens": 767
+  },
+  "uncachedPlusOutputTokens": 12135,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [],
+  "hookEvents": [],
+  "requests": [],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "cef8b8ba7d71ac9dcbcb52d915e5af399f171afe3963dfa4b663164f62f1d085",
+    "requestedByHook": false,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "be20d6352afbae47d00e8524949e6038d1595bad5ef48434c8076f5e0663ba95",
+  "changed": true
+}

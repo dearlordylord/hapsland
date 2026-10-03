@@ -1,0 +1,103 @@
+{
+  "stage": "A",
+  "caseId": "report-delivery-large-separated-clean",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "252b9a00aad1ed393284ebed3be3c46e16c8f2f4a580bcbb7db9335c2ebf2ed7",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "96561199-550f-4fa2-be72-90fdaa1b2b91",
+      "at": 1790989749449,
+      "candidate": "hapsland",
+      "caseId": "report-delivery-large-separated-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 2288,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r2_meaningless_combinations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "96561199-550f-4fa2-be72-90fdaa1b2b91",
+      "at": 1790989749449,
+      "candidate": "hapsland",
+      "caseId": "report-delivery-large-separated-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 152,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 946,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

@@ -1,0 +1,435 @@
+{
+  "stage": "B",
+  "taskId": "coverage-clean-explicit-time",
+  "candidate": "abide",
+  "ordinal": 2,
+  "blindId": "0754367f18a3",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 68531,
+  "usage": {
+    "input_tokens": 102215,
+    "cached_input_tokens": 91392,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 3169,
+    "reasoning_output_tokens": 2154
+  },
+  "uncachedPlusOutputTokens": 13992,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790985200595,
+      "pid": 4115017,
+      "invocation": "c5cf708d19f79a23",
+      "trace": "process-start",
+      "elapsedMs": 31.058122
+    },
+    {
+      "at": 1790985200703,
+      "pid": 4115017,
+      "invocation": "c5cf708d19f79a23",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 138.669312
+    },
+    {
+      "at": 1790985200767,
+      "pid": 4115039,
+      "invocation": "f49dbce3953c34f6",
+      "trace": "process-start",
+      "elapsedMs": 21.504838
+    },
+    {
+      "at": 1790985200879,
+      "pid": 4115039,
+      "invocation": "f49dbce3953c34f6",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 133.437812
+    },
+    {
+      "at": 1790985234498,
+      "pid": 4116460,
+      "invocation": "9415f2d6a2db78e0",
+      "trace": "process-start",
+      "elapsedMs": 18.038975
+    },
+    {
+      "at": 1790985234785,
+      "pid": 4116460,
+      "invocation": "9415f2d6a2db78e0",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 305.406611
+    },
+    {
+      "at": 1790985264296,
+      "pid": 4117638,
+      "invocation": "092798c876de7328",
+      "trace": "process-start",
+      "elapsedMs": 19.801447
+    },
+    {
+      "at": 1790985264629,
+      "pid": 4117638,
+      "invocation": "092798c876de7328",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 352.374731
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "c5cf708d19f79a23",
+      "kind": "session-start",
+      "at": 1790985200559,
+      "event": "SessionStart",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "c5cf708d19f79a23",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "session-start",
+      "at": 1790985200559,
+      "doneAt": 1790985200707,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "6126bf7712f375564c00a24e740e64b4310b93953a30908dc780f80c3084a8c3"
+    },
+    {
+      "trace": "start",
+      "invocation": "f49dbce3953c34f6",
+      "kind": "turn-start",
+      "at": 1790985200742,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "f49dbce3953c34f6",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "turn-start",
+      "at": 1790985200742,
+      "doneAt": 1790985200882,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "6126bf7712f375564c00a24e740e64b4310b93953a30908dc780f80c3084a8c3"
+    },
+    {
+      "trace": "start",
+      "invocation": "9415f2d6a2db78e0",
+      "kind": "post-tool-use",
+      "at": 1790985234477,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "9415f2d6a2db78e0",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790985234477,
+      "doneAt": 1790985234817,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495"
+    },
+    {
+      "trace": "start",
+      "invocation": "092798c876de7328",
+      "kind": "stop",
+      "at": 1790985264272,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "092798c876de7328",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790985264272,
+      "doneAt": 1790985264659,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495"
+    }
+  ],
+  "requests": [
+    {
+      "id": "222c43e1-af5f-4ae6-b584-636745e23fc7",
+      "at": 1790985234607,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 2747,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r9-body-reaches-undeclared"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "222c43e1-af5f-4ae6-b584-636745e23fc7",
+      "at": 1790985234607,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 173,
+      "answers": {
+        "r9_body_reaches_undeclared": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 836,
+        "output_tokens": 27
+      }
+    },
+    {
+      "id": "38e8124f-8ecc-4d6c-88e4-d9dfeea29a91",
+      "at": 1790985264426,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 2821,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r9-body-reaches-undeclared"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "38e8124f-8ecc-4d6c-88e4-d9dfeea29a91",
+      "at": 1790985264426,
+      "candidate": "abide",
+      "caseId": "coverage-clean-explicit-time",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 198,
+      "answers": {
+        "r9_body_reaches_undeclared": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 858,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "874c34e211bd24bba9d727d1e83f9a2ca1d8bb22d70a87424e31ac955691c7cc",
+    "requestedByHook": false,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+  "changed": true
+}

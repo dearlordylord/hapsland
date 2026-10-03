@@ -1,0 +1,147 @@
+{
+  "stage": "A",
+  "caseId": "reservation-window-small-clean",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "incomplete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "incomplete",
+        "analysisReason": null,
+        "analysisFailures": [
+          {
+            "reason": "missing-evidence",
+            "root": "CaseState"
+          }
+        ]
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "omissions": [
+          {
+            "declaration": "CaseState",
+            "path": "subject.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "displayLabel.trim"
+            }
+          },
+          {
+            "declaration": "CaseState",
+            "path": "subject.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "Math.max"
+            }
+          },
+          {
+            "declaration": "CaseState",
+            "path": "subject.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "Math"
+            }
+          },
+          {
+            "declaration": "CaseState",
+            "path": "subject.ts",
+            "reason": "unsupported",
+            "target": {
+              "kind": "unresolved",
+              "symbol": "clock.now"
+            }
+          }
+        ]
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/function/v1",
+        "completeness": "incomplete-irrelevant",
+        "inputSha256": "44c09f4e83846422abdc0cf4bd822d9e61b30ef5a9a4bca2d2c312bc3303a587",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "ruleIds": [
+          "r9_body_reaches_undeclared"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r9_body_reaches_undeclared"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "e8bd86c6-4331-4d11-a1f2-3279f5df191f",
+      "at": 1790989817195,
+      "candidate": "hapsland",
+      "caseId": "reservation-window-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 4918,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r9_body_reaches_undeclared"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "e8bd86c6-4331-4d11-a1f2-3279f5df191f",
+      "at": 1790989817195,
+      "candidate": "hapsland",
+      "caseId": "reservation-window-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 185,
+      "answers": {
+        "r9_body_reaches_undeclared": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 1759,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

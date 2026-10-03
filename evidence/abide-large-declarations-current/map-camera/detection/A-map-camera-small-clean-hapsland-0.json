@@ -1,0 +1,103 @@
+{
+  "stage": "A",
+  "caseId": "map-camera-small-clean",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "c7a5933ac8fbc57549bc3b0855e919df52b23ebb8aa3fa47d954b34bfd29aaa4",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r3_split_correlations"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r3_split_correlations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "02816213-18de-446d-8932-f9a96633d3b6",
+      "at": 1790989755900,
+      "candidate": "hapsland",
+      "caseId": "map-camera-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 2161,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r3_split_correlations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "02816213-18de-446d-8932-f9a96633d3b6",
+      "at": 1790989755900,
+      "candidate": "hapsland",
+      "caseId": "map-camera-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 217,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 907,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

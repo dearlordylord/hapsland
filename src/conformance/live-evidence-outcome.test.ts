@@ -1,3 +1,4 @@
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts";
 import { describe, expect, it } from "vitest";
 import { classifyHookOutput, classifyLiveOutcome } from "./live-evidence-outcome.ts";
 const stats = (overrides = {}) => ({
@@ -14,7 +15,7 @@ const stats = (overrides = {}) => ({
 const output = (...lines: ReadonlyArray<string>) => ({
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
-    additionalContext: ["Advisory direct-event review (the edit already succeeded):", ...lines].join("\n"),
+    additionalContext: [REVIEW_FEEDBACK_HEADING, ...lines].join("\n"),
   },
 });
 describe("sanitized live milestone classification", () => {
@@ -26,6 +27,8 @@ describe("sanitized live milestone classification", () => {
       "findings-and-operational-notice",
     );
     expect(classifyHookOutput(output())).toBe("invalid");
+    expect(classifyHookOutput(output(REVIEW_FEEDBACK_INSTRUCTIONS))).toBe("invalid");
+    expect(classifyHookOutput(output(REVIEW_FEEDBACK_INSTRUCTIONS, "Operational notice: unavailable"))).toBe("operational-notice");
   });
   it("requires source-free successful-evaluation evidence for clear and findings", () => {
     expect(classifyLiveOutcome({ admissionExitCode: 0, hostOutputKind: "none", stats: stats() })).toEqual({

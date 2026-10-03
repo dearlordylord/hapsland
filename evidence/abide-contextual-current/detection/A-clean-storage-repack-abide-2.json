@@ -1,0 +1,64 @@
+{
+  "stage": "A",
+  "caseId": "clean-storage-repack",
+  "candidate": "abide",
+  "pass": 2,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": 0,
+    "hookExit": 0,
+    "finding": false
+  },
+  "requests": [
+    {
+      "id": "6b9b4cb5-bbd5-413a-898a-964d8710fd26",
+      "at": 1790977834913,
+      "candidate": "abide",
+      "caseId": "clean-storage-repack",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 1671,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "6b9b4cb5-bbd5-413a-898a-964d8710fd26",
+      "at": 1790977834913,
+      "candidate": "abide",
+      "caseId": "clean-storage-repack",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 191,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 651,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

@@ -11,6 +11,7 @@
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
+| Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |

@@ -26,7 +26,8 @@ The animation starts with a small edit, expands to the declaration and related
 code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
 undo it or guarantee a repair. Delivery and optional blocking feedback depend on
 the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
-for the flow and its boundaries.
+for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
+shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose what leaves your repository
 
@@ -95,6 +96,24 @@ questions about the supplied type or function and its related code. See [custom 
 and the [type-design rules](./TYPE-DESIGN-RULES.md).
 
 See [supported languages and limits](#supported-languages) before setup.
+
+## A contextual comparison with Abide
+
+[Explore the studies, examples and evidence](./docs/review-studies.md).
+Our larger-declaration comparison covers **six scenarios: four types and two
+functions**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**.
+Both reviewers used Jev and the same target Noul concerns; Abide 0.0.7 used an
+active custom rubric. All conditions included equal diagnostic feedback reporting.
+
+With **one larger defective input per scenario**, Hapsland sessions produced
+**6/6 independently checked repairs**, versus **0/6 in Abide sessions**. Including
+one compact input per scenario, the counts were **11/12 and 2/12**. Hapsland also
+produced one false warning in 36 clean detection observations, versus zero for
+Abide. Each native cell was one session.
+
+The overview links readable scenario pages, starting and final code, methodology
+and detailed checks. Gaps also appeared on compact inputs; these results do not
+establish that size caused the difference or general review superiority.
 
 ## Installation
 

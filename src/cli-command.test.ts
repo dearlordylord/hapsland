@@ -16,6 +16,16 @@ const cli = (args: ReadonlyArray<string>, input = "") => {
 };
 
 describe("declarative CLI subprocess contracts", () => {
+  it("previews agent feedback without stdin, credentials, or persisted activity", () => {
+    const result = cli(["--feedback-preview"], "not JSON");
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Synthetic example; no review was run.");
+    expect(result.stdout).toContain("Hapsland");
+    expect(result.stdout).toContain("example.ts :: ExampleState:");
+    expect(result.files).toEqual([]);
+  });
+
   it.each([
     ["unknown"], ["--unknown"], ["update", "--chanel=next"], ["setup", "--claude-home="],
     ["setup", "--claude-home", ""], ["setup", "--host"], ["update", "--host", "--channel=next"],
@@ -23,7 +33,7 @@ describe("declarative CLI subprocess contracts", () => {
     ["update", "--host=claude", "--host", "codex"], ["update", "--channel=next", "--channel", "latest"],
     ["update", "--target=/tmp/x", "--version=0.1.0"], ["update", "--tarball=/tmp/x", "--channel=next"],
     ["update", "--channel=other"], ["doctor", "--tarball=/tmp/x"], ["uninstall", "--target=/tmp/x"],
-    ["--pilot", "--json"], ["--login", "--logout"], ["--login", "--login"], ["--status", "--explain"], ["--credential-stdin"],
+    ["--pilot", "--json"], ["--login", "--logout"], ["--login", "--login"], ["--status", "--explain"], ["--feedback-preview", "--status"], ["--credential-stdin"],
     ["--login", "doctor"], ["--target=/tmp/x", "setup"],
   ])("rejects invalid arguments before reading stdin or changing files: %j", (...args) => {
     const result = cli(args, "not JSON");

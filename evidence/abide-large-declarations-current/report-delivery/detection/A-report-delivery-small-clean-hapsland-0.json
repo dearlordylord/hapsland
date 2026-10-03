@@ -1,0 +1,103 @@
+{
+  "stage": "A",
+  "caseId": "report-delivery-small-clean",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "5d2f6962b0be2d7b6dcc64914daf558c16c2c26679127f4ece50fcdc87c3845a",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "0c90beaf-bdaa-47f8-9dc9-cbaa931ee4c9",
+      "at": 1790989736369,
+      "candidate": "hapsland",
+      "caseId": "report-delivery-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1988,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r2_meaningless_combinations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "0c90beaf-bdaa-47f8-9dc9-cbaa931ee4c9",
+      "at": 1790989736369,
+      "candidate": "hapsland",
+      "caseId": "report-delivery-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 200,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 862,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

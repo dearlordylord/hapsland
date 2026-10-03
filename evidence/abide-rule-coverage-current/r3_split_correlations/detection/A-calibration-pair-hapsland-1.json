@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "calibration-pair",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "a654abe72c04748392e48999940ea1df3af733dbf6e90107eac32d27c9c0080f",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "ruleIds": [
+          "r3_split_correlations"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r3_split_correlations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "af01bf1e-73e5-40ed-a76b-b9edce0df38a",
+      "at": 1790982824959,
+      "candidate": "hapsland",
+      "caseId": "calibration-pair",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2581,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r3_split_correlations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "af01bf1e-73e5-40ed-a76b-b9edce0df38a",
+      "at": 1790982824959,
+      "candidate": "hapsland",
+      "caseId": "calibration-pair",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 195,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 1049,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

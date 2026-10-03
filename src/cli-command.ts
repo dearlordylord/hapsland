@@ -56,6 +56,7 @@ const profiles = {
   "codex-executable": valueFlag("codex-executable"),
 };
 const operationFlags = {
+  "feedback-preview": switchFlag("feedback-preview", [], false).pipe(Flag.withDescription("Preview shared agent feedback with a synthetic finding; no review request")),
   credentials: switchFlag("inspect-credentials", ["credentials"], false),
   status: switchFlag("status", ["inspect-consent"], false),
   explain: switchFlag("explain", ["config-explain"], false),

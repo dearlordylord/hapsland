@@ -1,0 +1,435 @@
+{
+  "stage": "B",
+  "taskId": "coverage-document-signature",
+  "candidate": "abide",
+  "ordinal": 1,
+  "blindId": "67570751a24f",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 77897,
+  "usage": {
+    "input_tokens": 72845,
+    "cached_input_tokens": 60160,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 3362,
+    "reasoning_output_tokens": 2537
+  },
+  "uncachedPlusOutputTokens": 16047,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790983335048,
+      "pid": 4010951,
+      "invocation": "9ea03982567192fc",
+      "trace": "process-start",
+      "elapsedMs": 18.077829
+    },
+    {
+      "at": 1790983335153,
+      "pid": 4010951,
+      "invocation": "9ea03982567192fc",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 123.531488
+    },
+    {
+      "at": 1790983335213,
+      "pid": 4010982,
+      "invocation": "97029bb05b0a0ce1",
+      "trace": "process-start",
+      "elapsedMs": 18.317497
+    },
+    {
+      "at": 1790983335341,
+      "pid": 4010982,
+      "invocation": "97029bb05b0a0ce1",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 146.06722
+    },
+    {
+      "at": 1790983390282,
+      "pid": 4013331,
+      "invocation": "4c82f7405347812d",
+      "trace": "process-start",
+      "elapsedMs": 16.961154
+    },
+    {
+      "at": 1790983390558,
+      "pid": 4013331,
+      "invocation": "4c82f7405347812d",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 293.078821
+    },
+    {
+      "at": 1790983408865,
+      "pid": 4013651,
+      "invocation": "3fe19ec7467b2863",
+      "trace": "process-start",
+      "elapsedMs": 16.078538
+    },
+    {
+      "at": 1790983409200,
+      "pid": 4013651,
+      "invocation": "3fe19ec7467b2863",
+      "trace": "stdout-write",
+      "bytes": 164,
+      "elapsedMs": 351.400103
+    },
+    {
+      "at": 1790983409201,
+      "pid": 4013651,
+      "invocation": "3fe19ec7467b2863",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 351.667522
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "9ea03982567192fc",
+      "kind": "session-start",
+      "at": 1790983335026,
+      "event": "SessionStart",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "9ea03982567192fc",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "session-start",
+      "at": 1790983335026,
+      "doneAt": 1790983335158,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "e4753585273e49096c6f640d2cfcef22b7b24251bc37cde618d04f1096906d57"
+    },
+    {
+      "trace": "start",
+      "invocation": "97029bb05b0a0ce1",
+      "kind": "turn-start",
+      "at": 1790983335191,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "97029bb05b0a0ce1",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "turn-start",
+      "at": 1790983335191,
+      "doneAt": 1790983335344,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "e4753585273e49096c6f640d2cfcef22b7b24251bc37cde618d04f1096906d57"
+    },
+    {
+      "trace": "start",
+      "invocation": "4c82f7405347812d",
+      "kind": "post-tool-use",
+      "at": 1790983390261,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "4c82f7405347812d",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790983390261,
+      "doneAt": 1790983390585,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "3b1ec887319639c57be6c3956b8f83876f06eacad3189739acc7e9cb5642cd3f"
+    },
+    {
+      "trace": "start",
+      "invocation": "3fe19ec7467b2863",
+      "kind": "stop",
+      "at": 1790983408845,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "3fe19ec7467b2863",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 164,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790983408845,
+      "doneAt": 1790983409231,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [
+        "r2_meaningless_combinations"
+      ],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": true,
+      "sourceHash": "3b1ec887319639c57be6c3956b8f83876f06eacad3189739acc7e9cb5642cd3f"
+    }
+  ],
+  "requests": [
+    {
+      "id": "e95b9c94-9e37-481e-a8d9-b546f411be11",
+      "at": 1790983390373,
+      "candidate": "abide",
+      "caseId": "coverage-document-signature",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2089,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r2-meaningless-combinations"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "e95b9c94-9e37-481e-a8d9-b546f411be11",
+      "at": 1790983390373,
+      "candidate": "abide",
+      "caseId": "coverage-document-signature",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 181,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 726,
+        "output_tokens": 28
+      }
+    },
+    {
+      "id": "ea87db97-01f9-46ac-a8ac-4eebcebc5d49",
+      "at": 1790983408973,
+      "candidate": "abide",
+      "caseId": "coverage-document-signature",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2303,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r2-meaningless-combinations"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "ea87db97-01f9-46ac-a8ac-4eebcebc5d49",
+      "at": 1790983408973,
+      "candidate": "abide",
+      "caseId": "coverage-document-signature",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 223,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 777,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "agentMentionsRule": [
+    "r2_meaningless_combinations"
+  ],
+  "feedbackReceipt": {
+    "nonceSha256": "00b1c7d439f4542676c9166cf6077e21a7d904591b0b8cba446f55664aeec6ae",
+    "requestedByHook": true,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "3b1ec887319639c57be6c3956b8f83876f06eacad3189739acc7e9cb5642cd3f",
+  "changed": true
+}

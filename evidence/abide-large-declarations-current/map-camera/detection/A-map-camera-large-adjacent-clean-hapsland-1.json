@@ -1,0 +1,103 @@
+{
+  "stage": "A",
+  "caseId": "map-camera-large-adjacent-clean",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "10af863822348a3448ae0c36efdaaf47673a16dcd9a2ee9c2b6b6049399546a9",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r3_split_correlations"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r3_split_correlations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "5a9befce-2141-45c8-83a4-8ab45ca6c7c4",
+      "at": 1790989764903,
+      "candidate": "hapsland",
+      "caseId": "map-camera-large-adjacent-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2445,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r3_split_correlations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "5a9befce-2141-45c8-83a4-8ab45ca6c7c4",
+      "at": 1790989764903,
+      "candidate": "hapsland",
+      "caseId": "map-camera-large-adjacent-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 207,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 996,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

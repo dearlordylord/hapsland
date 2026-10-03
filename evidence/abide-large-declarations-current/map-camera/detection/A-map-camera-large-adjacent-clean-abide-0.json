@@ -1,0 +1,63 @@
+{
+  "stage": "A",
+  "caseId": "map-camera-large-adjacent-clean",
+  "candidate": "abide",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": 0,
+    "hookExit": 0,
+    "finding": false
+  },
+  "requests": [
+    {
+      "id": "a2aaaf86-f340-48f5-b946-b5049165de88",
+      "at": 1790989763276,
+      "candidate": "abide",
+      "caseId": "map-camera-large-adjacent-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1997,
+      "stateKeys": [
+        "diff",
+        "file"
+      ],
+      "questionIds": [
+        "r3-split-correlations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "a2aaaf86-f340-48f5-b946-b5049165de88",
+      "at": 1790989763276,
+      "candidate": "abide",
+      "caseId": "map-camera-large-adjacent-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 168,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 717,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

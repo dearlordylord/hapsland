@@ -9,7 +9,7 @@ const MAX_CANDIDATE_NODES = 128;
 const MAX_CANDIDATE_EDGES = 128;
 const sha256 = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");
 export const CANDIDATE_RENDERER_DIGEST = sha256(
-  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order]):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
+  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order];omitted-symbol=bounded-opaque-source):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
 );
 
 type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function";
@@ -97,6 +97,11 @@ const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined
     return undefined;
   return item as Artifact | Node;
 };
+// Omitted references preserve bounded opaque syntax without claiming a resolved binding.
+const omittedReference = (value: unknown): value is string =>
+  source(value) && value.length > 0 && !value.includes("\0");
+const edgeSymbolValid = (item: Record<string, unknown>): boolean =>
+  item.kind === "omitted" ? omittedReference(item.symbol) : referenceName(item.symbol);
 const edgeShapeValid = (item: Record<string, unknown>): boolean => {
   if (item.kind === "omitted")
     return (
@@ -114,7 +119,7 @@ const edge = (value: unknown): Edge | undefined => {
   if (
     item === undefined ||
     !identifier(item.from) ||
-    !referenceName(item.symbol) ||
+    !edgeSymbolValid(item) ||
     !validOrder(item.order) ||
     !edgeShapeValid(item)
   )

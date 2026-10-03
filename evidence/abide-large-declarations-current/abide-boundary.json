@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "abideVersion": "0.0.7",
+  "packageRoot": "/tmp/hapsland-abide-007/node_modules/@coldtea/abide",
+  "sourceHashes": {
+    "src/lib/diff.ts": "24cf15e3470303807009fbd719f07529b5cef22dac339e5397850c673032b166",
+    "src/lib/applyPatch.ts": "f2ba98f21bf926ba8f0ac400473ceca596592337943b4d5496683ea1a9be6211",
+    "src/hooks/postToolUse.ts": "5634f3634eb55456b4aba8d5ca33e7e9fb7f2138b2c4dc5063845520735744bc",
+    "src/lib/checkRunner.ts": "9f480c6f1cb9a4c757c12f9c6ae1c92337843572eb07e34faa0d04f6d6a9c1fc",
+    "src/hooks/stop.ts": "95b16614309145342a3fc247fc93233f57f33d40c854c26e844b740c618f9f9f",
+    "src/lib/constants.ts": "e5bd94b3ba60fbcd316c3e163d9e335a133f0d517ec9264862f92d4bb07eb4fb",
+    "src/lib/git.ts": "24995ddd3b70d4043b4cd59fcdd2efeaf6de4ad36286aff667aa0c87811bb551"
+  },
+  "liveRequests": 0,
+  "offlineInterceptedAttempts": 2,
+  "probe": "Actual released handlePostToolUse; fake synthetic key; fetch intercepted and rejected without forwarding; only synthetic state retained.",
+  "probes": [
+    {
+      "id": "localized-native-patch",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "requestCaptured": true,
+      "stateKeys": [
+        "file",
+        "diff"
+      ],
+      "diffLines": 7,
+      "diffChars": 140,
+      "containsEndpoint": false,
+      "diff": "@@\n export interface DeliveryConfig {\n-  label: string;\n+  displayLabel: string;\n   region: string;\n   priority: number;\n   retries: number;"
+    },
+    {
+      "id": "whole-interface-native-patch",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "requestCaptured": true,
+      "stateKeys": [
+        "file",
+        "diff"
+      ],
+      "diffLines": 14,
+      "diffChars": 269,
+      "containsEndpoint": true,
+      "diff": "@@\n export interface DeliveryConfig {\n-  label: string;\n+  displayLabel: string;\n   region: string;\n   priority: number;\n   retries: number;\n   timeoutMs: number;\n   owner: string;\n   account: string;\n   project: string;\n   tracking: boolean;\n   endpointUrl: string;\n }"
+    },
+    {
+      "id": "synthesized-context-three",
+      "sourceClass": "RUN",
+      "verificationState": "RUNTIME-TESTED",
+      "diffLines": 11,
+      "containsEndpoint": false,
+      "diff": "===================================================================\n--- a/subject.ts\n+++ b/subject.ts\n@@ -1,5 +1,5 @@\n export interface DeliveryConfig {\n-  label: string;\n+  displayLabel: string;\n   region: string;\n   priority: number;\n   retries: number;\n"
+    }
+  ],
+  "facts": [
+    {
+      "sourceClass": "SRC",
+      "verificationState": "SOURCE-INSPECTED",
+      "claim": "apply_patch forwards supplied per-file patch section verbatim; no fixed context line budget.",
+      "source": "src/lib/applyPatch.ts:28 and src/lib/diff.ts:168"
+    },
+    {
+      "sourceClass": "SRC",
+      "verificationState": "SOURCE-INSPECTED",
+      "claim": "Synthesized structuredPatch/unifiedDiff and Stop git diffs use context 3. Host structuredPatch is forwarded as supplied.",
+      "source": "src/lib/diff.ts:25, src/lib/git.ts:256"
+    },
+    {
+      "sourceClass": "SRC",
+      "verificationState": "SOURCE-INSPECTED",
+      "claim": "Post-edit runs per edited file separately, bounded at 24000 characters. Stop bounds each file at 8000 characters and groups rules by scoped touched-file sets.",
+      "source": "src/hooks/postToolUse.ts:67,88 and src/hooks/stop.ts:216 and src/lib/checkRunner.ts:113"
+    },
+    {
+      "sourceClass": "SRC",
+      "verificationState": "SOURCE-INSPECTED",
+      "claim": "Existing direct capture includes whole fixture prefix and replacement suffix, not localized three-context diff.",
+      "source": "/workspace/typescript/jev-worktrees/contextual-review-study/scripts/abide-quality-capture.mjs:33"
+    },
+    {
+      "sourceClass": "SRC",
+      "verificationState": "SOURCE-INSPECTED",
+      "claim": "Stop compares turn-start snapshot to final tree, retaining accumulated changed hunks with three context lines. It reruns edit rules for uncovered or blocked files; apply_patch after=null cannot establish edit coverage. Stop does not attach whole unchanged files or dependencies.",
+      "source": "src/hooks/stop.ts:128,251-283 and src/lib/git.ts:248-256"
+    },
+    {
+      "sourceClass": "SRC",
+      "verificationState": "SOURCE-INSPECTED",
+      "claim": "Task derives from latest user prompt or saved turn prompt, capped at 600 characters; not full agent conversation.",
+      "source": "src/lib/transcript.ts:42 and src/lib/session.ts:161"
+    }
+  ],
+  "fairnessChecks": [
+    "Freeze localized edits before outcomes; measure actual patch boundary in native sessions.",
+    "Keep whole-declaration replacement as a separate condition: native agent may expose all facts.",
+    "Capture Stop boundary too, because turn diff may recover broader changes.",
+    "Keep same rules, domain semantics, rename task and controls; avoid padding without product meaning.",
+    "Distinguish direct-capture condition from freely chosen native agent patch."
+  ],
+  "disconfirmations": [
+    "Entire interface creation/replacement includes all fields regardless of length.",
+    "Changing multiple distant fields produces multiple hunks showing related facts.",
+    "Task prompt itself can disclose domain requirements.",
+    "Three context lines each side often include more than seven original lines total."
+  ],
+  "upstream": {
+    "commit": "533a3d25d5d537bf9005f2f48ce5b18837fd5c74",
+    "sourceClass": "SRC",
+    "verificationState": "SOURCE-INSPECTED",
+    "matchedFiles": [
+      {
+        "path": "packages/cli/src/lib/diff.ts",
+        "sha256": "24cf15e3470303807009fbd719f07529b5cef22dac339e5397850c673032b166",
+        "matchesPublished": true
+      },
+      {
+        "path": "packages/cli/src/lib/applyPatch.ts",
+        "sha256": "f2ba98f21bf926ba8f0ac400473ceca596592337943b4d5496683ea1a9be6211",
+        "matchesPublished": true
+      },
+      {
+        "path": "packages/cli/src/hooks/postToolUse.ts",
+        "sha256": "5634f3634eb55456b4aba8d5ca33e7e9fb7f2138b2c4dc5063845520735744bc",
+        "matchesPublished": true
+      },
+      {
+        "path": "packages/cli/src/lib/checkRunner.ts",
+        "sha256": "9f480c6f1cb9a4c757c12f9c6ae1c92337843572eb07e34faa0d04f6d6a9c1fc",
+        "matchesPublished": true
+      },
+      {
+        "path": "packages/cli/src/hooks/stop.ts",
+        "sha256": "95b16614309145342a3fc247fc93233f57f33d40c854c26e844b740c618f9f9f",
+        "matchesPublished": true
+      },
+      {
+        "path": "packages/cli/src/lib/constants.ts",
+        "sha256": "e5bd94b3ba60fbcd316c3e163d9e335a133f0d517ec9264862f92d4bb07eb4fb",
+        "matchesPublished": true
+      },
+      {
+        "path": "packages/cli/src/lib/git.ts",
+        "sha256": "24995ddd3b70d4043b4cd59fcdd2efeaf6de4ad36286aff667aa0c87811bb551",
+        "matchesPublished": true
+      }
+    ]
+  },
+  "recommendedInstrumentation": {
+    "sourceFree": true,
+    "fields": [
+      "toolName",
+      "phase",
+      "fileCount",
+      "hunkCount",
+      "patchTotalLines",
+      "contextLines",
+      "addedLines",
+      "removedLines",
+      "patchChars",
+      "perFileDiffChars",
+      "perFileDiffLines",
+      "stateKeys",
+      "taskIncluded",
+      "taskChars",
+      "truncated",
+      "patchShapeCondition"
+    ],
+    "definitions": {
+      "contextLines": "Patch lines beginning one space, excluding metadata. Retain counts per hunk and file, not text.",
+      "addedLines": "Lines beginning + except +++ file headers.",
+      "removedLines": "Lines beginning - except --- file headers.",
+      "hunkCount": "Lines beginning @@.",
+      "patchTotalLines": "All supplied patch lines, including metadata; separate parsed section lines.",
+      "truncated": "Compare input section size with dispatched diff cap; 24000 edit, 8000 per file Stop."
+    },
+    "caution": "Line counts alone cannot prove which semantic facts were visible. Use known synthetic witness booleans declared before execution, such as siblingFieldIncluded or importedDefinitionIncluded, or offline replay of synthetic patches; do not retain source-bearing provider bodies."
+  }
+}

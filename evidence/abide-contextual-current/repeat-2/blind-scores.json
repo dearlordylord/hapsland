@@ -1,0 +1,1210 @@
+{
+  "version": 1,
+  "blinded": true,
+  "scorerDigest": "339a7529cb09c539ed8fe8fbd175f8234646a2216f8e1c1518ca77f43ee8bd18",
+  "typescriptVersion": "5.9.3",
+  "scores": [
+    {
+      "blindId": "05889700fa5e",
+      "caseId": "audio-encoding",
+      "sourceDigest": "fb1afaf5660cba6a8fe8d7d73c2e9964bf0430da12febe262854cb628741c942",
+      "supportingDigest": "93d1c274c947ed8684a0c371c4a3f73bd483550200402e34275838e122516c13",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "repaired",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "valid-44100-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-44100-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-48000-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-48000-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "11a4f2985fad",
+      "caseId": "build-provenance",
+      "sourceDigest": "b54b41a81b948f56793e20b12baeb88d224c415c899424374e2b8c84c8667eb7",
+      "supportingDigest": "51ad5c4fe325560a688b4a11627555a0b0179b4ed888ccc58708bfac0ea95471",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-a1-core",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-a1-core",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-a1-web",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-a1-web",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-b2-core",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-b2-core",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-b2-web",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-b2-web",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "2f97197eff36",
+      "caseId": "session-grant",
+      "sourceDigest": "8df944c6dd51d2f81243e4ad3a27d119d3fe328ce7937bc6f5b50797a9d3fe13",
+      "supportingDigest": "85d4a4b3b28567f9e042b9b77b1dc706cdc6ad625df3f1fb904ad5320f5015b2",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-read-north",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-read-north",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-read-south",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-read-south",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-write-north",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-write-north",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-write-south",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-write-south",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "401157351346",
+      "caseId": "clean-storage-repack",
+      "sourceDigest": "843e7e1e542e94fe688604c07ec9979267ad5934cde038a573fbe84c78c5a8fa",
+      "supportingDigest": "4dbb9f37959b79ccb13d33848a0de251119e4e671046a7845fba37a813a8ebe1",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "independent-none-1-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-1-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-2-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-2-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-1-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-1-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-2-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-2-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "480234eac583",
+      "caseId": "storage-envelope",
+      "sourceDigest": "0d3c1548cfa5cb480a52d2bd55e918ea3c7a2dcbc34359d150298be36916af4a",
+      "supportingDigest": "4dbb9f37959b79ccb13d33848a0de251119e4e671046a7845fba37a813a8ebe1",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-none-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-none-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-none-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-none-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-zstd-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-zstd-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-zstd-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-zstd-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "4b7f753b1ebd",
+      "caseId": "clean-storage-repack",
+      "sourceDigest": "843e7e1e542e94fe688604c07ec9979267ad5934cde038a573fbe84c78c5a8fa",
+      "supportingDigest": "4dbb9f37959b79ccb13d33848a0de251119e4e671046a7845fba37a813a8ebe1",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "independent-none-1-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-1-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-2-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-2-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-1-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-1-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-2-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-2-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "64214d2e3e91",
+      "caseId": "clean-audio-resampling",
+      "sourceDigest": "dd0a69342fb2dea5c3b40975a5822ae97ce18103509e262b55d326d898feb91d",
+      "supportingDigest": "93d1c274c947ed8684a0c371c4a3f73bd483550200402e34275838e122516c13",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "independent-44100-1-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-1-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-2-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-2-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-1-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-1-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-2-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-2-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "79e5b853fe42",
+      "caseId": "session-grant",
+      "sourceDigest": "8df944c6dd51d2f81243e4ad3a27d119d3fe328ce7937bc6f5b50797a9d3fe13",
+      "supportingDigest": "85d4a4b3b28567f9e042b9b77b1dc706cdc6ad625df3f1fb904ad5320f5015b2",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-read-north",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-read-north",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-read-south",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-read-south",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-write-north",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-write-north",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-write-south",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-write-south",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "942de5b5be79",
+      "caseId": "build-provenance",
+      "sourceDigest": "b54b41a81b948f56793e20b12baeb88d224c415c899424374e2b8c84c8667eb7",
+      "supportingDigest": "51ad5c4fe325560a688b4a11627555a0b0179b4ed888ccc58708bfac0ea95471",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-a1-core",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-a1-core",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-a1-web",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-a1-web",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-b2-core",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-b2-core",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-b2-web",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-b2-web",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "a0cfa981ef21",
+      "caseId": "audio-encoding",
+      "sourceDigest": "66f39b6d3a70e7954a3baab9c3084a23380eb0658cc3e4ba7914ac12bbeb40d2",
+      "supportingDigest": "93d1c274c947ed8684a0c371c4a3f73bd483550200402e34275838e122516c13",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-44100-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-44100-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-44100-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-44100-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-48000-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-48000-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-48000-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-48000-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "a2176c9f44cc",
+      "caseId": "clean-storage-repack",
+      "sourceDigest": "843e7e1e542e94fe688604c07ec9979267ad5934cde038a573fbe84c78c5a8fa",
+      "supportingDigest": "4dbb9f37959b79ccb13d33848a0de251119e4e671046a7845fba37a813a8ebe1",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "independent-none-1-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-1-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-2-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-none-2-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-1-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-1-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-2-none",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-zstd-2-zstd",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "a79fe2283e3e",
+      "caseId": "audio-encoding",
+      "sourceDigest": "66f39b6d3a70e7954a3baab9c3084a23380eb0658cc3e4ba7914ac12bbeb40d2",
+      "supportingDigest": "93d1c274c947ed8684a0c371c4a3f73bd483550200402e34275838e122516c13",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-44100-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-44100-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-44100-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-44100-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-48000-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-48000-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-48000-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-48000-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "c18fc7f9e87b",
+      "caseId": "clean-audio-resampling",
+      "sourceDigest": "dd0a69342fb2dea5c3b40975a5822ae97ce18103509e262b55d326d898feb91d",
+      "supportingDigest": "93d1c274c947ed8684a0c371c4a3f73bd483550200402e34275838e122516c13",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "independent-44100-1-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-1-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-2-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-2-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-1-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-1-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-2-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-2-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "c7c348a06943",
+      "caseId": "storage-envelope",
+      "sourceDigest": "84aa2d4b00d5e5592b114b14eb52894f8d8ab5909f0f788370cbb7e8b565c4c5",
+      "supportingDigest": "4dbb9f37959b79ccb13d33848a0de251119e4e671046a7845fba37a813a8ebe1",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "repaired",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "valid-none-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-none-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-zstd-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-zstd-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "dc9c10541a0f",
+      "caseId": "build-provenance",
+      "sourceDigest": "65cedfa36c5e8d80d60a82bb13c7fe03ad22d651d3797a45dd8973a86e30f3cb",
+      "supportingDigest": "51ad5c4fe325560a688b4a11627555a0b0179b4ed888ccc58708bfac0ea95471",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "repaired",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "valid-a1-core",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-a1-web",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-b2-core",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-b2-web",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "e1498c41a66d",
+      "caseId": "storage-envelope",
+      "sourceDigest": "0d3c1548cfa5cb480a52d2bd55e918ea3c7a2dcbc34359d150298be36916af4a",
+      "supportingDigest": "4dbb9f37959b79ccb13d33848a0de251119e4e671046a7845fba37a813a8ebe1",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 4,
+      "checks": [
+        {
+          "label": "valid-none-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-none-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-none-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-none-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-zstd-1",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-zstd-1",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-zstd-2",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "mismatch-zstd-2",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "e6eb1f1ed9f4",
+      "caseId": "session-grant",
+      "sourceDigest": "d6666bf5f19582941521f120710ebb557554248fe253251549ab6ad31df910a2",
+      "supportingDigest": "85d4a4b3b28567f9e042b9b77b1dc706cdc6ad625df3f1fb904ad5320f5015b2",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": true,
+      "status": "repaired",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "valid-read-north",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-read-south",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-write-north",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "valid-write-south",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    },
+    {
+      "blindId": "f9057a5e64ef",
+      "caseId": "clean-audio-resampling",
+      "sourceDigest": "dd0a69342fb2dea5c3b40975a5822ae97ce18103509e262b55d326d898feb91d",
+      "supportingDigest": "93d1c274c947ed8684a0c371c4a3f73bd483550200402e34275838e122516c13",
+      "exported": true,
+      "compiles": true,
+      "presentationRename": true,
+      "shapeKnown": true,
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "independent-44100-1-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-1-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-2-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-44100-2-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-1-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-1-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-2-44100",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "independent-48000-2-48000",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite-domain witnesses; unknown shapes and rejected valid values receive no repair credit. Removed duplicate fields are allowed; clean independent fields must remain. Structural variable assignment avoids excess-property-only credit."
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T23:26:55.934Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "coverage-cache-retention",
+      "candidate": "baseline",
+      "blindId": "97f711568c5f"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-cache-retention",
+      "candidate": "hapsland",
+      "blindId": "5a60c78905ac"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-cache-retention",
+      "candidate": "abide",
+      "blindId": "171e4547ae98"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-document-signature",
+      "candidate": "hapsland",
+      "blindId": "9fa9ee4ff93b"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-document-signature",
+      "candidate": "abide",
+      "blindId": "67570751a24f"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-document-signature",
+      "candidate": "baseline",
+      "blindId": "a4d6c9bb47b0"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-cache-variant",
+      "candidate": "abide",
+      "blindId": "16b66907c062"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-cache-variant",
+      "candidate": "baseline",
+      "blindId": "f60e078bc980"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-cache-variant",
+      "candidate": "hapsland",
+      "blindId": "5957ebef1c78"
+    }
+  ],
+  "attempts": 157,
+  "hostUncachedPlusOutputTokens": 137766
+}

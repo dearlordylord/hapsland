@@ -60,6 +60,16 @@ ignore them. Hapsland does not override that choice. An agent's decision not to
 repair is not, by itself, a delivery failure; nor does submission prove that the
 agent saw the advice and chose to ignore it.
 
+The human-readable finding message has one runtime-neutral owner. All supported
+runtime envelopes carry the same heading and response instructions: check the
+findings, fix valid issues and verify, or explain a disagreement. Each finding
+names its file and declaration and carries its configured message; rule IDs
+and classification probabilities are internal metadata. These instructions request a
+response; they do not override governing agent instructions or turn a positive
+classification into mandatory acceptance. Messages containing only operational
+notices do not request repairs. Runtime adapters own transport and the existing
+blocking decision, not alternative response wording.
+
 Native delivery-and-repair tests must explicitly instruct the fixture agent to
 act on every actionable Hapsland finding it receives. Apply the same policy to
 both before and after runs, and record the instruction mechanism with the

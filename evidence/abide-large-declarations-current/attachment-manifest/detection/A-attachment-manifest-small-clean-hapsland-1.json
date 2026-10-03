@@ -1,0 +1,103 @@
+{
+  "stage": "A",
+  "caseId": "attachment-manifest-small-clean",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "2ddec469ba952059676733f28d7bb796f5904b5aff04ef87b7bd1db08d10c9fa",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r4_duplicate_encoding"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r4_duplicate_encoding"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "a5ca4af0-d112-457e-8eb9-239e084f971f",
+      "at": 1790989778118,
+      "candidate": "hapsland",
+      "caseId": "attachment-manifest-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1803,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r4_duplicate_encoding"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "a5ca4af0-d112-457e-8eb9-239e084f971f",
+      "at": 1790989778118,
+      "candidate": "hapsland",
+      "caseId": "attachment-manifest-small-clean",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 161,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 834,
+        "output_tokens": 23
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

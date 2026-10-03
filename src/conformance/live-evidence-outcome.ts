@@ -1,3 +1,4 @@
+import { REVIEW_FEEDBACK_HEADING, REVIEW_FEEDBACK_INSTRUCTIONS } from "../feedback/message.ts";
 type Stats = {
   readonly status: "stats";
   readonly queued: number;
@@ -25,8 +26,8 @@ export const classifyHookOutput = (value: unknown): HostOutputKind => {
   if (hook === undefined) return Object.keys(output ?? {}).length === 0 ? "none" : "invalid";
   if (hook.hookEventName !== "PostToolUse" || typeof hook.additionalContext !== "string") return "invalid";
   const lines = hook.additionalContext.split("\n").filter((line) => line.length > 0);
-  if (lines[0] !== "Advisory direct-event review (the edit already succeeded):") return "invalid";
-  const body = lines.slice(1);
+  if (lines[0] !== REVIEW_FEEDBACK_HEADING) return "invalid";
+  const body = lines.slice(1).filter((line) => line !== REVIEW_FEEDBACK_INSTRUCTIONS);
   const notices = body.filter((line) => line.startsWith("Operational notice:"));
   const findings = body.length - notices.length;
   return outputBodyKind(findings, notices.length);
