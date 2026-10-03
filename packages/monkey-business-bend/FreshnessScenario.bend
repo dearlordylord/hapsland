@@ -49,9 +49,12 @@ def retain(state: State, +scope: Scope, source: Source, generation: Nat) -> Stat
   match state:
     case State{bindings}: State{Binding{scope, source, generation} <> remove(bindings, scope)}
 
-def registration(source: Source) -> Driver.Action:
+def registration_member(source: Source, add_member: Bool) -> Driver.Action:
   match source:
-    case Source{subject, input}: Driver.immediate(Canonical.RevisionRegister{subject, input, False{}}, False{})
+    case Source{subject, input}: Driver.immediate(Canonical.RevisionRegister{subject, input, add_member}, False{})
+
+def registration(source: Source) -> Driver.Action:
+  registration_member(source,False{})
 
 # Call only with the command emitted by this actual registration transition;
 # rejected admission must never publish registration or change these captures.

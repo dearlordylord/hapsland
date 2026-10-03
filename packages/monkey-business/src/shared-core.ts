@@ -77,8 +77,8 @@ export class SharedCore {
     });
     return { changed, cleanup, events };
   }
-  admitFreshness(scope: FreshnessScope, source: FreshnessSource, index: number) {
-    const transition = admitSharedFreshness(this.state, encodeFreshnessScope(scope), encodeFreshnessSource(source), index);
+  admitFreshness(scope: FreshnessScope, source: FreshnessSource, index: number, sharing = false) {
+    const transition = admitSharedFreshness(this.state, encodeFreshnessScope(scope), encodeFreshnessSource(source), index, sharing);
     this.state = transition.state;
     return transition.actions;
   }

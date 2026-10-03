@@ -629,6 +629,23 @@ def freshness_admitted(+state: Types.State, +scope: FreshnessScenario.Scope, sou
         FreshnessAdmission{state,None{},[]})
     case _ _: FreshnessAdmission{state,None{},[]}
 
+# Shared membership is one accepted original admission, not one unit. Reused
+# source registration increments once here; new/replaced source membership is
+# still initialized by actual Canonical.RevisionRegister semantics.
+def sharing_admission_result(admission: FreshnessAdmission) -> FreshnessAdmission:
+  match admission:
+    case FreshnessAdmission{state,Some{+source},_}:
+      FreshnessAdmission{state,Some{source},[FreshnessScenario.registration_member(source,True{})]}
+    case FreshnessAdmission{state,None{},_}: FreshnessAdmission{state,None{},[]}
+
+def sharing_admission_found(+state: Types.State, scope: FreshnessScenario.Scope, source: FreshnessScenario.Source, command: Canonical.Command, known: Maybe<&2,FreshnessScenario.Binding>) -> FreshnessAdmission:
+  match known:
+    case Some{_}: FreshnessAdmission{state,None{},[]}
+    case None{}: sharing_admission_result(freshness_admitted(state,scope,source,command))
+
+def sharing_admitted(+state: Types.State, +scope: FreshnessScenario.Scope, source: FreshnessScenario.Source, command: Canonical.Command) -> FreshnessAdmission:
+  sharing_admission_found(state,scope,source,command,FreshnessScenario.lookup(FreshnessScenario.bindings(freshness_state(state)),scope))
+
 def freshness_current(+state: Types.State, scope: FreshnessScenario.Scope) -> Maybe<&2,Bool>:
   FreshnessScenario.current(freshness_state(state),canonical(state),scope)
 

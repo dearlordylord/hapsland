@@ -375,11 +375,11 @@ export const replaceSharedCallbacks = (state: EngineState, orders: readonly numb
   return retain(state, SharedEngine.callback_replaced(state, encodeSharedValue(encoded)));
 };
 
-export const admitSharedFreshness = (state: EngineState, scope: unknown, source: unknown, index: number) => {
+export const admitSharedFreshness = (state: EngineState, scope: unknown, source: unknown, index: number, sharing = false) => {
   sharedCheck(state);
   const command = sharedCommands.get(state)?.[index];
   if (!command) throw new RangeError("missing shared admission command");
-  const transition = SharedEngine.freshness_admitted(state, encodeSharedValue(scope), encodeSharedValue(source), command);
+  const transition = (sharing ? SharedEngine.sharing_admitted : SharedEngine.freshness_admitted)(state, encodeSharedValue(scope), encodeSharedValue(source), command);
   return { state: retain(state, transition.state), actions: decodeSharedValue(transition.actions) };
 };
 export const sharedFreshnessChecks = (state: EngineState, scope: unknown): unknown => {
