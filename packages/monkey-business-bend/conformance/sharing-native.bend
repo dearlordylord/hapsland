@@ -1,9 +1,18 @@
 import Base
-import ./sharing-native-driver.bend as Sharing
-import ./minimal-scenario.bend as Minimal
+import ./sharing-original-inputs.bend as Inputs
+import ./sharing-observed-wire.bend as Sharing
+import ./callback-native-codec.bend as Codec
 
-# Original deterministic scenarios; no recorded JavaScript output is imported.
-# Central sharing_edit_attempt / sharing_leave / sharing_leave_all are explicit
-# missing TDD prerequisites, not bypassed by test-owned routing or settlement.
+# Aggregate convenience entrypoint. Mandatory conformance runs each of these
+# seven full original envelopes from its own fresh finite native root.
+def original(value: Inputs.Case) -> String:
+  Codec.render(Codec.sharing_scenarios([Sharing.original(Inputs.original_case(value))],[]))
+
+def json() -> String:
+  String.concat(["[",original(Inputs.Baseline{}),",",original(Inputs.JoinedLeaves{}),",",
+    original(Inputs.OwnerLeaves{}),",",original(Inputs.OtherPartition{}),",",
+    original(Inputs.AllLeave{}),",",original(Inputs.JoinAdvice{}),",",
+    original(Inputs.SupersededMember{}),"]"])
+
 def main() -> IO(Unit):
-  IO.print("[" ++ Minimal.show_traces([Sharing.run(0n),Sharing.run(1n),Sharing.run(2n),Sharing.run(3n),Sharing.run(4n),Sharing.run(5n)]) ++ "]")
+  IO.print(json())

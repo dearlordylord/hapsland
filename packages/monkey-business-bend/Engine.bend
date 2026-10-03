@@ -161,8 +161,13 @@ def scenarios(state: Types.State) -> RuntimeScenarios.State:
   match state:
     case Types.State{_, _, _, _, _, _, _, _, _, _, _, _, scenarios}: scenarios
 
+def handle_output(+state: Types.State, +event: Canonical.CanonicalEvent, +command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
+  match command:
+    case Canonical.SubmissionExpired{}: Driver.Handled{True{},OutputCompletion.feedback(command,event)}
+    case command: handle_cached(state,event,command,context,SharingRuntime.cached_review(RuntimeScenarios.sharing(scenarios(state)),command))
+
 def handle(+state: Types.State, +event: Canonical.CanonicalEvent, +command: Canonical.Command, +context: Driver.Context) -> Driver.Handled:
-  CollectionScenario.handled(RuntimeScenarios.collection(scenarios(state)),command,context,handle_cached(state,event,command,CollectionScenario.driver_context(RuntimeScenarios.collection(scenarios(state)),context,False{}),SharingRuntime.cached_review(RuntimeScenarios.sharing(scenarios(state)),command)))
+  CollectionScenario.handled(RuntimeScenarios.collection(scenarios(state)),command,context,handle_output(state,event,command,CollectionScenario.driver_context(RuntimeScenarios.collection(scenarios(state)),context,False{})))
 
 def edit(state: Types.State, partition: Nat, lifetime: Nat) -> Driver.EditPlan:
   Driver.edit(canonical(state), partition, lifetime)
@@ -644,6 +649,9 @@ def output_intervened(state: Types.State, changed: OutputCompletion.Intervention
 
 def output_intervene(+state: Types.State, target: Callbacks.Target, outcome: OutputScenario.Outcome, receipt: Maybe<&2,Callbacks.Fact>) -> OutputIntervention:
   output_intervened(state,OutputCompletion.intervene_receipt(callback_state(state),target,outcome,receipt,queued(state),clock(state)))
+
+def output_initial(capture: OutputScenario.Capture, terminal_only: Bool) -> List<&2,Driver.Action>:
+  OutputScenario.initial_actions(capture,terminal_only)
 
 def output_deliver(receipt: Callbacks.Fact, now: Nat) -> Maybe<&2,Driver.Action>:
   OutputCompletion.delivered_fact(receipt,now)

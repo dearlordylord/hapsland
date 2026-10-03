@@ -1,3 +1,6 @@
+import SharedEngine from "../../monkey-business-bend/engine.mjs";
+import { encodeSharedValue, decodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
+import { decodeDriver } from "./driver-codec.ts";
 import { Schema } from "effect";
 import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 
@@ -87,3 +90,10 @@ export function decodeOutputCapture(value: unknown): OutputCapture {
 }
 export type OutputAttemptObservation = { readonly target: typeof CallbackTargetSchema.Type; readonly capture: OutputCapture;
   readonly issuedAt: number; readonly dueAt: number; readonly scheduledOrder: number; readonly delivery: "scheduled" | "held" | "dropped" };
+
+// Validate the complete returned action list before any host queue publication.
+export function initialOutputActions(value: unknown, terminalOnly = false) {
+  const capture = validateOutputCapture(value);
+  const actions = SharedEngine.output_initial(encodeSharedValue(encodeOutputCapture(capture)), terminalOnly);
+  return decodeDriver({ handled: true, actions: decodeSharedValue(actions) }).actions;
+}

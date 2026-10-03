@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateNativeFixture } from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
@@ -31,8 +31,27 @@ export function runWorkloadNative(fixture) {
   }
 }
 
+// Fresh emitted-JS execution is an independent diagnostic/validation axis. It
+// never reuses a native result or substitutes for the native gate above.
+export function runWorkloadEmitted(fixture) {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-js-"));
+  try {
+    const source = join(directory, "scenario.mjs");
+    checked("bend", [fileURLToPath(fixture), "-o", source], 5000);
+    const program = join(directory, "execute.mjs");
+    writeFileSync(program, `import Fixture from ${JSON.stringify(pathToFileURL(source).href)};
+const value = Fixture.json();
+if (typeof value !== "string") throw new TypeError("compiler JSON String ABI changed");
+process.stdout.write(value);
+`);
+    return JSON.parse(checked(process.execPath, [program], 5000));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
 function checked(command, arguments_, timeout) {
-  const result = spawnSync(command, arguments_, { encoding: "utf8", timeout });
+  const result = spawnSync(command, arguments_, { encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024 });
   if (result.error || result.status !== 0) {
     throw new Error(`${command} failed (${result.error?.code ?? result.status}): ${result.stderr}`, {
       cause: result.error,

@@ -65,7 +65,7 @@ def selected_count(attempt: Attempt) -> Nat:
 def late_ack(late: Bool, count: Nat, delay: Nat, actions: List<&2,Driver.Action>) -> List<&2,Driver.Action>:
   match late:
     case False{}: actions
-    case True{}: List.append(&2,Driver.Action,actions,[action(Canonical.DeliveryAcknowledgeCheck{count,True{}},delay)])
+    case True{}: action(Canonical.DeliveryAcknowledgeCheck{count,True{}},delay) <> actions
 
 def due(outcome: Outcome, delay: Nat, lease: Nat) -> Nat:
   match outcome:
@@ -92,6 +92,23 @@ def issued(capture: Capture) -> List<&2,Driver.Action>:
     case Capture{+attempt,_,+outcome,+delay,+lease}:
       late_ack(late(outcome,delay,lease),selected_count(attempt),delay,
         terminal(attempt,outcome,expired(outcome,delay,lease),due(outcome,delay,lease),lease))
+
+# A failed individual already released its own resources. Its enclosing Finish
+# receives only the actual owner-generated terminal, never member releases twice.
+def finish_terminal_tail(+action: Driver.Action, tail: List<&2,Driver.Action>) -> List<&2,Driver.Action>:
+  match action:
+    case Driver.Action{Canonical.FinishTerminal{_,_,_,_,_,_},_,_,_,_}: action <> tail
+    case _: tail
+
+def finish_terminals(actions: List<&2,Driver.Action>) -> List<&2,Driver.Action>:
+  match actions:
+    case Nil{}: []
+    case action <> tail: finish_terminal_tail(action,finish_terminals(tail))
+
+def initial_actions(capture: Capture, terminal_only: Bool) -> List<&2,Driver.Action>:
+  match terminal_only:
+    case False{}: issued(capture)
+    case True{}: finish_terminals(issued(capture))
 
 # Candidate initial-path law, conditional on known pre-output failure provenance.
 # It does NOT describe an observed failed postauthorization completion control.

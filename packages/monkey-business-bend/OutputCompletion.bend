@@ -23,6 +23,14 @@ type Provenance is Data:
   EnvironmentCompletion{}
   CanonicalFeedback{}
 
+# Actual expiry-command feedback is a new logical observation, not another
+# environmental write completion. The original event supplies its exact tuple.
+def feedback(command: C.Command, event: C.CanonicalEvent) -> List<&2,Driver.Action>:
+  match command event:
+    case C.SubmissionExpired{} C.SubmissionExpiryCheck{advice,token,_,_}:
+      [Output.action(C.SubmissionTerminal{advice,token,False{}},0n)]
+    case _ _: []
+
 def elapsed(started: Nat, now: Nat) -> Nat:
   Nat.sub(now,started)
 
@@ -122,21 +130,6 @@ def replace(fact: Callbacks.Fact, capture: Output.Capture, target: Callbacks.Tar
   match fact:
     case Callbacks.Fact{+original,+at,+action,completion}:
       replace_matching(Callbacks.target_equal(original,target),Callbacks.Fact{original,at,action,completion},capture,outcome,provenance)
-
-# Finite native edge adapter only: original authorized actions are generated
-# once from a healthy capture; the original completion alone gets the fault.
-def keep(result: Maybe<&2,Driver.Action>, original: Driver.Action) -> Driver.Action:
-  match result:
-    case Some{action}: action
-    case None{}: original
-
-def rewrite_actions(actions: List<&2,Driver.Action>, +capture: Output.Capture,
-    +outcome: Output.Outcome, +started: Nat) -> List<&2,Driver.Action>:
-  match actions:
-    case Nil{}: Nil{}
-    case Driver.Action{+event,+delay,+candidate,+job,+expiry} <> tail:
-      keep(rewrite(capture,Driver.Action{event,delay,candidate,job,expiry},outcome,(started + delay : Nat),EnvironmentCompletion{}),Driver.Action{event,delay,candidate,job,expiry}) <>
-        rewrite_actions(tail,capture,outcome,started)
 
 # The replacement gate inspects the actual queued original, not a caller-owned
 # receipt or an independently reconstructed action. Immutable issuance time and

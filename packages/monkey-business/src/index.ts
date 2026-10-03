@@ -1,5 +1,5 @@
 import { type CollectionResponseControl, type CollectionResponseIdentity, type CollectionResponseReport } from "./collection-scenario.ts";
-import { decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
+import { initialOutputActions, decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
 export * from "./output-controls.ts";
 import type { SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
 import { captureSharingIdentityFacts, encodeSharingKey, sharingIdentityLabel, type SharingIdentityFacts } from "./sharing-controls.ts";
@@ -782,7 +782,8 @@ export class Run {
       const output = (command.kind === "submissionAuthorized" || (command.kind === "submissionBegun" && event.kind === "submissionBegin" && event.authorizeNow))
         && (action.event.kind === "submissionTerminal" || action.event.kind === "submissionExpiryCheck")
         ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
-      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, "environment", output);
+      const provenance = command.kind === "submissionExpired" ? "canonicalFeedback" : "environment";
+      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, provenance, output);
       if (item.responseOrigin && action.event.kind !== "submissionTerminal" && action.event.kind !== "submissionExpiryCheck"
         && action.event.kind !== "collectionLeaseCheck" && action.event.kind !== "collectionReleaseLease") {
         const scheduled = this.scheduled.get(this.order - 1);
@@ -834,6 +835,14 @@ export class Run {
       return this.step(untilTime);
     }
     const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
+    const emitInitialOutput = (capture: OutputCapture, terminalOnly = false) => {
+      const actions = initialOutputActions(capture, terminalOnly);
+      for (const action of actions) {
+        const completion = capture.profile.outcome !== "failed" &&
+          ["submissionTerminal", "submissionExpiryCheck", "finishTerminal"].includes(action.event.kind) ? capture : undefined;
+        emit(action.event, action.delay, undefined, action.expiryAdvice, completion);
+      }
+    };
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
       const before = this.projection;
@@ -1200,8 +1209,8 @@ export class Run {
           break;
         case "submissionBegun":
           if (event.kind === "submissionBegin" && this.outputProfile.outcome === "failed") {
-            emit({ kind: "submissionRelease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
-            emit({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
+            emitInitialOutput({ attempt: { kind: "individual", advice: event.advice, token: event.token },
+              started: this.clock, profile: { ...this.outputProfile } });
             break;
           }
           if (event.kind !== "submissionBegin" || !event.authorizeNow) break;
@@ -1219,27 +1228,11 @@ export class Run {
           const profile = this.outputProfile;
           const capture: OutputCapture = { attempt: { kind: "individual", advice: event.advice, token: event.token }, started: this.clock, profile: { ...profile } };
           if (driven) break;
-          if (profile.outcome === "failed") {
-            emit({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
-            emit({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, profile.delayMs);
-            if (finish && event.token === finish.token)
-              emit({ kind: "finishTerminal", group: partition, round: finish.round,
-                attempt: finish.attempt, token: event.token, selected: finish.selected,
-                outcome: "failed" }, profile.delayMs);
-          } else {
-            const due = Math.min(profile.delayMs, profile.leaseMs);
-            if (profile.delayMs > profile.leaseMs)
-              emit({ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, profile.delayMs);
-            if (profile.delayMs >= profile.leaseMs)
-              emit({ kind: "submissionExpiryCheck", advice: event.advice, token: event.token,
-                elapsed: profile.leaseMs, lifetime: profile.leaseMs }, due, undefined, undefined, capture);
-            else emit({ kind: "submissionTerminal", advice: event.advice, token: event.token,
-              certain: profile.outcome === "certain" }, due, undefined, undefined, capture);
-            emit({ kind: "collectionLeaseCheck", advice: event.advice, token: event.token,
-              expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
-              reofferable: false }, due);
-            emit({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, due);
-          }
+          emitInitialOutput(capture);
+          if (profile.outcome === "failed" && finish && event.token === finish.token)
+            emitInitialOutput({ attempt: { kind: "finish", group: partition, round: finish.round,
+              attempt: finish.attempt, token: event.token, selected: [...finish.selected] },
+              started: this.clock, profile: { ...profile } }, true);
           break;
         }
         case "retainCandidate":
@@ -1252,9 +1245,7 @@ export class Run {
           break;
         }
         case "submissionExpired":
-          if (event.kind === "submissionExpiryCheck")
-            this.event(partition, { kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false },
-              0, undefined, undefined, "canonicalFeedback");
+          if (!driven) throw new Error("unhandled shared output expiry feedback");
           break;
         case "submissionUnsuppressed":
           if (driven) break;
@@ -1399,28 +1390,7 @@ export class Run {
           effects.push({ kind: "output", phase: "started", advices: [...f.selected] });
           const profile = this.outputProfile;
           const capture: OutputCapture = { attempt: { kind: "finish", group: partition, round: f.round, attempt: f.attempt, token: f.token, selected: [...f.selected] }, started: this.clock, profile: { ...profile } };
-          if (profile.outcome === "failed") {
-            emit({ kind: "finishTerminal", group: partition, round: f.round,
-              attempt: f.attempt, token: f.token, selected: f.selected, outcome: "failed" }, profile.delayMs);
-            for (const advice of f.selected) {
-              emit({ kind: "submissionRelease", advice, token: f.token }, profile.delayMs);
-              emit({ kind: "collectionReleaseLease", advice, token: f.token }, profile.delayMs);
-            }
-          } else {
-            const due = Math.min(profile.delayMs, profile.leaseMs);
-            if (profile.delayMs > profile.leaseMs)
-              emit({ kind: "deliveryAcknowledgeCheck", items: f.selected.length, anyExpired: true }, profile.delayMs);
-            emit({ kind: "finishTerminal", group: partition, round: f.round,
-              attempt: f.attempt, token: f.token, selected: f.selected,
-              outcome: profile.delayMs >= profile.leaseMs || profile.outcome === "uncertain"
-                ? "unknown" : "acknowledged" }, due, undefined, undefined, capture);
-            for (const advice of f.selected) {
-              emit({ kind: "collectionLeaseCheck", advice, token: f.token,
-                expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
-                reofferable: false }, due);
-              emit({ kind: "collectionReleaseLease", advice, token: f.token }, due);
-            }
-          }
+          emitInitialOutput(capture);
           break;
         }
         case "finishRecorded": {

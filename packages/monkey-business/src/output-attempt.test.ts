@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run } from "./index.ts";
 import type { OutputAttemptControl } from "./output-controls.ts";
-import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { decodeOutputNativeBoundary, outputPublicBoundary } from "./output-native-boundary.ts";
+import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const snapshot = (run: Run) => run.observe();
 const settings = (outcome: "certain" | "uncertain" | "failed", delayMs = 5, leaseMs = 10) => ({
@@ -25,11 +26,12 @@ const issued = (run: Run) => {
   expect(run.projection.collection.leases).toHaveLength(1);
   return target;
 };
-const outputCodes: Record<string, number> = { submissionTerminal: 18, collectionLeaseCheck: 19,
-  collectionReleaseLease: 20, submissionRelease: 40, submissionExpiryCheck: 41, deliveryAcknowledgeCheck: 42 };
 
 it("compares original authorized output scripts with native Bend and preserves early/mid/late ownership", () => {
-  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/output-scenario-native.bend", import.meta.url)) as number[][][];
+  const fixture = new URL("../../monkey-business-bend/conformance/output-scenario-native.bend", import.meta.url);
+  const nativeWords = runWorkloadNative(fixture), emittedWords = runWorkloadEmitted(fixture);
+  expect(nativeWords).toEqual(emittedWords);
+  const native = decodeOutputNativeBoundary(nativeWords), emitted = decodeOutputNativeBoundary(emittedWords);
   const cases = [
     { outcome: "certain", delayMs: 5 }, { outcome: "uncertain", delayMs: 5 },
     { outcome: "failed", delayMs: 5 }, { outcome: "certain", delayMs: 10 }, { outcome: "certain", delayMs: 11 },
@@ -39,7 +41,11 @@ it("compares original authorized output scripts with native Bend and preserves e
     // postauthorization fault, distinct from failed PRE output preparation.
     const run = createRun(settings("certain", selected.delayMs));
     const target = issued(run);
+    expect(target.owner).toEqual({ partition: 1, lifetime: 1, round: 1, operation: 3 });
+    const beforeControl = run.projection;
     run.applyControl({ kind: "outputAttempt", target, outcome: selected.outcome });
+    const report = snapshot(run).outputReports.at(-1)!;
+    const controls = [{ time: report.at, before: beforeControl, after: run.projection, control: report.control, result: report.result }];
     expect(snapshot(run).outputReports.at(-1)?.result).toBe("applied");
     const authorized = structuredClone(run.projection.delivery.submissions.batches[0]);
     run.applyControl({ kind: "outputProfile", outcome: "certain", delayMs: 0, leaseMs: 1 });
@@ -48,9 +54,17 @@ it("compares original authorized output scripts with native Bend and preserves e
     expect(run.projection.delivery.submissions.batches[0]?.phase).toBe("authorized");
     expect(run.projection.collection.leases).toHaveLength(1);
     run.advance({ untilTime: 20, maxEvents: 100 });
-    const actual = run.observations.filter(frame => outputCodes[frame.event.kind] !== undefined)
-      .map(frame => [outputCodes[frame.event.kind], frame.time, Number(!!frame.rejection), frame.after.global.items, frame.after.global.bytes]);
-    expect(native[index]?.filter(row => outputCodes && Object.values(outputCodes).includes(row[0]!)).map(row => row.slice(0, 5))).toEqual(actual);
+    const actual = outputPublicBoundary(run.observe(), controls);
+    expect(native[index]).toEqual(actual);
+    expect(emitted[index]).toEqual(actual);
+    // Independent source literals pin both lanes before differential agreement:
+    // one retained finding costs five bytes; no physical request/output lease
+    // remains, while certainty/uncertainty still follows the original deadline.
+    expect(native[index]).toMatchObject({ boundary: { endpoint: { projection: {
+      global: { items: 1, bytes: 5 }, dispatch: { requests: [] }, collection: { leases: [] },
+    } } }, controls: [{ time: 7, result: "applied" }], attempts: [] });
+    expect(run.observations.find(frame => frame.event.kind === "jevRequestStarted")?.event)
+      .toMatchObject({ partition: 1, lifetime: 1, round: 1, operation: 3, request: 4 });
     expect(run.projection.collection.leases).toEqual([]);
     expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toHaveLength(1);
     expect(run.projection.delivery.submissions.batches[0]?.phase).toBe(selected.outcome === "certain" && selected.delayMs < 10 ? "submitted" : "uncertain");

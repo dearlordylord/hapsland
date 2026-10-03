@@ -44,6 +44,27 @@ Run API. These checks are deterministic, finite and offline. They establish
 selected execution-lane agreement, not correctness of the compiler or native
 agent integration.
 
+The sharing original-input gate is
+`npx vitest run packages/monkey-business/src/sharing-native.test.ts --maxWorkers=1`.
+It requires all seven finite roots: baseline, joined departure, owner departure,
+another partition, last-member departure, joining live advice, and a superseded
+joined member. Every root starts with its original configuration and edits;
+native and emitted JavaScript retain the full typed owner envelope, then compare
+Canonical/Graph events, states, commands, rejection, scopes, receipts, controls,
+advance endpoints and ordinary replay with the independent public scenarios.
+The aggregate `conformance/sharing-native.bend` remains a convenience entrypoint;
+the mandatory gate runs each original separately. Native phases retain fresh
+five-second C emission, fifteen-second clang and five-second execution bounds;
+emitted JavaScript uses separate fresh five-second emission/execution phases.
+An earlier checker pass does not establish any of those execution results.
+
+Python 3 is a development prerequisite for the one shared private prefix codec.
+Run `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py`
+after changing a serialized owner declaration, and add `--check` to reject stale
+typed encoders, descriptors or owner source hashes. The original six callback
+roots retain their default envelope and assertions. Sharing extends the same
+generator and descriptor decoder; it does not maintain a copied schema or policy.
+
 `LAWS.bend` proposes four exact primitive statements for arbitrary Nat identities,
 times and finite queue tails: empty insertion retains the selected identity/time;
 a take consumes exactly the head and preserves its tail; NeverSent emits exactly

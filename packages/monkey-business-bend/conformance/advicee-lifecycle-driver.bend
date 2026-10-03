@@ -2,6 +2,7 @@ import Base
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Driver.bend as Driver
+import ../OutputScenario.bend as Output
 import ../Advicees.bend as Advicees
 import ../AdviceeScope.bend as Scope
 import ../AdviceeLifecycle.bend as Lifecycle
@@ -11,6 +12,8 @@ import ../TreeFacts.bend as TreeFacts
 import ../PreparationScenario.bend as Preparation
 import ../Workload.bend as Workload
 import ../Session.bend as Session
+import ../CacheRuntime.bend as CacheRuntime
+import ../SharingRuntime.bend as SharingRuntime
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ../../agent-flow-bend/ImportGraph.bend as Graph
 import ../../agent-flow-bend/Ledger.bend as Ledger
@@ -28,6 +31,7 @@ type Input is Data:
   Event{action: Driver.Action, job: Job}
   Fact{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, position: Nat, event: Graph.GraphEvent}
   Arrival{event: Workload.Emission, lifetime: Nat}
+  Cache{fact: CacheRuntime.Fact, job: Job}
   Missing{}
 type Item is Data:
   Item{at: Nat, order: Nat, input: Input}
@@ -193,13 +197,17 @@ def round(state: Canonical.State, partition: Nat) -> Nat:
     case Canonical.State{_, rounds, _, _, _, _, _, _, _}:
       round_value(Canonical.find_round(partition, rounds))
 
-def facts(events: List<&2, Graph.GraphEvent>, queue: Queue, +partition: Nat, +lifetime: Nat,
-    +round: Nat, +operation: Nat, +now: Nat, +position: Nat, +count: Nat) -> Queue:
+def facts_with(events: List<&2,Graph.GraphEvent>, queue: Queue, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +now: Nat, +position: Nat, +count: Nat, +delay: Nat) -> Queue:
   match events:
-    case Nil{}: queue
+    case []: queue
     case event <> tail:
-      facts(tail, append(queue, Nat.add(now, Engine.preparation_fact_time(2n, position, count)),
-        Fact{partition, lifetime, round, operation, position, event}), partition, lifetime, round, operation, now, Nat.add(position, 1n), count)
+      facts_with(tail,append(queue,Nat.add(now,Engine.preparation_fact_time(delay,position,count)),
+        Fact{partition,lifetime,round,operation,position,event}),partition,lifetime,round,operation,now,Nat.add(position,1n),count,delay)
+
+def facts(events: List<&2,Graph.GraphEvent>, queue: Queue, partition: Nat, lifetime: Nat,
+    round: Nat, operation: Nat, now: Nat, position: Nat, count: Nat) -> Queue:
+  facts_with(events,queue,partition,lifetime,round,operation,now,position,count,2n)
 
 def command_rows(list: List<&2, Canonical.Command>, +before: Types.State, +after: Types.State,
     +provided: Nat) -> List<&2, Nat>:
@@ -257,12 +265,40 @@ def actions(list: List<&2, Driver.Action>, queue: Queue, +now: Nat, +job: Job) -
     case Nil{}: queue
     case action <> tail: action_append(action, queue, now, job, q => actions(tail, q, now, job))
 
-def context(state: Types.State, job: Job, delay: Nat, candidate: Maybe<&2, Driver.Candidate>) -> Driver.Context:
+# Captured environment facts for the same interpreter. These are transport,
+# timing and tree inputs, never review/admission/routing eligibility decisions.
+type Environment is Data:
+  Environment{seed: Nat, tree: TreeFacts.Profile, graph: Graph.Limits,
+    preparation_delay: Nat, output_delay: Nat, output_lease: Nat}
+  OutputCompletion{seed: Nat, tree: TreeFacts.Profile, graph: Graph.Limits,
+    preparation_delay: Nat, output_delay: Nat, output_lease: Nat, outcome: Output.Outcome}
+
+def default_environment() -> Environment:
+  Environment{7n,tree_profile(),graph_limits(),2n,0n,30n}
+
+def environment_graph(environment: Environment) -> Graph.Limits:
+  match environment:
+    case Environment{_,_,graph,_,_,_}: graph
+    case OutputCompletion{_,_,graph,_,_,_,_}: graph
+
+def context_profile(state: Types.State, job: Job, delay: Nat,
+    candidate: Maybe<&2,Driver.Candidate>, output_delay: Nat, output_lease: Nat) -> Driver.Context:
   match job:
-    case Job{+partition, +lifetime, bytes, _, outcome}:
-      Driver.Context{partition, lifetime, round(Engine.canonical(state), partition), bytes, True{}, delay,
-        outcome, True{}, True{}, True{}, True{}, 600000n, candidate, True{}, True{}, True{}, True{},
-        0n, 30n, True{}, True{}}
+    case Job{+partition,+lifetime,bytes,_,outcome}:
+      Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),bytes,True{},delay,
+        outcome,True{},True{},True{},True{},600000n,candidate,True{},True{},True{},True{},
+        output_delay,output_lease,True{},True{}}
+
+def context_with(environment: Environment, state: Types.State, job: Job, delay: Nat,
+    candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
+  match environment:
+    case Environment{_,_,_,_,output_delay,output_lease}:
+      context_profile(state,job,delay,candidate,output_delay,output_lease)
+    case OutputCompletion{_,_,_,_,output_delay,output_lease,_}:
+      context_profile(state,job,delay,candidate,output_delay,output_lease)
+
+def context(state: Types.State, job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
+  context_with(default_environment(),state,job,delay,candidate)
 
 def canonical_row(+before: Types.State, +after: Types.State, +event: Canonical.CanonicalEvent,
     +provided: Nat, now: Nat, rejected: Nat, commands: List<&2, Canonical.Command>) -> List<&2, Nat>:
@@ -279,14 +315,19 @@ def handled(result: Driver.Handled, state: Types.State, queue: Queue, jobs: List
   match result:
     case Driver.Handled{_, events}: issued(Engine.issue_actions(state, events), queue, jobs, now, job, delay)
 
-def generated(generated: Preparation.Generated, queue: Queue, +now: Nat,
-    +operation: Nat, +round: Nat, job: Job) -> Queue:
+
+def generated_with(generated: Preparation.Generated, queue: Queue, +now: Nat,
+    +operation: Nat, +round: Nat, job: Job, +preparation_delay: Nat) -> Queue:
   match generated job:
-    case Preparation.Generated{_, +events, _, True{}, _, _} Job{+partition, +lifetime, bytes, +units, outcome}:
-      actions([Engine.preparation_completed(partition, lifetime, round, operation, units, 2n)],
-        facts(events, queue, partition, lifetime, round, operation, now, 0n, List.length(&2, Graph.GraphEvent, events)),
-        now, Job{partition, lifetime, bytes, units, outcome})
+    case Preparation.Generated{_,+events,_,True{},_,_} Job{+partition,+lifetime,bytes,+units,outcome}:
+      actions([Engine.preparation_completed(partition,lifetime,round,operation,units,preparation_delay)],
+        facts_with(events,queue,partition,lifetime,round,operation,now,0n,List.length(&2,Graph.GraphEvent,events),preparation_delay),
+        now,Job{partition,lifetime,bytes,units,outcome})
     case _ _: queue
+
+def generated(generated: Preparation.Generated, queue: Queue, now: Nat,
+    operation: Nat, round: Nat, job: Job) -> Queue:
+  generated_with(generated,queue,now,operation,round,job,2n)
 
 def continued(runtime: Runtime, +before: Types.State,
     +event: Canonical.CanonicalEvent, +job: Job, +now: Nat, +delay: Nat,
@@ -301,20 +342,67 @@ def edit_plan(attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2, Stored>,
     case Engine.EditAttempt{state, Driver.EditPlan{retry, emitted}}:
       ih(Runtime{state, retry_edit(retry, actions(emitted, queue, now, job), now, job), jobs, delay})
 
-def interpret(value: Canonical.Command, +state: Types.State, +event: Canonical.CanonicalEvent,
-    queue: Queue, jobs: List<&2, Stored>, +now: Nat, +job: Job, +delay: Nat, candidate: Maybe<&2, Driver.Candidate>) -> Runtime:
-  match value:
-    case Canonical.Prepare{+operation, _}:
-      Runtime{state, generated(Engine.generate_tree(7n, operation, 0n, tree_profile(), graph_limits()), queue,
-        now, operation, round(Engine.canonical(state), job_partition(job)), job), jobs, delay}
-    case command: handled(Engine.handle(state, event, command, context(state, job, delay, candidate)), state, queue, jobs, now, job, delay)
+def interpret_default_with(environment: Environment, value: Canonical.Command, +state: Types.State,
+    +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, +now: Nat,
+    +job: Job, +delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
+  match environment value:
+    case Environment{seed,tree,graph,preparation_delay,_,_} Canonical.Prepare{+operation,_}:
+      Runtime{state,generated_with(Engine.generate_tree(seed,operation,0n,tree,graph),queue,
+        now,operation,round(Engine.canonical(state),job_partition(job)),job,preparation_delay),jobs,delay}
+    case environment command:
+      handled(Engine.handle(state,event,command,context_with(environment,state,job,delay,candidate)),state,queue,jobs,now,job,delay)
 
-def command_step(+command: Canonical.Command,
-    +state: Types.State, +event: Canonical.CanonicalEvent, queue: Queue, +jobs: List<&2, Stored>,
-    +now: Nat, +job: Job, +delay: Nat, candidate: Maybe<&2, Driver.Candidate>,
-    ih: Runtime -> Runtime) -> Runtime:
-  +actual = command_job(command, jobs, job)
-  ih(interpret(command, state, event, queue, remember(command, jobs, actual), now, actual, delay, candidate))
+# Initial environmental output generation uses the production captured profile
+# before actions receive queue orders. Existing Environment callers retain their
+# original Driver path; only the explicit output family selects this profile.
+def output_capture(event: Canonical.CanonicalEvent, now: Nat, outcome: Output.Outcome,
+    delay: Nat, lease: Nat) -> Maybe<&2,Output.Capture>:
+  match event:
+    case Canonical.SubmissionBegin{advice,_,_,token,_,True{},_,_}:
+      Some{Output.Capture{Output.Individual{advice,token},now,outcome,delay,lease}}
+    case Canonical.SubmissionAuthorize{advice,token}:
+      Some{Output.Capture{Output.Individual{advice,token},now,outcome,delay,lease}}
+    case _: None{}
+
+def output_initial(capture: Maybe<&2,Output.Capture>, environment: Environment, command: Canonical.Command,
+    +state: Types.State, +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>,
+    +now: Nat, +job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
+  match capture:
+    case Some{capture}: handled(Driver.Handled{True{},Output.issued(capture)},state,queue,jobs,now,job,delay)
+    case None{}: interpret_default_with(environment,command,state,event,queue,jobs,now,job,delay,candidate)
+
+def interpret_with(environment: Environment, +value: Canonical.Command, +state: Types.State,
+    +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, +now: Nat,
+    +job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
+  match environment value:
+    case OutputCompletion{seed,tree,graph,prep,+due,+lease,outcome} Canonical.SubmissionAuthorized{}:
+      output_initial(output_capture(event,now,outcome,due,lease),Environment{seed,tree,graph,prep,due,lease},value,state,event,queue,jobs,now,job,delay,candidate)
+    case OutputCompletion{seed,tree,graph,prep,+due,+lease,outcome} Canonical.SubmissionBegun{}:
+      output_initial(output_capture(event,now,outcome,due,lease),Environment{seed,tree,graph,prep,due,lease},value,state,event,queue,jobs,now,job,delay,candidate)
+    case OutputCompletion{seed,tree,graph,prep,due,lease,_} value:
+      interpret_default_with(Environment{seed,tree,graph,prep,due,lease},value,state,event,queue,jobs,now,job,delay,candidate)
+    case environment value: interpret_default_with(environment,value,state,event,queue,jobs,now,job,delay,candidate)
+
+def interpret(value: Canonical.Command, state: Types.State, event: Canonical.CanonicalEvent,
+    queue: Queue, jobs: List<&2,Stored>, now: Nat, job: Job, delay: Nat,
+    candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
+  interpret_with(default_environment(),value,state,event,queue,jobs,now,job,delay,candidate)
+
+def command_interpret_with(environment: Environment, +command: Canonical.Command,
+    +state: Types.State, +event: Canonical.CanonicalEvent, queue: Queue, +jobs: List<&2,Stored>,
+    +now: Nat, +job: Job, +delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Runtime:
+  +actual=command_job(command,jobs,job)
+  interpret_with(environment,command,state,event,queue,remember(command,jobs,actual),now,actual,delay,candidate)
+
+def command_step_with(environment: Environment, command: Canonical.Command,
+    state: Types.State, event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>,
+    now: Nat, job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>, ih: Runtime -> Runtime) -> Runtime:
+  ih(command_interpret_with(environment,command,state,event,queue,jobs,now,job,delay,candidate))
+
+def command_step(command: Canonical.Command, state: Types.State, event: Canonical.CanonicalEvent,
+    queue: Queue, jobs: List<&2,Stored>, now: Nat, job: Job, delay: Nat,
+    candidate: Maybe<&2,Driver.Candidate>, ih: Runtime -> Runtime) -> Runtime:
+  command_step_with(default_environment(),command,state,event,queue,jobs,now,job,delay,candidate,ih)
 
 def commands(list: List<&2, Canonical.Command>, runtime: Runtime, +event: Canonical.CanonicalEvent,
     +now: Nat, +job: Job, +candidate: Maybe<&2, Driver.Candidate>) -> Runtime:
@@ -411,6 +499,7 @@ def input(input: Input, +state: Types.State, queue: Queue, jobs: List<&2, Stored
     case Fact{+partition, +lifetime, +round, +operation, position, event}:
       graph_valid(Engine.preparation_active(state, partition, lifetime, round, operation), state, queue, jobs, partition, lifetime, round, operation, position, event, now, delay, ih)
     case Arrival{event, lifetime}: arrival(event, lifetime, state, queue, jobs, delay, ih)
+    case Cache{_,_}: [[97n]]
     case Missing{}: [[97n]]
 
 def taken(taken: Engine.Taken, +items: List<&2, Item>, +sequence: Nat,
@@ -535,3 +624,210 @@ def original_inputs(initial: Initialized, action: Lifecycle.Action, boundary: Na
 
 def run(action: Lifecycle.Action, boundary: Nat, new_at: Nat) -> List<&2, List<&2, Nat>>:
   original_inputs(initial(), action, boundary, new_at)
+
+# Full structural observation seam for consumers of this same factual edge.
+# Existing compact fixture entry points remain unchanged. A command hook supplies
+# original input captures; all commands and transitions still come from Engine.
+type ObservedFrame is Data:
+  CanonicalFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
+    order: Nat, event: Canonical.CanonicalEvent, result: List<&2,Canonical.Step>}
+  GraphFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
+    order: Nat, key: Types.GraphKey, position: Nat, event: Graph.GraphEvent, result: List<&2,Types.GraphTransition>}
+  CacheFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
+    order: Nat, fact: CacheRuntime.Fact, event: Canonical.CanonicalEvent, result: List<&2,Canonical.Step>}
+  UnexpectedInput{}
+# A callback is linear (Type). It returns the next callback with the updated
+# factual captures. Factories must build this finite chain from the actual
+# shrinking command list; neither callback nor initial captures are copied.
+type CommandHook<-F: Data> is Type:
+  HookEnd{facts: F}
+  HookFault{facts: F}
+  HookNext{facts: F, apply: F -> Canonical.Command -> Runtime -> (Runtime & CommandHook<F>)}
+type Commanded<-F: Data> is Type:
+  Commanded{runtime: List<&2,Runtime>, hook: CommandHook<F>, valid: Bool}
+type Observed<-F: Data> is Type:
+  Observed{runtime: List<&2,Runtime>, frame: Maybe<&2,ObservedFrame>, hook: CommandHook<F>}
+
+def observed_finished(-F: Data, runtime: Runtime, +before: Types.State, +event: Canonical.CanonicalEvent,
+    +now: Nat, order: Nat, +job: Job, result: Canonical.Step, hook: CommandHook<F>) -> Observed<F>:
+  match runtime:
+    case Runtime{+state,queue,jobs,delay}:
+      Observed{[Runtime{state,actions(Engine.after(before,state,event),queue,now,job),jobs,delay}],
+        Some{CanonicalFrame{[before],[state],now,order,event,[result]}},hook}
+
+def observed_following(-F: Data, pair: Runtime & CommandHook<F>,
+    ih: Runtime -> CommandHook<F> -> Commanded<F>) -> Commanded<F>:
+  (next,following)=pair
+  ih(next,following)
+
+def observed_commands(-F: Data, list: List<&2,Canonical.Command>, runtime: Runtime,
+    +event: Canonical.CanonicalEvent, +now: Nat, +job: Job,
+    +candidate: Maybe<&2,Driver.Candidate>, +environment: Environment, hook: CommandHook<F>) -> Commanded<F>:
+  match list runtime hook:
+    case Nil{} runtime HookEnd{facts}: Commanded{[runtime],HookEnd{facts},True{}}
+    case +head <> tail Runtime{state,queue,jobs,delay} HookNext{facts,apply}:
+      observed_following(F,apply(facts,head,command_interpret_with(environment,head,state,event,queue,jobs,now,job,delay,candidate)),
+        next => following => observed_commands(F,tail,next,event,now,job,candidate,environment,following))
+    case _ runtime hook: Commanded{[runtime],hook,False{}}
+
+def observed_commanded(-F: Data, commanded: Commanded<F>, before: Types.State,
+    event: Canonical.CanonicalEvent, now: Nat, order: Nat, job: Job,
+    result: Canonical.Step) -> Observed<F>:
+  match commanded:
+    case Commanded{runtime <> Nil{},hook,True{}}: observed_finished(F,runtime,before,event,now,order,job,result,hook)
+    case Commanded{runtime,hook,_}: Observed{runtime,Some{UnexpectedInput{}},hook}
+
+def observed_result(-F: Data, +result: Canonical.Step, state: Types.State, +before: Types.State,
+    +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, +job: Job,
+    +now: Nat, order: Nat, delay: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match result:
+    case Canonical.Advanced{_,+list}:
+      observed_commanded(F,observed_commands(F,list,Runtime{state,queue,jobs,delay},event,now,job,candidate,environment,factory(list)),before,event,now,order,job,result)
+    case Canonical.Rejected{_,_}:
+      observed_finished(F,Runtime{state,queue,jobs,delay},before,event,now,order,job,result,factory([]))
+
+def cache_facts(list: List<&2,CacheRuntime.Fact>, queue: Queue, +now: Nat, +job: Job) -> Queue:
+  match list:
+    case Nil{}: queue
+    case fact <> tail: cache_facts(tail,append(queue,now,Cache{fact,job}),now,job)
+
+def actual_commands(result: Canonical.Step) -> List<&2,Canonical.Command>:
+  match result:
+    case Canonical.Advanced{_,commands}: commands
+    case Canonical.Rejected{_,_}: []
+
+def observed_published(-F: Data, published: Engine.CachePublished, before: Types.State,
+    event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, +job: Job,
+    +now: Nat, order: Nat, delay: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+    result: Canonical.Step, removed: List<&2,Canonical.CanonicalEvent>,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match published:
+    case Engine.CachePublished{state,facts,releases}:
+      observed_result(F,result,state,before,event,
+        actions(Engine.sharing_actions(List.append(&2,Canonical.CanonicalEvent,removed,releases)),cache_facts(facts,queue,now,job),now,job),
+        jobs,job,now,order,delay,candidate,environment,factory)
+
+def observed_transition(-F: Data, transition: Engine.Transition, +before: Types.State,
+    +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, job: Job,
+    now: Nat, order: Nat, delay: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match transition:
+    case Engine.Transition{+state,+result}:
+      observed_published(F,Engine.cache_begin(before,state,event,actual_commands(result)),before,event,
+        queue,jobs,job,now,order,delay,candidate,environment,result,
+        Engine.cache_removed(before,actual_commands(result)),factory)
+
+def cache_observed(-F: Data, observed: Observed<F>, fact: CacheRuntime.Fact) -> Observed<F>:
+  match observed:
+    case Observed{runtime,Some{CanonicalFrame{before,after,time,order,event,result}},hook}:
+      Observed{runtime,Some{CacheFrame{before,after,time,order,fact,event,result}},hook}
+    case observed: observed
+
+def observed_cache(-F: Data, applied: Engine.CacheApplied, +before: Types.State,
+    fact: CacheRuntime.Fact, queue: Queue, jobs: List<&2,Stored>, +job: Job,
+    +now: Nat, order: Nat, delay: Nat, environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match applied:
+    case Engine.CacheApplied{state,event,+result,facts,releases,True{}}:
+      cache_observed(F,observed_result(F,result,state,before,event,
+        actions(Engine.sharing_actions(List.append(&2,Canonical.CanonicalEvent,releases,
+          Engine.cache_removed(before,actual_commands(result)))),cache_facts(facts,queue,now,job),now,job),
+        jobs,job,now,order,delay,None{},environment,factory),fact)
+    case _: Observed{[Runtime{before,queue,jobs,delay}],Some{UnexpectedInput{}},factory([])}
+
+def observed_completion(-F: Data, completion: SharingRuntime.Completion, +state: Types.State,
+    queue: Queue, jobs: List<&2,Stored>, job: Job, now: Nat, order: Nat, delay: Nat,
+    candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match completion:
+    case SharingRuntime.Completion{+event,True{}}:
+      observed_transition(F,Engine.step(state,event),state,event,queue,jobs,job,now,order,delay,candidate,environment,factory)
+    case _: Observed{[Runtime{state,queue,jobs,delay}],Some{UnexpectedInput{}},factory([])}
+
+def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2,Stored>,
+    +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match attempt:
+    case Engine.EditAttempt{state,Driver.EditPlan{retry,emitted}}:
+      Observed{[Runtime{state,retry_edit(retry,actions(emitted,queue,now,job),now,job),jobs,delay}],None{},hook}
+
+def observed_graph(-F: Data, +result: Types.GraphTransition, +before: Types.State, queue: Queue,
+    jobs: List<&2,Stored>, now: Nat, order: Nat, key: Types.GraphKey, position: Nat,
+    event: Graph.GraphEvent, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match result:
+    case Types.GraphTransition{+state,_,_}:
+      Observed{[Runtime{state,queue,jobs,delay}],Some{GraphFrame{[before],[state],now,order,key,position,event,[result]}},hook}
+    case Types.GraphRejected{+state}:
+      Observed{[Runtime{state,queue,jobs,delay}],Some{GraphFrame{[before],[state],now,order,key,position,event,[result]}},hook}
+
+def observed_workload(-F: Data, result: Engine.WorkloadTransition, queue: Queue,
+    jobs: List<&2,Stored>, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match result:
+    case Engine.WorkloadTransition{+state,events,True{}}:
+      Observed{[Runtime{state,emissions(events,queue,state),jobs,delay}],None{},hook}
+    case Engine.WorkloadTransition{state,_,False{}}:
+      Observed{[Runtime{state,queue,jobs,delay}],Some{UnexpectedInput{}},hook}
+
+def observed_arrival_valid(-F: Data, valid: Bool, event: Workload.Emission, +lifetime: Nat,
+    +state: Types.State, queue: Queue, jobs: List<&2,Stored>, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match valid event:
+    case False{} _: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
+    case True{} Workload.Emission{_,owner,_,0,_,_,_,_,_,_}:
+      observed_workload(F,Engine.workload_action(state,owner,Workload.Next{}),queue,jobs,delay,hook)
+    case True{} Workload.Emission{at,+owner,_,1,_,_,bytes,units,_,_}:
+      observed_edit(F,Engine.edit_attempt(state,owner,lifetime),queue,jobs,Job{owner,lifetime,bytes,units,Canonical.RequestFinding{}},at,delay,hook)
+    case True{} _: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
+
+def observed_arrival(-F: Data, event: Workload.Emission, +lifetime: Nat, +state: Types.State,
+    queue: Queue, jobs: List<&2,Stored>, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match event:
+    case Workload.Emission{at,+p,+g,k,task,revision,bytes,units,repair,+recurring}:
+      observed_arrival_valid(F,Engine.activity_valid(state,p,lifetime) && Engine.workload_valid(state,p,g,recurring),
+        Workload.Emission{at,p,g,k,task,revision,bytes,units,repair,recurring},lifetime,state,queue,jobs,delay,hook)
+
+def observed_edit_valid(-F: Data, valid: Bool, +state: Types.State, queue: Queue,
+    jobs: List<&2,Stored>, +job: Job, now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match valid:
+    case True{}: observed_edit(F,Engine.edit_attempt(state,job_partition(job),job_lifetime(job)),queue,jobs,job,now,delay,hook)
+    case False{}: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
+
+def observed_graph_valid(-F: Data, valid: Bool, +state: Types.State, queue: Queue, jobs: List<&2,Stored>,
+    +p: Nat, +l: Nat, +r: Nat, +o: Nat, +position: Nat, +event: Graph.GraphEvent,
+    now: Nat, order: Nat, delay: Nat, limits: Graph.Limits, hook: CommandHook<F>) -> Observed<F>:
+  match valid:
+    case True{}:
+      observed_graph(F,Engine.graph_step(state,Types.GraphKey{p,l,r,o,0n},position,limits,event),state,queue,jobs,now,order,Types.GraphKey{p,l,r,o,0n},position,event,delay,hook)
+    case False{}: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
+
+def observed_input(-F: Data, value: Input, +state: Types.State, queue: Queue, jobs: List<&2,Stored>,
+    +now: Nat, order: Nat, +delay: Nat, +environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match value:
+    case Edit{+job}: observed_edit_valid(F,Engine.activity_valid(state,job_partition(job),job_lifetime(job)),state,queue,jobs,job,now,delay,factory([]))
+    case Event{Driver.Action{+event,_,+candidate,_,_},+job}:
+      +fenced=Engine.fence(state,event,True{},context_with(environment,state,job,delay,candidate))
+      observed_completion(F,Engine.sharing_completion(state,fenced),state,queue,jobs,job,now,order,delay,candidate,environment,factory)
+    case Fact{+p,+l,+r,+o,position,+event}:
+      observed_graph_valid(F,Engine.preparation_active(state,p,l,r,o),state,queue,jobs,p,l,r,o,position,event,now,order,delay,environment_graph(environment),factory([]))
+    case Arrival{event,lifetime}: observed_arrival(F,event,lifetime,state,queue,jobs,delay,factory([]))
+    case Cache{+fact,+job}: observed_cache(F,Engine.cache_apply(state,fact),state,fact,queue,jobs,job,now,order,delay,environment,factory)
+    case Missing{}: Observed{[Runtime{state,queue,jobs,delay}],Some{UnexpectedInput{}},factory([])}
+
+def observed_taken(-F: Data, taken: Engine.Taken, +items: List<&2,Item>, +sequence: Nat,
+    jobs: List<&2,Stored>, delay: Nat, environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match taken:
+    case Engine.Taken{state,Some{Scheduler.Entry{now,+order}}}:
+      observed_input(F,lookup(items,order),state,Queue{remove(items,order),sequence,sequence},jobs,now,order,delay,environment,factory)
+    case Engine.Taken{state,None{}}:
+      Observed{[Runtime{state,Queue{items,sequence,sequence},jobs,delay}],None{},factory([])}
+
+def observe_step_with(-F: Data, runtime: Runtime, environment: Environment,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  match runtime:
+    case Runtime{state,Queue{+items,+sequence,synced},jobs,delay}:
+      observed_taken(F,Engine.take(sync(items,state,synced)),items,sequence,jobs,delay,environment,factory)
+
+def observe_step(-F: Data, runtime: Runtime,
+    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+  observe_step_with(F,runtime,default_environment(),factory)
