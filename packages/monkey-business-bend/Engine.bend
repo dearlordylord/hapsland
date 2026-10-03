@@ -77,9 +77,23 @@ def retained_credentials(credentials: CredentialFacts.State, canonical: Canonica
     case CredentialFacts.State{available, generation, issued}:
       CredentialFacts.State{available, generation, retained_captures(issued, canonical)}
 
+def retained_retirement(keep: Bool, operation: Nat, tail: List<&2, Nat>) -> List<&2, Nat>:
+  match keep:
+    case True{}: operation <> tail
+    case False{}: tail
+
+def retained_retirements(pending: List<&2, Nat>, +work: List<&2, Canonical.Work>) -> List<&2, Nat>:
+  match pending:
+    case Nil{}: []
+    case +operation <> tail: retained_retirement(captured_work_present(operation, work), operation, retained_retirements(tail, work))
+
+def retirements(pending: List<&2, Nat>, canonical: Canonical.State) -> List<&2, Nat>:
+  match canonical:
+    case Canonical.State{_, _, work, _, _, _, _, _, _}: retained_retirements(pending, work)
+
 def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, lifecycles: List<&2, AdviceeLifecycle.Entry>, preparations: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>, activity_scopes: List<&2, AdviceeActivity.Scope>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event), lifecycles, preparations, activity_scopes}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), retirements(PendingEffects.consumed(retiring, event), state), lifecycles, preparations, activity_scopes}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes}, Canonical.Rejected{state, reason}}
 
 def prepared_remaining(settlement: AdviceeLifecycleCleanup.PreparedSettlement) -> List<&2, AdviceeLifecycleCleanup.CapturedPreparation>:
@@ -239,13 +253,6 @@ def pre_timing(state: Types.State, partition: Nat, provided: Maybe<&2, Nat>, fal
   match state:
     case Types.State{_, _, scheduler, workloads, _, _, _, _, _, _, _, _}: Workload.pre_timing(workloads, partition, Scheduler.clock(scheduler), provided, fallback, lifetime)
 
-def pre_issue(state: Types.State, facts: Workload.PermitFacts) -> Driver.Handled:
-  match state:
-    case Types.State{_, _, scheduler, workloads, _, _, _, _, _, _, _, _}: Workload.issue(workloads, Scheduler.clock(scheduler), facts)
-
-def permit_actions(state: Types.State, capture: Workload.PermitCapture) -> Driver.Handled:
-  Workload.post_actions(capture, clock(state))
-
 def session_delay(settings: Session.Config, random: U32) -> U32:
   Session.sample_delay(settings, random)
 
@@ -402,6 +409,21 @@ def activity_edit_valid(valid: Bool, +state: Types.State, +partition: Nat) -> Ed
 def activity_edit(+state: Types.State, +partition: Nat, incarnation: Nat) -> EditAttempt:
   activity_edit_valid(activity_valid(state, partition, incarnation), state, partition)
 
+# Only generated activity starts use the private arrival fence. Original physical
+# completions, POST and retirement facts still reach their actual Canonical tuple.
+def activity_start(event: Canonical.CanonicalEvent) -> Bool:
+  match event:
+    case Canonical.OpenRound{_, _}: True{}
+    case Canonical.AdmitObservation{_, _, _}: True{}
+    case Canonical.StartObservation{_, _, _, _}: True{}
+    case Canonical.BeginPreparation{_, _, _, _}: True{}
+    case Canonical.BeginObservedPreparation{_, _, _, _, _}: True{}
+    case Canonical.IssuePermit{_, _, _, _, _, _, _, _}: True{}
+    case _: False{}
+
+def activity_event_valid(state: Types.State, event: Canonical.CanonicalEvent, partition: Nat, incarnation: Nat) -> Bool:
+  Bool.not(activity_start(event)) || activity_valid(state, partition, incarnation)
+
 type LifecycleTransition is Data:
   LifecycleTransition{state: Types.State, changed: AdviceeLifecycle.Changed, cleanup: AdviceeLifecycleCleanup.CleanupPlan, events: List<&2, Workload.Emission>}
 
@@ -420,6 +442,11 @@ def lifecycle_scopes(resumed: Bool, scopes: List<&2, AdviceeActivity.Scope>, par
     case True{}: AdviceeActivity.resumed(scopes, partition)
     case False{}: scopes
 
+def lifecycle_opening(changed: Bool, opening: List<&2, Nat>, partition: Nat) -> List<&2, Nat>:
+  match changed:
+    case True{}: AdmissionAttempts.remove(opening, partition)
+    case False{}: opening
+
 def lifecycle_workload(changed: Bool, +state: Types.State, partition: Nat, current: Maybe<&2, AdviceeLifecycle.Entry>) -> WorkloadTransition:
   match changed current:
     case True{} Some{entry}: workload_action(state, partition, Workload.Controlled{Workload.Suspend{Bool.not(AdviceeLifecycle.entry_active(entry))}})
@@ -428,15 +455,25 @@ def lifecycle_workload(changed: Bool, +state: Types.State, partition: Nat, curre
 def lifecycle_installed(transition: WorkloadTransition, +changed: AdviceeLifecycle.Changed, +cleanup: AdviceeLifecycleCleanup.CleanupPlan, +partition: Nat) -> LifecycleTransition:
   match transition changed cleanup:
     case WorkloadTransition{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, _, captures, scopes}, events, _} AdviceeLifecycle.Changed{+entries, +previous, +current, +valid} AdviceeLifecycleCleanup.CleanupPlan{actions, operations, +preparations}:
-      LifecycleTransition{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, entries, List.append(&2, AdviceeLifecycleCleanup.CapturedPreparation, captures, preparations), lifecycle_scopes(valid && lifecycle_resumed(previous, current), scopes, partition)}, AdviceeLifecycle.Changed{entries, previous, current, valid}, AdviceeLifecycleCleanup.CleanupPlan{actions, operations, preparations}, events}
+      LifecycleTransition{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, lifecycle_opening(lifecycle_changed_activity(valid, previous, current), opening, partition), retiring, entries, List.append(&2, AdviceeLifecycleCleanup.CapturedPreparation, captures, preparations), lifecycle_scopes(valid && lifecycle_resumed(previous, current), scopes, partition)}, AdviceeLifecycle.Changed{entries, previous, current, valid}, AdviceeLifecycleCleanup.CleanupPlan{actions, operations, preparations}, events}
 
 def lifecycle_changed(+state: Types.State, +partition: Nat, +changed: AdviceeLifecycle.Changed) -> LifecycleTransition:
   match changed:
     case AdviceeLifecycle.Changed{+entries, +previous, +current, +valid}:
       lifecycle_installed(lifecycle_workload(lifecycle_changed_activity(valid, previous, current), state, partition, current), AdviceeLifecycle.Changed{entries, previous, current, valid}, AdviceeLifecycleCleanup.plan(canonical(state), AdviceeLifecycle.Changed{entries, previous, current, valid}, clock(state)), partition)
 
+def lifecycle_resume(valid: Bool, +entries: List<&2, AdviceeLifecycle.Entry>, +partition: Nat) -> AdviceeLifecycle.Changed:
+  match valid:
+    case True{}: AdviceeLifecycle.change(entries, partition, AdviceeLifecycle.Resume{})
+    case False{}: AdviceeLifecycle.Changed{entries, AdviceeLifecycle.lookup(entries, partition), AdviceeLifecycle.lookup(entries, partition), False{}}
+
+def lifecycle_requested(entries: List<&2, AdviceeLifecycle.Entry>, partition: Nat, action: AdviceeLifecycle.Action, scope: Maybe<&2, Nat>) -> AdviceeLifecycle.Changed:
+  match action:
+    case AdviceeLifecycle.Resume{}: lifecycle_resume(AdviceeActivity.resumable(scope), entries, partition)
+    case _: AdviceeLifecycle.change(entries, partition, action)
+
 def lifecycle_action(+state: Types.State, +partition: Nat, action: AdviceeLifecycle.Action) -> LifecycleTransition:
-  lifecycle_changed(state, partition, AdviceeLifecycle.change(AdviceeActivity.synchronize(lifecycle_entries(state), canonical(state), partition), partition, action))
+  lifecycle_changed(state, partition, lifecycle_requested(AdviceeActivity.synchronize(lifecycle_entries(state), canonical(state), partition), partition, action, activity_scope(state, partition)))
 
 def permit_issue(capture: PermitScenario.Capture, now: Nat) -> Canonical.CanonicalEvent:
   PermitScenario.issue(capture, now)

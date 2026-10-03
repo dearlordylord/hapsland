@@ -1,3 +1,5 @@
+import { adviceeLifecycleAction, adviceeLifecycleControls } from "./advicee-lifecycle-controls";
+import { permitAction, permitControls } from "./permit-controls";
 import { jevFaultAction, jevFaultControls } from "./jev-fault-controls";
 import { graphLimitControls, graphLimitDrafts, graphLimitsFromDrafts, type GraphLimitDrafts } from "./graph-limit-controls";
 import { demoResourceLimits } from "../../monkey-business/src/index";
@@ -29,6 +31,10 @@ import { SQUARES, PLACE_ORDER } from "./production-flow-presentation";
 import { productionFlowView } from "./production-flow-view";
 
 export const SimulationModel = Schema.Struct({
+  permitPerAdvicee: Schema.String,
+  permitResident: Schema.String,
+  permitDuration: Schema.String,
+  permitLifetime: Schema.String,
   agentId: Schema.String,
   agentCount: Schema.String,
   resourceScenario: Schema.String,
@@ -100,6 +106,10 @@ export const SimulationModel = Schema.Struct({
 });
 export type SimulationModel = typeof SimulationModel.Type;
 export const initialSimulation: SimulationModel = {
+  permitPerAdvicee: "16",
+  permitResident: "64",
+  permitDuration: "1",
+  permitLifetime: "30000",
   agentId: "agent-1",
   agentCount: "1",
   resourceScenario: "none",
@@ -321,6 +331,10 @@ export const changeSimulation = (
       "weightTimeout",
       "weightInterrupted",
       "bytes",
+      "permitPerAdvicee",
+      "permitResident",
+      "permitDuration",
+      "permitLifetime",
       "graphSourceBytes",
       "graphTreeBytes",
       "graphFiles",
@@ -430,6 +444,17 @@ export const actSimulation = (
     if (replaySource && ["pace", "editDuration", "burst", "suspend", "sizes", "environment", "output", "fileTrees", "graphLimits"].includes(action) || replaySource && (action.startsWith("credentials:") || action.startsWith("jev-request:"))) {
       return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
     }
+    const lifecycle = adviceeLifecycleAction(action);
+    const permit = permitAction(action);
+    if (lifecycle || permit || action === "permitLimits" || action === "permitTiming") {
+      if (replaySource) return { ...model, feedback: "Finish recorded replay before applying activity or permit controls." };
+      if (!run) return { ...model, feedback: "Start a resident run before applying activity or permit controls." };
+      const control = lifecycle ?? permit ?? (action === "permitLimits"
+        ? { kind: "editPermitLimits" as const, limits: { perAdvicee: number(model.permitPerAdvicee, "Per-advicee pending permits", 1, 65536), resident: number(model.permitResident, "Resident pending permits", 1, 65536) } }
+        : { kind: "permitProfile" as const, profile: { ...run.futurePermitProfile, durationMs: number(model.permitDuration, "PRE to POST duration", 0, 1_000_000_000), lifetimeMs: number(model.permitLifetime, "Permit lifetime", 1, 1_000_000_000) } });
+      run.applyControl(control);
+      return { ...model, selected: -1, revision: model.revision + 1, feedback: `Applied ${control.kind} at ${run.now} virtual ms; issued facts keep their original capture.` };
+    }
     const intervention = jevFaultAction(action);
     if (intervention) {
       if (!run) return { ...model, feedback: "Start a resident run before applying an intervention." };
@@ -471,7 +496,9 @@ export const actSimulation = (
         demoAgentCount: number(model.agentCount, "Agent count", 1, 6),
         // One resident ledger and execution pool serve every independent generator.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
-        lifecycles: { permits: { adviceeLimit: 16, residentLimit: 64, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
+        editPermitLimits: { perAdvicee: number(model.permitPerAdvicee, "Per-advicee pending permits", 1, 65536), resident: number(model.permitResident, "Resident pending permits", 1, 65536) },
+        permitProfile: { outcome: "success", durationMs: number(model.permitDuration, "PRE to POST duration", 0, 1_000_000_000), lifetimeMs: number(model.permitLifetime, "Permit lifetime", 1, 1_000_000_000) },
+        lifecycles: { collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
         resourceScenarios: model.resourceScenario === "none" ? undefined : { noticeMaximumKeys: demoLimits.noticeMaximumKeys, notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
@@ -852,6 +879,9 @@ export const simulationView = <Message>(
           ...(run && !run.agentScopes.length ? [] : [controlForm("sizes", [input("bytes", "Reservation bytes per edit", model.bytes), submit("Apply reservation size")])]),
         ],
       ),
+      ...(run ? [adviceeLifecycleControls(h, run.observe().adviceeLifecycles, run.agentScopes, action, Boolean(replaySource)), permitControls(h, run.editPermitLimits, run.futurePermitProfile, action, Boolean(replaySource))] : []),
+      controlForm("permitLimits", [input("permitPerAdvicee", "Per-advicee pending permits", model.permitPerAdvicee), input("permitResident", "Resident-wide pending permits", model.permitResident), submit("Apply permit limits")]),
+      controlForm("permitTiming", [input("permitDuration", "PRE to POST duration (virtual ms)", model.permitDuration), input("permitLifetime", "Permit lifetime (virtual ms)", model.permitLifetime), submit("Apply PRE/POST timing")]),
       ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
       controlForm("graphLimits", [graphLimitControls(h, graphDrafts(model), (field, value) => changed(graphFields[field], value)), submit("Apply graph limits")]),
       h.details([h.Class("simulation-file-trees")], [

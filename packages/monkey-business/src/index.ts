@@ -17,6 +17,10 @@ import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, O
 export * from "./outcomes.ts";
 import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile, type OutcomeChoice } from "./controls.ts";
 export * from "./controls.ts";
+export * from "./advicee-lifecycle.ts";
+export * from "./permit-controls.ts";
+import type { AdviceeLifecycleEntry } from "./advicee-lifecycle.ts";
+import { DEFAULT_PERMIT_PROFILE, validatePermitLimits, validatePermitProfile, encodePermitCapture, decodePermitFacts, type PermitLimits, type PermitProfile } from "./permit-controls.ts";
 export * from "./jev-interventions.ts";
 import type { JevInterventionReport } from "./jev-interventions.ts";
 import {
@@ -136,6 +140,7 @@ export type Observation = {
 };
 /** One synchronous viewing boundary; presentation never owns simulator state. */
 export type RunObservation = {
+  readonly adviceeLifecycles: readonly AdviceeLifecycleEntry[];
   readonly interventions: readonly JevInterventionReport[];
   readonly now: number;
   readonly eventCount: number;
@@ -151,6 +156,8 @@ export const AdvanceOptionsSchema = Schema.Struct({
 export type AdvanceOptions = typeof AdvanceOptionsSchema.Type;
 const decodeAdvanceOptions = decoder(AdvanceOptionsSchema);
 export type RunConfig = {
+  readonly editPermitLimits?: Partial<PermitLimits>;
+  readonly permitProfile?: PermitProfile;
   readonly graphLimits?: GraphLimits;
   readonly seed?: number;
   readonly lifecycles?: LifecycleProfile;
@@ -189,6 +196,8 @@ export type Replay = {
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
+  activityScope?: number;
+  permitCapture?: { readonly capture: ReturnType<typeof encodePermitCapture>; readonly started: number };
   partition?: number;
   at: number;
   order: number;
@@ -301,6 +310,7 @@ export class Run {
     }
   }
   private queuePush(item: Scheduled) {
+    if (item.activityScope === undefined) item.activityScope = this.core.activityScope(this.inputPartition(item));
     this.core.enqueue(item.at, item.order);
     this.scheduled.set(item.order, item);
   }
@@ -340,6 +350,8 @@ export class Run {
   get agentScopes(): readonly { readonly agent: string; readonly partition: number; readonly seed: number }[] {
     return copy(this.scopes);
   }
+  get editPermitLimits(): PermitLimits { return copy(this.permitLimits); }
+  get futurePermitProfile(): PermitProfile { return copy(this.permitProfile); }
   private jevDelay: number;
   private outcome: JevRequestOutcome | undefined;
   private outcomeWeights: OutcomeWeights;
@@ -347,6 +359,9 @@ export class Run {
   private outputProfile: OutputProfile;
   private fileTrees: FileTreeProfile;
   private graphLimits: GraphLimits;
+  private permitLimits: PermitLimits;
+  private permitProfile: PermitProfile;
+  private permitsEnabled: boolean;
   constructor(config: RunConfig = {}) {
     if (config.lifecycles?.permits?.lifetimeMs !== undefined && integer(config.lifecycles.permits.lifetimeMs, "permit lifetime") === 0) throw new RangeError("permit lifetime must be positive");
     if (config.lifecycles?.permits?.terminal !== undefined && !["consume", "release", "expire"].includes(config.lifecycles.permits.terminal)) throw new TypeError("invalid permit terminal");
@@ -369,6 +384,10 @@ export class Run {
     if (config.resourceScenarios) config = { ...config, resourceScenarios: { noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
     if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 8 } });
     if (config.lifecycles?.collectors) Object.assign(this.metadata, { collectors: { capacity: config.lifecycles.collectors.capacity } });
+    this.permitLimits = validatePermitLimits(config.editPermitLimits ?? (config.lifecycles?.permits ? { perAdvicee: config.lifecycles.permits.adviceeLimit, resident: config.lifecycles.permits.residentLimit } : {}));
+    this.permitProfile = validatePermitProfile(config.permitProfile ?? { ...DEFAULT_PERMIT_PROFILE, ...(config.lifecycles?.permits ? { outcome: config.lifecycles.permits.terminal === "release" ? "failure" : config.lifecycles.permits.terminal === "expire" ? "absent" : "success", durationMs: config.lifecycles.permits.holdMs ?? 0, lifetimeMs: config.lifecycles.permits.lifetimeMs ?? 30000 } : {}) });
+    this.permitsEnabled = config.editPermitLimits !== undefined || config.permitProfile !== undefined || config.lifecycles?.permits !== undefined;
+    if (this.permitsEnabled) Object.assign(this.metadata, { permits: { adviceeLimit: this.permitLimits.perAdvicee, residentLimit: this.permitLimits.resident } });
     this.graphLimits = validateGraphLimits(config.graphLimits ?? GRAPH_LIMIT_CEILINGS);
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
@@ -388,12 +407,14 @@ export class Run {
       this.generators.set(partition, this.core.session(partition, { ...settings, agent, seed }));
       this.scopes.push({ agent, partition, seed });
     });
+    if (!sessions.length) this.core.declareAdvicee(1, config.seed ?? 1);
     if (config.outcome !== undefined && config.outcomeWeights !== undefined) throw new TypeError("choose explicit outcome or outcome weights");
     this.outcome = config.outcome;
     this.outcomeWeights = validateOutcomeWeights(config.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS);
     const { outcome: _outcome, outcomeWeights: _weights, ...baseConfig } = config;
     this.config = copy({
       ...baseConfig,
+      ...(this.permitsEnabled ? { editPermitLimits: this.permitLimits, permitProfile: this.permitProfile } : {}),
       seed: config.seed ?? 1,
       fileTrees: this.fileTrees,
       ...(config.outcome === undefined ? { outcomeWeights: this.outcomeWeights } : { outcome: config.outcome }),
@@ -439,7 +460,7 @@ export class Run {
     return this.count;
   }
   observe(): RunObservation {
-    return freezeCanonicalData({ now: this.clock, eventCount: this.count,
+    return freezeCanonicalData({ adviceeLifecycles: this.core.adviceeLifecycles, now: this.clock, eventCount: this.count,
       projection: this.projection, observations: [...this.history],
       capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions });
   }
@@ -456,7 +477,7 @@ export class Run {
       input: copy(input),
     });
   }
-  private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number) {
+  private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, activityScope?: number) {
     integer(input.at, "virtual time");
     if (input.at < this.clock)
       throw new RangeError("cannot schedule in the past");
@@ -464,6 +485,7 @@ export class Run {
       at: input.at,
       order: this.order++,
       input: copy(input),
+      ...(activityScope === undefined ? {} : { activityScope }),
       ...(job ? { job } : {}),
       ...(expiryAdvice !== undefined ? { expiryAdvice } : {}),
     });
@@ -486,7 +508,20 @@ export class Run {
       throw new RangeError("unknown agent control target");
     if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
-    if (value.kind === "jevRequest") {
+    if (value.kind === "adviceeLifecycle") {
+      const scope = this.scopes.find(scope => scope.agent === value.agent);
+      if (!scope) throw new RangeError("unknown advicee lifecycle target");
+      const transition = this.core.lifecycle(scope.partition, scope.agent, value.action);
+      for (const operation of readBendList(transition.cleanup.operations, readNat, 2048)) this.jobs.delete(operation);
+      for (const action of decodeDriver({ handled: true, actions: transition.cleanup.actions }).actions) this.event(scope.partition, action.event, action.delay);
+      for (const input of transition.events) this.enqueue(input);
+    } else if (value.kind === "editPermitLimits") {
+      this.permitLimits = validatePermitLimits(value.limits);
+      this.permitsEnabled = true;
+    } else if (value.kind === "permitProfile") {
+      this.permitProfile = validatePermitProfile(value.profile);
+      this.permitsEnabled = true;
+    } else if (value.kind === "jevRequest") {
       const target = value.target;
       const targeted = (item: Scheduled): boolean => {
         if (!item.generated || item.input.kind !== "canonical") return false;
@@ -622,6 +657,9 @@ export class Run {
     if (!item) return;
     const partition = this.inputPartition(item);
     const session = this.generators.get(partition);
+    if (item.activityScope !== undefined && (item.input.kind === "canonical" ? item.generated && !this.core.activityEventValid(item.input.event, partition, item.activityScope) : item.input.kind !== "preparationGraph" && !this.core.activityValid(partition, item.activityScope))) {
+      return this.step(untilTime);
+    }
     const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number) => this.event(partition, event, delay, job, expiryAdvice);
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
@@ -676,11 +714,11 @@ export class Run {
             this.enqueue(input);
         return this.step(untilTime);
       }
-      const permits = this.config.lifecycles?.permits;
+      const permits = this.permitsEnabled;
       if (!round && !permits) {
-        const plan = readRecord(this.core.edit(partition, 1));
+        const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
         for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay);
-        if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input);
+        if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input, undefined, item.activityScope);
         return this.step(untilTime);
       }
       if (this.config.lifecycles?.reuse && "revision" in item.input && !("evaluationInputs" in item.input)) {
@@ -694,18 +732,18 @@ export class Run {
       }
       if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
       if (permits) {
-        const lifetime = permits.lifetimeMs ?? 30000;
-        const timing = this.core.preTiming(partition, item.input.editDurationMs, permits.holdMs ?? 0, lifetime);
-        const duration = timing.duration;
-        validateLiveControl({ kind: "editDuration", durationMs: duration });
-        item.input = { ...item.input, editDurationMs: duration };
+        const timing = this.core.preTiming(partition, item.input.editDurationMs, this.permitProfile.durationMs, this.permitProfile.lifetimeMs);
+        item.input = { ...item.input, editDurationMs: timing.duration };
         const tool = "tool" in item.input && item.input.tool !== undefined ? item.input.tool : this.nextTool++;
-        const actions = this.core.issuePre({ $: "Workload.PermitFacts", partition: partition, lifetime: 1, tool,
-          provided: { $: "Some", value: duration }, fallback: permits.holdMs ?? 0, permit_lifetime: lifetime,
-          advicee_limit: permits.adviceeLimit, resident_limit: permits.residentLimit });
-        for (const action of decodeDriver(actions).actions) emit(action.event, action.delay, item.input);
+        const lifetime = this.core.activityLifetime(partition);
+        const capture = encodePermitCapture({ partition, lifetime, tool, started: timing.started, deadline: timing.deadline,
+          postDelay: timing.duration, outcome: this.permitProfile.outcome, limits: this.permitLimits });
+        emit(decodeDriverEvent(this.core.issuePermit(capture, timing.started)), timing.started - this.clock, item.input);
+        const issued = this.scheduled.get(this.order - 1);
+        if (!issued) throw new Error("PRE capture lost its scheduled source facts");
+        issued.permitCapture = { capture, started: timing.started };
       } else {
-        const plan = readRecord(this.core.edit(partition, 1));
+        const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
         for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay, item.input);
       }
       return this.step(untilTime);
@@ -770,22 +808,16 @@ export class Run {
       switch (command.kind) {
         case "permitIssued": {
           if (event.kind !== "issuePermit" || !item.job) break;
-          const terminal = this.config.lifecycles?.permits?.terminal ?? "consume";
-          const capture = { $: "Workload.PermitCapture", partition: event.partition, lifetime: event.lifetime,
-            token: command.token, tool: event.tool, deadline: event.deadline,
-            duration: item.job.editDurationMs ?? this.config.lifecycles?.permits?.holdMs ?? 0,
-            terminal: terminal === "consume" ? 0 : terminal === "release" ? 1 : 2 };
-          for (const action of decodeDriver(this.core.permitActions(capture)).actions)
-            emit(action.event, action.delay, action.job ? item.job : undefined);
+          const pending = item.permitCapture;
+          if (!pending) throw new Error("issued permit lacks its original PRE capture");
+          for (const fact of decodePermitFacts(this.core.issuedPermit(pending.capture, command.token)))
+            emit(fact.event, Math.max(0, pending.started + fact.delay - this.clock), fact.job ? item.job : undefined);
           break;
         }
         case "permitConsumed":
           if (event.kind === "consumePermit" && item.job) {
-            // Permit round is the advicee's admission generation; canonical round IDs
-            // are resident-wide identities and may differ for another partition.
-            const accepted = this.projection.rounds.find(round => round.partition === event.partition && round.lifetime === event.lifetime);
-            if (!accepted) throw new Error("consumed permit lacks its checked canonical round");
-            emit({ kind: "admitObservation", partition: event.partition, lifetime: event.lifetime, round: accepted.id }, 0, item.job);
+            for (const fact of decodePermitFacts(this.core.consumedPermit(commandIndex, event.partition, event.lifetime)))
+              emit(fact.event, fact.delay, fact.job ? item.job : undefined);
           }
           break;
         case "quietRoundExpired":

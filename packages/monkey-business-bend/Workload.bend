@@ -1,8 +1,5 @@
 import Base
 import ./Session.bend as Session
-import ../agent-flow-bend/Canonical.bend as Canonical
-import ../agent-flow-bend/Admission.bend as Admission
-import ./Driver.bend as Driver
 
 type Profile is Data:
   Profile{settings: Session.Config, seed: U32, codes: List<&2, U32>, bytes: Nat, units: List<&2, Nat>, duration: Maybe<&2, Nat>}
@@ -159,39 +156,3 @@ def pre_captured(+started: Nat, +duration: Nat, +lifetime: Nat) -> PreTiming:
 
 def pre_timing(advicees: List<&2, Advicee>, target: Nat, +now: Nat, provided: Maybe<&2, Nat>, fallback: Nat, lifetime: Nat) -> PreTiming:
   pre_captured(Bool.pick(Nat, Nat.is_eq(now, 0n), 1n, now), pre_duration(provided, advicees, target, fallback), lifetime)
-
-type PermitFacts is Data:
-  PermitFacts{partition: Nat, lifetime: Nat, tool: Nat, provided: Maybe<&2, Nat>, fallback: Nat, permit_lifetime: Nat, advicee_limit: Nat, resident_limit: Nat}
-type PermitCapture is Data:
-  PermitCapture{partition: Nat, lifetime: Nat, token: Nat, tool: Nat, deadline: Nat, duration: Nat, terminal: U32}
-
-def pre_action(facts: PermitFacts, now: Nat, timing: PreTiming) -> Driver.Handled:
-  match facts timing:
-    case PermitFacts{+partition, +lifetime, tool, _, _, +permit_lifetime, advicee_limit, resident_limit} PreTiming{+started, deadline, _, _, True{}}:
-      Driver.Handled{True{}, [Driver.Action{Canonical.IssuePermit{partition, lifetime, tool, started, deadline, started, 0n,
-        Admission.ProspectiveFacts{True{}, permit_lifetime, started, started, advicee_limit, resident_limit}},
-        (started - now : Nat), None{}, True{}, None{}}]}
-    case _ _: Driver.Handled{False{}, []}
-
-def issue(advicees: List<&2, Advicee>, +now: Nat, facts: PermitFacts) -> Driver.Handled:
-  match facts:
-    case PermitFacts{+partition, lifetime, tool, provided, +fallback, +permit_lifetime, advicee_limit, resident_limit}:
-      pre_action(PermitFacts{partition, lifetime, tool, None{}, fallback, permit_lifetime, advicee_limit, resident_limit}, now,
-        pre_timing(advicees, partition, now, provided, fallback, permit_lifetime))
-
-def terminal_action(capture: PermitCapture, +now: Nat) -> Driver.Action:
-  match capture:
-    case PermitCapture{partition, lifetime, token, tool, _, +duration, 0}:
-      Driver.Action{Canonical.ConsumePermit{partition, lifetime, token, tool, (now + duration : Nat)}, duration, None{}, True{}, None{}}
-    case PermitCapture{partition, lifetime, token, _, _, duration, 1}:
-      Driver.Action{Canonical.ReleasePermit{partition, lifetime, token}, duration, None{}, False{}, None{}}
-    case PermitCapture{partition, lifetime, token, _, deadline, _, _}:
-      Driver.Action{Canonical.ExpirePermit{partition, lifetime, token, True{}}, (deadline - now : Nat), None{}, False{}, None{}}
-
-def post_actions(+capture: PermitCapture, +now: Nat) -> Driver.Handled:
-  match capture:
-    case PermitCapture{+partition, +lifetime, +token, +tool, +deadline, +duration, +terminal}:
-      Driver.Handled{True{}, Bool.pick(List<&2, Driver.Action>, U32.is_ne(terminal, 2) && Nat.is_gt(duration, (deadline - now : Nat)),
-        Driver.Action{Canonical.ExpirePermit{partition, lifetime, token, True{}}, (deadline - now : Nat), None{}, False{}, None{}} <>
-          [terminal_action(PermitCapture{partition, lifetime, token, tool, deadline, duration, terminal}, now)],
-        [terminal_action(PermitCapture{partition, lifetime, token, tool, deadline, duration, terminal}, now)])}

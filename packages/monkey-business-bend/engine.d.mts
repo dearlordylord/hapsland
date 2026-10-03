@@ -4,6 +4,7 @@ export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unk
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ activity_event_valid(state: EngineState, event: unknown, partition: bigint, incarnation: bigint): boolean;
  lifecycle_entries(state: EngineState): unknown;
  lifecycle_entry(state: EngineState, partition: bigint): unknown;
  lifecycle_action(state: EngineState, partition: bigint, action: unknown): { state: EngineState; changed: unknown; cleanup: unknown; events: unknown };
@@ -34,8 +35,6 @@ declare const Engine: {
  configure_credentials(state: EngineState, available: boolean, generation: bigint): EngineState;
  credential_action(state: EngineState, available: boolean, rotation: boolean): EngineState;
  generate_tree(seed: bigint, operation: bigint, unit: bigint, profile: unknown, limits: unknown): unknown;
- pre_issue(state: EngineState, facts: unknown): unknown;
- permit_actions(state: EngineState, capture: unknown): unknown;
  session_delay(settings: unknown, random: number): number;
  clock(state: EngineState): number;
  configure_seed(state: EngineState, seed: bigint): EngineState;

@@ -33,6 +33,11 @@ def captured_valid(found: Maybe<&2, Nat>, incarnation: Nat) -> Bool:
     case None{}: False{}
     case Some{current}: Nat.is_eq(current, incarnation)
 
+def resumable(found: Maybe<&2, Nat>) -> Bool:
+  match found:
+    case None{}: False{}
+    case Some{incarnation}: Nat.is_lt(incarnation, Advicees.maximum())
+
 def active(entry: Maybe<&2, Lifecycle.Entry>) -> Bool:
   match entry:
     case None{}: False{}

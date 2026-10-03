@@ -5,12 +5,14 @@ import { validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
 import { validateSizeFacts } from "./sizes.ts";
 import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts";
 import type { SessionControl } from "./session.ts";
+import { validateAdviceeLifecycle, type AdviceeLifecycleControl } from "./advicee-lifecycle.ts";
+import { validatePermitControl, type PermitControl } from "./permit-controls.ts";
 export type EnvironmentProfile = { readonly currentWork: boolean; readonly credentialReady: boolean; readonly credentialGeneration?: number; readonly sourceReadable?: boolean };
 export type OutputProfile = { readonly outcome: "certain" | "uncertain" | "failed"; readonly delayMs: number; readonly leaseMs: number };
 export type OutcomeChoice =
   | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
   | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights };
-export type LiveControl = { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
+export type LiveControl = AdviceeLifecycleControl | PermitControl | { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
 /** Bounds protect finite synthetic workload; they are not empirical Jev limits. */
 export const validateLiveControl = (control: LiveControl): LiveControl => {
   if (!control || typeof control !== "object") throw new TypeError("invalid live control");
@@ -18,6 +20,9 @@ export const validateLiveControl = (control: LiveControl): LiveControl => {
     if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new RangeError(`${name} must be an integer in [${minimum}, ${maximum}]`);
   };
   switch (control.kind) {
+    case "adviceeLifecycle": return validateAdviceeLifecycle(control);
+    case "editPermitLimits":
+    case "permitProfile": return validatePermitControl(control);
     case "graphLimits": validateGraphLimits(control.limits); break;
     case "jevRequest":
     case "credentials": return validateJevIntervention(control);

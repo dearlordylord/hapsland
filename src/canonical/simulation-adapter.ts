@@ -81,6 +81,64 @@ export const editSharedCanonical = (state: EngineState, partition: number, lifet
   return { state: retain(state, transition.state), plan: decodeSharedValue(transition.plan) };
 };
 
+export const editSharedActivity = (state: EngineState, partition: number, incarnation: number) => {
+  sharedCheck(state);
+  const transition = SharedEngine.activity_edit(state, BigInt(readNat(partition)), BigInt(readNat(incarnation)));
+  return { state: retain(state, transition.state), plan: decodeSharedValue(transition.plan) };
+};
+
+export const sharedActivityScope = (state: EngineState, partition: number): number | undefined => {
+  sharedCheck(state);
+  const option = decodeOption(decodeSharedValue(SharedEngine.activity_scope(state, BigInt(readNat(partition)))));
+  return option.$ === "Some" ? readNat(option.value) : undefined;
+};
+
+export const sharedActivityValid = (state: EngineState, partition: number, incarnation: number): boolean => {
+  sharedCheck(state);
+  return SharedEngine.activity_valid(state, BigInt(readNat(partition)), BigInt(readNat(incarnation)));
+};
+
+export const sharedActivityEventValid = (state: EngineState, event: CanonicalEvent, partition: number, incarnation: number): boolean => {
+  sharedCheck(state);
+  return SharedEngine.activity_event_valid(state, encodeSharedValue(encodeCanonicalEvent(event)), BigInt(readNat(partition)), BigInt(readNat(incarnation)));
+};
+
+export const sharedActivityLifetime = (state: EngineState, partition: number): number => {
+  sharedCheck(state);
+  return readNat(SharedEngine.activity_lifetime(state, BigInt(readNat(partition))));
+};
+
+export const sharedLifecycleEntries = (state: EngineState): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.lifecycle_entries(state));
+};
+
+export const actSharedLifecycle = (state: EngineState, partition: number, action: unknown) => {
+  sharedCheck(state);
+  const transition = SharedEngine.lifecycle_action(state, BigInt(readNat(partition)), encodeSharedValue(action));
+  return { state: retain(state, transition.state), changed: decodeSharedValue(transition.changed), cleanup: decodeSharedValue(transition.cleanup), events: readList(transition.events, event => {
+    const item = workloadEvent(decodeSharedValue(event));
+    return { ...item, units: readBendList(item.units, readNat, 1024) };
+  }) };
+};
+
+export const issueSharedPermit = (state: EngineState, capture: unknown, issuanceNow: number): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.permit_issue(encodeSharedValue(capture), BigInt(readNat(issuanceNow))));
+};
+
+export const issuedSharedPermit = (state: EngineState, capture: unknown, token: number): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.permit_issued(encodeSharedValue(capture), BigInt(readNat(token))));
+};
+
+export const consumedSharedPermit = (state: EngineState, index: number, partition: number, lifetime: number): unknown => {
+  sharedCheck(state);
+  const command = sharedCommands.get(state)?.[index];
+  if (!command) throw new RangeError("missing shared permit command");
+  return decodeSharedValue(SharedEngine.permit_consumed(state, command, BigInt(readNat(partition)), BigInt(readNat(lifetime))));
+};
+
 const schedulerEntry = decoder(Schema.Struct({ $: Schema.Literal("Scheduler.Entry"), at: Schema.Number, order: Schema.Number }));
 const decodeEntry = (value: unknown): { readonly at: number; readonly order: number } => {
   const entry = schedulerEntry(decodeSharedValue(value));
@@ -181,15 +239,6 @@ export const sampleSharedOutcome = (state: EngineState, weights: unknown) => {
   const outcome = readNat(transition.outcome);
   if (outcome > 5) throw new TypeError("invalid shared outcome");
   return { state: retain(state, transition.state), outcome };
-};
-
-export const issueSharedPre = (state: EngineState, facts: unknown): unknown => {
-  sharedCheck(state);
-  return decodeSharedValue(SharedEngine.pre_issue(state, encodeSharedValue(facts)));
-};
-export const capturedSharedPermit = (state: EngineState, capture: unknown): unknown => {
-  sharedCheck(state);
-  return decodeSharedValue(SharedEngine.permit_actions(state, encodeSharedValue(capture)));
 };
 
 const credentialFacts = decoder(Schema.Struct({ $: Schema.Literal("CredentialFacts.State"), available: Schema.Boolean, generation: Nat, issued: Schema.Unknown }));

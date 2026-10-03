@@ -4,13 +4,15 @@ import { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
 import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
 import { decodeImportGraphStep, encodeImportGraphEvent, projectImportGraph, initialImportGraph } from "../../../src/canonical/graph-adapter.ts";
-import { issueSharedPre, capturedSharedPermit, configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming, sampleSharedOutcome } from "../../../src/canonical/simulation-adapter.ts";
+import { configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming, sampleSharedOutcome } from "../../../src/canonical/simulation-adapter.ts";
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
 import { sharedCapturedCredential, sharedCredentialMatches, sharedCallbackMatches, issueSharedActions, declareSharedAdvicee, sharedEventScope, sharedCommandScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
 import { readRecord } from "../../../src/canonical/boundary-schema.ts";
 import type { PreparationEvent, PreparationFrame } from "./preparation.ts";
+import { decodeAdviceeLifecycles, encodeAdviceeLifecycle, type AdviceeLifecycleAction } from "./advicee-lifecycle.ts";
+import { sharedActivityEventValid, actSharedLifecycle, sharedLifecycleEntries, sharedActivityScope, sharedActivityValid, sharedActivityLifetime, editSharedActivity, issueSharedPermit, issuedSharedPermit, consumedSharedPermit } from "../../../src/canonical/simulation-adapter.ts";
 
 /** The shared Bend owner holds both production reducers; this boundary validates and projects. */
 export class SharedCore {
@@ -25,6 +27,32 @@ export class SharedCore {
     return declared.scope;
   }
   commandScope(index: number, provided?: number) { return sharedCommandScope(this.state, index, provided); }
+  get adviceeLifecycles() { return decodeAdviceeLifecycles(sharedLifecycleEntries(this.state)); }
+  activityScope(partition: number) { return sharedActivityScope(this.state, partition); }
+  activityEventValid(event: CanonicalEvent, partition: number, incarnation: number) { return sharedActivityEventValid(this.state, event, partition, incarnation); }
+  activityValid(partition: number, incarnation: number) { return sharedActivityValid(this.state, partition, incarnation); }
+  activityLifetime(partition: number) { return sharedActivityLifetime(this.state, partition); }
+  activityEdit(partition: number, incarnation: number) {
+    const transition = editSharedActivity(this.state, partition, incarnation);
+    this.state = transition.state;
+    return transition.plan;
+  }
+  lifecycle(partition: number, agent: string, action: AdviceeLifecycleAction) {
+    const transition = actSharedLifecycle(this.state, partition, encodeAdviceeLifecycle(action));
+    this.state = transition.state;
+    const changed = readRecord(transition.changed);
+    const cleanup = readRecord(transition.cleanup);
+    const events: SessionInput[] = transition.events.map(event => {
+      const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring };
+      if (event.kind === 0) return { ...common, kind: "task", task: event.task };
+      if (event.kind === 2) return { ...common, kind: "finish" };
+      return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
+    });
+    return { changed, cleanup, events };
+  }
+  issuePermit(capture: unknown, issuanceNow: number) { return issueSharedPermit(this.state, capture, issuanceNow); }
+  issuedPermit(capture: unknown, token: number) { return issuedSharedPermit(this.state, capture, token); }
+  consumedPermit(index: number, partition: number, lifetime: number) { return consumedSharedPermit(this.state, index, partition, lifetime); }
   eventScope(event: CanonicalEvent, provided?: number) { return sharedEventScope(this.state, event, provided); }
   configureCredentials(available: boolean, generation: number) { this.state = configureSharedCredentials(this.state, available, generation); }
   capturedCredential(operation: number) { return sharedCapturedCredential(this.state, operation); }
@@ -37,8 +65,6 @@ export class SharedCore {
   interveneRequest(target: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }, outcome: unknown, delay: number) {
     return interveneSharedRequest(this.state, target, outcome, delay);
   }
-  issuePre(facts: unknown) { return issueSharedPre(this.state, facts); }
-  permitActions(capture: unknown) { return capturedSharedPermit(this.state, capture); }
   get now() { return sharedClock(this.state); }
   preTiming(partition: number, duration: number | undefined, fallback: number, lifetime: number) { return preSharedTiming(this.state, partition, duration, fallback, lifetime); }
   sample(weights: OutcomeWeights) {
