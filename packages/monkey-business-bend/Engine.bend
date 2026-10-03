@@ -1,4 +1,5 @@
 import Base
+import ./QuietScenario.bend as QuietScenario
 import ./CollectionScenario.bend as CollectionScenario
 import ./CacheRuntime.bend as CacheRuntime
 import ./CacheScenario.bend as CacheScenario
@@ -1109,3 +1110,15 @@ def stop_initial(capture: StopScenario.Capture) -> List<&2,StopScenario.Fact>:
 
 def stop_wake(capture: StopScenario.Capture, now: Nat) -> List<&2,StopScenario.Fact>:
   [StopScenario.wake(capture,now)]
+
+# Quiet owns generated facts and follow-up actions. Canonical keeps the actual
+# quiescence, active admission and inclusive duration decisions.
+def quiet_event(state: Types.State, event: Canonical.CanonicalEvent, native_idle: Bool, stop_absent: Bool) -> Canonical.CanonicalEvent:
+  QuietScenario.generated_tick(canonical(state),event,native_idle,stop_absent)
+
+def quiet_after(state: Types.State, event: Canonical.CanonicalEvent, partition: Nat,
+    now: Nat, window: Nat, native_idle: Bool, stop_absent: Bool) -> List<&2,Driver.Action>:
+  QuietScenario.after(canonical(state),event,partition,now,window,native_idle,stop_absent)
+
+def quiet_command(state: Types.State, command: Canonical.Command, event: Canonical.CanonicalEvent, partition: Nat, now: Nat) -> List<&2,Driver.Action>:
+  QuietScenario.command(canonical(state),command,event,partition,now)

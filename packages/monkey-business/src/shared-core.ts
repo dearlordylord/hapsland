@@ -1,3 +1,4 @@
+import { commandSharedQuiet, afterSharedQuiet, generatedSharedQuiet } from "../../../src/canonical/simulation-adapter.ts";
 import { controlSharedResponse, afterSharedResponse, expireSharedResponses, driveSharedResponse, deliverySharedResponse } from "../../../src/canonical/simulation-adapter.ts";
 import type { CollectionResponseControl, CollectionResponseIdentity } from "./collection-scenario.ts";
 import { beginSharedCache, stepSharedCache, configureSharedCache, type SharedCacheFact } from "../../../src/canonical/simulation-adapter.ts";
@@ -61,6 +62,11 @@ export class SharedCore {
     const result = actSharedCallback(this.state, target, action, receipt, at, order);
     this.state = result.state;
     return result;
+  }
+  quietCommand(event: CanonicalEvent,index: number,partition: number,now: number) { return commandSharedQuiet(this.state,event,index,partition,now); }
+  quietEvent(event: CanonicalEvent,nativeIdle: boolean,stopAbsent: boolean) { return generatedSharedQuiet(this.state,event,nativeIdle,stopAbsent); }
+  quietAfter(event: CanonicalEvent,partition: number,now: number,window: number,nativeIdle: boolean,stopAbsent: boolean) {
+    return afterSharedQuiet(this.state,event,partition,now,window,nativeIdle,stopAbsent);
   }
   commandScope(index: number, provided?: number) { return sharedCommandScope(this.state, index, provided); }
   get adviceeLifecycles() { return decodeAdviceeLifecycles(sharedLifecycleEntries(this.state)); }

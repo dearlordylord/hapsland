@@ -5,6 +5,9 @@ export interface Transition { $: "Transition"; state: EngineState; result: unkno
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 export interface ResponseTransition { $: "ResponseTransition"; state: EngineState; result: unknown; actions: unknown }
 declare const Engine: {
+ quiet_command(state: EngineState,command: unknown,event: unknown,partition: bigint,now: bigint): unknown;
+ quiet_event(state: EngineState,event: unknown,nativeIdle: boolean,stopAbsent: boolean): unknown;
+ quiet_after(state: EngineState,event: unknown,partition: bigint,now: bigint,window: bigint,nativeIdle: boolean,stopAbsent: boolean): unknown;
  collection_response_delivery_valid(state:EngineState,target:unknown,now:bigint,event:unknown):unknown;
  collection_response_open(state:EngineState,response:unknown):ResponseTransition;
  collection_response_close(state:EngineState,id:bigint,p:bigint,l:bigint,r:bigint):ResponseTransition;

@@ -959,10 +959,8 @@ export class Run {
     }
     if (event.kind === "collectionClaimBackground") Object.assign(this.metadata, { collectors: { capacity: event.capacity } });
     const before = this.projection;
-    if (item.generated && event.kind === "quietRoundTick") { const quiet = event; event = { ...quiet, facts: {
-      nativeWorkIdle: !before.work.some(w => w.partition === quiet.partition && w.kind !== "pendingFinding"),
-      adviceEmpty: !before.work.some(w => w.partition === quiet.partition && w.kind === "pendingFinding"),
-      handoffIdle: !before.collection.claims.some(c => c.group === quiet.partition) && !before.collection.leases.some(l => before.work.some(w => w.operation === l.advice && w.partition === quiet.partition)) && !before.delivery.submissions.batches.some(s => s.group === quiet.partition), stopAbsent: !this.finishes.has(quiet.partition) } }; }
+    if (item.generated && event.kind === "quietRoundTick")
+      event = this.core.quietEvent(event,this.quietNativeIdle(event.partition),!this.finishes.has(event.partition));
     // Callback identity is checked against issued work, before the product's stale-result fence.
     const completionEvent = event;
     if (
@@ -1030,19 +1028,15 @@ export class Run {
           }
           break;
         case "quietRoundExpired":
-          if (event.kind === "quietRoundTick") {
-            emit({ kind: "closePermitRound", partition: event.partition, lifetime: event.lifetime, round: event.round, at: this.clock });
-            emit({ kind: "retirePartition", partition: event.partition, lifetime: event.lifetime, round: event.round });
-          }
-          break;
         case "quietRoundWaiting":
-          if (event.kind === "quietRoundTick") emit({ ...event, now: command.since + event.window }, Math.max(0, command.since + event.window - this.clock));
+          for (const action of this.core.quietCommand(event,commandIndex,partition,this.clock)) emit(action.event,action.delay);
           break;
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
           this.jobs.set(command.id, item.job);
-          if (this.config.lifecycles?.quietWindowMs) emit({ kind: "quietRoundReset", ...scope });
+          if (this.config.lifecycles?.quietWindowMs)
+            for (const action of this.core.quietCommand(event,commandIndex,partition,this.clock)) emit(action.event,action.delay);
           if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
             const actions = this.core.admitFreshness({ ...scope, operation: command.id }, {
               subject: this.identity(JSON.stringify(["revision-subject-label", item.job.revisionSubject])),
@@ -1474,10 +1468,10 @@ export class Run {
       this.collectorCandidates.delete(token);
       if (claim) emit({ kind: "collectionReleaseBackground", group: claim.group, token });
     }
-    if (this.config.lifecycles?.quietWindowMs && ["completeObservation", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease", "releasePermit", "expirePermit", "collectionRetireAdvice", "submissionForget", "retireReview", "collectionReleaseBackground", "collectionExpireBackground"].includes(event.kind)) {
-      const round = this.projection.rounds.find(round => round.partition === partition);
-      if (round) emit({ kind: "quietRoundTick", partition: round.partition, lifetime: round.lifetime, round: round.id, now: this.clock,
-        window: this.config.lifecycles.quietWindowMs, facts: { nativeWorkIdle: !this.jobs.size, adviceEmpty: !this.projection.work.some(f => f.partition === round.partition && f.kind === "pendingFinding"), handoffIdle: !this.projection.collection.claims.some(c => c.group === round.partition), stopAbsent: !this.finishes.has(round.partition) } });
+    if (this.config.lifecycles?.quietWindowMs) {
+      const actions=this.core.quietAfter(event,partition,this.clock,this.config.lifecycles.quietWindowMs,
+        this.quietNativeIdle(partition),!this.finishes.has(partition));
+      for (const action of actions) emit(action.event,action.delay);
     }
     if (item.responseOrigin && !result.rejection) {
       const changed = this.core.responseAfter(item.responseOrigin.target);
@@ -1588,6 +1582,11 @@ export class Run {
     for (const fact of facts) this.queuePush({ at: fact.at, order: this.order++,
       finishAttempt: f.attempt, partition,
       input: { at: fact.at, kind: "canonical", event: fact.event } });
+  }
+  /** Physical job observation only; recorded ownership is measured in Bend. */
+  private quietNativeIdle(partition: number) {
+    const agent=this.agentName(partition);
+    return ![...this.jobs.values()].some(job => (job.agent ?? this.scopes[0]?.agent ?? "agent-1")===agent);
   }
   private endFinish(partition: number, continuation: boolean) {
     const f = this.finishes.get(partition);

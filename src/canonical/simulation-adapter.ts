@@ -634,3 +634,26 @@ export const deliverySharedResponse = (state: EngineState, target: CollectionRes
   sharedCheck(state);
   return readBool(decodeSharedValue(SharedEngine.collection_response_delivery_valid(state,encodeSharedValue(encodeCollectionResponseIdentity(target)),BigInt(readNat(now)),encodeSharedValue(encodeCanonicalEvent(event)))));
 };
+
+/** Original shared transition only; decode the whole action batch before queue publication. */
+export const afterSharedQuiet = (state: EngineState,event: CanonicalEvent,partition: number,now: number,window: number,nativeIdle: boolean,stopAbsent: boolean) => {
+  sharedCheck(state);
+  const commands=sharedCommands.get(state);
+  if (!commands || sharedSourceEvents.get(state)!==event) throw new TypeError("missing original quiet transition");
+  return decodeDriver({handled:true,actions:decodeSharedValue(SharedEngine.quiet_after(state,
+    encodeSharedValue(encodeCanonicalEvent(event)),BigInt(readNat(partition)),BigInt(readNat(now)),BigInt(readNat(window)),
+    decoder(Schema.Boolean)(nativeIdle),decoder(Schema.Boolean)(stopAbsent)))}).actions;
+};
+export const generatedSharedQuiet = (state: EngineState,event: CanonicalEvent,nativeIdle: boolean,stopAbsent: boolean) => {
+  sharedCheck(state);
+  return decodeDriverEvent(decodeSharedValue(SharedEngine.quiet_event(state,encodeSharedValue(encodeCanonicalEvent(event)),
+    decoder(Schema.Boolean)(nativeIdle),decoder(Schema.Boolean)(stopAbsent))));
+};
+
+export const commandSharedQuiet = (state: EngineState,event: CanonicalEvent,index: number,partition: number,now: number) => {
+  sharedCheck(state);
+  const command=sharedCommands.get(state)?.[index];
+  if (!command || sharedSourceEvents.get(state)!==event) throw new TypeError("missing original quiet command");
+  return decodeDriver({handled:true,actions:decodeSharedValue(SharedEngine.quiet_command(state,command,
+    encodeSharedValue(encodeCanonicalEvent(event)),BigInt(readNat(partition)),BigInt(readNat(now))))}).actions;
+};
