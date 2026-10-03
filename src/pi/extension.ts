@@ -94,9 +94,23 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   };
   api.on("session_before_switch", cleanup);
   api.on("session_shutdown", cleanup);
+  const retirePartition = async (id: Identity) => {
+    const target = partition(id);
+    const ownedCalls: Identity[] = [];
+    for (const [key, call] of calls) {
+      if (partition(call.id) !== target) continue;
+      calls.delete(key);
+      ownedCalls.push(call.id);
+    }
+    partitions.delete(target);
+    await Promise.all(ownedCalls.map(call => send(call, "retire")));
+    await send(id, "close");
+  };
   api.on("agent_settled", async () => {
     const origin = boundary ?? active; boundary = undefined; active = undefined;
-    if (origin !== undefined && origin.generation === epoch) await send(origin.id, "close");
+    if (origin === undefined || origin.generation !== epoch) return;
+    epoch++;
+    await retirePartition(origin.id);
   });
 };
 export default createPiExtension();
