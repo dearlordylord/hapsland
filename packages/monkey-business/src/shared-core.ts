@@ -1,3 +1,4 @@
+import { prepareSharedSharing, routeSharedSharing, routedSharedSharing } from "../../../src/canonical/simulation-adapter.ts";
 import { admitSharedFreshness, sharedFreshnessChecks } from "../../../src/canonical/simulation-adapter.ts";
 import { encodeFreshnessScope, encodeFreshnessSource, type FreshnessScope, type FreshnessSource } from "./freshness-codec.ts";
 import { replaceSharedCallbacks } from "../../../src/canonical/simulation-adapter.ts";
@@ -81,6 +82,13 @@ export class SharedCore {
     this.state = transition.state;
     return transition.actions;
   }
+  prepareSharing(scope: unknown, keys: readonly unknown[], sizes: readonly number[]) {
+    const result = prepareSharedSharing(this.state, scope, keys, sizes);
+    this.state = result.state;
+    return { routes: result.routes, valid: result.valid };
+  }
+  routeSharing(route: unknown) { return routeSharedSharing(this.state, route); }
+  routedSharing(route: unknown) { this.state = routedSharedSharing(this.state, route); }
   freshnessChecks(scope: FreshnessScope) { return sharedFreshnessChecks(this.state, encodeFreshnessScope({ partition: scope.partition, lifetime: scope.lifetime, round: scope.round, operation: scope.operation })); }
   issuePermit(capture: unknown, issuanceNow: number) { return issueSharedPermit(this.state, capture, issuanceNow); }
   issuedPermit(capture: unknown, token: number) { return issuedSharedPermit(this.state, capture, token); }

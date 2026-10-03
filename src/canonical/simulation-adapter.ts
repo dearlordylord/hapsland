@@ -26,6 +26,7 @@ const sharedCheck = (state: EngineState): void => {
 };
 const sharedProjections = new WeakMap<object, CanonicalProjection>();
 const sharedCommands = new WeakMap<object, readonly unknown[]>();
+const sharedSourceEvents = new WeakMap<object, CanonicalEvent>();
 const sharedPredecessors = new WeakMap<object, EngineState>();
 const sharedProjection = (state: EngineState): CanonicalProjection => {
   const raw = SharedEngine.canonical(state);
@@ -53,6 +54,7 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   sharedRegister(transition.state);
   sharedProjections.set(transition.state, projection);
   sharedCommands.set(transition.state, commands);
+  sharedSourceEvents.set(transition.state, freezeCanonicalData(event));
   // A detached root carries immediate transition facts without retaining the
   // bridge key and its predecessor metadata from earlier transitions.
   sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
@@ -150,6 +152,8 @@ const retain = (before: EngineState, next: EngineState): EngineState => {
   sharedRegister(next);
   sharedProjections.set(next, projection);
   if (commands !== undefined) sharedCommands.set(next, commands);
+  const event = sharedSourceEvents.get(before);
+  if (event !== undefined) sharedSourceEvents.set(next, event);
   const predecessor = sharedPredecessors.get(before);
   if (predecessor) sharedPredecessors.set(next, predecessor);
   return next;
@@ -381,4 +385,26 @@ export const admitSharedFreshness = (state: EngineState, scope: unknown, source:
 export const sharedFreshnessChecks = (state: EngineState, scope: unknown): unknown => {
   sharedCheck(state);
   return decodeSharedValue(SharedEngine.freshness_checks(state, encodeSharedValue(scope)));
+};
+
+/** Sharing plans use original scoped facts; command feedback is taken only from
+ * this state's authentic reducer result, never supplied by a host caller. */
+export const prepareSharedSharing = (state: EngineState, scope: unknown, keys: readonly unknown[], sizes: readonly number[]) => {
+  sharedCheck(state);
+  const list = (values: readonly unknown[]) => values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
+  const result = SharedEngine.sharing_prepare(state, encodeSharedValue(scope), encodeSharedValue(list(keys)), encodeSharedValue(list(sizes.map(readNat))));
+  return { state: retain(state, result.state), routes: decodeSharedValue(result.routes), valid: decodeSharedValue(result.valid) };
+};
+export const routeSharedSharing = (state: EngineState, route: unknown): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.sharing_route(state, encodeSharedValue(route)));
+};
+export const routedSharedSharing = (state: EngineState, route: unknown) => {
+  sharedCheck(state);
+  const commands = sharedCommands.get(state);
+  const event = sharedSourceEvents.get(state);
+  const captured = readRecord(route);
+  if (!commands || event?.kind !== "reuseRoute" || event.id !== readNat(captured.evaluation)) throw new RangeError("missing original shared route result");
+  const list = commands.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
+  return retain(state, SharedEngine.sharing_routed(state, encodeSharedValue(route), list));
 };

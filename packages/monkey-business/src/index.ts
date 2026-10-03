@@ -1,3 +1,5 @@
+import { captureSharingIdentityFacts, type SharingIdentityFacts } from "./sharing-controls.ts";
+export * from "./sharing-controls.ts";
 import { encodeNoticeScope, type OperationalNoticeKind } from "./notice-controls.ts";
 export * from "./notice-controls.ts";
 import { decodeCallbackTarget, encodeCallbackTarget, encodeCallbackAction, type CallbackTarget, type CallbackReport } from "./callback-controls.ts";
@@ -68,6 +70,8 @@ export type RunInput =
           readonly editDurationMs?: number;
           /** Exact source-free prepared evaluation identities, one per review unit. */
           readonly evaluationInputs?: readonly string[];
+          /** Original captured production namespace facts, one per prepared unit. */
+          readonly evaluationIdentityFacts?: readonly SharingIdentityFacts[];
           readonly evaluationTreeIdentity?: number;
           readonly evaluationTreeProfile?: FileTreeProfile;
           readonly evaluationGraphLimits?: GraphLimits;
@@ -819,6 +823,10 @@ export class Run {
       }
       if ("evaluationInputs" in item.input && item.input.evaluationInputs) {
         if (item.input.evaluationInputs.length !== item.input.unitBytes.length || item.input.evaluationInputs.some(input => typeof input !== "string" || !input.length)) throw new TypeError("evaluationInputs must identify every prepared review unit");
+      }
+      if ("evaluationIdentityFacts" in item.input && item.input.evaluationIdentityFacts !== undefined) {
+        if (item.input.evaluationIdentityFacts.length !== item.input.unitBytes.length) throw new TypeError("evaluationIdentityFacts must capture every prepared review unit");
+        item.input = { ...item.input, evaluationIdentityFacts: Object.freeze(item.input.evaluationIdentityFacts.map(captureSharingIdentityFacts)) };
       }
       if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
       if (permits) {
