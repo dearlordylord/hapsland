@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
+import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts";
 import { readBendList, readRecord, readNat, readBool } from "../../../src/canonical/boundary-schema.ts";
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts";
 import { decodeStopFound } from "./stop-codec.ts";
@@ -163,7 +164,7 @@ export function compareStopObservedOwners(nativeFrames: readonly unknown[], publ
       same(single(frame.result), transition, `frame ${index} full graph transition`);
     } else if (frame.$ === "advicee_lifecycle_driver.CanonicalFrame" || frame.$ === "advicee_lifecycle_driver.CacheFrame") {
       same(single(frame.result), transition.result, `frame ${index} full canonical result`);
-      same(decodePrefixCanonicalEvent(frame.event), source.observation.event, `frame ${index} original event`);
+      same(decodePrefixCanonicalEvent(frame.event), encodeCanonicalEvent(source.observation.event), `frame ${index} original event`);
       same(list(frame.command_scopes).map(optional), source.observation.commandScopes, `frame ${index} actual command scopes`);
       if (frame.$ === "advicee_lifecycle_driver.CacheFrame") same(frame.fact, source.source, `frame ${index} original cache fact`);
     } else throw new TypeError("unsupported full Stop observer constructor");
