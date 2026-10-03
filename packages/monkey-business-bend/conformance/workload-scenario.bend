@@ -2,6 +2,7 @@ import Base
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Workload.bend as Workload
+import ../PermitScenario.bend as PermitScenario
 import ../Scheduler.bend as Scheduler
 import ../Driver.bend as Driver
 import ../Session.bend as Session
@@ -112,12 +113,20 @@ def permit_event(event: Canonical.CanonicalEvent, commands: List<&2, Canonical.C
     case Canonical.ExpirePermit{_, _, token, _}: [33n, token, 0n]
     case _: [99n, 0n, 0n]
 
-def permit_follow(event: Canonical.CanonicalEvent, +commands: List<&2, Canonical.Command>,
-    +state: Types.State, queue: Minimal.Queue, +duration: Nat, now: Nat) -> Minimal.Queue:
+# Only adapts supplied owner facts into the existing native queue shape.
+def permit_fact_actions(facts: List<&2, PermitScenario.Fact>) -> List<&2, Driver.Action>:
+  match facts:
+    case Nil{}: []
+    case PermitScenario.Fact{event, delay, job} <> tail:
+      Driver.Action{event, delay, None{}, job, None{}} <> permit_fact_actions(tail)
+
+def permit_follow(event: Canonical.CanonicalEvent, commands: List<&2, Canonical.Command>,
+    state: Types.State, queue: Minimal.Queue, duration: Nat, now: Nat) -> Minimal.Queue:
   match event:
-    case Canonical.IssuePermit{partition, lifetime, tool, _, deadline, _, _, _}:
-      Minimal.handled(queue, now, Engine.permit_actions(state,
-        Workload.PermitCapture{partition, lifetime, issued_token(commands), tool, deadline, duration, 0}))
+    case Canonical.IssuePermit{partition, lifetime, tool, +started, deadline, _, _, _}:
+      Minimal.enqueue(permit_fact_actions(Engine.permit_issued(
+        PermitScenario.Capture{partition, lifetime, tool, started, deadline, duration,
+          PermitScenario.Successful{}, 2n, 2n}, issued_token(commands))), queue, started)
     case _: queue
 
 def permit_control(+state: Types.State, event: Canonical.CanonicalEvent) -> Types.State:
@@ -300,8 +309,10 @@ def tasked(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
 
 def permit_scenario(+duration: Nat) -> List<&2, List<&2, Nat>>:
   +state = duration_state(duration, 10n)
-  permit_loop(10n, (state, Minimal.handled(Minimal.Queue{[], 0n, 0n}, 10n,
-    Engine.pre_issue(state, Workload.PermitFacts{1n, 1n, 1n, None{}, 1n, 10n, 2n, 2n}))), duration)
+  permit_loop(10n, (state, Minimal.enqueue([Driver.Action{
+    Engine.permit_issue(PermitScenario.Capture{1n, 1n, 1n, 10n, 20n, duration,
+      PermitScenario.Successful{}, 2n, 2n}, 10n), 0n, None{}, True{}, None{}}],
+    Minimal.Queue{[], 0n, 0n}, 10n)), duration)
 
 def trace() -> List<&2, List<&2, Nat>>:
   tasked(Engine.workload_action(
