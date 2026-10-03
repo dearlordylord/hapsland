@@ -3,7 +3,8 @@ import {decoder,PositiveNat,ByteCount} from "../../../src/canonical/boundary-sch
 import {encodeDriverOutcome} from "./driver-codec.ts";
 import {SharingKeySchema,SharingScopeSchema} from "./sharing-controls.ts";
 
-/** Complete prepared identity is interned bijectively by the edge; this codec
+/** The complete production reuse namespace plus prepared.identity is interned
+ * bijectively by the edge; the key partition remains the logical ledger owner. This codec
  * captures original provenance and contains no cache eligibility policy. */
 export const CacheOfferSchema=Schema.Struct({id:PositiveNat,key:SharingKeySchema,original:SharingScopeSchema,
  bytes:ByteCount,outcome:Schema.Literal("clear","finding")}).check(Schema.makeFilter(value=>value.key.partition===value.original.partition));

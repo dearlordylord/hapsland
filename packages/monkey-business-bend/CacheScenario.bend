@@ -8,6 +8,9 @@ import ./FreshnessScenario.bend as Freshness
 
 # Retained source-free results only. Canonical owns admission, LRU and ledger;
 # Sharing owns current members, physical callbacks and live advice. No TTL.
+# Its interned key must carry the actual resident reuse namespace (work and
+# captured credential generation) plus prepared.identity, while partition is
+# the logical ledger owner. Credential generation is not semantic input content.
 type Offer is Data:
   Offer{id: Nat, key: Sharing.Key, original: Freshness.Scope,
     bytes: Nat, outcome: C.RequestOutcome}

@@ -47,7 +47,7 @@ it.each([7,31,101,997])("bounded pressure campaign preserves actual owners and r
 // ABI gate. These assertions do not claim credential/configuration generation
 // changes are represented by merely changing the public evaluationInputs label.
 
-it("requires changed credential authority to miss while preserving the original cache provenance",()=>{
+it("uses the changed production reuse namespace after credential rotate, with stable semantic input",()=>{
  const run=start([edit("same-prepared-source",0)]);
  expect(run.advance({maxEvents:1000}).reason).toBe("idle");const original={...run.projection.reuse.cache[0]!};
  run.applyControl({kind:"credentials",action:"rotate"});run.schedule(edit("same-prepared-source",run.now+10));
@@ -62,5 +62,11 @@ it("requires genuine advicee removal to free that owner's cached payload without
  run.applyControl({kind:"adviceeLifecycle",agent:"a",action:"remove"});run.advance({untilTime:10,maxEvents:1000});
  expect(run.projection.reuse.cache).toEqual([healthy]);expect(run.projection.global).toEqual({items:1,bytes:5});owners(run);replay(run);
 });
-// The credential case above is intentional TDD for the missing complete
-// prepared-identity central seam, not proof that the baseline label includes it.
+// Contract: docs/review-contract-compatibility.md:46–53 owns semantic matching
+// and current-source reuse. Production src/resident/server.ts:1693–1695 scopes
+// residentReuse.key to advicee partition + original work id + captured credential
+// generation; evaluation-reuse.ts:12–15 pairs that namespace with prepared.identity.
+// Rotation changes this existing reuse namespace, not the semantic content hash
+// (src/direct-event/model.ts:231–233), and does not command cache invalidation.
+// The same-source rotate case is TDD for carrying that captured production scope
+// through #188/#189. A bare logical-partition + semantic-input label is insufficient.
