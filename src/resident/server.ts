@@ -335,15 +335,13 @@ export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number =>
 
 const logicalBytes = (value: unknown): number => Buffer.byteLength(canonicalValue(value), "utf8");
 
+const exactHostVersions = { "claude-code": "2.1.218", pi: "1.0.0", opencode: "1.14.44" } as const;
+const supportedAdviceeVersion = (advicee: DirectAdvicee): boolean =>
+  advicee.host === "codex-cli" ? isCodexHostVersion(advicee.hostVersion)
+    : advicee.hostVersion === exactHostVersions[advicee.host];
 const addressableAdvicee = (advicee: DirectAdvicee): boolean =>
-  advicee.host !== "codex-cli"
-    ? advicee.hostVersion === (advicee.host === "claude-code" ? "2.1.218" : advicee.host === "pi" ? "1.0.0" : "1.14.44") &&
-      advicee.sessionId.length > 0 &&
-      advicee.toolUseId.length > 0
-    : isCodexHostVersion(advicee.hostVersion) &&
-      advicee.sessionId.length > 0 &&
-      advicee.turnId.length > 0 &&
-      advicee.toolUseId.length > 0;
+  supportedAdviceeVersion(advicee) && advicee.sessionId.length > 0 && advicee.toolUseId.length > 0 &&
+  (advicee.host !== "codex-cli" || advicee.turnId.length > 0);
 
 const withoutDeliveredFindings = (
   findings: ReadonlyArray<Finding>,

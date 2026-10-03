@@ -1305,8 +1305,10 @@ const initialClientStatus = (inspection: {
     : ["conflict", "partial"].includes(inspection.status)
       ? "needs attention"
       : "not installed";
+type ClientInstallationFields = Parameters<typeof inspectPiInstallation>[0] &
+  Parameters<typeof inspectClaudeInstallation>[0] & Parameters<typeof inspectCodexInstallation>[0];
 const codexClientStatus = Effect.fn("InteractiveSetup.codexStatus")(function* (
-  fields: Extract<ReturnType<typeof hostFields>, { host: "codex" }>,
+  fields: ClientInstallationFields,
   status: ClientChoice["status"],
 ) {
   if (status !== "not installed") return status;
@@ -1316,23 +1318,37 @@ const codexClientStatus = Effect.fn("InteractiveSetup.codexStatus")(function* (
   return target.status === "unsupported" ? ("unavailable" as const) : status;
 });
 const claudeClientStatus = Effect.fn("InteractiveSetup.claudeStatus")(function* (
-  fields: Extract<ReturnType<typeof hostFields>, { host: "claude" }>,
+  fields: ClientInstallationFields,
   status: ClientChoice["status"],
 ) {
   if (status !== "not installed") return status;
   return (yield* previewClaudeInstallation(fields)).status === "unsupported" ? ("unavailable" as const) : status;
 });
+const clientInstallations = {
+  pi: { installed: hasPiRegistration, inspect: inspectPiInstallation },
+  claude: { installed: hasClaudeRegistration, inspect: inspectClaudeInstallation },
+  codex: { installed: hasCodexRegistration, inspect: inspectCodexInstallation },
+};
+const clientInstalled = (fields: ReturnType<typeof hostFields>) => clientInstallations[fields.host].installed(fields);
+const inspectClient = (fields: ReturnType<typeof hostFields>) => clientInstallations[fields.host].inspect(fields);
+const piClientStatus = Effect.fn("InteractiveSetup.piStatus")(function* (
+  fields: ClientInstallationFields,
+  initial: ClientChoice["status"],
+) {
+  return (yield* previewPiInstallation(fields)).status === "unsupported" ? "unavailable" as const : initial;
+});
+const clientStatuses = { pi: piClientStatus, claude: claudeClientStatus, codex: codexClientStatus };
+const currentClientStatus = (fields: ReturnType<typeof hostFields>, initial: ClientChoice["status"]) =>
+  clientStatuses[fields.host](fields, initial);
+const clientNames = { pi: "Pi", claude: "Claude Code", codex: "Codex CLI" } as const;
 const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (host: SetupClient) {
   const fields = hostFields(host);
-  const inspection =
-    fields.host === "pi" ? yield* inspectPiInstallation(fields) : fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
+  const inspection = yield* inspectClient(fields);
   const decoded = Schema.decodeUnknownSync(
     Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }),
   )(inspection);
-  const initial = initialClientStatus(decoded);
-  const status =
-    fields.host === "pi" ? (yield* previewPiInstallation(fields)).status === "unsupported" ? "unavailable" as const : initial : fields.host === "claude" ? yield* claudeClientStatus(fields, initial) : yield* codexClientStatus(fields, initial);
-  return { host, name: host === "pi" ? "Pi" : host === "claude" ? "Claude Code" : "Codex CLI", status };
+  const status = yield* currentClientStatus(fields, initialClientStatus(decoded));
+  return { host, name: clientNames[host], status };
 });
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
   if (!process.stdin.isTTY || !process.stderr.isTTY)
@@ -1434,10 +1450,8 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(
       },
       {
         fields: hostFields,
-        installed: (fields) =>
-          fields.host === "pi" ? hasPiRegistration(fields) : fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields),
-        inspect: (fields) =>
-          fields.host === "pi" ? inspectPiInstallation(fields) : fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields),
+        installed: clientInstalled,
+        inspect: inspectClient,
         invoke: (host, request) =>
           invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request),
         activate: activateCurrentPackage(fileURLToPath(import.meta.url)),
