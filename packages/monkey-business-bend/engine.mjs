@@ -159,602 +159,476 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
-function $$$$047agent$045flow$045bend$047Handoff$validation_route$(_owner_current_0, _status_0) {
-  if (!_owner_current_0) {
-    return {$: "Handoff.IgnoreCandidate"};
-  } else {
-    if (_status_0.$ === "Handoff.Current") {
-      return {$: "Handoff.ContinueCandidate"};
-    } else if (_status_0.$ === "Handoff.Stale") {
-      return {$: "Handoff.RetireCandidate"};
-    } else {
-      return {$: "Handoff.ReleaseCandidate"};
+function $$$$047agent$045flow$045bend$047Dispatch$initial$() {
+  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$max_running$() {
+  return 8;
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$max_requests$() {
+  return 8;
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$preparation_count$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _t_1 = _t_0["preparation"];
+        if (_t_1) {
+          const _rest_0 = _items_0["tail"];
+          const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_rest_0));
+          return nat_chk(1 + _x_0);
+        } else {
+          const _rest_1 = _items_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
     }
   }
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$post_validation$(_work_accepted_0, _expired_0, _has_fitting_0) {
-  const _x_0 = ($Bool$not$(_work_accepted_0));
-  return $Bool$pick$((_x_0 || _expired_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_fitting_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})));
+function $$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _owner_0 = _entry_0["partition"];
+  const _generation_0 = _entry_0["lifetime"];
+  const _current_0 = _entry_0["round"];
+  const _id_0 = _entry_0["operation"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Nat$is_eq$(_id_0, _operation_0)))))));
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$final_candidate$(_owner_current_0, _credential_generation_0, _credential_authorized_0, _expired_0, _work_current_0, _has_findings_0) {
-  const _x_0 = ($Bool$not$(_work_current_0));
-  return $Bool$pick$(($Bool$not$(_owner_current_0)), {$: "Handoff.IgnoreCandidate"}, ($Bool$pick$(($Bool$not$(_credential_generation_0)), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(($Bool$not$(_credential_authorized_0)), {$: "Handoff.ReleaseCandidate"}, ($Bool$pick$((_expired_0 || _x_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_findings_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$initial$(_partition_0, _round_0) {
-  return {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": {$: "Nil"}, "retained": {$: "Nil"}, "findings": 0, "bytes": 0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$current$(_advice_0, _partition_0, _round_0) {
-  const _source_partition_0 = _advice_0["partition"];
-  const _source_round_0 = _advice_0["round"];
-  const _source_snapshot_0 = _advice_0["snapshot"];
-  const _current_snapshot_0 = _advice_0["current_snapshot"];
-  const _source_credential_0 = _advice_0["credential"];
-  const _current_credential_0 = _advice_0["current_credential"];
-  const _age_ms_0 = _advice_0["age_ms"];
-  const _ready_0 = _advice_0["collection_ready"];
-  return $Bool$and$(($Nat$is_eq$(_source_partition_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_source_round_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_source_snapshot_0, _current_snapshot_0)), ($Bool$and$(($Nat$is_eq$(_source_credential_0, _current_credential_0)), ($Bool$and$((_age_ms_0 < 600000), _ready_0)))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0) {
-  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Nat$is_le$(_bytes_0, 10240)));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$notice_offer$(_items_0, _bytes_0, _skip_unfitting_0) {
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0)), {$: "Handoff.IncludeNotice"}, ($Bool$pick$(_skip_unfitting_0, {$: "Handoff.SkipNotice"}, {$: "Handoff.StopNotices"})));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, _fits_0) {
-  const _partition_0 = _state_0["partition"];
-  const _round_0 = _state_0["round"];
-  const _selected_0 = _state_0["selected"];
-  const _retained_0 = _state_0["retained"];
-  const _count_0 = _state_0["findings"];
-  const _bytes_0 = _state_0["bytes"];
-  if (_fits_0) {
-    return {$: "Handoff.Selected", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": ($List$append$(_selected_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "retained": _retained_0, "findings": nat_chk(_count_0 + 1), "bytes": _prospective_bytes_0}};
-  } else {
-    return {$: "Handoff.Retained", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0) {
-  const _partition_0 = _state_0["partition"];
-  const _round_0 = _state_0["round"];
-  const _selected_0 = _state_0["selected"];
-  const _retained_0 = _state_0["retained"];
-  const _count_0 = _state_0["findings"];
-  const _bytes_0 = _state_0["bytes"];
-  return {$: "Handoff.Limited", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}, "id": _id_0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, _oversized_0) {
-  if (_oversized_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$fits_batch$(nat_chk(_count_0 + 1), _prospective_bytes_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$valid$(_state_0, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0) {
-  if (_valid_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, ($Nat$is_gt$(_solo_bytes_0, 10240)));
-  } else {
-    return {$: "Handoff.Expired", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _valid_0) {
-  const __0 = _state_0["partition"];
-  const __1 = _state_0["round"];
-  const __2 = _state_0["selected"];
-  const __3 = _state_0["retained"];
-  const _count_0 = _state_0["findings"];
-  const __4 = _state_0["bytes"];
-  const _id_0 = _advice_0["id"];
-  const _solo_bytes_0 = _advice_0["solo_bytes"];
-  return $$$$047agent$045flow$045bend$047Handoff$select$valid$({$: "Handoff.Selection", "partition": __0, "round": __1, "selected": __2, "retained": __3, "findings": _count_0, "bytes": __4}, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _ids_0) {
-  if (_ids_0.$ === "Nil") {
+function $$$$047agent$045flow$045bend$047Dispatch$contains$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
     return false;
   } else {
-    const _item_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _rest_0));
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0));
     return (_x_0 || _x_1);
   }
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$select$duplicate$(_state_0, _advice_0, _prospective_bytes_0, _current_0, _duplicate_0) {
-  if (_duplicate_0) {
-    return {$: "Handoff.Duplicate", "state": _state_0};
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _current_0);
-  }
+function $$$$047agent$045flow$045bend$047Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return (_x_0 || _x_1);
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$select$(_state_0, _advice_0, _prospective_bytes_0) {
-  const _partition_0 = _state_0["partition"];
-  const _round_0 = _state_0["round"];
-  const _selected_0 = _state_0["selected"];
-  const _retained_0 = _state_0["retained"];
-  const __0 = _state_0["findings"];
-  const __1 = _state_0["bytes"];
-  const _id_0 = _advice_0["id"];
-  const __2 = _advice_0["unit"];
-  const __3 = _advice_0["partition"];
-  const __4 = _advice_0["round"];
-  const __5 = _advice_0["snapshot"];
-  const __6 = _advice_0["current_snapshot"];
-  const __7 = _advice_0["credential"];
-  const __8 = _advice_0["current_credential"];
-  const __9 = _advice_0["age_ms"];
-  const __10 = _advice_0["solo_bytes"];
-  const __11 = _advice_0["collection_ready"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _selected_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _retained_0));
-  return $$$$047agent$045flow$045bend$047Handoff$select$duplicate$({$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$current$({$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
+function $$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0) {
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0};
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$finish$initial$(_round_0) {
-  return {$: "Handoff.Finish", "round": _round_0, "active": true, "closed": false, "continuations": 0, "reserved": false, "token": 0, "collector": 0, "deadline_at": 0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$(_state_0, _can_continue_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _token_0 = _state_0["token"];
-  const _collector_0 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  if (_can_continue_0) {
-    return {$: "Handoff.Continue", "state": {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": nat_chk(_continuations_0 + 1), "reserved": true, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
-  } else {
-    return {$: "Handoff.Allow", "state": {$: "Handoff.Finish", "round": _round_0, "active": false, "closed": true, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const __3 = _state_0["reserved"];
-  const __4 = _state_0["token"];
-  const __5 = _state_0["collector"];
-  const __6 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": _continuations_0, "reserved": __3, "token": __4, "collector": __5, "deadline_at": __6}, ($Bool$and$(($Nat$is_gt$(_actionable_findings_0, 0)), (_continuations_0 < 4))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, _zero_0) {
-  if (_zero_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
-  } else {
-    return {$: "Handoff.Wait", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
-  if (_deadline_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, ($Nat$is_eq$(_unfinished_0, 0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0) {
-  if (_reserved_0) {
-    return {$: "Handoff.Wait", "state": _state_0};
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$guard$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _valid_0, _reserved_0) {
-  if (_valid_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0);
-  } else {
-    return {$: "Handoff.Allow", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$decide$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
-  const __0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const __2 = _state_0["token"];
-  const __3 = _state_0["collector"];
-  const __4 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$guard$({$: "Handoff.Finish", "round": __0, "active": _active_0, "closed": _closed_0, "continuations": __1, "reserved": _reserved_0, "token": __2, "collector": __3, "deadline_at": __4}, _unfinished_0, _deadline_0, _actionable_findings_0, ($Bool$and$(_active_0, ($Bool$not$(_closed_0)))), _reserved_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$(_state_0, _original_deadline_0, _first_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _token_0 = _state_0["token"];
-  const _collector_0 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  if (_first_0) {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _original_deadline_0};
-  } else {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["continuations"];
-  const __4 = _state_0["reserved"];
-  const __5 = _state_0["token"];
-  const __6 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _original_deadline_0, ($Nat$is_eq$(_deadline_at_0, 0)));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$at$(_state_0, _unfinished_0, _now_0, _actionable_findings_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["continuations"];
-  const __4 = _state_0["reserved"];
-  const __5 = _state_0["token"];
-  const __6 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _unfinished_0, ($Nat$is_ge$(_now_0, _deadline_at_0)), _actionable_findings_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$decide_at$(_state_0, _unfinished_0, _now_0, _original_deadline_0, _actionable_findings_0) {
-  return $$$$047agent$045flow$045bend$047Handoff$finish$at$(($$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0)), _unfinished_0, _now_0, _actionable_findings_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$bind_writer$(_state_0, _writer_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _token_0 = _state_0["token"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": nat_chk(_token_0 + 1), "collector": _writer_0, "deadline_at": _deadline_at_0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$(_state_0, _valid_0) {
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _token_0 = _state_0["token"];
-  const _collector_0 = _state_0["collector"];
-  const _deadline_at_0 = _state_0["deadline_at"];
-  if (_valid_0) {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": 0};
-  } else {
-    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$can_complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
-  const _own_round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_0 = _state_0["closed"];
-  const _continuations_0 = _state_0["continuations"];
-  const _reserved_0 = _state_0["reserved"];
-  const _own_token_0 = _state_0["token"];
-  const _own_collector_0 = _state_0["collector"];
-  return $Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(_active_0, ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(_reserved_0, ($Bool$and$(($Nat$is_eq$(_continuations_0, _slot_0)), ($Bool$and$(($Nat$is_eq$(_own_token_0, _token_0)), ($Nat$is_eq$(_own_collector_0, _collector_0)))))))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$finish$complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
-  const __0 = _state_0["round"];
-  const __1 = _state_0["active"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["continuations"];
-  const __4 = _state_0["reserved"];
-  const __5 = _state_0["token"];
-  const __6 = _state_0["collector"];
-  const __7 = _state_0["deadline_at"];
-  return $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, ($$$$047agent$045flow$045bend$047Handoff$finish$can_complete$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, _round_0, _slot_0, _token_0, _collector_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$main$() {
-  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$(($$$$047agent$045flow$045bend$047Handoff$finish$initial$(1)), 0, false, 1);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$initial$(_item_0, _round_0) {
-  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": false, "reoffered": false, "phase": {$: "Handoff.Available"}};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0) {
-  if (_phase_0.$ === "Handoff.Available") {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": _surface_0}}};
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$(_state_0, _token_0, _surface_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _surface_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
-  if (_same_0) {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
-  if (_phase_0.$ === "Handoff.Reserved") {
-    const _own_token_0 = _phase_0["token"];
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$(_state_0, _token_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$(_state_0, _round_0, _token_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
-  if (_same_0) {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Available"}}};
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
-  if (_phase_0.$ === "Handoff.Reserved") {
-    const _own_token_0 = _phase_0["token"];
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$(_state_0, _token_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$release$(_state_0, _round_0, _token_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0, _certain_0) {
-  if (_same_0) {
-    if (_certain_0) {
-      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
-    } else {
-      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": _surface_0}}};
-    }
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0) {
-  if (_phase_0.$ === "Handoff.Authorized") {
-    const _own_token_0 = _phase_0["token"];
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)), _certain_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$(_state_0, _token_0, _certain_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$(_state_0, _round_0, _token_0, _certain_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const __1 = _state_0["reoffered"];
-  const __2 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _certain_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, _uncertain_0, _token_0) {
-  if (_surface_0.$ === "Handoff.Edit") {
-    if (_uncertain_0) {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Edit"}}}};
-    } else {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Edit"}}}};
-    }
-  } else if (_surface_0.$ === "Handoff.Background") {
-    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": true, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": {$: "Handoff.Stop"}}}};
-  } else {
-    if (_uncertain_0) {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Stop"}}}};
-    } else {
-      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Stop"}}}};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
-  if (_phase_0.$ === "Handoff.Submitted") {
-    const _surface_0 = _phase_0["surface"];
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
-  } else if (_phase_0.$ === "Handoff.Uncertain") {
-    const _surface_1 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_1, true, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$(_state_0, _token_0, _allowed_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  if (_allowed_0) {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
-  } else {
-    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0) {
-  const __0 = _state_0["item"];
-  const _own_round_0 = _state_0["round"];
-  const _closed_0 = _state_0["closed"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const __1 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": __1}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(($Bool$not$(_reoffered_0)), _fresh_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
-  if (_surface_0.$ === "Handoff.Stop") {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0);
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$(_state_0, _round_0, _token_0, _surface_0, _fresh_0, _phase_0) {
-  if (_phase_0.$ === "Handoff.Uncertain") {
-    const _t_0 = _phase_0["surface"];
-    if (_t_0.$ === "Handoff.Background") {
-      return $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
-    } else {
-      return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-    }
-  } else {
-    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$offer$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
-  const __0 = _state_0["item"];
-  const __1 = _state_0["round"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  return $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$({$: "Handoff.Lease", "item": __0, "round": __1, "closed": __2, "reoffered": __3, "phase": _phase_0}, _round_0, _token_0, _surface_0, _fresh_0, _phase_0);
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$close$(_state_0) {
-  const _item_0 = _state_0["item"];
-  const _round_0 = _state_0["round"];
-  const _reoffered_0 = _state_0["reoffered"];
-  const _phase_0 = _state_0["phase"];
-  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": true, "reoffered": _reoffered_0, "phase": _phase_0};
-}
-
-function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_own_0, _requested_0) {
-  if (_own_0.$ === "Handoff.Background") {
-    if (_requested_0.$ === "Handoff.Stop") {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
+function $$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0) {
+  const _t_0 = _entry_0["preparation"];
+  if (!_t_0) {
     return true;
+  } else {
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_running_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_running$());
+    return (_x_0 < _x_1);
   }
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
-  if (_phase_0.$ === "Handoff.Available") {
+function $$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, _result_0) {
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _t_0 = _result_0["state"];
+    const _queued_0 = _t_0["queued"];
+    const _running_0 = _t_0["running"];
+    const _next_sequence_0 = _t_0["next_sequence"];
+    const _closed_0 = _t_0["closed"];
+    const _requests_0 = _t_0["requests"];
+    const _commands_0 = _result_0["commands"];
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
+  } else {
+    const _state_0 = _result_0["state"];
+    return {$: "Dispatch.Denied", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
+  if (_queued_0.$ === "Nil") {
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
+  } else {
+    const _entry_0 = _queued_0["head"];
+    const _rest_0 = _queued_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_one$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
+  if (_result_0.$ === "Dispatch.Advanced") {
+    const _second_0 = _result_0["state"];
+    const _more_0 = _result_0["commands"];
+    return {$: "Dispatch.Advanced", "state": _second_0, "commands": ($List$append$(_commands_0, _more_0))};
+  } else {
+    return {$: "Dispatch.Denied", "state": _first_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_next$(_first_0, _commands_0) {
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_one$(_first_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0) {
+  if (_queued_0.$ === "Nil") {
     return false;
-  } else if (_phase_0.$ === "Handoff.Reserved") {
-    return true;
-  } else if (_phase_0.$ === "Handoff.Authorized") {
-    return true;
-  } else if (_phase_0.$ === "Handoff.Submitted") {
-    return true;
   } else {
-    const _surface_0 = _phase_0["surface"];
-    return $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_surface_0, _requested_0);
+    const _entry_0 = _queued_0["head"];
+    const _rest_0 = _queued_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_rest_0, _running_0));
+    return (_x_0 || _x_1);
   }
 }
 
-function $$$$047agent$045flow$045bend$047Handoff$lease$suppresses$(_state_0, _round_0, _requested_0) {
-  const _owner_0 = _state_0["round"];
+function $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_remaining_0, _result_0) {
+  if (_remaining_0 === 0) {
+    return _result_0;
+  } else {
+    const _rest_0 = (_remaining_0 - 1);
+    if (_result_0.$ === "Dispatch.Advanced") {
+      const _t_0 = _result_0["state"];
+      const _queued_0 = _t_0["queued"];
+      const _running_0 = _t_0["running"];
+      const __0 = _t_0["next_sequence"];
+      const __1 = _t_0["closed"];
+      const __2 = _t_0["requests"];
+      const _commands_0 = _result_0["commands"];
+      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
+    } else {
+      const _state_0 = _result_0["state"];
+      return {$: "Dispatch.Denied", "state": _state_0};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$pump_available$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const __0 = _state_0["running"];
+  const __1 = _state_0["next_sequence"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _phase_0 = _state_0["phase"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0)))));
+  const _requests_0 = _state_0["requests"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0)), _rest_0, {$: "Con", "head": _entry_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0) {
+  if (_ids_0.$ === "Nil") {
+    return false;
+  } else {
+    const _id_0 = _ids_0["head"];
+    const _rest_0 = _ids_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$listed$(_rest_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, _running_0) {
+  const _operation_0 = _entry_0["operation"];
+  return {$: "Dispatch.Discarded", "operation": _operation_0, "running": _running_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
+  if (_hit_0) {
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": _entries_0, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": _commands_0}};
+  } else {
+    const _entries_1 = _tail_0["entries"];
+    const _commands_1 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_1}, "commands": _commands_1};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_items_0, _ids_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const __3 = _t_0["sequence"];
+    const __4 = _t_0["cancelled"];
+    const __5 = _t_0["preparation"];
+    const _rest_0 = _items_0["tail"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_rest_0, _ids_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0) {
+  const _partition_0 = _entry_0["partition"];
+  const _lifetime_0 = _entry_0["lifetime"];
+  const _round_0 = _entry_0["round"];
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  const _preparation_0 = _entry_0["preparation"];
+  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
+  if (!_hit_0) {
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_0}, "commands": _commands_0};
+  } else {
+    const _entries_1 = _tail_0["entries"];
+    const _commands_1 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0)), "tail": _entries_1}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, true)), "tail": _commands_1}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$(_entry_0, _hit_0, _tail_0) {
+  const __0 = _entry_0["partition"];
+  const __1 = _entry_0["lifetime"];
+  const __2 = _entry_0["round"];
+  const __3 = _entry_0["operation"];
+  const __4 = _entry_0["sequence"];
+  const _t_0 = _entry_0["cancelled"];
+  if (_t_0) {
+    const __5 = _entry_0["preparation"];
+    const _entries_0 = _tail_0["entries"];
+    const _commands_0 = _tail_0["commands"];
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
+  } else {
+    const __6 = _entry_0["preparation"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$filter_running$(_items_0, _ids_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
+  } else {
+    const _t_0 = _items_0["head"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["round"];
+    const _operation_0 = _t_0["operation"];
+    const __3 = _t_0["sequence"];
+    const __4 = _t_0["cancelled"];
+    const __5 = _t_0["preparation"];
+    const _rest_0 = _items_0["tail"];
+    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_rest_0, _ids_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discarded_result$(_state_0, _queued_0, _running_0) {
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _waiting_0 = _queued_0["entries"];
+  const _waiting_commands_0 = _queued_0["commands"];
+  const _executing_0 = _running_0["entries"];
+  const _executing_commands_0 = _running_0["commands"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discard$(_state_0, _ids_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const __0 = _state_0["next_sequence"];
+  const __1 = _state_0["closed"];
+  const __2 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_running_0, _ids_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$discard_all$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _entry_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_rest_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$close$(_state_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _requests_0 = _state_0["requests"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_queued_0))};
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  const _owner_0 = _item_0["partition"];
+  const _generation_0 = _item_0["lifetime"];
+  const _current_0 = _item_0["round"];
+  const _work_0 = _item_0["operation"];
+  const _id_0 = _item_0["request"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _work_0 = _t_0["operation"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_work_0, _operation_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_rest_0, _operation_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  const _x_0 = ($List$length$(_requests_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_requests$());
+  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_requests_0, _operation_0));
+  const _x_3 = ($Bool$not$((_x_0 < _x_1)));
+  const _x_4 = (_x_2 || _x_3);
+  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _work_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const __0 = _t_0["started"];
+    const _interrupted_0 = _t_0["interrupted"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _current_0 = _t_0["round"];
+    const _work_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const _started_0 = _t_0["started"];
+    const __0 = _t_0["interrupted"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
+  const _queued_0 = _state_0["queued"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  if (_found_0.$ === "None") {
+    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _started_0 = _t_0["started"];
+    const _interrupted_0 = _t_0["interrupted"];
+    const _x_0 = ($Bool$and$(_interrupt_0, _interrupted_0));
+    const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
+    const _x_2 = ($Bool$and$(_start_0, _started_0));
+    const _x_3 = (_x_0 || _x_1);
+    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
+  const __0 = _state_0["queued"];
+  const __1 = _state_0["running"];
+  const __2 = _state_0["next_sequence"];
+  const __3 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
 }
 
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
@@ -3769,478 +3643,6 @@ function $$$$047agent$045flow$045bend$047Work$main$() {
   return $$$$047agent$045flow$045bend$047Work$admit$(($$$$047agent$045flow$045bend$047Work$initial$()));
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$initial$() {
-  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$max_running$() {
-  return 8;
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$max_requests$() {
-  return 8;
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$preparation_count$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["preparation"];
-        if (_t_1) {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_rest_0));
-          return nat_chk(1 + _x_0);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _owner_0 = _entry_0["partition"];
-  const _generation_0 = _entry_0["lifetime"];
-  const _current_0 = _entry_0["round"];
-  const _id_0 = _entry_0["operation"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Nat$is_eq$(_id_0, _operation_0)))))));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$contains$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$known$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_queued_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return (_x_0 || _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0) {
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0) {
-  const _t_0 = _entry_0["preparation"];
-  if (!_t_0) {
-    return true;
-  } else {
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$preparation_count$(_running_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_running$());
-    return (_x_0 < _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _t_0 = _result_0["state"];
-    const _queued_0 = _t_0["queued"];
-    const _running_0 = _t_0["running"];
-    const _next_sequence_0 = _t_0["next_sequence"];
-    const _closed_0 = _t_0["closed"];
-    const _requests_0 = _t_0["requests"];
-    const _commands_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
-  } else {
-    const _state_0 = _result_0["state"];
-    return {$: "Dispatch.Denied", "state": _state_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
-  if (_queued_0.$ === "Nil") {
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
-  } else {
-    const _entry_0 = _queued_0["head"];
-    const _rest_0 = _queued_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_one$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
-  if (_result_0.$ === "Dispatch.Advanced") {
-    const _second_0 = _result_0["state"];
-    const _more_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": _second_0, "commands": ($List$append$(_commands_0, _more_0))};
-  } else {
-    return {$: "Dispatch.Denied", "state": _first_0};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_next$(_first_0, _commands_0) {
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_next_result$(_first_0, _commands_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_one$(_first_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0) {
-  if (_queued_0.$ === "Nil") {
-    return false;
-  } else {
-    const _entry_0 = _queued_0["head"];
-    const _rest_0 = _queued_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$can_start$(_entry_0, _running_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_rest_0, _running_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_remaining_0, _result_0) {
-  if (_remaining_0 === 0) {
-    return _result_0;
-  } else {
-    const _rest_0 = (_remaining_0 - 1);
-    if (_result_0.$ === "Dispatch.Advanced") {
-      const _t_0 = _result_0["state"];
-      const _queued_0 = _t_0["queued"];
-      const _running_0 = _t_0["running"];
-      const __0 = _t_0["next_sequence"];
-      const __1 = _t_0["closed"];
-      const __2 = _t_0["requests"];
-      const _commands_0 = _result_0["commands"];
-      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
-    } else {
-      const _state_0 = _result_0["state"];
-      return {$: "Dispatch.Denied", "state": _state_0};
-    }
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$pump_available$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const __0 = _state_0["running"];
-  const __1 = _state_0["next_sequence"];
-  const __2 = _state_0["closed"];
-  const __3 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$same_entry$(_entry_0, _partition_0, _lifetime_0, _round_0, _operation_0)), _rest_0, {$: "Con", "head": _entry_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$settle$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0) {
-  if (_ids_0.$ === "Nil") {
-    return false;
-  } else {
-    const _id_0 = _ids_0["head"];
-    const _rest_0 = _ids_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$listed$(_rest_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, _running_0) {
-  const _operation_0 = _entry_0["operation"];
-  return {$: "Dispatch.Discarded", "operation": _operation_0, "running": _running_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$(_entry_0, _hit_0, _tail_0) {
-  if (_hit_0) {
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": _entries_0, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": _commands_0}};
-  } else {
-    const _entries_1 = _tail_0["entries"];
-    const _commands_1 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_1}, "commands": _commands_1};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_items_0, _ids_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _operation_0 = _t_0["operation"];
-    const __3 = _t_0["sequence"];
-    const __4 = _t_0["cancelled"];
-    const __5 = _t_0["preparation"];
-    const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_rest_0, _ids_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0) {
-  const _partition_0 = _entry_0["partition"];
-  const _lifetime_0 = _entry_0["lifetime"];
-  const _round_0 = _entry_0["round"];
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  const _preparation_0 = _entry_0["preparation"];
-  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$(_entry_0, _hit_0, _tail_0) {
-  if (!_hit_0) {
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": _entry_0, "tail": _entries_0}, "commands": _commands_0};
-  } else {
-    const _entries_1 = _tail_0["entries"];
-    const _commands_1 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$cancelled_entry$(_entry_0)), "tail": _entries_1}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, true)), "tail": _commands_1}};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$(_entry_0, _hit_0, _tail_0) {
-  const __0 = _entry_0["partition"];
-  const __1 = _entry_0["lifetime"];
-  const __2 = _entry_0["round"];
-  const __3 = _entry_0["operation"];
-  const __4 = _entry_0["sequence"];
-  const _t_0 = _entry_0["cancelled"];
-  if (_t_0) {
-    const __5 = _entry_0["preparation"];
-    const _entries_0 = _tail_0["entries"];
-    const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
-  } else {
-    const __6 = _entry_0["preparation"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$filter_running$(_items_0, _ids_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Dispatch.Filtered", "entries": {$: "Nil"}, "commands": {$: "Nil"}};
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const _operation_0 = _t_0["operation"];
-    const __3 = _t_0["sequence"];
-    const __4 = _t_0["cancelled"];
-    const __5 = _t_0["preparation"];
-    const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_rest_0, _ids_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discarded_result$(_state_0, _queued_0, _running_0) {
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _waiting_0 = _queued_0["entries"];
-  const _waiting_commands_0 = _queued_0["commands"];
-  const _executing_0 = _running_0["entries"];
-  const _executing_commands_0 = _running_0["commands"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discard$(_state_0, _ids_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const __0 = _state_0["next_sequence"];
-  const __1 = _state_0["closed"];
-  const __2 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$filter_running$(_running_0, _ids_0)));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$discard_all$(_items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _entry_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$discarded_entry$(_entry_0, false)), "tail": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_rest_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$close$(_state_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _requests_0 = _state_0["requests"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$discard_all$(_queued_0))};
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  const _owner_0 = _item_0["partition"];
-  const _generation_0 = _item_0["lifetime"];
-  const _current_0 = _item_0["round"];
-  const _work_0 = _item_0["operation"];
-  const _id_0 = _item_0["request"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_items_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _work_0 = _t_0["operation"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_work_0, _operation_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_rest_0, _operation_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($List$length$(_requests_0));
-  const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$max_requests$());
-  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$request_for_work$(_requests_0, _operation_0));
-  const _x_3 = ($Bool$not$((_x_0 < _x_1)));
-  const _x_4 = (_x_2 || _x_3);
-  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const __0 = _t_0["started"];
-    const _interrupted_0 = _t_0["interrupted"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _owner_0 = _t_0["partition"];
-    const _generation_0 = _t_0["lifetime"];
-    const _current_0 = _t_0["round"];
-    const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const _started_0 = _t_0["started"];
-    const __0 = _t_0["interrupted"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
-  const _queued_0 = _state_0["queued"];
-  const _running_0 = _state_0["running"];
-  const _next_sequence_0 = _state_0["next_sequence"];
-  const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  if (_found_0.$ === "None") {
-    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _started_0 = _t_0["started"];
-    const _interrupted_0 = _t_0["interrupted"];
-    const _x_0 = ($Bool$and$(_interrupt_0, _interrupted_0));
-    const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
-    const _x_2 = ($Bool$and$(_start_0, _started_0));
-    const _x_3 = (_x_0 || _x_1);
-    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
-  const __0 = _state_0["queued"];
-  const __1 = _state_0["running"];
-  const __2 = _state_0["next_sequence"];
-  const __3 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
-}
-
 function $$$$047agent$045flow$045bend$047Retention$cleanup_gate$(_facts_0) {
   const _active_0 = _facts_0["active"];
   const _dispatcher_idle_0 = _facts_0["dispatcher_idle"];
@@ -4288,6 +3690,604 @@ function $$$$047agent$045flow$045bend$047Collection$expired$(_elapsed_0, _lifeti
 
 function $$$$047agent$045flow$045bend$047Collection$main$() {
   return $$$$047agent$045flow$045bend$047Collection$eligible$(false, true);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$validation_route$(_owner_current_0, _status_0) {
+  if (!_owner_current_0) {
+    return {$: "Handoff.IgnoreCandidate"};
+  } else {
+    if (_status_0.$ === "Handoff.Current") {
+      return {$: "Handoff.ContinueCandidate"};
+    } else if (_status_0.$ === "Handoff.Stale") {
+      return {$: "Handoff.RetireCandidate"};
+    } else {
+      return {$: "Handoff.ReleaseCandidate"};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$post_validation$(_work_accepted_0, _expired_0, _has_fitting_0) {
+  const _x_0 = ($Bool$not$(_work_accepted_0));
+  return $Bool$pick$((_x_0 || _expired_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_fitting_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$final_candidate$(_owner_current_0, _credential_generation_0, _credential_authorized_0, _expired_0, _work_current_0, _has_findings_0) {
+  const _x_0 = ($Bool$not$(_work_current_0));
+  return $Bool$pick$(($Bool$not$(_owner_current_0)), {$: "Handoff.IgnoreCandidate"}, ($Bool$pick$(($Bool$not$(_credential_generation_0)), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(($Bool$not$(_credential_authorized_0)), {$: "Handoff.ReleaseCandidate"}, ($Bool$pick$((_expired_0 || _x_0), {$: "Handoff.RetireCandidate"}, ($Bool$pick$(_has_findings_0, {$: "Handoff.RetainCandidate"}, {$: "Handoff.ReleaseCandidate"})))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$initial$(_partition_0, _round_0) {
+  return {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": {$: "Nil"}, "retained": {$: "Nil"}, "findings": 0, "bytes": 0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$current$(_advice_0, _partition_0, _round_0) {
+  const _source_partition_0 = _advice_0["partition"];
+  const _source_round_0 = _advice_0["round"];
+  const _source_snapshot_0 = _advice_0["snapshot"];
+  const _current_snapshot_0 = _advice_0["current_snapshot"];
+  const _source_credential_0 = _advice_0["credential"];
+  const _current_credential_0 = _advice_0["current_credential"];
+  const _age_ms_0 = _advice_0["age_ms"];
+  const _ready_0 = _advice_0["collection_ready"];
+  return $Bool$and$(($Nat$is_eq$(_source_partition_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_source_round_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_source_snapshot_0, _current_snapshot_0)), ($Bool$and$(($Nat$is_eq$(_source_credential_0, _current_credential_0)), ($Bool$and$((_age_ms_0 < 600000), _ready_0)))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0) {
+  return $Bool$and$(($Nat$is_gt$(_items_0, 0)), ($Nat$is_le$(_bytes_0, 10240)));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$notice_offer$(_items_0, _bytes_0, _skip_unfitting_0) {
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047Handoff$fits_batch$(_items_0, _bytes_0)), {$: "Handoff.IncludeNotice"}, ($Bool$pick$(_skip_unfitting_0, {$: "Handoff.SkipNotice"}, {$: "Handoff.StopNotices"})));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, _fits_0) {
+  const _partition_0 = _state_0["partition"];
+  const _round_0 = _state_0["round"];
+  const _selected_0 = _state_0["selected"];
+  const _retained_0 = _state_0["retained"];
+  const _count_0 = _state_0["findings"];
+  const _bytes_0 = _state_0["bytes"];
+  if (_fits_0) {
+    return {$: "Handoff.Selected", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": ($List$append$(_selected_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "retained": _retained_0, "findings": nat_chk(_count_0 + 1), "bytes": _prospective_bytes_0}};
+  } else {
+    return {$: "Handoff.Retained", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0) {
+  const _partition_0 = _state_0["partition"];
+  const _round_0 = _state_0["round"];
+  const _selected_0 = _state_0["selected"];
+  const _retained_0 = _state_0["retained"];
+  const _count_0 = _state_0["findings"];
+  const _bytes_0 = _state_0["bytes"];
+  return {$: "Handoff.Limited", "state": {$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": ($List$append$(_retained_0, {$: "Con", "head": _id_0, "tail": {$: "Nil"}})), "findings": _count_0, "bytes": _bytes_0}, "id": _id_0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, _oversized_0) {
+  if (_oversized_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$select$limit$(_state_0, _id_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$select$fit$(_state_0, _id_0, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$fits_batch$(nat_chk(_count_0 + 1), _prospective_bytes_0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$valid$(_state_0, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0) {
+  if (_valid_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$select$solo$(_state_0, _id_0, _prospective_bytes_0, _count_0, ($Nat$is_gt$(_solo_bytes_0, 10240)));
+  } else {
+    return {$: "Handoff.Expired", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _valid_0) {
+  const __0 = _state_0["partition"];
+  const __1 = _state_0["round"];
+  const __2 = _state_0["selected"];
+  const __3 = _state_0["retained"];
+  const _count_0 = _state_0["findings"];
+  const __4 = _state_0["bytes"];
+  const _id_0 = _advice_0["id"];
+  const _solo_bytes_0 = _advice_0["solo_bytes"];
+  return $$$$047agent$045flow$045bend$047Handoff$select$valid$({$: "Handoff.Selection", "partition": __0, "round": __1, "selected": __2, "retained": __3, "findings": _count_0, "bytes": __4}, _id_0, _prospective_bytes_0, _solo_bytes_0, _count_0, _valid_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _ids_0) {
+  if (_ids_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _ids_0["head"];
+    const _rest_0 = _ids_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$duplicate$(_state_0, _advice_0, _prospective_bytes_0, _current_0, _duplicate_0) {
+  if (_duplicate_0) {
+    return {$: "Handoff.Duplicate", "state": _state_0};
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$select$current$(_state_0, _advice_0, _prospective_bytes_0, _current_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$select$(_state_0, _advice_0, _prospective_bytes_0) {
+  const _partition_0 = _state_0["partition"];
+  const _round_0 = _state_0["round"];
+  const _selected_0 = _state_0["selected"];
+  const _retained_0 = _state_0["retained"];
+  const __0 = _state_0["findings"];
+  const __1 = _state_0["bytes"];
+  const _id_0 = _advice_0["id"];
+  const __2 = _advice_0["unit"];
+  const __3 = _advice_0["partition"];
+  const __4 = _advice_0["round"];
+  const __5 = _advice_0["snapshot"];
+  const __6 = _advice_0["current_snapshot"];
+  const __7 = _advice_0["credential"];
+  const __8 = _advice_0["current_credential"];
+  const __9 = _advice_0["age_ms"];
+  const __10 = _advice_0["solo_bytes"];
+  const __11 = _advice_0["collection_ready"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _selected_0));
+  const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$contains$(_id_0, _retained_0));
+  return $$$$047agent$045flow$045bend$047Handoff$select$duplicate$({$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$current$({$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$initial$(_round_0) {
+  return {$: "Handoff.Finish", "round": _round_0, "active": true, "closed": false, "continuations": 0, "reserved": false, "token": 0, "collector": 0, "deadline_at": 0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$(_state_0, _can_continue_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _token_0 = _state_0["token"];
+  const _collector_0 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  if (_can_continue_0) {
+    return {$: "Handoff.Continue", "state": {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": nat_chk(_continuations_0 + 1), "reserved": true, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
+  } else {
+    return {$: "Handoff.Allow", "state": {$: "Handoff.Finish", "round": _round_0, "active": false, "closed": true, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const __3 = _state_0["reserved"];
+  const __4 = _state_0["token"];
+  const __5 = _state_0["collector"];
+  const __6 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$choose$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": _continuations_0, "reserved": __3, "token": __4, "collector": __5, "deadline_at": __6}, ($Bool$and$(($Nat$is_gt$(_actionable_findings_0, 0)), (_continuations_0 < 4))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, _zero_0) {
+  if (_zero_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
+  } else {
+    return {$: "Handoff.Wait", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
+  if (_deadline_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$choose$(_state_0, _actionable_findings_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$zero$(_state_0, _actionable_findings_0, ($Nat$is_eq$(_unfinished_0, 0)));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0) {
+  if (_reserved_0) {
+    return {$: "Handoff.Wait", "state": _state_0};
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$ready$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$guard$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _valid_0, _reserved_0) {
+  if (_valid_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$finish$pending$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0, _reserved_0);
+  } else {
+    return {$: "Handoff.Allow", "state": _state_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$decide$(_state_0, _unfinished_0, _deadline_0, _actionable_findings_0) {
+  const __0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const __2 = _state_0["token"];
+  const __3 = _state_0["collector"];
+  const __4 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$guard$({$: "Handoff.Finish", "round": __0, "active": _active_0, "closed": _closed_0, "continuations": __1, "reserved": _reserved_0, "token": __2, "collector": __3, "deadline_at": __4}, _unfinished_0, _deadline_0, _actionable_findings_0, ($Bool$and$(_active_0, ($Bool$not$(_closed_0)))), _reserved_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$(_state_0, _original_deadline_0, _first_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _token_0 = _state_0["token"];
+  const _collector_0 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  if (_first_0) {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _original_deadline_0};
+  } else {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["continuations"];
+  const __4 = _state_0["reserved"];
+  const __5 = _state_0["token"];
+  const __6 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$start$choose$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _original_deadline_0, ($Nat$is_eq$(_deadline_at_0, 0)));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$at$(_state_0, _unfinished_0, _now_0, _actionable_findings_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["continuations"];
+  const __4 = _state_0["reserved"];
+  const __5 = _state_0["token"];
+  const __6 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": _deadline_at_0}, _unfinished_0, ($Nat$is_ge$(_now_0, _deadline_at_0)), _actionable_findings_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$decide_at$(_state_0, _unfinished_0, _now_0, _original_deadline_0, _actionable_findings_0) {
+  return $$$$047agent$045flow$045bend$047Handoff$finish$at$(($$$$047agent$045flow$045bend$047Handoff$finish$start$(_state_0, _original_deadline_0)), _unfinished_0, _now_0, _actionable_findings_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$bind_writer$(_state_0, _writer_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _token_0 = _state_0["token"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": nat_chk(_token_0 + 1), "collector": _writer_0, "deadline_at": _deadline_at_0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$(_state_0, _valid_0) {
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _token_0 = _state_0["token"];
+  const _collector_0 = _state_0["collector"];
+  const _deadline_at_0 = _state_0["deadline_at"];
+  if (_valid_0) {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": false, "token": _token_0, "collector": _collector_0, "deadline_at": 0};
+  } else {
+    return {$: "Handoff.Finish", "round": _round_0, "active": _active_0, "closed": _closed_0, "continuations": _continuations_0, "reserved": _reserved_0, "token": _token_0, "collector": _collector_0, "deadline_at": _deadline_at_0};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$can_complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
+  const _own_round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_0 = _state_0["closed"];
+  const _continuations_0 = _state_0["continuations"];
+  const _reserved_0 = _state_0["reserved"];
+  const _own_token_0 = _state_0["token"];
+  const _own_collector_0 = _state_0["collector"];
+  return $Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(_active_0, ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(_reserved_0, ($Bool$and$(($Nat$is_eq$(_continuations_0, _slot_0)), ($Bool$and$(($Nat$is_eq$(_own_token_0, _token_0)), ($Nat$is_eq$(_own_collector_0, _collector_0)))))))))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$finish$complete$(_state_0, _round_0, _slot_0, _token_0, _collector_0) {
+  const __0 = _state_0["round"];
+  const __1 = _state_0["active"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["continuations"];
+  const __4 = _state_0["reserved"];
+  const __5 = _state_0["token"];
+  const __6 = _state_0["collector"];
+  const __7 = _state_0["deadline_at"];
+  return $$$$047agent$045flow$045bend$047Handoff$finish$complete$check$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, ($$$$047agent$045flow$045bend$047Handoff$finish$can_complete$({$: "Handoff.Finish", "round": __0, "active": __1, "closed": __2, "continuations": __3, "reserved": __4, "token": __5, "collector": __6, "deadline_at": __7}, _round_0, _slot_0, _token_0, _collector_0)));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$main$() {
+  return $$$$047agent$045flow$045bend$047Handoff$finish$decide$(($$$$047agent$045flow$045bend$047Handoff$finish$initial$(1)), 0, false, 1);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$initial$(_item_0, _round_0) {
+  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": false, "reoffered": false, "phase": {$: "Handoff.Available"}};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0) {
+  if (_phase_0.$ === "Handoff.Available") {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": _surface_0}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$(_state_0, _token_0, _surface_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _surface_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _surface_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
+  if (_same_0) {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Reserved") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$authorize$(_state_0, _round_0, _token_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$authorize$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0) {
+  if (_same_0) {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Available"}}};
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Reserved", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Reserved") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$release$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)));
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$release$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$release$(_state_0, _round_0, _token_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$release$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, _same_0, _certain_0) {
+  if (_same_0) {
+    if (_certain_0) {
+      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
+    } else {
+      return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": _surface_0}}};
+    }
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Authorized", "token": _own_token_0, "surface": _surface_0}}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0) {
+  if (_phase_0.$ === "Handoff.Authorized") {
+    const _own_token_0 = _phase_0["token"];
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$match$(_item_0, _round_0, _closed_0, _reoffered_0, _own_token_0, _surface_0, ($Nat$is_eq$(_own_token_0, _token_0)), _certain_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$(_state_0, _token_0, _certain_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0, _certain_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$terminal$(_state_0, _round_0, _token_0, _certain_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const __1 = _state_0["reoffered"];
+  const __2 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$terminal$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": __1, "phase": __2}, _token_0, _certain_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$not$(_closed_0)))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_0, _uncertain_0, _token_0) {
+  if (_surface_0.$ === "Handoff.Edit") {
+    if (_uncertain_0) {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Edit"}}}};
+    } else {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Edit"}}}};
+    }
+  } else if (_surface_0.$ === "Handoff.Background") {
+    return {$: "Handoff.Granted", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": true, "phase": {$: "Handoff.Reserved", "token": _token_0, "surface": {$: "Handoff.Stop"}}}};
+  } else {
+    if (_uncertain_0) {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Uncertain", "surface": {$: "Handoff.Stop"}}}};
+    } else {
+      return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": {$: "Handoff.Stop"}}}};
+    }
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0) {
+  if (_phase_0.$ === "Handoff.Submitted") {
+    const _surface_0 = _phase_0["surface"];
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": {$: "Handoff.Submitted", "surface": _surface_0}}};
+  } else if (_phase_0.$ === "Handoff.Uncertain") {
+    const _surface_1 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$surface$(_item_0, _round_0, _closed_0, _reoffered_0, _surface_1, true, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$(_state_0, _token_0, _allowed_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  if (_allowed_0) {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$phase$(_item_0, _round_0, _closed_0, _reoffered_0, _phase_0, _token_0);
+  } else {
+    return {$: "Handoff.Denied", "state": {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": _phase_0}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0) {
+  const __0 = _state_0["item"];
+  const _own_round_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const __1 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$guard$({$: "Handoff.Lease", "item": __0, "round": _own_round_0, "closed": _closed_0, "reoffered": _reoffered_0, "phase": __1}, _token_0, ($Bool$and$(($Nat$is_eq$(_own_round_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($Bool$and$(($Bool$not$(_reoffered_0)), _fresh_0)))))));
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
+  if (_surface_0.$ === "Handoff.Stop") {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reoffer$(_state_0, _round_0, _token_0, _fresh_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$(_state_0, _round_0, _token_0, _surface_0, _fresh_0, _phase_0) {
+  if (_phase_0.$ === "Handoff.Uncertain") {
+    const _t_0 = _phase_0["surface"];
+    if (_t_0.$ === "Handoff.Background") {
+      return $$$$047agent$045flow$045bend$047Handoff$lease$offer$background$(_state_0, _round_0, _token_0, _surface_0, _fresh_0);
+    } else {
+      return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+    }
+  } else {
+    return $$$$047agent$045flow$045bend$047Handoff$lease$reserve$(_state_0, _round_0, _token_0, _surface_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$offer$(_state_0, _round_0, _token_0, _surface_0, _fresh_0) {
+  const __0 = _state_0["item"];
+  const __1 = _state_0["round"];
+  const __2 = _state_0["closed"];
+  const __3 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  return $$$$047agent$045flow$045bend$047Handoff$lease$offer$phase$({$: "Handoff.Lease", "item": __0, "round": __1, "closed": __2, "reoffered": __3, "phase": _phase_0}, _round_0, _token_0, _surface_0, _fresh_0, _phase_0);
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$close$(_state_0) {
+  const _item_0 = _state_0["item"];
+  const _round_0 = _state_0["round"];
+  const _reoffered_0 = _state_0["reoffered"];
+  const _phase_0 = _state_0["phase"];
+  return {$: "Handoff.Lease", "item": _item_0, "round": _round_0, "closed": true, "reoffered": _reoffered_0, "phase": _phase_0};
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_own_0, _requested_0) {
+  if (_own_0.$ === "Handoff.Background") {
+    if (_requested_0.$ === "Handoff.Stop") {
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return true;
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0) {
+  if (_phase_0.$ === "Handoff.Available") {
+    return false;
+  } else if (_phase_0.$ === "Handoff.Reserved") {
+    return true;
+  } else if (_phase_0.$ === "Handoff.Authorized") {
+    return true;
+  } else if (_phase_0.$ === "Handoff.Submitted") {
+    return true;
+  } else {
+    const _surface_0 = _phase_0["surface"];
+    return $$$$047agent$045flow$045bend$047Handoff$lease$suppress_surface$(_surface_0, _requested_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047Handoff$lease$suppresses$(_state_0, _round_0, _requested_0) {
+  const _owner_0 = _state_0["round"];
+  const _closed_0 = _state_0["closed"];
+  const _phase_0 = _state_0["phase"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _round_0)), ($Bool$and$(($Bool$not$(_closed_0)), ($$$$047agent$045flow$045bend$047Handoff$lease$suppress_phase$(_phase_0, _requested_0)))));
 }
 
 function $$$$047agent$045flow$045bend$047Round$stop_terminal$(_has_output_0, _authorized_0, _requested_close_0) {
@@ -12909,6 +12909,280 @@ function $Driver$revalidate$(_state_0, _context_0) {
   const _readable_0 = _context_0["source_readable"];
   const _background_0 = _context_0["background"];
   return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
+}
+
+function $QuietScenario$tick$(_scope_0, _now_0, _window_0, _facts_0) {
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  return {$: "Canonical.QuietRoundTick", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "now": _now_0, "window": _window_0, "facts": _facts_0};
+}
+
+function $QuietScenario$reset$(_scope_0) {
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  return {$: "Canonical.QuietRoundReset", "partition": _p_0, "lifetime": _l_0, "round": _r_0};
+}
+
+function $QuietScenario$unfinished$($0, $1) {
+  for (;;) {
+    {
+      const _work_0 = $0;
+      const _p_0 = $1;
+      if (_work_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _work_0["head"];
+        const _owner_0 = _t_0["partition"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _tail_0 = _work_0["tail"];
+          $0 = _tail_0;
+          $1 = _p_0;
+          continue;
+        } else {
+          const _tail_1 = _work_0["tail"];
+          const _x_0 = ($Nat$is_eq$(_owner_0, _p_0));
+          const _x_1 = ($QuietScenario$unfinished$(_tail_1, _p_0));
+          return (_x_0 || _x_1);
+        }
+      }
+    }
+  }
+}
+
+function $QuietScenario$findings$($0, $1) {
+  for (;;) {
+    {
+      const _work_0 = $0;
+      const _p_0 = $1;
+      if (_work_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _work_0["head"];
+        const _owner_0 = _t_0["partition"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _tail_0 = _work_0["tail"];
+          const _x_0 = ($Nat$is_eq$(_owner_0, _p_0));
+          const _x_1 = ($QuietScenario$findings$(_tail_0, _p_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _tail_1 = _work_0["tail"];
+          $0 = _tail_1;
+          $1 = _p_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $QuietScenario$advice_owned$(_work_0, _p_0, _advice_0) {
+  if (_work_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _work_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _id_0 = _t_0["operation"];
+    const _tail_0 = _work_0["tail"];
+    const _x_0 = ($Bool$and$(($Nat$is_eq$(_owner_0, _p_0)), ($Nat$is_eq$(_id_0, _advice_0))));
+    const _x_1 = ($QuietScenario$advice_owned$(_tail_0, _p_0, _advice_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $QuietScenario$leases_busy$(_leases_0, _work_0, _p_0) {
+  if (_leases_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _leases_0["head"];
+    const _advice_0 = _t_0["advice"];
+    const _tail_0 = _leases_0["tail"];
+    const _x_0 = ($QuietScenario$advice_owned$(_work_0, _p_0, _advice_0));
+    const _x_1 = ($QuietScenario$leases_busy$(_tail_0, _work_0, _p_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $QuietScenario$batches_busy$(_batches_0, _p_0) {
+  if (_batches_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _batches_0["head"];
+    const _owner_0 = _t_0["group"];
+    const _tail_0 = _batches_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_owner_0, _p_0));
+    const _x_1 = ($QuietScenario$batches_busy$(_tail_0, _p_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $QuietScenario$dispatch_entries_busy$(_entries_0, _p_0) {
+  if (_entries_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _tail_0 = _entries_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_owner_0, _p_0));
+    const _x_1 = ($QuietScenario$dispatch_entries_busy$(_tail_0, _p_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $QuietScenario$requests_busy$(_requests_0, _p_0) {
+  if (_requests_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _requests_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _tail_0 = _requests_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_owner_0, _p_0));
+    const _x_1 = ($QuietScenario$requests_busy$(_tail_0, _p_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $QuietScenario$ownership_facts$(_canonical_0, _p_0, _native_idle_0, _stop_absent_0) {
+  const _work_0 = _canonical_0["work"];
+  const _t_0 = _canonical_0["dispatch"];
+  const _queued_0 = _t_0["queued"];
+  const _running_0 = _t_0["running"];
+  const _requests_0 = _t_0["requests"];
+  const _t_1 = _canonical_0["collection"];
+  const _leases_0 = _t_1["leases"];
+  const _claims_0 = _t_1["claims"];
+  const _t_2 = _t_1["delivery"];
+  const _t_3 = _t_2["submissions"];
+  const _batches_0 = _t_3["batches"];
+  const _x_0 = ($QuietScenario$unfinished$(_work_0, _p_0));
+  const _x_1 = ($QuietScenario$dispatch_entries_busy$(_queued_0, _p_0));
+  const _x_2 = (_x_0 || _x_1);
+  const _x_3 = ($QuietScenario$dispatch_entries_busy$(_running_0, _p_0));
+  const _x_4 = (_x_2 || _x_3);
+  const _x_5 = ($QuietScenario$requests_busy$(_requests_0, _p_0));
+  const _x_6 = ($$$$047agent$045flow$045bend$047CollectionState$claim_exists$(_p_0, _claims_0));
+  const _x_7 = ($QuietScenario$leases_busy$(_leases_0, _work_0, _p_0));
+  const _x_8 = (_x_6 || _x_7);
+  const _x_9 = ($QuietScenario$batches_busy$(_batches_0, _p_0));
+  return {$: "Quiescence.Facts", "native_work_idle": ($Bool$and$(_native_idle_0, ($Bool$not$((_x_4 || _x_5))))), "advice_empty": ($Bool$not$(($QuietScenario$findings$(_work_0, _p_0)))), "handoff_idle": ($Bool$not$((_x_8 || _x_9))), "stop_absent": _stop_absent_0};
+}
+
+function $QuietScenario$generated_tick$(_canonical_0, _event_0, _native_idle_0, _stop_absent_0) {
+  if (_event_0.$ === "Canonical.QuietRoundTick") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _now_0 = _event_0["now"];
+    const _window_0 = _event_0["window"];
+    return {$: "Canonical.QuietRoundTick", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "now": _now_0, "window": _window_0, "facts": ($QuietScenario$ownership_facts$(_canonical_0, _p_0, _native_idle_0, _stop_absent_0))};
+  } else {
+    return _event_0;
+  }
+}
+
+function $QuietScenario$command_actions$(_command_0, _event_0, _now_0) {
+  if (_command_0.$ === "Canonical.QuietRoundExpired") {
+    if (_event_0.$ === "Canonical.QuietRoundTick") {
+      const _p_0 = _event_0["partition"];
+      const _l_0 = _event_0["lifetime"];
+      const _r_0 = _event_0["round"];
+      return {$: "Con", "head": ($Driver$immediate$({$: "Canonical.ClosePermitRound", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "at": _now_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.RetirePartition", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, false)), "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else if (_command_0.$ === "Canonical.QuietRoundWaiting") {
+    const _since_0 = _command_0["since"];
+    if (_event_0.$ === "Canonical.QuietRoundTick") {
+      const _p_1 = _event_0["partition"];
+      const _l_1 = _event_0["lifetime"];
+      const _r_1 = _event_0["round"];
+      const _window_0 = _event_0["window"];
+      const _facts_0 = _event_0["facts"];
+      const _x_0 = nat_chk(_since_0 + _window_0);
+      return {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.QuietRoundTick", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "now": nat_chk(_since_0 + _window_0), "window": _window_0, "facts": _facts_0}, "delay": (_x_0 < _now_0 ? 0 : _x_0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}};
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $QuietScenario$refresh$(_event_0) {
+  if (_event_0.$ === "Canonical.CompleteObservation") {
+    return true;
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    return true;
+  } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    return true;
+  } else if (_event_0.$ === "Canonical.CollectionReleaseLease") {
+    return true;
+  } else if (_event_0.$ === "Canonical.ReleasePermit") {
+    return true;
+  } else if (_event_0.$ === "Canonical.ExpirePermit") {
+    return true;
+  } else if (_event_0.$ === "Canonical.CollectionRetireAdvice") {
+    return true;
+  } else if (_event_0.$ === "Canonical.SubmissionForget") {
+    return true;
+  } else if (_event_0.$ === "Canonical.RetireReview") {
+    return true;
+  } else if (_event_0.$ === "Canonical.CollectionReleaseBackground") {
+    return true;
+  } else if (_event_0.$ === "Canonical.CollectionExpireBackground") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $QuietScenario$round_actions$(_found_0, _canonical_0, _event_0, _now_0, _window_0, _native_idle_0, _stop_absent_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    return $Bool$pick$(($QuietScenario$refresh$(_event_0)), {$: "Con", "head": ($Driver$immediate$(($QuietScenario$tick$({$: "QuietScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, _now_0, _window_0, ($QuietScenario$ownership_facts$(_canonical_0, _p_0, _native_idle_0, _stop_absent_0)))), false)), "tail": {$: "Nil"}}, {$: "Nil"});
+  }
+}
+
+function $QuietScenario$after$(_canonical_0, _event_0, _partition_0, _now_0, _window_0, _native_idle_0, _stop_absent_0) {
+  const __0 = _canonical_0["ledger"];
+  const _rounds_0 = _canonical_0["rounds"];
+  const __1 = _canonical_0["work"];
+  const __2 = _canonical_0["next_round"];
+  const __3 = _canonical_0["next_operation"];
+  const __4 = _canonical_0["admissions"];
+  const __5 = _canonical_0["dispatch"];
+  const __6 = _canonical_0["collection"];
+  const __7 = _canonical_0["history"];
+  return $QuietScenario$round_actions$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, _rounds_0)), {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _event_0, _now_0, _window_0, _native_idle_0, _stop_absent_0);
+}
+
+function $QuietScenario$reset_found$(_found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    return {$: "Con", "head": ($Driver$immediate$(($QuietScenario$reset$({$: "QuietScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0})), false)), "tail": {$: "Nil"}};
+  }
+}
+
+function $QuietScenario$command$(_canonical_0, _command_0, _event_0, _partition_0, _now_0) {
+  const _rounds_0 = _canonical_0["rounds"];
+  if (_command_0.$ === "Canonical.ObservationAdmitted") {
+    return $QuietScenario$reset_found$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, _rounds_0)));
+  } else {
+    return $QuietScenario$command_actions$(_command_0, _event_0, _now_0);
+  }
 }
 
 function $CredentialFacts$initial$() {
@@ -25696,20 +25970,16 @@ function $stop_wake$(_capture_0, _now_0) {
   return {$: "Con", "head": ($StopScenario$wake$(_capture_0, _now_0)), "tail": {$: "Nil"}};
 }
 
-function $Bool$pick$(_c_0, _a_0, _b_0) {
-  if (!_c_0) {
-    return _b_0;
-  } else {
-    return _a_0;
-  }
+function $quiet_event$(_state_0, _event_0, _native_idle_0, _stop_absent_0) {
+  return $QuietScenario$generated_tick$(($canonical$(_state_0)), _event_0, _native_idle_0, _stop_absent_0);
 }
 
-function $Bool$not$(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
+function $quiet_after$(_state_0, _event_0, _partition_0, _now_0, _window_0, _native_idle_0, _stop_absent_0) {
+  return $QuietScenario$after$(($canonical$(_state_0)), _event_0, _partition_0, _now_0, _window_0, _native_idle_0, _stop_absent_0);
+}
+
+function $quiet_command$(_state_0, _command_0, _event_0, _partition_0, _now_0) {
+  return $QuietScenario$command$(($canonical$(_state_0)), _command_0, _event_0, _partition_0, _now_0);
 }
 
 function $Bool$and$(_a_0, _b_0) {
@@ -25724,12 +25994,12 @@ function $Nat$is_eq$(_a_0, _b_0) {
   return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
 
-function $Nat$is_gt$(_a_0, _b_0) {
-  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
-}
-
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+function $Bool$pick$(_c_0, _a_0, _b_0) {
+  if (!_c_0) {
+    return _b_0;
+  } else {
+    return _a_0;
+  }
 }
 
 function $List$append$(_xs_0, _ys_0) {
@@ -25742,10 +26012,6 @@ function $List$append$(_xs_0, _ys_0) {
   }
 }
 
-function $Nat$is_ge$(_a_0, _b_0) {
-  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
-}
-
 function $List$length$(_xs_0) {
   if (_xs_0.$ === "Nil") {
     return 0;
@@ -25753,6 +26019,26 @@ function $List$length$(_xs_0) {
     const _t_0 = _xs_0["tail"];
     return nat_chk(($List$length$(_t_0)) + 1);
   }
+}
+
+function $Bool$not$(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Nat$is_gt$(_a_0, _b_0) {
+  return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_ge$(_a_0, _b_0) {
+  return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
 }
 
 function $List$is_empty$(_xs_0) {
@@ -25847,12 +26133,49 @@ function $List$reverse$go$($0, $1) {
   }
 }
 
+function $0m2(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Dispatch.Entry": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "sequence": BigInt(v["sequence"])}; return top[0];
+      default: throw "bend: Dispatch.Entry has no tag " + v?.$ + " (its tags: Dispatch.Entry); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
 function $0m1(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": BigInt(v["head"])}; key = "tail"; v = v[key]; continue;
+      case "Con": at = at[key] = {...v, "head": $0m2(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m4(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Dispatch.Request": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
+      default: throw "bend: Dispatch.Request has no tag " + v?.$ + " (its tags: Dispatch.Request); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m3(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m4(v["head"])}; key = "tail"; v = v[key]; continue;
       default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -25861,7 +26184,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:2ae249f667d23500859cad15ba4dee804603ac23da0c911b899afeb63fd87f8a";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:51e53a97153f8abf4a665b7b76a2ebe429d0de6fb2e40feef0ba715064cede07";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -25877,6 +26200,9 @@ const facts = value => {
   return value;
 };
 export default {
+ quiet_command: (state,command,event,partition,now) => run_loop($quiet_command$(state,facts(command),facts(event),facts(partition),facts(now))),
+ quiet_event: (state,event,native_idle,stop_absent) => run_loop($quiet_event$(state,facts(event),facts(native_idle),facts(stop_absent))),
+ quiet_after: (state,event,partition,now,window,native_idle,stop_absent) => run_loop($quiet_after$(state,facts(event),facts(partition),facts(now),facts(window),facts(native_idle),facts(stop_absent))),
  collection_response_delivery_valid: (state,target,now,event) => run_loop($collection_response_delivery_valid$(state,facts(target),facts(now),facts(event))),
  collection_response_open: (state,response) => run_loop($collection_response_open$(state,facts(response))),
  collection_response_close: (state,id,p,l,r) => run_loop($collection_response_close$(state,facts(id),facts(p),facts(l),facts(r))),
