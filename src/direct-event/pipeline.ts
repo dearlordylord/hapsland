@@ -460,11 +460,6 @@ const selectCandidateRoots = (
   candidateDeclarations: readonly CandidateDeclaration[],
   analyses: readonly UnitAnalysis[],
 ) => {
-  // Tree-sitter positions are byte-based; this narrow candidate does not
-  // convert Unicode columns yet, so attribution fails closed on non-ASCII.
-  if (Buffer.byteLength(captured.text, "utf8") !== captured.text.length) {
-    return { selected: [] as UnitAnalysis[], ambiguous: true };
-  }
   const hunks = candidatePostEditHunks(observation, candidate, path, captured);
   if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true };
   const declarations = candidateDeclarations.map(({ artifact, location }) => ({

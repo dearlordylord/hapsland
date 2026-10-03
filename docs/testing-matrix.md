@@ -64,6 +64,11 @@ threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
 to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
+Coverage runs allow a 30-second test-runner watchdog for instrumentation
+overhead; ordinary tests keep Vitest's five-second default, and explicit
+fixture/product deadlines remain unchanged. The bounded Monkey Business
+lifecycle replay stress cases have their own 30-second watchdog in both modes.
+These runner limits are not product latency requirements.
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
 from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
 uses the pinned V8 provider while keeping Vite and native Node offsets separate
@@ -120,11 +125,19 @@ installation and execution have not been validated in this change.
 
 | Scenario | Reviewer | Agent action and observable assertion | Run command suffix |
 | --- | --- | --- | --- |
+| Unicode Update adoption | Controlled offline or real Jev | Real Codex/Claude edits ASCII in an existing TypeScript file with unchanged Japanese comments; review and repair are observed, both comments survive every edit | `--language=typescript --scenario=adoption --unicode-update` |
 | Advice adoption | Controlled offline or real Jev | Agent makes an edit; review receives cross-file evidence; actionable advice is delivered; agent repairs; compiler and independent invalid-construction checks pass; follow-up result appears | `--scenario=adoption` or `--scenario=adoption --live --execute-paid` |
 | Reviewer unavailable | Controlled offline error | Real agent makes one edit; review is attempted and becomes unavailable; no actionable advice is delivered and the agent leaves the draft alone | `--scenario=reviewer-unavailable` |
 | Edit hook crashes | Native hook exits with failure | Real agent makes one edit; the fault is observed; no review request or invented advice follows | `--scenario=hook-crash` |
 | Edit hook exceeds its deadline | Native hook sleeps beyond its configured timeout | Real agent makes one edit; the hook start is observed, it does not finish naturally, and no review request or invented advice follows | `--scenario=hook-timeout` |
 | Older finding after a newer edit | Controlled delayed reviewer | Real agent makes two edits without acting on advice; the old finding and newer clear both complete, but the old finding is not delivered after the newer edit | `--scenario=stale-result` |
+
+The [#211 Unicode Update observation](../evidence/native-languages/codex-typescript-adoption-unicode-update-controlled-offline-1791039023270.json)
+used Codex CLI 0.155.1 and a controlled offline reviewer. Both edits preserved
+the Japanese comments; the first Update reached review, advice was applied,
+and follow-up review was observed. All 15 runner checks passed with zero Jev
+requests. This is source-checkout evidence with declared trust/sandbox bypasses,
+not installed-package or ordinary interactive trust validation.
 
 Run `node scripts/run-native-negative-matrix.mjs` to exercise all 24 negative cells in one bounded batch. Negative scenarios use the controlled offline reviewer and make **zero Jev requests**. The runner records hook event order, source-free request shape, outcome identity hashes, compiler status, and the exact checks used for its verdict. A native run is an observed case, not a frequency estimate or proof of every interleaving. The [negative scenario index](../evidence/native-negative/index.json) records the six cells per scenario and any incomplete attempts.
 

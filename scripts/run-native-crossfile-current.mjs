@@ -27,6 +27,11 @@ if (!['typescript','rust','bend'].includes(language)) throw new Error('Choose a 
 const scenario = process.argv.find(arg => arg.startsWith('--scenario='))?.slice(11) ?? 'adoption';
 if (!['adoption','reviewer-unavailable','hook-crash','hook-timeout','stale-result','pre-delay','pre-timeout','pre-crash'].includes(scenario))
   throw new Error('Choose an adoption, reviewer, POST-hook or PRE-hook scenario');
+const unicodeUpdate = process.argv.includes('--unicode-update');
+if (unicodeUpdate && (language !== 'typescript' || scenario !== 'adoption'))
+  throw new Error('--unicode-update requires TypeScript adoption');
+const unicodePrefix = '// 注文を処理する\n';
+const unicodeSuffix = '// 結果を保存する 😀\n';
 const fault = faultProfile(scenario);
 const preFault = fault?.phase === 'pre';
 const suppliedStaleDelay = process.argv.find(arg => arg.startsWith('--controlled-delay-ms='))?.slice(22);
@@ -39,7 +44,11 @@ const fixtures = {
  rust: {entry:'src/lib.rs',support:'src/support.rs',supportSource:'pub enum PaymentStatus { Pending, Succeeded, Failed }\npub struct Receipt { pub value: String }\n',initial:'mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub struct PaymentState { pub status: PaymentStatus, pub receipt: Option<Receipt>, pub failure_reason: Option<String> }\n',good:'mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub enum PaymentState { Pending, Succeeded { receipt: Receipt }, Failed { failure_reason: String } }\n'},
  bend: {entry:'payment.bend',support:'support.bend',supportSource:'import Base\ntype PaymentStatus is Data:\n  Pending{}\n  Succeeded{}\n  Failed{}\ntype Receipt is Data:\n  Receipt{value: String}\ntype OptionalReceipt is Data:\n  Absent{}\n  Present{value: Receipt}\ntype OptionalString is Data:\n  AbsentText{}\n  PresentText{value: String}\n',initial:'import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  PaymentState{status: M.PaymentStatus, receipt: M.OptionalReceipt, failure_reason: M.OptionalString}\n',good:'import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  Pending{}\n  Succeeded{receipt: M.Receipt}\n  Failed{failure_reason: String}\n'},
 };
-const fixture = fixtures[language];
+const baseFixture = fixtures[language];
+const fixture = unicodeUpdate ? {...baseFixture,
+  initial: unicodePrefix + baseFixture.initial + unicodeSuffix,
+  good: unicodePrefix + baseFixture.good + unicodeSuffix,
+} : baseFixture;
 const initialSourceMarker = language === 'typescript' ? 'interface PaymentState'
   : language === 'rust' ? 'struct PaymentState' : 'PaymentState{status:';
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline";
@@ -64,11 +73,13 @@ const startedMono = Number(process.hrtime.bigint()) / 1_000_000;
 let firstMutation;
 let mutationWatcher;
 let observerArmedMono;
-const runId = `${host}-${language}-${scenario}-${mode}-${started}`;
+const runId = `${host}-${language}-${scenario}${unicodeUpdate ? '-unicode-update' : ''}-${mode}-${started}`;
 const evidenceRoot = join(project, 'evidence', scenario === 'adoption' ? 'native-languages' : 'native-negative');
 const declaration = {scenario,maximumProviderRequests:mode === 'live-jev' ? 6 : 0,automaticHostRetries:0,
   hostCeilingMs:240000,syntheticRepositoryOnly:true,maximumSourceEditCalls:scenario === 'stale-result' || scenario === 'adoption' ? 2 : 1,
   sourceProfile:'bounded local cross-file types',runtimeVersion:version,
+  ...(unicodeUpdate ? {firstOperation:'update',unchangedUnicodeComments:true,
+    asciiReplacement:{before:'failure_reason: number | null',after:'failure_reason: string | null'}} : {}),
   ...(preFault ? {hookPhase:'PRE',injectedDelayMs:fault.delayMs,nativePreHookDeadlineMs:fault.timeoutSeconds*1000,
     permitRegistrationBypassed:true,productionPreAdmissionConformance:false,maximumReviewerRequests:0,
     actualNativeToolStartObservable:false,holdSampleIntervalMs:50,onePersistentFixtureCreation:true,mutationLandmark:'filesystem observer proxy'} : {}),
@@ -105,6 +116,7 @@ try {
   if (init.status !== 0) throw new Error("Disposable Git setup failed");
   mkdirSync(join(repo, "src"), { recursive: true });
   writeFileSync(supportFile, fixture.supportSource);
+  if (unicodeUpdate) writeFileSync(rootFile, initial.replace('failure_reason: string | null', 'failure_reason: number | null'));
   if(language === "rust") writeFileSync(join(repo,"Cargo.toml"), '[package]\nname="synthetic_payment"\nversion="0.1.0"\nedition="2021"\n');
   writeFileSync(join(repo, "README.md"), "# Order count\nA payment is pending, succeeded with a receipt, or failed with a failure reason. Pending has neither result; success and failure are mutually exclusive.\n");
   writeFileSync(join(repo, "tsconfig.json"), JSON.stringify({ compilerOptions: {
@@ -158,7 +170,8 @@ appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,...identi
   toolUseHash:native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null,
   decision:output?.decision??null, finding:message.split('\\n').some(line=>/^.+ :: .+: /.test(line)), ruleIds, ruleIdSource:'configured-message-match',
   sourceHash:value?createHash('sha256').update(value).digest('hex'):null,
-  initial:value===${JSON.stringify(initial)}, sourceBytes:Buffer.byteLength(value)})+'\\n',{mode:0o600});
+  initial:value===${JSON.stringify(initial)}, sourceBytes:Buffer.byteLength(value),
+  ...( ${JSON.stringify(unicodeUpdate)} ? {unicodeCommentsPreserved:value.startsWith(${JSON.stringify(unicodePrefix)})&&value.endsWith(${JSON.stringify(unicodeSuffix)})} : {})})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
 process.exitCode=result.status??1;
 `, { mode: 0o600 });
@@ -236,7 +249,7 @@ globalThis.fetch=async (...args)=>{
   }
   delete env.OPENAI_API_KEY;
   const prompt = scenario === 'adoption'
-    ? `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote the delivered finding message. Be truthful.`
+    ? `${unicodeUpdate ? `Use ${host === 'codex' ? 'apply_patch with a relative path' : 'Edit'} to update the existing ${fixture.entry}: replace only failure_reason: number | null with failure_reason: string | null. Keep both Unicode comments and every other line unchanged.` : `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}`}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote the delivered finding message. Be truthful.`
     : scenario === 'stale-result'
       ? `This is a controlled integration check. Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this first draft:\n${initial}\nImmediately make a second source edit, replacing only the PaymentState declaration with this exact final design and keeping imports unchanged:\n${fixture.good}\nDo not wait for or act on Hapsland advice between the two edits. After the second edit, run the shell command sleep 16, then npm test, and finish. The second edit is a planned user edit, not an advice-driven repair. Do not make further source edits. Do not inspect integration settings, credentials or environment variables. End with HAPSLAND_ADVICE_NOT_APPLIED.`
       : `This is a controlled integration check. Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this draft:\n${initial}\nThen run npm test. ${scenario === 'reviewer-unavailable' ? 'Run the shell command sleep 8 so the unavailable review can finish.' : ''} Do not change the source again. Do not inspect integration settings, credentials or environment variables. If no actionable Hapsland advice reaches you, end with HAPSLAND_ADVICE_NOT_APPLIED. Report only what you actually received.`;
@@ -295,7 +308,8 @@ globalThis.fetch=async (...args)=>{
         ? item.analysis.failures.map((failure) => failure.reason) : []),
       readyUnits: prepared.outcomes.filter((item) => item.status === "ready").length,
     }));
-  const lastNativeEdit = safeLines(nativeEvents).at(-1);
+  const observedNativeEdits = safeLines(nativeEvents);
+  const lastNativeEdit = observedNativeEdits.at(-1);
   const nativeResponse = lastNativeEdit?.tool_response;
   const nativePatchPath = typeof lastNativeEdit?.tool_input?.command === "string"
     ? /^\*\*\* Update File: (.+)$/m.exec(lastNativeEdit.tool_input.command)?.[1] : undefined;
@@ -367,7 +381,22 @@ globalThis.fetch=async (...args)=>{
   const faultEvents = native.filter((item) => item.injectedFault === scenario && item.kind !== 'fault-completed');
   const noAdviceDelivered = !native.some((item) => item.finding || (item.ruleIds?.length ?? 0) > 0);
   const agentDidNotApplyAdvice = text.includes('HAPSLAND_ADVICE_NOT_APPLIED') && !text.includes('HAPSLAND_ADVICE_APPLIED');
-  const positiveChecks = { initialDraftObserved: native.some((item) => item.initial),
+  const firstNativeEdit = observedNativeEdits[0];
+  const firstOperationIsUpdate = host === 'codex'
+    ? typeof firstNativeEdit?.tool_input?.command === 'string' &&
+      firstNativeEdit.tool_input.command.includes('*** Update File:') &&
+      !firstNativeEdit.tool_input.command.includes('*** Add File:')
+    : firstNativeEdit?.tool_name === 'Edit';
+  const positiveChecks = {
+    ...(unicodeUpdate ? {
+      firstNativeOperationIsUpdate: firstOperationIsUpdate,
+      unicodeCommentsPreservedInEveryEdit: nativeEdits.length === 2 &&
+        nativeEdits.every(item => item.unicodeCommentsPreserved === true),
+      unicodeCommentsPreservedInFinalSource: source.startsWith(unicodePrefix) && source.endsWith(unicodeSuffix),
+      finalNativeUpdateAttributed: nativeUpdatePreparation.readyUnits > 0 &&
+        nativeUpdatePreparation.operations?.every(operation => operation === 'update'),
+    } : {}),
+    initialDraftObserved: native.some((item) => item.initial),
     crossFileExpanded: requestShapes.some((item) => item.expandedEdges > 0 || item.expandedEvidence && item.supportDeclarationPresent),
     findingDelivered: !!finding, editAfterFinding: !!repair,
     agentAcknowledgesAdvice: text.includes('HAPSLAND_ADVICE_APPLIED') && !text.includes('HAPSLAND_ADVICE_NOT_APPLIED'),
@@ -427,6 +456,7 @@ globalThis.fetch=async (...args)=>{
       kind: item.kind, monoMs:item.monoMs===undefined?null:item.monoMs-startedMono, atMs: item.at - started, durationMs: item.doneAt === null ? null : item.doneAt - item.at, event: item.event,
       tool: item.tool, exitCode: item.exitCode, decision: item.decision, finding: item.finding,
       ruleIds: item.ruleIds, initial: item.initial, sourceBytes: item.sourceBytes,
+      ...(unicodeUpdate ? {unicodeCommentsPreserved:item.unicodeCommentsPreserved ?? null} : {}),
       sessionHash:item.sessionHash??null,rootHash:item.rootHash??null,toolUseHash: item.toolUseHash ?? null, injectedFault: item.injectedFault ?? null,
       targetKind: item.targetKind ?? null, hold:item.hold ?? null,
     })),
