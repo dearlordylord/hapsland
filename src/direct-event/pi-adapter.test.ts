@@ -180,3 +180,10 @@ it("bounds added-line evidence independently of replacement grouping", async () 
   const patch = `--- a.ts\n+++ a.ts\n@@ -1,1 +1,65 @@\n-old\n${after.split("\n").slice(0, -1).map(line => `+${line}`).join("\n")}\n`;
   expect(await Effect.runPromise(adaptPiDirectEvent({ ...event, details: { patch } }))).toBeUndefined();
 });
+
+it("rejects an intermediate no-newline marker even when a final marker follows", async () => {
+  const { root, event } = await fixture();
+  await writeFile(join(root, "a.ts"), "c\nd");
+  const patch = "--- a.ts\n+++ a.ts\n@@ -1,2 +1,2 @@\n-a\n-b\n+c\n\\ No newline at end of file\n+d\n\\ No newline at end of file\n";
+  expect(await Effect.runPromise(adaptPiDirectEvent({ ...event, details: { patch } }))).toBeUndefined();
+});

@@ -15,7 +15,7 @@ const parseHeader = (line: string): Header | undefined => {
 type Body = { lines: PatchLine[]; oldCount: number; newCount: number; addedCount: number; previousKind?: PatchLine["kind"]; noFinalNewlineAt?: number };
 const bodyLine = (line: string, body: Body): boolean => {
   if (line === "\\ No newline at end of file") {
-    if (body.previousKind === undefined) return false;
+    if (body.previousKind === undefined || body.noFinalNewlineAt !== undefined) return false;
     if (body.previousKind !== "-") body.noFinalNewlineAt = body.newCount;
     delete body.previousKind;
     return true;
