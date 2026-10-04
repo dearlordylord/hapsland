@@ -7,14 +7,19 @@ import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-n
 import { decodeStopFound } from "./stop-codec.ts";
 import { decodeDriver, decodePreparedDriverContext, encodeDriverAction, encodeDriverOutcome, type DriverAction } from "./driver-codec.ts";
 import SharedEngine from "../../monkey-business-bend/engine.mjs";
+import { originalStopOutputCases } from "./stop-original-public.fixture.ts";
 import type { originalWaitingStopPublic, originalStopPublicCases, originalStopOutputPublicCases } from "./stop-original-public.fixture.ts";
 import type { RunRuntimeSnapshot, RunStructuralFrame, RunConfig } from "./index.ts";
 
 const list = (value: unknown) => readBendList(value, value => value, 2048);
+type OriginalOutputBoundaryDeclaration = (typeof originalStopOutputCases)[number]["boundaries"][number];
+type OriginalOutputPublicBoundary = ReturnType<typeof originalStopOutputPublicCases>[number]["boundaries"][number];
 type StopRuntimePremise = {
   readonly input: RunConfig;
   readonly agentScopes: ReturnType<typeof originalWaitingStopPublic>["agentScopes"];
   readonly frozenInput?: unknown;
+  readonly originalOutputBoundaryDeclarations?: readonly OriginalOutputBoundaryDeclaration[];
+  readonly originalOutputPublicBoundaries?: readonly OriginalOutputPublicBoundary[];
 };
 function single(value: unknown): Record<string, unknown> {
   const values = list(value);
@@ -50,26 +55,69 @@ function compareRawInputJob(value: unknown, publicItem: RunRuntimeSnapshot["queu
   const event = publicItem.input.kind === "canonical" ? publicItem.input.event : undefined;
   if (!event) throw new TypeError(`${field} public input is not the frozen canonical schedule`);
   const encodedEvent = encodeCanonicalEvent(event);
-  const matchingSchedules = list(scenario.boundaries).map(readRecord).filter(boundary => {
+  const frozenBoundaries = list(scenario.boundaries).map(readRecord);
+  const matchingSchedules = frozenBoundaries.filter(boundary => {
     if (boundary.$ !== "stop_original_inputs.Schedule") return false;
     const scheduled = readRecord(boundary.input);
     return scheduled.$ === "stop_original_inputs.CanonicalInput"
       && readNat(scheduled.at) === publicItem.at
       && isDeepStrictEqual(decodePrefixCanonicalEvent(scheduled.event), encodedEvent);
   });
-  if (matchingSchedules.length !== 1) throw new TypeError(`${field} lacks one exact frozen original Schedule declaration`);
+  if (matchingSchedules.length > 1) throw new TypeError(`${field} has multiple exact frozen original Schedule declarations`);
 
-  // Initial's raw Schedule path uses the Driver owner's direct event scope;
-  // StopGroupPolled/Ended name that owner by group. This is grounded in the
-  // original scheduled event and the startup registry, never a later runtime.
-  const partition = event.kind === "stopGroupPolled" || event.kind === "stopGroupEnded"
-    ? event.group
-    : "partition" in event ? event.partition : undefined;
+  let partition: number | undefined;
+  let lifetime: number;
+  if (matchingSchedules.length === 1) {
+    // Direct raw Schedule declarations carry their event's original lifetime.
+    // StopGroupPolled/Ended name their owner by group; other scoped events name
+    // it by partition. This uses only the original input and startup registry.
+    partition = event.kind === "stopGroupPolled" || event.kind === "stopGroupEnded"
+      ? event.group
+      : "partition" in event ? event.partition : undefined;
+    if (!("lifetime" in event)) throw new TypeError(`${field} frozen RawInput has no original lifetime`);
+    lifetime = event.lifetime;
+  } else {
+    // MismatchedTerminal is a frozen control declaration which derives a real
+    // public Schedule from FinishAuthorize. Keep that public boundary exact,
+    // while deriving Initial's NoJob scope through the same Engine rule used
+    // by schedule_input; the terminal event itself has no lifetime field.
+    const declarations = premise.originalOutputBoundaryDeclarations;
+    const publicBoundaries = premise.originalOutputPublicBoundaries;
+    if (!declarations || !publicBoundaries || declarations.length !== frozenBoundaries.length
+        || publicBoundaries.length !== frozenBoundaries.length)
+      throw new TypeError(`${field} lacks aligned original MismatchedTerminal source and public boundaries`);
+    const matchingMismatches: number[] = [];
+    for (const [index, declaration] of declarations.entries()) {
+      if (!("mismatchedTerminal" in declaration) || declaration.mismatchedTerminal.at !== publicItem.at) continue;
+      const frozen = frozenBoundaries[index];
+      const mismatch = declaration.mismatchedTerminal;
+      const expectedFrozen = {
+        $: "stop_original_inputs.MismatchedTerminal",
+        at: mismatch.at,
+        agent: mismatch.agent === undefined ? { $: "None" } : { $: "Some", value: mismatch.agent },
+      };
+      same(frozen, expectedFrozen, `${field} exact frozen MismatchedTerminal at/agent`);
+      const publicBoundary = publicBoundaries[index];
+      const declaredPublicInput = publicBoundary && "input" in publicBoundary ? publicBoundary.input : undefined;
+      const publicSchedule = declaredPublicInput && "input" in declaredPublicInput ? declaredPublicInput.input : undefined;
+      if (!publicSchedule || publicSchedule.kind !== "canonical" || publicSchedule.event.kind !== "finishTerminal")
+        throw new TypeError(`${field} MismatchedTerminal has no genuine derived public FinishTerminal Schedule`);
+      same(publicSchedule, publicItem.input, `${field} exact derived public Schedule`);
+      same(publicSchedule.at, mismatch.at, `${field} derived Schedule original MismatchedTerminal time`);
+      matchingMismatches.push(index);
+    }
+    if (matchingMismatches.length !== 1)
+      throw new TypeError(`${field} lacks one aligned frozen MismatchedTerminal and derived public Schedule`);
+    const originalEngine = publicBoundaries[matchingMismatches[0]!]!.before.engine;
+    const owner = optional(SharedEngine.scope_event(originalEngine, originalEngine, encodedEvent, { $: "Some", value: 1n }));
+    if (owner === undefined) throw new TypeError(`${field} Initial MismatchedTerminal has no Engine scope owner`);
+    partition = readNat(owner);
+    lifetime = 1;
+  }
   const declaredOwners = partition === undefined ? [] : premise.agentScopes.filter(scope => scope.partition === partition);
   if (partition === undefined || declaredOwners.length !== 1)
     throw new TypeError(`${field} frozen RawInput has no uniquely declared direct owner scope`);
-  if (!("lifetime" in event)) throw new TypeError(`${field} frozen RawInput has no original lifetime`);
-  same([readNat(job.partition), readNat(job.lifetime)], [partition, event.lifetime], `${field} frozen RawInput owner scope`);
+  same([readNat(job.partition), readNat(job.lifetime)], [partition, lifetime], `${field} frozen RawInput owner scope`);
 }
 function compareJob(value: unknown, captured: RunRuntimeSnapshot["queue"][number]["driverSourceJob"], field: string): void {
   const job = readRecord(value);
@@ -395,12 +443,21 @@ export function compareOriginalStopFamilyTrace(value: unknown, expected: ReturnT
   for (const [caseIndex, value] of traces.entries()) compareOriginalStopCaseTrace(value,expected[caseIndex],frozenInputs[caseIndex],caseIndex);
 }
 
-export function compareOriginalStopCaseTrace(value: unknown, original: ReturnType<typeof originalStopPublicCases>[number] | undefined, frozenInput: unknown, caseIndex: number): void {
+export function compareOriginalStopCaseTrace(value: unknown, original: ReturnType<typeof originalStopPublicCases>[number] | undefined,
+    frozenInput: unknown, caseIndex: number, originalOutputBoundaryDeclarations?: readonly OriginalOutputBoundaryDeclaration[]): void {
   try {
     const trace = readRecord(value);
     if (!original || trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError(`invalid full original Stop trace at case ${caseIndex}`);
     same(trace.input,frozenInput,`case ${caseIndex} complete original input`);
-    const premise: StopRuntimePremise = { input: original.input, agentScopes: original.agentScopes, frozenInput };
+    const premise: StopRuntimePremise = {
+      input: original.input,
+      agentScopes: original.agentScopes,
+      frozenInput,
+      ...(originalOutputBoundaryDeclarations === undefined ? {} : {
+        originalOutputBoundaryDeclarations,
+        originalOutputPublicBoundaries: original.boundaries,
+      }),
+    };
     const frames = list(trace.frames).map(readRecord);
     for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.Boundary","stop_observed_wire.Control"].includes(String(frame.$))) throw new TypeError("uncompared original Stop frame");
     compareStopObservedOwners(frames,original.frames,premise);
@@ -449,5 +506,7 @@ export function compareOriginalStopOutputFamilyTrace(value: unknown, expected: R
   same(traces.length,12,"all original output scenario count");
   same(expected.length,12,"independent original output scenario count");
   same(frozenInputs.length,12,"independent frozen output declaration count");
-  for(const [index,trace] of traces.entries()) compareOriginalStopCaseTrace(trace,expected[index],frozenInputs[index],index);
+  same(originalStopOutputCases.length,12,"original public output source declaration count");
+  for(const [index,trace] of traces.entries())
+    compareOriginalStopCaseTrace(trace,expected[index],frozenInputs[index],index,originalStopOutputCases[index]?.boundaries);
 }
