@@ -1,3 +1,4 @@
+import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import { currentCommand, type RuntimeCommand } from "../runtime/package-runtime.ts"
 import * as Effect from "effect/Effect"
 import { execFileClosedStdin, spawnInherited } from "./host-process.ts"
@@ -264,7 +265,7 @@ const doctorRepairLines = (check: Record<string, unknown>, host: SetupClient): s
 const doctorCheckLines = (value: unknown, host: SetupClient): string[] => {
   const check = record(value)
   return [
-    `  ${String(check.stage)}: ${doctorStageLabel(check)}.`,
+    `  ${formatStatusOutcome(String(check.status), `${String(check.stage)}: ${doctorStageLabel(check)}.`)}`,
     ...doctorDetailLines(check),
     ...doctorRepairLines(check, host)
   ]
@@ -274,9 +275,15 @@ const doctorChecksLines = (checks: unknown, host: SetupClient): string[] =>
 export const formatDoctor = (value: unknown, host: SetupClient): string[] => {
   const result = record(value)
   return [
-    `${host}: ${displayValue(result.status, "check failed")}.`,
+    formatStatusOutcome(
+      String(result.status),
+      `${host} doctor: local checks ${displayValue(result.status, "failed")}.`
+    ),
     ...doctorChecksLines(result.checks, host),
-    "Native trust and actual agent execution must be checked in the client."
+    formatOutcome(
+      "info",
+      "Native trust and actual agent execution must be checked in the client; a real review was not verified."
+    )
   ]
 }
 export const formatFailure = (value: unknown, host: SetupClient): string => {

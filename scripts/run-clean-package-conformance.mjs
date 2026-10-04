@@ -593,7 +593,7 @@ try {
     process.env,
     executeRealCodex ? ["codex"] : []
   )
-  const doctorRun = await mustRun(doctor, [], { cwd: temporary, env: launcherEnvironment })
+  const doctorRun = await mustRun(doctor, ["--json"], { cwd: temporary, env: launcherEnvironment })
   const doctorResult = parseJson(doctorRun.stdout, "package doctor")
   if (doctorResult.status !== "ready") throw new Error("package doctor did not report ready")
   if (doctorResult.checks.find((check) => check.name === "runtime")?.observed !== runtimeDeclaration.runtime.version) {
@@ -610,7 +610,7 @@ try {
   )
     throw new Error("standalone runtime identity differs from the selected profile")
   await mustRun(cli, ["--help"], { cwd: temporary, env: launcherEnvironment })
-  const missingCommands = await run(doctorExecutable, [], {
+  const missingCommands = await run(doctorExecutable, ["--json"], {
     cwd: temporary,
     env: { ...launcherEnvironment, PATH: join(temporary, "missing-path") }
   })

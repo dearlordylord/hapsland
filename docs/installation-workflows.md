@@ -49,6 +49,38 @@ hapsland doctor              # All registered clients, read-only
 hapsland doctor claude       # One client
 ```
 
+### Reading doctor and installer results
+
+User-facing doctor and lifecycle output uses plain ASCII markers: `[OK]` for the
+stated successful check or change, `[WARN]` for partial or unknown readiness,
+`[FAIL]` for failure, and `[INFO]` for information or a skipped operation. The
+labels work without terminal colors or Unicode. An installed hook is not evidence
+of a real review: setup keeps restart, native trust and first-review actions visible.
+
+`hapsland-doctor` prints a readable package report by default, including when its
+output is redirected. Use `hapsland-doctor --json` for the existing version-1
+machine report; internal package installers and conformance checks pass this flag
+explicitly. Package doctor checks the packaged runtime and local dependencies;
+it does not establish agent setup, credential validity or real-review success.
+`hapsland doctor CLIENT` checks the installed integration and reports any unknown
+native trust separately. Versioned JSON requests such as `hapsland --doctor`,
+`--setup` and `--status` retain their JSON contracts; hooks and IPC do not receive
+human markers. Human status output remains available with `--status-human`.
+
+A successful package report starts with:
+
+```text
+[OK] Package doctor: package checks passed.
+```
+
+An installed integration can still end setup with:
+
+```text
+[OK] Installation: the owned Codex integration was installed.
+[WARN] Setup: offline readiness: unknown.
+[INFO] Next: restart Codex, complete native repository and hook trust, then make an ordinary supported edit and inspect review activity. A real review was not verified by setup.
+```
+
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) , [Codex guide](codex-installation.md), and [Pi guide](pi-installation.md) for automation, ownership, credentials, and host-specific limits. Saved login uses the native credential store; hooks do not prompt.
 
 Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Claude targets 2.1.218. Codex installation checks lifecycle-hook capability rather than a fixed version allowlist; 0.155.1/0.156.0 are historical tested profiles. Hapsland commands now contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.

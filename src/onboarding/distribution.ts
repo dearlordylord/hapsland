@@ -128,7 +128,7 @@ const cachedRelease = Effect.fn("Distribution.cachedRelease")(function* (
   const manifest = yield* readManifest(prefix).pipe(Effect.result)
   if (manifest._tag === "Failure") return undefined
   if (!cachedManifestMatches(identity, saved.success.packageVersion, manifest.success.version)) return undefined
-  const verified = yield* run(join(prefix, "bin", "hapsland-doctor"), []).pipe(Effect.result)
+  const verified = yield* run(join(prefix, "bin", "hapsland-doctor"), ["--json"]).pipe(Effect.result)
   if (verified._tag === "Failure") return undefined
   return stagedRelease(prefix, manifest.success.version, identity)
 })
@@ -169,7 +169,7 @@ export const stageRelease = Effect.fn("Distribution.stageRelease")(function* (
   const manifest = yield* readManifest(prefix)
   if (!manifestMatchesRelease(identity, manifest.version))
     return yield* failure("installed package version differs from the selected release")
-  yield* run(join(prefix, "bin", "hapsland-doctor"), [])
+  yield* run(join(prefix, "bin", "hapsland-doctor"), ["--json"])
   yield* nativeObservation("verified release snapshot cannot be recorded", () =>
     writeFileSync(
       join(prefix, "snapshot.json"),

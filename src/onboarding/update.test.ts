@@ -79,7 +79,7 @@ it("previews both clients before one approval and applies their respective froze
   expect(f.ports.confirm).toHaveBeenCalledOnce()
   expect(f.activations).toEqual(["/verified/hapsland", "/verified/hapsland"])
   expect(f.failures).toEqual([])
-  expect(f.output.join("")).toContain("claude: updated.")
+  expect(f.output.join("")).toContain("[OK] claude update: updated.")
   expect(f.output.join("")).not.toContain("private-test-key")
 })
 
@@ -123,7 +123,7 @@ it.each([
   expect(f.ports.invoke).toHaveBeenCalledOnce()
   expect(f.ports.confirm).not.toHaveBeenCalled()
   expect(f.activations).toHaveLength(1)
-  expect(f.output.join("")).toContain("claude: already current.")
+  expect(f.output.join("")).toContain("[OK] claude update: already current.")
 })
 
 it.each([
@@ -134,8 +134,8 @@ it.each([
   const f = fixture({ responses: { claude: [response] } })
   await Effect.runPromise(updateClients(f.options, f.ports))
   expect(f.failures.map((item) => item.host)).toEqual(["claude"])
-  expect(f.output.join("")).toContain("claude: failed.")
-  expect(f.output.join("")).toContain("codex: updated.")
+  expect(f.output.join("")).toContain("[FAIL] claude update: failed.")
+  expect(f.output.join("")).toContain("[OK] codex update: updated.")
 })
 
 it("cancels every proposed update after a declined approval", async () => {
@@ -143,8 +143,8 @@ it("cancels every proposed update after a declined approval", async () => {
   await Effect.runPromise(updateClients(f.options, f.ports))
   expect(f.ports.invoke).toHaveBeenCalledTimes(2)
   expect(f.activations).toEqual([])
-  expect(f.output.join("")).toContain("claude: skipped.")
-  expect(f.output.join("")).toContain("codex: skipped.")
+  expect(f.output.join("")).toContain("[INFO] claude update: skipped.")
+  expect(f.output.join("")).toContain("[INFO] codex update: skipped.")
 })
 
 it.each(["updated", "complete", "already-current", "partial", "conflict"])(
@@ -158,11 +158,11 @@ it.each(["updated", "complete", "already-current", "partial", "conflict"])(
     expect(f.activations).toHaveLength(status === "conflict" ? 0 : 1)
     if (status === "partial") {
       expect(String(f.failures[0]?.cause)).toContain("hapsland repair claude")
-      expect(f.output.join("")).toContain("claude: failed.")
+      expect(f.output.join("")).toContain("[FAIL] claude update: failed.")
     } else if (status === "conflict") expect(f.failures).toHaveLength(1)
     else
       expect(f.output.join("")).toContain(
-        status === "already-current" ? "claude: already current." : "claude: updated."
+        status === "already-current" ? "[OK] claude update: already current." : "[OK] claude update: updated."
       )
   }
 )
@@ -181,7 +181,7 @@ it("reports apply failure independently and continues the second approved client
   const f = fixture({ responses: { claude: [Effect.succeed(preview), Effect.fail(new Error("apply unavailable"))] } })
   await Effect.runPromise(updateClients(f.options, f.ports))
   expect(f.failures.map((item) => item.host)).toEqual(["claude"])
-  expect(f.output.join("")).toContain("codex: updated.")
+  expect(f.output.join("")).toContain("[OK] codex update: updated.")
 })
 
 it.each(["current", "partial", "updated"])(
@@ -195,7 +195,7 @@ it.each(["current", "partial", "updated"])(
     const f = fixture({ hosts: ["claude"], responses: { claude: responses }, activation: Effect.fail(failure) })
     await Effect.runPromise(updateClients(f.options, f.ports))
     expect(f.failures).toEqual([{ host: "claude", cause: failure }])
-    expect(f.output.join("")).toContain("claude: failed.")
+    expect(f.output.join("")).toContain("[FAIL] claude update: failed.")
   }
 )
 

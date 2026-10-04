@@ -1,3 +1,4 @@
+import { formatOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
@@ -69,13 +70,15 @@ const readyProposal = (
   ports: MaintenancePorts
 ): LifecycleProposal | undefined => {
   if (preview.status === "already-uninstalled") {
-    ports.write(`${host}: already removed.\n`)
+    ports.write(`${formatOutcome("success", `${host} uninstall: already removed.`)}\n`)
     return undefined
   }
   if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined)
     throw new Error(formatFailure(preview, host))
   if (preview.proposal.changes?.length === 0) {
-    ports.write(`${host}: ${command === "uninstall" ? "already removed" : "integration intact"}.\n`)
+    ports.write(
+      `${formatOutcome("success", `${host} ${command}: ${command === "uninstall" ? "already removed" : "integration intact"}.`)}\n`
+    )
     return undefined
   }
   return preview.proposal
@@ -103,7 +106,7 @@ const confirmMaintenance = Effect.fn("Maintenance.confirm")(function* (
 ) {
   const result = yield* attempt(host, ports.confirm(`Apply ${command} to ${host}?`), ports)
   if (Option.isNone(result)) return false
-  if (!result.value) ports.write(`${host}: skipped.\n`)
+  if (!result.value) ports.write(`${formatOutcome("info", `${host}: skipped.`)}\n`)
   return result.value
 })
 const activateMaintenance = Effect.fn("Maintenance.activate")(function* (host: SetupClient, ports: MaintenancePorts) {
@@ -147,7 +150,7 @@ const applyMaintenance = Effect.fn("Maintenance.apply")(function* (
 })
 const printCompletion = (host: SetupClient, operation: MaintenanceOperation, ports: MaintenancePorts) => {
   ports.write(
-    `${host}: ${operation === "uninstall" ? "removed" : "restored"}. User settings and credentials preserved.\n`
+    `${formatOutcome("success", `${host} ${operation === "uninstall" ? "uninstall: removed" : "integration: restored"}. User settings and credentials preserved.`)}\n`
   )
   ports.write(
     `Finish current work and restart ${host}${operation === "uninstall" ? "." : "; review native trust prompts."}\n`

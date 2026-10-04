@@ -1,3 +1,4 @@
+import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
@@ -32,10 +33,12 @@ const stageSummary = (result: SetupResult, name: SetupStage["stage"]): string =>
 const stageStatus = (result: SetupResult, name: SetupStage["stage"]): string => setupStage(result, name)?.status ?? ""
 const setupAction = (result: SetupResult, code: string) => result.actions.find((item) => item.code === code)
 const writeSetupActions = (result: SetupResult, ports: PilotPorts): void => {
-  for (const action of result.actions) ports.write(`Next: ${action.action}.\n`)
+  for (const action of result.actions) ports.write(`${formatOutcome("info", `Next: ${action.action}.`)}\n`)
 }
 const compatibilitySetupReady = (frame: PilotFrame, result: SetupResult): boolean => {
-  frame.ports.write(`Compatibility: ${stageSummary(result, "compatibility")}.\n`)
+  frame.ports.write(
+    `${formatStatusOutcome(stageStatus(result, "compatibility"), `Compatibility: ${stageSummary(result, "compatibility")}.`)}\n`
+  )
   for (const line of formatCompatibility(setupStage(result, "compatibility")?.observed)) frame.ports.write(`${line}\n`)
   if (stageStatus(result, "compatibility") === "complete") return true
   frame.ports.write(`${result.actions[0]?.action ?? `Use a declared ${frame.hostName} profile.`}\n`)
@@ -44,7 +47,9 @@ const compatibilitySetupReady = (frame: PilotFrame, result: SetupResult): boolea
 }
 const installationSetupReady = (frame: PilotFrame, result: SetupResult): boolean => {
   if (["complete", "pending", "partial"].includes(stageStatus(result, "installation"))) return true
-  frame.ports.write(`Installation: ${stageSummary(result, "installation")}.\n`)
+  frame.ports.write(
+    `${formatStatusOutcome(stageStatus(result, "installation"), `Installation: ${stageSummary(result, "installation")}.`)}\n`
+  )
   writeSetupActions(result, frame.ports)
   frame.ports.exitCode(result.status === "partial" ? 5 : 4)
   return false
@@ -62,7 +67,9 @@ const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function
   if (action === undefined) return request
   frame.ports.write(`Installation preview:\n${formatProposal(installationStageProposal(result)).join("\n")}\n`)
   if (!(yield* frame.ports.confirm(`Install these entries in the selected ${frame.hostName} profile?`))) {
-    frame.ports.write(`Installation was not changed. Run hapsland setup ${frame.options.host} to resume.\n`)
+    frame.ports.write(
+      `${formatOutcome("info", `Installation was not changed. Run hapsland setup ${frame.options.host} to resume.`)}\n`
+    )
     return undefined
   }
   const digest = action.authorization?.installProposalDigest
@@ -74,15 +81,21 @@ const setupCredentialComplete = (result: SetupResult): boolean =>
 const reportSetupCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): boolean => {
   if (entered && stageStatus(result, "credential") === "complete")
     frame.ports.write(`Jev key saved in ${frame.options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`)
-  frame.ports.write(`Credential: ${stageSummary(result, "credential")}. No real verification or review was sent.\n`)
+  frame.ports.write(
+    `${formatStatusOutcome(stageStatus(result, "credential"), `Credential: ${stageSummary(result, "credential")}. No real verification or review was sent.`)}\n`
+  )
   if (setupCredentialComplete(result)) return true
+  frame.ports.write(`${formatOutcome("warning", "Setup incomplete: installation or credentials need attention.")}\n`)
   writeSetupActions(result, frame.ports)
   frame.ports.exitCode(result.status === "partial" ? 5 : 6)
   return false
 }
 const reportSetupRepository = (frame: PilotFrame, result: SetupResult): boolean => {
-  frame.ports.write(`Repository: ${stageSummary(result, "repository")}.\n`)
+  frame.ports.write(
+    `${formatStatusOutcome(stageStatus(result, "repository"), `Repository: ${stageSummary(result, "repository")}.`)}\n`
+  )
   if (stageStatus(result, "repository") === "complete") return true
+  frame.ports.write(`${formatOutcome("warning", "Setup incomplete: repository settings need attention.")}\n`)
   writeSetupActions(result, frame.ports)
   frame.ports.exitCode(6)
   return false
@@ -97,20 +110,21 @@ const decodeSetupDiagnosis = Effect.fn("Pilot.decodeDiagnosis")(function* (stdou
   return yield* Schema.decodeUnknownEffect(SetupDiagnosis)(parsed)
 })
 const writeSetupDiagnosis = (frame: PilotFrame, diagnosis: typeof SetupDiagnosis.Type): void => {
-  frame.ports.write(`Offline readiness: ${diagnosis.status}.\n`)
-  for (const next of diagnosis.nextSteps ?? []) frame.ports.write(`Next: ${next.action}.\n`)
+  frame.ports.write(`${formatStatusOutcome(diagnosis.status, `Setup: offline readiness: ${diagnosis.status}.`)}\n`)
+  for (const next of diagnosis.nextSteps ?? []) frame.ports.write(`${formatOutcome("info", `Next: ${next.action}.`)}\n`)
   for (const check of diagnosis.checks ?? []) {
-    if (check.status !== "ready") frame.ports.write(`${check.stage}: ${check.status}.\n`)
+    if (check.status !== "ready")
+      frame.ports.write(`${formatStatusOutcome(check.status, `${check.stage}: ${check.status}.`)}\n`)
   }
   frame.ports.write(
-    `After native ${frame.hostName} repository and hook trust, make an ordinary supported edit and inspect review activity.\n`
+    `${formatOutcome("info", `Next: restart ${frame.hostName}, complete native repository and hook trust, then make an ordinary supported edit and inspect review activity. A real review was not verified by setup.`)}\n`
   )
 }
 const diagnoseSetup = Effect.fn("Pilot.diagnose")(function* (frame: PilotFrame) {
   const doctor = yield* frame.ports.doctor
   if (!doctor.succeeded) {
     frame.ports.write(
-      `Readiness check could not complete. Run hapsland setup ${frame.options.host} again or hapsland doctor ${frame.options.host}.\n`
+      `${formatOutcome("error", `Readiness check could not complete. Run hapsland setup ${frame.options.host} again or hapsland doctor ${frame.options.host}.`)}\n`
     )
     frame.ports.exitCode(6)
     return
@@ -118,7 +132,7 @@ const diagnoseSetup = Effect.fn("Pilot.diagnose")(function* (frame: PilotFrame) 
   const result = yield* decodeSetupDiagnosis(doctor.stdout).pipe(Effect.result)
   if (result._tag === "Failure") {
     frame.ports.write(
-      `Readiness result was unreadable. Rerun hapsland setup ${frame.options.host} or hapsland doctor ${frame.options.host}.\n`
+      `${formatOutcome("error", `Readiness result was unreadable. Rerun hapsland setup ${frame.options.host} or hapsland doctor ${frame.options.host}.`)}\n`
     )
     frame.ports.exitCode(6)
     return
@@ -132,7 +146,9 @@ const runApprovedSetup = Effect.fn("Pilot.runApproved")(function* (
   credentialWasEntered: () => boolean
 ) {
   const result = yield* frame.ports.run({ ...request, interactive: true }, entered)
-  frame.ports.write(`Installation: ${stageSummary(result, "installation")}.\n`)
+  frame.ports.write(
+    `${formatStatusOutcome(stageStatus(result, "installation"), `Installation: ${stageSummary(result, "installation")}.`)}\n`
+  )
   if (["complete", "partial"].includes(stageStatus(result, "installation"))) yield* frame.ports.activate
   if (!reportSetupCredential(frame, result, credentialWasEntered())) return
   if (!reportSetupRepository(frame, result)) return
@@ -146,7 +162,11 @@ export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOpt
     ports.exitCode(6)
     return
   }
-  const frame: PilotFrame = { options, ports, hostName: options.host === "claude" ? "Claude Code" : "Codex" }
+  const frame: PilotFrame = {
+    options,
+    ports,
+    hostName: { claude: "Claude Code", codex: "Codex", pi: "Pi" }[options.host]
+  }
   const request: SetupRequest = {
     version: 1,
     operation: "setup",

@@ -1,3 +1,4 @@
+import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
 import * as Effect from "effect/Effect"
 import { formatFailure, formatProposal, type invokeLifecycle } from "./client-lifecycle.ts"
@@ -131,9 +132,11 @@ const applyUpdateProposals = Effect.fn("Update.applyProposals")(function* (frame
 })
 const writeUpdateOutcomes = (frame: UpdateFrame): void => {
   for (const [host, status] of frame.outcomes) {
-    frame.ports.write(`${host}: ${status}.\n`)
+    frame.ports.write(`${formatStatusOutcome(status, `${host} update: ${status}.`)}\n`)
     if (status === "updated")
-      frame.ports.write(`Finish current work, restart ${host}, and review native trust prompts.\n`)
+      frame.ports.write(
+        `${formatOutcome("info", `Next: finish current work, restart ${host}, and review native trust prompts. A real review was not verified by update.`)}\n`
+      )
   }
   frame.ports.write("Retain previous packages until their hooks and active sessions no longer depend on them.\n")
 }

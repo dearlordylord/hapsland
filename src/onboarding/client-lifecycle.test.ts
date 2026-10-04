@@ -106,22 +106,22 @@ it("formats doctor failures, compatibility and repair instructions without dumpi
     "claude"
   )
   expect(lines).toEqual([
-    "claude: not-ready.",
-    "  host: ready.",
-    "  configuration-ownership: installation damaged.",
+    "[FAIL] claude doctor: local checks not-ready.",
+    "  [OK] host: ready.",
+    "  [FAIL] configuration-ownership: installation damaged.",
     "    owned hook changed",
     "    Next: inspect settings",
     "    Run hapsland repair claude; for changed Hapsland entries, use hapsland reinstall claude.",
-    "  runtime: unsupported.",
+    "  [FAIL] runtime: unsupported.",
     "    Compatibility: detected v20; required v24.",
-    "  file-selection: unknown.",
+    "  [WARN] file-selection: unknown.",
     "    inspect exclusions",
-    "  configuration-ownership: ready.",
-    "Native trust and actual agent execution must be checked in the client."
+    "  [OK] configuration-ownership: ready.",
+    "[INFO] Native trust and actual agent execution must be checked in the client; a real review was not verified."
   ])
   expect(formatDoctor(null, "codex")).toEqual([
-    "codex: check failed.",
-    "Native trust and actual agent execution must be checked in the client."
+    "[FAIL] codex doctor: local checks failed.",
+    "[INFO] Native trust and actual agent execution must be checked in the client; a real review was not verified."
   ])
 })
 it("formats version, journal and optional proposal details in order", () => {
@@ -139,4 +139,14 @@ it("formats version, journal and optional proposal details in order", () => {
     "Stop (Task):"
   ])
   expect(formatProposal(null)).toEqual([])
+})
+
+it.each([
+  ["ready", "[OK]"],
+  ["unknown", "[WARN]"],
+  ["not-ready", "[FAIL]"]
+])("makes %s local doctor readiness visible without claiming a real review", (status, marker) => {
+  const lines = formatDoctor({ status, checks: [] }, "codex")
+  expect(lines[0]).toBe(`${marker} codex doctor: local checks ${status}.`)
+  expect(lines.at(-1)).toContain("a real review was not verified")
 })

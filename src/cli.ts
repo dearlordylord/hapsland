@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { formatOutcome, formatStatusOutcome } from "./onboarding/human-output.ts"
 import { HAPSLAND_CONFIG_DIRECTORY, HAPSLAND_STATE_DIRECTORY } from "./runtime/user-paths.ts"
 import { profileFields } from "./onboarding/client-command.ts"
 import type { DoctorCheck } from "./onboarding/doctor.ts"
@@ -576,7 +577,7 @@ const humanStatusReceipt = (
   formatActivity: typeof formatActivityHuman,
   formatAnalytics: typeof formatAnalyticsHuman
 ) =>
-  `readiness: ${output.readiness.status} (configuration=${output.readiness.configuration}, files=${output.readiness.fileSelection}, credentials=${output.readiness.credentials.present ? "present" : "absent"})\n${formatActivity(operation.sessionId ?? "<session id required>", output.activity)}\n${formatAnalytics(output.analytics)}`
+  `${formatStatusOutcome(output.readiness.status, `readiness: ${output.readiness.status} (configuration=${output.readiness.configuration}, files=${output.readiness.fileSelection}, credentials=${output.readiness.credentials.present ? "present" : "absent"})`)}\n${formatActivity(operation.sessionId ?? "<session id required>", output.activity)}\n${formatAnalytics(output.analytics)}`
 const statusOutput = (
   operation: StatusOperation,
   root: string,
@@ -1464,7 +1465,9 @@ const updateExecutable = Effect.fn("InteractiveUpdate.target")(function* () {
 const explicitUpdateHost = (): SetupClient | undefined =>
   flagValue("--host") !== undefined || positionalHost() !== undefined ? selectedHost() : undefined
 const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
-  process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "Update failed"}\n`)
+  process.stderr.write(
+    `${formatOutcome("error", `${host}: ${cause instanceof Error ? cause.message : "Update failed"}`)}\n`
+  )
   process.exitCode = 6
 }
 const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
@@ -1497,7 +1500,9 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
 })
 
 const reportClientFailure = (host: SetupClient, cause: unknown) => {
-  process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`)
+  process.stderr.write(
+    `${formatOutcome("error", `${host}: ${cause instanceof Error ? cause.message : "operation failed"}`)}\n`
+  )
   process.exitCode = 6
 }
 
@@ -1597,7 +1602,10 @@ if (cliSwitch("feedback-preview")) {
         clientArguments.host === undefined
           ? registeredClients(clientArguments.flags, reportClientFailure)
           : [selectedHost()]
-      if (hosts.length === 0) process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n")
+      if (hosts.length === 0)
+        process.stderr.write(
+          `${formatOutcome("warning", "No Hapsland integrations found. Run hapsland setup first.")}\n`
+        )
       for (const host of hosts) {
         try {
           const result = await Effect.runPromise(
@@ -1632,7 +1640,9 @@ if (cliSwitch("feedback-preview")) {
         pilotSetup(selectedHost()).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer))
       )
   } catch (cause) {
-    process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`)
+    process.stderr.write(
+      `${formatOutcome("error", cause instanceof Error ? cause.message : "Interactive operation failed")}\n`
+    )
     process.exitCode = 6
   }
 } else {

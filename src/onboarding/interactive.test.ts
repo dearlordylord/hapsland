@@ -153,7 +153,7 @@ it.skipIf(process.platform !== "linux")("guided Codex setup installs through the
   expect(result.code).toBe(0)
   expect(result.answered).toBe(true)
   expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
-  expect(result.output).toContain("native Codex")
+  expect(result.output).toContain("restart Codex")
 })
 const bothClients = (test: ReturnType<typeof fixture>) => {
   const claudeHome = join(test.root, "claude-home")
@@ -279,8 +279,8 @@ it.skipIf(process.platform !== "linux")(
     expect(requests[2].claudeHome).toBe(clients.claudeHome)
     expect(requests[3].codexHome).toBe(clients.codexHome)
     expect(result.output.match(/\[y\/N\]/g)).toHaveLength(1)
-    expect(result.output).toContain("claude: updated.")
-    expect(result.output).toContain("codex: updated.")
+    expect(result.output).toContain("[OK] claude update: updated.")
+    expect(result.output).toContain("[OK] codex update: updated.")
   }
 )
 it.skipIf(process.platform !== "linux")(
@@ -298,8 +298,8 @@ it.skipIf(process.platform !== "linux")(
       "claude:update",
       "codex:update"
     ])
-    expect(result.output).toContain("claude: failed.")
-    expect(result.output).toContain("codex: updated.")
+    expect(result.output).toContain("[FAIL] claude update: failed.")
+    expect(result.output).toContain("[OK] codex update: updated.")
   }
 )
 it.skipIf(process.platform !== "linux")("bare update acquires one target for both installed clients", async () => {

@@ -90,7 +90,7 @@ it("runs an initial noninteractive check before activation and offline readiness
   expect(requests[1]?.interactive).toBe(true)
   expect(f.events).toEqual(["activate", "doctor"])
   expect(f.ports.confirm).not.toHaveBeenCalled()
-  expect(f.output.join("")).toContain("Offline readiness: ready.")
+  expect(f.output.join("")).toContain("[OK] Setup: offline readiness: ready.")
   expect(f.output.join("")).not.toContain("Jev key saved")
   expect(f.exits).toEqual([])
 })
@@ -232,7 +232,7 @@ it("prints doctor actions and incomplete checks while omitting ready checks", as
   expect(f.output.join("")).toContain("Next: approve native trust")
   expect(f.output.join("")).toContain("trust: unknown")
   expect(f.output.join("")).not.toContain("profile: ready")
-  expect(f.output.join("")).toContain("After native Codex repository and hook trust")
+  expect(f.output.join("")).toContain("Next: restart Codex, complete native repository and hook trust")
   expect(f.exits).toEqual([])
 })
 
@@ -250,4 +250,38 @@ it("carries new-key through preview and approved interactive setup", async () =>
   expect(requests[0]).toMatchObject({ newKey: true })
   expect(requests[0]?.interactive).toBeUndefined()
   expect(requests[1]).toMatchObject({ newKey: true, interactive: true })
+})
+
+it("marks unknown offline readiness as incomplete and keeps native trust and review actions visible", async () => {
+  const f = fixture({
+    doctor: { stdout: JSON.stringify({ status: "unknown", checks: [{ stage: "host-trust", status: "unknown" }] }) }
+  })
+  await Effect.runPromise(runPilotSetup(f.options, f.ports))
+  const output = f.output.join("")
+  expect(output).toContain("[OK] Installation:")
+  expect(output).toContain("[WARN] Setup: offline readiness: unknown.")
+  expect(output).toContain("host-trust: unknown")
+  expect(output).toContain("Next: restart Claude Code")
+  expect(output).toContain("A real review was not verified by setup.")
+  expect(output).not.toContain("[OK] Setup:")
+  expect(f.exits).toEqual([])
+})
+
+it("marks a missing credential as incomplete even after successful installation", async () => {
+  const f = fixture({ results: [Effect.succeed(complete), Effect.succeed(stageResult("credential", "pending"))] })
+  await Effect.runPromise(runPilotSetup(f.options, f.ports))
+  expect(f.output.join("")).toContain("[OK] Installation:")
+  expect(f.output.join("")).toContain("[WARN] Credential:")
+  expect(f.output.join("")).toContain("[WARN] Setup incomplete:")
+  expect(f.output.join("")).not.toContain("[OK] Setup:")
+  expect(f.events).toEqual(["activate"])
+  expect(f.exits).toEqual([6])
+})
+
+it("names Pi in setup and next actions rather than labeling it as Codex", async () => {
+  const f = fixture()
+  await Effect.runPromise(runPilotSetup({ ...f.options, host: "pi", fields: profileFields("pi", new Map()) }, f.ports))
+  expect(f.output.join("")).toContain("Pi review integration setup")
+  expect(f.output.join("")).toContain("Next: restart Pi")
+  expect(f.output.join("")).not.toContain("Codex")
 })
