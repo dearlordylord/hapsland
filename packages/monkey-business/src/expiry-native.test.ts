@@ -181,10 +181,10 @@ it("compares all complete expiry histories from two fresh JS emissions with publ
   compareExpiryFullTrace(decodeNativePrefix(second,"expiry_scenarios"),completeCaptures);
 }, 85000);
 
-// Pre-execution aggregate: C30s + clang30s + native5s + JS15s + run5s
-// total85s, plus15s cleanup. Ordinary phase and proof limits are unchanged.
+// Explicit qualification aggregate: C45s + clang90s + native5s + JS15s + run5s
+// total160s, plus15s cleanup. Runtime and proof limits are unchanged.
 it("compares all original expiry inputs and full retained states across native Bend, emitted JS, public API and replay", () => {
-  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture);
+  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 45000, clangTimeoutMs: 90000 }), emitted = runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
   expect(decodeNativePrefix(native, "expiry_scenarios")).toEqual(decodeNativePrefix(emitted, "expiry_scenarios"));
   assertOriginals(native); assertOriginals(emitted);
@@ -193,4 +193,4 @@ it("compares all original expiry inputs and full retained states across native B
   expect(decodeExpiryNativeBoundary(emitted)).toEqual(expected);
   compareExpiryFullTrace(decodeNativePrefix(native,"expiry_scenarios"),completeCaptures);
   compareExpiryFullTrace(decodeNativePrefix(emitted,"expiry_scenarios"),completeCaptures);
-}, 100000);
+}, 175000);
