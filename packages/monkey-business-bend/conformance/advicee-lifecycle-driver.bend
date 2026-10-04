@@ -1768,10 +1768,6 @@ def observed_take(runtime: List<&2,Runtime>) -> List<&2,Engine.Taken>:
       [Engine.take(sync(items,state,synced))]
     case _: []
 
-def observed_take_ready(-F: Data, taken: List<&2,Engine.Taken>, runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>,
-    environment: Environment, factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observed_taken(F,taken,runtime,receipt,environment,factory)
-
 type ObserveRequest is Data:
   ObserveRequest{runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
 
