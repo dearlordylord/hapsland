@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, symlinkSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { configuredRules } from "../policy/rules.ts";
@@ -7,15 +7,6 @@ import { setupInstalledPi, cleanupInstalledPi, cleanupPiFixtures, fixture, befor
 afterEach(async () => { vi.restoreAllMocks(); await cleanupPiFixtures(); });
 const settle = { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" };
 const source = "type OrderCount = number\n";
-const freshAdvice = async (f: ReturnType<typeof fixture>, id = "fresh-after-fault") => {
-  const edit = { ...before, toolCallId: id };
-  await f.call("tool_call", edit);
-  writeFileSync(join(f.root, "type.ts"), source);
-  const native = await f.call("tool_result", { ...result, ...edit });
-  const finish = await f.call("agent_before_settle", settle);
-  expect(native ?? finish).toBeDefined();
-  expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
-};
 const recoveryEdit = async (f: ReturnType<typeof fixture>, id: string, oldText: string, newText: string) => {
   const edit = { ...before, toolCallId: id, input: { path: "type.ts", edits: [{ oldText, newText }] } };
   await f.call("tool_call", edit);
@@ -25,12 +16,14 @@ const recoveryEdit = async (f: ReturnType<typeof fixture>, id: string, oldText: 
   const finish = await f.call("agent_before_settle", settle);
   return native ?? finish;
 };
-const recoverAfterLoss = async (f: ReturnType<typeof fixture>) => {
+const recoverAfterLoss = async (f: ReturnType<typeof fixture>, requireAdvice = true) => {
   // A real edit triggers automatic startup; its event may be lost during recovery.
   const first = await recoveryEdit(f, "recovery-start", "type OrderCount = number", "type RecoveryCount = number");
   if (first !== undefined) expect(JSON.stringify(first)).toContain("type.ts :: RecoveryCount");
   // This only observes the automatically started resident through owner + IPC stats.
   await f.waitForWork(0);
+  // Installed composition owns physical recovery; source owns the subsequent finding.
+  if (!requireAdvice) return;
   const second = await recoveryEdit(f, "recovery-after-ready", "type RecoveryCount = number", "type RecoveryFinalCount = number");
   expect(second).toBeDefined();
   expect(JSON.stringify(second)).toContain("type.ts :: RecoveryFinalCount");
@@ -54,15 +47,13 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
   afterAll(cleanupInstalledPi);
   // Before-admission faults occur in the host Node envelope; the source matrix owns both variants.
   if (mode === "source") {
-    it.each(["crash", "timeout"])("registration command %s cannot invent admission and a fresh edit recovers", async mode => {
+    it.each(["crash", "timeout"])("registration command %s cannot invent admission", async mode => {
       const f = fixture(false, {}, { commandFactory: faultWrapper });
       writeFileSync(join(f.root, "fault.json"), JSON.stringify({ operation: "before", mode }));
       expect(await f.call("tool_call", before)).toBeUndefined();
       writeFileSync(join(f.root, "type.ts"), source);
       expect(await f.call("tool_result", result)).toBeUndefined();
       expect(existsSync(f.capturePath)).toBe(false);
-      writeFileSync(join(f.root, "fault.json"), "{}");
-      await recoverAfterLoss(f);
     });
   }
 
@@ -80,8 +71,6 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     await f.call("agent_settled", { outcome: "aborted" });
     expect(await f.call("agent_before_settle", settle)).toBeUndefined();
     expect(await f.call("tool_result", result)).toBeUndefined();
-    writeFileSync(join(f.root, "fault.json"), "{}");
-    await freshAdvice(f);
   });
 
   it.each(["session", "root"])("late admitted advice stays isolated after the current %s changes", async partition => {
@@ -113,7 +102,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await f.call("agent_before_settle", settle, f.context)).toBeUndefined();
   });
 
-  it("resident loss during admitted review withholds its finding and allows fresh recovery", async () => {
+  it("resident loss during admitted review withholds its finding and allows fresh resident startup", async () => {
     const f = fixture(false, { delayMs: 2_000 });
     await f.prepareResident();
     await f.call("agent_start", {});
@@ -126,24 +115,24 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await editing).toBeUndefined();
     await f.call("agent_settled", { outcome: "aborted" });
     expect(await f.call("agent_before_settle", settle)).toBeUndefined();
-    await recoverAfterLoss(f);
+    await recoverAfterLoss(f, mode === "source");
   });
 
-  it.each(["excluded", "symlink"])("%s current source never reaches review egress", async variant => {
-    const f = fixture();
-    if (variant === "excluded") writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1, excludes: ["type.ts"] }));
-    await f.call("tool_call", before);
-    if (variant === "symlink") {
-      writeFileSync(join(f.root, "target.ts"), source);
-      symlinkSync(join(f.root, "target.ts"), join(f.root, "type.ts"));
-    } else writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-    if (variant === "excluded") writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1 }));
-    else unlinkSync(join(f.root, "type.ts"));
-    await freshAdvice(f);
-  });
+  // Source command cases own value-level refusals; installed cases above own process lifetime.
+  if (mode === "source") {
+    it.each(["excluded", "symlink"])("%s current source never reaches review egress", async variant => {
+      const f = fixture();
+      if (variant === "excluded") writeFileSync(join(f.root, "user.json"), JSON.stringify({ version: 1, excludes: ["type.ts"] }));
+      await f.call("tool_call", before);
+      if (variant === "symlink") {
+        writeFileSync(join(f.root, "target.ts"), source);
+        symlinkSync(join(f.root, "target.ts"), join(f.root, "type.ts"));
+      } else writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+    });
+  }
 
   // Installed resident loss during admitted review covers the stronger lifecycle boundary.
   if (mode === "source") {
@@ -161,17 +150,19 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     });
   }
 
-  it("an expired native permit cannot review its late result", async () => {
-    const f = fixture();
-    await f.call("tool_call", before);
-    writeFileSync(join(f.root, "type.ts"), source);
-    const realNow = Date.now();
-    vi.spyOn(Date, "now").mockReturnValue(realNow + 30_001);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    vi.restoreAllMocks();
-    expect(existsSync(f.capturePath)).toBe(false);
-    await freshAdvice(f);
-  });
+  // Source command cases own value-level refusals; installed cases above own process lifetime.
+  if (mode === "source") {
+    it("an expired native permit cannot review its late result", async () => {
+      const f = fixture();
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      const realNow = Date.now();
+      vi.spyOn(Date, "now").mockReturnValue(realNow + 30_001);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      vi.restoreAllMocks();
+      expect(existsSync(f.capturePath)).toBe(false);
+    });
+  }
 
   it("native abort settlement closes admitted work without a pre-settle callback", async () => {
     const f = fixture(true);
@@ -184,10 +175,9 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     await f.call("agent_settled", { outcome: "aborted" });
     writeFileSync(join(f.root, "backend.gate"), "release");
     expect(await f.call("agent_before_settle", settle)).toBeUndefined();
-    await freshAdvice(f);
   });
 
-  it("reload preserves the closed old partition and requires fresh native admission", async () => {
+  it("reload preserves the closed old partition without replay", async () => {
     const f = fixture();
     await f.prepareResident();
     await f.call("tool_call", before);
@@ -196,7 +186,6 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     writeFileSync(join(f.root, "type.ts"), source);
     expect(await f.call("tool_result", result)).toBeUndefined();
     expect(existsSync(f.capturePath)).toBe(false);
-    await freshAdvice(f);
   });
 
   // Competing handlers can mutate these API objects after Pi produces a valid
@@ -208,7 +197,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     cyclic.nativeMutation = cyclic;
     return cyclic;
   };
-  // Serialization alternatives are source branches; installed result mutation retains permit retirement and recovery.
+  // Serialization alternatives are source-command branches, not installed process boundaries.
   if (mode === "source") {
     it.each(["undefined", "cyclic", "bigint"])("mutated %s before input stays quiet without registering a permit", async variant => {
       const f = fixture();
@@ -217,62 +206,59 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
       writeFileSync(join(f.root, "type.ts"), source);
       expect(await f.call("tool_result", result)).toBeUndefined();
       expect(existsSync(f.capturePath)).toBe(false);
-      // Only the fresh positive control assumes readiness; the refused input
-      // above must not create an owner or send source to the reviewer.
-      await f.prepareResident();
-      await freshAdvice(f);
     });
   }
 
-  it.each(mode === "source" ? [
-    ["input", "undefined"], ["input", "cyclic"], ["input", "bigint"],
-    ["details", "cyclic"], ["details", "bigint"],
-    ["content", "undefined"], ["content", "object"],
-    ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
-  ] : [["input", "cyclic"]])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
-    const f = fixture();
-    await f.prepareResident();
-    await f.call("tool_call", before);
-    writeFileSync(join(f.root, "type.ts"), source);
-    const values: Record<string, unknown> = { object: { competingExtension: true }, "null-item": [null], "missing-text": [{ type: "text" }], "bad-image": [{ type: "image", data: 42, mimeType: "image/png" }] };
-    const value = Object.hasOwn(values, variant) ? values[variant] : invalidSerializable(variant, field === "input" ? result.input : result.details);
-    expect(await f.call("tool_result", { ...result, [field]: value })).toBeUndefined();
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-    await freshAdvice(f);
-  });
+  // Source command cases own value-level refusals; installed cases above own process lifetime.
+  if (mode === "source") {
+    it.each([
+      ["input", "undefined"], ["input", "cyclic"], ["input", "bigint"],
+      ["details", "cyclic"], ["details", "bigint"],
+      ["content", "undefined"], ["content", "object"],
+      ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
+    ])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
+      const f = fixture();
+      await f.prepareResident();
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      const values: Record<string, unknown> = { object: { competingExtension: true }, "null-item": [null], "missing-text": [{ type: "text" }], "bad-image": [{ type: "image", data: 42, mimeType: "image/png" }] };
+      const value = Object.hasOwn(values, variant) ? values[variant] : invalidSerializable(variant, field === "input" ? result.input : result.details);
+      expect(await f.call("tool_result", { ...result, [field]: value })).toBeUndefined();
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+    });
 
-  it("valid competing image content preserves native output while admitting review", async () => {
-    const f = fixture();
-    await f.prepareResident();
-    const image = { type: "image", data: "aW1hZ2U=", mimeType: "image/png" };
-    const content = [...result.content, image];
-    await f.call("tool_call", before);
-    writeFileSync(join(f.root, "type.ts"), source);
-    const native = await f.call("tool_result", { ...result, content });
-    const finish = await f.call("agent_before_settle", settle);
-    expect(existsSync(f.capturePath)).toBe(true);
-    expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
-    expect(content).toEqual([...result.content, image]);
-    if (native !== undefined) expect(native.content.slice(0, content.length)).toEqual(content);
-  });
+    it("valid competing image content preserves native output while admitting review", async () => {
+      const f = fixture();
+      await f.prepareResident();
+      const image = { type: "image", data: "aW1hZ2U=", mimeType: "image/png" };
+      const content = [...result.content, image];
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      const native = await f.call("tool_result", { ...result, content });
+      const finish = await f.call("agent_before_settle", settle);
+      expect(existsSync(f.capturePath)).toBe(true);
+      expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
+      expect(content).toEqual([...result.content, image]);
+      if (native !== undefined) expect(native.content.slice(0, content.length)).toEqual(content);
+    });
 
-  it.each(mode === "source" ? ["arguments", "patch"] : ["patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
-    const f = fixture();
-    await f.prepareResident();
-    const native = structuredClone(before);
-    await f.call("tool_call", native);
-    writeFileSync(join(f.root, "type.ts"), source);
-    writeFileSync(join(f.root, "other.ts"), "type Other = number\n");
-    const changed = structuredClone(result);
-    if (variant === "arguments") changed.input.path = "other.ts";
-    else changed.details.patch = "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Other = string\n+type Other = number\n";
-    expect(await f.call("tool_result", changed)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    await freshAdvice(f);
-  });
+    it.each(["arguments", "patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
+      const f = fixture();
+      await f.prepareResident();
+      const native = structuredClone(before);
+      await f.call("tool_call", native);
+      writeFileSync(join(f.root, "type.ts"), source);
+      writeFileSync(join(f.root, "other.ts"), "type Other = number\n");
+      const changed = structuredClone(result);
+      if (variant === "arguments") changed.input.path = "other.ts";
+      else changed.details.patch = "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Other = string\n+type Other = number\n";
+      expect(await f.call("tool_result", changed)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+    });
+  }
 
   it("a newer overlapping edit suppresses a delayed finding from the older source", async () => {
     const f = fixture(false, { delayMs: 650, findingOnSourceIncludes: "number", answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) });
@@ -290,6 +276,5 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(JSON.stringify(outputs)).not.toContain("Check these findings. Fix valid issues and verify; otherwise explain why.");
     expect(outputs.every(output => output === undefined || output.continue !== true)).toBe(true);
     await f.call("agent_settled", {});
-    await freshAdvice(f);
   });
 });

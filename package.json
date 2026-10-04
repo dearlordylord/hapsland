@@ -56,7 +56,7 @@
     "audit:release": "node scripts/audit-release-tarball.mjs",
     "local-release": "node scripts/local-release.mjs",
     "dev-install": "node --experimental-strip-types scripts/dev-install.mjs",
-    "test": "npm run config:check && node scripts/verify-bend-artifacts.mjs && node packages/monkey-business-bend/build.mjs --check && node scripts/check-canonical-authority.mjs && node --experimental-strip-types packages/agent-flow-bend/scripts/check-jev-request.mjs && node scripts/check-production-authority.mjs && node scripts/check-capacity-boundary.mjs && node scripts/check-permit-boundary.mjs && node scripts/check-review-boundary.mjs && node scripts/check-dispatch-boundary.mjs && node scripts/check-stop-boundary.mjs && node scripts/check-collection-boundary.mjs && node scripts/check-delivery-boundary.mjs && node scripts/check-revision-boundary.mjs && node scripts/check-response-authority-boundary.mjs && node scripts/check-reuse-boundary.mjs && node scripts/check-notice-boundary.mjs && node scripts/check-retention-boundary.mjs && node scripts/check-configuration-boundary.mjs && node scripts/check-file-eligibility-boundary.mjs && node scripts/check-rule-boundary.mjs && node packages/agent-flow-bend/scripts/check-progress.mjs && node --test scripts/native-pi-observation.test.mjs && vitest run --maxWorkers=1",
+    "test": "node scripts/test-harness/run-checks.mjs test",
     "test:native:preflight": "node scripts/run-native-preflight-tests.mjs",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
     "test:watch": "vitest",
@@ -72,9 +72,13 @@
     "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "test:coverage": "npm test -- --coverage",
-    "quality:check": "crap4ts",
+    "quality:check": "node scripts/test-harness/run-checks.mjs quality",
     "test:harness:inventory": "node scripts/test-harness/inventory.mjs",
-    "test:contention": "node scripts/test-harness/contention.mjs"
+    "test:contention": "node scripts/test-harness/contention.mjs",
+    "test:focused": "node scripts/test-harness/run-checks.mjs focused",
+    "test:status": "node scripts/test-harness/run-checks.mjs status",
+    "check:fast": "npm run typecheck && npm run config:check",
+    "test:harness": "node --test scripts/test-harness/*.test.mjs"
   },
   "devDependencies": {
     "@bcoe/v8-coverage": "1.0.2",

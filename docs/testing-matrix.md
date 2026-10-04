@@ -12,6 +12,7 @@
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
+| Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners only; does not qualify full source coverage |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
@@ -193,13 +194,56 @@ checks separation of execution contexts and combination of source-map aliases
 without a nested test runner. The full quality gate validates the emitted
 Istanbul counters through strict crap4ts analysis.
 Review this adapter against upstream behavior whenever Vitest is updated.
-During implementation, run the focused checks for the changed owners. Reserve the
-full quality gate for a review-ready implementation or a confirmed fix to a gate
-failure; do not restart it after each small edit. Vitest reports failure messages,
-stacks, and assertion values as each failing case finishes, then retains the final
-aggregate summary. Once a full run has reported a failure, diagnose it with focused
-checks before another full run. Keep essential behavioral coverage; remove slow
-repeated installed scenarios when their source owners already cover the semantics.
+During implementation, run `npm run test:focused -- <test files>` for the
+changed owners and `npm run check:fast`. Explicit files are required: an omitted
+selection cannot silently start the full suite. Reserve the full quality gate for
+a coherent review-ready candidate or a confirmed repair to a gate failure.
+After a failed full run, inspect `npm run test:status`, diagnose every independent
+reported defect with its owner check, and observe those checks passing before
+another full run. After two attempts without new discriminating evidence, name
+competing causes and change the experiment. Additional broad runs or reviewers
+alone do not advance diagnosis.
+
+The [runner](../scripts/test-harness/run-checks.mjs) writes its command manifest
+before execution, complete stage logs, elapsed times and observed exits under
+ignored `.test-runs/`. `npm run test:status -- <run-id>` reads the retained status
+and failure inventory; without an ID it selects the latest run. Add `--json`
+for the complete machine-readable record. Vitest records
+case and collection errors immediately in `failures.jsonl`; console tails are
+not the failure inventory. Ordinary independent precheck failures are collected
+rather than hiding subsequent checks behind a shell `&&` chain. A timeout or
+interruption stops work and never counts as success. Freeze the candidate during
+qualification; concurrent full gates in the same worktree are rejected.
+
+Before a command expected to exceed one minute, declare its expected duration and
+wall-clock stop time. The runner supplies a finite deadline: five minutes for focused checks and
+25 minutes for full checks, including nested coverage commands. Override it
+explicitly with `--timeout-ms=<milliseconds>` when the declared check needs a
+different bounded budget; nested commands cannot extend the parent deadline. Use its retained stage evidence to distinguish preparation,
+build, proof, test and analysis failures instead of blindly rerunning tests.
+These rules borrow the finite-work and retained-evidence approach from
+[Dalph development guidance](https://github.com/dearlordylord/dalph/blob/master/docs/development/workflow.md#keeping-implementation-work-finite).
+Hapsland keeps its own strict fresh-coverage completion requirement.
+
+Full runs prepare one fresh production archive before installed tests. The
+[archive preparation](../scripts/test-harness/prepare-archive.mjs) records source
+and archive digests and rejects source changes during preparation; the same
+archive supplies all installed fixtures. This is reuse within one run, not a
+cross-candidate build cache. Focused installed diagnostics may explicitly supply
+`HAPSLAND_TEST_PACKAGE_ARCHIVE`; name its provenance and do not treat an older
+archive as evidence for changed production code.
+
+Keep essential behavioral coverage; delete repeated installed scenarios when
+source owners cover the semantics. A process test should establish one named
+physical boundary; ordinary value-policy matrices belong in component/source
+checks. Keep distinct crash, socket, installation and ownership checks when those
+are the only evidence for that boundary. Replace correctness sleeps with observed
+ordering; retain real elapsed waits when timeout or idle expiration is the subject.
+Claude socket delivery fixtures prepare genuine review results before their
+response deadline; a separate no-work collector exercises delivery and final
+handoff without measuring parser or reviewer cold-start latency. Pipeline and
+installed hook owners retain end-to-end admission checks. Intentional in-flight
+timeout and disconnect checks retain their gates.
 The installed Claude Stop smoke uses one ready finding; collection size boundaries
 and concurrent delivery ownership remain in their focused owner suites.
 
@@ -207,9 +251,10 @@ and concurrent delivery ownership remain in their focused owner suites.
 `npm run test:coverage`, which includes the existing boundary checks and tests.
 The tool removes the previous JSON artifact before running that command and
 stops if tests fail, so stale coverage cannot produce a passing CI result.
-For machine-readable feedback, run
-`npm run --silent quality:check -- --format json > crap-report.json`;
-generated test output goes to stderr. Exit **2** means a score exceeded its threshold;
+For machine-readable gate feedback after the run, use
+`npm run --silent test:status -- --json > crap-report.json`. The retained record
+contains every stage exit and log path plus all Vitest failures; CRAP analysis
+diagnostics are in the quality-stage log. Exit **2** means a score exceeded its threshold;
 exit **1** means invalid inputs, missing coverage, analysis failure, or a failed
 coverage command. Coverage reports and `crap-report.json` stay ignored.
 Coverage is also written on test failures for diagnosis, but the gate stops

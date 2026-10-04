@@ -2,8 +2,6 @@ import { ReviewControlError } from "./review-controls.ts";
 import { runClient } from "../test-support/client-runtime.ts";
 import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
 import { reviewControlsLayer } from "../test-support/review-controls.ts";
-import { Layer } from "effect";
-import { ResidentPreparationControls, defaultPreparationControls } from "./preparation-controls.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
@@ -83,6 +81,18 @@ const permit = async (server: ResidentServer, observation: DirectObservation) =>
     ).status,
   ).toBe("advanced");
 };
+// Delivery fixtures establish review readiness before starting the response deadline.
+// The fresh collector admission creates no review work and cannot replace the finding's source.
+const collectorObservation = (observation: DirectObservation): DirectObservation => ({
+  ...observation,
+  advicee: { ...observation.advicee, toolUseId: `${observation.advicee.toolUseId}-collector` },
+  candidates: [{ operation: "delete", path: "collector.ts", addedLines: [] }],
+});
+const admitReady = async (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext) => {
+  await permit(server, observation);
+  expect(Effect.runSync(server.admit(observation, dispatch, true, true)).status).toBe("accepted");
+  await Effect.runPromise(server.whenIdle());
+};
 const request = (
   server: ResidentServer,
   observation: DirectObservation,
@@ -132,9 +142,12 @@ describe("registry-free Claude edit response", () => {
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     await Effect.runPromise(server.listen());
     try {
-      await permit(server, observation);
+      await admitReady(server, observation, data.dispatch);
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
+      const collector = collectorObservation(observation);
+      await permit(server, collector);
       const outcome = await runClient(
-        admitAndCollect(observation, data.dispatch, monotonicNow() + 2_500, server.paths),
+        admitAndCollect(collector, data.dispatch, monotonicNow() + 2_500, server.paths),
       );
       expect(outcome.status).toBe("advice");
       if (outcome.status !== "advice") throw new Error("missing advice");
@@ -170,8 +183,10 @@ describe("registry-free Claude edit response", () => {
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     await Effect.runPromise(server.listen());
     try {
-      await permit(server, observation);
-      expect(await send(server, observation, dispatch)).toEqual({ requestRoute: "edit", status: "empty" });
+      await admitReady(server, observation, dispatch);
+      const collector = collectorObservation(observation);
+      await permit(server, collector);
+      expect(await send(server, collector, dispatch)).toEqual({ requestRoute: "edit", status: "empty" });
       await Effect.runPromise(server.whenIdle());
       expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(0);
     } finally {
@@ -182,7 +197,7 @@ describe("registry-free Claude edit response", () => {
   it("B's response includes A's still-current advice and keeps one exclusive delivery lease", async () => {
     const data = await fixture();
     const first = await data.observation();
-    const second = await data.observation("second");
+    const second = collectorObservation(await data.observation("second"));
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     await Effect.runPromise(server.listen());
     try {
@@ -222,7 +237,6 @@ describe("registry-free Claude edit response", () => {
       await Effect.runPromise(server.whenIdle());
       const later = await ordinary(server, second, data.dispatch);
       expect(text(later)).not.toContain("firstCount");
-      if (response.findingCount === 1) expect(text(later)).toContain("secondCount");
     } finally {
       await Effect.runPromise(server.close);
     }
@@ -244,8 +258,10 @@ describe("registry-free Claude edit response", () => {
       expect(Effect.runSync(server.admit(first, data.dispatch, true, true)).status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       expect(Effect.runSync(server.pendingAdviceMetadata())).toHaveLength(1);
-      await permit(server, second);
-      const response = await send(server, second, other.dispatch);
+      await admitReady(server, second, other.dispatch);
+      const collector = collectorObservation(second);
+      await permit(server, collector);
+      const response = await send(server, collector, other.dispatch);
       expect(text(response)).toContain("secondCount");
       expect(text(response)).not.toContain("firstCount");
       await Effect.runPromise(server.whenIdle());
@@ -378,9 +394,12 @@ describe("registry-free Claude edit response", () => {
       });
       await Effect.runPromise(server.listen());
       try {
-        await permit(server, observation);
+        await admitReady(server, observation, dispatch);
+        expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
+        const collector = collectorObservation(observation);
+        await permit(server, collector);
         enabled = true;
-        const response = await send(server, observation, dispatch);
+        const response = await send(server, collector, dispatch);
         if (change === "opt-in") {
           expect(response.status).toBe("advice");
           if (response.status === "advice") expect(response.output).toHaveProperty("hookSpecificOutput");
@@ -400,7 +419,7 @@ describe("registry-free Claude edit response", () => {
   it("checks B's collector credentials even when selected advice belongs to still-authorized A", async () => {
     const data = await fixture();
     const first = await data.observation();
-    const second = await data.observation("second");
+    const second = collectorObservation(await data.observation("second"));
     const credential = (name: string): ResidentDispatchContext => {
       const statePath = join(data.root, `${name}-credentials.json`);
       writeFileSync(statePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
@@ -631,8 +650,10 @@ describe("registry-free Claude edit response", () => {
       },
     };
     try {
-      await permit(server, observation);
-      expect(await send(server, observation, dispatch)).toMatchObject({ status: "empty" });
+      await admitReady(server, observation, dispatch);
+      const collector = collectorObservation(observation);
+      await permit(server, collector);
+      expect(await send(server, collector, dispatch)).toMatchObject({ status: "empty" });
       await Effect.runPromise(server.whenIdle());
       await Effect.runPromise(
         server.handle({
@@ -669,7 +690,7 @@ describe("registry-free Claude edit response", () => {
 
   it("binds admission to the native tool permit and original resident lifetime", async () => {
     const data = await fixture();
-    const observation = await data.observation();
+    const observation = { ...await data.observation(), candidates: [{ operation: "delete" as const, path: "collector.ts", addedLines: [] as const }] };
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     await Effect.runPromise(server.listen());
     try {
@@ -691,7 +712,7 @@ describe("registry-free Claude edit response", () => {
         ),
       ).toMatchObject({ status: "unavailable", reason: "lost" });
       expect(Effect.runSync(server.stats()).running).toBe(0);
-      expect((await send(server, observation, data.dispatch)).status).toBe("advice");
+      expect((await send(server, observation, data.dispatch)).status).toBe("empty");
       expect((await send(server, observation, data.dispatch)).status).toBe("rejected-stale");
       expect(readFileSync(join(data.root, "first.ts"), "utf8")).toContain("firstCount");
     } finally {

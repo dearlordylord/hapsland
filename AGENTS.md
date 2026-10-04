@@ -18,7 +18,10 @@ claims only for checks actually run.
 
 ## TypeScript quality gate
 
-After changing TypeScript or TSX under `src`, run `npm run quality:check`.
+After changing TypeScript or TSX under `src`, run `npm run quality:check` once
+on the coherent, review-ready candidate. During implementation use
+`npm run test:focused -- <test files>` and `npm run check:fast`; do not run the
+full gate after every edit.
 The pinned crap4ts tool regenerates Istanbul coverage by running the full
 deterministic test and boundary suite, then enforces `crap4ts.json`.
 Inspect flagged functions and improve behavioral tests or simplify branching
@@ -27,6 +30,29 @@ test, configuration, analysis, or coverage failure. Resolve either before
 claiming the gate passes. Keep source selection, strict missing-evidence
 handling, and thresholds intact; do not relax policy to make a change pass.
 Report failures outside the task scope explicitly. CI runs the same gate.
+
+After a failed full gate, inspect `npm run test:status` and the retained stage
+logs. Diagnose every reported independent defect, run focused checks for the
+failed boundaries, and observe those checks passing before another full run.
+Preparation, build, proof, and analysis failures need their own checks; a test
+rerun is appropriate only for a test failure. After two attempts without a new
+discriminating result, name competing causes and change the experiment; another
+full run or another reviewer alone is not progress. Time-box fixture repair
+separately: after 30 minutes of active repair without a new discriminating result,
+record the changed experiment and the test's unique acceptance value before
+continuing. Subtasks and renamed checkpoints do not reset that budget.
+
+Before a command expected to exceed one minute, record its expected duration and
+wall-clock stop time. Use the runner's finite deadline; at expiry preserve the
+evidence and identify the next discriminating action. Freeze the candidate while
+its full gate runs. A missing exit, interruption, timeout, or changed source does
+not qualify it. Full runs acquire an exclusive worktree lock; do not delete a
+lock until its owning process and descendants have stopped.
+
+Tooling-only and documentation-only changes use affected tool tests, consumer
+checks, typechecking, and documentation checks; they do not require a full gate
+unless its end-to-end evidence boundary changed. These choices do not weaken the
+required full quality gate for changes under `src`.
 
 ## Review requests and acceptance decisions
 

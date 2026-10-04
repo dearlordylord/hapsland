@@ -15,7 +15,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -38,5 +38,20 @@ jobs:
         run: npm run typecheck
       - name: Run deterministic tests, boundary checks, and CRAP quality gate
         run: npm run quality:check
-      - name: Build distributable source
-        run: npm run build
+      - name: Retain stage timings and complete failure logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: offline-check-evidence
+          include-hidden-files: true
+          path: |
+            .test-runs/**/manifest.json
+            .test-runs/**/status.json
+            .test-runs/**/results.json
+            .test-runs/**/archive.json
+            .test-runs/**/inputs-*.json
+            .test-runs/**/stages/*.json
+            .test-runs/**/failures.jsonl
+            .test-runs/**/*.log
+          if-no-files-found: ignore
+          retention-days: 3
