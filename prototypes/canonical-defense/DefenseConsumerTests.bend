@@ -28,12 +28,12 @@ def observation_count(observation: T.Observation) -> Nat:
     case T.Observation{_,count,_,_,_,_,_}: count
 def returned_frames(before: M.World, observed: H.TickObserved) -> Bool:
   match observed:
-    case H.TickObserved{world,frames}:
+    case H.TickObserved{world,frames,_}:
       Nat.is_eq(Nat.sub(observation_count(Run.observe(M.engine(world))),
         observation_count(Run.observe(M.engine(before)))),List.length(&2,T.Frame,frames))
 def paused_frames(observed: H.TickObserved) -> Bool:
   match observed:
-    case H.TickObserved{world,frames}:
+    case H.TickObserved{world,frames,_}:
       Nat.is_eq(List.length(&2,T.Frame,frames),0n) && U32.is_eq(M.time(world),0)
 # Private recursive transport keeps both input and result worlds boxed.
 # The public helper and every original assertion retain their actual worlds.
