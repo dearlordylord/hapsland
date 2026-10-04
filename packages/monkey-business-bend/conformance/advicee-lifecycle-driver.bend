@@ -753,7 +753,7 @@ def stop_failed_submission(stopped: Engine.StopHandled, facts: StopScenario.Comm
     event: Canonical.CanonicalEvent, command: Canonical.Command) -> Engine.StopHandled:
   match stopped event:
     case Engine.StopHandled{+state,following,ended,fit_attempt,output}
-      Canonical.SubmissionBegin{_,group,_,_,_,_,_,_}:
+      Canonical.SubmissionBegin{_,+group,_,_,_,_,_,_}:
       Engine.StopHandled{state,collector_combined(following,
         failed_submission_output(Engine.stop_active(state,group),facts,event,command)),ended,fit_attempt,output}
     case _ _: stopped
