@@ -204,6 +204,32 @@ another full run. After two attempts without new discriminating evidence, name
 competing causes and change the experiment. Additional broad runs or reviewers
 alone do not advance diagnosis.
 
+For a batch of issues, assess each slice against its own accepted criteria and
+the applicable owner checks. Record implementation, independent review and
+executed validation separately, with the tested source and remaining gap. A
+shared failure blocks the slices that depend on the failed behavior; name those
+dependencies rather than treating every issue as incomplete. The optional game
+has its own native consumer gate; it does not add a prerequisite to unrelated
+business slices. Final integration still requires its applicable common gates.
+
+Attach a task scope to harness runs, for example
+`npm run test:focused -- --scope=issue-195 <test files>`. Scope records attribute
+evidence; they do not declare acceptance or replace required checks. Read the
+latest scoped record with `npm run test:status -- --scope=issue-195` when reporting
+progress. Do not present an old sign-off
+count as current implementation progress, or a historical pass as current-source
+validation. A different Git commit is informational: identical source trees may
+still carry the same evidence. Determine applicability from the actual inputs
+and changed owners, without rerunning a broad gate merely to update a commit ID.
+
+Keep transport equality and public behavior comparisons distinct. Compare the
+complete encoded native and emitted-JavaScript outputs. At the public boundary,
+assert facts required by the accepted contract, including relevant intermediate
+behavior. Extra private diagnostic fields are not additional acceptance criteria
+unless their owner contract requires them. A mismatch report must identify its
+semantic layer, owning contract and first differing case or queued item before
+it triggers another expensive run.
+
 Before an expensive native comparison, validate the changed Bend source and
 generated transport, then exercise changed comparison code against retained
 vectors when their source, tool and artifact identities still match. A comparator
