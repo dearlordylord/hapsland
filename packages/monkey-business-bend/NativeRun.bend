@@ -307,17 +307,17 @@ def scoped_source(source: Maybe<&2,Driver.SourceJob>, scope: Maybe<&2,Nat>) -> M
 
 # Match actual Map.set insertion semantics: replacement preserves its slot.
 def put_job_selected(equal: Bool, original: T.StoredJob, tail: List<&2,T.StoredJob>,
-    operation: Nat, job: T.Job, next: List<&2,T.StoredJob> -> List<&2,T.StoredJob>) -> List<&2,T.StoredJob>:
+    operation: Nat, job: T.Job, next: List<&2,T.StoredJob>) -> List<&2,T.StoredJob>:
   match equal:
     case True{}: T.StoredJob{operation,job} <> tail
-    case False{}: original <> next(tail)
+    case False{}: original <> next
 
 def put_job(jobs: List<&2,T.StoredJob>, +operation: Nat, +job: T.Job) -> List<&2,T.StoredJob>:
   match jobs:
     case Nil{}: [T.StoredJob{operation,job}]
-    case T.StoredJob{+owner,original} <> tail:
+    case T.StoredJob{+owner,original} <> +tail:
       put_job_selected(Nat.is_eq(owner,operation),T.StoredJob{owner,original},tail,operation,job,
-        remaining => put_job(remaining,operation,job))
+        put_job(tail,operation,job))
 
 def remember_job(+state: T.State, +operation: Nat, job: Maybe<&2,T.Job>) -> T.State:
   match job:
