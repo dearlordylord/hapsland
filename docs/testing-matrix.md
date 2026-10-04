@@ -299,14 +299,14 @@ with the actual `expiry-observed-wire.BusinessState`/`Snapshot` facts, rather
 than recursive private runtime trees. `compareExpiryBusinessTrace` owns public
 accounting, notice clocks, controls, pending actions, physical facts and replay.
 Complete native/emitted output equality remains required. This family uses
-C45/clang90/native5/JS15+5 with a 175-second aggregate watchdog.
+C60/clang90/native5/JS15+5 with a 190-second aggregate watchdog.
 
 `packages/monkey-business/src/writer-native.test.ts` compares all thirteen
 original cases through the single `writer-original-scenarios.bend` fixture and
 `writer_scenarios` vector. The thirteen per-case wrappers have been removed;
 one compilation per backend retains every original case and independent
-public/replay expectation. Its full comparison uses C45/clang90/native5/JS30+5
-with a 190-second aggregate watchdog. These allowances establish no pass by
+public/replay expectation. Its full comparison uses C60/clang90/native5/JS30+5
+with a 205-second aggregate watchdog. These allowances establish no pass by
 themselves and do not change product deadlines.
 
 The optional game consumer command is
