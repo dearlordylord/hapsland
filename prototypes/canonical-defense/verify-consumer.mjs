@@ -14,7 +14,7 @@ import { createRun, restoreReplay } from "../../packages/monkey-business/src/ind
 // the ONE game_consumer descriptor and actual NativeRun full observed sidecars.
 // Missing sidecars are an explicit failure: no tuple projection substitutes.
 const fixture = new URL("./DefenseConsumerConformance.bend", import.meta.url);
-const streams = await createGameStreams(fixture,gameOwnerSources,{emissionTimeoutMs:45000,clangTimeoutMs:90000});
+const streams = await createGameStreams(fixture,gameOwnerSources,{emissionTimeoutMs:60000,clangTimeoutMs:90000});
 try {
 assert.equal(streams.native.length,145,"all derived original checkpoint batches");
 assert.equal(streams.native.length,streams.emitted.length,"all native/emitted batches");

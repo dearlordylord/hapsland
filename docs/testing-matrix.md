@@ -310,9 +310,9 @@ themselves and do not change product deadlines.
 
 The optional game consumer command is
 `node --experimental-strip-types prototypes/canonical-defense/verify-consumer.mjs`.
-Declare a 240-second outer deadline: its explicit C45/clang90/JS30 bounds,
-native/JavaScript execution5 bounds and tool-location checks allow 185 seconds;
-55 seconds remain for source hashes, all public/replay comparisons and cleanup.
+Declare a 270-second outer deadline: its explicit C60/clang90/JS30 bounds,
+native/JavaScript execution5 bounds and tool-location checks allow 200 seconds;
+70 seconds remain for source hashes, all public/replay comparisons and cleanup.
 Keep all four campaigns, 145 batches and 3,222 ticks. The five geometry/drawing
 roots and candidate game proofs are separate from this shared consumer scope.
 

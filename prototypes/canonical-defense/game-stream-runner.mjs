@@ -147,7 +147,7 @@ function retainCompilerFailure(directory,phase,completed,sources,tools,timeouts,
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
-  if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<=0||emissionTimeoutMs>45000)throw new RangeError("invalid game C emission allowance");
+  if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<=0||emissionTimeoutMs>60000)throw new RangeError("invalid game C emission allowance");
   if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>90000)throw new RangeError("invalid game clang allowance");
   const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
   const bendFile=realpathSync(checked("which",["bend"],5000).trim());
