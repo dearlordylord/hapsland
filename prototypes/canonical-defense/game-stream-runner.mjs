@@ -225,12 +225,20 @@ function resumeArtifact(artifact,executable=false) {
     throw new Error("Game resume binary mode changed");
   return bytes;
 }
-function compilerReceipt(path,fixture,sources,tools) {
+export function readGameCompilerReceipt(path,{fixture,sources,tools}) {
   const receipt=JSON.parse(readFileSync(path,"utf8"));
-  if(receipt.lane!=="game-compiler-failure"||receipt.fixture!==fixture||!Array.isArray(receipt.completed)||!receipt.completed.includes("C emission"))
+  if(!["game-compiler-failure","game-compiler-preparation"].includes(receipt.lane)||receipt.fixture!==fixture||!Array.isArray(receipt.completed)||!receipt.completed.includes("C emission"))
     throw new Error("Invalid game compiler resume receipt");
   if(!isDeepStrictEqual(receipt.sources,sources)||!isDeepStrictEqual(receipt.tools,tools))
     throw new Error("Game resume source/compiler identity changed");
+  if(receipt.lane==="game-compiler-preparation"){
+    for(const phase of ["C emission",...(receipt.binary?["clang compilation"]:[])]){
+      const result=receipt.commands?.find(result=>result.phase===phase);
+      if(!receipt.completed.includes(phase)||!result||result.exit!==0||
+          !Array.isArray(result.command)||!result.command.length||result.command.some(arg=>typeof arg!=="string"||!arg))
+        throw new Error("Incomplete successful game compiler preparation provenance");
+    }
+  }
   resumeArtifact(receipt.c);
   if(receipt.binary){
     if(!receipt.completed.includes("clang compilation"))throw new Error("Invalid game binary resume receipt");
@@ -238,6 +246,19 @@ function compilerReceipt(path,fixture,sources,tools) {
   }
   return receipt;
 }
+export function gameCompilerIdentity(fixture,ownerSources,{deadline=null}={}) {
+  const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
+  const bendFile=realpathSync(checked("which",["bend"],phaseAllowance(5000,deadline)).trim());
+  const bendLayout=bendSourceLayout(bendFile);
+  const sources=sourceRecords(fileURLToPath(fixture),ownerSources,root,bendLayout.root,bendLayout.directory);
+  const tools=[{file:bendFile,expected:hash(bendFile)}];
+  const clangFile=realpathSync(checked("which",["clang"],phaseAllowance(5000,deadline)).trim());
+  tools.push({file:clangFile,expected:hash(clangFile)});
+  const fixturePath=realpathSync(fileURLToPath(fixture));
+  for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);
+  return{fixture:fixturePath,sources,tools};
+}
+
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,resumeOutputReceipt,overallDeadlineMs}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000 && executionTimeoutMs!==180000)throw new Error("unsupported finite game execution allowance");
@@ -247,16 +268,9 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
   const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
   const deadline=ownedDeadline(overallDeadlineMs,root);
   if(emissionTimeoutMs===0&&deadline===null)throw new Error("Zero game C allowance requires a finite owned overall deadline");
-  const bendFile=realpathSync(checked("which",["bend"],phaseAllowance(5000,deadline)).trim());
-  const bendLayout=bendSourceLayout(bendFile);
-  const sources=sourceRecords(fileURLToPath(fixture),ownerSources,root,bendLayout.root,bendLayout.directory);
-  const tools=[{file:bendFile,expected:hash(bendFile)}];
-  const clangFile=realpathSync(checked("which",["clang"],phaseAllowance(5000,deadline)).trim());
-  tools.push({file:clangFile,expected:hash(clangFile)});
+  const {fixture:fixturePath,sources,tools}=gameCompilerIdentity(fixture,ownerSources,{deadline});
   const verify=()=>{for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);};
-  verify();
-  const fixturePath=realpathSync(fileURLToPath(fixture));
-  const resume=resumeOutputReceipt!==undefined||resumeCompilerReceipt===undefined?null:compilerReceipt(resumeCompilerReceipt,fixturePath,sources,tools);
+  const resume=resumeOutputReceipt!==undefined||resumeCompilerReceipt===undefined?null:readGameCompilerReceipt(resumeCompilerReceipt,{fixture:fixturePath,sources,tools});
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   let phase="C emission";const completed=[];
   const timeouts={emission:emissionTimeoutMs,clang:clangTimeoutMs,execution:executionTimeoutMs,jsEmission:30000,
@@ -284,7 +298,7 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
     const jsHash=hash(js);phase="JS execution";const emitted=await streamGameBatches(process.execPath,[js],directory,"emitted",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);verify();
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
     try{retainGameOutputs(native,emitted,{fixture:fixturePath,sources,tools,
-      origin:{native:resume?"explicit compiler receipt":"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash}});}
+      origin:{native:resume?`explicit ${resume.lane} receipt`:"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash}});}
     catch{console.error("Offline game outputs could not be retained");}
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){

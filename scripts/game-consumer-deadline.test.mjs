@@ -104,3 +104,26 @@ test("retained full game batches survive cleanup and require exact identity and 
     rmSync(root,{recursive:true,force:true});
   }
 });
+
+test("explicit successful compiler preparations preserve identity and require completed commands", async () => {
+  const { readGameCompilerReceipt } = await import("../prototypes/canonical-defense/game-stream-runner.mjs");
+  const { createHash } = await import("node:crypto");
+  const { chmodSync } = await import("node:fs");
+  const directory=mkdtempSync(join(tmpdir(),"hapsland-game-preparation-"));
+  const artifact=(name,text,mode)=>{const path=join(directory,name);writeFileSync(path,text);if(mode)chmodSync(path,mode);return{path,bytes:Buffer.byteLength(text),sha256:createHash("sha256").update(text).digest("hex"),...(mode?{mode}:{})};};
+  const identity={fixture:"original.bend",sources:[{file:"original.bend",expected:"source-hash"}],tools:[{file:"bend",expected:"tool-hash"}]};
+  const receipt={lane:"game-compiler-preparation",...identity,completed:["C emission","clang compilation"],
+    commands:[{phase:"C emission",command:["bend","original.bend","-o","game.c"],exit:0},
+      {phase:"clang compilation",command:["clang","game.c","-o","game"],exit:0}],
+    c:artifact("game.c","actual C"),binary:artifact("game","actual binary",0o755)};
+  const path=join(directory,"receipt.json");const save=value=>writeFileSync(path,JSON.stringify(value));
+  try{
+    save(receipt);assert.equal(readGameCompilerReceipt(path,identity).lane,"game-compiler-preparation");
+    assert.throws(()=>readGameCompilerReceipt(path,{...identity,tools:[]}),/identity changed/);
+    save({...receipt,commands:receipt.commands.map(command=>({...command,exit:1}))});
+    assert.throws(()=>readGameCompilerReceipt(path,identity),/provenance/);
+    save({...receipt,lane:"game-compiler-failure",commands:undefined});
+    assert.equal(readGameCompilerReceipt(path,identity).lane,"game-compiler-failure");
+    writeFileSync(receipt.c.path,"changed");assert.throws(()=>readGameCompilerReceipt(path,identity),/bytes changed/);
+  }finally{rmSync(directory,{recursive:true,force:true});}
+});
