@@ -1,4 +1,5 @@
 import Base
+import ../OutputScenario.bend as OutputScenario
 import ../NativeRun.bend as Run
 import ../NativeRunTypes.bend as T
 import ../../agent-flow-bend/Canonical.bend as Canonical
@@ -8,9 +9,9 @@ import ./native-run-projection.bend as Projection
 
 def finding_config(config: T.Config) -> T.Config:
   match config:
-    case T.Config{limits, advicees, T.Environment{delay, _, weights, prep, tree, graph, output, lease, current, ready, generation, readable, lifetime}, collectors}:
+    case T.Config{limits, advicees, T.Environment{delay, _, weights, prep, tree, graph, output, lease, current, ready, generation, readable, lifetime,_}, collectors}:
       T.Config{limits, advicees, T.Environment{delay, Some{Canonical.RequestFinding{}}, weights,
-        prep, tree, graph, output, lease, current, ready, generation, readable, lifetime}, collectors}
+        prep, tree, graph, output, lease, current, ready, generation, readable, lifetime,T.OutputProfile{OutputScenario.Certain{},None{}}}, collectors}
 
 def changed(result: T.Controlled) -> T.State:
   match result:

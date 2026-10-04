@@ -591,6 +591,14 @@ export class Run {
       outcome: this.outcome, outcomeWeights: this.outcomeWeights, environment: this.environment,
       outputProfile: this.outputProfile, generatorPartitions: [...this.generators.keys()] }));
   }
+  private refreshCallbackPayload(item: Scheduled): void {
+    const receipt = item.callbackReceipt;
+    if (!receipt) return;
+    const payload = { ...item } as Scheduled;
+    this.callbackSources.set(receipt, payload);
+    if (this.callbackPayloads.has(receipt.target.originalOrder))
+      this.callbackPayloads.set(receipt.target.originalOrder, { receipt, payload });
+  }
   private structuralBefore(): RunRuntimeSnapshot | undefined {
     return this.structuralListeners.size ? this.runtimeSnapshot() : undefined;
   }
@@ -962,6 +970,7 @@ export class Run {
         if (!scheduled) throw new Error("shared driver action lost source facts");
         scheduled.candidate = action.candidate;
       }
+      this.refreshCallbackPayload(queued);
     }
     if (stop.ended?.finish.recurring) {
       const session = this.generators.get(stop.ended.finish.partition);
@@ -982,11 +991,14 @@ export class Run {
       this.queue[0].at > untilTime
     )
       return;
-    if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? "")) {
-      const head = this.queue[0];
+    const head = this.queue[0];
+    if (!this.canonicalAllowed && (head?.input.kind === "canonical"
+      || head?.input.kind === "preparationGraph" && this.core.preparationActive(head.input.event))) {
       // A refused original writer fact advances physical queue time without
       // a Canonical observation. Replay must consume that same head before
-      // its viewing endpoint fence; an eligible event remains blocked.
+      // its viewing endpoint fence; an eligible event remains blocked. An
+      // inactive preparation fact is consumed below without producing an
+      // observation, so it must remain visible to the endpoint reconstruction.
       if (head?.input.kind === "canonical" && (
         (head.responseOrigin?.control.kind === "backgroundWriter"
           && !this.core.responseValid(head.responseOrigin.target,head.at,head.input.event))
@@ -1000,7 +1012,6 @@ export class Run {
       }
       return;
     }
-    const head = this.queue[0];
     if (head?.input.kind === "canonical" && head.input.event.kind === "preparationCompleted") {
       if (target && this.count >= target.eventCount) return;
       const owner = this.inputPartition(head);
@@ -1047,6 +1058,7 @@ export class Run {
       const queued = this.scheduled.get(this.order - 1);
       if (!queued) throw new Error("emission lost its original queued source");
       if (item.driverSourceJob) queued.driverSourceJob = item.driverSourceJob;
+      this.refreshCallbackPayload(queued);
     };
     const emitDriver = (action: DriverAction, sourceJob?: Extract<RunInput, { kind: "edit" }>) => {
       const context = undefined;
@@ -1056,6 +1068,7 @@ export class Run {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared Driver emission lost original source job");
         scheduled.driverSourceJob = item.driverSourceJob;
+        this.refreshCallbackPayload(scheduled);
       }
     };
     const emitInitialOutput = (capture: OutputCapture, terminalOnly = false) => {
@@ -1376,6 +1389,7 @@ export class Run {
             if (!queued) throw new Error("manual request emission lost source selection");
             if (driver.sourceJob) queued.driverSourceJob = driver.sourceJob;
             queued.driverOutcomeReceipt = driver.receipt;
+            this.refreshCallbackPayload(queued);
           };
           const selectedOutcome = driver.outcome;
           if (selectedOutcome === undefined) throw new Error("issued request lacks genuine shared outcome selection");

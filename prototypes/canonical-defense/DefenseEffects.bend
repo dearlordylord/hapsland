@@ -113,10 +113,10 @@ def anchor(+world: M.World, +work: C.Work) -> Map.Point:
 def duration(+world: M.World, +work: C.Work) -> U32:
   match work:
     case C.Work{_, _, _, _, _, C.AwaitingSourceRead{}, _}: Map.path_length(Map.source_route(M.layout(world)))
-    case C.Work{_, _, _, _, _, C.SourceReading{}, _}: Bool.pick(U32,U32.is_eq(M.profile(world),1),120,60)
-    case C.Work{_, _, _, _, _, C.Preparing{}, _}: Bool.pick(U32,U32.is_eq(M.profile(world),1),352,176)
+    case C.Work{_, _, _, _, _, C.SourceReading{}, _}: 60
+    case C.Work{_, _, _, _, _, C.Preparing{}, _}: 176
     case C.Work{_, _, _, _, _, C.Reviewing{}, _}: Map.path_length(Map.review_route(M.layout(world), lane(world, work)))
-    case C.Work{_, _, _, _, _, C.AtJev{}, _}: Bool.pick(U32, U32.is_eq(lane(world, work), 0), 160, Bool.pick(U32,U32.is_eq(M.profile(world),2),480,240))
+    case C.Work{_, _, _, _, _, C.AtJev{}, _}: Bool.pick(U32, U32.is_eq(lane(world, work), 0), 160, 240)
     case _: 0
 
 # Road progress and service effort share the same permanent acceleration.
@@ -243,7 +243,7 @@ def id_found(+operation: Nat, items: List<&2, C.Work>) -> Nat:
 # New children copy risk/seed from the pre-event parent timer in current_timers.
 # Once that refresh completes, no removed operation needs historical metadata.
 def refresh(+world: M.World, +core: C.State, offered: U32) -> List<&2, M.Timer>:
-  current_timers(M.work(core),M.with_core(world,core),offered)
+  current_timers(M.work(core),world,offered)
 def modify(items: List<&2, M.Timer>, +operation: Nat, +family: Nat, +group: Bool, +risk: Bool, +power: U32) -> List<&2, M.Timer>:
   match items:
     case Nil{}: Nil{}

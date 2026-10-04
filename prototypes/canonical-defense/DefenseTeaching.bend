@@ -14,7 +14,7 @@ def same_bool(a: Bool,+b: Bool) -> Bool:
   Bool.pick(Bool,a,b,Bool.not(b))
 def leases(state: Collection.State) -> List<&2,Collection.Lease>:
   match state:
-    case Collection.State{_,items,_,_,_,_,_,_}: items
+    case Collection.State{_,items,_,_,_,_,_}: items
 def unleased(ids: List<&2,Nat>,+world: M.World) -> List<&2,Nat>:
   match ids:
     case Nil{}: []
@@ -22,7 +22,7 @@ def unleased(ids: List<&2,Nat>,+world: M.World) -> List<&2,Nat>:
       +tail = unleased(rest,world)
       Bool.pick(List<&2,Nat>,Collection.lease_exists(id,leases(P.collection(M.core(world)))),tail,id <> tail)
 def candidates(+world: M.World) -> List<&2,Nat>:
-  O.choose(unleased(O.ready_ids(M.core(world)),world),M.core(world),O.batch_target(world),0n,0n)
+  unleased(O.ready_ids(M.core(world)),world)
 def ids_short(ids: List<&2,Nat>,fuel: Nat) -> String:
   match ids fuel:
     case Nil{} _: "-"
@@ -33,24 +33,9 @@ def candidate_bytes(+world: M.World) -> U32:
   M.number(O.selected_bytes(candidates(world),M.core(world)))
 def candidate_count(world: M.World) -> U32:
   M.number(List.length(&2,Nat,candidates(world)))
-def candidate_work(+world: M.World) -> U32:
-  Bool.pick(U32,U32.is_eq(candidate_count(world),0),0,O.bundle_work(world,candidate_count(world)))
-def all_eligible(+world: M.World) -> Bool:
-  (M.offered(world) >= M.wave_demand() : U32) && O.settled(M.work(M.core(world))) &&
-    (P.deciding(world) > 0 : U32) && O.all_ready(O.pending_ids(M.work(M.core(world))),O.ready_ids(M.core(world)))
-def flush_running(+world: M.World) -> Bool:
-  List.is_empty(&2,Nat,O.selection_members(world)) && all_eligible(world) && (P.ready(world) > 0 : U32)
-def batch_reason_value(status: U32,busy: Bool,settled: Bool,eligible: Bool,count: U32,target: U32) -> String:
-  match status busy settled eligible count:
-    case 4 _ _ _ _: "FINISH BUDGET REFUSED"
-    case _ True{} _ _ _: "WRITER LOCKED / NEXT CANDIDATES"
-    case _ _ False{} _ _: "SCENARIO WAITS FOR ALL WORK"
-    case _ _ _ False{} _: "WAIT FOR COLLECTION ELIGIBILITY"
-    case _ _ _ _ 0: "NO ELIGIBLE CANDIDATES"
-    case _ _ _ _ _: Bool.pick(String,(count < target : U32),"WAIT FOR TARGET OR FLUSH","READY TO COMMIT")
+def candidate_work(world: M.World) -> U32: 0
 def batch_reason(+world: M.World) -> String:
-  batch_reason_value(M.stop_state(world),Bool.not(List.is_empty(&2,Nat,O.selection_members(world))),
-    O.settled(M.work(M.core(world))),all_eligible(world),candidate_count(world),O.batch_target(world))
+  Bool.pick(String,(P.writes(world) > 0 : U32),"OUTPUT ATTEMPT OWNED",Bool.pick(String,(P.ready(world) > 0 : U32),"COLLECTION READY","WAITING FOR SHARED ENGINE"))
 def family_ids(items: List<&2,P.Token>,+seen: List<&2,Nat>) -> List<&2,Nat>:
   match items:
     case Nil{}: List.reverse(&2,Nat,seen)

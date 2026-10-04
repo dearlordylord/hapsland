@@ -5,7 +5,6 @@ import ./DefenseModel.bend as M
 import ./DefenseProjection.bend as P
 import ./DefenseHost.bend as H
 import ./DefenseTeaching.bend as T
-import ./DefenseStop.bend as Stop
 import ./DefenseMap.bend as D
 import ./DefensePreview.bend as Preview
 import ./DefenseOutput.bend as O
@@ -208,13 +207,13 @@ def site_pressure(tokens: List<&2,P.Token>,+world: M.World,+phase: U32) -> U32:
     case Con{+token,tail}: (Bool.pick(U32,U32.is_eq(P.phase(token),phase) && H.in_building(world,token),P.bytes(token),0) + site_pressure(tail,world,phase) : U32)
 
 def preparation_pool(+world: M.World,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("PREP SHARED " ++ U32.show(T.preparation_used(world)) ++ "/" ++ U32.show(T.preparation_limit()) ++ " / HOST " ++ U32.show(H.source_permits(world)),x,(y + 80 : U32),1,65483,
+  F.text("PREP SHARED " ++ U32.show(T.preparation_used(world)) ++ "/" ++ U32.show(T.preparation_limit()) ++ " / GAME SUPPORT " ++ U32.show(H.source_permits(world)),x,(y + 80 : U32),1,65483,
     F.text("LEDGER SHARED / NO ROOM CAP",x,(y + 91 : U32),1,12439239,rest))
 def building_permits(phase: U32,+world: M.World,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match phase:
     case 1: preparation_pool(world,x,y,rest)
     case 2: preparation_pool(world,x,y,rest)
-    case 4: F.text("JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()) ++ " / HOST " ++ U32.show(E.permits(world,4)),x,(y + 80 : U32),1,65483,
+    case 4: F.text("JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()) ++ " / GAME SUPPORT " ++ U32.show(E.permits(world,4)),x,(y + 80 : U32),1,65483,
       F.text("LEDGER SHARED / OWNED UNTIL ACK",x,(y + 91 : U32),1,12439239,rest))
     case _: F.text("WRITER OWNERS " ++ U32.show(P.writes(world)),x,(y + 80 : U32),1,65483,rest)
 
@@ -240,7 +239,7 @@ def queue_details(phase: U32,+world: M.World,+side: U32,x: U32,y: U32,rest: List
       F.text("REVIEW QUEUE / SAFE",cx,M.sub(cy,24),1,phase_color(3),
         F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,phase_color(3),
       F.text("TRAVEL " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,False{})) ++ " / PERMIT WAIT " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,True{})),cx,cy,1,65483,
-        F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(E.permits(world,4)) ++ " HOST / CORE " ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
+        F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(E.permits(world,4)) ++ " GAME SUPPORT / CORE " ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
           F.text("ROAD SHOTS / WAIT AT JEV DOOR",cx,(cy + 24 : U32),1,12439239,rest)))))
     case _: rest
 
@@ -375,17 +374,11 @@ def generic_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect
         F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
           F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ " / AUTO EFFECT",812,684,1,12439239,
             F.text("NO MANUAL ACTIVATION",812,702,1,12439239,rest))))))
-def batch_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +after = H.hypothetical(world,Preview.x(preview),Preview.y(preview),5)
-  box("NEXT BATCH / GHOST",T.batch_reason(world),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text("NOW U" ++ T.ids_short(T.candidates(world),5n),812,584,1,16777215,
-      F.text("GHOST U" ++ T.ids_short(T.candidates(after),5n),812,600,1,65483,
-        F.text("COUNT " ++ U32.show(T.candidate_count(world)) ++ " TO " ++ U32.show(T.candidate_count(after)) ++ " / TARGET " ++ U32.show(O.batch_target(after)),812,616,1,16777215,
-          F.text("BYTES " ++ U32.show(T.candidate_bytes(world)) ++ " TO " ++ U32.show(T.candidate_bytes(after)),812,632,1,65483,
-            F.text("WRITER TICKS " ++ U32.show(T.candidate_work(world)) ++ " TO " ++ U32.show(T.candidate_work(after)),812,648,1,65483,
-              F.text("LOCKED U" ++ T.ids_short(O.selection_members(world),4n),812,664,1,15758447,
-                F.text("ACK BASE " ++ U32.show(O.acknowledgement_work(after)) ++ "T / BYTES UNTIL ACK",812,682,1,12439239,
-                  F.text("CANDIDATES NOW / FUTURE ARRIVALS UNKNOWN",812,700,1,12439239,rest)))))))))
+def batch_panel(+world: M.World,preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  box("OBSERVED COLLECTION",T.batch_reason(world),800,538,216,184,65483,
+    F.text("READY " ++ U32.show(P.ready(world)) ++ " LEASES " ++ U32.show(P.leases(world)),812,592,1,16777215,
+      F.text("TOWER SUPPORT IS GAME ONLY",812,616,1,12439239,rest)))
+
 def coordinator_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +target = Preview.target(preview)
   +family = T.target_family(world,target)
@@ -630,12 +623,9 @@ def wait_label(+world: M.World,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<
   F.text("WAIT SLOTS " ++ U32.show(M.number(List.length(&2,U32,ids))),U32.sub(D.px(point),32),(D.py(point) + 66 : U32),1,15758447,rest)
 
 def output_hud(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("OUTPUT NEXT " ++ U32.show(O.batch_target(world)) ++ " / ITEM " ++ U32.show(O.item_work(world)) ++ " TICKS / SCENARIO WAITS FOR ALL REVIEW WORK",24,674,1,7449343,
-    F.text("COMMITTED " ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " / BYTES " ++ U32.show(O.selection_bytes(world)) ++ " / LEFT " ++ U32.show((O.remaining(world) * 20 : U32)) ++ " MS",388,686,1,65483,
-      F.text(Bool.pick(String,T.flush_running(world),"FLUSH IN " ++ U32.show((O.flush_remaining(world) * 20 : U32)) ++ " MS", "FLUSH IDLE / " ++ T.batch_reason(world)) ++ " / LEASES " ++ U32.show(P.leases(world)) ++ " / UNCERTAIN " ++ U32.show(P.uncertain(world)),24,690,1,12439239,
-        F.text("SHARED LEDGER " ++ U32.show(P.ledger_items(world)) ++ "/" ++ U32.show(P.ledger_item_limit(world)) ++ " ITEMS " ++ U32.show(P.ledger_bytes(world)) ++ "/" ++ U32.show(P.ledger_byte_limit(world)) ++ " B / P1 " ++ U32.show(T.partition_bytes(world)) ++ "/" ++ U32.show(T.partition_byte_limit_value(T.partition_limits(world))) ++ " B / NO ROOM CAPS",24,706,1,16768133,
-          F.text(Stop.phase_name(world) ++ Bool.pick(String,U32.is_eq(M.stop_state(world),1)," / " ++ U32.show((Stop.remaining(world) * 20 : U32)) ++ " MS","") ++ " / CUT OPS " ++ T.ids_short(M.cancelled(world),6n) ++ " / CLEANUP " ++ U32.show(M.cleanup_left(world)),24,726,1,Bool.pick(U32,(M.stop_state(world) >= 3 : U32),15758447,9170322),
-            F.put(24,719,U32.min(744,(744 * P.ledger_bytes(world) / U32.max(1,P.ledger_byte_limit(world)) : U32)),2,16768133,F.put(24,719,744,2,2901312,rest)))))))
+  F.text("SHARED ENGINE OUTPUT / READY " ++ U32.show(P.ready(world)) ++ " / WRITES " ++ U32.show(P.writes(world)),24,674,1,7449343,
+    F.text("LEASED " ++ U32.show(P.leases(world)) ++ " / UNCERTAIN " ++ U32.show(P.uncertain(world)),24,690,1,12439239,
+      F.text("SHARED LEDGER " ++ U32.show(P.ledger_items(world)) ++ "/" ++ U32.show(P.ledger_item_limit(world)) ++ " ITEMS " ++ U32.show(P.ledger_bytes(world)) ++ "/" ++ U32.show(P.ledger_byte_limit(world)) ++ " B",24,706,1,16768133,rest)))
 
 def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +ids = waiting_ids(tokens,world)
@@ -646,18 +636,8 @@ def on_word(on: Bool) -> String:
     case True{}: "ON"
     case False{}: "OFF"
 
-def wave_phase(world: M.World,status: U32) -> String:
-  match status:
-    case 0: "NEXT WAVE " ++ U32.show((M.wave(world) + 1 : U32)) ++ "/" ++ U32.show(M.wave_count()) ++ " READY"
-    case 1: "WAVE " ++ U32.show(M.wave(world)) ++ "/" ++ U32.show(M.wave_count()) ++ " RUNNING"
-    case 2: "CAMPAIGN COMPLETE / R RESTART"
-    case 4: "INCOMPLETE / OWNERSHIP RETAINED / R RESTART"
-    case _: "DEFEAT / R RESTART"
-
-def wave_line(+world: M.World) -> String:
-  Bool.pick(String,M.paused(world),"PAUSED / ","") ++ wave_phase(world,H.wave_status(world)) ++
-    " / AUTO WAVES " ++ on_word(M.auto(world)) ++
-    Bool.pick(String,M.auto_pending(world)," / NEXT IN " ++ U32.show(M.auto_left(world)) ++ " MS","")
+def activity_line(world: M.World) -> String:
+  Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED")
 
 def family_row(+world: M.World,+family: Nat,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
@@ -699,10 +679,10 @@ def scene(+world: M.World) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
   +target = T.focus(world,Preview.target(preview))
   +base = dependency_kind(T.focus_kind(world,Preview.kind(preview)),world,target,ghost(world,preview,family_panel(world,target,F.text("SHOWING " ++ U32.show(U32.min(2,M.number(List.length(&2,P.Token,tokens)))) ++ " OF " ++ U32.show(M.number(List.length(&2,P.Token,tokens))) ++ " LIVE UNITS",812,420,1,12439239,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))))
-  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N WAVE / A AUTO / [ ] PACE / D STOP / F WORKLOAD / R RESET / TAB MAP",24,742,1,16768133,base))
+  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / A ARRIVALS / [ ] PACE / R RESET / TAB MAP",24,742,1,16768133,base))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(wave_line(world) ++ " / ARRIVAL " ++ U32.show((M.wave_interval(world) * 20 : U32)) ++ " MS",24,98,1,15124059,F.text("D BEFORE WAVE: STOP WINDOW " ++ U32.show((M.stop_budget(world) * 20 : U32)) ++ " MS / F WORKLOAD: " ++ M.profile_name(world),24,111,1,12439239,header))))
+    F.text(activity_line(world) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("TOWERS OWN COMBAT / SHARED ENGINE OWNS BUSINESS",24,111,1,12439239,header))))
 
 def view(world: M.World) -> Image:
   paint(10n,0,0,1024,scene(world),False{})
@@ -727,4 +707,4 @@ def first_trace(tokens: List<&2,P.Token>,+world: M.World,+phase: U32,+prefix: St
 
 def diagnostics(+world: M.World) -> String:
   +preview = Preview.calculate(world)
-  "PROFILE=" ++ U32.show(M.profile(world)) ++ " PACE=" ++ U32.show(M.wave_interval(world)) ++ " STOPSTATE=" ++ U32.show(M.stop_state(world)) ++ " STOPLEFT=" ++ U32.show(Stop.remaining(world)) ++ " STOPBUDGET=" ++ U32.show(M.stop_budget(world)) ++ " CUTOPS=" ++ U32.show(M.number(List.length(&2,Nat,M.cancelled(world)))) ++ " CLEANUP=" ++ U32.show(M.cleanup_left(world)) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " WAVE=" ++ U32.show(M.wave(world)) ++ " AUTO=" ++ on_word(M.auto(world)) ++ " AUTO_PENDING=" ++ on_word(M.auto_pending(world)) ++ " AUTO_LEFT=" ++ U32.show(M.auto_left(world)) ++ " AUTO_TASK=" ++ Nat.show(M.auto_task(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.wave_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " WRITERLEFT=" ++ U32.show(O.remaining(world)) ++ " " ++ first_trace(P.tokens(world),world,0,"ROAD") ++ " " ++ first_trace(P.tokens(world),world,1,"SERVICE") ++ " " ++ first_trace(P.tokens(world),world,3,"FANOUT")
+  "PACE=" ++ U32.show(M.arrival_interval(world)) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.run_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " " ++ first_trace(P.tokens(world),world,0,"ROAD") ++ " " ++ first_trace(P.tokens(world),world,1,"SERVICE") ++ " " ++ first_trace(P.tokens(world),world,3,"FANOUT")

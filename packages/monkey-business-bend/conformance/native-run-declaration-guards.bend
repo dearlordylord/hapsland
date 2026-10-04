@@ -19,7 +19,7 @@ def captured(scope: Maybe<&2,Advicees.Scope>) -> Bool:
 
 def resident(state: T.State) -> Bool:
   match state:
-    case T.State{core,items,_,_,seed,_,_,valid,_,_}:
+    case T.State{core,items,_,_,seed,_,_,valid,_,_,_}:
       valid && Nat.is_eq(seed,4294967313n) &&
         Nat.is_eq(List.length(&2,T.Item,items),0n) &&
         captured(Engine.advicee_identity(Run.core_value(core),1n))

@@ -107,6 +107,39 @@ it("restores a no-take Sharing observation and its listener controls before the 
   expect(restored.observe()).toEqual(run.observe());
 });
 
+it("restores queue-only progress after an inactive preparation fact", () => {
+  const run = createRun({
+    seed: 7,
+    preparationDelay: 100,
+    jevDelay: 20,
+    outcome: "finding",
+    sessions: [{ agent: "a", seed: 7, editIntervalMs: 1_000_000, variationMs: 0,
+      editsPerTask: 1, taskPauseMs: 1_000_000, bytes: 10, unitBytes: [5] }],
+    inputs: [{ at: 0, kind: "edit", agent: "a", generation: 0, recurring: false,
+      revision: 1, bytes: 10, unitBytes: [5], outcome: "finding" }],
+    fileTrees: { minFiles: 1, maxFiles: 1, maxImports: 0, maxDepth: 1, deniedPercent: 0,
+      missingPercent: 0, unreadablePercent: 0, repeatedEdgePercent: 0, cyclicEdgePercent: 0,
+      unsupportedPercent: 0, deadlineStep: 0, localWork: 0, minSourceBytes: 4,
+      maxSourceBytes: 4, minTreeBytes: 3, maxTreeBytes: 3 },
+  });
+  expect(run.advance({ maxEvents: 5 }).reason).toBe("eventLimit");
+  expect(run.observations.at(-1)?.commands).toContainEqual(expect.objectContaining({ kind: "prepare" }));
+  expect(run.queuedFacts[0]?.input.kind).toBe("preparationGraph");
+  const activeReplay = run.exportReplay();
+  expect(restoreReplay(JSON.parse(JSON.stringify(activeReplay))).exportReplay()).toEqual(activeReplay);
+  run.applyControl({ kind: "adviceeLifecycle", agent: "a", action: "disconnect" });
+  run.advance({ untilTime: 0, maxEvents: 100 });
+  expect(run.observations.filter(frame => frame.event.kind === "preparationGraph")).toHaveLength(1);
+  run.advance({ untilTime: 50, maxEvents: 100 });
+  const replay = run.exportReplay();
+  expect(replay.endpoint).toEqual({ eventCount: 9, queueTakes: 13, now: 50 });
+  const restored = restoreReplay(JSON.parse(JSON.stringify(replay)));
+  expect(restored.observe()).toEqual(run.observe());
+  expect(restored.queuedFacts).toEqual(run.queuedFacts);
+  expect(restored.runtimeSnapshot()).toEqual(run.runtimeSnapshot());
+  expect(restored.exportReplay()).toEqual(replay);
+});
+
 it("rejects missing or impossible in-place replay progress instead of inventing queue progress", () => {
   const run = createRun({ inputs: [] });
   run.advance({ maxEvents: 0 });

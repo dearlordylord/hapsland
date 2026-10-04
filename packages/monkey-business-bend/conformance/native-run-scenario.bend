@@ -1,4 +1,5 @@
 import Base
+import ../OutputScenario.bend as OutputScenario
 import ../NativeRun.bend as Run
 import ../NativeRunTypes.bend as T
 import ../Session.bend as Session
@@ -25,7 +26,7 @@ def original_config() -> T.Config:
     T.Environment{5n, Some{Canonical.RequestClear{}}, weights(), 2n,
       Tree.Profile{2n, 2n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 100n, 100n, 20n, 20n},
       Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n},
-      0n, 30000n, True{}, True{}, 1n, True{}, 600000n}, None{}}
+      0n, 30000n, True{}, True{}, 1n, True{}, 600000n,T.OutputProfile{OutputScenario.Certain{},None{}}}, None{}}
 
 def boxed(states: List<&2, T.State>) -> T.State:
   match states:
