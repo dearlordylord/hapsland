@@ -49,7 +49,9 @@ function compareObservation(value: unknown, source: RunStructuralFrame, field: s
   same(readNat(observation.order), source.scheduled.order, `${field} original selected order`);
   compareStopBusiness(observation.before,source.before,`${field} before`);
   compareStopBusiness(observation.after,source.after,`${field} after`);
-  same(optional(observation.provided),source.scheduled.partition,`${field} original provided scope`);
+  // Graph carries its complete source scope in key, not a supplied Canonical scope.
+  same(optional(observation.provided),source.kind !== "callbackDelivery" && source.kind !== "finishRegistration" && source.observation.preparation
+    ? undefined : source.scheduled.partition,`${field} original provided scope`);
   if (source.kind === "callbackDelivery") throw new Error(`${field} physical delivery became product observation`);
   if (source.kind === "finishRegistration") {
     tagged(observation,"Finish");
@@ -198,6 +200,7 @@ function compareObserved(values: readonly unknown[], sources: readonly RunStruct
     } else {
       compareObservation(wire.observation,source,at);
       const originalFinish=source.kind === "finishRegistration" ? source.registration.finish
+        : source.kind !== "callbackDelivery" && source.observation.preparation ? undefined
         : decodeStopRegistry(readRecord(readRecord(readRecord(source.before.engine).scenarios).stop).finishes)
           .find(finish=>finish.partition === source.scheduled.partition);
       same(decodeStopFound(wire.original_finish),originalFinish,`${at} original selected Finish`);
