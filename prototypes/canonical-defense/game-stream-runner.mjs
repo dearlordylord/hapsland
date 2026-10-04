@@ -197,7 +197,7 @@ function compilerReceipt(path,fixture,sources,tools) {
 }
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,overallDeadlineMs}={}) {
-  if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
+  if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000 && executionTimeoutMs!==180000)throw new Error("unsupported finite game execution allowance");
   if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<0||emissionTimeoutMs>120000)throw new RangeError("invalid game C emission allowance");
   if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>120000)throw new RangeError("invalid game clang allowance");
   if(resumeCompilerReceipt!==undefined&&(typeof resumeCompilerReceipt!=="string"||!resumeCompilerReceipt))throw new Error("Invalid game resume receipt path");

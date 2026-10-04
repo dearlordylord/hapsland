@@ -44,9 +44,20 @@ registerHooks({ load(url, context, nextLoad) {
     assert.ok(captured.fixture.endsWith("/DefenseConsumerConformance.bend"));
     assert.ok(captured.owners > 0);
     assert.equal(captured.options.emissionTimeoutMs, 0);
+    assert.equal(captured.options.executionTimeoutMs, 180000);
     assert.equal(captured.options.overallDeadlineMs, deadline);
     assert.equal(captured.options.resumeCompilerReceipt, "owned-explicit-receipt.json");
   } finally {
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+// Invalid allowances fail before source discovery or any compiler process.
+test("game execution rejects unbounded or unsupported allowances before compilation", async () => {
+  const { createGameStreams } = await import("../prototypes/canonical-defense/game-stream-runner.mjs");
+  const fixture = new URL("../prototypes/canonical-defense/DefenseConsumerConformance.bend", import.meta.url);
+  for (const executionTimeoutMs of [0, -1, 180001, Infinity, NaN]) {
+    await assert.rejects(createGameStreams(fixture, [], { executionTimeoutMs }),
+      /unsupported finite game execution allowance/);
   }
 });
