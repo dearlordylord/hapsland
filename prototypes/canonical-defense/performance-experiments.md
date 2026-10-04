@@ -61,10 +61,12 @@ Hypothesis: compiler runtime or packaging contributes to variability. The prior 
 ### E4 Reduce TS observation copies
 
 - [x] Identify repeated copies: `structuralRecord` clones already copied/frozen `before` and `after` again. Candidate: copy mutable details and freeze the frame while reusing immutable snapshots; keep `runtimeSnapshot` unchanged. Isolated implementation underway.
-- [ ] Test one change with structural observations enabled and the same schedule, at most 10 seconds per execution.
-- [ ] Verify mutation isolation, frame data and replay; record measured cost and decision.
+- [x] Test one change with structural observations enabled: full original schedule completed in both 10-second-capped arms, baseline 5.913s and candidate 2.842s. One pair is promising evidence, not a stable speed guarantee.
+- [x] Verify mutation isolation, frame data and replay: focused 10/10 tests and `check:fast` passed; read-only review found zero issues. A separate bounded pair produced identical hashes for all 1,336 frames and all four final snapshots. Integrate the narrow redundant-copy removal; do not change `runtimeSnapshot`.
 
 ### E5 Revisit carrier allocation only if attributed
+
+**Deferred after E4:** no specific expensive carrier family is established by profiling. Do not remove working arity mitigation on speculation; revisit only when attribution identifies a candidate.
 
 - [ ] Identify a specific expensive carrier family from profiling.
 - [ ] Change only that family; preserve the working arity mitigation.
@@ -84,6 +86,8 @@ Append one row per terminal experiment; include failed preparation. Store detail
 
 | E3 compiler runtime | Same uninstrumented payload and Bool.pick source closure | 240s per runtime | Bun 1.3.14: 36.69s; 1.4.2: 24.35s (33.6% less time), 28.1% less peak RSS | Identical emitted C; sources unchanged; no execution in this experiment | Runtime difference measured once; proceed to E4 |
 
+| E4 TS snapshot copies | Candidate `da75b8c8` | Execution 10s each | All four campaigns, 3,222 ticks and 1,336 frames; 5.913s baseline versus 2.842s candidate in timing pair | Separate pair: identical full frame/end-snapshot hashes; 10 focused tests and check:fast PASS; review 0 findings | Integrate redundant-copy removal; timings remain preliminary |
+
 Detailed terminal evidence: [initial experiment receipts](performance-evidence/2026-10-04-initial-experiments.json).
 
 Focused writer evidence: [chunked writer canary](performance-evidence/2026-10-04-chunked-writer-canary.json). Canary success does not close the full-game comparison checkbox.
@@ -92,3 +96,5 @@ Focused writer evidence: [chunked writer canary](performance-evidence/2026-10-04
 Detailed E2 comparison: [native prefix measurements](performance-evidence/2026-10-04-chunked-output-comparison.json).
 
 Detailed E3 comparison: [compiler runtime measurements](performance-evidence/2026-10-04-compiler-runtime-comparison.json).
+
+Detailed E4 comparison: [TS observation measurements and equality hashes](performance-evidence/2026-10-04-ts-observation-comparison.json).
