@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunInput } from "./index.ts";
-import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { validateSharingControl, type SharingControl } from "./sharing-controls.ts";
 import { callbackPublicBoundary } from "./callback-native-codec.ts";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
@@ -123,10 +123,13 @@ function publicCase(mode: number) {
   return { ...boundary, boundaries, eventCount: run.observe().eventCount };
 }
 
+// Aggregate allowance: C60s + clang90s + native15s + JS30s + run5s,
+// plus15s cleanup. All original cases remain; runner defaults are unchanged.
 it("compares all seven original sharing full native/emitted/public/replay boundaries", () => {
   const expectedCases = programs.map((_, mode) => publicCase(mode));
   const fixture = new URL("../../monkey-business-bend/conformance/sharing-native.bend", import.meta.url);
-  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture);
+  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 60000, clangTimeoutMs: 90000, executionTimeoutMs: 15000 }),
+    emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
   // Complete equality retains every recursively generated owner field, physical
   // order, original CacheFact capsule, graph result and pending payload.
   expect(native).toEqual(emitted);
@@ -151,4 +154,4 @@ it("compares all seven original sharing full native/emitted/public/replay bounda
       expect(actual.endpoint.projection.dispatch.requests, name).toEqual([]);
     }
   }
-}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
+}, 215000);

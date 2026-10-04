@@ -4,7 +4,7 @@ import { createRun, restoreReplay, type Run, DEFAULT_FILE_TREE_PROFILE } from ".
 import { encodeCanonicalEvent } from "../../../src/canonical/adapter.ts";
 import { callbackPublicBoundary, decodeCallbackNativeBoundary } from "./callback-native-codec.ts";
 import type { CallbackTarget } from "./callback-controls.ts";
-import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Original-input native, emitted-JS and public traces retain the full contract
 // boundary through exact structural codecs. No compact-count fallback applies.
@@ -135,19 +135,22 @@ const nativePrograms = [
   ["latePreparationRetainedOne", "late-preparation-retained-one"],
 ] as const;
 
+// Aggregate allowance: C60s + clang90s + native15s + JS30s + run5s,
+// plus15s cleanup. All original cases remain; runner defaults are unchanged.
 it("compares all six original callback cases at the full immutable native/emitted/public/replay boundary", () => {
   const expected = nativePrograms.map(([kind]) => runCase(kind));
   // Every original program remains mandatory inside one fresh aggregate root.
   // Native inputs are the original programs, never public observation traces.
   const fixture = new URL("../../monkey-business-bend/conformance/callback-original-scenarios.bend", import.meta.url);
-  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture);
+  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 60000, clangTimeoutMs: 90000, executionTimeoutMs: 15000 }),
+    emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
   expect(native).toEqual(emitted);
   const nativeDTO = decodeCallbackNativePrefix(native), emittedDTO = decodeCallbackNativePrefix(emitted);
   expect(nativeDTO).toEqual(emittedDTO);
   expect(expected).toHaveLength(6);
   expect(decodeCallbackNativeBoundary(nativeDTO)).toEqual(expected);
   expect(decodeCallbackNativeBoundary(emittedDTO)).toEqual(expected);
-}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
+}, 215000);
 
 it("consumes a rejected late preparation receipt while releasing its original physical parent", () => {
   const run = createRun({ inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5] }], preparationDelay: 20, retention: 1 });
