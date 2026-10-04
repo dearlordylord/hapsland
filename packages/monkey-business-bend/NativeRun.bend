@@ -603,7 +603,9 @@ def recorded_host(host: T.HostFacts, originals: List<&2,Callbacks.Original>) -> 
   match host:
     case T.HostFacts{requests,callbacks,partitions}: T.HostFacts{requests,live_payloads(callbacks,originals),partitions}
 
-# Both recorded frames and their after snapshots use this same genuine count transition.
+# Recorded state applies the host's retention pruning after the structural frame
+# is captured. The structural after snapshot must retain the just-observed
+# callback facts until that observer boundary, matching the public runtime.
 def recorded_runtime(state: T.State) -> T.State:
   match state:
     case T.State{+core,items,next,count,seed,environment,latest,valid,_,jobs,host}:
@@ -618,7 +620,7 @@ def recorded(+state: T.State, +frame: T.Frame) -> T.Step:
   T.Step{recorded_latest(recorded_runtime(state),frame),Some{frame},[]}
 
 def after_snapshot(state: T.State) -> T.RuntimeSnapshot:
-  runtime_snapshot(recorded_runtime(state))
+  runtime_snapshot(state)
 
 def provided_job(job: Maybe<&2,T.Job>) -> Maybe<&2,Nat>:
   match job:
