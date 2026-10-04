@@ -3,7 +3,13 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { NATIVE_C_EMISSION_TIMEOUT_MS, NATIVE_CLANG_TIMEOUT_MS, validateNativeFixture } from "./native-preflight.mjs";
+import {
+  NATIVE_C_EMISSION_TIMEOUT_MS,
+  NATIVE_CLANG_TIMEOUT_MS,
+  assertNativeFixtureIdentity,
+  captureNativeFixtureIdentity,
+  validateNativeFixture,
+} from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
 // One fresh native+JS comparison has at most 85s of default phase allowances plus cleanup.
@@ -28,13 +34,17 @@ export function runWorkloadNative(fixture, { clangTimeoutMs = NATIVE_CLANG_TIMEO
     const { binaryPath } = validateNativeFixture({ manifestPath, sessionId, manifestHash, fixture });
     return JSON.parse(checked(binaryPath, [], 5000));
   }
+  const identity = captureNativeFixtureIdentity(fixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-native-"));
   try {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
-    checked("bend", [fileURLToPath(fixture), "-o", source], NATIVE_C_EMISSION_TIMEOUT_MS);
-    checked("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs);
-    return JSON.parse(checked(binary, [], 5000));
+    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], NATIVE_C_EMISSION_TIMEOUT_MS);
+    checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs);
+    assertNativeFixtureIdentity(identity, fixture);
+    const output = checked(binary, [], 5000);
+    assertNativeFixtureIdentity(identity, fixture);
+    return JSON.parse(output);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

@@ -5,7 +5,13 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, sy
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createNativePreflight, validateNativeFixture, cleanupNativePreflight } from "../packages/monkey-business-bend/conformance/native-preflight.mjs";
+import {
+  assertNativeFixtureIdentity,
+  captureNativeFixtureIdentity,
+  createNativePreflight,
+  validateNativeFixture,
+  cleanupNativePreflight,
+} from "../packages/monkey-business-bend/conformance/native-preflight.mjs";
 
 const directories = new Set<string>();
 const sessions = new Set<ReturnType<typeof createNativePreflight>>();
@@ -75,6 +81,22 @@ it.each(["dependency", "foreign", "header", "base", "effect"] as const)("rejects
   const handle = test.create();
   writeFileSync(test.files[name], readFileSync(test.files[name], "utf8") + "\n# changed source\n");
   expect(() => test.validate(handle)).toThrow("source graph mismatch");
+});
+
+it("rejects a direct workload after a transitive source changes", () => {
+  const test = fixture();
+  const identity = captureNativeFixtureIdentity(test.options.fixtures[0], { bend: test.files.bend, clang: test.files.clang });
+  writeFileSync(test.files.dependency, readFileSync(test.files.dependency, "utf8") + "\n# changed during direct compile\n");
+  expect(() => assertNativeFixtureIdentity(identity, test.options.fixtures[0], { bend: test.files.bend, clang: test.files.clang }))
+    .toThrow("source inputs changed during the direct native workload");
+});
+
+it("rejects a direct workload after compiler bytes change", () => {
+  const test = fixture();
+  const identity = captureNativeFixtureIdentity(test.options.fixtures[0], { bend: test.files.bend, clang: test.files.clang });
+  writeFileSync(test.files.clang, readFileSync(test.files.clang, "utf8") + "\n// replacement compiler\n");
+  expect(() => assertNativeFixtureIdentity(identity, test.options.fixtures[0], { bend: test.files.bend, clang: test.files.clang }))
+    .toThrow("compiler provenance changed during the direct native workload");
 });
 
 it("rejects tool replacement even when its version string stays the same", () => {

@@ -95,6 +95,33 @@ function sourceGraph(root, base) {
   return { entries, sha256: hash(JSON.stringify(entries)) };
 }
 
+/**
+ * Capture the complete identity used by a direct native workload compile.
+ * This deliberately shares the preflight manifest's source graph and tool
+ * provenance rather than creating a second cache or identity format.
+ */
+export function captureNativeFixtureIdentity(fixture, { bend = "bend", clang = "clang" } = {}) {
+  const root = fixturePath(fixture);
+  const inputs = provenance(bend, clang);
+  return Object.freeze({ root, graph: sourceGraph(root, inputs.base), inputs });
+}
+
+/** Reject a direct workload result if its source or compiler identity drifted. */
+export function assertNativeFixtureIdentity(identity, fixture, { bend = "bend", clang = "clang" } = {}) {
+  let current;
+  try {
+    current = captureNativeFixtureIdentity(fixture, { bend, clang });
+  } catch (error) {
+    throw new Error(`Native workload rejected: could not revalidate source/compiler identity (${error.message})`, { cause: error });
+  }
+  if (!same(identity?.root, current.root) || !same(identity?.graph, current.graph)) {
+    throw new Error("Native workload rejected: source inputs changed during the direct native workload; refusing mixed-source artifact");
+  }
+  if (!same(identity?.inputs, current.inputs)) {
+    throw new Error("Native workload rejected: compiler provenance changed during the direct native workload; refusing mixed-source artifact");
+  }
+}
+
 function keys(value, expected) {
   if (value === null || typeof value !== "object" || Array.isArray(value)
     || !same(Object.keys(value).sort(), [...expected].sort())) fail("invalid manifest shape");

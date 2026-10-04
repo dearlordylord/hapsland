@@ -1,10 +1,32 @@
 import { existsSync } from "node:fs";
 import { vi, expect, it, beforeEach } from "vitest";
 const spawn = vi.hoisted(() => vi.fn());
+const preflight = vi.hoisted(() => ({
+  capture: vi.fn(() => ({
+    root: "/tmp/owned-output-bound-fixture.bend",
+    graph: { entries: [], sha256: "graph" },
+    inputs: {
+      tools: { bend: { path: "/mock/bend" }, clang: { path: "/mock/clang" } },
+      host: { platform: "test", architecture: "test", release: "test" },
+      flags: {},
+      base: "/mock/base.bend",
+    },
+  })),
+  assert: vi.fn(),
+  validate: vi.fn(),
+}));
 vi.mock("node:child_process", () => ({ spawnSync: spawn }));
+vi.mock("../../monkey-business-bend/conformance/native-preflight.mjs", () => ({
+  NATIVE_C_EMISSION_TIMEOUT_MS: 30000,
+  NATIVE_CLANG_TIMEOUT_MS: 30000,
+  assertNativeFixtureIdentity: preflight.assert,
+  captureNativeFixtureIdentity: preflight.capture,
+  validateNativeFixture: preflight.validate,
+}));
 import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
-beforeEach(() => { spawn.mockReset(); });
+beforeEach(() => { spawn.mockReset(); preflight.capture.mockClear(); preflight.assert.mockClear(); preflight.validate.mockClear(); });
+
 it("bounds every fresh native phase to 16MiB and keeps the phase timeouts", () => {
   spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
   expect(runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
@@ -13,10 +35,28 @@ it("bounds every fresh native phase to 16MiB and keeps the phase timeouts", () =
     encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024,
   })));
   expect(spawn.mock.calls[0]?.[2].env.BEND_NO_TELEMETRY).toBe("1");
+  expect(spawn.mock.calls[0]?.[0]).toBe("/mock/bend");
+  expect(spawn.mock.calls[1]?.[0]).toBe("/mock/clang");
+  expect(preflight.capture).toHaveBeenCalledTimes(1);
+  expect(preflight.assert).toHaveBeenCalledTimes(2);
   const binary = spawn.mock.calls[2]?.[0];
   if (typeof binary !== "string") throw new Error("native binary path unavailable");
   expect(existsSync(binary.slice(0, binary.lastIndexOf("/")))).toBe(false);
 });
+
+it("rejects an identity drift before executing the fresh binary", () => {
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  preflight.assert.mockImplementationOnce(() => {
+    throw new Error("Native workload rejected: source inputs changed during the direct native workload; refusing mixed-source artifact");
+  });
+  expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend")))
+    .toThrow("refusing mixed-source artifact");
+  expect(spawn.mock.calls).toHaveLength(2);
+  const source = spawn.mock.calls[0]?.[1]?.[2];
+  if (typeof source !== "string") throw new Error("native source path unavailable");
+  expect(existsSync(source.slice(0, source.lastIndexOf("/")))).toBe(false);
+});
+
 it("disables the compiler's update check for fresh emitted JavaScript", () => {
   spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
   expect(runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
