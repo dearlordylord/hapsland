@@ -2,8 +2,8 @@ import { expect, it } from "vitest";
 import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts";
 import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
-import { compareOriginalWaitingStopTrace, compareOriginalStopFamilyTrace } from "./stop-native-boundary.ts";
-import { originalWaitingStopPublic, originalStopPublicCases } from "./stop-original-public.fixture.ts";
+import { compareOriginalWaitingStopTrace, compareOriginalStopFamilyTrace, compareOriginalStopOutputFamilyTrace } from "./stop-native-boundary.ts";
+import { originalWaitingStopPublic, originalStopPublicCases, originalStopOutputPublicCases } from "./stop-original-public.fixture.ts";
 
 const bendList = (values: readonly unknown[]): unknown => values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
 const none = { $: "None" };
@@ -131,3 +131,14 @@ export function originalNativeStopOutputFamilyInputs() {
     scenario(config(91001,10000,2,5,"Uncertain",5,30,10240),[7,12,47,52,87,92,127,132,161,167,172].map(at=>advance(at)),Array.from({length:5},(_,i)=>[{$:"stop_original_inputs.Edit",at:i*40,agent:none,bytes:10,units:bendList([5]),outcome:none},{$:"stop_original_inputs.Finish",at:i*40+1,agent:none,recurring:false}]).flat()),
   ];
 }
+
+// Same declared aggregate compilation allowance as the original full Stop gate;
+// individual native/JS runtime limits remain5s in the maintained runners.
+it("compares all twelve original output Stop full native/emitted/public/replay scenarios",()=>{
+  const fixture=new URL("../../monkey-business-bend/conformance/stop-output-original-scenarios.bend",import.meta.url);
+  const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
+  const native=runWorkloadNative(fixture),emitted=runWorkloadEmitted(fixture),independentlyEmitted=runWorkloadEmitted(fixture);
+  expect(native).toEqual(emitted);
+  expect(independentlyEmitted).toEqual(emitted);
+  for(const result of [native,emitted,independentlyEmitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
+},120000);
