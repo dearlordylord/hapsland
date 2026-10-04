@@ -3123,6 +3123,17 @@ def writer_observed_wire_envelope(values: List<&2,writer_observed_wire.Envelope>
     case writer_observed_wire.Envelope{v0,v1} <> Nil{}: 0n <> writer_original_inputs_scenario([v0],writer_observed_program_trace([v1],suffix))
     case _: 999999n <> suffix
 
+def list_writer_observed_wire_envelope_items(values: List<&2,List<&2,writer_observed_wire.Envelope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: writer_observed_wire_envelope([head],list_writer_observed_wire_envelope_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_writer_observed_wire_envelope(values: List<&2,List<&2,writer_observed_wire.Envelope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,writer_observed_wire.Envelope,value) <> list_writer_observed_wire_envelope_items([value],suffix)
+    case _: 999999n <> suffix
+
 def expiry_scenarios(values: List<&2,expiry_observed_driver.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   list_expiry_observed_driver_envelope([values],suffix)
 
@@ -3136,7 +3147,7 @@ def output_scenarios(values: List<&2,output_scenario_driver.Envelope>, suffix: L
   list_output_scenario_driver_envelope([values],suffix)
 
 def writer_scenarios(values: List<&2,writer_observed_wire.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  writer_observed_wire_envelope(values,suffix)
+  list_writer_observed_wire_envelope([values],suffix)
 
 def target_member(targets: List<&2,Callbacks.Target>, +target: Callbacks.Target) -> Bool:
   match targets:
