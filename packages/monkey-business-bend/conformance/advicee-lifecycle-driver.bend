@@ -123,11 +123,19 @@ def event_jobs(event: Canonical.CanonicalEvent, before: Canonical.State, after: 
       settled_jobs(retained_finding(Driver.find_operation(Driver.work_list(after),operation)),jobs,operation)
     case _: jobs
 
+def put_job(jobs: List<&2,Stored>, +operation: Nat, +job: Job) -> List<&2,Stored>:
+  match jobs:
+    case Nil{}: [Stored{operation,job}]
+    case Stored{+id,existing} <> tail:
+      match Nat.is_eq(id,operation):
+        case True{}: Stored{operation,job} <> tail
+        case False{}: Stored{id,existing} <> put_job(tail,operation,job)
+
 def remember(command: Canonical.Command, jobs: List<&2, Stored>, job: Job) -> List<&2, Stored>:
   match command:
-    case Canonical.ObservationAdmitted{+operation}: Stored{operation, job} <> forget_job(jobs,operation)
-    case Canonical.Prepare{+operation, _}: Stored{operation, job} <> forget_job(jobs,operation)
-    case Canonical.UnitAdmitted{+operation, _, _, _, _}: Stored{operation, job} <> forget_job(jobs,operation)
+    case Canonical.ObservationAdmitted{+operation}: put_job(jobs,operation,job)
+    case Canonical.Prepare{+operation, _}: put_job(jobs,operation,job)
+    case Canonical.UnitAdmitted{+operation, _, _, _, _}: put_job(jobs,operation,job)
     case _: jobs
 
 def append(queue: Queue, at: Nat, input: Input) -> Queue:
