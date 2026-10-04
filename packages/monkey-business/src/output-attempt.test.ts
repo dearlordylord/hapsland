@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run } from "./index.ts";
 import type { OutputAttemptControl } from "./output-controls.ts";
 import { decodeOutputNativeBoundary, outputPublicBoundary } from "./output-native-boundary.ts";
-import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const snapshot = (run: Run) => run.observe();
 const settings = (outcome: "certain" | "uncertain" | "failed", delayMs = 5, leaseMs = 10) => ({
@@ -29,7 +29,8 @@ const issued = (run: Run) => {
 
 it("compares original authorized output scripts with native Bend and preserves early/mid/late ownership", () => {
   const fixture = new URL("../../monkey-business-bend/conformance/output-scenario-native.bend", import.meta.url);
-  const nativeWords = runWorkloadNative(fixture), emittedWords = runWorkloadEmitted(fixture);
+  const nativeWords = runWorkloadNative(fixture, { emissionTimeoutMs: 90000, clangTimeoutMs: 120000, executionTimeoutMs: 5000 });
+  const emittedWords = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
   expect(nativeWords).toEqual(emittedWords);
   const native = decodeOutputNativeBoundary(nativeWords), emitted = decodeOutputNativeBoundary(emittedWords);
   const cases = [
@@ -75,7 +76,7 @@ it("compares original authorized output scripts with native Bend and preserves e
     if (selected.delayMs === 11) expect(run.observations.find(frame => frame.event.kind === "deliveryAcknowledgeCheck")?.time).toBe(18);
     replay(run);
   }
-}, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
+}, 250000);
 
 it.each(["certain", "uncertain"] as const)("allows exactly the accepted same-round Stop reoffer boundary for %s", outcome => {
   const run = createRun(settings(outcome, 0));

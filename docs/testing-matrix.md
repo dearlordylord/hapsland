@@ -116,6 +116,13 @@ one aggregate of all seven original Run cases through the focused harness.
 One compilation per backend retains each original trace, independent public
 assertions and replay checks. Its setup bound is 275 seconds, with 285 seconds
 for the supervised check.
+The original authorized-output and four twelve-cycle Jev recovery fixtures use
+explicit 90-second C emission, 120-second clang, and 5-second native execution
+allowances, plus 30-second emitted-JS compilation and the unchanged 5-second
+JS execution bound. Each test has a 250-second aggregate bound; supervise each
+selected qualification with a 300-second stage. These overrides do not change
+runner defaults or product deadlines. Recovery compares the complete native
+and compiler-emitted vectors before its independent public and replay checks.
 
 ## Pull request checks
 

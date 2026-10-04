@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
-import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 it.each(["neverSent", "backendFailure", "timeout", "interrupted"] as const)(
   "releases each request and restores delivery through twelve %s cycles without reset",
@@ -75,7 +75,10 @@ const row = (frame: Observation): number[] => {
 };
 
 it("compares four original twelve-cycle recovery scripts with the stateful native driver and public replay", () => {
-  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-recovery-native.bend", import.meta.url)) as number[][][];
+  const fixture = new URL("../../monkey-business-bend/conformance/jev-recovery-native.bend", import.meta.url);
+  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 90000, clangTimeoutMs: 120000, executionTimeoutMs: 5000 }) as number[][][];
+  const emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
+  expect(native).toEqual(emitted);
   const faults = ["neverSent", "backendFailure", "timeout", "interrupted"] as const;
   const expectedTimes = Array.from({ length: 24 }, (_, index) => index * 20 + 7);
   for (const [index, trace] of native.entries()) {
@@ -87,7 +90,7 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     expect(trace.filter(row => row[0] !== 21).every(row => row[20] === 0)).toBe(true);
     expect(trace.at(-1)?.slice(17, 20)).toEqual([0, 0, 0]);
   }
-  const emitted = faults.map(outcome => {
+  const publicTraces = faults.map(outcome => {
     const run = createRun({ outcome, jevDelay: 5, preparationDelay: 2,
       inputs: Array.from({ length: 24 }, (_, index) => ({ at: index * 20, kind: "edit" as const, bytes: 10, unitBytes: [5] })),
       fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1, deniedPercent: 0,
@@ -104,8 +107,8 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
     return run.observations.map(row);
   });
-  expect(native).toEqual(emitted);
-}, 30000);
+  expect(native).toEqual(publicTraces);
+}, 250000);
 
 describe("compact native terminal recovery", () => {
   let native: readonly number[] = [];
