@@ -58,6 +58,31 @@ thirty-second C emission, thirty-second clang and five-second execution bounds;
 emitted JavaScript uses separate fresh fifteen-second emission and five-second execution phases.
 An earlier checker pass does not establish any of those execution results.
 
+## Stop observation scope
+
+The agreed Stop fixture projection is a bounded `BusinessState` containing
+`Canonical.State` and the relevant `StopScenario.Finish` records. Its
+implementation captures ordered facts from actual transitions; the observation
+layer does not implement a second Stop policy. It does not recursively serialize
+the private Stop-driver `Runtime`, full `Types.State`, or `Driver.Context` trees
+merely to compare execution lanes.
+
+The original eleven Stop roots and twelve output Stop roots retain their exact
+input declarations, including the original waiting inputs and boundary controls.
+Keep ordered intermediate events and commands, relevant identities and scopes,
+effects, membership and continuation facts, independent expectations, and the
+ordinary public replay. Native and emitted JavaScript must still produce equal
+complete encodings: equality covers every field and word in the replacement
+projection. Public behavior is asserted independently from those encoded
+vectors.
+
+This is an observation-representation change, not a production policy, ABI, or
+law change. The existing production immediate-Nat engine ABI remains its own
+owner, and candidate `StopScenarioLAWS.bend` statements remain proposals. A
+smaller projection does not establish lower native compilation cost or qualify
+the new source. Report a Stop lane as passed only after its exact changed-source
+checks and complete native/JavaScript comparison finish successfully.
+
 Python 3 is a development prerequisite for the one shared private prefix codec.
 Run `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py`
 after changing a serialized owner declaration, and add `--check` to reject stale

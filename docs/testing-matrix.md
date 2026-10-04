@@ -244,6 +244,25 @@ than requiring identical private bookkeeping. A native wrapper has no implied
 public field: ground its relevant identity in actual public inputs or owner state,
 and remove unsupported internal-shape assertions instead of inventing context.
 
+### Stop-family observation owner
+
+The agreed Stop fixture projection is the bounded `BusinessState` containing
+`Canonical.State` and the relevant `StopScenario.Finish` records. Its
+implementation captures ordered event and command facts from actual transitions,
+rather than a second policy simulator. Recursive private Stop-driver `Runtime`,
+full `Types.State`, and `Driver.Context` snapshots are not required just to
+compare execution lanes.
+
+Keep the original eleven Stop roots and twelve output Stop roots unchanged,
+including original waiting inputs and boundary controls. Retain ordered
+intermediate facts, relevant identities/scopes/effects, exact output membership
+and continuation behavior, independent expectations, and ordinary replay. The
+native and emitted-JavaScript vectors must remain completely equal across every
+field of the replacement encoding. This fixture projection does not change the
+production Engine ABI or the status of candidate Stop laws. It also does not
+establish a native compilation improvement; report one only after fresh
+validation of the changed source and full retained comparison scopes.
+
 Do not repeat an unchanged failed check. The next run must test a concrete repair,
 a competing cause, or an explicitly declared bounded budget amendment. Reuse a
 successful result only for the exact inputs and scope it validated. Optional
