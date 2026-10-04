@@ -21,7 +21,7 @@ def weights() -> List<&2, Numeric.Words>:
 
 def original_config() -> T.Config:
   T.Config{Ledger.Limits{32n, 100000n, 16n, 50000n},
-    [T.Advicee{1n, Workload.Profile{Session.Settings{10, 0, 2, 100, 0, 50}, 7, [97], 10n, [5n], None{}}}],
+    [T.Advicee{1n,7n,Some{Workload.Profile{Session.Settings{10, 0, 2, 100, 0, 50}, 7, [97], 10n, [5n], None{}}}}],
     T.Environment{5n, Some{Canonical.RequestClear{}}, weights(), 2n,
       Tree.Profile{2n, 2n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 100n, 100n, 20n, 20n},
       Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n},

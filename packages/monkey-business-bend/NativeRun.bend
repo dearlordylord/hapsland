@@ -86,37 +86,42 @@ def workload_changed(state: T.State, changed: Engine.WorkloadTransition) -> T.St
 def workload(+state: T.State, partition: Nat, action: Workload.Action) -> T.State:
   workload_changed(state, Engine.workload_action(core(state), partition, action))
 
-def profile_seed(profile: Workload.Profile) -> U32:
+def configure_profile(state: T.State, partition: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
   match profile:
-    case Workload.Profile{_, seed, _, _, _, _}: seed
+    case None{}: state
+    case Some{profile}: replace_core(state,Engine.configure_workload(core(state),partition,profile))
 
-def configured_scope(+state: T.State, profile: Workload.Profile, scope: Maybe<&2, Advicees.Scope>) -> T.State:
+def configured_scope(state: T.State, profile: Maybe<&2,Workload.Profile>, scope: Maybe<&2,Advicees.Scope>) -> T.State:
   match scope:
-    case Some{Advicees.Scope{_, +partition, _}}:
-      replace_core(state,Engine.configure_workload(core(state),partition,profile))
+    case Some{Advicees.Scope{_,partition,_}}: configure_profile(state,partition,profile)
     case None{}: invalid(state)
 
-def declared(state: T.State, profile: Workload.Profile, result: Engine.AdviceeDeclared) -> T.State:
+def declared(state: T.State, profile: Maybe<&2,Workload.Profile>, result: Engine.AdviceeDeclared) -> T.State:
   match result:
-    case Engine.AdviceeDeclared{core, scope, True{}}: configured_scope(replace_core(state, core), profile, scope)
+    case Engine.AdviceeDeclared{core,scope,True{}}: configured_scope(replace_core(state,core),profile,scope)
     case _: invalid(state)
 
-def configure(advicees: List<&2, T.Advicee>, +state: T.State) -> T.State:
+def configure(advicees: List<&2,T.Advicee>, +state: T.State) -> T.State:
   match advicees:
     case Nil{}: state
-    case T.Advicee{identity, +profile} <> tail:
-      configure(tail, declared(state, profile, Engine.declare_advicee(core(state), identity, U32.to_nat(profile_seed(profile)))))
+    case T.Advicee{identity,seed,profile} <> tail:
+      configure(tail,declared(state,profile,Engine.declare_advicee(core(state),identity,seed)))
 
 def startup_scope(+state: T.State, scope: Maybe<&2,Advicees.Scope>) -> T.State:
   match scope:
     case Some{Advicees.Scope{_,partition,_}}: workload(state,partition,Workload.Next{})
     case None{}: invalid(state)
 
+def startup_profile(state: T.State, identity: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
+  match profile:
+    case None{}: state
+    case Some{_}: startup_scope(state,Engine.advicee_identity(core(state),identity))
+
 def startup(advicees: List<&2,T.Advicee>, +state: T.State) -> T.State:
   match advicees:
     case Nil{}: state
-    case T.Advicee{identity,_} <> tail:
-      startup(tail,startup_scope(state,Engine.advicee_identity(core(state),identity)))
+    case T.Advicee{identity,_,profile} <> tail:
+      startup(tail,startup_profile(state,identity,profile))
 
 def initial_core(environment: T.Environment, limits: Ledger.Limits, seed: Nat) -> EngineTypes.State:
   match environment:

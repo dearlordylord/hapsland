@@ -13,7 +13,7 @@ import ../agent-flow-bend/Ledger.bend as Ledger
 
 # Public source-free consumer facts. Presentation concepts never enter this ABI.
 type Advicee is Data:
-  Advicee{identity: Nat, profile: Workload.Profile}
+  Advicee{identity: Nat, seed: Nat, profile: Maybe<&2,Workload.Profile>}
 type Environment is Data:
   Environment{jev_delay: Nat, outcome: Maybe<&2, Canonical.RequestOutcome>, weights: List<&2, Numeric.Words>,
     preparation_delay: Nat, tree_profile: TreeFacts.Profile, graph_limits: ImportGraph.Limits,
