@@ -6,9 +6,11 @@ import { createHash } from "node:crypto";
 import nodeHttp from "node:http";
 import nodeHttps from "node:https";
 import { rm } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
+import { typeScriptRoot } from "../../src/direct-event/languages/native-parser.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
 import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
 import { residentRequestEffect as residentRequest } from "../../src/resident/client.ts";
@@ -115,6 +117,27 @@ try {
   event("admit", { status: admit.status, repoId: "fixture-repo", path, source: "production" });
   if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`);
   if (scenario !== "exclude-at-admission") await reachedPrepare;
+  // Optional build-overlap witness: preparation has loaded the native parsers,
+  // and dispatch remains held until the parent finishes refreshing artifacts.
+  if (process.env.HAPSLAND_SECURITY_BUILD_BARRIER === "1") {
+    if (process.send === undefined || scenario === "exclude-at-admission") throw new Error("build barrier requires IPC and a prepared scenario");
+    const released = new Promise((resolve) => process.once("message", (message) => {
+      if (message !== "build-complete") throw new Error("unexpected build barrier message");
+      resolve();
+    }));
+    const nativeMappings = readFileSync("/proc/self/maps", "utf8").split("\n")
+      .filter((line) => line.includes("/native/prebuilt/") && line.includes("tree_sitter_runtime_binding.node"))
+      .map((line) => Number(line.trim().split(/\s+/)[4]));
+    if (nativeMappings.length === 0) throw new Error("prepared replay has no mapped release parser binding");
+    process.send({ kind: "prepared", nativeMappingInodes: [...new Set(nativeMappings)] });
+    await released;
+    // Exercise the already-loaded binding again after publication, before dispatch.
+    const parsed = typeScriptRoot(path, manifest.positive.source);
+    if (parsed.hasError || !parsed.namedChildren.some((node) => node.text === manifest.positive.root)) {
+      throw new Error("post-build native parsing failed to recover the expected interface");
+    }
+    event("postBuildParsed", { source: "production", path });
+  }
   if (scenario === "exclude-at-dispatch") {
     await put(root, ".review.jsonc", JSON.stringify({ ...config, excludes: [path] }));
     event("fixtureAuthority", {

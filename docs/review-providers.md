@@ -8,6 +8,11 @@
 
 ## Boundary
 
+The [review resources guide](review-resources.md) explains the separate resident
+preparation and classifier pools, logical capacity, source collection, and
+delivery bounds. This page owns provider-specific declarations and transport
+checks; those checks do not expand the resident's resources.
+
 A review backend evaluates a prepared review unit. A provider adapter turns its
 probability decisions into a transport request and validated answers. Source
 collection, graph exploration, scheduling, capacity, and advice delivery retain

@@ -26,6 +26,39 @@ validation evidence. The [adapter benchmark](../scripts/benchmark-canonical-adap
 compares fixed traces across checkouts; it does not declare a new timing budget or
 establish native platform support.
 
+## Decision-family coverage
+
+The authority consolidation uses `Canonical.step` for resident transitions and
+the specialized `ImportGraph` reducer for source-free reference exploration.
+Both have checked shared adapters. The reviewed native entries below are not
+a second resident policy engine.
+
+| Decision family | Current authority | Native boundary and independent checks |
+| --- | --- | --- |
+| Runtime edit recognition and advicee attribution | Reviewed TypeScript placement in TS-001 and TS-002; Bend admits the resulting opaque identity | [Runtime event tests](../src/direct-event/adapter.test.ts), [Claude attribution](../src/direct-event/claude-adapter.test.ts), and [Pi attribution](../src/direct-event/pi-adapter.test.ts) check supported payloads and uncertain identity. Recognition does not authorize source use or open a round. |
+| Configuration precedence, file selection, rule eligibility, finding thresholds and ranking | Canonical configuration and rule events; `ImportGraph` controls reference traversal and budget outcomes | [Configuration](../src/configuration/configuration.test.ts), [rule decisions](../src/rules/decision.test.ts), and [graph authority](../src/direct-event/graph-resolver-authority.test.ts) check separately expected decisions. TS-006 keeps parsing, authored data, physical/Git facts, and pattern matches native. |
+| Permits, round opening, work callbacks, shared capacity and scheduling | Canonical admission, round, work, ledger and dispatch transitions | [Capacity](../src/resident/capacity.test.ts), [dispatch](../src/resident/dispatch.test.ts), and [composed delivery](../src/resident/composed-delivery.test.ts) check lifetime/round fences and accounting. TS-003 through TS-007 retain identity maps, clocks, native jobs and byte measurements. |
+| Backend authorization, physical settlement, supersession and reuse/cache | Canonical request, revision, reuse and cache transitions | [Request lifecycle](../src/resident/jev-request.test.ts), [revision](../src/resident/revision.test.ts), and [reuse](../src/resident/evaluation-reuse.test.ts) check saturation, stale outcomes, shared work and exact release. TS-008 and TS-010 retain external effects and provider-native input validation. |
+| Finding collection, output fit, leases, submission, Stop and continuation | Canonical collection, handoff, delivery, submission and finish transitions | [Collection](../src/resident/collection.test.ts) and [terminal collection](../src/resident/terminal-collection.test.ts) check independently expected output and closure behavior. TS-008 measures the final encoded response; a native write is distinct from its decision and from model visibility. |
+| Notices, expiry, bounded identities and safe cleanup | Canonical notice, retention, round and cleanup transitions, with reviewed native identity limits in TS-005h | [Operational notices](../src/resident/operational-notices.test.ts) and [resident process cases](../src/resident/subprocess.test.ts) check logical and physical boundaries separately. TS-009a/TS-009b schedule checks and supply facts rather than closing rounds by native timer alone. |
+| State/event representation and compiled ABI | Shared checked adapters and Effect Schema representation validation | [Boundary](../src/canonical/boundary.test.ts), [immutable state](../src/canonical/adapter.test.ts), and [constructor/ABI checks](../scripts/check-canonical-authority.mjs) reject malformed or foreign values. Validation cannot synthesize an admission or delivery decision. |
+| Diagram state and route evidence | Checked reducer replay and read-only [flow projection](../packages/agent-flow-projection/README.md) | [Projection checks](../packages/agent-flow-viz/scripts/check-projection.mjs) verify supplied events, commands and state. Layout and display remain TypeScript; a highlighted command does not establish a completed native effect. |
+
+The [production authority check](../scripts/check-production-authority.mjs)
+rejects direct generated-policy consumers in production and the dashboard and
+checks the former work/round owners are views or native bindings. The retained
+standalone `Lifecycle` test model and `Flow` capacity dependency are not
+production transition entry points. Their historical model results do not
+substitute for canonical resident evidence. The old sidecar and superseded
+direct-review and production finish paths have no current consumers.
+
+Static import and ownership checks establish their scanned boundary, not every
+possible dynamic execution or native race. Independent canonical traces,
+resident scenarios and separately scoped native observations remain necessary.
+The [#116 closure record](https://github.com/dearlordylord/hapsland/issues/116)
+owns the dated acceptance accounting; this maintained table must follow future
+owner or implementation changes rather than preserving that snapshot.
+
 ## TS-001 — Recognize a runtime event as a direct edit
 
 | Field | Reviewed boundary |

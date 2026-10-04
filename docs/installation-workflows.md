@@ -95,19 +95,32 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 ## Personal development on your own clients
 
-From the checkout with build prerequisites installed:
+### Installing a fixed checkout snapshot
+
+The current `dev-install` command installs a **fixed packaged snapshot**. It is
+useful for testing an installation candidate; it does not run hooks from the
+changing checkout. Each code update requires a new build, archive and activation.
+Do not present this command as a workflow that immediately picks up source edits.
+
+Builds require exact Bun 1.3.14. With mise installed, select it explicitly:
 
 ```sh
-npm run dev-install -- --host=claude
+mise install bun@1.3.14
+mise exec bun@1.3.14 -- npm run dev-install -- --host=claude
 # Or:
-npm run dev-install -- --host=codex
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
 ```
 
-`dev-install` builds, verifies native assets, packs a local archive, installs it into a fresh candidate prefix, records Git commit/dirty-tree/checksum identity, and launches that package's guided setup. It does not publish. For a profile that already has Hapsland, switch its registration with:
+The standalone builder also discovers an already installed mise Bun 1.3.14
+when it is absent from PATH. `HAPSLAND_BUILD_BUN=/absolute/path/to/bun` selects
+an executable explicitly; its version must still be exactly 1.3.14. Installed
+standalone packages embed Bun and do not require users to install it separately.
+
+`dev-install` builds, verifies native assets, packs a local archive, installs it into a fresh candidate prefix, records Git commit/dirty-tree/checksum identity, and launches that package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` is optional: it selects the dedicated update flow instead of guided setup, rather than making repeated installation possible. To choose that flow explicitly:
 
 ```sh
-npm run dev-install -- --host=claude --update
-npm run dev-install -- --host=codex --update
+mise exec bun@1.3.14 -- npm run dev-install -- --host=claude --update
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --update
 ```
 
 Before submitting a code change, run the contributor checks separately:
@@ -123,6 +136,21 @@ npm run conformance:client-lifecycle
 Pass the matching home/executable flags when using another profile. The script explicitly selects the packed target, bypassing any previously active administrative package. Each run takes a packed snapshot; rebuilding the checkout does not change installed code. Different snapshots may have the same package version and are identified by checksum, commit, and prefix. Retain the printed archive and previous installed package for diagnosis and recovery. `npm link` is unnecessary.
 
 The explicit equivalent is `npm run pack:release`, followed by a production-only npm install of the tarball into a fresh prefix, package doctor, and that target's setup or update. Keep credentials in the native store or selected execution environment. Make a supported edit in a disposable repository, then inspect session activity. These instructions do not authorize a live check on arbitrary private source.
+
+### Source changes and repeated installation
+
+The accepted personal development workflow uses compiled snapshots. After
+changing source, rerun the same `dev-install` command above and approve its
+preview, then finish current agent work and restart the agent as directed.
+The script performs the build, packing and activation; no manual tarball
+handling or npm publication is required. Repeated setup preserves unrelated
+hooks and replaces the owned registration rather than appending duplicates.
+Modified owned hooks or malformed configuration can still require repair;
+repeatability does not authorize overwriting user changes.
+
+Hooks execute the installed snapshot until the next successful activation.
+Direct source execution or a watch-mode resident is not required for this
+workflow and is not offered by the current installer.
 
 ## Publishing
 
