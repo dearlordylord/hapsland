@@ -42,10 +42,10 @@ Hypothesis: `-O0` amplifies runtime overhead. No Bend source or transport change
 - [ ] Quantify repeated envelope data (`config`, `original`, `final_world`) separately from tick/frame data using available output.
 - [x] Choose the text formatting/string allocation path for a bounded chunked-output experiment. Preserve exact numeric text and line boundaries; do not assume quadratic complexity.
 - [x] Prepare the isolated chunked writer and verify a small executable canary: exact equality for empty, zero, u48 maximum and 258 words crossing a chunk boundary (561 bytes total). Initial candidate `d8dce5d3`; this establishes small-case grammar only.
-- [ ] Remove growing-left string accumulation inside each chunk before the expensive compilation; repeat the focused canary.
-- [ ] Compile the frozen candidate with separately bounded preparation: C emission **240s**, clang **120s**.
-- [ ] Run saved baseline and candidate separately for at most **10s each**, without concurrent compilation; compare every common complete batch byte-for-byte, first output, batch/byte throughput and peak RSS.
-- [ ] Record a decision and the preserved semantic checks.
+- [x] Remove growing-left string accumulation: candidate `749acf78` buffers reversed decimal pieces and prepends them. Focused canary remains byte-identical; JS emission 0.155s, execution 0.021s.
+- [x] Compile the frozen candidate with separately bounded preparation: C emission **240s**, clang **120s**. Started after a separate 10-second baseline run; receipt `/tmp/hapsland-e2-comparison/result.json`.
+- [x] Run saved baseline and candidate separately for at most **10s each**, without concurrent compilation; compare every common complete batch byte-for-byte, first output, batch/byte throughput and peak RSS.
+- [x] Record a decision: do not integrate this candidate as a speed improvement. All 20 common complete batches match exactly, but bytes in 10 seconds decreased by 24.7%; peak RSS decreased by 18.1%. This is one bounded comparison, not full game acceptance.
 
 Hypotheses: formatting/allocation and repeated envelope serialization increase trace cost. Source inspection confirms repetition, not its measured contribution. The visual renderer is outside this fixture. Do not delete required ticks, public facts, frames or replay checks to produce a speedup.
 
@@ -83,3 +83,7 @@ Append one row per terminal experiment; include failed preparation. Store detail
 Detailed terminal evidence: [initial experiment receipts](performance-evidence/2026-10-04-initial-experiments.json).
 
 Focused writer evidence: [chunked writer canary](performance-evidence/2026-10-04-chunked-writer-canary.json). Canary success does not close the full-game comparison checkbox.
+
+| E2 chunked native output | Candidate `749acf78`, unchanged saved baseline | C 240s; clang 120s; execution 10s each | C 33.35s, clang 40.66s. Baseline/candidate: 20/20 complete batches, 6,455,296/4,861,952 output bytes; peak RSS 132,508/108,592 KiB | All 20 common batches byte-identical; full 145-batch validation not run | No demonstrated speed improvement; retain experiment, proceed to E3 |
+
+Detailed E2 comparison: [native prefix measurements](performance-evidence/2026-10-04-chunked-output-comparison.json).
