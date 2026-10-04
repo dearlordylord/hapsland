@@ -18,10 +18,18 @@ claims only for checks actually run.
 
 ## TypeScript quality gate
 
-After changing TypeScript or TSX under `src`, run `npm run quality:check` once
-on the coherent, review-ready candidate. During implementation use
-`npm run test:focused -- <test files>` and `npm run check:fast`; do not run the
-full gate after every edit.
+Choose local checks by changed behavior and physical boundaries using the
+[testing matrix](docs/testing-matrix.md#which-gate-to-run). For TypeScript changes,
+run `npm run check:fast` and focused tests for the changed owners and affected
+consumers. Run affected integration checks when transport, process lifetime,
+installation, packaging, or cross-component wiring changes.
+Run the full `npm run quality:check` for a release or declared milestone, a large
+cross-cutting feature whose impact cannot be bounded by focused checks, or an
+explicit request. A filename, literal, documentation, or bounded configuration
+change does not by itself require full coverage. Before selecting a full gate,
+state the additional evidence it will establish; report focused validation as
+focused validation, without claiming full-project coverage. CI retains the full
+gate.
 The pinned crap4ts tool regenerates Istanbul coverage by running the full
 deterministic test and boundary suite, then enforces `crap4ts.json`.
 Inspect flagged functions and improve behavioral tests or simplify branching
@@ -51,8 +59,7 @@ lock until its owning process and descendants have stopped.
 
 Tooling-only and documentation-only changes use affected tool tests, consumer
 checks, typechecking, and documentation checks; they do not require a full gate
-unless its end-to-end evidence boundary changed. These choices do not weaken the
-required full quality gate for changes under `src`.
+unless its end-to-end evidence boundary changed. Use the same behavior-based selection for changes under `src`.
 
 ## Review requests and acceptance decisions
 

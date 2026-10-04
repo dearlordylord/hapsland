@@ -688,7 +688,7 @@ describe("direct-event vertical slice", () => {
             await mkdir(root);
             await execFileAsync("git", ["init", "-q", root]);
             await put(root, "type.ts", "type CrossRoot = string");
-            await put(root, ".review.jsonc", "{ invalid");
+            await put(root, ".hapsland.jsonc", "{ invalid");
           }),
         });
       }).pipe(Effect.provide(controlledDecisionModelLayer({

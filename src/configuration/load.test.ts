@@ -19,30 +19,22 @@ it("captures optional user and project configuration in precedence order", async
   const { root, userConfigPath } = fixture();
   expect(await Effect.runPromise(loadConfiguration(root, { userConfigPath }))).toBeDefined();
   writeFileSync(userConfigPath, '{"version":1,"includes":["user/**"]}');
-  const project = join(root, ".review.jsonc");
+  const project = join(root, ".hapsland.jsonc");
   writeFileSync(project, '{"version":1,"includes":["project/**"]}');
   const captured = await Effect.runPromise(loadConfiguration(root, { userConfigPath }));
   expect(JSON.stringify(captured)).toContain("project/**");
   expect(JSON.stringify(captured)).toContain(project);
 });
 
-it("rejects two default project files but permits an explicit project choice", async () => {
+it("discovers the canonical project file and permits an explicit managed project path", async () => {
   const { root, userConfigPath } = fixture();
-  writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":["first/**"]}');
-  writeFileSync(join(root, ".realtime-review.jsonc"), '{"version":1,"includes":["second/**"]}');
-  const error = await Effect.runPromise(loadConfiguration(root, { userConfigPath }).pipe(Effect.flip));
-  expect(error).toMatchObject({
-    field: "project",
-    reason: "multiple project configuration files were found at the Git root",
-  });
-  for (const projectConfigPath of [".review.jsonc", join(root, ".review.jsonc")]) {
-    expect(
-      JSON.stringify(await Effect.runPromise(loadConfiguration(root, { userConfigPath, projectConfigPath }))),
-    ).toContain("first/**");
+  writeFileSync(join(root, ".hapsland.jsonc"), '{"version":1,"includes":["first/**"]}');
+  writeFileSync(join(root, "managed.jsonc"), '{"version":1,"includes":["second/**"]}');
+  expect(JSON.stringify(await Effect.runPromise(loadConfiguration(root, { userConfigPath })))).toContain("first/**");
+  for (const projectConfigPath of ["managed.jsonc", join(root, "managed.jsonc")]) {
+    expect(JSON.stringify(await Effect.runPromise(loadConfiguration(root, { userConfigPath, projectConfigPath })))).toContain("second/**");
   }
-  expect(
-    await Effect.runPromise(loadConfiguration(root, { userConfigPath, projectConfigPath: "missing.jsonc" })),
-  ).toBeDefined();
+  expect(await Effect.runPromise(loadConfiguration(root, { userConfigPath, projectConfigPath: "missing.jsonc" }))).toBeDefined();
 });
 
 it.each(["..", "../outside.jsonc", "/outside.jsonc"])(

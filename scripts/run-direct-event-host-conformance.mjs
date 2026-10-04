@@ -117,7 +117,7 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
       applicability: { includes: ["profile.ts"] },
     }],
   }, null, 2)}\n`, { mode: 0o600 });
-  await writeFile(join(repository, ".review.jsonc"), '{"version":1,"packs":["visibility-rules.jsonc"]}\n', { mode: 0o600 });
+  await writeFile(join(repository, ".hapsland.jsonc"), '{"version":1,"packs":["visibility-rules.jsonc"]}\n', { mode: 0o600 });
   const answers = Object.fromEntries([
     "r1_inferred_case", "r2_meaningless_combinations", "r3_split_correlations",
     "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",

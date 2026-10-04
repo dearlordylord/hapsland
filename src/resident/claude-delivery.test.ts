@@ -352,7 +352,7 @@ describe("registry-free Claude edit response", () => {
             if (change === "revoke") data.feedback("advisory");
             if (change === "project-narrowing")
               writeFileSync(
-                join(data.root, ".realtime-review.jsonc"),
+                join(data.root, ".hapsland.jsonc"),
                 JSON.stringify({ version: 1, claudeFeedbackMode: "advisory" }),
               );
             if (change === "source") writeFileSync(join(data.root, "first.ts"), "type firstCount = string\n");

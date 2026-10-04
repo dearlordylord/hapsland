@@ -33,7 +33,7 @@ describe("canonical Jev request boundary", () => {
           capabilities: ["signature", "body"] },
       ],
     }] }));
-    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("fixture observation missing");
     const seen: string[] = [];
@@ -85,7 +85,7 @@ describe("canonical Jev request boundary", () => {
       message: "Large", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
         capabilities: ["root-declaration"] }],
     }] }));
-    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("fixture observation missing");
@@ -135,7 +135,7 @@ describe("canonical Jev request boundary", () => {
       expect((await Effect.runPromise(gatedServer.accountingMetrics())).pendingOperationalNotices).toBe(0);
     } finally { await Effect.runPromise(gatedServer.close); }
 
-    await put(root, ".review.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));
     reads.length = 0;
     const excludedCalls = join(root, "excluded-provider-calls.txt");
     const excludedServer = await acquireResidentFixture(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });

@@ -43,7 +43,7 @@ try {
     await command("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
     await command("git", ["-C", root, "config", "user.name", "Test"]);
     await writeFile(join(root, "type.ts"), "type OrderCount = number // InstalledSecurityMarker\n");
-    if (kind === "initially-excluded") await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["type.ts"]}\n');
+    if (kind === "initially-excluded") await writeFile(join(root, ".hapsland.jsonc"), '{"version":1,"excludes":["type.ts"]}\n');
     const statePath = join(root, "consent");
     const capturePath = join(root, "provider-attempts");
     const event = {
@@ -69,7 +69,7 @@ try {
     if (kind === "queued-excluded") {
       await within(Effect.runPromise(Deferred.await(entered)), "installed preparation barrier");
       if (!preparedMarker) throw new Error("queued unit was not prepared before update");
-      await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["type.ts"]}\n');
+      await writeFile(join(root, ".hapsland.jsonc"), '{"version":1,"excludes":["type.ts"]}\n');
       await Effect.runPromise(Deferred.succeed(release, undefined));
     }
     await within(Effect.runPromise(server.whenIdle()), "installed resident idle barrier");

@@ -32,7 +32,7 @@ describe("explicit rule target compilation", () => {
   it("loads an authored pack for both active review branches", async () => {
     const root = mkdtempSync(join(tmpdir(), "hapsland-rule-pack-"));
     try {
-      writeFileSync(join(root, ".review.jsonc"), JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+      writeFileSync(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
       writeFileSync(join(root, "rules.jsonc"), JSON.stringify(pack()));
       const settings = await Effect.runPromise(loadReviewSettings(root));
       const authored = settings.rules?.filter((rule) => rule.packId === "team") ?? [];

@@ -265,7 +265,7 @@ describe("common collection and reuse invariants", () => {
 
   it("returns quietly when file policy excludes the admitted edit", async () => {
     const data = await fixture();
-    await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await put(data.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
     const admission = Effect.runSync(server.admit(data.observation, dispatch));
@@ -281,7 +281,7 @@ describe("common collection and reuse invariants", () => {
     const first = Effect.runSync(server.admit(data.observation, failed));
     if (first.status !== "accepted") throw new Error("first not admitted");
     await Effect.runPromise(server.whenIdle());
-    await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await put(data.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     const second = Effect.runSync(server.admit(data.observation, failed));
     if (second.status !== "accepted") throw new Error("second not admitted");
     await Effect.runPromise(server.whenIdle());

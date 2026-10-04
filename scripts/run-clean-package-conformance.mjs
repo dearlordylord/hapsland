@@ -541,7 +541,7 @@ try {
         capabilities: ["root-declaration", "resolved-outbound-types"] }],
     }] };
     await writeFile(join(repository, "pack.json"), JSON.stringify(rule));
-    await writeFile(join(repository, ".review.jsonc"), '{"version":1,"packs":["pack.json"]}');
+    await writeFile(join(repository, ".hapsland.jsonc"), '{"version":1,"packs":["pack.json"]}');
     const env = { ...launcherEnvironment, REVIEW_RESIDENT_DIR: isolatedRuntime,
       REVIEW_STATE_PATH: join(temporary, `${language}-cross-file-state`), REVIEW_INSTALL_CONTROLLED: "1",
       REVIEW_USER_CONFIG_PATH: join(temporary, "cross-file-user.json"),

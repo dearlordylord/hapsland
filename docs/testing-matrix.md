@@ -34,6 +34,25 @@
 | Source-checkout Abide coexistence | Same runner with `--host=HOST --language=typescript --coexistence=CASE --abide-prefix=PREFIX --hook-order=ORDER` | Real Codex/Claude, released Abide 0.0.7 handlers, controlled reviewers; `both` additionally accepts `--live --execute-paid` | Selected delivery, independent reviewer failure and file-exclusion cases; no general installed-package or native-trust declaration |
 | Abide installer coexistence | `node scripts/run-abide-installation-witness.mjs --abide-prefix=PREFIX` | Real source Hapsland and released Abide installers in isolated profiles; both orders, repeat init and each uninstall | Registration preservation only; no native agent session or Jev call |
 
+Local completion uses the smallest checks that establish the changed behavior:
+
+- TypeScript changes: `npm run check:fast`, focused tests for the changed owners,
+  and tests of affected consumers. Select by behavior and dependencies, rather
+  than only the edited filename; renames can affect discovery and dispatch.
+- Logic and configuration matrices: use direct component/unit tests. Run a
+  representative integration case when discovery, wiring or an installed
+  consumer changes. Unit tests cannot replace socket, process, TTY, packaging,
+  crash or ownership evidence when that physical boundary changes.
+- Documentation and tooling changes: affected tool tests and documentation or
+  consumer checks. Build/package checks apply when their inputs or output layout
+  change.
+- Full fresh-coverage CRAP gate: releases, declared milestones, large cross-cutting
+  features whose impact cannot be bounded by focused checks, and explicit
+  requests. State the additional evidence before running it. A filename or
+  literal replacement, or a bounded configuration fix, does not automatically
+  require a full gate. CI continues to run the full gate; local focused checks
+  do not claim full-project coverage.
+
 `HOST` is `codex`, `claude`, or `pi`; Pi currently accepts the controlled TypeScript profile above. Other source-checkout host/language combinations use the existing fixture table. `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
 Pi native runs install a locally packed production artifact and exercise its owned extension through ordinary setup and doctor, rather than checkout-only handlers. They use an isolated agent home and preserve the ordinary `openai-codex/gpt-6-luna` configuration. Print/JSON mode with no persisted session is distinct from interactive trust validation. Controlled review makes zero Jev requests, while authenticated agent-model requests remain external. [Pi installation guidance](pi-installation.md) states the exact support and refusal boundary. The [selected Pi adoption record](../evidence/native-languages/pi-typescript-adoption-controlled-offline-1791013892029.json) demonstrated all 15 separate assertions; the [language index](../evidence/native-languages/index.json) preserves its earlier incomplete attempt. The [negative index](../evidence/native-negative/index.json) records three selected demonstrated Pi cells. Native negative observations do not replace deterministic installed extension cancellation, epoch, finish, freshness, and lease fault coverage.
@@ -197,8 +216,8 @@ Istanbul counters through strict crap4ts analysis.
 Review this adapter against upstream behavior whenever Vitest is updated.
 During implementation, run `npm run test:focused -- <test files>` for the
 changed owners and `npm run check:fast`. Explicit files are required: an omitted
-selection cannot silently start the full suite. Reserve the full quality gate for
-a coherent review-ready candidate or a confirmed repair to a gate failure.
+selection cannot silently start the full suite. Select the full quality gate using the behavior and milestone criteria above;
+when selected, run it on a coherent review-ready candidate.
 After a failed full run, inspect `npm run test:status`, diagnose every independent
 reported defect with its owner check, and observe those checks passing before
 another full run. After two attempts without new discriminating evidence, name
@@ -294,11 +313,17 @@ different bounded budget; nested commands cannot extend the parent deadline. Use
 build, proof, test and analysis failures instead of blindly rerunning tests.
 These rules borrow the finite-work and retained-evidence approach from
 [Dalph development guidance](https://github.com/dearlordylord/dalph/blob/master/docs/development/workflow.md#keeping-implementation-work-finite).
-Hapsland keeps its own strict fresh-coverage completion requirement.
+When selected, the full Hapsland gate still requires strict fresh coverage.
 
 Full runs prepare one fresh production archive before installed tests. The
 [archive preparation](../scripts/test-harness/prepare-archive.mjs) records source
-and archive digests and rejects source changes during preparation; the same
+and archive digests and rejects verification-input changes during preparation;
+the input scope is maintained in that module: source, scripts, workspace
+packages, native/build assets, schemas, vendored dependencies and test fixtures;
+root build/test manifests and configuration; and paths shipped by `package.json`
+`files`. New, dirty and deleted files inside that scope remain inputs. Unrelated
+research/specification documents (including `quint-specs/quint.lock`) do not
+invalidate a run. Update the scope when a new build/test input root is adopted. The same
 archive supplies all installed fixtures. This is reuse within one run, not a
 cross-candidate build cache. Focused installed diagnostics may explicitly supply
 `HAPSLAND_TEST_PACKAGE_ARCHIVE`; name its provenance and do not treat an older

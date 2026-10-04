@@ -7,8 +7,37 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 const generatedRoots = new Set([".test-runs", "dist", "coverage", "node_modules"]);
 
-/** Identify current bytes, including dirty and nonignored untracked inputs. */
-export async function sourceIdentity(root, excludedDirectory) {
+// Directory owners consumed by compilation, boundary checks and deterministic fixtures.
+const verificationRoots = new Set([
+  "src", "scripts", "packages", "native", "bin", "schemas", "vendor",
+  "evidence", "conformance", "assets", "prototypes",
+]);
+const verificationFiles = new Set([
+  "package.json", "package-runtime.json", "bun.lock", "crap4ts.json",
+  "tsconfig.json", "tsconfig.build.json", "vitest.config.ts",
+  ".gitignore", ".gitmodules", ".hapsland.jsonc",
+]);
+
+const packagedInputs = async (root) => {
+  let text;
+  try { text = await readFile(join(root, "package.json"), "utf8"); }
+  catch (error) { if (error.code === "ENOENT") return []; throw error; }
+  const manifest = JSON.parse(text);
+  return (manifest.files ?? []).map((path) => {
+    // A glob conservatively selects its directory prefix; exact files stay exact.
+    const normalized = path.replace(/^\.\//, "").replace(/\/$/, "");
+    const wildcard = normalized.search(/[?*[]/);
+    const separator = normalized.lastIndexOf("/", wildcard);
+    return wildcard < 0 ? normalized : separator < 0 ? "" : normalized.slice(0, separator);
+  });
+};
+
+/** Identify verification inputs, including dirty, deleted and new files in their owners. */
+export const sourceIdentity = (root, excludedDirectory) => identifyInputs(root, excludedDirectory, true);
+
+async function identifyInputs(root, excludedDirectory, selectVerificationInputs) {
+  const packaged = selectVerificationInputs ? await packagedInputs(root) : [];
+
   const { stdout } = await execute("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
     cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024,
   });
@@ -22,6 +51,8 @@ export async function sourceIdentity(root, excludedDirectory) {
   const excluded = excludedDirectory && relative(root, excludedDirectory).replaceAll("\\", "/");
   const files = [...new Set(stdout.split("\0").filter(Boolean))].sort().filter((file) =>
     !generatedRoots.has(file.split("/")[0]) &&
+    (!selectVerificationInputs || verificationRoots.has(file.split("/")[0]) ||
+      verificationFiles.has(file) || packaged.some(path => path === "" || file === path || file.startsWith(`${path}/`))) &&
     !(excluded && !isAbsolute(excluded) && excluded !== ".." && !excluded.startsWith("../") &&
       (file === excluded || file.startsWith(`${excluded}/`))));
   const hash = createHash("sha256");
@@ -52,7 +83,8 @@ export async function sourceIdentity(root, excludedDirectory) {
         throw new Error(`Archive input submodule is missing or uninitialized: ${file}`);
       }
       hash.update(`submodule\0${gitlinks.get(file)}\0${checkout.stdout.trim()}\0`);
-      hash.update(await sourceIdentity(directory, excludedDirectory));
+      // The declared vendor dependency owns its complete checkout, including root files.
+      hash.update(await identifyInputs(directory, excludedDirectory, false));
     } else throw new Error(`Unsupported archive input: ${file}`);
   }
   return hash.digest("hex");

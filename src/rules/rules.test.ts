@@ -162,7 +162,7 @@ describe("layered local pack loading and compilation", () => {
   it("resolves project references from the originating config and matches from repository root", async () => {
     const root = mkdtempSync(join(tmpdir(), "review-rules-root-"));
     try {
-      const configPath = join(root, ".review.jsonc");
+      const configPath = join(root, ".hapsland.jsonc");
       const packPath = join(root, "rules", "team.jsonc");
       const source = join(root, "rules");
       const { mkdirSync } = await import("node:fs");
@@ -222,7 +222,7 @@ describe("layered local pack loading and compilation", () => {
     const root = mkdtempSync(join(tmpdir(), "review-rules-root-"));
     const outside = mkdtempSync(join(tmpdir(), "review-rules-outside-"));
     try {
-      const configPath = join(root, ".review.jsonc");
+      const configPath = join(root, ".hapsland.jsonc");
       const outsidePack = join(outside, "team.jsonc");
       writeFileSync(outsidePack, packText());
       const escapeLayer: ConfigurationLayer = {
@@ -265,18 +265,18 @@ describe("layered local pack loading and compilation", () => {
     const other = decodeRulePackText(packText("other"), "other.jsonc");
     const layers: ConfigurationLayer[] = [{
       name: "project",
-      source: ".review.jsonc",
+      source: ".hapsland.jsonc",
       document: decodeConfigurationText(JSON.stringify({
         version: 1,
         ruleOverrides: {
           team: { enabled: false },
           "team/has-question": { enabled: true },
         },
-      }), ".review.jsonc"),
+      }), ".hapsland.jsonc"),
     }];
     const packs = [
-      { ...team, path: "team.jsonc", enabled: true, origin: origin("project", ".review.jsonc") },
-      { ...other, path: "other.jsonc", enabled: true, origin: origin("project", ".review.jsonc") },
+      { ...team, path: "team.jsonc", enabled: true, origin: origin("project", ".hapsland.jsonc") },
+      { ...other, path: "other.jsonc", enabled: true, origin: origin("project", ".hapsland.jsonc") },
       { ...BUNDLED_NOUL_PACK, path: "built-in:noul", enabled: false, origin: origin("built-in", "built-in:noul") },
     ];
     const rules = compileRules({ packs, layers });

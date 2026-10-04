@@ -222,7 +222,7 @@ describe("layered selection and provenance", () => {
   it("rechecks current user and project mode synchronously and fails closed", () => {
     const root = mkdtempSync(join(tmpdir(), "hapsland-claude-mode-"));
     const userPath = join(root, "user.jsonc");
-    const projectPath = join(root, ".review.jsonc");
+    const projectPath = join(root, ".hapsland.jsonc");
     try {
       expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "advisory", origin: { layer: "built-in" } });
       writeFileSync(userPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
@@ -236,8 +236,7 @@ describe("layered selection and provenance", () => {
       expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false });
       rmSync(userPath);
       expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toMatchObject({ valid: true, mode: "advisory" });
-      writeFileSync(projectPath, '{"version":1}');
-      writeFileSync(join(root, ".realtime-review.jsonc"), '{"version":1}');
+      writeFileSync(projectPath, '{"version":1,');
       expect(readCurrentClaudeFeedbackAuthority(root, userPath)).toEqual({ valid: false });
     } finally {
       rmSync(root, { recursive: true, force: true });

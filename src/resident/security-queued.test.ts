@@ -25,7 +25,7 @@ const setup = async (initiallyExcluded: boolean) => {
   const root = await makeGitFixture();
   directories.push(root);
   await put(root, "type.ts", "type OrderCount = number // QueuedSecurityMarker\n");
-  if (initiallyExcluded) await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+  if (initiallyExcluded) await put(root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
   const statePath = join(root, "consent");
   const capturePath = join(root, "provider-attempts");
   const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
@@ -78,7 +78,7 @@ describe("queued exclusion authority", () => {
     await entered.promise;
     expect(preparedSourceSeen).toBe(true);
     expect(calls(fixture.capturePath)).toBe(0);
-    await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await put(fixture.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     release.resolve();
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
@@ -101,7 +101,7 @@ describe("queued exclusion authority", () => {
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
     expect(preparedSourceSeen).toBe(true);
-    await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await put(fixture.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     await Effect.runPromise(controls.release);
     await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
@@ -134,7 +134,7 @@ it("reports a credential failure when the configured credential changes after re
   };
   expect(Effect.runSync(server.admit(fixture.observation, dispatch)).status).toBe("accepted");
   expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
-  await put(fixture.root, ".review.jsonc", '{"version":1,"credentialEnvVar":"ALTERNATE_API_KEY"}\n');
+  await put(fixture.root, ".hapsland.jsonc", '{"version":1,"credentialEnvVar":"ALTERNATE_API_KEY"}\n');
   await Effect.runPromise(controls.release);
   await Effect.runPromise(server.whenIdle());
   expect(calls(fixture.capturePath)).toBe(0);

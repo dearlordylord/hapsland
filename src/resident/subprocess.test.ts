@@ -517,7 +517,7 @@ describe("resident separate-process lifecycle", () => {
     expect((await admitComposed(paths, {
       requestRoute: "shared", operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
-    await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
+    await put(root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
       const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
@@ -559,7 +559,7 @@ describe("resident separate-process lifecycle", () => {
     expect((await admitComposed(paths, {
       requestRoute: "shared", operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
-    await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await put(root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
       const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
@@ -723,7 +723,7 @@ describe("resident separate-process lifecycle", () => {
         observation, controlledWriter: true, dispatch,
       })).status).toBe("accepted");
     }
-    await put(otherRoot, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
+    await put(otherRoot, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(backendGate, "release\n");
     await waitFor(async () => {
       const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: second.lifetime }));
