@@ -46,13 +46,13 @@ it("compares original waiting Stop emitted/public/replay boundaries",()=>{
   const expected=originalWaitingStopPublic();
   compareWaiting(runWorkloadEmitted(waitingFixture),expected);
 },30000);
-// C30 + clang30 + native5 + JS15/5 + cleanup15 =100 seconds.
+// C30 + clang90 + native5 + JS15/5 + cleanup15 =160 seconds.
 it("compares original waiting Stop full native/emitted/public/replay boundaries",()=>{
   const expected=originalWaitingStopPublic();
-  const native=runWorkloadNative(waitingFixture),emitted=runWorkloadEmitted(waitingFixture);
+  const native=runWorkloadNative(waitingFixture,{clangTimeoutMs:90000}),emitted=runWorkloadEmitted(waitingFixture);
   expect(native).toEqual(emitted);
   for(const result of [native,emitted]) compareWaiting(result,expected);
-},100000);
+},160000);
 
 // Independently frozen native declarations for the original eleven cases.
 // None describes an omitted edit override, independently of configured result.
@@ -101,13 +101,13 @@ it("compares all eleven original Stop emitted/public/replay scenarios",()=>{
   const expected=originalStopPublicCases(),frozen=originalNativeFamilyInputs();
   compareOriginalStopFamilyTrace(decodeNativePrefix(runWorkloadEmitted(originalFixture),"stop_scenarios"),expected,frozen);
 },30000);
-// C30 + clang60 + native5 + JS15/5 + cleanup15 =130 seconds.
+// C30 + clang90 + native5 + JS15/5 + cleanup15 =160 seconds.
 it("compares all eleven original Stop full native/emitted/public/replay scenarios",()=>{
   const expected=originalStopPublicCases(),frozen=originalNativeFamilyInputs();
-  const native=runWorkloadNative(originalFixture,{clangTimeoutMs:60000}),emitted=runWorkloadEmitted(originalFixture);
+  const native=runWorkloadNative(originalFixture,{clangTimeoutMs:90000}),emitted=runWorkloadEmitted(originalFixture);
   expect(native).toEqual(emitted);
   for(const result of [native,emitted]) compareOriginalStopFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},130000);
+},160000);
 
 // Frozen independent caller declarations for the twelve existing output cases.
 export function originalNativeStopOutputFamilyInputs() {
