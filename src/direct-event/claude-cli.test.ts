@@ -1,4 +1,5 @@
 import { runClient } from "../test-support/client-runtime.ts";
+import { stopFixtureResident } from "../test-support/resident-cleanup.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { execFile, spawn } from "node:child_process";
@@ -17,12 +18,9 @@ import { encodeCurrentResidentRequest } from "../resident/protocol.ts";
 import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts";
 
 const roots: Array<string> = [];
-afterEach(() => {
+afterEach(async () => {
   for (const root of roots.splice(0)) {
-    try {
-      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
-      process.kill(owner.pid, "SIGTERM");
-    } catch { /* no resident owner */ }
+    await stopFixtureResident(join(root, "runtime"), join(process.cwd(), "src/resident/main.ts"));
     rmSync(root, { recursive: true, force: true });
   }
 });

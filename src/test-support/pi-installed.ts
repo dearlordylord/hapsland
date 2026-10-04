@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { execFileSync } from "../../scripts/test-harness/process.mjs";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { expect } from "vitest";
@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import { residentRequestEffect } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
 import { runClient } from "./client-runtime.ts";
+import { stopFixtureResident } from "./resident-cleanup.ts";
 import type { ResidentResponse } from "../resident/protocol.ts";
 
 let createPiExtension: typeof import("../pi/extension.ts")["createPiExtension"];
@@ -46,43 +47,6 @@ type Handler = (event: any, context: any) => Promise<any>;
 const roots: string[] = [];
 const preparedResidents = new Map<string, ChildProcess>();
 const residentMains = new Map<string, string>();
-const fixtureOwnerPid = (path: string): number | undefined => {
-  try {
-    const { pid } = JSON.parse(readFileSync(path, "utf8")) as { pid: number };
-    return Number.isInteger(pid) && pid > 1 && pid !== process.pid ? pid : undefined;
-  } catch { return undefined; }
-};
-const linuxFixtureProcess = (pid: number, main: string, directory: string) => {
-  const args = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
-  return args.length === 4 && args[3] === "" && realpathSync(args[1]!) === realpathSync(main) && realpathSync(args[2]!) === realpathSync(directory);
-};
-const fixtureProcessRunning = (pid: number, main: string, directory: string): boolean => {
-  try {
-    if (process.platform === "linux") return linuxFixtureProcess(pid, main, directory);
-    const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], { encoding: "utf8", timeout: 1_000, stdio: ["ignore", "pipe", "ignore"] }).trim();
-    return [main, realpathSync(main)].some(entry =>
-      [directory, realpathSync(directory)].some(root => command.endsWith(`node ${entry} ${root}`)));
-  } catch { return false; }
-};
-const signalFixtureProcess = (pid: number, signal: NodeJS.Signals) => {
-  try { process.kill(pid, signal); }
-  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error; }
-};
-const waitForFixtureExit = async (pid: number, main: string, directory: string) => {
-  const deadline = Date.now() + 3_000;
-  while (fixtureProcessRunning(pid, main, directory) && Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, 20));
-  }
-};
-const stopFixtureProcess = async (pid: number, main: string, directory: string) => {
-  if (!fixtureProcessRunning(pid, main, directory)) return;
-  signalFixtureProcess(pid, "SIGTERM");
-  await waitForFixtureExit(pid, main, directory);
-  if (!fixtureProcessRunning(pid, main, directory)) return;
-  signalFixtureProcess(pid, "SIGKILL");
-  await waitForFixtureExit(pid, main, directory);
-  if (fixtureProcessRunning(pid, main, directory)) throw new Error("Pi fixture resident did not terminate");
-};
 const stopPreparedResident = async (child: ChildProcess) => {
   if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return;
   await new Promise<void>(resolve => {
@@ -98,9 +62,7 @@ export const cleanupPiFixtures = async () => {
     if (prepared !== undefined) await stopPreparedResident(prepared);
     const directory = join(root, "runtime");
     const main = residentMains.get(root)!;
-    // The lock owner exists before the server publishes its endpoint owner.
-    const pids = new Set([fixtureOwnerPid(join(directory, "owner.json")), fixtureOwnerPid(join(directory, "owner.lock", "owner.json"))]);
-    for (const pid of pids) if (pid !== undefined) await stopFixtureProcess(pid, main, directory);
+    await stopFixtureResident(directory, main);
     residentMains.delete(root);
     rmSync(root, { recursive: true, force: true });
   }
