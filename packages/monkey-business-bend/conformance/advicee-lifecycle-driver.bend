@@ -512,7 +512,7 @@ def interpreted_with(result: Driver.Handled, environment: Environment, value: Ca
       Runtime{state,generated_with(Engine.generate_tree(seed,operation,0n,tree,graph),queue,
         now,operation,round(Engine.canonical(state),job_partition(job)),job,preparation_delay),jobs,delay}
     case result _ command:
-      prepared_issued(Engine.issue_actions(state,handled_actions(result)),queue,jobs,now,job,delay,source,command)
+      Runtime{state,command_actions_prepared(handled_actions(result),queue,now,job,source,command),jobs,delay}
 
 def collector_combined(first: Driver.Handled, second: Driver.Handled) -> Driver.Handled:
   match first second:
@@ -544,7 +544,7 @@ def stop_poll_items(items: List<&2,Item>, +finish: StopScenario.Finish) -> List<
   match items:
     case Nil{}: []
     case +item <> tail:
-      stop_poll_keep(Bool.not(stop_poll_owned(stop_item_input(item),finish)),item,stop_poll_items(tail,finish))
+      stop_poll_keep(Bool.not(stop_poll_owned(stop_stop_item_input(item),finish)),item,stop_poll_items(tail,finish))
 
 def stop_poll_orders(items: List<&2,Item>, state: Types.State, +finish: StopScenario.Finish) -> Types.State:
   match items:
@@ -556,19 +556,91 @@ def stop_cancelled(state: Types.State, queue: Queue, jobs: List<&2,Stored>, dela
   match queue:
     case Queue{+items,sequence,synced}: Runtime{stop_poll_orders(items,state,finish),Queue{stop_poll_items(items,finish),sequence,synced},jobs,delay}
 
-def stop_ended_runtime(ended: Maybe<&2,StopScenario.Ended>, state: Types.State, queue: Queue, jobs: List<&2,Stored>, delay: Nat) -> Runtime:
+# Stop completion cancels only the actual expiry-advice slots named by its
+# genuine CollectionRetireAdvice actions, matching the public command owner.
+def expiry_advice_matches(input: Input, advice: Nat) -> Bool:
+  match input:
+    case Event{Driver.Action{_,_,_,_,Some{owner}},_,_,_}: Nat.is_eq(owner,advice)
+    case FitEvent{Driver.Action{_,_,_,_,Some{owner}},_,_,_,_}: Nat.is_eq(owner,advice)
+    case _: False{}
+
+def stop_expiry_keep(remove: Bool, item: Item, tail: List<&2,Item>) -> List<&2,Item>:
+  match remove:
+    case True{}: tail
+    case False{}: item <> tail
+
+def stop_expiry_items(items: List<&2,Item>, +advice: Nat) -> List<&2,Item>:
+  match items:
+    case Nil{}: []
+    case +item <> tail:
+      stop_expiry_keep(expiry_advice_matches(stop_item_input(item),advice),item,stop_expiry_items(tail,advice))
+
+def stop_expiry_cancel(remove: Bool, state: Types.State, order: Nat) -> Types.State:
+  match remove:
+    case True{}: Engine.cancel(state,order)
+    case False{}: state
+
+def stop_expiry_orders(items: List<&2,Item>, state: Types.State, +advice: Nat) -> Types.State:
+  match items:
+    case Nil{}: state
+    case Item{_,order,+input} <> tail:
+      stop_expiry_orders(tail,stop_expiry_cancel(expiry_advice_matches(input,advice),state,order),advice)
+
+def stop_expiry_runtime(runtime: Runtime, +advice: Nat) -> Runtime:
+  match runtime:
+    case Runtime{state,Queue{+items,sequence,synced},jobs,delay}:
+      Runtime{stop_expiry_orders(items,state,advice),Queue{stop_expiry_items(items,advice),sequence,synced},
+        forget_job(jobs,advice),delay}
+
+def stop_ended_actions(actions: List<&2,Driver.Action>, runtime: Runtime) -> Runtime:
+  match actions:
+    case Nil{}: runtime
+    case Driver.Action{Canonical.CollectionRetireAdvice{advice},_,_,_,_} <> tail:
+      stop_ended_actions(tail,stop_expiry_runtime(runtime,advice))
+    case _ <> tail: stop_ended_actions(tail,runtime)
+
+def stop_ended_runtime(ended: Maybe<&2,StopScenario.Ended>, state: Types.State, queue: Queue,
+    jobs: List<&2,Stored>, delay: Nat, actions: List<&2,Driver.Action>) -> Runtime:
   match ended:
-    case Some{StopScenario.Ended{finish,_}}: stop_cancelled(state,queue,jobs,delay,finish)
+    case Some{StopScenario.Ended{finish,_}}:
+      stop_ended_actions(actions,stop_cancelled(state,queue,jobs,delay,finish))
     case None{}: Runtime{state,queue,jobs,delay}
 
-def stop_hook_runtime(runtime: Runtime, first: Driver.Handled, following: Driver.Handled, +environment: Environment, +value: Canonical.Command,
+# The public ordinary handler coalesces its own effects before collector/Stop
+# actions are appended; nonordinary retirement must not enter PendingEffects.
+def stop_ordinary_issued(issued: Engine.IssuedActions, handled: Bool, first: Driver.Handled,
+    following: Driver.Handled, environment: Environment, value: Canonical.Command,
+    queue: Queue, jobs: List<&2,Stored>, now: Nat, job: Job, delay: Nat,
+    source: Maybe<&2,EmissionContext>) -> Runtime:
+  match issued:
+    case Engine.IssuedActions{state,actions}:
+      interpreted_with(collector_combined(first,collector_combined(Driver.Handled{handled,actions},following)),
+        environment,value,state,queue,jobs,now,job,delay,source)
+
+def stop_ordinary_runtime(result: Driver.Handled, +state: Types.State, first: Driver.Handled,
+    following: Driver.Handled, environment: Environment, value: Canonical.Command,
+    queue: Queue, jobs: List<&2,Stored>, now: Nat, job: Job, delay: Nat,
+    source: Maybe<&2,EmissionContext>) -> Runtime:
+  match result:
+    case Driver.Handled{handled,actions}:
+      stop_ordinary_issued(Engine.issue_actions(state,actions),handled,first,following,environment,value,
+        queue,jobs,now,job,delay,source)
+
+def stop_ordinary_handled(first: Driver.Handled, state: Types.State, event: Canonical.CanonicalEvent,
+    value: Canonical.Command, context: Driver.Context,
+    handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Driver.Handled:
+  match first:
+    case Driver.Handled{True{},_}: Driver.Handled{False{},[]}
+    case _: handler(state,event,value,context)
+
+def stop_hook_runtime(runtime: Runtime, +first: Driver.Handled, following: Driver.Handled, +environment: Environment, +value: Canonical.Command,
     +event: Canonical.CanonicalEvent, now: Nat, +job: Job, +candidate: Maybe<&2,Driver.Candidate>,
     +context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Runtime:
   match runtime:
     case Runtime{+state,queue,jobs,+delay}:
-      interpreted_with(collector_combined(first,collector_combined(handler(state,event,value,context),following)),
-        environment,value,state,queue,jobs,now,job,delay,Some{EmissionContext{context,receipt}})
+      stop_ordinary_runtime(stop_ordinary_handled(first,state,event,value,context,handler),state,first,following,environment,value,
+        queue,jobs,now,job,delay,Some{EmissionContext{context,receipt}})
 
 # The owner supplies an original fit attempt only for the newly issued action.
 # Existing queue entries retain their input, order, time and environmental facts.
@@ -660,8 +732,8 @@ def interpret_stopped(stopped: Engine.StopHandled, first: Driver.Handled,
     context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
   match stopped:
-    case Engine.StopHandled{state,following,+ended,attempt,_}:
-      stop_finished_runtime([stop_fit_runtime(stop_hook_runtime(stop_ended_runtime(ended,state,queue,jobs,delay),first,following,
+    case Engine.StopHandled{state,+following,+ended,attempt,_}:
+      stop_finished_runtime([stop_fit_runtime(stop_hook_runtime(stop_ended_runtime(ended,state,queue,jobs,delay,handled_actions(following)),first,following,
         environment,value,event,now,job,candidate,context,receipt,handler),queue,attempt)],ended)
 
 def stop_profile_facts(profile: Maybe<&2,StopProfile>, now: Nat, delay: Nat, lease: Nat) -> StopScenario.CommandFacts:

@@ -129,7 +129,7 @@ def boundary_record(value: Inputs.Boundary, initial: Nat, running: Running) -> R
 def scheduled(result: Initial.Initialized, running: Running) -> Running:
   match result running:
     case Initial.Initialized{runtime,_,accepted} Running{input,_,issued,frames,valid,observations}:
-      Running{input,runtime,issued,frames,valid && accepted,observations}
+      Running{input,Edge.runtime_sync(runtime),issued,frames,valid && accepted,observations}
 
 def scheduled_boundary(+value: Inputs.Input, +input: Inputs.Scenario, +runtime: List<&2,Edge.Runtime>,
     issued: Nat, frames: List<&2,Wire.Frame>, valid: Bool, +observations: Nat) -> Running:
