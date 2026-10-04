@@ -183,3 +183,19 @@ describe("dedicated seeded outcome stream", () => {
     expect(draws(new SeededOutcomeSampler(0))).toHaveLength(16);
   });
 });
+
+it("retains the original edit source tuple across its same-time round-opening retry", () => {
+  const run = createRun({ seed: 7, preparationDelay: 2, jevDelay: 8, outcome: "clear",
+    inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }] });
+  const first = run.step(0);
+  expect(first?.event.kind).toBe("openRound");
+  const retry = run.runtimeSnapshot().queue.filter(item => item.input.kind === "edit");
+  expect(retry).toHaveLength(1);
+  expect(retry[0]?.driverSourceJob).toEqual({ partition: 1, lifetime: 1, bytes: 10, units: [5], outcome: { $: "None" } });
+  expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).runtimeSnapshot()).toEqual(run.runtimeSnapshot());
+  run.advance({ untilTime: 2, maxEvents: 100 });
+  expect(run.runtimeSnapshot().jobs.map(([,job]) => job.driverSourceJob)).toEqual([
+    { partition: 1, lifetime: 1, bytes: 10, units: [5], outcome: { $: "None" } },
+  ]);
+  expect(run.observations.some(frame => frame.event.kind === "jevRequestStarted")).toBe(true);
+});
