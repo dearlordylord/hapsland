@@ -124,17 +124,17 @@ def event_jobs(event: Canonical.CanonicalEvent, before: Canonical.State, after: 
     case _: jobs
 
 def put_job_selected(equal: Bool, existing: Stored, tail: List<&2,Stored>, operation: Nat, job: Job,
-    next: List<&2,Stored> -> List<&2,Stored>) -> List<&2,Stored>:
+    next: List<&2,Stored>) -> List<&2,Stored>:
   match equal:
     case True{}: Stored{operation,job} <> tail
-    case False{}: existing <> next(tail)
+    case False{}: existing <> next
 
 def put_job(jobs: List<&2,Stored>, +operation: Nat, +job: Job) -> List<&2,Stored>:
   match jobs:
     case Nil{}: [Stored{operation,job}]
     case Stored{+id,existing} <> tail:
       put_job_selected(Nat.is_eq(id,operation),Stored{id,existing},tail,operation,job,
-        remaining => put_job(remaining,operation,job))
+        put_job(tail,operation,job))
 
 def remember(command: Canonical.Command, jobs: List<&2, Stored>, job: Job) -> List<&2, Stored>:
   match command:
