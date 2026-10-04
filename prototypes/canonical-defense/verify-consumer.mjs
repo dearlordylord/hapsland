@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { compareNativeRuntime, compareNativeFrames } from "./compare-native-runtime.mjs";
 import { runWorkloadEmitted } from "../../packages/monkey-business-bend/conformance/workload-native-runner.mjs";
 import { runNative } from "../../packages/monkey-business-bend/conformance/native-run-runner.mjs";
 import { createNativePreflight, cleanupNativePreflight } from "../../packages/monkey-business-bend/conformance/native-preflight.mjs";
@@ -75,13 +76,14 @@ for (const envelope of envelopes) {
   let ticks = 0, paused = false, suspended = false, pace = 1200;
   const checkpoints = list(readRecord(envelope.trace).checkpoints).map(readRecord);
   assert.equal(checkpoints.length, inputs.length);
-  const receipts = [], nativeFrames = [];
+  const receipts = [];
   assert.equal(run.now, 0);
   assert.equal(run.observations.length, 0, "configuration queues arrivals without performing work");
   for (const [index, input] of inputs.entries()) {
     const checkpoint = checkpoints[index];
     assert.deepEqual(checkpoint.input, input);
     const beforeWorld = one(checkpoint.before), afterWorld = one(checkpoint.after);
+    compareNativeRuntime(one(beforeWorld.engine),run.runtimeSnapshot(),`campaign ${seed} checkpoint ${index} before`);
     const beforeEndpoint = endpoint(beforeWorld);
     assert.deepEqual(beforeEndpoint, callbackPublicBoundary(run.observe(), [], []).endpoint);
     if (input.$ === "DefenseConsumerObserved.Key") {
@@ -105,8 +107,9 @@ for (const envelope of envelopes) {
       for (const physical of history) {
         const before = one(physical.before), after = one(physical.after);
         assert.equal(before.valid, true); assert.equal(after.valid, true);
-        const publicPhysical = [];
+        const publicPhysical = [], publicFrames = [];
         const unsubscribe = run.subscribeStructural(frame => {
+          publicFrames.push(frame);
           if (frame.kind === "callbackDelivery") publicPhysical.push(frame);
         });
         try {
@@ -127,6 +130,8 @@ for (const envelope of envelopes) {
           assert.deepEqual(one(readRecord(delivery.after).core), actual.after.engine, "full physical owner after delivery");
           assert.deepEqual(delivery.action, actual.delivery, "actual original physical action");
         }
+        compareNativeRuntime(after,run.runtimeSnapshot(),`campaign ${seed} tick ${ticks} endpoint`);
+        compareNativeFrames(physical.frames,publicFrames,`campaign ${seed} tick ${ticks}`);
         for (const raw of list(physical.frames)) {
           const frame = readRecord(raw), details = readRecord(frame.details);
           assert.equal(details.$, "NativeRunTypes.FrameDetails");
@@ -155,7 +160,8 @@ for (const envelope of envelopes) {
           // A native snapshot is not an Edge Runtime: item/job bindings and
           // deliveries without an observation still need the shared owner's
           // complete publication contract. Do not fabricate an Edge envelope.
-          throw new Error("pending complete NativeRun runtime/job/request/callback registry and frame comparison");
+          // Fieldwise comparison above refuses any absent factual owner registry.
+          // No synthetic Edge envelope is constructed from this native sidecar.
         }
       }
       assert.equal(afterWorld.clock, ticks);
@@ -167,6 +173,7 @@ for (const envelope of envelopes) {
           "800-ms preparation and 3200-ms Jev facts cannot settle at the 2000-ms midpoint");
       }
     }
+    compareNativeRuntime(one(afterWorld.engine),run.runtimeSnapshot(),`campaign ${seed} checkpoint ${index} after`);
     assert.deepEqual(endpoint(afterWorld), callbackPublicBoundary(run.observe(), [], []).endpoint);
     if (paused) assert.deepEqual(endpoint(afterWorld), beforeEndpoint, "pause preserves full public endpoint");
     assert.deepEqual(untouchedDashboard.observe(), dashboardBefore, "game controls cannot mutate another instance");
@@ -175,7 +182,7 @@ for (const envelope of envelopes) {
     assert.deepEqual(restored.exportReplay(), exported);
     assert.deepEqual(restored.observe(), run.observe(), "full ordinary replay at every game midpoint");
   }
-  assert.deepEqual(nativeFrames, callbackPublicBoundary(run.observe(), [], []).frames, "complete ordered public frames, scopes and receipts");
+
   assert.deepEqual(endpoint(one(readRecord(envelope.trace).world)), callbackPublicBoundary(run.observe(), [], []).endpoint);
 }
 console.log("Full optional game consumer: native/emitted-JS/public histories and midpoint replay agree");
