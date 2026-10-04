@@ -307,16 +307,17 @@ def scoped_source(source: Maybe<&2,Driver.SourceJob>, scope: Maybe<&2,Nat>) -> M
 
 # Match actual Map.set insertion semantics: replacement preserves its slot.
 def put_job_selected(equal: Bool, original: T.StoredJob, tail: List<&2,T.StoredJob>,
-    operation: Nat, job: T.Job) -> List<&2,T.StoredJob>:
+    operation: Nat, job: T.Job, next: List<&2,T.StoredJob> -> List<&2,T.StoredJob>) -> List<&2,T.StoredJob>:
   match equal:
     case True{}: T.StoredJob{operation,job} <> tail
-    case False{}: original <> put_job(tail,operation,job)
+    case False{}: original <> next(tail)
 
-def put_job(jobs: List<&2,T.StoredJob>, +operation: Nat, job: T.Job) -> List<&2,T.StoredJob>:
+def put_job(jobs: List<&2,T.StoredJob>, +operation: Nat, +job: T.Job) -> List<&2,T.StoredJob>:
   match jobs:
     case Nil{}: [T.StoredJob{operation,job}]
     case T.StoredJob{+owner,original} <> tail:
-      put_job_selected(Nat.is_eq(owner,operation),T.StoredJob{owner,original},tail,operation,job)
+      put_job_selected(Nat.is_eq(owner,operation),T.StoredJob{owner,original},tail,operation,job,
+        remaining => put_job(remaining,operation,job))
 
 def remember_job(+state: T.State, +operation: Nat, job: Maybe<&2,T.Job>) -> T.State:
   match job:
@@ -746,7 +747,7 @@ def cancel_expiry_items(items: List<&2, T.Item>, +state: T.State, +advice: Nat, 
       cancel_expiry_items(tail, Bool.pick(T.State, remove, replace_core(state, Engine.cancel(core(state), order)), state), advice,
         Bool.pick(List<&2, T.Item>, remove, kept, T.Item{order, input} <> kept))
 
-def cancel_expiry(state: T.State, advice: Nat) -> T.State:
+def cancel_expiry(state: T.State, +advice: Nat) -> T.State:
   match state:
     case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs}:
       cancel_expiry_items(items, T.State{core, items, next, count, seed, environment, latest, valid, prepared,remove_job(jobs,advice)}, advice, [])
