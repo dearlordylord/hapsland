@@ -1,9 +1,10 @@
 import { expect, it } from "vitest";
 import fc from "fast-check";
-import { runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadEmitted, runWorkloadNative, WORKLOAD_CONFORMANCE_TIMEOUT_MS } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunConfig, type Run, type Observation } from "./index.ts";
 
 const advicees = ["opaque:departing/session", "independent/advicee"] as const;
+const WORKLOAD_EMITTED_CONFORMANCE_TIMEOUT_MS = 30000;
 const scenario = (seed = 7, delay = 20): RunConfig => ({
   seed, retention: 1000, preparationDelay: 2, jevDelay: delay, outcome: "finding",
   sessions: advicees.map((agent, index) => ({ agent, seed: index + 11, editIntervalMs: 1000000,
@@ -327,3 +328,22 @@ it("native shared driver agrees on original preparation completion after departu
   expect(native.filter(row => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1);
   expect(native).toEqual(lifecycleTrace(preparationDeparture()));
 }, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
+
+it.each([
+  ["disconnect", "advicee-departure.bend"], ["remove", "advicee-removal.bend"],
+] as const)("fresh emitted JS driver agrees on original %s and fresh activity inputs", (action, fixture) => {
+  const emitted = runWorkloadEmitted(new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url)) as number[][];
+  expect(emitted.filter(row => [97, 98, 99].includes(row[0]!))).toEqual([]);
+  expect(emitted.length).toBeLessThan(120);
+  expect(emitted.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
+  expect(emitted).toEqual(lifecycleTrace(departAndResume(action)));
+}, WORKLOAD_EMITTED_CONFORMANCE_TIMEOUT_MS);
+
+it("fresh emitted JS driver agrees on original preparation completion after departure", () => {
+  const emitted = runWorkloadEmitted(new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url)) as number[][];
+  expect(emitted.filter(row => [97, 98, 99].includes(row[0]!))).toEqual([]);
+  expect(emitted.length).toBeLessThan(120);
+  expect(emitted.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
+  expect(emitted.filter(row => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1);
+  expect(emitted).toEqual(lifecycleTrace(preparationDeparture()));
+}, WORKLOAD_EMITTED_CONFORMANCE_TIMEOUT_MS);
