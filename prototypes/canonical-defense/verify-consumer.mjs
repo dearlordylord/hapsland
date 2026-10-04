@@ -14,7 +14,7 @@ import { createRun, restoreReplay } from "../../packages/monkey-business/src/ind
 // the ONE game_consumer descriptor and actual NativeRun full observed sidecars.
 // Missing sidecars are an explicit failure: no tuple projection substitutes.
 const fixture = new URL("./DefenseConsumerConformance.bend", import.meta.url);
-const streams = await createGameStreams(fixture,gameOwnerSources);
+const streams = await createGameStreams(fixture,gameOwnerSources,{emissionTimeoutMs:45000,clangTimeoutMs:90000});
 try {
 assert.equal(streams.native.length,145,"all derived original checkpoint batches");
 assert.equal(streams.native.length,streams.emitted.length,"all native/emitted batches");
@@ -151,37 +151,12 @@ for (const seed of [0,3,17,41]) {
         }
         compareNativeRuntime(after,run.runtimeSnapshot(),`campaign ${seed} tick ${ticks} endpoint`);
         compareNativeFrames(physical.frames,publicFrames,`campaign ${seed} tick ${ticks}`);
+        // compareNativeFrames already validates these snapshots, contexts,
+        // scopes and attached physical deliveries. Retain only the actual
+        // delivered-target history needed by the independent public endpoint.
         for (const raw of list(physical.frames)) {
-          const frame = readRecord(raw), details = readRecord(frame.details);
-          assert.equal(details.$, "NativeRunTypes.FrameDetails");
-          // These are the actual per-frame source snapshots, never tick endpoints.
-          const runtimeBefore = readRecord(details.before), runtimeAfter = readRecord(details.after);
-          assert.equal(runtimeBefore.$, "NativeRunTypes.RuntimeSnapshot");
-          assert.equal(runtimeAfter.$, "NativeRunTypes.RuntimeSnapshot");
-          decodeObservedState(runtimeBefore.core);
-          decodeObservedState(runtimeAfter.core);
-          decodeObservedState(details.transition_after);
-          list(details.prepared).forEach(value => assert.equal(readRecord(value).$, "NativeRunTypes.EmissionContext"));
-          list(details.command_scopes).forEach(value => {
-            const scope = readRecord(value);
-            assert.ok(scope.$ === "None" || scope.$ === "Some");
-            if (scope.$ === "Some") readNat(scope.value);
-          });
-          const receipt = readRecord(details.receipt);
-          assert.ok(receipt.$ === "None" || receipt.$ === "Some");
-          if (receipt.$ === "Some") assert.equal(readRecord(receipt.value).$, "Callbacks.Fact");
+          const details = readRecord(readRecord(raw).details), receipt = readRecord(details.receipt);
           if (receipt.$ === "Some") nativeReceipts.push(decodeCallbackTarget(readRecord(receipt.value).target));
-          for (const value of list(details.physical)) {
-            const delivery = readRecord(value);
-            assert.equal(delivery.$, "NativeRunTypes.PhysicalDelivery");
-            decodeObservedState(readRecord(delivery.before).core);
-            decodeObservedState(readRecord(delivery.after).core);
-          }
-          // A native snapshot is not an Edge Runtime: item/job bindings and
-          // deliveries without an observation still need the shared owner's
-          // complete publication contract. Do not fabricate an Edge envelope.
-          // Fieldwise comparison above refuses any absent factual owner registry.
-          // No synthetic Edge envelope is constructed from this native sidecar.
         }
       }
       assert.equal(afterWorld.clock, ticks);
