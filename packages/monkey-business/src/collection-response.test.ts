@@ -4,28 +4,8 @@ import * as boundary from "../../../src/canonical/simulation-adapter.ts";
 import { encodeCollectionResponse } from "./collection-scenario.ts";
 import { encodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
 import { readRecord } from "../../../src/canonical/boundary-schema.ts";
-import { createRun, restoreReplay, type Run } from "./index.ts";
-import { validateCollectionResponseControl, type CollectionResponseControl } from "./collection-scenario.ts";
 
-const agent = "agent-1";
-const target: { id: number; partition: number; lifetime: number; round: number } = { id: 1, partition: 1, lifetime: 1, round: 1 };
-// Deliberate TDD seam: production LiveControl still needs central integration.
-// This cast introduces no alternate host driver or authorizing fallback.
-const control = (run: Run, value: CollectionResponseControl) => run.applyControl(validateCollectionResponseControl(value) as Parameters<Run["applyControl"]>[0]);
-const opened = (deadline = 20, admittedBlock = false) => {
-  const run = createRun({ retention: 1000, preparationDelay: 2, jevDelay: 5,
-    inputs: [{ at: 0, kind: "edit", agent, bytes: 10, unitBytes: [5], outcome: "finding" }] });
-  expect(run.observe().agentScopes).toEqual([{ agent: "agent-1", partition: 1, seed: 1 }]);
-  run.advance({ untilTime: 0 });
-  expect(run.observations.every(frame => frame.agent === undefined || frame.agent === "agent-1")).toBe(true);
-  control(run, { kind: "collectionResponse", action: "open", agent,
-    response: { partition: target.partition, lifetime: target.lifetime, round: target.round, started: 0, deadline, admittedBlock } });
-  return run;
-};
-const attempt = (run: Run, currentBlock = false, identity = target) => control(run,
-  { kind: "collectionResponse", action: "attempt", agent, target: identity, currentBlock });
-const terminal = (run: Run) => run.observations.filter(frame => frame.event.kind === "submissionTerminal");
-const replayExact = (run: Run) => expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
+import { agent, target, control, opened, attempt, terminal, replayExact } from "./collection-response.fixture.ts";
 
 it("retains completed finding until a current response selects its exact authorized member", () => {
   const run = opened();

@@ -533,6 +533,8 @@ def intersection_agent(input: IntersectionInputs.Control) -> Maybe<&2,String>:
   match input:
     case IntersectionInputs.OpenResponse{agent,_}: Some{agent}
     case IntersectionInputs.AttemptIssuedResponse{agent,_,_}: Some{agent}
+    case IntersectionInputs.CloseIssuedResponse{agent,_}: Some{agent}
+    case IntersectionInputs.AttemptIssuedResponseScope{agent,_,_,_}: Some{agent}
     case IntersectionInputs.LeaveMember{agent,_}: Some{agent}
     case IntersectionInputs.OutputProfile{_,_}: None{}
 

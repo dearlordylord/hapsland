@@ -8,3 +8,5 @@ type Control is Data:
   AttemptIssuedResponse{agent: String, open_index: Nat, blocked: Bool}
   OutputProfile{delay: Nat, lease: Nat}
   LeaveMember{agent: String, admission_index: Nat}
+  CloseIssuedResponse{agent: String, open_index: Nat}
+  AttemptIssuedResponseScope{agent: String, open_index: Nat, lifetime: Nat, blocked: Bool}

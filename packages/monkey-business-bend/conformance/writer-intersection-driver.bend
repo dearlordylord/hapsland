@@ -52,6 +52,18 @@ def attempt(target: Maybe<&2,Response.Identity>, runtime: Writer.Runtime, +input
         input,Some{Response.Identity{id,p,l,r}},job)
     case _ runtime: invalid(runtime)
 
+def scoped(target: Maybe<&2,Response.Identity>, lifetime: Nat) -> Maybe<&2,Response.Identity>:
+  match target:
+    case Some{Response.Identity{id,p,_,r}}: Some{Response.Identity{id,p,lifetime,r}}
+    case None{}: None{}
+
+def close(target: Maybe<&2,Response.Identity>, runtime: Writer.Runtime, +input: Inputs.Control, job: Edge.Job) -> Writer.Runtime:
+  match target runtime:
+    case Some{Response.Identity{+id,+p,+l,+r}} Writer.Runtime{Edge.Runtime{+state,queue,jobs,delay} <> Nil{},bindings,frames,consumed,valid}:
+      published(Engine.collection_response_close(state,id,p,l,r),state,queue,jobs,delay,bindings,frames,consumed,valid,
+        input,Some{Response.Identity{id,p,l,r}},job)
+    case _ runtime: invalid(runtime)
+
 def member_selected(equal: Bool, scope: Freshness.Scope, index: Nat,
     ih: Nat -> Maybe<&2,Freshness.Scope>) -> Maybe<&2,Freshness.Scope>:
   match equal index:
@@ -93,6 +105,10 @@ def apply(+input: Inputs.Control, +runtime: Writer.Runtime, +job: Edge.Job, orig
       published(Engine.collection_response_open(state,response),state,queue,jobs,delay,bindings,frames,consumed,valid,input,None{},job)
     case Inputs.AttemptIssuedResponse{_,index,blocked} Writer.Runtime{_,_,+frames,_,_}:
       attempt(opened(frames,index),runtime,input,blocked,job)
+    case Inputs.CloseIssuedResponse{_,index} Writer.Runtime{_,_,+frames,_,_}:
+      close(opened(frames,index),runtime,input,job)
+    case Inputs.AttemptIssuedResponseScope{_,index,lifetime,blocked} Writer.Runtime{_,_,+frames,_,_}:
+      attempt(scoped(opened(frames,index),lifetime),runtime,input,blocked,job)
     case Inputs.LeaveMember{_,index} Writer.Runtime{_,_,+frames,_,_}:
       leave(member(frames,Edge.job_partition(job),index),originals,runtime,input)
     case Inputs.OutputProfile{_,_} Writer.Runtime{Edge.Runtime{+state,queue,jobs,delay} <> Nil{},bindings,frames,consumed,valid}:

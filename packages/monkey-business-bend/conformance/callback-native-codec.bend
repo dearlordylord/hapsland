@@ -3021,6 +3021,8 @@ def writer_intersection_controls_control(values: List<&2,writer_intersection_con
     case writer_intersection_controls.AttemptIssuedResponse{v0,v1,v2} <> Nil{}: 1n <> text([v0],v1 <> boolean(v2,suffix))
     case writer_intersection_controls.OutputProfile{v0,v1} <> Nil{}: 2n <> v0 <> v1 <> suffix
     case writer_intersection_controls.LeaveMember{v0,v1} <> Nil{}: 3n <> text([v0],v1 <> suffix)
+    case writer_intersection_controls.CloseIssuedResponse{v0,v1} <> Nil{}: 4n <> text([v0],v1 <> suffix)
+    case writer_intersection_controls.AttemptIssuedResponseScope{v0,v1,v2,v3} <> Nil{}: 5n <> text([v0],v1 <> v2 <> boolean(v3,suffix))
     case _: 999999n <> suffix
 
 def writer_original_inputs_boundary(values: List<&2,writer_original_inputs.Boundary>, suffix: List<&2,Nat>) -> List<&2,Nat>:

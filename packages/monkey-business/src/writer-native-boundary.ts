@@ -114,11 +114,11 @@ export function decodeWriterNativeBoundary(value: unknown) {
         original = validateCollectionResponseControl({ kind: "collectionResponse", action: "open", agent: raw.agent,
           response: { partition: facts.partition, lifetime: facts.lifetime, round: facts.round,
             started: facts.started, deadline: facts.deadline, admittedBlock: facts.admitted_block } });
-      } else if (raw.$ === "writer_intersection_controls.AttemptIssuedResponse") {
+      } else if (["writer_intersection_controls.AttemptIssuedResponse", "writer_intersection_controls.AttemptIssuedResponseScope", "writer_intersection_controls.CloseIssuedResponse"].includes(String(raw.$))) {
         if (response === undefined) throw new TypeError("missing original issued response");
         readNat(raw.open_index);
-        original = validateCollectionResponseControl({ kind: "collectionResponse", action: "attempt", agent: raw.agent,
-          target: identity(response), currentBlock: raw.blocked });
+        original = validateCollectionResponseControl({ kind: "collectionResponse", action: raw.$ === "writer_intersection_controls.CloseIssuedResponse" ? "close" : "attempt", agent: raw.agent,
+          target: identity(response), ...(raw.$ === "writer_intersection_controls.CloseIssuedResponse" ? {} : { currentBlock: raw.blocked }) });
       } else if (raw.$ === "writer_intersection_controls.LeaveMember") {
         if (member === undefined) throw new TypeError("missing original member scope");
         readNat(raw.admission_index);
