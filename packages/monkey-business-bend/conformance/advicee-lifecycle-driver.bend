@@ -111,23 +111,23 @@ def settled_jobs(retained: Bool, jobs: List<&2,Stored>, operation: Nat) -> List<
 def event_jobs(event: Canonical.CanonicalEvent, before: Canonical.State, after: Canonical.State,
     jobs: List<&2,Stored>) -> List<&2,Stored>:
   match event:
-    case Canonical.PreparationCompleted{_,_,_,operation,_}:
+    case Canonical.PreparationCompleted{_,_,_,+operation,_}:
       forget_job(forget_job(jobs,operation),preparation_parent(Driver.find_operation(Driver.work_list(before),operation)))
-    case Canonical.JevRequestSettled{_,_,_,operation,_,_,_}:
+    case Canonical.JevRequestSettled{_,_,_,+operation,_,_,_}:
       settled_jobs(retained_finding(Driver.find_operation(Driver.work_list(after),operation)),jobs,operation)
-    case Canonical.ReviewObserved{_,_,_,operation,_,_}:
+    case Canonical.ReviewObserved{_,_,_,+operation,_,_}:
       settled_jobs(retained_finding(Driver.find_operation(Driver.work_list(after),operation)),jobs,operation)
-    case Canonical.ReviewCompleted{_,_,_,operation,_}:
+    case Canonical.ReviewCompleted{_,_,_,+operation,_}:
       settled_jobs(retained_finding(Driver.find_operation(Driver.work_list(after),operation)),jobs,operation)
-    case Canonical.RetireReview{_,_,_,operation}:
+    case Canonical.RetireReview{_,_,_,+operation}:
       settled_jobs(retained_finding(Driver.find_operation(Driver.work_list(after),operation)),jobs,operation)
     case _: jobs
 
 def remember(command: Canonical.Command, jobs: List<&2, Stored>, job: Job) -> List<&2, Stored>:
   match command:
-    case Canonical.ObservationAdmitted{operation}: Stored{operation, job} <> forget_job(jobs,operation)
-    case Canonical.Prepare{operation, _}: Stored{operation, job} <> forget_job(jobs,operation)
-    case Canonical.UnitAdmitted{operation, _, _, _, _}: Stored{operation, job} <> forget_job(jobs,operation)
+    case Canonical.ObservationAdmitted{+operation}: Stored{operation, job} <> forget_job(jobs,operation)
+    case Canonical.Prepare{+operation, _}: Stored{operation, job} <> forget_job(jobs,operation)
+    case Canonical.UnitAdmitted{+operation, _, _, _, _}: Stored{operation, job} <> forget_job(jobs,operation)
     case _: jobs
 
 def append(queue: Queue, at: Nat, input: Input) -> Queue:
@@ -1061,7 +1061,7 @@ def snapshot_valid(states: List<&2,Types.State>) -> Bool:
 
 def event_runtime_jobs(runtime: List<&2,Runtime>, before: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> List<&2,Runtime>:
   match runtime before:
-    case Runtime{state,queue,jobs,delay} <> Nil{} Runtime{previous,_,_,_} <> Nil{}:
+    case Runtime{+state,queue,jobs,delay} <> Nil{} Runtime{previous,_,_,_} <> Nil{}:
       [Runtime{state,queue,event_jobs(event,Engine.canonical(previous),Engine.canonical(state),jobs),delay}]
     case runtime _: runtime
 
