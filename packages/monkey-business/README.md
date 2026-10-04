@@ -20,8 +20,8 @@ Run `node --experimental-strip-types packages/monkey-business/src/example.ts` fr
 The shared [Bend engine](../monkey-business-bend/README.md) owns Canonical and
 bounded ImportGraph state, virtual queue selection, and the complete base
 observation → preparation → Jev → authorized output driver. TypeScript validates
-source-free facts, projects checked output, retains observations, and adapts the
-unported scenario-specific Stop/reuse/collector orchestration. All variants use
+source-free facts, projects checked output, retains observations, and invokes the shared Stop, reuse, collector, writer,
+expiry and quiet owners through their maintained codecs. All variants use
 the same reducer owner and queue; the dashboard consumes this public Run API.
 The base driver invokes the production decisions directly, including final
 freshness/credential checks, suppression, lease reservation and submission
@@ -228,27 +228,37 @@ publishing an effect; it must not truncate clocks to fit a smaller machine
 word. Fractional, negative, nonfinite and adjacent out-of-domain values remain
 invalid. Outcome weights retain finite fractional values in [0,100].
 
-Initial coverage map for #178 (extend this table as complete slices land):
+Current coverage map for #178–#200. The named owners implement synthetic
+business behavior; recorded local checks qualify their stated scenarios, not
+real transport, installed agent runtimes or every possible interleaving.
 
-| Boundary | Actual production decision core | Modeled host orchestration | Unexercised native boundary |
+| Family | Shared Bend owner and public/dashboard path | Recorded local acceptance evidence | Boundary still outside that evidence |
 | --- | --- | --- | --- |
-| Admission and ownership | Canonical admission/round/ledger/dispatch | Scripted edits, shared advicee partition bindings, execution slot facts | Runtime hook attribution, real resident IPC and edit execution |
-| Preparation | ImportGraph permission, visited targets, budgets and completion; Canonical preparation reservations | Seeded source-free tree, capture/resolve facts, synthetic byte inputs | Filesystem parsing, actual bytes, source/rule capability capture |
-| Jev | Canonical request permits, phase/identity fences, settlement and retention | Captured request due time/outcome; NeverSent omits start; interruption follows start | HTTP, real credentials, transport and paid reviewer |
-| Advice and output | Canonical collection, freshness, suppression, lease/submission and Stop decisions | Synthetic current-source/credential facts, certain/uncertain/failed callbacks, finite timers | Native writer/encoding, model-visible receipt and repair quality |
-| Reuse and lifetime | Canonical revision/reuse/cache, permits, collectors, notices, quiet and retirement | Source-free identity fixtures and selected lifecycle/resource scenario routes | Native identity verification, full resident shutdown; generated live-advice joining |
-| Workload and scheduling | Existing compiled Session core supplies task/edit/finish transitions | Shared Engine owns queue, clock, active workload state and outcome sampling; host retains input/observation codecs, selected later-slice adapters and replay IO | Original-input native fixtures exercise base edit/review/output and workload/PRE/repair slices; later scenario families extend coverage |
+| Admission, preparation and multi-advicee lifecycle (#178–186) | Canonical, Driver, Workload, PermitScenario and PreparationScenario; public Run and dashboard edit/PRE/completion controls | Original lifecycle native/emitted/public cases; generated PRE and permit public/dashboard checks; callback six-case native/emitted/public/replay family | Actual filesystem capture, native IPC, runtime hooks and real Jev transport |
+| Freshness (#187) | FreshnessScenario and production output freshness decisions; captured callbacks through Run | Both original freshness variants: retained native output, fresh emitted JavaScript, independent public milestones and replay | Actual source capture and credential transport |
+| Reuse and cache (#188–189) | SharingScenario and CacheScenario; shared reuse controls and advicee lifecycle | Seven original sharing cases and cache-pressure/refusal case: native/emitted equality, independent public expectations and replay (sharing uses guarded retained outputs) | Native identity verification and real cache/storage IO |
+| Notices and exact expiry (#190, #196) | NoticeScenario, ExpiryScenario, Collection and Notice clocks; public resource/notice controls | Original notice owner cases and twelve expiry cases: native/emitted/public/frozen-input/replay agreement | Real-time clocks and native notice delivery |
+| Output attempts (#191) | OutputScenario and OutputCompletion; public attempt controls and dashboard delivery controls | Native batch/completion owner rows; public output/control assertions and dashboard control tests | Native serialization size and external acknowledgment transport |
+| Collection and writers (#192–193) | Collector, CollectionResponseScenario and WriterScenario; public response/writer controls | Collection/response/resource assertions; thirteen original writer native/emitted/public/replay cases; collector-meter browser check | Real background writer processes and resident IPC |
+| Stop and continuation (#194–195) | StopScenario and production fit/output authority; public Finish and dashboard selected-group inspection | Waiting, eleven original Stop cases and twelve output cases: native/emitted/public/frozen/replay agreement; seeded continuation tests and exclusive Stop-slot browser check | Supplied encoded-byte facts are synthetic, not measured serialization |
+| Quiet and recovery campaigns (#197–198) | QuietScenario plus existing lifecycle cleanup owners; shared Run controls | Quiet inactivity regression, twelve seeded public campaigns and applicable lifecycle/Stop/expiry owner evidence | No Cartesian campaign or special campaign UI is implied; unavailable scheduling premises are not passes |
+| Shared outcome/context execution | Engine.prepare_command_context and authentic source-job/receipt carriers | Meaningful public outcome/codec checks; aggregate NativeRun producer equality has been exercised | NativeRun's seven-case public qualification retains an initial wide-clock configuration failure until its corrected public case is observed passing |
+| Optional game and consumer independence (#199–200) | Independent game consumer; dashboard/headless core has no game dependency | Disposable game-absent dashboard build and removal audit; current selected business checks above | Full continuous game execution remains pending after bounded runs stopped before completing its original workload |
 
-`public-seam.test.ts` independently expects intermediate request completion,
-NeverSent start absence, finding retention, exact viewing boundaries and numeric
-refusal. Existing directed/recovery/shared-resident/environment tests remain
-representative contract regressions. `native-boundary.test.ts` compares the
-actual compiled Canonical through the public Run with native Bend for ordinary
-and duplicate round opening and wide-Nat identities, reproducing public cases
-through ordinary replay. It establishes that selected boundary only; full
-native/JS simulator trace agreement is extended with each later Bend slice.
-All checks are offline, finite and source-free. No native-runtime support,
-complete simulation proof or empirical Jev claim follows from these fixtures.
+The public headless boundary and ordinary version-one replay are shared across
+these families. Complete native/emitted comparisons use each family's accepted
+observable wire, with independently expected intermediate business facts; recursive
+private Engine/Runtime layouts are not a required oracle. Retained-output checks
+are explicit, source/tool guarded and reported as retained evidence, not fresh
+compilation. Mixed failed runs preserve their passing owner results.
+
+The disposable game-absent build was observed at `ce35b138`; the application and
+dashboard package/build configuration remains unchanged through `3f4b5219`.
+That is historical consumer-independence evidence, not a fresh build of every
+subsequent source change. Final #200 reconciliation must identify the applicable
+current local checks and unfinished game/NativeRun boundaries. It does not impose
+an exhaustive theorem inventory, CI wait or another native compilation of already
+qualified unchanged families. Accepted laws remain in their existing owners.
 
 Continuous tasks, task pause, edit interval/jitter, edits per task and advice
 responses are configurable at dashboard Start alongside existing per-advicee

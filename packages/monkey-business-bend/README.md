@@ -140,8 +140,9 @@ metadata-only task transitions can advance it without another business frame.
 `Random.bend` owns u48 root-seed folding, named outcome/fault streams and outcome
 selection. Each workload has its own Session stream; preparation retains its
 captured per-artifact stream, independent of outcome draws. The named fault stream
-is reserved independently for the later injected-fault slice; this slice does not
-invent an injection API. Explicit outcomes consume no weighted-outcome draw.
+is separate from outcome draws; the maintained public fault controls and seeded
+campaigns exercise their named original identities without introducing another
+outcome selector. Explicit outcomes consume no weighted-outcome draw.
 `Numeric.bend` implements the **sampler's positive finite binary64 domain**:
 weights in [0,100], totals up to 600, and normalized ratios in [0,1]. Host codecs
 encode raw IEEE64 words; total, normalization, cumulative rounding and draw
