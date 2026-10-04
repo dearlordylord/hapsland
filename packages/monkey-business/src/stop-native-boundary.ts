@@ -104,11 +104,20 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       same(decodePrefixGraphEvent(input.event), encodeImportGraphEvent(event.fact), `${field} item ${order} full graph event`);
     } else if (input.$ === "advicee_lifecycle_driver.FinishIntent") {
       if (publicItem.input.kind !== "finish") throw new Error("native Finish intent changed public input kind");
+      const scope = premise.agentScopes.find(scope => scope.agent === (publicItem.input.agent ?? "agent-1"));
+      if (!scope) throw new Error("original Finish has no actual declared advicee scope");
+      same(input.partition,scope.partition,`${field} item ${order} original Finish advicee`);
       same(readNat(input.started), publicItem.input.at, `${field} item ${order} original Stop start`);
       same(readBool(input.recurring), ("recurring" in publicItem.input ? publicItem.input.recurring : false), `${field} item ${order} original recurrence`);
       // Cutoff is compared against the separately frozen original input;
       // full registration/capture comparisons preserve its actual owner value.
       same(readNat(input.cutoff), publicItem.input.at + originalFinishWait(premise.input), `${field} item ${order} original cutoff`);
+    } else if (input.$ === "advicee_lifecycle_driver.Arrival") {
+      if (!publicItem.workloadSource) throw new TypeError("original Arrival lacks genuine public Workload source");
+      const emission = publicItem.workloadSource;
+      const units = emission.units.reduceRight<unknown>((tail,head) => ({ $: "Con", head, tail }),{ $: "Nil" });
+      same(input.event,{ ...emission, units },`${field} item ${order} complete original Workload emission`);
+      same(input.lifetime,publicItem.activityScope ?? 1,`${field} item ${order} original Arrival activity fence`);
     } else if (input.$ === "advicee_lifecycle_driver.SourceEdit") {
       if (publicItem.input.kind !== "edit") throw new Error("native original edit changed public input kind");
       const job = input;

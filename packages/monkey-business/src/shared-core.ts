@@ -35,6 +35,16 @@ import { decodeAdviceeLifecycles, encodeAdviceeLifecycle, type AdviceeLifecycleA
 import { sharedActivityEventValid, actSharedLifecycle, sharedLifecycleEntries, sharedActivityScope, sharedActivityValid, sharedActivityLifetime, editSharedActivity, issueSharedPermit, issuedSharedPermit, consumedSharedPermit } from "../../../src/canonical/simulation-adapter.ts";
 
 /** The shared Bend owner holds both production reducers; this boundary validates and projects. */
+export type WorkloadSource = ReturnType<typeof actSharedWorkload>["events"][number];
+type WorkloadInput = SessionInput & { readonly workloadSource: WorkloadSource };
+function workloadInput(event: WorkloadSource, agent: string): WorkloadInput {
+  const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring,
+    workloadSource: freezeCanonicalData({ ...event, units: [...event.units] }) };
+  if (event.kind === 0) return { ...common, kind: "task", task: event.task };
+  if (event.kind === 2) return { ...common, kind: "finish" };
+  return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
+}
+
 export class SharedCore {
   private state: EngineState;
   private structuralTransition: unknown;
@@ -129,12 +139,7 @@ export class SharedCore {
     this.state = transition.state;
     const changed = readRecord(transition.changed);
     const cleanup = readRecord(transition.cleanup);
-    const events: SessionInput[] = transition.events.map(event => {
-      const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring };
-      if (event.kind === 0) return { ...common, kind: "task", task: event.task };
-      if (event.kind === 2) return { ...common, kind: "finish" };
-      return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
-    });
+    const events = transition.events.map(event => workloadInput(event,agent));
     return { changed, cleanup, events };
   }
   admitFreshness(scope: FreshnessScope, source: FreshnessSource, index: number, sharing = false) {
@@ -196,15 +201,10 @@ export class SharedCore {
     this.state = prepared.state;
     return { context: prepared.context, receipt: prepared.receipt };
   }
-  workloadAction(partition: number, agent: string, action: unknown): SessionInput[] {
+  workloadAction(partition: number, agent: string, action: unknown): WorkloadInput[] {
     const changed = actSharedWorkload(this.state, partition, action);
     this.state = changed.state;
-    return changed.events.map(event => {
-      const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring };
-      if (event.kind === 0) return { ...common, kind: "task", task: event.task };
-      if (event.kind === 2) return { ...common, kind: "finish" };
-      return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
-    });
+    return changed.events.map(event => workloadInput(event,agent));
   }
   workloadControl(partition: number, agent: string, control: SessionControl | { readonly kind: "editDuration"; readonly durationMs: number }) {
     const native = control.kind === "editPace" ? { $: "Workload.Pace", interval: control.intervalMs }
