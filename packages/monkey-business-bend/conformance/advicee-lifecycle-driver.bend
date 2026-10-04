@@ -1461,8 +1461,8 @@ def observed_finish_started(-F: Data, registered: Engine.StopRegistered, +before
     case Engine.StopRegistered{+state,None{},_}:
       observed_finish_absent(F,recurring && Engine.workload_configured(state,partition),state,queue,jobs,delay,partition,hook)
 
-def observed_finish_intent(-F: Data, runtime: List<&2,Runtime>, p: Nat, started: Nat, cutoff: Nat,
-    recurring: Bool, now: Nat, order: Nat, hook: CommandHook<F>) -> Observed<F>:
+def observed_finish_intent(-F: Data, runtime: List<&2,Runtime>, +p: Nat, started: Nat, cutoff: Nat,
+    +recurring: Bool, now: Nat, order: Nat, hook: CommandHook<F>) -> Observed<F>:
   match runtime:
     case Runtime{+state,+queue,+jobs,+delay} <> Nil{}:
       observed_finish_started(F,Engine.stop_start(state,p,started,cutoff,recurring),[Runtime{state,queue,jobs,delay}],queue,jobs,delay,now,order,p,recurring,hook)
