@@ -2,11 +2,13 @@ import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
 import { runFreshnessNative, runFreshnessEmitted } from "../../monkey-business-bend/conformance/freshness-runner.mjs";
 
-// SOURCE-ONLY TDD: requires central Engine.freshness_edit_attempt and the
-// shared adapter's freshness-aware fence. Native input never comes from JS.
+// Original edits use Engine.edit_attempt and Engine.freshness_admitted at
+// actual admission, then the shared freshness fence. Native input never comes from JS.
 const expected = (changed: boolean) => [
-  [12, 7, 1, 1, 1, 3, 1, changed ? 0 : 1],
-  [12, 10, 1, 1, 1, 6, 2, 1],
+  // Shared issuance uses the actual owner allocator, also exercised independently
+  // by createRun below: operation/request are3/4, then7/8.
+  [12, 7, 1, 1, 1, 3, 4, changed ? 0 : 1],
+  [12, 10, 1, 1, 1, 7, 8, 1],
   ...(!changed ? [[18, 7]] : []), [18, 10],
   [32, 10, changed ? 1 : 2, changed ? 5 : 10, 0, 0, 0],
 ];
