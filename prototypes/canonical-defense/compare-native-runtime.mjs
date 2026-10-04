@@ -78,7 +78,14 @@ function compareStopPayload(value, publicItem, core, field, order) {
       `${field} full original Stop capture ${order}`);
 
     const action = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
-    assert.deepEqual(action,{ event:stopFact.event, delay:finish.deadline - finish.started, job:false },
+    const cutoffDelay = finish.deadline - finish.started;
+    assert.ok(action.delay === 0 || action.delay === cutoffDelay,
+      `${field} native Stop source delay ${order}`);
+    if (action.delay === 0) assert.ok(publicItem.at >= finish.started,
+      `${field} native Stop wake time ${order}`);
+    else assert.equal(publicItem.at,finish.deadline,
+      `${field} native Stop cutoff time ${order}`);
+    assert.deepEqual(action,{ event:stopFact.event, delay:action.delay, job:false },
       `${field} original Stop source action ${order}`);
     const job = readRecord(input.job);
     assert.equal(job.$,"NativeRunTypes.Job",`${field} original Stop job ${order}`);
@@ -87,6 +94,37 @@ function compareStopPayload(value, publicItem, core, field, order) {
       `${field} original Stop source job ${order}`);
     assert.equal(input.attempt,capture.attempt,`${field} original Stop input attempt ${order}`);
     compareContext(input.context,publicItem,`${field} Stop item ${order}`);
+}
+
+function compareFinishRegistration(frame, source, field) {
+  assert.equal(source.kind,"finishRegistration",`${field} original registration kind`);
+  assert.equal(source.registration.created,true,`${field} original registration created`);
+  const finish = source.registration.finish;
+  assert.ok(finish,`${field} original registration finish`);
+  assert.equal(source.time,finish.started,`${field} original registration time`);
+
+  assert.equal(frame.$,"NativeRunTypes.ProductFrame",`${field} native registration anchor family`);
+  assert.equal(frame.time,source.time,`${field} native registration anchor time`);
+  const polls = source.after.queue.filter(item => item.partition === finish.partition &&
+    item.finishAttempt === finish.attempt && item.input.kind === "canonical" &&
+    item.input.event.kind === "stopPolled");
+  const pollTimes = [...new Set([finish.started,finish.deadline])];
+  assert.equal(polls.length,pollTimes.length,`${field} original registration poll count`);
+  for (const at of pollTimes) {
+    const matches = polls.filter(item => item.at === at);
+    assert.equal(matches.length,1,`${field} original registration poll time ${at}`);
+    const item = matches[0];
+    assert.deepEqual(item.stopFact,{ at:item.at, event:item.input.event },`${field} original registration Stop fact ${at}`);
+    assert.deepEqual(item.stopCapture,{ partition:finish.partition, lifetime:finish.lifetime, round:finish.round,
+      attempt:finish.attempt, token:finish.token, started:finish.started, cutoff:finish.deadline },
+      `${field} original registration Stop capture ${at}`);
+    if (at === source.time) assert.deepEqual(frame.event,encodeCanonicalEvent(item.input.event),
+      `${field} native registration first poll event`);
+  }
+
+  const details = readRecord(frame.details), core = one(details.before.core);
+  assert.deepEqual(nativeStopFinish(core,finish.partition),finish,
+    `${field} native registered Stop`);
 }
 
 function comparePayload(value, publicItem, field, order, core) {
@@ -210,9 +248,11 @@ export function compareNativeRuntime(value, original, field) {
 export function compareNativeFrames(values, publicFrames, field) {
   const frames = list(values).map(readRecord);
   const observed = publicFrames.filter(frame => frame.kind !== "callbackDelivery");
-  assert.equal(frames.length,observed.length,`${field} all canonical/graph/registration observations`);
+  const comparable = observed.filter(frame => frame.kind !== "finishRegistration");
+  assert.equal(frames.length,comparable.length,`${field} all canonical/graph observations`);
+  const nativeByPublic = new Map(comparable.map((frame,index) => [frame,frames[index]]));
   for (const [index,frame] of frames.entries()) {
-    const actual = observed[index], details = readRecord(frame.details), transition = readRecord(actual.transition);
+    const actual = comparable[index], details = readRecord(frame.details), transition = readRecord(actual.transition);
     compareNativeRuntime(details.before,actual.before,`${field} frame ${index} before`);
     compareNativeRuntime(details.after,actual.after,`${field} frame ${index} after`);
     assert.equal(frame.time,actual.time,`${field} frame ${index} exact clock`);
@@ -256,5 +296,13 @@ export function compareNativeFrames(values, publicFrames, field) {
       assert.deepEqual(frame.command,result.command,`${field} complete graph command`);
       assert.deepEqual(list(details.command_scopes),[],`${field} graph emits no canonical scopes`);
     } else throw new Error(`${field} uncompared actual frame ${String(frame.$)}`);
+  }
+  for (const [index,actual] of observed.entries()) {
+    if (actual.kind !== "finishRegistration") continue;
+    const next = observed[index + 1];
+    assert.equal(next?.kind,"canonical",`${field} registration ${index} immediate Stop observation`);
+    const anchor = nativeByPublic.get(next);
+    assert.ok(anchor,`${field} registration ${index} native anchor`);
+    compareFinishRegistration(anchor,actual,`${field} registration ${index}`);
   }
 }
