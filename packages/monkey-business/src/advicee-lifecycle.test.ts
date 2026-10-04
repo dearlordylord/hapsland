@@ -249,7 +249,7 @@ const lifecycleEventCodes: Record<string, number> = { openRound: 1, admitObserva
   dispatchSettled: 8, startReview: 9, jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12,
   collectionReady: 13, finalCandidateCheck: 14, submissionSuppressCheck: 15, collectionReserveLease: 16,
   submissionBegin: 17, submissionTerminal: 18, collectionLeaseCheck: 19, collectionReleaseLease: 20,
-  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25, stopPolled: 26, retirePartition: 27, discardDispatch: 28, closePermitRound: 29, forgetAdmission: 30 };
+  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25, stopPolled: 26, retirePartition: 27, discardDispatch: 28, closePermitRound: 29, forgetAdmission: 30, stopGroupEnded: 31 };
 const lifecycleCommandCodes: Record<string, number> = { roundStarted: 1, observationAdmitted: 2,
   dispatchStarted: 3, prepare: 4, unitAdmitted: 5, jevRequestIssued: 6, retainFinding: 7,
   collectionEligible: 8, retainCandidate: 9, submissionUnsuppressed: 10, collectionLeaseReserved: 11,
@@ -257,7 +257,7 @@ const lifecycleCommandCodes: Record<string, number> = { roundStarted: 1, observa
   observationCompleted: 16, reviewStarted: 17, jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19,
   reservationReleased: 20, collectionLeaseKept: 21, collectionLeaseReleased: 22, settleClear: 23,
   reviewRecorded: 24, retireCandidate: 25, releaseCandidate: 26, collectionAdviceRetired: 27,
-  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30, jevObservationIgnored: 31, finishReady: 32, cancelWork: 33, partitionRetired: 34, dispatchDiscarded: 35, permitRoundClosed: 36, permitReleased: 37, admissionForgotten: 38 };
+  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30, jevObservationIgnored: 31, finishReady: 32, cancelWork: 33, partitionRetired: 34, dispatchDiscarded: 35, permitRoundClosed: 36, permitReleased: 37, admissionForgotten: 38, stopEnded: 39 };
 const lifecycleGraphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
 function lifecycleRow(frame: Observation): number[] {
   const p = frame.after;
@@ -312,7 +312,7 @@ it.each([
   ["disconnect", "advicee-departure.bend"], ["remove", "advicee-removal.bend"],
 ] as const)("native shared driver agrees on original %s and fresh activity inputs", (action, fixture) => {
   const native = runWorkloadNative(new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url)) as number[][];
-  expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  expect(native.filter(row => [97, 98, 99].includes(row[0]!))).toEqual([]);
   expect(native.length).toBeLessThan(120);
   expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
   expect(native).toEqual(lifecycleTrace(departAndResume(action)));
@@ -320,7 +320,7 @@ it.each([
 
 it("native shared driver agrees on original preparation completion after departure", () => {
   const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url)) as number[][];
-  expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  expect(native.filter(row => [97, 98, 99].includes(row[0]!))).toEqual([]);
   expect(native.length).toBeLessThan(120);
   expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
   expect(native.filter(row => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1);

@@ -144,6 +144,7 @@ def event_code(event: Canonical.CanonicalEvent) -> Nat:
     case Canonical.CollectionRetireAdvice{_}: 22n
     case Canonical.SubmissionForget{_}: 23n
     case Canonical.RetireReview{_, _, _, _}: 24n
+    case Canonical.StopGroupEnded{_, _, _, _}: 31n
     case _: 99n
 
 def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
@@ -171,6 +172,7 @@ def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
     case Canonical.CollectionRetireAdvice{a}: [0n, 0n, 0n, 0n, 0n, a, 0n]
     case Canonical.SubmissionForget{a}: [0n, 0n, 0n, 0n, 0n, a, 0n]
     case Canonical.RetireReview{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.StopGroupEnded{p, l, r, _}: [p, l, r, 0n, 0n, 0n, 0n]
     case _: [0n, 0n, 0n, 0n, 0n, 0n, 0n]
 
 def boolean(value: Bool) -> Nat:
@@ -240,6 +242,7 @@ def command_code(command: Canonical.Command) -> Nat:
     case Canonical.ReleaseCandidate{}: 26n
     case Canonical.CollectionAdviceRetired{}: 27n
     case Canonical.SubmissionForgotten{}: 28n
+    case Canonical.StopEnded{}: 39n
     case _: 99n
 
 def command_codes(items: List<&2, Canonical.Command>) -> List<&2, Nat>:
