@@ -9,7 +9,7 @@ import { restoreReplay, type Run, type RunObservation, type RunRuntimeSnapshot, 
 import { strict as assert } from "node:assert";
 import { isDeepStrictEqual } from "node:util";
 import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts";
-import { decodeDriver, encodeDriverOutcome } from "./driver-codec.ts";
+import { decodeDriver, decodePreparedDriverContext } from "./driver-codec.ts";
 import { decodePrefixCanonicalEvent } from "./callback-native-codec.ts";
 
 const readDiagnostic = decoder(OperationalNoticeKindSchema);
@@ -147,15 +147,32 @@ function compareExpiryRuntime(value: unknown, source: RunRuntimeSnapshot, capsul
       const lifecycle = fullList(readRecord(source.engine).lifecycles).map(readRecord).find(value => value.partition === partition);
       if (partition === 0) {
         if (lifecycle) throw new Error("unowned expiry source unexpectedly has an advicee allocation");
-        // Original public emit retains the unresolved input owner (0). The
-        // production Edge.life_value(None) supplies its exact lifetime 0;
-        // the Notice's policy scope and event partition remain independent.
-        exact([job.partition,job.lifetime,job.bytes,fullList(job.units),job.outcome],
-          [0,0,0,[],encodeDriverOutcome("neverSent")],`${field} item ${order} full unowned source tuple`);
+      } else if (!lifecycle) {
+        throw new Error(`expiry queued source has no actual advicee allocation at ${field}, order ${order}, event ${pending.input.event.kind}, provided ${String(pending.partition)}, source ${String(job.partition)}`);
+      }
+      if (job.$ === "advicee_lifecycle_driver.NoJob") {
+        // Genuine immediate Notice inputs carry scope without an Edit payload.
+        // Unresolved original source 0 has no lifecycle and exact lifetime 0.
+        exact(job,{ $: "advicee_lifecycle_driver.NoJob", partition, lifetime: partition === 0 ? 0 : lifecycle!.lifetime },
+          `${field} item ${order} complete absent-job source scope`);
+        exact(pending.driverSourceJob,undefined,`${field} item ${order} absent original source job`);
+        exact(pending.job,undefined,`${field} item ${order} absent active job binding`);
+      } else if (job.$ === "advicee_lifecycle_driver.Job") {
+        const original = pending.driverSourceJob;
+        if (!original) throw new Error(`${field} item ${order} complete job lacks genuine original source`);
+        exact({ ...job, units: fullList(job.units) },{ $: "advicee_lifecycle_driver.Job", ...original },
+          `${field} item ${order} complete original source tuple`);
+      } else throw new TypeError("unknown expiry source job variant");
+      const context = maybe(input.context);
+      if (context === undefined) {
+        exact(pending.driverContext,undefined,`${field} item ${order} absent original command context`);
+        exact(pending.driverOutcomeReceipt,undefined,`${field} item ${order} absent original outcome receipt`);
       } else {
-        if (!lifecycle) throw new Error(`expiry queued source has no actual advicee allocation at ${field}, order ${order}, event ${pending.input.event.kind}, provided ${String(pending.partition)}, source ${String(job.partition)}`);
-        exact([job.partition,job.lifetime,job.bytes,fullList(job.units),job.outcome],
-          [partition,lifecycle.lifetime,0,[],encodeDriverOutcome("neverSent")],`${field} item ${order} full source tuple`);
+        const capsule = readRecord(context);
+        exact(capsule.$,"advicee_lifecycle_driver.EmissionContext",`${field} item ${order} context variant`);
+        decodePreparedDriverContext(capsule.context,capsule.receipt);
+        exact(capsule.context,pending.driverContext,`${field} item ${order} complete original command context`);
+        exact(capsule.receipt,pending.driverOutcomeReceipt,`${field} item ${order} complete original outcome receipt`);
       }
     } else if (input.$ === "advicee_lifecycle_driver.Arrival") {
       const emission = readRecord(input.event);
