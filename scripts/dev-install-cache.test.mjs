@@ -35,7 +35,7 @@ test("unrelated checkout files, tests and generated native assembly do not inval
     const identity = () => devBuildIdentity(root, { profile: "linux-arm64" });
     const before = identity();
     mkdirSync(join(root, "native/prebuilt/linux-arm64"), { recursive: true });
-    for (const path of [".hapsland.jsonc", "docs/unshipped.md", "src/code.test.ts", "scripts/cache.test.mjs", "quint-specs/quint.lock", "native/prebuilt/linux-arm64/generated"]) writeFileSync(join(root, path), "changed");
+    for (const path of [".hapsland.jsonc", "docs/unshipped.md", "src/code.test.ts", "scripts/cache.test.mjs", "scripts/dev-install.mjs", "scripts/dev-install-cache.mjs", "scripts/dev-pack.mjs", "quint-specs/quint.lock", "native/prebuilt/linux-arm64/generated"]) writeFileSync(join(root, path), "changed");
     mkdirSync(join(root, "node_modules/.vite"), { recursive: true });
     writeFileSync(join(root, "node_modules/.vite/results.json"), "generated test results");
     symlinkSync(".", join(root, "node_modules/node_modules"));

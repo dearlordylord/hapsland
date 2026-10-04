@@ -62,7 +62,7 @@ export function devBuildIdentity(root, toolchain, observeInputs) {
     } else if (!/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(path) && !path.endsWith(".md")) walk(path);
   };
   for (const path of ["src", "native", "packages/agent-flow-bend", "packages/agent-flow-viz/src"]) sourceWalk(path);
-  for (const path of ["dev-install.mjs", "dev-install-cache.mjs", "verify-bend-artifacts.mjs", "check-canonical-authority.mjs", "check-production-authority.mjs", "clean-dist.mjs", "copy-bend-policy.mjs", "build-capture-helper.mjs", "native-artifact.mjs", "build-standalone.mjs", "compile-standalone.mjs", "prune-distribution.mjs", "verify-native-release.mjs"]) walk(`scripts/${path}`);
+  for (const path of ["verify-bend-artifacts.mjs", "check-canonical-authority.mjs", "check-production-authority.mjs", "clean-dist.mjs", "copy-bend-policy.mjs", "build-capture-helper.mjs", "native-artifact.mjs", "build-standalone.mjs", "compile-standalone.mjs", "prune-distribution.mjs", "verify-native-release.mjs"]) walk(`scripts/${path}`);
   for (const path of ["package.json", "package-runtime.json", "bun.lock", "package-lock.json", "tsconfig.json", "tsconfig.build.json"]) walk(path);
   for (const path of manifest.files ?? []) {
     const prefix = path.split(/[?*[]/, 1)[0].replace(/\/$/, "");

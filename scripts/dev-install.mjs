@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { devBuildIdentity, devCacheDirectory, readDevCandidate, writeDevCandidate, withDevInstallLock } from "./dev-install-cache.mjs";
+import { packDevelopmentArchive } from "./dev-pack.mjs";
 import { stageRelease } from "../src/onboarding/distribution.ts";
 
 const args = process.argv.slice(2);
@@ -62,9 +63,7 @@ try {
       run("npm", ["run", "build"]);
       run("npm", ["run", "verify:release-native"]);
       const destination = mkdtempSync(join(cache, "pack-"));
-      const packed = await stage("Packing local development archive", () => JSON.parse(run("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", destination], "pipe")));
-      if (!Array.isArray(packed) || packed.length !== 1 || packed[0].name !== "@hapsland/hapsland") throw new Error("pack did not produce a Hapsland archive");
-      archive = resolve(destination, packed[0].filename);
+      archive = await stage("Packing local development archive (fast compression)", () => packDevelopmentArchive({ root, destination }));
       let currentInputs;
       if (devBuildIdentity(root, toolchain, observed => { currentInputs = observed; }) !== identity) {
         const changed = [...new Set([...inputs.keys(), ...currentInputs.keys()])].filter(path => inputs.get(path) !== currentInputs.get(path));
