@@ -246,12 +246,16 @@ def payload_at(items: List<&2,T.Item>, +order: Nat) -> Maybe<&2,T.Input>:
     case Nil{}: None{}
     case T.Item{key,input} <> tail: payload_selected(Nat.is_eq(key,order),input,payload_at(tail,order))
 
-def retained_payload(state: T.State, payload: Maybe<&2,T.Input>, issued_at: Nat, due_at: Nat, order: Nat, fact: Callbacks.Fact) -> T.State:
-  match payload state:
-    case Some{payload} T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,partitions}}:
+def retained_payload_present(state: T.State, payload: T.Input, issued_at: Nat, due_at: Nat, order: Nat, fact: Callbacks.Fact) -> T.State:
+  match state:
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,partitions}}:
       T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,
         T.HostFacts{requests,List.append(&2,T.RetainedCallback,callbacks,[T.RetainedCallback{order,issued_at,due_at,payload,fact}]),partitions}}
-    case None{} state: invalid(state)
+
+def retained_payload(state: T.State, payload: Maybe<&2,T.Input>, issued_at: Nat, due_at: Nat, order: Nat, fact: Callbacks.Fact) -> T.State:
+  match payload:
+    case Some{payload}: retained_payload_present(state,payload,issued_at,due_at,order,fact)
+    case None{}: invalid(state)
 
 def retain_callback(+state: T.State, +order: Nat, due_at: Nat, issued_at: Nat, receipt: Maybe<&2,Callbacks.Fact>) -> T.State:
   match receipt:
@@ -753,12 +757,16 @@ def individual_capture(state: T.State, advice: Nat, token: Nat) -> Maybe<&2,Outp
     case T.State{+core,_,_,_,_,T.Environment{_,_,_,_,_,_,delay,lease,_,_,_,_,_,T.OutputProfile{outcome,_}},_,_,_,_,_}:
       Some{OutputScenario.Capture{OutputScenario.Individual{advice,token},Engine.clock(core_value(core)),outcome,delay,lease}}
 
-def begun_capture(authorize: Bool, state: T.State, advice: Nat, token: Nat) -> Maybe<&2,OutputScenario.Capture>:
-  match authorize state:
-    case True{} state: individual_capture(state,advice,token)
-    case False{} T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,delay,lease,current,ready,generation,readable,lifetime,T.OutputProfile{OutputScenario.Failed{},bytes}},latest,valid,prepared,jobs,host}:
+def begun_failed_capture(state: T.State, advice: Nat, token: Nat) -> Maybe<&2,OutputScenario.Capture>:
+  match state:
+    case T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,delay,lease,current,ready,generation,readable,lifetime,T.OutputProfile{OutputScenario.Failed{},bytes}},latest,valid,prepared,jobs,host}:
       individual_capture(T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,delay,lease,current,ready,generation,readable,lifetime,T.OutputProfile{OutputScenario.Failed{},bytes}},latest,valid,prepared,jobs,host},advice,token)
-    case False{} _: None{}
+    case _: None{}
+
+def begun_capture(authorize: Bool, state: T.State, advice: Nat, token: Nat) -> Maybe<&2,OutputScenario.Capture>:
+  match authorize:
+    case True{}: individual_capture(state,advice,token)
+    case False{}: begun_failed_capture(state,advice,token)
 
 def output_command_capture(state: T.State, event: Canonical.CanonicalEvent, command: Canonical.Command) -> Maybe<&2,OutputScenario.Capture>:
   match command event:
