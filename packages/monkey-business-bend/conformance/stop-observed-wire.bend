@@ -24,8 +24,8 @@ type GraphResult is Data:
   GraphAdvanced{before: ImportGraph.Bounded, after: ImportGraph.Bounded, command: ImportGraph.Command}
   GraphRejected{}
 type Observation is Data:
-  Canonical{time: Nat, order: Nat, before: List<&2,BusinessState>, after: List<&2,BusinessState>, event: C.Event, result: List<&2,Outcome>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
-  Cache{time: Nat, order: Nat, before: List<&2,BusinessState>, after: List<&2,BusinessState>, fact: CacheRuntime.Fact, event: C.Event, result: List<&2,Outcome>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
+  Canonical{time: Nat, order: Nat, before: List<&2,BusinessState>, after: List<&2,BusinessState>, event: C.CanonicalEvent, result: List<&2,Outcome>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
+  Cache{time: Nat, order: Nat, before: List<&2,BusinessState>, after: List<&2,BusinessState>, fact: CacheRuntime.Fact, event: C.CanonicalEvent, result: List<&2,Outcome>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
   Graph{time: Nat, order: Nat, before: List<&2,BusinessState>, after: List<&2,BusinessState>, key: Types.GraphKey, position: Nat, event: ImportGraph.GraphEvent, result: List<&2,GraphResult>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
   Finish{time: Nat, order: Nat, before: List<&2,BusinessState>, after: List<&2,BusinessState>, input: Stop.Input, finish: Maybe<&2,Stop.Finish>, created: Bool, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
 type Origin is Data:
