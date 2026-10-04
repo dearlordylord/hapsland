@@ -80,10 +80,11 @@ Append one row per terminal experiment; include failed preparation. Store detail
 | E2 writer canary | Candidate `d8dce5d3` | Frontend 5s; JS emission/execution 10s each | Four lines, 561 bytes; exact literal equality | Empty, zero, u48 maximum, 258-word boundary; full game not run | Improve chunk construction before full preparation |
 | E2 profiling | Same saved O0 executable | Execution cap 10s; actual 8.022s | 210 post-output samples; 65.7% attributed to text formatting | Diagnostic only; no full output comparison | Test bounded chunked text output next |
 
+| E2 chunked native output | Candidate `749acf78`, unchanged saved baseline | C 240s; clang 120s; execution 10s each | C 33.35s, clang 40.66s. Baseline/candidate: 20/20 complete batches, 6,455,296/4,861,952 output bytes; peak RSS 132,508/108,592 KiB | All 20 common batches byte-identical; full 145-batch validation not run | No demonstrated speed improvement; retain experiment, proceed to E3 |
+
 Detailed terminal evidence: [initial experiment receipts](performance-evidence/2026-10-04-initial-experiments.json).
 
 Focused writer evidence: [chunked writer canary](performance-evidence/2026-10-04-chunked-writer-canary.json). Canary success does not close the full-game comparison checkbox.
 
-| E2 chunked native output | Candidate `749acf78`, unchanged saved baseline | C 240s; clang 120s; execution 10s each | C 33.35s, clang 40.66s. Baseline/candidate: 20/20 complete batches, 6,455,296/4,861,952 output bytes; peak RSS 132,508/108,592 KiB | All 20 common batches byte-identical; full 145-batch validation not run | No demonstrated speed improvement; retain experiment, proceed to E3 |
 
 Detailed E2 comparison: [native prefix measurements](performance-evidence/2026-10-04-chunked-output-comparison.json).
