@@ -1,4 +1,8 @@
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { vi, expect, it, beforeEach } from "vitest";
 const spawn = vi.hoisted(() => vi.fn());
 const preflight = vi.hoisted(() => ({
@@ -133,4 +137,80 @@ it("identifies the failed C phase and declared allowance without retrying", () =
   expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs: 45000 }))
     .toThrow(/C emission \(declared timeout 45000ms\).*ETIMEDOUT/);
   expect(spawn).toHaveBeenCalledTimes(1);
+});
+
+
+it("retains full offline vectors with identity and distinct JS execution receipts", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-output-receipts-"));
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", join(directory, "failures.jsonl"));
+  const fullOutput = JSON.stringify([[0, 1, 2], [3, 4, 5], Array.from({ length: 100 }, (_, i) => i)]);
+  spawn.mockReturnValue({ status: 0, stdout: fullOutput, stderr: "" });
+  try {
+    const fixture = new URL("file:///tmp/owned-output-bound-fixture.bend");
+    expect(runWorkloadEmitted(fixture)).toEqual(JSON.parse(fullOutput));
+    expect(runWorkloadEmitted(fixture)).toEqual(JSON.parse(fullOutput));
+    expect(runWorkloadNative(fixture)).toEqual(JSON.parse(fullOutput));
+    const outputs = join(directory, "workload-outputs");
+    const entries = readdirSync(outputs);
+    expect(entries).toHaveLength(3);
+    const receipts = entries.map(entry => JSON.parse(readFileSync(join(outputs, entry, "receipt.json"), "utf8")));
+    expect(receipts.filter(receipt => receipt.lane === "emitted-js")).toHaveLength(2);
+    for (const receipt of receipts) {
+      const retained = gunzipSync(readFileSync(receipt.outputPath));
+      expect(retained.toString("utf8")).toBe(fullOutput);
+      expect(receipt.outputBytes).toBe(Buffer.byteLength(fullOutput));
+      expect(receipt.outputSha256).toBe(createHash("sha256").update(fullOutput).digest("hex"));
+      expect(receipt.identity).toEqual(preflight.capture.mock.results[0]?.value);
+      expect(receipt.timeouts.execution).toBe(5000);
+    }
+    const sources = spawn.mock.calls.filter(call => call[0] === "/mock/bend").map(call => call[1][2]);
+    for (const source of sources) expect(existsSync(source)).toBe(false);
+  } finally { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+it("does not retain a vector rejected by the post-execution identity guard", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-output-receipts-"));
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", join(directory, "failures.jsonl"));
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  preflight.assert.mockImplementationOnce(() => undefined).mockImplementationOnce(() => { throw new Error("source drift"); });
+  try {
+    expect(() => runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toThrow("source drift");
+    expect(existsSync(join(directory, "workload-outputs"))).toBe(false);
+  } finally { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+it("keeps unscoped execution temporary and does not create receipt artifacts", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-output-receipts-"));
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", "");
+  const outputLog = vi.spyOn(console, "log").mockImplementation(() => {});
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  try {
+    expect(runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
+    expect(readdirSync(directory)).toEqual([]);
+    expect(outputLog).not.toHaveBeenCalled();
+    const generated = spawn.mock.calls[0]?.[1]?.[2];
+    expect(existsSync(generated)).toBe(false);
+  } finally { outputLog.mockRestore(); vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+
+it("retains preflight output with its already validated manifest reference", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-output-receipts-"));
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", join(directory, "failures.jsonl"));
+  vi.stubEnv("HAPSLAND_NATIVE_PREFLIGHT_MANIFEST", "/tmp/manifest.json");
+  vi.stubEnv("HAPSLAND_NATIVE_PREFLIGHT_SESSION", "session");
+  vi.stubEnv("HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256", "hash");
+  preflight.validate.mockReturnValueOnce({ binaryPath: "/mock/native" });
+  spawn.mockReturnValue({ status: 0, stdout: "[[7,8]]", stderr: "" });
+  try {
+    const fixture = new URL("../../monkey-business-bend/conformance/permit-scenario.bend", import.meta.url);
+    expect(runWorkloadNative(fixture)).toEqual([[7, 8]]);
+    const outputs = join(directory, "workload-outputs");
+    const [entry] = readdirSync(outputs);
+    const receipt = JSON.parse(readFileSync(join(outputs, entry!, "receipt.json"), "utf8"));
+    expect(receipt.identity).toEqual({ fixture: fixture.href, validatedPreflight: { manifestPath: "/tmp/manifest.json", manifestHash: "hash", sessionId: "session" } });
+    expect(gunzipSync(readFileSync(receipt.outputPath)).toString("utf8")).toBe("[[7,8]]");
+    expect(preflight.capture).not.toHaveBeenCalled();
+    expect(spawn).toHaveBeenCalledTimes(1);
+  } finally { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
 });

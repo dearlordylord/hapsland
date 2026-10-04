@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   NATIVE_C_EMISSION_TIMEOUT_MS,
@@ -11,6 +13,25 @@ import {
   validateNativeFixture,
 } from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
+
+// Keep complete offline vectors inside the existing harness run for later
+// comparison diagnosis. These receipts are evidence, never a compilation cache.
+function retainOutput(output, identity, lane, timeouts) {
+  const failureFile = process.env.HAPSLAND_TEST_FAILURES_FILE;
+  if (!failureFile) return;
+  const outputs = join(dirname(failureFile), "workload-outputs");
+  mkdirSync(outputs, { recursive: true });
+  const directory = mkdtempSync(join(outputs, `${lane}-${process.pid}-`));
+  const bytes = Buffer.from(output, "utf8");
+  const outputPath = join(directory, "output.json.gz");
+  writeFileSync(outputPath, gzipSync(bytes));
+  const receiptPath = join(directory, "receipt.json");
+  writeFileSync(receiptPath, `${JSON.stringify({ lane, identity, timeouts, outputPath,
+    outputBytes: bytes.length, outputSha256: createHash("sha256").update(bytes).digest("hex"),
+    purpose: "Offline execution output for diagnosis; no automatic reuse or acceptance verdict",
+  }, null, 2)}\n`);
+  console.log(`Retained offline workload output: ${receiptPath}`);
+}
 
 // One fresh native+JS comparison has at most 85s of default phase allowances plus cleanup.
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
@@ -36,7 +57,9 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     if (emissionTimeoutMs !== NATIVE_C_EMISSION_TIMEOUT_MS)
       throw new RangeError("native preflight session fixes the C emission timeout");
     const { binaryPath } = validateNativeFixture({ manifestPath, sessionId, manifestHash, fixture });
-    return JSON.parse(checked(binaryPath, [], 5000, "native execution"));
+    const output = checked(binaryPath, [], 5000, "native execution");
+    retainOutput(output, { fixture: fixture.href, validatedPreflight: { manifestPath, manifestHash, sessionId } }, "preflight-native", { execution: 5000 });
+    return JSON.parse(output);
   }
   const identity = captureNativeFixtureIdentity(fixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-native-"));
@@ -48,6 +71,7 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     assertNativeFixtureIdentity(identity, fixture);
     const output = checked(binary, [], 5000, "native execution");
     assertNativeFixtureIdentity(identity, fixture);
+    retainOutput(output, identity, "fresh-native", { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 });
     return JSON.parse(output);
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -73,6 +97,7 @@ process.stdout.write(value);
 `);
     const output = checked(process.execPath, [program], 5000, "JS execution");
     assertNativeFixtureIdentity(identity, fixture);
+    retainOutput(output, identity, "emitted-js", { emission: emissionTimeoutMs, execution: 5000 });
     return JSON.parse(output);
   } finally {
     rmSync(directory, { recursive: true, force: true });
