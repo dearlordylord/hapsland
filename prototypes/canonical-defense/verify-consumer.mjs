@@ -6,6 +6,7 @@ import { decodeNativePrefixWithDescriptors } from "../../packages/monkey-busines
 import { callbackNativeDescriptors as gameDescriptors, callbackNativeOwnerSources as gameOwnerSources } from "./defense-consumer-metadata.ts";
 import { decodeObservedState, stateEndpoint } from "../../packages/monkey-business/src/sharing-native-boundary.ts";
 import { callbackPublicBoundary } from "../../packages/monkey-business/src/callback-native-codec.ts";
+import { decodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
 import { readBendList, readNat, readRecord } from "../../src/canonical/boundary-schema.ts";
 import { createRun, restoreReplay } from "../../packages/monkey-business/src/index.ts";
 
@@ -62,11 +63,11 @@ function originalInputs(seed) {
 }
 function words(high, low) { return { $: "Numeric.Words", high, low }; }
 function linked(values) { return values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" }); }
-function endpoint(world) {
+function endpoint(world, receipts) {
   const state = one(world.engine);
   assert.equal(state.$, "NativeRunTypes.State");
   assert.equal(state.valid, true, "actual consumer remains valid");
-  return stateEndpoint(decodeObservedState(state.core), []);
+  return stateEndpoint(decodeObservedState(state.core), receipts);
 }
 for (const seed of [0,3,17,41]) {
   const envelope=nextBatch();
@@ -76,6 +77,9 @@ for (const seed of [0,3,17,41]) {
   assert.equal(readNat(envelope.creation_seed), 152);
   const run = createRun(config), untouchedDashboard = createRun(config);
   const dashboardBefore = untouchedDashboard.observe();
+  // Delivered originals leave the native core; frame facts are the actual
+  // retained history used to reconstruct the public target boundary.
+  const nativeReceipts = [];
   let ticks = 0, paused = false, suspended = false, pace = 1200;
   let pendingBatch=envelope;
   assert.equal(run.now, 0);
@@ -99,7 +103,7 @@ for (const seed of [0,3,17,41]) {
     assert.deepEqual(checkpoint.input, input);
     const beforeWorld = one(checkpoint.before), afterWorld = one(checkpoint.after);
     compareNativeRuntime(one(beforeWorld.engine),run.runtimeSnapshot(),`campaign ${seed} checkpoint ${index} before`);
-    const beforeEndpoint = endpoint(beforeWorld);
+    const beforeEndpoint = endpoint(beforeWorld, nativeReceipts);
     assert.deepEqual(beforeEndpoint, callbackPublicBoundary(run.observe(), [], []).endpoint);
     if (input.$ === "DefenseConsumerObserved.GameKey") {
       if (input.code === 110) run.applyControl({ kind: "burst", agent: "agent-1", count: 1 });
@@ -111,7 +115,7 @@ for (const seed of [0,3,17,41]) {
       assert.equal(afterWorld.paused, paused);
       if (input.code === 110 && ticks === 0) {
         assert.equal(run.observations.length, 0, "Burst supplies arrivals without synchronously executing them");
-        assert.equal(endpoint(afterWorld).time, 0);
+        assert.equal(endpoint(afterWorld, nativeReceipts).time, 0);
       }
     } else if (input.$ === "DefenseConsumerObserved.JevProfile") {
       assert.deepEqual([...checkpointTicks()],[]);
@@ -166,6 +170,7 @@ for (const seed of [0,3,17,41]) {
           const receipt = readRecord(details.receipt);
           assert.ok(receipt.$ === "None" || receipt.$ === "Some");
           if (receipt.$ === "Some") assert.equal(readRecord(receipt.value).$, "Callbacks.Fact");
+          if (receipt.$ === "Some") nativeReceipts.push(decodeCallbackTarget(readRecord(receipt.value).target));
           for (const value of list(details.physical)) {
             const delivery = readRecord(value);
             assert.equal(delivery.$, "NativeRunTypes.PhysicalDelivery");
@@ -189,8 +194,8 @@ for (const seed of [0,3,17,41]) {
       }
     }
     compareNativeRuntime(one(afterWorld.engine),run.runtimeSnapshot(),`campaign ${seed} checkpoint ${index} after`);
-    assert.deepEqual(endpoint(afterWorld), callbackPublicBoundary(run.observe(), [], []).endpoint);
-    if (paused) assert.deepEqual(endpoint(afterWorld), beforeEndpoint, "pause preserves full public endpoint");
+    assert.deepEqual(endpoint(afterWorld, nativeReceipts), callbackPublicBoundary(run.observe(), [], []).endpoint);
+    if (paused) assert.deepEqual(endpoint(afterWorld, nativeReceipts), beforeEndpoint, "pause preserves full public endpoint");
     assert.deepEqual(untouchedDashboard.observe(), dashboardBefore, "game controls cannot mutate another instance");
     const exported = JSON.parse(JSON.stringify(run.exportReplay()));
     const restored = restoreReplay(exported);
@@ -198,7 +203,7 @@ for (const seed of [0,3,17,41]) {
     assert.deepEqual(restored.observe(), run.observe(), "full ordinary replay at every game midpoint");
   }
 
-  assert.deepEqual(endpoint(one(envelope.final_world)),callbackPublicBoundary(run.observe(),[],[]).endpoint);
+  assert.deepEqual(endpoint(one(envelope.final_world), nativeReceipts),callbackPublicBoundary(run.observe(),[],[]).endpoint);
 }
 
 assert.equal(batchIndex,streams.native.length,"no trailing or unknown campaign batches");
