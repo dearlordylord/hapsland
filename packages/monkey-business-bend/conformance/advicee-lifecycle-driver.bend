@@ -82,16 +82,16 @@ def found_job(found: Bool, job: Job, tail: Job) -> Job:
     case True{}: job
     case False{}: tail
 
+def forget_job_entry(remove: Bool, item: Stored, tail: List<&2,Stored>) -> List<&2,Stored>:
+  match remove:
+    case True{}: tail
+    case False{}: item <> tail
+
 def forget_job(jobs: List<&2,Stored>, +operation: Nat) -> List<&2,Stored>:
   match jobs:
     case Nil{}: []
     case Stored{+id,job} <> tail:
       forget_job_entry(Nat.is_eq(id,operation),Stored{id,job},forget_job(tail,operation))
-
-def forget_job_entry(remove: Bool, item: Stored, tail: List<&2,Stored>) -> List<&2,Stored>:
-  match remove:
-    case True{}: tail
-    case False{}: item <> tail
 
 def preparation_parent(work: Maybe<&2,Canonical.Work>) -> Nat:
   match work:
