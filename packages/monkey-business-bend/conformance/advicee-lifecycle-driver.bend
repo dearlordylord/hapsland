@@ -1353,26 +1353,21 @@ def runtime_step(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> 
     case Runtime{state,_,_,_} <> Nil{}: [Engine.step(state,event)]
     case _: []
 
-def observed_completion(-F: Data, completion: List<&2,SharingRuntime.Completion>, +runtime: List<&2,Runtime>,
-    job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  match completion:
-    case SharingRuntime.Completion{+event,True{}} <> Nil{}:
-      observed_transition(F,runtime_step(runtime,event),runtime,event,job,now,order,candidate,environment,factory)
-    case _: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
+# Keep genuine transport values boxed until their owning operation needs them.
+# The affine transition factory remains separate from this data carrier.
+type PendingEvent is Data:
+  PendingEvent{runtime: List<&2,Runtime>, event: List<&2,Canonical.CanonicalEvent>,
+    job: List<&2,Job>, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
+    environment: List<&2,Environment>}
+
+def pending_runtime(pending: PendingEvent) -> List<&2,Runtime>:
+  match pending:
+    case PendingEvent{runtime,_,_,_,_,_,_}: runtime
 
 def runtime_completion(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> List<&2,SharingRuntime.Completion>:
   match runtime:
     case Runtime{state,_,_,_} <> Nil{}: [Engine.sharing_completion(state,event)]
     case _: []
-
-def observed_fenced(-F: Data, events: List<&2,Canonical.CanonicalEvent>, +runtime: List<&2,Runtime>,
-    job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  match events:
-    case event <> Nil{}:
-      observed_completion(F,runtime_completion(runtime,event),runtime,job,now,order,candidate,environment,factory)
-    case _: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def runtime_fence(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, environment: Environment,
     job: Job, candidate: Maybe<&2,Driver.Candidate>) -> List<&2,Canonical.CanonicalEvent>:
@@ -1381,10 +1376,47 @@ def runtime_fence(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, en
       [Engine.fence(state,event,True{},context_with(environment,state,job,delay,candidate))]
     case _: []
 
-def observed_event(-F: Data, +runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
-    +job: Job, now: Nat, order: Nat, +candidate: Maybe<&2,Driver.Candidate>, +environment: Environment,
+def pending_fence(pending: PendingEvent) -> List<&2,Canonical.CanonicalEvent>:
+  match pending:
+    case PendingEvent{runtime,event <> Nil{},job <> Nil{},_,_,candidate,environment <> Nil{}}:
+      runtime_fence(runtime,event,environment,job,candidate)
+    case _: []
+
+def pending_transition(-F: Data, transition: List<&2,Engine.Transition>, events: List<&2,Canonical.CanonicalEvent>,
+    pending: PendingEvent, factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  match pending events:
+    case PendingEvent{runtime,_,job <> Nil{},now,order,candidate,environment <> Nil{}} event <> Nil{}:
+      observed_transition(F,transition,runtime,event,job,now,order,candidate,environment,factory)
+    case pending _: Observed{pending_runtime(pending),Some{UnexpectedInput{}},transition_commands(F,factory([]))}
+
+def pending_step(runtime: List<&2,Runtime>, events: List<&2,Canonical.CanonicalEvent>) -> List<&2,Engine.Transition>:
+  match events:
+    case event <> Nil{}: runtime_step(runtime,event)
+    case _: []
+
+def observed_completion(-F: Data, completion: List<&2,SharingRuntime.Completion>, +pending: PendingEvent,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observed_fenced(F,runtime_fence(runtime,event,environment,job,candidate),runtime,job,now,order,candidate,environment,factory)
+  match completion:
+    case SharingRuntime.Completion{event,True{}} <> Nil{}:
+      +events:List<&2,Canonical.CanonicalEvent>=[event]
+      pending_transition(F,pending_step(pending_runtime(pending),events),events,pending,factory)
+    case _: Observed{pending_runtime(pending),Some{UnexpectedInput{}},transition_commands(F,factory([]))}
+
+def observed_fenced(-F: Data, events: List<&2,Canonical.CanonicalEvent>, +pending: PendingEvent,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  match events:
+    case event <> Nil{}:
+      observed_completion(F,runtime_completion(pending_runtime(pending),event),pending,factory)
+    case _: Observed{pending_runtime(pending),Some{UnexpectedInput{}},transition_commands(F,factory([]))}
+
+def observed_pending(-F: Data, +pending: PendingEvent,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  observed_fenced(F,pending_fence(pending),pending,factory)
+
+def observed_event(-F: Data, runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
+    job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  observed_pending(F,PendingEvent{runtime,[event],[job],now,order,candidate,[environment]},factory)
 
 def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2,Stored>,
     +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
