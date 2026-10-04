@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
+import { execFileSync } from "../../scripts/test-harness/process.mjs";
 import { fileURLToPath } from "node:url";
 import * as Effect from "effect/Effect";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
@@ -33,7 +33,7 @@ describe("launched resident wire witness", () => {
       expect(journal.requests.every((request) => request.classification === "allowed")).toBe(true);
       expect(output).not.toContain("CAFÉ_VALUE");
       expect(output).not.toContain("WIRE_KEY_SENTINEL");
-    }, 35_000);
+    });
     }
   }
 });

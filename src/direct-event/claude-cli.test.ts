@@ -1,7 +1,9 @@
 import { runClient } from "../test-support/client-runtime.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { spawn, spawnSync } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { spawnSync } from "../../scripts/test-harness/process.mjs";
+import { DEFAULT_CHILD_TIMEOUT_MS, FIXTURE_READY_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { createConnection, createServer } from "node:net";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,13 +30,35 @@ afterEach(() => {
 const preClaudeEdit = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
   spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=claude-code"], {
     cwd: process.cwd(), input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
-    encoding: "utf8", timeout: 7_000, env,
+    encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
   });
+
+const preClaudeEditAsync = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
+  new Promise<void>((resolve, reject) => {
+    const child = execFile(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=claude-code"], {
+      cwd: process.cwd(), timeout: DEFAULT_CHILD_TIMEOUT_MS, killSignal: "SIGKILL", env,
+    }, error => error === null ? resolve() : reject(error));
+    child.stdin!.end(JSON.stringify({ ...event, hook_event_name: "PreToolUse" }));
+  });
+
+// Selection cases start with an observed ready resident. Launch in the fixture
+// environment so its admission/backend gates are present before startup.
+const prepareResident = (env: NodeJS.ProcessEnv) => {
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+    import {runClient} from './src/test-support/client-runtime.ts';
+    import {ensureResidentEffect} from './src/resident/client.ts';
+    import {residentPaths} from './src/resident/paths.ts';
+    const owner = await runClient(ensureResidentEffect(residentPaths(process.env.REVIEW_RESIDENT_DIR), ${FIXTURE_READY_TIMEOUT_MS}));
+    process.stdout.write(owner.status);
+  `], { cwd: process.cwd(), env, encoding: "utf8" });
+  expect(result.status, "fixture phase=resident readiness").toBe(0);
+  expect(result.stdout, "fixture phase=resident readiness").toBe("ready");
+};
 
 const CLAUDE_EDIT_FLAGS = ["src/cli.ts", "--claude-hook", "--controlled-reviewer",
   "--controlled-writer", "--composed-edit-hook"] as const;
 
-const waitForFile = async (path: string, timeoutMs = 3_000): Promise<void> => {
+const waitForFile = async (path: string, timeoutMs = FIXTURE_READY_TIMEOUT_MS): Promise<void> => {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (existsSync(path)) return;
@@ -43,14 +67,14 @@ const waitForFile = async (path: string, timeoutMs = 3_000): Promise<void> => {
   throw new Error(`fixture gate was not reached: ${path}`);
 };
 
-describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
+describe("Claude synchronous hook CLI", () => {
   it("exits quietly when unsupported hook input meets closed stdout", async () => {
     const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"],
     });
     child.stderr.resume();
     const completed = new Promise<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>((resolve, reject) => {
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("quiet hook did not exit")); }, 7_000);
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("quiet hook did not exit")); }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("error", (error) => { clearTimeout(timer); reject(error); });
       child.once("close", (code, signal) => { clearTimeout(timer); resolve({ code, signal }); });
     });
@@ -77,7 +101,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     };
     const invoke = (flags: ReadonlyArray<string>, hookEventName: string) => spawnSync(process.execPath,
       ["src/cli.ts", ...flags], { cwd: process.cwd(), input: JSON.stringify({ ...event, hook_event_name: hookEventName }),
-        encoding: "utf8", timeout: 7_000, env });
+        encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env });
     const obsoleteDirect = invoke(["--claude-hook", "--controlled-reviewer", "--controlled-writer"], "PostToolUse");
     expect(obsoleteDirect.status).toBe(0);
     expect(JSON.parse(obsoleteDirect.stdout)).toEqual({});
@@ -113,7 +137,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(),
       input: JSON.stringify(event),
-      encoding: "utf8", timeout: 7_000,
+      encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
       env,
     });
     expect(result.status).toBe(0);
@@ -140,7 +164,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     };
     expect(preClaudeEdit(event, env).status).toBe(0);
     const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
     });
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({});
@@ -166,10 +190,11 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
+    prepareResident(env);
     const invoke = (input: typeof event, selectedEnv: NodeJS.ProcessEnv = env) => {
       if (input.tool_name === "Write") expect(preClaudeEdit(input, selectedEnv).status).toBe(0);
       return spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-        cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: selectedEnv, timeout: 7_000,
+        cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: selectedEnv, timeout: DEFAULT_CHILD_TIMEOUT_MS,
       });
     };
     const result = invoke(event);
@@ -247,7 +272,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
     child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
     const completed = new Promise<number | null>((resolve, reject) => {
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, 7_000);
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("error", (error) => { clearTimeout(timer); reject(error); });
       child.once("close", (code) => { clearTimeout(timer); resolve(code); });
     });
@@ -300,7 +325,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
     child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
     const completed = new Promise<number | null>((resolve, reject) => {
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, 7_000);
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("error", (error) => { clearTimeout(timer); reject(error); });
       child.once("close", (code) => { clearTimeout(timer); resolve(code); });
     });
@@ -346,7 +371,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
     child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
     const completed = new Promise<number | null>((resolve, reject) => {
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, 7_000);
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude hook did not exit")); }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("error", (error) => { clearTimeout(timer); reject(error); });
       child.once("close", (code) => { clearTimeout(timer); resolve(code); });
     });
@@ -388,6 +413,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     };
     const delayedEnv = { ...baseEnv, REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 7_000,
       answers: JSON.parse(baseEnv.REVIEW_CONTROL_JSON).answers }) };
+    prepareResident(delayedEnv);
     const first = event(await put(root, "first.ts", "type FirstCount = number\n"), "FirstCount", "batch-first");
     const second = event(await put(root, "second.ts", "type SecondCount = number\n"), "SecondCount", "batch-second");
     const runDelayed = (input: typeof first) => new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
@@ -397,7 +423,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       let stderr = "";
       child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
       child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude edit hook exceeded its deadline")); }, 7_000);
+      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude edit hook exceeded its deadline")); }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("error", (error) => { clearTimeout(timer); reject(error); });
       child.once("close", (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
       child.stdin.end(JSON.stringify(input));
@@ -405,7 +431,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
     const firstPending = runDelayed(first);
     await waitForFile(acceptedPath);
-    expect(preClaudeEdit(second, delayedEnv).status).toBe(0);
+    await preClaudeEditAsync(second, delayedEnv);
     const secondPending = runDelayed(second);
     const [firstResult, secondResult] = await Promise.all([firstPending, secondPending]);
     expect(firstResult.code, firstResult.stderr).toBe(0);
@@ -427,7 +453,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const third = event(await put(root, "third.ts", "type ThirdCount = number\n"), "ThirdCount", "batch-third");
     expect(preClaudeEdit(third, baseEnv).status).toBe(0);
     const thirdResult = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(third), encoding: "utf8", timeout: 7_000, env: baseEnv,
+      cwd: process.cwd(), input: JSON.stringify(third), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env: baseEnv,
     });
     expect(thirdResult.status).toBe(0);
     const output = JSON.parse(thirdResult.stdout) as { hookSpecificOutput?: { additionalContext: string } };
@@ -454,9 +480,10 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
+    prepareResident(env);
     expect(preClaudeEdit(event, env).status).toBe(0);
     const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
     });
     expect(result.status).toBe(0);
     const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
@@ -488,9 +515,10 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
+    prepareResident(env);
     expect(preClaudeEdit(event, env).status).toBe(0);
     const edit = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
     });
     expect(edit.status).toBe(0);
     expect(JSON.parse(edit.stdout)).toEqual({});
@@ -509,18 +537,18 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(ready, JSON.stringify(lastStats)).toBe(true);
     const background = spawnSync(process.execPath,
       ["src/cli.ts", "--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], {
-        cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+        cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
       });
     expect(background.status).toBe(0);
     expect(background.stdout).toBe("");
     const stop = spawnSync(process.execPath,
       ["src/cli.ts", "--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"], {
-        cwd: process.cwd(), encoding: "utf8", timeout: 7_000, env,
+        cwd: process.cwd(), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
         input: JSON.stringify({ hook_event_name: "Stop", cwd: root, session_id: event.session_id, stop_hook_active: false }),
       });
     expect(stop.status).toBe(0);
     const output = JSON.parse(stop.stdout) as { decision?: string; reason?: string };
-    expect(output.decision).toBe("block");
+    expect(output.decision, JSON.stringify(output)).toBe("block");
     const context = output.reason ?? "";
     expect([...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)]).toHaveLength(6);
     for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
@@ -550,7 +578,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     };
     expect(preClaudeEdit(event, env).status).toBe(0);
     const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
     });
     expect(result.status).toBe(0);
     const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
@@ -592,7 +620,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       answers: JSON.parse(baseEnv.REVIEW_CONTROL_JSON).answers }) };
     expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
     const firstResult = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(first), encoding: "utf8", timeout: 7_000, env: delayedEnv,
+      cwd: process.cwd(), input: JSON.stringify(first), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env: delayedEnv,
     });
     expect(firstResult.status).toBe(0);
     expect(JSON.parse(firstResult.stdout)).toEqual({});
@@ -606,7 +634,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const second = event(await put(root, "second.ts", "type FreshCount = number\n"), "FreshCount", "fresh-tool");
     expect(preClaudeEdit(second, baseEnv).status).toBe(0);
     const secondResult = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
-      cwd: process.cwd(), input: JSON.stringify(second), encoding: "utf8", timeout: 7_000, env: baseEnv,
+      cwd: process.cwd(), input: JSON.stringify(second), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env: baseEnv,
     });
     expect(secondResult.status).toBe(0);
     expect(JSON.parse(secondResult.stdout)).toMatchObject({ hookSpecificOutput: {
@@ -702,7 +730,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
       child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
       const completed = new Promise<number | null>((resolve, reject) => {
-        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("installed hook did not exit")); }, 7_000);
+        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("installed hook did not exit")); }, DEFAULT_CHILD_TIMEOUT_MS);
         child.once("error", (error) => { clearTimeout(timer); reject(error); });
         child.once("close", (code) => { clearTimeout(timer); resolve(code); });
       });
@@ -755,7 +783,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         let stderr = "";
         child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
         child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
-        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("collector exceeded deadline")); }, timeoutMs);
+        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("collector exceeded deadline")); }, Math.max(DEFAULT_CHILD_TIMEOUT_MS, timeoutMs));
         child.once("error", (error) => { clearTimeout(timer); reject(error); });
         child.once("close", (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
         child.stdin.end(JSON.stringify(input));
@@ -779,7 +807,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     }
     expect(readFileSync(path, "utf8")).toBe("type ConcurrentCount = number\n");
-  }, 40_000);
+  });
 
   it("returns quietly at the edit budget without a Claude background delivery", async () => {
     const root = await makeGitFixture();
@@ -802,7 +830,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(),
       input: JSON.stringify(event),
-      encoding: "utf8", timeout: 7_000,
+      encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
       env,
     });
     expect(result.status).toBe(0);
@@ -810,7 +838,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(performance.now() - started).toBeLessThan(5_000);
     const background = spawnSync(process.execPath,
       ["src/cli.ts", "--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], {
-        cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 22_000, env,
+        cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
       });
     expect(background.status).toBe(0);
     expect(background.stdout).toBe("");
@@ -854,7 +882,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       const timer = setTimeout(() => {
         child.kill("SIGKILL");
         reject(new Error("Claude hook did not exit within its output deadline"));
-      }, 7_000);
+      }, DEFAULT_CHILD_TIMEOUT_MS);
       child.once("error", (cause) => {
         clearTimeout(timer);
         reject(cause);

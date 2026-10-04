@@ -1,12 +1,12 @@
 import { runClient } from "../test-support/client-runtime.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { execFileAsync } from "../../scripts/test-harness/process.mjs";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectObservation } from "../direct-event/model.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
@@ -18,7 +18,6 @@ import { DELIVERY_LEASE_MS, type ResidentDispatchContext, type ResidentRequest }
 
 const processes: Array<number> = [];
 const directories: Array<string> = [];
-const execFileAsync = promisify(execFile);
 
 afterEach(async () => {
   for (const pid of processes.splice(0)) {
@@ -84,7 +83,7 @@ const admitComposed = async (
   return runClient(residentRequest(paths, { ...request, composed: true }, timeoutMs));
 };
 
-describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
+describe("resident separate-process lifecycle", () => {
   it("releases ownership after startup failure without deleting an unsafe endpoint", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-startup-failure-"));
     directories.push(temporary);

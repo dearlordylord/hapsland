@@ -65,12 +65,23 @@ destination; a change to any of these invalidates reuse. See the
 [provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
-`apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply
-one. Attribution compares one-based UTF-16 code-unit columns from the pinned
+`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0
+native `edit` unified-result patches can supply one. Codex and Pi share post-edit
+patch verification with explicit placement rules: Codex requires a unique text
+match; Pi verifies native line coordinates against bounded current source without
+a text-search fallback or a separate pre-edit image. Pi derives ranges from the
+successful result patch independently of how `oldText`/`newText` replacements are
+grouped, including replacements spanning omitted context across hunks. Claude
+derives spans directly from its native content evidence.
+
+Attribution compares one-based UTF-16 code-unit columns from the pinned
 Node parser binding and verified edit spans. Unicode comments and strings do
 not prevent Add or verified Update selection. Missing or uncertain spans still
 produce no Update review unit; OpenCode Update currently supplies no verified
-span, while its Add path selects eligible declarations.
+span, while its Add path selects eligible declarations. Runtime-specific limits
+still apply: the [Pi profile](pi-installation.md) currently requires ASCII input
+and source. Native Pi `write`, nested/child mutations, shell mutations, and custom
+tools are unsupported/incomplete rather than inferred Add or Update observations.
 
 The previous compatibility assessment for the one-file input remains in Git
 history. Its old prospective gates do not govern the 2026-09-29 decision.

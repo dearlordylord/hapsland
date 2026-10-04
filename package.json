@@ -33,7 +33,8 @@
     "docs/npm-publishing.md",
     "schemas/review-config-v1.schema.json",
     "schemas/review-rule-pack-v1.schema.json",
-    "package-runtime.json"
+    "package-runtime.json",
+    "docs/pi-installation.md"
   ],
   "bin": {
     "hapsland": "bin/launch.sh",
@@ -44,7 +45,8 @@
   "exports": {
     ".": "./dist/cli.js",
     "./parser": "./dist/direct-event/analyzer.js",
-    "./resident": "./dist/resident/main.js"
+    "./resident": "./dist/resident/main.js",
+    "./pi-extension": "./dist/pi/extension.js"
   },
   "scripts": {
     "docs:install": "node scripts/install-doc-link-checker.mjs && node scripts/install-bend-toolchain.mjs --github-actions",
@@ -56,7 +58,7 @@
     "audit:release": "node scripts/audit-release-tarball.mjs",
     "local-release": "node scripts/local-release.mjs",
     "dev-install": "node --experimental-strip-types scripts/dev-install.mjs",
-    "test": "npm run config:check && node scripts/verify-bend-artifacts.mjs && node packages/monkey-business-bend/build.mjs --check && node scripts/check-canonical-authority.mjs && node --experimental-strip-types packages/agent-flow-bend/scripts/check-jev-request.mjs && node scripts/check-production-authority.mjs && node scripts/check-capacity-boundary.mjs && node scripts/check-permit-boundary.mjs && node scripts/check-review-boundary.mjs && node scripts/check-dispatch-boundary.mjs && node scripts/check-stop-boundary.mjs && node scripts/check-collection-boundary.mjs && node scripts/check-delivery-boundary.mjs && node scripts/check-revision-boundary.mjs && node scripts/check-response-authority-boundary.mjs && node scripts/check-reuse-boundary.mjs && node scripts/check-notice-boundary.mjs && node scripts/check-retention-boundary.mjs && node scripts/check-configuration-boundary.mjs && node scripts/check-file-eligibility-boundary.mjs && node scripts/check-rule-boundary.mjs && node packages/agent-flow-bend/scripts/check-progress.mjs && node scripts/run-tests-with-native-preflight.mjs",
+    "test": "npm run config:check && node scripts/verify-bend-artifacts.mjs && node packages/monkey-business-bend/build.mjs --check && node scripts/check-canonical-authority.mjs && node --experimental-strip-types packages/agent-flow-bend/scripts/check-jev-request.mjs && node scripts/check-production-authority.mjs && node scripts/check-capacity-boundary.mjs && node scripts/check-permit-boundary.mjs && node scripts/check-review-boundary.mjs && node scripts/check-dispatch-boundary.mjs && node scripts/check-stop-boundary.mjs && node scripts/check-collection-boundary.mjs && node scripts/check-delivery-boundary.mjs && node scripts/check-revision-boundary.mjs && node scripts/check-response-authority-boundary.mjs && node scripts/check-reuse-boundary.mjs && node scripts/check-notice-boundary.mjs && node scripts/check-retention-boundary.mjs && node scripts/check-configuration-boundary.mjs && node scripts/check-file-eligibility-boundary.mjs && node scripts/check-rule-boundary.mjs && node packages/agent-flow-bend/scripts/check-progress.mjs && node --test scripts/native-pi-observation.test.mjs && node scripts/run-tests-with-native-preflight.mjs",
     "test:live": "RUN_LIVE_JEV=1 vitest run src/jev-live.test.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -71,7 +73,9 @@
     "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs",
     "test:coverage": "npm test -- --coverage",
-    "quality:check": "crap4ts"
+    "quality:check": "crap4ts",
+    "test:harness:inventory": "node scripts/test-harness/inventory.mjs",
+    "test:contention": "node scripts/test-harness/contention.mjs"
   },
   "dependencies": {
     "@effect/ai-typesafe": "4.0.0",

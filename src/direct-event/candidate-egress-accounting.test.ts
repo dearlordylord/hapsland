@@ -120,5 +120,5 @@ describe("T-case candidate HTTP body and source scope", () => {
     expect(measured).toHaveLength(12);
     expect(measured.every((row) => row.candidate.sourceFields.length > 0 &&
       row.candidate.httpBodyBytes > row.candidate.localRequestBytes)).toBe(true);
-  }, 60_000);
+  });
 });

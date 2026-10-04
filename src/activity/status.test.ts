@@ -254,7 +254,7 @@ describe("resident activity status", () => {
         resident: { available: true, lifetime: "resident" },
       }),
     ).toMatchObject({ kind: "findings", findings: units.length });
-  }, 10_000);
+  });
 
 
 });

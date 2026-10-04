@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { emitKeypressEvents } from "node:readline";
 
-export type SetupClient = "claude" | "codex";
+export type SetupClient = "claude" | "codex" | "pi";
 export type ClientChoice = {
   readonly host: SetupClient;
   readonly name: string;

@@ -1,6 +1,6 @@
-import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts";
+import type { VerifiedPatchHunk } from "./edit-attribution.ts";
+import { parsePatchLine, verifyPostEditPatchHunks, type PatchLine } from "./patch-hunks.ts";
 
-type PatchLine = { readonly kind: " " | "+" | "-"; readonly text: string };
 type PatchSection = {
   readonly path: string;
   readonly operation: "add" | "update" | "delete" | "move";
@@ -56,23 +56,12 @@ const beginHunk = (state: PatchParserState, section: MutableSection): boolean =>
   return true;
 };
 
-const patchLineKind = (value: string | undefined): PatchLine["kind"] | undefined => {
-  switch (value) {
-    case " ":
-    case "+":
-    case "-":
-      return value;
-    default:
-      return undefined;
-  }
-};
-
 const appendPatchContent = (state: PatchParserState, section: MutableSection, line: string): boolean => {
   if (section.operation === "add") return line.startsWith("+");
   if (section.operation !== "update" && section.operation !== "move") return false;
-  const kind = patchLineKind(line[0]);
-  if (state.hunk === undefined || kind === undefined) return false;
-  state.hunk.push({ kind, text: line.slice(1) });
+  const entry = parsePatchLine(line);
+  if (state.hunk === undefined || entry === undefined) return false;
+  state.hunk.push(entry);
   return true;
 };
 
@@ -108,95 +97,15 @@ const parsePatch = (command: string): ReadonlyArray<PatchSection> | undefined =>
   return state.sections;
 };
 
-const location = (startLine: number, endLine: number, sourceLines: ReadonlyArray<string>): PostEditLocation => {
-  const start = { line: startLine + 1, column: 1 };
-  const end =
-    endLine < sourceLines.length
-      ? { line: endLine + 1, column: 1 }
-      : { line: sourceLines.length, column: sourceLines.at(-1)!.length + 1 };
-  return Object.freeze({ start: Object.freeze(start), end: Object.freeze(end) });
-};
-
-const invalidHunkSource = (relativePath: string, stableSource: string): boolean =>
-  !relativePath ||
-  relativePath.startsWith("/") ||
-  relativePath.includes("\\") ||
-  relativePath.includes("\0") ||
-  relativePath.split("/").some((part) => !part || part === "." || part === "..") ||
-  stableSource.includes("\r");
-
-const uniquePostLocation = (
-  postLines: ReadonlyArray<string>,
-  sourceLines: ReadonlyArray<string>,
-  previousEnd: number,
-): number | undefined => {
-  if (postLines.length === 0) return undefined;
-  const matches: number[] = [];
-  for (let index = previousEnd; index + postLines.length <= sourceLines.length; index += 1) {
-    if (postLines.every((line, offset) => sourceLines[index + offset] === line)) matches.push(index);
-    if (matches.length > 1) return undefined;
-  }
-  return matches.length === 1 ? matches[0] : undefined;
-};
-
-const changedPostLocations = (
-  hunk: ReadonlyArray<PatchLine>,
-  relativePath: string,
-  match: number,
-  sourceLines: ReadonlyArray<string>,
-): VerifiedPatchHunk[] => {
-  const result: VerifiedPatchHunk[] = [];
-  let postOffset = 0;
-  let changedStart: number | undefined;
-  let inserted = 0;
-  const emit = () => {
-    if (changedStart === undefined) return;
-    result.push(
-      Object.freeze({
-        path: relativePath,
-        verified: true,
-        location: location(match + changedStart, match + changedStart + inserted, sourceLines),
-      }),
-    );
-    changedStart = undefined;
-    inserted = 0;
-  };
-  for (const entry of hunk) {
-    if (entry.kind === " ") {
-      emit();
-      postOffset += 1;
-    } else {
-      changedStart ??= postOffset;
-      if (entry.kind === "+") {
-        inserted += 1;
-        postOffset += 1;
-      }
-    }
-  }
-  emit();
-  return result;
-};
-
 /** Check Update hunk locations against one stable post-edit source snapshot. */
 export const verifyCodexPostEditHunks = (
   command: string,
   relativePath: string,
   stableSource: string,
 ): ReadonlyArray<VerifiedPatchHunk> | undefined => {
-  if (invalidHunkSource(relativePath, stableSource)) return undefined;
   const sections = parsePatch(command);
   const section = sections?.find((candidate) => candidate.path === relativePath);
   if (section?.operation !== "update") return undefined;
-  const sourceLines = stableSource.split("\n");
-  const result: VerifiedPatchHunk[] = [];
-  let previousEnd = 0;
-  for (const hunk of section.hunks) {
-    const postLines = hunk.filter((entry) => entry.kind !== "-").map((entry) => entry.text);
-    // A deletion without a post-edit anchor cannot be positioned.
-    const match = uniquePostLocation(postLines, sourceLines, previousEnd);
-    if (match === undefined) return undefined;
-    result.push(...changedPostLocations(hunk, relativePath, match, sourceLines));
-    previousEnd = match + postLines.length;
-  }
-  return Object.freeze(result);
+  return verifyPostEditPatchHunks(section.hunks.map(lines => ({ lines, placement: { kind: "unique-text" } })),
+    relativePath, stableSource, "changed-blocks")?.hunks;
 };

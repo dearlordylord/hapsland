@@ -1,3 +1,4 @@
+import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs";
 import {
   existsSync,
   mkdtempSync,
@@ -10,15 +11,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "../scripts/test-harness/process.mjs";
 import { afterEach, describe, expect, it } from "vitest";
 import { configuredRules } from "./policy/rules.ts";
 
 const roots: Array<string> = [];
-// Each case launches the real TypeScript subprocess; concurrent evaluation-suite
-// compilation can make that bounded process startup exceed Vitest's 5 s default.
-const SUBPROCESS_TEST_TIMEOUT = 30_000;
 const makeTemporaryDirectory = (prefix: string): string =>
   realpathSync(mkdtempSync(join(tmpdir(), prefix)));
 afterEach(() => {
@@ -38,7 +35,7 @@ const initializeRepository = (root: string, requestedStatePath?: string) => {
   return requestedStatePath ?? join(root, ".consent-state.json");
 };
 
-describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () => {
+describe("JSON subprocess contract", () => {
   it.each(["REVIEW_STATE_PATH", "REVIEW_CONSENT_FILE", "REVIEW_ACTIVITY_PATH", "REVIEW_USER_CONFIG_PATH"])("rejects empty %s instead of falling back to another path", (key) => {
     const root = makeTemporaryDirectory("review-empty-path-");
     roots.push(root);
@@ -47,7 +44,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     delete env.REVIEW_STATE_PATH;
     env[key] = "";
     const result = spawnSync(process.execPath, [join(process.cwd(), "src/cli.ts"), "--install-preview"], {
-      cwd: root, env, encoding: "utf8", timeout: 10_000,
+      cwd: root, env, encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
       input: JSON.stringify({ version: 1, operation: "install-preview", codexHome: join(root, "codex") }),
     });
     expect(result.status).toBe(2);
@@ -60,7 +57,7 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     const root = makeTemporaryDirectory("review-install-schema-");
     roots.push(root);
     const invoke = (request: unknown) => spawnSync(process.execPath, ["src/cli.ts", "--install-preview"], {
-      cwd: process.cwd(), input: JSON.stringify(request), encoding: "utf8", timeout: 10_000,
+      cwd: process.cwd(), input: JSON.stringify(request), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
     });
     for (const mixed of [
       { version: 1, operation: "install-preview", host: "claude", claudeHome: root, codexHome: root },
@@ -268,5 +265,5 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
       status: "present",
     });
     expect(child.stdout).not.toContain(secret);
-  }, 20_000);
+  });
 });

@@ -8,9 +8,9 @@ import { stageRelease } from "../src/onboarding/distribution.ts";
 const args = process.argv.slice(2);
 const host = args.find(arg => arg.startsWith("--host="))?.slice("--host=".length);
 const update = args.includes("--update");
-const forwarded = args.filter(arg => /^--(?:claude|codex)-(?:home|executable)=/.test(arg));
-if ((host !== "claude" && host !== "codex") || args.some(arg => arg !== `--host=${host}` && arg !== "--update" && !forwarded.includes(arg))) {
-  throw new Error("usage: npm run dev-install -- --host=claude|codex [--update] [--claude-home=PATH|--codex-home=PATH] [--claude-executable=PATH|--codex-executable=PATH]");
+const forwarded = args.filter(arg => /^--(?:claude|codex|pi)-(?:home|executable)=/.test(arg));
+if ((host !== "claude" && host !== "codex" && host !== "pi") || args.some(arg => arg !== `--host=${host}` && arg !== "--update" && !forwarded.includes(arg))) {
+  throw new Error("usage: npm run dev-install -- --host=claude|codex|pi [--update] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]");
 }
 const environment = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" };
 delete environment.REVIEW_INSTALL_RUNTIME;

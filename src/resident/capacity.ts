@@ -399,6 +399,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         liveCollectionTokenKeys: Effect.fn("ComposedDelivery.liveCollectionTokenKeys")((...args: Parameters<ComposedDelivery["liveCollectionTokenKeys"]>) => deliveryRead((view) => view.liveCollectionTokenKeys(...args))),
         ensureFromHostTurn: Effect.fn("ComposedDelivery.ensureFromHostTurn")((...args: Parameters<ComposedDelivery["ensureFromHostTurn"]>) => deliveryCommitEffect((operations) => operations.ensureFromHostTurn(...args))),
         registerEdit: Effect.fn("ComposedDelivery.registerEdit")((...args: Parameters<ComposedDelivery["registerEdit"]>) => deliveryCommitEffect((operations) => operations.registerEdit(...args))),
+        retireEdit: Effect.fn("ComposedDelivery.retireEdit")((...args: Parameters<ComposedDelivery["retireEdit"]>) => deliveryCommitEffect((operations) => operations.retireEdit(...args))),
         registerEditDecision: Effect.fn("ComposedDelivery.registerEditDecision")((...args: Parameters<ComposedDelivery["registerEditDecision"]>) => deliveryCommitEffect((operations) => operations.registerEditDecision(...args))),
         admitEdit: Effect.fn("ComposedDelivery.admitEdit")((...args: Parameters<ComposedDelivery["admitEdit"]>) => deliveryCommitEffect((operations) => operations.admitEdit(...args))),
         expirePermits: Effect.fn("ComposedDelivery.expirePermits")((...args: Parameters<ComposedDelivery["expirePermits"]>) => deliveryCommitEffect((operations) => operations.expirePermits(...args))),

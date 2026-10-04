@@ -1,10 +1,10 @@
-// Predeclared blind control scoring for independent requested facts.
+// Supplemental blind adjudication for explicitly named independent requested facts.
 // Original scores remain immutable. Does not inspect arm ledgers or change flaw repair credit.
 import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
 const ts=createRequire(import.meta.url)('/tmp/hapsland-quality-scorer/node_modules/typescript');
-const root=path.resolve(process.argv[2]??'evidence/abide-contextual-confirmation');
+const root=path.resolve(process.argv[2]??path.resolve(import.meta.dirname, '../../hapsland-research/evidence/abide-contextual-confirmation'));
 const read=p=>JSON.parse(fs.readFileSync(p)),hash=b=>crypto.createHash('sha256').update(b).digest('hex');
-const declaration=read(path.join(root,'declaration.json')),amendment=read(path.join(root,'control-scoring-declaration.json'));
+const declaration=read(path.join(root,'declaration.json')),amendment=read(path.join(root,'adjudication-amendment.json'));
 assert.equal(hash(fs.readFileSync(import.meta.filename)),amendment.adjudicatorSha256);
 const output=path.join(root,'control-adjudication.json');assert(!fs.existsSync(output));
 const options={strict:true,noEmit:true,target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,moduleResolution:ts.ModuleResolutionKind.Bundler,types:[],skipLibCheck:true};

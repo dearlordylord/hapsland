@@ -22,6 +22,7 @@ const fixture = (
   const activations: string[] = [];
   const targetRuns: string[] = [];
   const responses = {
+    pi: [Effect.succeed(preview), Effect.succeed({ status: "complete" })],
     claude: [...(settings.responses?.claude ?? [Effect.succeed(preview), Effect.succeed({ status: "updated" })])],
     codex: [...(settings.responses?.codex ?? [Effect.succeed(preview), Effect.succeed({ status: "complete" })])],
   };

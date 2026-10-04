@@ -335,15 +335,13 @@ export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number =>
 
 const logicalBytes = (value: unknown): number => Buffer.byteLength(canonicalValue(value), "utf8");
 
+const exactHostVersions = { "claude-code": "2.1.218", pi: "1.0.0", opencode: "1.14.44" } as const;
+const supportedAdviceeVersion = (advicee: DirectAdvicee): boolean =>
+  advicee.host === "codex-cli" ? isCodexHostVersion(advicee.hostVersion)
+    : advicee.hostVersion === exactHostVersions[advicee.host];
 const addressableAdvicee = (advicee: DirectAdvicee): boolean =>
-  advicee.host !== "codex-cli"
-    ? advicee.hostVersion === (advicee.host === "claude-code" ? "2.1.218" : "1.14.44") &&
-      advicee.sessionId.length > 0 &&
-      advicee.toolUseId.length > 0
-    : isCodexHostVersion(advicee.hostVersion) &&
-      advicee.sessionId.length > 0 &&
-      advicee.turnId.length > 0 &&
-      advicee.toolUseId.length > 0;
+  supportedAdviceeVersion(advicee) && advicee.sessionId.length > 0 && advicee.toolUseId.length > 0 &&
+  (advicee.host !== "codex-cli" || advicee.turnId.length > 0);
 
 const withoutDeliveredFindings = (
   findings: ReadonlyArray<Finding>,
@@ -4096,9 +4094,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return residentResponse(yield* runtime.releaseComposedSubmission(request.token));
   });
   const residentHandleRegisterEdit = Effect.fn("ResidentRuntime.handle.register-edit")(function* (
-    request: Extract<ResidentRequest, { operation: "register-edit" }>,
+    request: Extract<ResidentRequest, { operation: "register-edit" | "retire-edit" }>,
   ) {
     const group = adviceePartition(request.root, request.advicee);
+    if (request.operation === "retire-edit") {
+      yield* residentComposedDelivery.retireEdit(group, request.advicee.toolUseId);
+      return residentResponse({ status: "advanced" });
+    }
     const capture = yield* loadConfiguration(
       request.root,
       request.userConfigPath === undefined ? {} : { userConfigPath: request.userConfigPath },
@@ -4327,7 +4329,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     if (request.operation === "begin-submission") return yield* residentHandleBeginSubmission(request);
     if (request.operation === "release") return yield* residentHandleRelease(request);
-    if (request.operation === "register-edit") return yield* residentHandleRegisterEdit(request);
+    if (request.operation === "register-edit" || request.operation === "retire-edit") return yield* residentHandleRegisterEdit(request);
     if (request.operation === "admit-and-collect") return yield* residentAdmitAndCollect(request, context);
     if (request.operation === "admit") return yield* residentHandleAdmit(request);
     if (request.operation === "collect") return yield* residentHandleCollect(request);

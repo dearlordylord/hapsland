@@ -57,7 +57,7 @@ Each scenario has three layouts, each with a defective input and an authored val
 | --- | --- | --- |
 | [Larger declarations and layout](./abide-large-declaration-study.md) | Five rules, six scenarios, 36 variants | Complete detection/repair tables, Abide input boundaries, shared methodology and source-batch accounting |
 | [Compact examples across all nine rules](./abide-contextual-review-study.md) | A separate duplicate-fact matrix and a matrix for the eight other rules | Additional examples, per-rule results, false warnings and final source |
-| [Architectural comparison draft](./abide-comparison-draft.md) | Review inputs, file access and data retention | The proposed rationale for a separate product; an editorial draft, separate from measured review quality |
+| [Hapsland and Abide](./abide-comparison.md) | Review inputs, file access and data retention | Architecture, joint operation and links to measured review quality |
 
 The older “eight rules” count refers to the eight rules besides duplicate-fact rule `r4`, which had its own study. The product has **nine rules**. The studies use different inputs and repetitions; their repair counts are not pooled into a single rating.
 

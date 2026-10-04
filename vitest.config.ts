@@ -1,10 +1,12 @@
 import { defineConfig } from "vitest/config";
+import { inventoryTestHarness } from "./scripts/test-harness/inventory.mjs";
+import { UNIT_TEST_TIMEOUT_MS } from "./scripts/test-harness/policy.mjs";
 
 export default defineConfig({
   test: {
-    // Coverage instruments native subprocesses as well as test workers. This
-    // watchdog bounds the test runner, not product deadlines or performance.
-    testTimeout: process.argv.includes("--coverage") ? 30_000 : 5_000,
+    testTimeout: UNIT_TEST_TIMEOUT_MS,
+    setupFiles: ["./scripts/test-harness/setup.mts"],
+    provide: { harnessInventory: inventoryTestHarness(import.meta.dirname) },
     include: [
       "src/**/*.test.ts",
       "scripts/**/*.test.mts",

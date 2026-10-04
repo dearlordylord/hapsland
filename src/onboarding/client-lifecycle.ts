@@ -8,14 +8,21 @@ import { readFileSync, realpathSync } from "node:fs";
 import { atomicInstallationFile } from "./atomic-installation-file.ts";
 import { hasClaudeRegistration } from "./claude-installation.ts";
 import { hasCodexRegistration } from "./codex-installation.ts";
+import { hasPiRegistration } from "./pi-installation.ts";
 import type { SetupClient } from "./client-selection.ts";
 
 export const clientCommands = ["setup", "update", "doctor", "repair", "reinstall", "uninstall"] as const;
 export type ClientCommand = (typeof clientCommands)[number];
-export const clients: ReadonlyArray<SetupClient> = ["claude", "codex"];
+export const clients: ReadonlyArray<SetupClient> = ["claude", "codex", "pi"];
+const piProfile = (home: string | undefined, executable: string | undefined) => ({
+  host: "pi" as const,
+  ...(home === undefined ? {} : { piHome: home }),
+  ...(executable === undefined ? {} : { piExecutable: executable }),
+});
 export const profileFields = (host: SetupClient, flags: ReadonlyMap<string, string>) => {
   const home = flags.get(`--${host}-home`);
   const executable = flags.get(`--${host}-executable`);
+  if (host === "pi") return piProfile(home, executable);
   return host === "claude"
     ? {
         host,
@@ -28,6 +35,13 @@ export const profileFields = (host: SetupClient, flags: ReadonlyMap<string, stri
         ...(executable === undefined ? {} : { codexExecutable: executable }),
       };
 };
+const hasRegistration = (fields: ReturnType<typeof profileFields>): boolean => {
+  switch (fields.host) {
+    case "pi": return hasPiRegistration(fields);
+    case "claude": return hasClaudeRegistration(fields);
+    case "codex": return hasCodexRegistration(fields);
+  }
+};
 export const registeredClients = (
   flags: ReadonlyMap<string, string>,
   onError?: (host: SetupClient, cause: unknown) => void,
@@ -35,7 +49,7 @@ export const registeredClients = (
   clients.filter((host) => {
     try {
       const fields = profileFields(host, flags);
-      return fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields);
+      return hasRegistration(fields);
     } catch (cause) {
       if (onError === undefined) throw cause;
       onError(host, cause);

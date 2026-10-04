@@ -288,6 +288,16 @@ describe("resident logical capacity ledger", () => {
   });
 
 
+  it("selects the current supported profile limits by default", () => {
+    const ledger = Effect.runSync(makeResidentState());
+    expect(Effect.runSync(ledger.canonicalProjection()).limits).toEqual({
+      globalItems: 512,
+      globalBytes: 256 * 1024 * 1024,
+      partitionItems: 16,
+      partitionBytes: 32 * 1024 * 1024,
+    });
+  });
+
   it("accepts exact count boundaries and isolates partition pressure", () => {
     const ledger = Effect.runSync(makeResidentState({
       globalItems: 4,
