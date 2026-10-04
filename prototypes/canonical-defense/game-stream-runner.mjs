@@ -1,11 +1,88 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync, statSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 const LIMIT = 16 * 1024 * 1024;
-const hash = file => createHash("sha256").update(readFileSync(file)).digest("hex");
+const digest = value => createHash("sha256").update(value).digest("hex");
+const hash = file => digest(readFileSync(file));
+const within = (directory,file) => {
+  const path=relative(directory,file);
+  return path==="" || (path!==".." && !path.startsWith(`..${sep}`) && !isAbsolute(path));
+};
+const variants = file => extname(file) ? [file] : [file,`${file}.bend`,join(file,"index.bend")];
+function bendImports(file,source) {
+  return source.toString("utf8").split(/\r?\n/).flatMap((line,index)=>{
+    if(!/^\s*import\b/.test(line))return[];
+    const match=/^\s*import\s+(?:"([^"]+)"|'([^']+)'|([^\s#]+))(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?\s*(?:#.*)?$/.exec(line);
+    if(!match)throw new Error(`unresolvable Bend import syntax at ${file}:${index+1}`);
+    return[{specifier:match[1]??match[2]??match[3],line:index+1}];
+  });
+}
+function resolveBendImport(specifier,importer,line,root,bendRoot) {
+  let candidates;
+  if(specifier==="Base")candidates=[join(bendRoot,"bend2","base.bend")];
+  else if(isAbsolute(specifier)) {
+    const target=resolve(specifier);
+    if(!within(root,target)&&!within(bendRoot,target))throw new Error(`Bend import escapes source roots at ${importer}:${line}: ${specifier}`);
+    candidates=variants(target);
+  } else if(specifier.startsWith("./")||specifier.startsWith("../")) {
+    const target=resolve(dirname(importer),specifier);
+    const allowed=within(bendRoot,importer)?bendRoot:root;
+    if(!within(allowed,target))throw new Error(`Bend import escapes source root at ${importer}:${line}: ${specifier}`);
+    candidates=variants(target);
+  } else {
+    candidates=[...variants(resolve(dirname(importer),specifier)),...variants(resolve(root,specifier)),...variants(resolve(bendRoot,specifier))];
+  }
+  const found=new Set();
+  for(const candidate of candidates){
+    try{
+      const file=realpathSync(candidate);
+      if(!statSync(file).isFile())continue;
+      if(!within(root,file)&&!within(bendRoot,file))throw new Error(`Bend import escapes source roots at ${importer}:${line}: ${specifier}`);
+      found.add(file);
+    }catch(error){if(error.code!=="ENOENT"&&error.code!=="ENOTDIR")throw error;}
+  }
+  if(found.size!==1)throw new Error(`${found.size?"ambiguous":"unresolvable"} Bend import at ${importer}:${line}: ${specifier}`);
+  return [...found][0];
+}
+function bendSourceClosure(fixture,root,bendRoot) {
+  const sources=new Map();
+  const visit=(candidate,importer="game fixture",specifier="fixture")=>{
+    let file;
+    try{file=realpathSync(candidate);}catch(error){throw new Error(`unresolvable Bend source ${specifier} from ${importer}: ${candidate}`,{cause:error});}
+    if(!within(root,file)&&!within(bendRoot,file))throw new Error(`Bend source escapes source roots: ${file}`);
+    if(sources.has(file))return;
+    let source;
+    try{source=readFileSync(file);}catch(error){throw new Error(`unreadable Bend source ${specifier} from ${importer}: ${file}`,{cause:error});}
+    sources.set(file,{file,expected:digest(source)});
+    for(const entry of bendImports(file,source))
+      visit(resolveBendImport(entry.specifier,file,entry.line,root,bendRoot),file,entry.specifier);
+  };
+  visit(fixture);
+  return [...sources.values()];
+}
+function sourceRecords(fixture,ownerSources,root) {
+  const bendRoot=realpathSync(resolve(homedir(),".bend"));
+  const sources=new Map();
+  const add=(candidate,expected,label,projectOnly=false)=>{
+    let file;
+    try{file=realpathSync(candidate);}catch(error){throw new Error(`missing ${label}: ${candidate}`,{cause:error});}
+    if(!within(root,file)&&(!within(bendRoot,file)||projectOnly))throw new Error(`${label} is outside its source root: ${file}`);
+    const actual=hash(file);
+    if(expected!==undefined&&actual!==expected)throw new Error(`game source changed: ${file}`);
+    const prior=sources.get(file);
+    if(prior&&prior.expected!==actual)throw new Error(`conflicting game source hashes: ${file}`);
+    sources.set(file,{file,expected:prior?.expected??expected??actual});
+  };
+  for(const owner of ownerSources){
+    if(typeof owner.path!=="string"||typeof owner.sha256!=="string")throw new Error("invalid game codec owner source");
+    add(resolve(root,owner.path),owner.sha256,"game codec owner source",true);
+  }
+  for(const source of bendSourceClosure(fixture,root,bendRoot))add(source.file,source.expected,"Bend import source");
+  return [...sources.values()];
+}
 function checked(command, args, timeout) {
   const result = spawnSync(command,args,{encoding:"utf8",timeout,killSignal:"SIGKILL",maxBuffer:LIMIT,
     env:{...process.env,BEND_NO_TELEMETRY:"1"}});
@@ -38,14 +115,14 @@ function stream(command,args,directory,label,executionTimeoutMs) {
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
-  const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
-  const root=fileURLToPath(new URL("../../",import.meta.url));
-  const sources=[...ownerSources.map(owner=>({file:resolve(root,owner.path),expected:owner.sha256})),
-    {file:fileURLToPath(fixture),expected:hash(fileURLToPath(fixture))}];
+  const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
+  const sources=sourceRecords(fileURLToPath(fixture),ownerSources,root);
   const tools=["bend","clang"].map(name=>{const file=realpathSync(checked("which",[name],5000).trim());return{file,expected:hash(file)};});
   const verify=()=>{for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);};
+  verify();
+  const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   try{
-    verify();const c=join(directory,"game.c"),binary=join(directory,"game"),js=join(directory,"game.cjs");
+    const c=join(directory,"game.c"),binary=join(directory,"game"),js=join(directory,"game.cjs");
     checked(tools[0].file,[fileURLToPath(fixture),"-o",c],30000);verify();
     const cHash=hash(c);checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],30000);verify();
     const binaryHash=hash(binary);const native=await stream(binary,[],directory,"native",executionTimeoutMs);verify();
