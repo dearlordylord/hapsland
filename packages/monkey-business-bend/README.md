@@ -45,7 +45,7 @@ selected execution-lane agreement, not correctness of the compiler or native
 agent integration.
 
 The sharing original-input gate is
-`npx vitest run packages/monkey-business/src/sharing-native.test.ts --maxWorkers=1`.
+`npm run test:focused -- packages/monkey-business/src/sharing-native.test.ts`.
 It requires all seven original cases: baseline, joined departure, owner departure,
 another partition, last-member departure, joining live advice, and a superseded
 joined member. Every case starts with its original configuration and edits;
@@ -54,9 +54,9 @@ Canonical/Graph events, states, commands, rejection, scopes, receipts, controls,
 advance endpoints and ordinary replay with the independent public scenarios.
 The mandatory aggregate `conformance/sharing-native.bend` compiles once per
 backend and retains all seven original envelopes in order. Callback originals
-similarly use `conformance/callback-original-scenarios.bend` for all six cases. Native phases retain fresh
-thirty-second C emission, thirty-second clang and five-second execution bounds;
-emitted JavaScript uses separate fresh fifteen-second emission and five-second execution phases.
+similarly use `conformance/callback-original-scenarios.bend` for all six cases. These aggregate families explicitly allow C emission60, clang90, native execution15,
+and separate fresh JavaScript emission30/execution5 seconds, with a 215-second
+watchdog. Other fixtures retain their default bounds.
 An earlier checker pass does not establish any of those execution results.
 
 ## Stop observation scope
@@ -106,9 +106,12 @@ Compilation runs once per backend for the family, rather than once per case.
 Python 3 is a development prerequisite for the one shared private prefix codec.
 Run `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py`
 after changing a serialized owner declaration, and add `--check` to reject stale
-typed encoders, descriptors or owner source hashes. The original six callback
-roots retain their default envelope and assertions. Sharing extends the same
+typed encoders, descriptors or owner source hashes. The six original callback
+cases retain their default envelope and assertions. Sharing extends the same
 generator and descriptor decoder; it does not maintain a copied schema or policy.
+For the optional game profile, use the same command with
+`--optional-profile prototypes/canonical-defense/native-prefix-profile.json`;
+add `--check` for freshness without generation.
 
 `LAWS.bend` proposes four exact primitive statements for arbitrary Nat identities,
 times and finite queue tails: empty insertion retains the selected identity/time;
@@ -182,6 +185,6 @@ mutant that republishes the batch; the mutant fails in the proposal's own sectio
 This and the started-request NeverSent refusal law remain candidate proposals for
 owner review under #176, not accepted new product requirements.
 
-Native validation budgets: fresh C emission and external clang compilation default to 30 seconds; emitted-JavaScript compilation, including the maintained Engine build, and source-only checks are bounded at 15 seconds. Native and JavaScript execution remain bounded at 5 seconds. Kernel/proof checks retain their separate 5-second deadline. A default fresh native/JavaScript comparison has a 100-second aggregate test watchdog for its 85 seconds of phase allowances and finite cleanup. The waiting fixture, original eleven Stop scenarios and twelve output Stop scenarios explicitly allow C emission 45 seconds, clang 90 seconds, native execution 5 seconds, and independent JavaScript emission 15/execution 5 seconds, with 175 seconds overall (160 seconds of phases plus 15 seconds cleanup). The twelve expiry cases use 60/90/5/15/5-second phase bounds and a 190-second aggregate. The thirteen-case Writer family uses C emission 90 seconds, clang 90 seconds, native execution 15 seconds and JavaScript emission 30/execution 5 seconds, with 245 seconds overall (230 seconds of phases plus 15 seconds cleanup). Other fixtures retain their default bounds. The fixed native preflight manifest rejects a nondefault compilation override. These allowances bound local validation processes; they do not change product deadlines, virtual clocks, original scenario inputs or assertions.
+Native validation budgets: fresh C emission and external clang compilation default to 30 seconds; emitted-JavaScript compilation, including the maintained Engine build, and source-only checks are bounded at 15 seconds. Native and JavaScript execution remain bounded at 5 seconds. Kernel/proof checks retain their separate 5-second deadline. A default fresh native/JavaScript comparison has a 100-second aggregate test watchdog for its 85 seconds of phase allowances and finite cleanup. The waiting fixture, original eleven Stop scenarios and twelve output Stop scenarios explicitly allow C emission 45 seconds, clang 90 seconds, native execution 5 seconds, and independent JavaScript emission 15/execution 5 seconds, with 175 seconds overall (160 seconds of phases plus 15 seconds cleanup). The twelve expiry cases use 60/90/5/15/5-second phase bounds and a 190-second aggregate. The thirteen-case Writer family uses C emission 90 seconds, clang 120 seconds, native execution 15 seconds and JavaScript emission 30/execution 5 seconds, with 275 seconds overall (260 seconds of phases plus 15 seconds cleanup). Other fixtures retain their default bounds. The fixed native preflight manifest rejects a nondefault compilation override. These allowances bound local validation processes; they do not change product deadlines, virtual clocks, original scenario inputs or assertions.
 
 On 2026-10-03 the user authorized modest timeout increases and asked to be informed. Earlier C-only amendments moved the bound from 5 to 8, 10 and 12 seconds; the full diagnostic root had emitted in 10.75 seconds after its call-size errors were resolved. The later announced amendment sets source/JS compilation to 15 seconds and C/clang compilation to 30 seconds, preserving runtime and proof bounds. Previous failures remain failures; fresh validation under the amended allowances is required. This explicit user authorization overrides the skill's five-second source-check guidance for source-only validation, not the retained kernel/proof gate.

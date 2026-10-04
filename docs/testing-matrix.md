@@ -305,8 +305,8 @@ C60/clang90/native5/JS15+5 with a 190-second aggregate watchdog.
 original cases through the single `writer-original-scenarios.bend` fixture and
 `writer_scenarios` vector. The thirteen per-case wrappers have been removed;
 one compilation per backend retains every original case and independent
-public/replay expectation. Its full comparison uses C90/clang90/native15/JS30+5
-with a 245-second aggregate watchdog. These allowances establish no pass by
+public/replay expectation. Its full comparison uses C90/clang120/native15/JS30+5
+with a 275-second aggregate watchdog. These allowances establish no pass by
 themselves and do not change product deadlines.
 
 The optional game consumer command is
@@ -316,6 +316,12 @@ native/JavaScript execution5 bounds and tool-location checks allow 200 seconds;
 70 seconds remain for source hashes, all public/replay comparisons and cleanup.
 Keep all four campaigns, 145 batches and 3,222 ticks. The five geometry/drawing
 roots and candidate game proofs are separate from this shared consumer scope.
+
+A Writer compiler failure can be resumed explicitly by setting
+`HAPSLAND_WRITER_NATIVE_RESUME_RECEIPT` to its retained `receipt.json`. The runner
+requires the same fixture and current source/tool identity, successful recorded
+phases, and unchanged C/binary hashes. Invalid receipts fail before spawning;
+ordinary checks remain fresh. Report resumed phases separately from fresh ones.
 
 Do not repeat an unchanged failed check. The next run must test a concrete repair,
 a competing cause, or an explicitly declared bounded budget amendment. Reuse a
