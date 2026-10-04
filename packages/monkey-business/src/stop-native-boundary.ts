@@ -148,7 +148,7 @@ function compareEmissions(value: unknown, source: RunStructuralFrame, config: Ru
       same(item.at,source.time+action.delay,`${at} original effect delay`);
       same(action.expiryAdvice,item.expiryAdvice,`${at} expiry identity`);
       same(action.candidate,item.candidate,`${at} actual candidate`);
-      same(optional(emission.attempt),action.event.kind === "collectionFitCheck" ? item.fitFinish : item.finishAttempt,`${at} original Finish attempt`);
+      same(optional(emission.attempt),item.fitFinish,`${at} original Finish attempt`);
       compareIssuedFacts(emission.issued,item,at);
     } else if (emission.$ === "stop_observed_wire.Arrival") {
       if (!item.workloadSource) throw new Error(`${at} missing actual Workload emission`);
