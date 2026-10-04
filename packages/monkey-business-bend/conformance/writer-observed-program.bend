@@ -200,7 +200,7 @@ def grant(original: Maybe<&2,Originals.Capsule>, frame: Edge.ObservedFrame, afte
 
 def context(job: Maybe<&2,Edge.Job>) -> Maybe<&2,Nat>:
   match job:
-    case Some{Edge.Job{p,_,_,_,_}}: Some{p}
+    case Some{job}: Some{Edge.job_partition(job)}
     case None{}: None{}
 
 def recorded(frame: Maybe<&2,Edge.ObservedFrame>, +after: List<&2,Types.State>, following: List<&2,Edge.Runtime>,
