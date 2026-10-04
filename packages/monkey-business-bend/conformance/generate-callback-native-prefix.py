@@ -54,7 +54,7 @@ family_roots={
  'stop_scenarios':(root/'packages/monkey-business-bend/conformance/stop-observed-wire.bend','Envelope',True),
  'sharing_scenarios':(root/'packages/monkey-business-bend/conformance/sharing-observed-wire.bend','Envelope',False),
  'output_scenarios':(root/'packages/monkey-business-bend/conformance/output-scenario-driver.bend','Envelope',True),
- 'writer_scenarios':(root/'packages/monkey-business-bend/conformance/writer-observed-wire.bend','Envelope',False),
+ 'writer_scenarios':(root/'packages/monkey-business-bend/conformance/writer-observed-wire.bend','Envelope',True),
 }
 if profile is not None:
  family_roots={}

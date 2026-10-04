@@ -7,7 +7,7 @@ import { decodeNativePrefix } from "./callback-native-prefix.ts";
 import { decodeWriterNativeBoundary } from "./writer-native-boundary.ts";
 import { validateLiveControl, type LiveControl } from "./controls.ts";
 import { encodeCollectionResponse } from "./collection-scenario.ts";
-import { readRecord } from "../../../src/canonical/boundary-schema.ts";
+import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts";
 
 const modes = Array.from({ length: 13 }, (_, mode) => mode);
 const seeds = [3, 17, 41, 97] as const;
@@ -222,21 +222,31 @@ it.each(modes)("validates writer original case %i public progress and complete r
   publicCase(mode);
 }, 30000);
 
-it.each(modes)("compares writer original case %i fresh emitted/public full boundary", mode => {
-  const fixture = new URL(`../../monkey-business-bend/conformance/writer-original-${mode}.bend`, import.meta.url);
-  const emittedDTO = decodeNativePrefix(runWorkloadEmitted(fixture), "writer_scenarios");
-  expect(readRecord(emittedDTO).input).toEqual(frozenNativeInput(mode));
-  expect(decodeWriterNativeBoundary(emittedDTO)).toEqual(publicCase(mode));
-}, 30000);
-
-it.each(modes)("compares writer original case %i full native/emitted/public/replay boundary", mode => {
-  const expected = publicCase(mode), fixture = new URL(`../../monkey-business-bend/conformance/writer-original-${mode}.bend`, import.meta.url);
-  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture);
+const fixture=new URL("../../monkey-business-bend/conformance/writer-original-scenarios.bend",import.meta.url);
+function compareOriginalFamily(value: unknown, expected: readonly ReturnType<typeof publicCase>[]): void {
+  const cases=readBendList(value,readRecord,13);
+  expect(cases).toHaveLength(modes.length);
+  expect(expected).toHaveLength(modes.length);
+  for(const [mode,original] of cases.entries()) {
+    try {
+      expect(original.input).toEqual(frozenNativeInput(mode));
+      expect(decodeWriterNativeBoundary(original)).toEqual(expected[mode]);
+    } catch(error) {
+      throw new Error(`writer original case ${mode} business boundary: ${error instanceof Error ? error.message : String(error)}`,{cause:error});
+    }
+  }
+}
+it("compares all thirteen writer original cases fresh emitted/public full boundary",()=>{
+  const expected=modes.map(publicCase);
+  compareOriginalFamily(decodeNativePrefix(runWorkloadEmitted(fixture),"writer_scenarios"),expected);
+},30000);
+// One complete original family: C30 + clang30 + native5 + JS15/5 + cleanup15 =100 seconds.
+it("compares all thirteen writer original cases full native/emitted/public/replay boundary",()=>{
+  const expected=modes.map(publicCase);
+  const native=runWorkloadNative(fixture),emitted=runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
-  const nativeDTO = decodeNativePrefix(native, "writer_scenarios"), emittedDTO = decodeNativePrefix(emitted, "writer_scenarios");
+  const nativeDTO=decodeNativePrefix(native,"writer_scenarios"),emittedDTO=decodeNativePrefix(emitted,"writer_scenarios");
   expect(nativeDTO).toEqual(emittedDTO);
-  expect(readRecord(nativeDTO).input).toEqual(frozenNativeInput(mode));
-  expect(readRecord(emittedDTO).input).toEqual(frozenNativeInput(mode));
-  expect(decodeWriterNativeBoundary(nativeDTO)).toEqual(expected);
-  expect(decodeWriterNativeBoundary(emittedDTO)).toEqual(expected);
-}, 30000);
+  compareOriginalFamily(nativeDTO,expected);
+  compareOriginalFamily(emittedDTO,expected);
+},100000);
