@@ -3,18 +3,66 @@ import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
-const roots: Array<string> = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) {
-    try {
-      const owner = JSON.parse(readFileSync(join(root, "runtime", "owner.json"), "utf8")) as { pid: number };
-      process.kill(owner.pid, "SIGTERM");
-    } catch { /* no resident owner */ }
-    rmSync(root, { recursive: true, force: true });
+type ResidentFixture = { root: string; child?: ChildProcess; spawnedPid?: number };
+const fixtures: Array<ResidentFixture> = [];
+const RESIDENT_EXIT_TIMEOUT_MS = 3_000;
+
+const waitForExit = (child: ChildProcess, timeoutMs: number): Promise<boolean> => {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (exited: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (timer !== undefined) clearTimeout(timer);
+      child.removeListener("error", onError);
+      child.removeListener("exit", onExit);
+      child.removeListener("close", onClose);
+      resolve(exited);
+    };
+    const onError = () => finish(true);
+    const onExit = () => finish(true);
+    const onClose = () => finish(true);
+    child.once("error", onError);
+    child.once("exit", onExit);
+    child.once("close", onClose);
+    timer = setTimeout(() => finish(false), timeoutMs);
+    if (child.exitCode !== null || child.signalCode !== null) finish(true);
+  });
+};
+
+const terminate = async (fixture: ResidentFixture): Promise<void> => {
+  const child = fixture.child;
+  if (child === undefined || child.exitCode !== null || child.signalCode !== null) return;
+  for (const signal of ["SIGTERM", "SIGKILL"] as const) {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    let delivered: boolean;
+    try { delivered = child.kill(signal); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ESRCH") return;
+      throw error;
+    }
+    if (!delivered || await waitForExit(child, RESIDENT_EXIT_TIMEOUT_MS)) return;
   }
+  throw new Error(`resident subprocess ${fixture.spawnedPid ?? "unknown"} did not exit after bounded cleanup`);
+};
+
+afterEach(async () => {
+  const failures: unknown[] = [];
+  for (const fixture of fixtures) {
+    try {
+      await terminate(fixture);
+      rmSync(fixture.root, { recursive: true, force: true });
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  fixtures.length = 0;
+  if (failures.length > 0) throw new AggregateError(failures, "resident fixture cleanup failed");
 });
 
 const waitFor = (predicate: () => boolean, timeoutMs = 5_000) => {
@@ -29,7 +77,8 @@ const waitFor = (predicate: () => boolean, timeoutMs = 5_000) => {
 describe("production resident activity subprocess", () => {
   it("reports a controlled native event as pending, then restarted/lost after resident death", () => {
     const root = mkdtempSync(join(tmpdir(), "resident-activity-subprocess-"));
-    roots.push(root);
+    const fixture: ResidentFixture = { root };
+    fixtures.push(fixture);
     const repository = join(root, "repository");
     const state = join(root, "consent");
     const runtime = join(root, "runtime");
@@ -68,6 +117,8 @@ describe("production resident activity subprocess", () => {
     const resident = spawn(process.execPath, ["src/resident/main.ts", runtime], {
       cwd: process.cwd(), env: environment, detached: true, stdio: "ignore",
     });
+    fixture.child = resident;
+    fixture.spawnedPid = resident.pid;
     resident.unref();
     waitFor(() => existsSync(join(runtime, "owner.json")) && existsSync(join(runtime, "resident.sock")));
     const before = spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"], {
