@@ -100,7 +100,12 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     retainOutput(output, identity, "fresh-native", { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 });
     return JSON.parse(output);
   } catch (error) {
-    retainNativeFailure(error, identity, directory, { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 }, phases);
+    try {
+      retainNativeFailure(error, identity, directory, { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 }, phases);
+    } catch {
+      // Evidence retention must never replace the actual phase failure.
+      try { console.error("Offline workload failure evidence could not be retained"); } catch {}
+    }
     throw error;
   } finally {
     rmSync(directory, { recursive: true, force: true });

@@ -275,3 +275,20 @@ it("cleans failed unscoped native compilation without retained artifacts", () =>
     expect(existsSync(spawn.mock.calls[0]?.[1][2])).toBe(false);
   } finally { outputLog.mockRestore(); vi.unstubAllEnvs(); }
 });
+
+it("preserves the original phase error when failure evidence cannot be written", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-native-retention-error-"));
+  const blocker = join(directory, "not-a-directory");
+  writeFileSync(blocker, "owned fixture blocker");
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", join(blocker, "failures.jsonl"));
+  const evidenceLog = vi.spyOn(console, "error").mockImplementation(() => {});
+  spawn.mockReturnValue({ status: null, stdout: "", stderr: "original compiler timeout", error: { code: "ETIMEDOUT" } });
+  try {
+    expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend")))
+      .toThrow(/C emission.*ETIMEDOUT.*original compiler timeout/);
+    expect(evidenceLog).toHaveBeenCalledWith("Offline workload failure evidence could not be retained");
+    expect(spawn).toHaveBeenCalledTimes(1);
+    expect(existsSync(spawn.mock.calls[0]?.[1][2])).toBe(false);
+    expect(readFileSync(blocker, "utf8")).toBe("owned fixture blocker");
+  } finally { evidenceLog.mockRestore(); vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
