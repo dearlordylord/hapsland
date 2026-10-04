@@ -4,6 +4,7 @@ import { decodeDriver, decodePreparedDriverContext, encodeDriverOutcome } from "
 import { decodePrefixGraphEvent } from "../../packages/monkey-business/src/callback-native-codec.ts";
 import { encodeCanonicalEvent } from "../../src/canonical/canonical-boundary.ts";
 import { encodeImportGraphEvent } from "../../src/canonical/graph-adapter.ts";
+import { encodePreparationGraphLimits } from "../../packages/monkey-business/src/file-trees.ts";
 import { doubleWords } from "../../packages/monkey-business/src/numeric-codec.ts";
 import { decodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
 import { decodeOutputCapture } from "../../packages/monkey-business/src/output-controls.ts";
@@ -82,7 +83,7 @@ function comparePayload(value, publicItem, field, order) {
       assert.deepEqual([key.partition,key.lifetime,key.round,key.operation,key.unit,input.position],
         [event.partition,event.lifetime,event.round,event.operation,event.unit,event.step],`${field} exact graph tuple ${order}`);
       assert.deepEqual(decodePrefixGraphEvent(input.fact),encodeImportGraphEvent(event.fact),`${field} complete graph fact ${order}`);
-      assert.deepEqual(input.limits,event.graphLimits,`${field} graph limits ${order}`);
+      assert.deepEqual(input.limits,encodePreparationGraphLimits(event.graphLimits),`${field} graph limits ${order}`);
     } else if (input.$ === "NativeRunTypes.Edit") {
       assert.equal(publicItem.input.kind,"edit",`${field} retry kind ${order}`);
       compareJob(input.job,{ ...publicItem.input,driverSourceJob:publicItem.driverSourceJob },`${field} retry ${order}`);
