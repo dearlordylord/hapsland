@@ -61,3 +61,15 @@ test("game execution rejects unbounded or unsupported allowances before compilat
       /unsupported finite game execution allowance/);
   }
 });
+
+test("game streams join split batches once and reject incomplete or malformed lines", async () => {
+  const { streamGameBatches } = await import("../prototypes/canonical-defense/game-stream-runner.mjs");
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-game-chunks-"));
+  const child = pieces => ["-e", `const pieces=${JSON.stringify(pieces)}; let i=0; const timer=setInterval(()=>{if(i===pieces.length){clearInterval(timer);return;} process.stdout.write(pieces[i++]);},5);`];
+  try {
+    const files = await streamGameBatches(process.execPath, child(["[0,", "281474976710655", "]\n[", "1]\n"]), directory, "split", 1000);
+    assert.deepEqual(files.map(file => readFileSync(file,"utf8")), ["[0,281474976710655]", "[1]"]);
+    await assert.rejects(streamGameBatches(process.execPath, child(["[0]"]), directory, "partial", 1000), /incomplete batch stream/);
+    await assert.rejects(streamGameBatches(process.execPath, child(["[", "invalid]\n"]), directory, "invalid", 1000), /JSON|Unexpected token/);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});

@@ -127,27 +127,30 @@ function checked(command, args, timeout) {
   if(result.error || result.status !== 0) throw new Error(`${command}: ${result.error?.code ?? result.status}: ${result.stderr}`);
   return result.stdout;
 }
-function stream(command,args,directory,label,executionTimeoutMs,supervised=false) {
+export function streamGameBatches(command,args,directory,label,executionTimeoutMs,supervised=false) {
   return new Promise((accept,reject)=>{
     const child=spawn(command,args,{detached:!supervised,stdio:["ignore","pipe","pipe"],env:{...process.env,BEND_NO_TELEMETRY:"1"}});
-    let pending=Buffer.alloc(0),stderr="",failure,totalBytes=0;const files=[];const started=performance.now();
+    let pending=[],pendingBytes=0,stderr="",failure,totalBytes=0;const files=[];const started=performance.now();
     const stop=error=>{if(!failure){failure=error;try{if(supervised)child.kill("SIGKILL");else process.kill(-child.pid,"SIGKILL");}catch(error){if(error.code!=="ESRCH")failure=error;}}};
     const timer=setTimeout(()=>stop(new Error(`${label} execution exceeded ${executionTimeoutMs}ms`)),executionTimeoutMs);
     child.stdout.on("data",data=>{
       if(failure)return;
-      pending=Buffer.concat([pending,data]);
-      for(;;){const end=pending.indexOf(10);if(end<0)break;
-        if(end>LIMIT){stop(new Error(`${label} batch exceeds 16MiB`));return;}
-        const line=pending.subarray(0,end);pending=pending.subarray(end+1);
+      let start=0;
+      for(;;){const end=data.indexOf(10,start);if(end<0)break;
+        const part=data.subarray(start,end);const length=pendingBytes+part.length;
+        if(length>LIMIT){stop(new Error(`${label} batch exceeds 16MiB`));return;}
+        const line=pendingBytes?Buffer.concat([...pending,part],length):part;
+        pending=[];pendingBytes=0;start=end+1;
         try{if(!line.length)throw new Error("empty batch");JSON.parse(line.toString("utf8"));
           if(files.length>=145)throw new Error("unexpected extra game batch");
           const file=join(directory,`${label}-${files.length}.json`);writeFileSync(file,line);files.push(file);totalBytes+=line.length;
         }catch(error){stop(error);return;}}
-      if(pending.length>LIMIT)stop(new Error(`${label} batch exceeds 16MiB`));
+      if(start<data.length){const part=data.subarray(start);pending.push(part);pendingBytes+=part.length;}
+      if(pendingBytes>LIMIT)stop(new Error(`${label} batch exceeds 16MiB`));
     });
     child.stderr.on("data",data=>{stderr+=data.toString();if(Buffer.byteLength(stderr)>65536)stop(new Error(`${label} stderr bound`));});
     child.on("error",stop);
-    child.on("close",code=>{clearTimeout(timer);if(failure){failure.message+=` (batches=${files.length}, bytes=${totalBytes}, pendingBytes=${pending.length}, elapsedMs=${Math.round(performance.now()-started)})`;reject(failure);}else if(code!==0)reject(new Error(`${label} exit ${code}: ${stderr}`));else if(pending.length||!files.length)reject(new Error(`${label} incomplete batch stream`));else accept(files);});
+    child.on("close",code=>{clearTimeout(timer);if(failure){failure.message+=` (batches=${files.length}, bytes=${totalBytes}, pendingBytes=${pendingBytes}, elapsedMs=${Math.round(performance.now()-started)})`;reject(failure);}else if(code!==0)reject(new Error(`${label} exit ${code}: ${stderr}`));else if(pendingBytes||!files.length)reject(new Error(`${label} incomplete batch stream`));else accept(files);});
   });
 }
 // Failed scoped compiler output is diagnostic evidence, never an artifact cache.
@@ -230,10 +233,10 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
     if(resume?.binary){writeFileSync(binary,resumeArtifact(resume.binary,true));chmodSync(binary,resume.binary.mode);}
     else checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],phaseAllowance(clangTimeoutMs,deadline));
     completed.push("clang compilation");verify();
-    const binaryHash=hash(binary);phase="native execution";const native=await stream(binary,[],directory,"native",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);completed.push("native execution");verify();
+    const binaryHash=hash(binary);phase="native execution";const native=await streamGameBatches(binary,[],directory,"native",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);completed.push("native execution");verify();
     if(hash(c)!==cHash||hash(binary)!==binaryHash)throw new Error("native artifact changed");
     phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],phaseAllowance(30000,deadline));completed.push("JS emission");verify();
-    const jsHash=hash(js);phase="JS execution";const emitted=await stream(process.execPath,[js],directory,"emitted",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);verify();
+    const jsHash=hash(js);phase="JS execution";const emitted=await streamGameBatches(process.execPath,[js],directory,"emitted",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);verify();
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){
