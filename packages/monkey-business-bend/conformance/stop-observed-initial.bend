@@ -105,7 +105,7 @@ def append(input: Inputs.Input, runtime: Edge.Runtime, +agents: List<&2,Agent>, 
   match input runtime:
     case Inputs.CanonicalInput{at,+event} Edge.Runtime{+state,queue,jobs,delay}:
       ih(Edge.Runtime{state,Edge.append(queue,at,Edge.Event{Driver.immediate(event,False{}),
-        Edge.NoJob{input_owner(Engine.scope_event(state,state,event,Some{1n})),1n},None{}}),jobs,delay})
+        Edge.NoJob{input_owner(Engine.scope_event(state,state,event,Some{1n})),1n},None{},Edge.RawInput{}}),jobs,delay})
     case Inputs.Edit{at,+requested,bytes,units,outcome} runtime:
       append_selected(agent(agents,requested),Inputs.Edit{at,requested,bytes,units,outcome},runtime,agents,wait,ih)
     case Inputs.Finish{at,+requested,recurring} runtime:

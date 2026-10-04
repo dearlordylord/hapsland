@@ -54,7 +54,7 @@ def input_states(action: Driver.Action, partition: Nat, states: List<&2,Types.St
 
 def original_input(input: Edge.Input, states: List<&2,Types.State>) -> Maybe<&2,Payload>:
   match input:
-    case Edge.Event{action,job,_}: input_states(action,Edge.job_partition(job),states)
+    case Edge.Event{action,job,_,issuance}: input_states(action,Edge.job_partition(job),states)
     case _: None{}
 
 def preparation(found: Maybe<&2,Payload>, input: Edge.Input, states: List<&2,Types.State>) -> Maybe<&2,Payload>:
@@ -90,11 +90,15 @@ def observed_owner(frame: Edge.ObservedFrame, found: Maybe<&2,Payload>,
 
 def queued(payload: Payload, job: Edge.Job) -> Edge.Job:
   match payload job:
-    case Payload{Scope{partition,lifetime,_},False{}} _:
+    case Payload{_,False{}} Edge.Job{p,l,bytes,units,outcome}:
+      Edge.Unbound{Driver.SourceJob{p,l,bytes,units,outcome}}
+    case Payload{_,False{}} Edge.Unbound{source}: Edge.Unbound{source}
+    case Payload{Scope{partition,lifetime,_},False{}} Edge.NoJob{_,_}:
       Edge.NoJob{partition,lifetime}
     case Payload{Scope{partition,lifetime,_},True{}} Edge.Job{_,_,bytes,units,outcome}:
       Edge.Job{partition,lifetime,bytes,units,outcome}
     case Payload{Scope{partition,lifetime,_},True{}} Edge.NoJob{_,_}: Edge.NoJob{partition,lifetime}
+    case Payload{_,True{}} Edge.Unbound{source}: Edge.Unbound{source}
 
 # These commands obtain their actual operation job through common Edge's
 # command_job before this hook. A response capsule does not create such a job.

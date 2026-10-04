@@ -17,7 +17,7 @@ def facts(list: List<&2, Permit.Fact>, queue: Edge.Queue, +anchor: Nat, +job: Ed
     case Nil{}: queue
     case Permit.Fact{event, +delay, binding} <> tail:
       facts(tail, Edge.append(queue, (anchor + delay : Nat),
-        Edge.Event{Driver.Action{event, delay, None{}, binding, None{}},job,None{}}), anchor, job)
+        Edge.Event{Driver.Action{event, delay, None{}, binding, None{}},job,None{},Edge.Environmental{None{}}}), anchor, job)
 
 def tokens(list: List<&2, Canonical.Command>) -> Nat:
   match list:
@@ -95,13 +95,13 @@ def event(action: Driver.Action, +state: Types.State, queue: Edge.Queue, jobs: L
         case Canonical.ConsumePermit{_,_,_,_,_}: permit_transition(Engine.step(state,ev),ev,queue,jobs,job,now,delay,capture,ih)
         case Canonical.ReleasePermit{_,_,_}: permit_transition(Engine.step(state,ev),ev,queue,jobs,job,now,delay,capture,ih)
         case Canonical.ExpirePermit{_,_,_,_}: permit_transition(Engine.step(state,ev),ev,queue,jobs,job,now,delay,capture,ih)
-        case ev: Edge.input(Edge.Event{Driver.Action{ev,0n,candidate,True{},None{}},job,None{}},state,queue,jobs,now,delay,ih)
+        case ev: Edge.input(Edge.Event{Driver.Action{ev,0n,candidate,True{},None{}},job,None{},Edge.Environmental{None{}}},state,queue,jobs,now,delay,ih)
 
 def selected(input: Edge.Input, +state: Types.State, queue: Edge.Queue,
     jobs: List<&2,Edge.Stored>, +now: Nat, delay: Nat, capture: Permit.Capture,
     ih: Edge.Runtime -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
   match input:
-    case Edge.Event{action,job,_}: event(action,state,queue,jobs,job,now,delay,capture,ih)
+    case Edge.Event{action,job,_,issuance}: event(action,state,queue,jobs,job,now,delay,capture,ih)
     case input: Edge.input(input,state,queue,jobs,now,delay,ih)
 
 def taken(taken: Engine.Taken, +items: List<&2,Edge.Item>, +sequence: Nat,
@@ -153,4 +153,4 @@ def run(+outcome: Permit.PostOutcome, +duration: Nat, review: Canonical.RequestO
   +capture = {captured(Engine.pre_timing(state,1n,None{},duration,10n),outcome) : Permit.Capture}
   +job = {Edge.Job{1n,1n,10n,[5n],Some{review}} : Edge.Job}
   loop(150n,Edge.Runtime{state,Edge.append(Edge.Queue{[],0n,0n},1n,
-    Edge.Event{Driver.immediate(Engine.permit_issue(capture,1n),True{}),job,None{}}),[],5n},capture)
+    Edge.Event{Driver.immediate(Engine.permit_issue(capture,1n),True{}),job,None{},Edge.Environmental{None{}}}),[],5n},capture)

@@ -25,6 +25,8 @@ type Input is Data:
   Finish{at: Nat, agent: Maybe<&2,String>, recurring: Bool}
   CanonicalInput{at: Nat, event: Canonical.CanonicalEvent}
 type Boundary is Data:
+  OutputProfile{outcome: Output.Outcome, delay: Nat, lease: Nat}
+  MismatchedTerminal{at: Nat, agent: Maybe<&2,String>}
   Advance{endpoint: Nat, budget: Nat}
   Schedule{input: Input}
 type Scenario is Data:

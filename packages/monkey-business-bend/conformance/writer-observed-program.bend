@@ -64,8 +64,8 @@ def fault(value: Trace) -> Trace:
 
 def replace_selected(equal: Bool, item: Edge.Item, event: C.CanonicalEvent) -> Edge.Item:
   match equal item:
-    case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload,source}}:
-      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,source}}
+    case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload,source,issuance}}:
+      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,source,issuance}}
     case _ item: item
 
 def replace(items: List<&2,Edge.Item>, +order: Nat, +event: C.CanonicalEvent) -> List<&2,Edge.Item>:
@@ -92,9 +92,9 @@ def guarded_event(found: Maybe<&2,C.CanonicalEvent>, +runtime: List<&2,Edge.Runt
 def guard_input(input: Edge.Input, states: List<&2,Types.State>, runtime: List<&2,Edge.Runtime>,
     original: Maybe<&2,Originals.Capsule>, now: Nat, order: Nat) -> Guarded:
   match input states:
-    case Edge.Event{Driver.Action{+event,+d,+c,+j,+e},+payload,source} state <> Nil{}:
+    case Edge.Event{Driver.Action{+event,+d,+c,+j,+e},+payload,source,issuance} state <> Nil{}:
       guarded_event(Originals.event(original,state,event,now),runtime,
-        Edge.Event{Driver.Action{event,d,c,j,e},payload,source},order)
+        Edge.Event{Driver.Action{event,d,c,j,e},payload,source,issuance},order)
     case _ _ <> Nil{}: Guarded{runtime,True{},True{}}
     case _ _: Guarded{runtime,False{},False{}}
 
@@ -243,7 +243,7 @@ def observed(value: Transport.Stepped<Hook.Facts>, job: Maybe<&2,Edge.Job>, cuto
 
 def input_job(input: Edge.Input) -> Maybe<&2,Edge.Job>:
   match input:
-    case Edge.Event{_,job,_}: Some{job}
+    case Edge.Event{_,job,_,issuance}: Some{job}
     case Edge.Edit{job}: Some{job}
     case Edge.Cache{_,job}: Some{job}
     case _: None{}
@@ -368,7 +368,7 @@ def boundary(trace: Trace, endpoint: Nat, budget: Nat, before: Nat) -> Trace:
 
 def quiet_refused(original: Maybe<&2,Originals.Capsule>, input: Edge.Input, state: Types.State, now: Nat) -> Bool:
   match original input:
-    case Some{Originals.Response{target}} Edge.Event{Driver.Action{event,_,_,_,_},_,_}:
+    case Some{Originals.Response{target}} Edge.Event{Driver.Action{event,_,_,_,_},_,_,issuance}:
       Bool.not(Engine.collection_response_delivery_valid(state,target,now,event))
     case _ _: False{}
 

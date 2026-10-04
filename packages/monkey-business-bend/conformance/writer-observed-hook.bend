@@ -42,9 +42,7 @@ def issued(value: Output.Issued, runtime: List<&2,Edge.Runtime>, bindings: List<
     case _ runtime: Captured{runtime,bindings,False{}}
 
 def job_partition(job: Edge.Job) -> Nat:
-  match job:
-    case Edge.Job{partition,_,_,_,_}: partition
-    case Edge.NoJob{partition,_}: partition
+  Edge.job_partition(job)
 
 def payload_of(+state: Types.State, +action: Driver.Action, available: Bool,
     job: Edge.Job) -> Context.Payload:
@@ -54,8 +52,8 @@ def payload_of(+state: Types.State, +action: Driver.Action, available: Bool,
 
 def replaced(equal: Bool, item: Edge.Item, payload: Context.Payload) -> Edge.Item:
   match equal item:
-    case True{} Edge.Item{at,order,Edge.Event{action,job,source}}:
-      Edge.Item{at,order,Edge.Event{action,Context.queued(payload,job),source}}
+    case True{} Edge.Item{at,order,Edge.Event{action,job,source,issuance}}:
+      Edge.Item{at,order,Edge.Event{action,Context.queued(payload,job),source,issuance}}
     case _ item: item
 
 def queued_context(items: List<&2,Edge.Item>, +order: Nat, +payload: Context.Payload) -> List<&2,Edge.Item>:
@@ -87,7 +85,7 @@ def fresh_action(fresh: Bool, +action: Driver.Action, +runtime: List<&2,Edge.Run
 def fresh(item: Edge.Item, runtime: List<&2,Edge.Runtime>, +cutoff: Nat,
     bindings: List<&2,Originals.Binding>, original: Maybe<&2,Originals.Capsule>, allowed: Bool, available: Bool, environment: Edge.Environment) -> Captured:
   match item:
-    case Edge.Item{at,+order,Edge.Event{action,job,_}}:
+    case Edge.Item{at,+order,Edge.Event{action,job,_,issuance}}:
       fresh_action(Nat.is_le(cutoff,order),action,runtime,at,order,job,bindings,original,allowed,available,environment)
     case _: Captured{runtime,bindings,True{}}
 

@@ -56,9 +56,7 @@ def action_binding(capsule: Maybe<&2,Originals.Capsule>, action: Driver.Action,
     case None{}: rest
 
 def job_partition(job: Edge.Job) -> Nat:
-  match job:
-    case Edge.Job{partition,_,_,_,_}: partition
-    case Edge.NoJob{partition,_}: partition
+  Edge.job_partition(job)
 
 def enqueued(list: List<&2,Driver.Action>, queue: Edge.Queue,
     bindings: List<&2,Originals.Binding>, +capsule: Maybe<&2,Originals.Capsule>,

@@ -83,7 +83,7 @@ def issue_captured(capture: Maybe<&2,Output.Capture>, +state: Types.State, order
 def replaced_item(matches: Bool, original: Edge.Item, at: Nat, order: Nat,
     action: Driver.Action, input: Edge.Input) -> Edge.Item:
   match matches input:
-    case True{} Edge.Event{_,job,source}: Edge.Item{at,order,Edge.Event{action,job,source}}
+    case True{} Edge.Event{_,job,source,issuance}: Edge.Item{at,order,Edge.Event{action,job,source,issuance}}
     case _ _: original
 
 def replace_item(item: Edge.Item, +order: Nat, at: Nat, action: Driver.Action) -> Edge.Item:
@@ -156,19 +156,44 @@ def issued_item(value: Issued, queue: Edge.Queue, jobs: List<&2,Edge.Stored>, de
 
 # The capture pass processes one original newly appended action at a time;
 # factual snapshots never reconstruct membership or callback identities.
+def captured_item(matches: Bool, item: Edge.Item, capture: Maybe<&2,Output.Capture>) -> Edge.Item:
+  match matches item:
+    case True{} Edge.Item{at,order,Edge.Event{action,job,source,_}}:
+      Edge.Item{at,order,Edge.Event{action,job,source,Edge.Environmental{capture}}}
+    case _ item: item
+
+def captured_item_order(item: Edge.Item) -> Nat:
+  match item:
+    case Edge.Item{_,order,_}: order
+
+def captured_items(items: List<&2,Edge.Item>, +order: Nat, +capture: Maybe<&2,Output.Capture>) -> List<&2,Edge.Item>:
+  match items:
+    case Nil{}: []
+    case +item <> tail:
+      captured_item(Nat.is_eq(captured_item_order(item),order),item,capture) <> captured_items(tail,order,capture)
+
+def captured_queue(queue: Edge.Queue, order: Nat, capture: Maybe<&2,Output.Capture>) -> Edge.Queue:
+  match queue:
+    case Edge.Queue{items,sequence,synced}: Edge.Queue{captured_items(items,order,capture),sequence,synced}
+
+def fresh_captured(+capture: Maybe<&2,Output.Capture>, +state: Types.State, +order: Nat, at: Nat,
+    action: Driver.Action, queue: Edge.Queue, jobs: List<&2,Edge.Stored>, delay: Nat, issued_count: Nat,
+    frames: List<&2,Frame>, outcome: Output.Outcome) -> Runtime:
+  issued_item(issue_captured(capture,state,order,at,action),captured_queue(queue,order,capture),jobs,delay,issued_count,frames,outcome)
+
 def fresh_action(fresh: Bool, +action: Driver.Action, +state: Types.State, order: Nat, at: Nat,
     queue: Edge.Queue, jobs: List<&2,Edge.Stored>, delay: Nat, issued_count: Nat,
     frames: List<&2,Frame>, outcome: Output.Outcome, output_delay: Nat, lease: Nat, allowed: Bool) -> Runtime:
   match fresh action:
     case True{} Driver.Action{+event,d,c,j,e}:
-      issued_item(issue_captured(authorized_capture(allowed,event,Engine.clock(state),output_delay,lease),state,order,at,
-        Driver.Action{event,d,c,j,e}),queue,jobs,delay,issued_count,frames,outcome)
+      fresh_captured(authorized_capture(allowed,event,Engine.clock(state),output_delay,lease),state,order,at,
+        Driver.Action{event,d,c,j,e},queue,jobs,delay,issued_count,frames,outcome)
     case False{} _: Runtime{[Edge.Runtime{state,queue,jobs,delay}],issued_count,frames,True{}}
 
 def fresh_item(item: Edge.Item, +runtime: List<&2,Edge.Runtime>, +issued_count: Nat, frames: List<&2,Frame>,
     outcome: Output.Outcome, output_delay: Nat, lease: Nat, allowed: Bool) -> Runtime:
   match item runtime:
-    case Edge.Item{at,+order,Edge.Event{+action,_,_}} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
+    case Edge.Item{at,+order,Edge.Event{+action,_,_,issuance}} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
       fresh_action(Nat.is_le(issued_count,order),action,state,order,at,queue,jobs,delay,issued_count,frames,outcome,output_delay,lease,allowed)
     case _ _ <> Nil{}: Runtime{runtime,issued_count,frames,True{}}
     case _ runtime: Runtime{runtime,issued_count,frames,False{}}
