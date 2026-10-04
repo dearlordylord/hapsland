@@ -675,13 +675,13 @@ def scoped_details_box(details: List<&2,T.FrameDetails>, provided: Maybe<&2,Nat>
 def scope_details_box(+details: List<&2,T.FrameDetails>, commands: List<&2,Canonical.Command>, +provided: Maybe<&2,Nat>) -> List<&2,T.FrameDetails>:
   scoped_details_box(details,provided,detail_scopes_box(details,commands,provided))
 
-def scope_details(+details: T.FrameDetails, commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> T.FrameDetails:
-  scoped_details_value(details,scope_details_box([details],commands,provided))
-
 def scoped_details_value(fallback: T.FrameDetails, values: List<&2,T.FrameDetails>) -> T.FrameDetails:
   match values:
     case value <> _: value
     case Nil{}: fallback
+
+def scope_details(+details: T.FrameDetails, commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> T.FrameDetails:
+  scoped_details_value(details,scope_details_box([details],commands,provided))
 
 def frame_details(before: T.RuntimeSnapshot, +state: T.State, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>) -> T.FrameDetails:
   match state:
@@ -1393,7 +1393,7 @@ def product_stepped(values: List<&2,ProductRequest>, transitions: List<&2,Engine
 
 def product_fenced(values: List<&2,ProductRequest>, events: List<&2,Canonical.CanonicalEvent>) -> List<&2,ProductRequest>:
   match values events:
-    case ProductRequest{state,_,Driver.Action{_,delay,candidate,supplied,expiry},job,source,source_job} <> Nil{} event <> Nil{}:
+    case ProductRequest{state,_,Driver.Action{_,delay,candidate,supplied,expiry},job,source,source_job} <> Nil{} +event <> Nil{}:
       [ProductRequest{state,event,Driver.Action{event,delay,candidate,supplied,expiry},job,source,source_job}]
     case _ _: []
 
@@ -1640,7 +1640,7 @@ def delivery_action(states: List<&2,T.State>, receipts: List<&2,Maybe<&2,Callbac
     case state <> Nil{} receipt <> Nil{}: [physical_action(receipt,clock(state))]
     case _ _: []
 
-def original_delivery_box(+states: List<&2,T.State>, +values: List<&2,T.Input>, order: Nat, +receipts: List<&2,Maybe<&2,Callbacks.Fact>>) -> List<&2,T.Step>:
+def original_delivery_box(+states: List<&2,T.State>, +values: List<&2,T.Input>, +order: Nat, +receipts: List<&2,Maybe<&2,Callbacks.Fact>>) -> List<&2,T.Step>:
   delivered_box(states,delivery_after(states,values,order),receipts,delivery_action(states,receipts),order,values)
 
 def original_delivery(+state: T.State, value: T.Input, order: Nat, receipt: Maybe<&2,Callbacks.Fact>) -> T.Step:
