@@ -80,7 +80,7 @@ def queue_events(events: List<&2,C.CanonicalEvent>, runtime: List<&2,Edge.Runtim
     case Nil{} runtime: (runtime,capsules)
     case event <> tail Edge.Runtime{+state,Edge.Queue{items,+sequence,synced},jobs,delay} <> Nil{}:
       queue_events(tail,[Edge.Runtime{state,Edge.append(Edge.Queue{items,sequence,synced},at,
-        Edge.Event{Driver.immediate(event,False{}),source_job(state,partition),None{}}),jobs,delay}],
+        Edge.Event{Driver.immediate(event,False{}),source_job(state,partition),None{},Edge.Environmental{None{}}}),jobs,delay}],
         List.append(&2,Capsule,capsules,[Capsule{sequence,scope,diagnostic}]),at,partition,scope,diagnostic)
     case _ runtime: (runtime,capsules)
 
@@ -207,7 +207,7 @@ def stepped(value: Transport.Stepped<Facts>, issued: Nat, previous: Trace) -> Tr
 # separate from the Notice policy scope and never resolved from the endpoint.
 def input_provided(input: Edge.Input) -> Maybe<&2,Nat>:
   match input:
-    case Edge.Event{_,job,_}: Some{Edge.job_partition(job)}
+    case Edge.Event{_,job,_,issuance}: Some{Edge.job_partition(job)}
     case _: None{}
 
 def selected_capsule(value: Capsule, +runtime: List<&2,Edge.Runtime>, issued: Nat, endpoint: Nat,

@@ -19,8 +19,8 @@ type Stepped<-F: Data> is Type:
 
 def action(input: Edge.Input) -> Maybe<&2,Driver.Action>:
   match input:
-    case Edge.Event{action,_,_}: Some{action}
-    case Edge.FitEvent{action,_,_,_}: Some{action}
+    case Edge.Event{action,_,_,issuance}: Some{action}
+    case Edge.FitEvent{action,_,_,_,issuance}: Some{action}
     case _: None{}
 
 # Original Finish completion facts come from the same registry populated by
@@ -37,10 +37,11 @@ def finish_output(found: Maybe<&2,Stop.Finish>) -> Maybe<&2,Output.Capture>:
     case Some{Stop.Finish{_,_,_,_,_,_,_,_,_,_,_,_,output}}: finish_output_list(output)
     case None{}: None{}
 
-def action_output(event: C.CanonicalEvent, state: Types.State) -> Maybe<&2,Output.Capture>:
-  match event:
-    case C.FinishTerminal{partition,_,_,_,_,_}: finish_output(Engine.stop_find(state,partition))
-    case _: None{}
+def output_capture(captured: Maybe<&2,Output.Capture>, event: C.CanonicalEvent, state: Types.State) -> Maybe<&2,Output.Capture>:
+  match captured event:
+    case Some{capture} _: Some{capture}
+    case None{} C.FinishTerminal{partition,_,_,_,_,_}: finish_output(Engine.stop_find(state,partition))
+    case None{} _: None{}
 
 def issue_output_owned(owner: Maybe<&2,Callbacks.Owner>, state: Types.State, order: Nat, at: Nat,
     action: Driver.Action, capture: Output.Capture) -> Types.State:
@@ -54,21 +55,55 @@ def issue_output(capture: Maybe<&2,Output.Capture>, +state: Types.State, order: 
     case Some{capture}: issue_output_owned(Engine.callback_owner(state,Callbacks.event_of(action)),state,order,at,action,capture)
     case None{}: CallbacksEdge.issue_action(Some{action},state,order,at)
 
-def issue_action(action: Maybe<&2,Driver.Action>, +state: Types.State, order: Nat, at: Nat) -> Types.State:
-  match action:
-    case Some{+action}: issue_output(action_output(Callbacks.event_of(action),state),state,order,at,action)
-    case None{}: state
+def issue_environmental(issuance: Edge.Issuance, +action: Driver.Action, +state: Types.State, order: Nat, at: Nat) -> Types.State:
+  match issuance:
+    case Edge.Environmental{capture}: issue_output(output_capture(capture,Callbacks.event_of(action),state),state,order,at,action)
+    case Edge.CanonicalFeedback{}: state
+    case Edge.RawInput{}: state
+
+def issue_input(input: Edge.Input, state: Types.State, order: Nat, at: Nat) -> Types.State:
+  match input:
+    case Edge.Event{action,_,_,issuance}: issue_environmental(issuance,action,state,order,at)
+    case Edge.FitEvent{action,_,_,_,issuance}: issue_environmental(issuance,action,state,order,at)
+    case _: state
 
 def issue_fresh(fresh: Bool, input: Edge.Input, state: Types.State, order: Nat, at: Nat) -> Types.State:
   match fresh:
     case False{}: state
-    case True{}: issue_action(action(input),state,order,at)
+    case True{}: issue_input(input,state,order,at)
 
 def issue_items(items: List<&2,Edge.Item>, state: Types.State, +issued: Nat) -> Types.State:
   match items:
     case []: state
     case Edge.Item{at,+order,input} <> tail:
       issue_items(tail,issue_fresh(Nat.is_le(issued,order),input,state,order,at),issued)
+
+# Publish the same original output capture into the queued input before issuing
+# its callback fact. Raw inputs and canonical feedback retain their provenance.
+def captured_issuance(issuance: Edge.Issuance, action: Driver.Action, state: Types.State) -> Edge.Issuance:
+  match issuance:
+    case Edge.Environmental{capture}: Edge.Environmental{output_capture(capture,Callbacks.event_of(action),state)}
+    case other: other
+
+def captured_input(fresh: Bool, input: Edge.Input, state: Types.State) -> Edge.Input:
+  match fresh input:
+    case True{} Edge.Event{+action,job,source,issuance}:
+      Edge.Event{action,job,source,captured_issuance(issuance,action,state)}
+    case True{} Edge.FitEvent{+action,job,attempt,source,issuance}:
+      Edge.FitEvent{action,job,attempt,source,captured_issuance(issuance,action,state)}
+    case _ input: input
+
+def captured_items(items: List<&2,Edge.Item>, +state: Types.State, +issued: Nat) -> List<&2,Edge.Item>:
+  match items:
+    case []: []
+    case Edge.Item{at,+order,input} <> tail:
+      Edge.Item{at,order,captured_input(Nat.is_le(issued,order),input,state)} <> captured_items(tail,state,issued)
+
+def captured_runtime(runtime: List<&2,Edge.Runtime>, issued: Nat) -> List<&2,Edge.Runtime>:
+  match runtime:
+    case Edge.Runtime{+state,Edge.Queue{items,sequence,synced},jobs,delay} <> Nil{}:
+      [Edge.Runtime{state,Edge.Queue{captured_items(items,state,issued),sequence,synced},jobs,delay}]
+    case runtime: runtime
 
 def capture_states(runtime: List<&2,Edge.Runtime>, issued: Nat) -> List<&2,Types.State>:
   match runtime:
@@ -82,8 +117,11 @@ def capture_ready(states: List<&2,Types.State>, runtime: List<&2,Edge.Runtime>, 
       Captured{[Edge.Runtime{state,Edge.Queue{items,sequence,synced},jobs,delay}],sequence}
     case _ runtime: Captured{runtime,issued}
 
-def capture(+runtime: List<&2,Edge.Runtime>, +issued: Nat) -> Captured:
+def capture_prepared(+runtime: List<&2,Edge.Runtime>, +issued: Nat) -> Captured:
   capture_ready(capture_states(runtime,issued),runtime,issued)
+
+def capture(runtime: List<&2,Edge.Runtime>, +issued: Nat) -> Captured:
+  capture_prepared(captured_runtime(runtime,issued),issued)
 
 def receipt_target(receipt: Maybe<&2,Callbacks.Fact>) -> Maybe<&2,Callbacks.Target>:
   match receipt:
@@ -145,12 +183,12 @@ def preprocess_next(runtime: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
 def preprocess(-F: Data, input: Edge.Input, +runtime: List<&2,Edge.Runtime>, now: Nat, +order: Nat,
     endpoint: Nat, environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match input:
-    case Edge.Event{Driver.Action{+event,delay,candidate,binding,expiry},+job,source}:
+    case Edge.Event{Driver.Action{+event,delay,candidate,binding,expiry},+job,source,issuance}:
       routed(F,preprocess_next(runtime,event,order,endpoint),runtime,
-        Edge.Event{Driver.Action{event,delay,candidate,binding,expiry},job,source},now,order,job,environment,factory)
-    case Edge.FitEvent{Driver.Action{+event,delay,candidate,binding,expiry},+job,attempt,source}:
+        Edge.Event{Driver.Action{event,delay,candidate,binding,expiry},job,source,issuance},now,order,job,environment,factory)
+    case Edge.FitEvent{Driver.Action{+event,delay,candidate,binding,expiry},+job,attempt,source,issuance}:
       routed(F,preprocess_next(runtime,event,order,endpoint),runtime,
-        Edge.FitEvent{Driver.Action{event,delay,candidate,binding,expiry},job,attempt,source},now,order,job,environment,factory)
+        Edge.FitEvent{Driver.Action{event,delay,candidate,binding,expiry},job,attempt,source,issuance},now,order,job,environment,factory)
     case input: take_selected(F,runtime,input,order,environment,factory)
 
 def within(-F: Data, allowed: Bool, input: Edge.Input, runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat,

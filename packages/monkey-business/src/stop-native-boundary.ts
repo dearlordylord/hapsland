@@ -1,3 +1,4 @@
+import { decodeOutputCapture } from "./output-controls.ts";
 import { encodeImportGraphEvent } from "../../../src/canonical/graph-adapter.ts";
 import { isDeepStrictEqual } from "node:util";
 import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts";
@@ -102,6 +103,13 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
           same({partition:original.partition,lifetime:original.lifetime,bytes:original.bytes,units:list(original.units),outcome:original.outcome},publicItem.driverSourceJob,`${field} item ${order} complete immutable unbound source`);
         } else compareJob(input.job, publicItem.driverSourceJob, `${field} item ${order} source job`);
       }
+      const issuance=readRecord(input.issuance);
+      if (issuance.$ === "advicee_lifecycle_driver.Environmental") {
+        const capture=optional(issuance.output);
+        same(capture===undefined?undefined:decodeOutputCapture(capture),publicItem.callbackReceipt?.outputCapture,`${field} item ${order} complete original environmental output capture`);
+      } else if (issuance.$ === "advicee_lifecycle_driver.RawInput" || issuance.$ === "advicee_lifecycle_driver.CanonicalFeedback") {
+        same(publicItem.callbackReceipt,undefined,`${field} item ${order} nonenvironmental callback provenance`);
+      } else throw new TypeError("unrecognized original queued issuance provenance");
       compareEmission(input.context,publicItem,`${field} item ${order}`);
       same(input.$ === "advicee_lifecycle_driver.FitEvent" ? readNat(input.attempt) : undefined,
         publicItem.fitFinish, `${field} item ${order} original fit attempt`);
