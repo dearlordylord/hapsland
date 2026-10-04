@@ -49,6 +49,7 @@ import ../Types.bend as Types
 import ../Workload.bend as Workload
 import ../WriterScenario.bend as WriterScenario
 import ./advicee-lifecycle-driver.bend as advicee_lifecycle_driver
+import ./expiry-observed-driver.bend as expiry_observed_driver
 import ./output-scenario-driver.bend as output_scenario_driver
 import ./sharing-observed-driver.bend as sharing_observed_driver
 import ./sharing-observed-initial.bend as sharing_observed_initial
@@ -1286,70 +1287,35 @@ def list_adviceelifecycle_entry(values: List<&2,List<&2,AdviceeLifecycle.Entry>>
     case +value <> Nil{}: List.length(&2,AdviceeLifecycle.Entry,value) <> list_adviceelifecycle_entry_items([value],suffix)
     case _: 999999n <> suffix
 
-def treefacts_profile(values: List<&2,TreeFacts.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def expiryscenario_profile(values: List<&2,ExpiryScenario.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case TreeFacts.Profile{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> v7 <> v8 <> v9 <> v10 <> v11 <> v12 <> v13 <> v14 <> v15 <> suffix
+    case ExpiryScenario.Profile{v0,v1,v2} <> Nil{}: 0n <> v0 <> v1 <> v2 <> suffix
     case _: 999999n <> suffix
 
-def outputscenario_outcome(values: List<&2,OutputScenario.Outcome>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def expiry_observed_driver_action(values: List<&2,expiry_observed_driver.Action>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case OutputScenario.Certain{} <> Nil{}: 0n <> suffix
-    case OutputScenario.Uncertain{} <> Nil{}: 1n <> suffix
-    case OutputScenario.Failed{} <> Nil{}: 2n <> suffix
+    case expiry_observed_driver.Failure{v0,v1,v2,v3,v4} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> text([v4],suffix)
+    case expiry_observed_driver.Collect{v0,v1,v2,v3,v4} <> Nil{}: 1n <> v0 <> v1 <> boolean(v2,boolean(v3,list_nat([v4],suffix)))
+    case expiry_observed_driver.Lease{v0,v1,v2} <> Nil{}: 2n <> v0 <> v1 <> v2 <> suffix
+    case expiry_observed_driver.Release{v0} <> Nil{}: 3n <> v0 <> suffix
+    case expiry_observed_driver.Profile{v0} <> Nil{}: 4n <> expiryscenario_profile([v0],suffix)
+    case expiry_observed_driver.Tick{} <> Nil{}: 5n <> suffix
     case _: 999999n <> suffix
 
-def collectorscenario_profile(values: List<&2,CollectorScenario.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def expiry_observed_driver_original(values: List<&2,expiry_observed_driver.Original>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case CollectorScenario.Profile{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
+    case expiry_observed_driver.Original{v0,v1} <> Nil{}: 0n <> v0 <> expiry_observed_driver_action([v1],suffix)
     case _: 999999n <> suffix
 
-def maybe_collectorscenario_profile(values: List<&2,Maybe<&2,CollectorScenario.Profile>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> collectorscenario_profile([value],suffix)
-    case _: 999999n <> suffix
-
-def stop_original_inputs_configuration(values: List<&2,stop_original_inputs.Configuration>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case stop_original_inputs.Configuration{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15} <> Nil{}: 0n <> v0 <> v1 <> U32.to_nat(v2) <> v3 <> ledger_limits([v4],treefacts_profile([v5],importgraph_limits([v6],v7 <> v8 <> canonical_requestoutcome([v9],v10 <> outputscenario_outcome([v11],v12 <> v13 <> maybe_nat([v14],maybe_collectorscenario_profile([v15],suffix)))))))
-    case _: 999999n <> suffix
-
-def stop_original_inputs_input(values: List<&2,stop_original_inputs.Input>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case stop_original_inputs.Edit{v0,v1,v2} <> Nil{}: 0n <> v0 <> v1 <> list_nat([v2],suffix)
-    case stop_original_inputs.Finish{v0,v1} <> Nil{}: 1n <> v0 <> boolean(v1,suffix)
-    case _: 999999n <> suffix
-
-def list_stop_original_inputs_input_items(values: List<&2,List<&2,stop_original_inputs.Input>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def list_expiry_observed_driver_original_items(values: List<&2,List<&2,expiry_observed_driver.Original>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: stop_original_inputs_input([head],list_stop_original_inputs_input_items([tail],suffix))
+    case Con{head,tail} <> Nil{}: expiry_observed_driver_original([head],list_expiry_observed_driver_original_items([tail],suffix))
     case _: 999999n <> suffix
 
-def list_stop_original_inputs_input(values: List<&2,List<&2,stop_original_inputs.Input>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def list_expiry_observed_driver_original(values: List<&2,List<&2,expiry_observed_driver.Original>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2,stop_original_inputs.Input,value) <> list_stop_original_inputs_input_items([value],suffix)
-    case _: 999999n <> suffix
-
-def stop_original_inputs_boundary(values: List<&2,stop_original_inputs.Boundary>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case stop_original_inputs.Advance{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
-    case _: 999999n <> suffix
-
-def list_stop_original_inputs_boundary_items(values: List<&2,List<&2,stop_original_inputs.Boundary>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: stop_original_inputs_boundary([head],list_stop_original_inputs_boundary_items([tail],suffix))
-    case _: 999999n <> suffix
-
-def list_stop_original_inputs_boundary(values: List<&2,List<&2,stop_original_inputs.Boundary>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case +value <> Nil{}: List.length(&2,stop_original_inputs.Boundary,value) <> list_stop_original_inputs_boundary_items([value],suffix)
-    case _: 999999n <> suffix
-
-def stop_original_inputs_scenario(values: List<&2,stop_original_inputs.Scenario>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case stop_original_inputs.Scenario{v0,v1,v2} <> Nil{}: 0n <> stop_original_inputs_configuration([v0],list_stop_original_inputs_input([v1],list_stop_original_inputs_boundary([v2],suffix)))
+    case +value <> Nil{}: List.length(&2,expiry_observed_driver.Original,value) <> list_expiry_observed_driver_original_items([value],suffix)
     case _: 999999n <> suffix
 
 def list_types_graphentry_items(values: List<&2,List<&2,Types.GraphEntry>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -1509,6 +1475,13 @@ def outputscenario_attempt(values: List<&2,OutputScenario.Attempt>, suffix: List
   match values:
     case OutputScenario.Individual{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
     case OutputScenario.Finish{v0,v1,v2,v3,v4} <> Nil{}: 1n <> v0 <> v1 <> v2 <> v3 <> list_nat([v4],suffix)
+    case _: 999999n <> suffix
+
+def outputscenario_outcome(values: List<&2,OutputScenario.Outcome>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case OutputScenario.Certain{} <> Nil{}: 0n <> suffix
+    case OutputScenario.Uncertain{} <> Nil{}: 1n <> suffix
+    case OutputScenario.Failed{} <> Nil{}: 2n <> suffix
     case _: 999999n <> suffix
 
 def outputscenario_capture(values: List<&2,OutputScenario.Capture>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -1967,6 +1940,17 @@ def writerscenario_state(values: List<&2,WriterScenario.State>, suffix: List<&2,
     case WriterScenario.State{v0,v1} <> Nil{}: 0n <> list_writerscenario_capture([v0],list_collectionscenario_scope([v1],suffix))
     case _: 999999n <> suffix
 
+def collectorscenario_profile(values: List<&2,CollectorScenario.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case CollectorScenario.Profile{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
+    case _: 999999n <> suffix
+
+def maybe_collectorscenario_profile(values: List<&2,Maybe<&2,CollectorScenario.Profile>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> collectorscenario_profile([value],suffix)
+    case _: 999999n <> suffix
+
 def collectorscenario_candidate(values: List<&2,CollectorScenario.Candidate>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case CollectorScenario.Candidate{v0,v1,v2,v3,v4} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
@@ -2028,28 +2012,6 @@ def runtimescenarios_state(values: List<&2,RuntimeScenarios.State>, suffix: List
 def types_state(values: List<&2,Types.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case Types.State{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12} <> Nil{}: 0n <> canonical_state([v0],list_types_graphentry([v1],scheduler_state([v2],list_workload_advicee([v3],random_state([v4],advicees_registry([v5],credentialfacts_state([v6],list_nat([v7],list_nat([v8],list_adviceelifecycle_entry([v9],list_adviceelifecyclecleanup_capturedpreparation([v10],list_adviceeactivity_scope([v11],runtimescenarios_state([v12],suffix)))))))))))))
-    case _: 999999n <> suffix
-
-def list_types_state_items(values: List<&2,List<&2,Types.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: types_state([head],list_types_state_items([tail],suffix))
-    case _: 999999n <> suffix
-
-def list_types_state(values: List<&2,List<&2,Types.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case +value <> Nil{}: List.length(&2,Types.State,value) <> list_types_state_items([value],suffix)
-    case _: 999999n <> suffix
-
-def list_canonical_step_items(values: List<&2,List<&2,Canonical.Step>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: canonical_step([head],list_canonical_step_items([tail],suffix))
-    case _: 999999n <> suffix
-
-def list_canonical_step(values: List<&2,List<&2,Canonical.Step>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case +value <> Nil{}: List.length(&2,Canonical.Step,value) <> list_canonical_step_items([value],suffix)
     case _: 999999n <> suffix
 
 def advicee_lifecycle_driver_job(values: List<&2,advicee_lifecycle_driver.Job>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2138,6 +2100,61 @@ def list_advicee_lifecycle_driver_runtime(values: List<&2,List<&2,advicee_lifecy
     case +value <> Nil{}: List.length(&2,advicee_lifecycle_driver.Runtime,value) <> list_advicee_lifecycle_driver_runtime_items([value],suffix)
     case _: 999999n <> suffix
 
+def maybe_noticescenario_scope(values: List<&2,Maybe<&2,NoticeScenario.Scope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> noticescenario_scope([value],suffix)
+    case _: 999999n <> suffix
+
+def maybe_string(values: List<&2,Maybe<&2,String>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> text([value],suffix)
+    case _: 999999n <> suffix
+
+def expiry_observed_driver_capsule(values: List<&2,expiry_observed_driver.Capsule>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case expiry_observed_driver.Capsule{v0,v1,v2} <> Nil{}: 0n <> v0 <> maybe_noticescenario_scope([v1],maybe_string([v2],suffix))
+    case _: 999999n <> suffix
+
+def list_expiry_observed_driver_capsule_items(values: List<&2,List<&2,expiry_observed_driver.Capsule>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: expiry_observed_driver_capsule([head],list_expiry_observed_driver_capsule_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_expiry_observed_driver_capsule(values: List<&2,List<&2,expiry_observed_driver.Capsule>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,expiry_observed_driver.Capsule,value) <> list_expiry_observed_driver_capsule_items([value],suffix)
+    case _: 999999n <> suffix
+
+def expiry_observed_driver_startup(values: List<&2,expiry_observed_driver.Startup>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case expiry_observed_driver.Startup{v0,v1,v2} <> Nil{}: 0n <> list_advicee_lifecycle_driver_runtime([v0],list_advicee_lifecycle_driver_runtime([v1],list_expiry_observed_driver_capsule([v2],suffix)))
+    case _: 999999n <> suffix
+
+def list_types_state_items(values: List<&2,List<&2,Types.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: types_state([head],list_types_state_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_types_state(values: List<&2,List<&2,Types.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,Types.State,value) <> list_types_state_items([value],suffix)
+    case _: 999999n <> suffix
+
+def list_canonical_step_items(values: List<&2,List<&2,Canonical.Step>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: canonical_step([head],list_canonical_step_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_canonical_step(values: List<&2,List<&2,Canonical.Step>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,Canonical.Step,value) <> list_canonical_step_items([value],suffix)
+    case _: 999999n <> suffix
+
 def list_maybe_nat_items(values: List<&2,List<&2,Maybe<&2,Nat>>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
@@ -2153,6 +2170,28 @@ def maybe_callbacks_fact(values: List<&2,Maybe<&2,Callbacks.Fact>>, suffix: List
   match values:
     case None{} <> Nil{}: 0n <> suffix
     case Some{value} <> Nil{}: 1n <> callbacks_fact([value],suffix)
+    case _: 999999n <> suffix
+
+def maybe_driver_action(values: List<&2,Maybe<&2,Driver.Action>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> driver_action([value],suffix)
+    case _: 999999n <> suffix
+
+def advicee_lifecycle_driver_physicaldelivery(values: List<&2,advicee_lifecycle_driver.PhysicalDelivery>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case advicee_lifecycle_driver.PhysicalDelivery{v0,v1,v2} <> Nil{}: 0n <> list_advicee_lifecycle_driver_runtime([v0],list_advicee_lifecycle_driver_runtime([v1],maybe_driver_action([v2],suffix)))
+    case _: 999999n <> suffix
+
+def list_advicee_lifecycle_driver_physicaldelivery_items(values: List<&2,List<&2,advicee_lifecycle_driver.PhysicalDelivery>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: advicee_lifecycle_driver_physicaldelivery([head],list_advicee_lifecycle_driver_physicaldelivery_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_advicee_lifecycle_driver_physicaldelivery(values: List<&2,List<&2,advicee_lifecycle_driver.PhysicalDelivery>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,advicee_lifecycle_driver.PhysicalDelivery,value) <> list_advicee_lifecycle_driver_physicaldelivery_items([value],suffix)
     case _: 999999n <> suffix
 
 def types_graphtransition(values: List<&2,Types.GraphTransition>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2180,11 +2219,111 @@ def maybe_stopscenario_finish(values: List<&2,Maybe<&2,StopScenario.Finish>>, su
 
 def advicee_lifecycle_driver_observedframe(values: List<&2,advicee_lifecycle_driver.ObservedFrame>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case advicee_lifecycle_driver.CanonicalFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10} <> Nil{}: 0n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> canonical_canonicalevent([v4],list_canonical_step([v5],list_advicee_lifecycle_driver_runtime([v6],list_advicee_lifecycle_driver_runtime([v7],maybe_nat([v8],list_maybe_nat([v9],maybe_callbacks_fact([v10],suffix)))))))))
-    case advicee_lifecycle_driver.GraphFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12} <> Nil{}: 1n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> types_graphkey([v4],v5 <> importgraph_graphevent([v6],list_types_graphtransition([v7],list_advicee_lifecycle_driver_runtime([v8],list_advicee_lifecycle_driver_runtime([v9],maybe_nat([v10],list_maybe_nat([v11],maybe_callbacks_fact([v12],suffix))))))))))
-    case advicee_lifecycle_driver.CacheFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11} <> Nil{}: 2n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> cacheruntime_fact([v4],canonical_canonicalevent([v5],list_canonical_step([v6],list_advicee_lifecycle_driver_runtime([v7],list_advicee_lifecycle_driver_runtime([v8],maybe_nat([v9],list_maybe_nat([v10],maybe_callbacks_fact([v11],suffix))))))))))
-    case advicee_lifecycle_driver.FinishFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11} <> Nil{}: 3n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> stopscenario_input([v4],maybe_stopscenario_finish([v5],boolean(v6,list_advicee_lifecycle_driver_runtime([v7],list_advicee_lifecycle_driver_runtime([v8],maybe_nat([v9],list_maybe_nat([v10],maybe_callbacks_fact([v11],suffix))))))))))
+    case advicee_lifecycle_driver.CanonicalFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11} <> Nil{}: 0n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> canonical_canonicalevent([v4],list_canonical_step([v5],list_advicee_lifecycle_driver_runtime([v6],list_advicee_lifecycle_driver_runtime([v7],maybe_nat([v8],list_maybe_nat([v9],maybe_callbacks_fact([v10],list_advicee_lifecycle_driver_physicaldelivery([v11],suffix))))))))))
+    case advicee_lifecycle_driver.GraphFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13} <> Nil{}: 1n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> types_graphkey([v4],v5 <> importgraph_graphevent([v6],list_types_graphtransition([v7],list_advicee_lifecycle_driver_runtime([v8],list_advicee_lifecycle_driver_runtime([v9],maybe_nat([v10],list_maybe_nat([v11],maybe_callbacks_fact([v12],list_advicee_lifecycle_driver_physicaldelivery([v13],suffix)))))))))))
+    case advicee_lifecycle_driver.CacheFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12} <> Nil{}: 2n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> cacheruntime_fact([v4],canonical_canonicalevent([v5],list_canonical_step([v6],list_advicee_lifecycle_driver_runtime([v7],list_advicee_lifecycle_driver_runtime([v8],maybe_nat([v9],list_maybe_nat([v10],maybe_callbacks_fact([v11],list_advicee_lifecycle_driver_physicaldelivery([v12],suffix)))))))))))
+    case advicee_lifecycle_driver.FinishFrame{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12} <> Nil{}: 3n <> list_types_state([v0],list_types_state([v1],v2 <> v3 <> stopscenario_input([v4],maybe_stopscenario_finish([v5],boolean(v6,list_advicee_lifecycle_driver_runtime([v7],list_advicee_lifecycle_driver_runtime([v8],maybe_nat([v9],list_maybe_nat([v10],maybe_callbacks_fact([v11],list_advicee_lifecycle_driver_physicaldelivery([v12],suffix)))))))))))
     case advicee_lifecycle_driver.UnexpectedInput{} <> Nil{}: 4n <> suffix
+    case _: 999999n <> suffix
+
+def maybe_callbacks_target(values: List<&2,Maybe<&2,Callbacks.Target>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> callbacks_target([value],suffix)
+    case _: 999999n <> suffix
+
+def maybe_list_maybe_nat(values: List<&2,Maybe<&2,List<&2,Maybe<&2,Nat>>>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> list_maybe_nat([value],suffix)
+    case _: 999999n <> suffix
+
+def expiry_observed_driver_frame(values: List<&2,expiry_observed_driver.Frame>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case expiry_observed_driver.Observed{v0,v1,v2,v3,v4,v5} <> Nil{}: 0n <> advicee_lifecycle_driver_observedframe([v0],maybe_callbacks_target([v1],maybe_list_maybe_nat([v2],maybe_string([v3],list_expiry_observed_driver_capsule([v4],list_expiry_observed_driver_capsule([v5],suffix))))))
+    case expiry_observed_driver.Control{v0,v1,v2,v3,v4,v5,v6} <> Nil{}: 1n <> expiry_observed_driver_original([v0],list_advicee_lifecycle_driver_runtime([v1],list_advicee_lifecycle_driver_runtime([v2],expiryscenario_profile([v3],expiryscenario_profile([v4],list_expiry_observed_driver_capsule([v5],list_expiry_observed_driver_capsule([v6],suffix)))))))
+    case expiry_observed_driver.Boundary{v0,v1,v2,v3,v4} <> Nil{}: 2n <> v0 <> v1 <> v2 <> list_advicee_lifecycle_driver_runtime([v3],list_expiry_observed_driver_capsule([v4],suffix))
+    case expiry_observed_driver.InvalidTransport{} <> Nil{}: 3n <> suffix
+    case _: 999999n <> suffix
+
+def list_expiry_observed_driver_frame_items(values: List<&2,List<&2,expiry_observed_driver.Frame>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: expiry_observed_driver_frame([head],list_expiry_observed_driver_frame_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_expiry_observed_driver_frame(values: List<&2,List<&2,expiry_observed_driver.Frame>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,expiry_observed_driver.Frame,value) <> list_expiry_observed_driver_frame_items([value],suffix)
+    case _: 999999n <> suffix
+
+def expiry_observed_driver_trace(values: List<&2,expiry_observed_driver.Trace>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case expiry_observed_driver.Trace{v0,v1,v2,v3,v4,v5,v6} <> Nil{}: 0n <> list_advicee_lifecycle_driver_runtime([v0],list_expiry_observed_driver_capsule([v1],v2 <> v3 <> list_expiry_observed_driver_frame([v4],expiryscenario_profile([v5],boolean(v6,suffix)))))
+    case _: 999999n <> suffix
+
+def expiry_observed_driver_envelope(values: List<&2,expiry_observed_driver.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case expiry_observed_driver.Envelope{v0,v1,v2,v3} <> Nil{}: 0n <> list_expiry_observed_driver_original([v0],expiryscenario_profile([v1],expiry_observed_driver_startup([v2],expiry_observed_driver_trace([v3],suffix))))
+    case _: 999999n <> suffix
+
+def list_expiry_observed_driver_envelope_items(values: List<&2,List<&2,expiry_observed_driver.Envelope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: expiry_observed_driver_envelope([head],list_expiry_observed_driver_envelope_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_expiry_observed_driver_envelope(values: List<&2,List<&2,expiry_observed_driver.Envelope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,expiry_observed_driver.Envelope,value) <> list_expiry_observed_driver_envelope_items([value],suffix)
+    case _: 999999n <> suffix
+
+def treefacts_profile(values: List<&2,TreeFacts.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case TreeFacts.Profile{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> v7 <> v8 <> v9 <> v10 <> v11 <> v12 <> v13 <> v14 <> v15 <> suffix
+    case _: 999999n <> suffix
+
+def stop_original_inputs_configuration(values: List<&2,stop_original_inputs.Configuration>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_original_inputs.Configuration{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15} <> Nil{}: 0n <> v0 <> v1 <> U32.to_nat(v2) <> v3 <> ledger_limits([v4],treefacts_profile([v5],importgraph_limits([v6],v7 <> v8 <> canonical_requestoutcome([v9],v10 <> outputscenario_outcome([v11],v12 <> v13 <> maybe_nat([v14],maybe_collectorscenario_profile([v15],suffix)))))))
+    case _: 999999n <> suffix
+
+def stop_original_inputs_input(values: List<&2,stop_original_inputs.Input>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_original_inputs.Edit{v0,v1,v2} <> Nil{}: 0n <> v0 <> v1 <> list_nat([v2],suffix)
+    case stop_original_inputs.Finish{v0,v1} <> Nil{}: 1n <> v0 <> boolean(v1,suffix)
+    case _: 999999n <> suffix
+
+def list_stop_original_inputs_input_items(values: List<&2,List<&2,stop_original_inputs.Input>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_original_inputs_input([head],list_stop_original_inputs_input_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_original_inputs_input(values: List<&2,List<&2,stop_original_inputs.Input>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_original_inputs.Input,value) <> list_stop_original_inputs_input_items([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_original_inputs_boundary(values: List<&2,stop_original_inputs.Boundary>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_original_inputs.Advance{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
+    case _: 999999n <> suffix
+
+def list_stop_original_inputs_boundary_items(values: List<&2,List<&2,stop_original_inputs.Boundary>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_original_inputs_boundary([head],list_stop_original_inputs_boundary_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_original_inputs_boundary(values: List<&2,List<&2,stop_original_inputs.Boundary>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_original_inputs.Boundary,value) <> list_stop_original_inputs_boundary_items([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_original_inputs_scenario(values: List<&2,stop_original_inputs.Scenario>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_original_inputs.Scenario{v0,v1,v2} <> Nil{}: 0n <> stop_original_inputs_configuration([v0],list_stop_original_inputs_input([v1],list_stop_original_inputs_boundary([v2],suffix)))
     case _: 999999n <> suffix
 
 def stop_observed_wire_frame(values: List<&2,stop_observed_wire.Frame>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2272,12 +2411,6 @@ def list_sharing_original_inputs_sessioninput(values: List<&2,List<&2,sharing_or
 def sharing_original_inputs_configuration(values: List<&2,sharing_original_inputs.Configuration>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case sharing_original_inputs.Configuration{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10} <> Nil{}: 0n <> v0 <> ledger_limits([v1],v2 <> list_sharing_original_inputs_sessioninput([v3],treefacts_profile([v4],importgraph_limits([v5],v6 <> v7 <> v8 <> v9 <> v10 <> suffix))))
-    case _: 999999n <> suffix
-
-def maybe_string(values: List<&2,Maybe<&2,String>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> text([value],suffix)
     case _: 999999n <> suffix
 
 def sharing_original_inputs_namespace(values: List<&2,sharing_original_inputs.Namespace>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2398,18 +2531,6 @@ def list_sharing_original_captures_original_items(values: List<&2,List<&2,sharin
 def list_sharing_original_captures_original(values: List<&2,List<&2,sharing_original_captures.Original>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case +value <> Nil{}: List.length(&2,sharing_original_captures.Original,value) <> list_sharing_original_captures_original_items([value],suffix)
-    case _: 999999n <> suffix
-
-def maybe_callbacks_target(values: List<&2,Maybe<&2,Callbacks.Target>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> callbacks_target([value],suffix)
-    case _: 999999n <> suffix
-
-def maybe_list_maybe_nat(values: List<&2,Maybe<&2,List<&2,Maybe<&2,Nat>>>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> list_maybe_nat([value],suffix)
     case _: 999999n <> suffix
 
 def list_canonical_canonicalevent_items(values: List<&2,List<&2,Canonical.CanonicalEvent>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2746,6 +2867,9 @@ def writer_observed_wire_envelope(values: List<&2,writer_observed_wire.Envelope>
   match values:
     case writer_observed_wire.Envelope{v0,v1} <> Nil{}: 0n <> writer_original_inputs_scenario([v0],writer_observed_program_trace([v1],suffix))
     case _: 999999n <> suffix
+
+def expiry_scenarios(values: List<&2,expiry_observed_driver.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  list_expiry_observed_driver_envelope([values],suffix)
 
 def stop_scenarios(values: List<&2,stop_observed_wire.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   list_stop_observed_wire_envelope([values],suffix)
