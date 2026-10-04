@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { vi, expect, it, beforeEach } from "vitest";
 const spawn = vi.hoisted(() => vi.fn());
 const preflight = vi.hoisted(() => ({
@@ -213,4 +213,53 @@ it("retains preflight output with its already validated manifest reference", () 
     expect(preflight.capture).not.toHaveBeenCalled();
     expect(spawn).toHaveBeenCalledTimes(1);
   } finally { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+
+it.each([
+  { failedCall: 0, phase: "C emission", completed: [false] },
+  { failedCall: 1, phase: "clang compilation", completed: [true, false] },
+  { failedCall: 2, phase: "native execution", completed: [true, true, false] },
+])("retains exact C and phase evidence after $phase fails", ({ failedCall, phase, completed }) => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-native-failure-"));
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", join(directory, "failures.jsonl"));
+  const c = "/* complete offline fixture C, or partial emission on compiler failure */\n";
+  let call = 0;
+  spawn.mockImplementation((_command, args) => {
+    if (call === 0) writeFileSync(args[2], c);
+    const failed = call++ === failedCall;
+    return failed ? { status: null, stdout: "", stderr: "phase timeout", error: { code: "ETIMEDOUT" }, signal: "SIGTERM" }
+      : { status: 0, stdout: "[0]", stderr: "" };
+  });
+  try {
+    expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toThrow(phase);
+    const outputs = join(directory, "workload-outputs");
+    const entries = readdirSync(outputs);
+    expect(entries).toHaveLength(1);
+    const receipt = JSON.parse(readFileSync(join(outputs, entries[0]!, "receipt.json"), "utf8"));
+    expect(receipt.lane).toBe("fresh-native-failure");
+    expect(receipt.identity).toEqual(preflight.capture.mock.results[0]?.value);
+    expect(receipt.phases.map((item: { completed: boolean }) => item.completed)).toEqual(completed);
+    expect(receipt.phases.at(-1)).toMatchObject({ phase, errorCode: "ETIMEDOUT", completed: false });
+    expect(receipt.timeouts).toEqual({ emission: 30000, clang: 30000, execution: 5000 });
+    expect(readFileSync(receipt.c.path, "utf8")).toBe(c);
+    expect(receipt.c.bytes).toBe(Buffer.byteLength(c));
+    expect(receipt.c.sha256).toBe(createHash("sha256").update(c).digest("hex"));
+    expect(existsSync(spawn.mock.calls[0]?.[1][2])).toBe(false);
+    expect(spawn).toHaveBeenCalledTimes(failedCall + 1);
+  } finally { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+it("cleans failed unscoped native compilation without retained artifacts", () => {
+  vi.stubEnv("HAPSLAND_TEST_FAILURES_FILE", "");
+  const outputLog = vi.spyOn(console, "log").mockImplementation(() => {});
+  spawn.mockImplementation((_command, args) => {
+    writeFileSync(args[2], "partial C");
+    return { status: 1, stdout: "", stderr: "compiler rejected fixture" };
+  });
+  try {
+    expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toThrow("C emission");
+    expect(outputLog).not.toHaveBeenCalled();
+    expect(existsSync(spawn.mock.calls[0]?.[1][2])).toBe(false);
+  } finally { outputLog.mockRestore(); vi.unstubAllEnvs(); }
 });

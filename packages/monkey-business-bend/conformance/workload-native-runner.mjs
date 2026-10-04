@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync, copyFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
@@ -33,6 +33,30 @@ function retainOutput(output, identity, lane, timeouts) {
   console.log(`Retained offline workload output: ${receiptPath}`);
 }
 
+// Keep failed compilation evidence in the same scoped run. A captured identity
+// and completed C phase permit manual validation, never automatic artifact reuse.
+function retainNativeFailure(error, identity, temporary, timeouts, phases) {
+  const failureFile = process.env.HAPSLAND_TEST_FAILURES_FILE;
+  if (!failureFile) return;
+  const outputs = join(dirname(failureFile), "workload-outputs");
+  mkdirSync(outputs, { recursive: true });
+  const directory = mkdtempSync(join(outputs, `fresh-native-failure-${process.pid}-`));
+  const source = join(temporary, "scenario.c");
+  let c = null;
+  if (existsSync(source)) {
+    const bytes = readFileSync(source);
+    const path = join(directory, "scenario.c");
+    copyFileSync(source, path);
+    c = { path, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+  }
+  const receiptPath = join(directory, "receipt.json");
+  writeFileSync(receiptPath, `${JSON.stringify({ lane: "fresh-native-failure", identity, timeouts, phases, c,
+    failure: { name: error.name, message: error.message },
+    purpose: "Failed offline native phase evidence; captured identity requires manual validation before any resume; no automatic reuse or acceptance verdict",
+  }, null, 2)}\n`);
+  console.log(`Retained offline workload failure: ${receiptPath}`);
+}
+
 // One fresh native+JS comparison has at most 85s of default phase allowances plus cleanup.
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
 
@@ -63,16 +87,21 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
   }
   const identity = captureNativeFixtureIdentity(fixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-native-"));
+  const phases = [];
+  const recordPhase = result => phases.push(result);
   try {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
-    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "C emission");
-    checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs, "clang compilation");
+    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "C emission", recordPhase);
+    checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs, "clang compilation", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);
-    const output = checked(binary, [], 5000, "native execution");
+    const output = checked(binary, [], 5000, "native execution", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);
     retainOutput(output, identity, "fresh-native", { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 });
     return JSON.parse(output);
+  } catch (error) {
+    retainNativeFailure(error, identity, directory, { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 }, phases);
+    throw error;
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -104,9 +133,14 @@ process.stdout.write(value);
   }
 }
 
-function checked(command, arguments_, timeout, phase) {
+function checked(command, arguments_, timeout, phase, record) {
+  const started = performance.now();
   const result = spawnSync(command, arguments_, { encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
+  record?.({ phase, command, arguments: arguments_, timeoutMs: timeout, durationMs: performance.now() - started,
+    status: result.status, signal: result.signal ?? null, errorCode: result.error?.code ?? null,
+    completed: !result.error && result.status === 0,
+  });
   if (result.error || result.status !== 0) {
     throw new Error(`${phase} (declared timeout ${timeout}ms): ${command} failed (${result.error?.code ?? result.status}): ${result.stderr}`, {
       cause: result.error,
