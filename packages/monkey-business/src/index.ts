@@ -1139,6 +1139,8 @@ export class Run {
       item.driverSourceJob ??= freezeCanonicalData({ partition, lifetime: this.core.activityLifetime(partition),
         bytes: item.input.bytes, units: [...item.input.unitBytes],
         outcome: item.input.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(item.input.outcome) } });
+      emissionSourceJob = item.driverSourceJob;
+      afterSourceJob = item.driverSourceJob;
       const permits = this.permitsEnabled;
       if (!round && !permits) {
         const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
