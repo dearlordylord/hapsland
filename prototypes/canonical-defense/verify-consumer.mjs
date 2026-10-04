@@ -105,12 +105,27 @@ for (const envelope of envelopes) {
       for (const physical of history) {
         const before = one(physical.before), after = one(physical.after);
         assert.equal(before.valid, true); assert.equal(after.valid, true);
-        if (paused) {
-          assert.deepEqual(after, before, "paused Host tick preserves the entire private engine and queue");
-          assert.equal(list(physical.frames).length, 0);
-        } else {
-          ticks++;
-          run.advance({ untilTime: ticks * 20, maxEvents: 256 });
+        const publicPhysical = [];
+        const unsubscribe = run.subscribeStructural(frame => {
+          if (frame.kind === "callbackDelivery") publicPhysical.push(frame);
+        });
+        try {
+          if (paused) {
+            assert.deepEqual(after, before, "paused Host tick preserves the entire private engine and queue");
+            assert.equal(list(physical.frames).length, 0);
+          } else {
+            ticks++;
+            run.advance({ untilTime: ticks * 20, maxEvents: 256 });
+          }
+        } finally { unsubscribe(); }
+        const deliveries = list(physical.physical).map(readRecord);
+        assert.equal(deliveries.length, publicPhysical.length, "every actual physical delivery, including no-frame callbacks");
+        for (const [deliveryIndex, delivery] of deliveries.entries()) {
+          assert.equal(delivery.$, "NativeRunTypes.PhysicalDelivery");
+          const actual = publicPhysical[deliveryIndex];
+          assert.deepEqual(one(readRecord(delivery.before).core), actual.before.engine, "full physical owner before delivery");
+          assert.deepEqual(one(readRecord(delivery.after).core), actual.after.engine, "full physical owner after delivery");
+          assert.deepEqual(delivery.action, actual.delivery, "actual original physical action");
         }
         for (const raw of list(physical.frames)) {
           const frame = readRecord(raw), details = readRecord(frame.details);
@@ -140,7 +155,7 @@ for (const envelope of envelopes) {
           // A native snapshot is not an Edge Runtime: item/job bindings and
           // deliveries without an observation still need the shared owner's
           // complete publication contract. Do not fabricate an Edge envelope.
-          throw new Error("pending complete NativeRun runtime/job and no-frame physical boundary comparison");
+          throw new Error("pending complete NativeRun runtime/job/request/callback registry and frame comparison");
         }
       }
       assert.equal(afterWorld.clock, ticks);
