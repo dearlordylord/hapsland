@@ -136,7 +136,10 @@ function compareIssuance(value: unknown, source: RunStructuralFrame, field: stri
   compareIssuedFacts(optional(value),source.scheduled,field);
 }
 function compareEmissions(value: unknown, source: RunStructuralFrame, config: RunConfig, field: string): void {
-  const emissions=list(value).map(readRecord), appended=source.after.queue.filter(item=>item.order >= source.before.order);
+  const emissions=list(value).map(readRecord);
+  // Public queue is scheduler-sorted. Immutable assigned order records the
+  // actual publication sequence emitted by the owner, independently of due time.
+  const appended=source.after.queue.filter(item=>item.order >= source.before.order).sort((left,right)=>left.order-right.order);
   same(emissions.length,appended.length,`${field} actual appended effects count`);
   for (const [index,emission] of emissions.entries()) {
     const item=appended[index]!, at=`${field} emission ${index}`;
