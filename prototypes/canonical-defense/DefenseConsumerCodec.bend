@@ -1343,9 +1343,21 @@ def treefacts_profile(values: List<&2,TreeFacts.Profile>, suffix: List<&2,Nat>) 
     case TreeFacts.Profile{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> v7 <> v8 <> v9 <> v10 <> v11 <> v12 <> v13 <> v14 <> v15 <> suffix
     case _: 999999n <> suffix
 
+def outputscenario_outcome(values: List<&2,OutputScenario.Outcome>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case OutputScenario.Certain{} <> Nil{}: 0n <> suffix
+    case OutputScenario.Uncertain{} <> Nil{}: 1n <> suffix
+    case OutputScenario.Failed{} <> Nil{}: 2n <> suffix
+    case _: 999999n <> suffix
+
+def nativeruntypes_outputprofile(values: List<&2,NativeRunTypes.OutputProfile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case NativeRunTypes.OutputProfile{v0,v1} <> Nil{}: 0n <> outputscenario_outcome([v0],maybe_nat([v1],suffix))
+    case _: 999999n <> suffix
+
 def nativeruntypes_environment(values: List<&2,NativeRunTypes.Environment>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case NativeRunTypes.Environment{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12} <> Nil{}: 0n <> v0 <> maybe_canonical_requestoutcome([v1],list_numeric_words([v2],v3 <> treefacts_profile([v4],importgraph_limits([v5],v6 <> v7 <> boolean(v8,boolean(v9,v10 <> boolean(v11,v12 <> suffix)))))))
+    case NativeRunTypes.Environment{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13} <> Nil{}: 0n <> v0 <> maybe_canonical_requestoutcome([v1],list_numeric_words([v2],v3 <> treefacts_profile([v4],importgraph_limits([v5],v6 <> v7 <> boolean(v8,boolean(v9,v10 <> boolean(v11,v12 <> nativeruntypes_outputprofile([v13],suffix))))))))
     case _: 999999n <> suffix
 
 def collectorscenario_profile(values: List<&2,CollectorScenario.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -1534,13 +1546,6 @@ def outputscenario_attempt(values: List<&2,OutputScenario.Attempt>, suffix: List
   match values:
     case OutputScenario.Individual{v0,v1} <> Nil{}: 0n <> v0 <> v1 <> suffix
     case OutputScenario.Finish{v0,v1,v2,v3,v4} <> Nil{}: 1n <> v0 <> v1 <> v2 <> v3 <> list_nat([v4],suffix)
-    case _: 999999n <> suffix
-
-def outputscenario_outcome(values: List<&2,OutputScenario.Outcome>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case OutputScenario.Certain{} <> Nil{}: 0n <> suffix
-    case OutputScenario.Uncertain{} <> Nil{}: 1n <> suffix
-    case OutputScenario.Failed{} <> Nil{}: 2n <> suffix
     case _: 999999n <> suffix
 
 def outputscenario_capture(values: List<&2,OutputScenario.Capture>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2149,7 +2154,7 @@ def nativeruntypes_input(values: List<&2,NativeRunTypes.Input>, suffix: List<&2,
   match values:
     case NativeRunTypes.Arrival{v0,v1} <> Nil{}: 0n <> workload_emission([v0],v1 <> suffix)
     case NativeRunTypes.Edit{v0} <> Nil{}: 1n <> nativeruntypes_job([v0],suffix)
-    case NativeRunTypes.Event{v0,v1,v2} <> Nil{}: 2n <> driver_action([v0],maybe_nativeruntypes_job([v1],maybe_nativeruntypes_emissioncontext([v2],suffix)))
+    case NativeRunTypes.Event{v0,v1,v2,v3} <> Nil{}: 2n <> driver_action([v0],maybe_nativeruntypes_job([v1],maybe_nativeruntypes_emissioncontext([v2],maybe_driver_sourcejob([v3],suffix))))
     case NativeRunTypes.CacheFact{v0} <> Nil{}: 3n <> cacheruntime_fact([v0],suffix)
     case NativeRunTypes.FinishInput{v0,v1,v2,v3} <> Nil{}: 4n <> driver_action([v0],nativeruntypes_job([v1],v2 <> maybe_nativeruntypes_emissioncontext([v3],suffix)))
     case NativeRunTypes.GraphFact{v0,v1,v2,v3} <> Nil{}: 5n <> types_graphkey([v0],v1 <> importgraph_graphevent([v2],importgraph_limits([v3],suffix)))
@@ -2188,9 +2193,62 @@ def maybe_canonical_reason(values: List<&2,Maybe<&2,Canonical.Reason>>, suffix: 
     case Some{value} <> Nil{}: 1n <> canonical_reason([value],suffix)
     case _: 999999n <> suffix
 
+def nativeruntypes_storedjob(values: List<&2,NativeRunTypes.StoredJob>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case NativeRunTypes.StoredJob{v0,v1} <> Nil{}: 0n <> v0 <> nativeruntypes_job([v1],suffix)
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_storedjob_items(values: List<&2,List<&2,NativeRunTypes.StoredJob>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: nativeruntypes_storedjob([head],list_nativeruntypes_storedjob_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_storedjob(values: List<&2,List<&2,NativeRunTypes.StoredJob>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,NativeRunTypes.StoredJob,value) <> list_nativeruntypes_storedjob_items([value],suffix)
+    case _: 999999n <> suffix
+
+def nativeruntypes_issuedrequest(values: List<&2,NativeRunTypes.IssuedRequest>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case NativeRunTypes.IssuedRequest{v0,v1} <> Nil{}: 0n <> v0 <> canonical_command([v1],suffix)
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_issuedrequest_items(values: List<&2,List<&2,NativeRunTypes.IssuedRequest>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: nativeruntypes_issuedrequest([head],list_nativeruntypes_issuedrequest_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_issuedrequest(values: List<&2,List<&2,NativeRunTypes.IssuedRequest>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,NativeRunTypes.IssuedRequest,value) <> list_nativeruntypes_issuedrequest_items([value],suffix)
+    case _: 999999n <> suffix
+
+def nativeruntypes_retainedcallback(values: List<&2,NativeRunTypes.RetainedCallback>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case NativeRunTypes.RetainedCallback{v0,v1,v2,v3,v4} <> Nil{}: 0n <> v0 <> v1 <> v2 <> nativeruntypes_input([v3],callbacks_fact([v4],suffix))
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_retainedcallback_items(values: List<&2,List<&2,NativeRunTypes.RetainedCallback>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: nativeruntypes_retainedcallback([head],list_nativeruntypes_retainedcallback_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_nativeruntypes_retainedcallback(values: List<&2,List<&2,NativeRunTypes.RetainedCallback>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,NativeRunTypes.RetainedCallback,value) <> list_nativeruntypes_retainedcallback_items([value],suffix)
+    case _: 999999n <> suffix
+
+def nativeruntypes_hostfacts(values: List<&2,NativeRunTypes.HostFacts>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case NativeRunTypes.HostFacts{v0,v1,v2} <> Nil{}: 0n <> list_nativeruntypes_issuedrequest([v0],list_nativeruntypes_retainedcallback([v1],list_nat([v2],suffix)))
+    case _: 999999n <> suffix
+
 def nativeruntypes_runtimesnapshot(values: List<&2,NativeRunTypes.RuntimeSnapshot>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case NativeRunTypes.RuntimeSnapshot{v0,v1,v2,v3,v4,v5,v6} <> Nil{}: 0n <> list_types_state([v0],list_nativeruntypes_item([v1],v2 <> v3 <> v4 <> nativeruntypes_environment([v5],boolean(v6,suffix))))
+    case NativeRunTypes.RuntimeSnapshot{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> list_types_state([v0],list_nativeruntypes_item([v1],v2 <> v3 <> v4 <> nativeruntypes_environment([v5],boolean(v6,list_nativeruntypes_storedjob([v7],nativeruntypes_hostfacts([v8],suffix))))))
     case _: 999999n <> suffix
 
 def list_nativeruntypes_emissioncontext_items(values: List<&2,List<&2,NativeRunTypes.EmissionContext>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2278,7 +2336,7 @@ def list_nativeruntypes_frame(values: List<&2,List<&2,NativeRunTypes.Frame>>, su
 
 def nativeruntypes_state(values: List<&2,NativeRunTypes.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case NativeRunTypes.State{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> list_types_state([v0],list_nativeruntypes_item([v1],v2 <> v3 <> v4 <> nativeruntypes_environment([v5],list_nativeruntypes_frame([v6],boolean(v7,list_nativeruntypes_emissioncontext([v8],suffix))))))
+    case NativeRunTypes.State{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10} <> Nil{}: 0n <> list_types_state([v0],list_nativeruntypes_item([v1],v2 <> v3 <> v4 <> nativeruntypes_environment([v5],list_nativeruntypes_frame([v6],boolean(v7,list_nativeruntypes_emissioncontext([v8],list_nativeruntypes_storedjob([v9],nativeruntypes_hostfacts([v10],suffix))))))))
     case _: 999999n <> suffix
 
 def list_nativeruntypes_state_items(values: List<&2,List<&2,NativeRunTypes.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2374,7 +2432,7 @@ def list_defensemodel_world(values: List<&2,List<&2,DefenseModel.World>>, suffix
 
 def defenseconsumerobserved_ticksnapshot(values: List<&2,DefenseConsumerObserved.TickSnapshot>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseConsumerObserved.TickSnapshot{v0,v1,v2} <> Nil{}: 0n <> list_nativeruntypes_state([v0],list_nativeruntypes_state([v1],list_nativeruntypes_frame([v2],suffix)))
+    case DefenseConsumerObserved.TickSnapshot{v0,v1,v2,v3} <> Nil{}: 0n <> list_nativeruntypes_state([v0],list_nativeruntypes_state([v1],list_nativeruntypes_frame([v2],list_nativeruntypes_physicaldelivery([v3],suffix))))
     case _: 999999n <> suffix
 
 def list_defenseconsumerobserved_ticksnapshot_items(values: List<&2,List<&2,DefenseConsumerObserved.TickSnapshot>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
