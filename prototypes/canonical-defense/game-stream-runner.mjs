@@ -1,8 +1,8 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync, statSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
-import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 const LIMIT = 16 * 1024 * 1024;
 const digest = value => createHash("sha256").update(value).digest("hex");
@@ -20,9 +20,9 @@ function bendImports(file,source) {
     return[{specifier:match[1]??match[2]??match[3],line:index+1}];
   });
 }
-function resolveBendImport(specifier,importer,line,root,bendRoot) {
+function resolveBendImport(specifier,importer,line,root,bendRoot,bendDirectory) {
   let candidates;
-  if(specifier==="Base")candidates=[join(bendRoot,"bend2","base.bend")];
+  if(specifier==="Base")candidates=[join(bendDirectory,"base.bend")];
   else if(isAbsolute(specifier)) {
     const target=resolve(specifier);
     if(!within(root,target)&&!within(bendRoot,target))throw new Error(`Bend import escapes source roots at ${importer}:${line}: ${specifier}`);
@@ -47,7 +47,7 @@ function resolveBendImport(specifier,importer,line,root,bendRoot) {
   if(found.size!==1)throw new Error(`${found.size?"ambiguous":"unresolvable"} Bend import at ${importer}:${line}: ${specifier}`);
   return [...found][0];
 }
-function bendSourceClosure(fixture,root,bendRoot) {
+function bendSourceClosure(fixture,root,bendRoot,bendDirectory) {
   const sources=new Map();
   const visit=(candidate,importer="game fixture",specifier="fixture")=>{
     let file;
@@ -58,13 +58,28 @@ function bendSourceClosure(fixture,root,bendRoot) {
     try{source=readFileSync(file);}catch(error){throw new Error(`unreadable Bend source ${specifier} from ${importer}: ${file}`,{cause:error});}
     sources.set(file,{file,expected:digest(source)});
     for(const entry of bendImports(file,source))
-      visit(resolveBendImport(entry.specifier,file,entry.line,root,bendRoot),file,entry.specifier);
+      visit(resolveBendImport(entry.specifier,file,entry.line,root,bendRoot,bendDirectory),file,entry.specifier);
   };
   visit(fixture);
   return [...sources.values()];
 }
-function sourceRecords(fixture,ownerSources,root) {
-  const bendRoot=realpathSync(resolve(homedir(),".bend"));
+function bendSourceLayout(executable) {
+  const file=realpathSync(executable), binDirectory=dirname(file);
+  if(basename(binDirectory)!=="bin")throw new Error(`unsupported Bend compiler source layout: ${file}`);
+  const root=realpathSync(resolve(binDirectory,".."));
+  let directory,base,effects;
+  try{
+    directory=realpathSync(join(root,"bend2"));
+    base=realpathSync(join(directory,"base.bend"));
+    effects=realpathSync(join(directory,"effs"));
+  }catch(error){
+    throw new Error(`unsupported Bend compiler source layout for ${file}: expected ${join(root,"bend2")}/base.bend and effs`,{cause:error});
+  }
+  if(!within(root,directory)||!statSync(directory).isDirectory()||!within(directory,base)||!statSync(base).isFile()||!within(directory,effects)||!statSync(effects).isDirectory())
+    throw new Error(`unsupported Bend compiler Base/effects source layout for ${file}: ${directory}`);
+  return {root,directory};
+}
+function sourceRecords(fixture,ownerSources,root,bendRoot,bendDirectory) {
   const sources=new Map();
   const add=(candidate,expected,label,projectOnly=false)=>{
     let file;
@@ -80,7 +95,7 @@ function sourceRecords(fixture,ownerSources,root) {
     if(typeof owner.path!=="string"||typeof owner.sha256!=="string")throw new Error("invalid game codec owner source");
     add(resolve(root,owner.path),owner.sha256,"game codec owner source",true);
   }
-  for(const source of bendSourceClosure(fixture,root,bendRoot))add(source.file,source.expected,"Bend import source");
+  for(const source of bendSourceClosure(fixture,root,bendRoot,bendDirectory))add(source.file,source.expected,"Bend import source");
   return [...sources.values()];
 }
 function checked(command, args, timeout) {
@@ -116,8 +131,12 @@ function stream(command,args,directory,label,executionTimeoutMs) {
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
   const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
-  const sources=sourceRecords(fileURLToPath(fixture),ownerSources,root);
-  const tools=["bend","clang"].map(name=>{const file=realpathSync(checked("which",[name],5000).trim());return{file,expected:hash(file)};});
+  const bendFile=realpathSync(checked("which",["bend"],5000).trim());
+  const bendLayout=bendSourceLayout(bendFile);
+  const sources=sourceRecords(fileURLToPath(fixture),ownerSources,root,bendLayout.root,bendLayout.directory);
+  const tools=[{file:bendFile,expected:hash(bendFile)}];
+  const clangFile=realpathSync(checked("which",["clang"],5000).trim());
+  tools.push({file:clangFile,expected:hash(clangFile)});
   const verify=()=>{for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);};
   verify();
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
