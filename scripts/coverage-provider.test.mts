@@ -148,3 +148,46 @@ it("preserves evidence when nested default callbacks have ambiguous signature ow
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+it("normalizes declaration ownership for a multiline factory returning an arrow", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hapsland-coverage-arrow-factory-"))
+  try {
+    const filename = join(root, "subject.ts")
+    writeFileSync(
+      filename,
+      "export const factory =\n  (options = {}) =>\n  (api: unknown): void => {\n    void api\n  }\n"
+    )
+    const position = (line: number, column: number | null) => ({ line, column })
+    const map = provider.getProvider().createCoverageMap()
+    map.addFileCoverage({
+      path: filename,
+      statementMap: {},
+      branchMap: {},
+      s: {},
+      b: {},
+      fnMap: {
+        "0": {
+          name: "(anonymous_0)",
+          decl: { start: position(1, 13), end: position(1, null) },
+          loc: { start: position(3, 2), end: position(5, 3) },
+          line: 2
+        },
+        "1": {
+          name: "(anonymous_1)",
+          decl: { start: position(2, 23), end: position(2, null) },
+          loc: { start: position(3, 25), end: position(5, 3) },
+          line: 3
+        }
+      },
+      f: { "0": 3, "1": 2 }
+    })
+    await mergeSourceFunctions(map)
+    const result = map.fileCoverageFor(filename).data
+    expect(Object.keys(result.fnMap)).toHaveLength(2)
+    expect(result.f).toEqual({ "0": 3, "1": 2 })
+    expect(result.fnMap["0"].decl.start).toEqual(position(2, 2))
+    expect(result.fnMap["1"].decl.start).toEqual(position(3, 2))
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

@@ -336,6 +336,57 @@ describe("public resumable setup operation", () => {
     expect(output.actions.length).toBeLessThanOrEqual(4)
   })
 
+  it("setup and standalone credential inspection read the project file without inherited keys", () => {
+    const test = fixture()
+    const environment = { ...test.environment }
+    delete environment.TYPESAFE_API_KEY
+    const file = join(test.repository, ".env.local")
+    writeFileSync(file, "TYPESAFE_API_KEY=project-setup-fixture\n")
+    const result = invoke(test, {}, environment)
+    expect(result.stages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          stage: "credential",
+          status: "complete",
+          observed: expect.objectContaining({ file, valueDisclosed: false })
+        })
+      ])
+    )
+    const child = spawnSync(process.execPath, [setupEntrypoint(), "--credentials"], {
+      cwd: test.repository,
+      env: environment,
+      input: JSON.stringify({ version: 1, operation: "credentials", cwd: test.repository }),
+      encoding: "utf8",
+      timeout: DEFAULT_CHILD_TIMEOUT_MS
+    })
+    expect(child.status).toBe(0)
+    expect(JSON.parse(child.stdout)).toMatchObject({ present: true, source: "environment", file })
+    expect(child.stdout + child.stderr).not.toContain("project-setup-fixture")
+  })
+
+  it("reports a rejected project key file without asking to repair native storage", () => {
+    const test = fixture()
+    const environment = { ...test.environment }
+    delete environment.TYPESAFE_API_KEY
+    const file = join(test.repository, ".env.local")
+    mkdirSync(file)
+    const result = invoke(test, { credential: "saved" }, environment)
+    expect(result.stages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          stage: "credential",
+          status: "pending",
+          observed: expect.objectContaining({ file, status: "unavailable" })
+        })
+      ])
+    )
+    const credentialActions = result.actions.filter((action) => action.code === "provide-credential")
+    expect(credentialActions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: expect.stringContaining(file) })])
+    )
+    expect(credentialActions.some((action) => action.action.includes("native credential storage"))).toBe(false)
+  })
+
   it("distinguishes inaccessible storage from an absent key", () => {
     const test = fixture()
     const helper = join(test.root, "unavailable-helper")

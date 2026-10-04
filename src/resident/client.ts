@@ -1,3 +1,5 @@
+import * as Redacted from "effect/Redacted"
+import { resolveCredentialInput } from "../credentials/input.ts"
 import type { CodexDirectEventOutput } from "../direct-event/output.ts"
 import { packageCommand } from "../runtime/package-runtime.ts"
 import { effectiveSessionAnalytics } from "../configuration/resolve.ts"
@@ -11,7 +13,6 @@ import * as Context from "effect/Context"
 import * as Duration from "effect/Duration"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import * as Redacted from "effect/Redacted"
 import * as Ref from "effect/Ref"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
@@ -385,8 +386,6 @@ const userConfigurationOptions = (path: string | undefined) => (path === undefin
 const nullableResolvedPath = (path: string | undefined) => (path === undefined ? null : resolve(path))
 const dispatchUsesCredential = (controlled: ReturnType<typeof controlledDispatchOptions>) =>
   controlled === null || controlled.requireCredential === true
-const environmentCredentialValue = (value: Option.Option<Redacted.Redacted>) =>
-  Option.isNone(value) ? null : Redacted.value(value.value)
 
 export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeResidentDispatchContext")(function* (
   root: string,
@@ -398,12 +397,16 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   const settings = yield* loadReviewSettings(root, userConfigurationOptions(userConfigPath))
   const controlled = controlledDispatchOptions(controlledOptions)
   const configuration = yield* Config.all({
-    credential: Config.option(Config.Redacted(settings.credentialEnvVar)),
     credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(
       Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)
     ),
     demoBudgetPath: Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"))
   }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })))
+  const credentialInput = !dispatchUsesCredential(controlled)
+    ? undefined
+    : yield* resolveCredentialInput({ envVar: settings.credentialEnvVar, root }).pipe(
+        Effect.mapError(() => new ResidentIpcError({ message: "resident credential input unavailable" }))
+      )
   const credentialStatePath = resolve(configuration.credentialStatePath)
   const credentialState = yield* Effect.try({
     try: () => readCredentialState(credentialStatePath),
@@ -420,7 +423,7 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
       ? null
       : {
           name: settings.credentialEnvVar,
-          environmentValue: environmentCredentialValue(configuration.credential),
+          environmentValue: credentialInput?.value === undefined ? null : Redacted.value(credentialInput.value),
           environmentOnly,
           generation: credentialState.generation,
           statePath: credentialStatePath

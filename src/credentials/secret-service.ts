@@ -1,3 +1,5 @@
+import * as Redacted from "effect/Redacted"
+import { resolveCredentialInput, type CredentialInputOptions } from "./input.ts"
 import { HAPSLAND_STATE_DIRECTORY } from "../runtime/user-paths.ts"
 import { packageAssetPath } from "../runtime/package-runtime.ts"
 import { execFileSync } from "node:child_process"
@@ -9,7 +11,6 @@ import * as Clock from "effect/Clock"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import * as Redacted from "effect/Redacted"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
 import { runSecretServiceProcess, type SecretServiceOperation } from "./secret-service-process.ts"
@@ -386,6 +387,7 @@ export type CredentialResolution =
       readonly source: "environment" | "saved"
       readonly value: string
       readonly generation: number
+      readonly file?: string
     }
   | {
       readonly status:
@@ -398,9 +400,10 @@ export type CredentialResolution =
         | "suspended"
       readonly source: "environment" | "saved"
       readonly generation: number
+      readonly file?: string
     }
 
-type CredentialResolutionOptions = {
+type CredentialResolutionOptions = CredentialInputOptions & {
   readonly envVar: string
   readonly environmentOnly: boolean
   readonly environmentValue?: string | null
@@ -412,14 +415,6 @@ const credentialSource = (options: CredentialResolutionOptions, value: string | 
   options.environmentOnly || hasEnvironmentCredential(value) ? "environment" : "saved"
 const expectedGenerationChanged = (expected: number | undefined, state: CredentialState): boolean =>
   expected !== undefined && expected !== state.generation
-const environmentCredential = Effect.fn("Credentials.environmentCredential")(function* (
-  options: CredentialResolutionOptions
-) {
-  if ("environmentValue" in options) return options.environmentValue ?? undefined
-  return Option.getOrUndefined(
-    yield* Config.option(Config.Redacted(options.envVar)).pipe(Effect.map((value) => Option.map(value, Redacted.value)))
-  )
-})
 const resolvedEnvironmentCredential = (
   value: string | undefined,
   statePath: string,
@@ -464,15 +459,28 @@ export const resolveCredential = Effect.fn("Credentials.resolve")((options: Cred
   Effect.gen(function* () {
     const statePath = yield* resolveStatePath(options.statePath)
     const state = readCredentialState(statePath)
-    const value = yield* environmentCredential(options)
+    const input = yield* resolveCredentialInput(options)
+    const value = input.value === undefined ? undefined : Redacted.value(input.value)
     const source = credentialSource(options, value)
     if (expectedGenerationChanged(options.expectedGeneration, state))
       return { status: "suspended", source, generation: state.generation } as const
-    if (source === "environment") return resolvedEnvironmentCredential(value, statePath, state)
+    if (source === "environment")
+      return {
+        ...resolvedEnvironmentCredential(value, statePath, state),
+        ...(input.file === undefined ? {} : { file: input.file })
+      }
     if (state.savedUseSuspended) return { status: "suspended", source: "saved", generation: state.generation } as const
     return yield* resolvedSavedCredential(statePath, state)
   }).pipe(
     Effect.map((result): CredentialResolution => result),
+    Effect.catchTag("CredentialInputError", (error) =>
+      Effect.succeed<CredentialResolution>({
+        status: "unavailable",
+        source: "environment",
+        generation: 0,
+        file: error.file
+      })
+    ),
     Effect.catch(() =>
       Effect.succeed<CredentialResolution>({
         status: "unavailable",

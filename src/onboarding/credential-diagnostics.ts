@@ -1,11 +1,13 @@
 import type { CredentialResolution } from "../credentials/secret-service.ts"
 import type { DoctorCheck } from "./doctor.ts"
 
-type CredentialReadiness = Pick<CredentialResolution, "status" | "source">
+type CredentialReadiness = Pick<CredentialResolution, "status" | "source" | "file">
 const needsInteraction = (status: CredentialReadiness["status"]): boolean =>
   status === "locked" || status === "interaction-required"
 const credentialAction = (credential: CredentialReadiness, envVar: string): string | undefined => {
   if (credential.status === "present") return undefined
+  if (credential.file !== undefined)
+    return `restore a readable regular credential file at ${credential.file}, then rerun doctor`
   if (credential.source === "environment")
     return `make ${envVar} available to the installed hook environment, then rerun doctor`
   if (needsInteraction(credential.status))
@@ -28,6 +30,7 @@ const credentialStatus = (status: CredentialReadiness["status"]): DoctorCheck["s
 const hookAccessibility = (credential: CredentialReadiness) => {
   if (credential.source === "saved" && credential.status === "present")
     return "available-via-noninteractive-native-lookup"
+  if (credential.file !== undefined && credential.status === "present") return "available-via-file-lookup"
   if (credential.source === "environment" && credential.status === "present")
     return "requires-host-environment-verification"
   return "unavailable"
@@ -49,7 +52,8 @@ export const credentialDiagnostic = (
       actualHookAccessibility: hookAccessibility(credential),
       savedCredentialAccessibility:
         credential.source === "saved" ? credential.status : "not-selected-environment-precedence",
-      selectedSource: credential.source
+      selectedSource: credential.source,
+      ...(credential.file === undefined ? {} : { credentialFile: credential.file })
     },
     ...(action === undefined ? {} : { action })
   }

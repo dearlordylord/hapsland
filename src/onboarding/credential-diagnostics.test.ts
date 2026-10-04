@@ -98,3 +98,26 @@ it("keeps doctor environment observation separate from selected saved storage", 
     savedCredentialAccessibility: "locked"
   })
 })
+
+it("reports a file source separately from installer environment without exposing its value", () => {
+  const result = credentialDiagnostic(
+    { status: "present", source: "environment", file: "/project/.env.local" },
+    "TYPESAFE_API_KEY",
+    false
+  )
+  expect(result.observed).toMatchObject({
+    credentialFile: "/project/.env.local",
+    doctorProcessEnvironment: "absent",
+    actualHookAccessibility: "available-via-file-lookup"
+  })
+})
+
+it("points to the rejected file instead of requesting native credential repair", () => {
+  const result = credentialDiagnostic(
+    { status: "unavailable", source: "environment", file: "/project/.env" },
+    "TYPESAFE_API_KEY",
+    false
+  )
+  expect(result.action).toContain("/project/.env")
+  expect(result.action).not.toContain("native")
+})

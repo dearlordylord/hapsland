@@ -28,9 +28,11 @@ export async function mergeSourceFunctions(coverageMap) {
     const bodies = new Map()
     const declarations = new Map()
     const signatures = []
+    const sourceFunctions = new Map()
     for (const node of tree.rootNode.descendantsOfType([...functionKinds])) {
       const body = node.childForFieldName("body")
       if (!body) continue
+      sourceFunctions.set(`${body.startIndex}:${body.endIndex}`, node)
       signatures.push({ start: node.startPosition, end: body.startPosition, body })
       const anchors = [node, node.childForFieldName("name")]
       const parameters = node.childForFieldName("parameters")
@@ -93,6 +95,7 @@ export async function mergeSourceFunctions(coverageMap) {
               .map(({ body }) => body)
           : candidates
       const body = signatureMatches?.length === 1 ? signatureMatches[0] : undefined
+      const sourceFunction = body && sourceFunctions.get(`${body.startIndex}:${body.endIndex}`)
       const identity = body ? `${body.startIndex}:${body.endIndex}` : `unmatched:${id}`
       const prior = identities.get(identity)
       if (prior !== undefined) {
@@ -103,6 +106,10 @@ export async function mergeSourceFunctions(coverageMap) {
       fnMap[id] = body
         ? {
             ...entry,
+            decl: {
+              start: { line: sourceFunction.startPosition.row + 1, column: sourceFunction.startPosition.column },
+              end: { line: body.startPosition.row + 1, column: body.startPosition.column }
+            },
             loc: {
               start: { line: body.startPosition.row + 1, column: body.startPosition.column },
               end: { line: body.endPosition.row + 1, column: body.endPosition.column }

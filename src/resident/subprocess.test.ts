@@ -103,6 +103,22 @@ const admitComposed = async (
 }
 
 describe("resident separate-process lifecycle", () => {
+  it("exits the native resident successfully after idle retirement and releases ownership", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-native-idle-"))
+    directories.push(temporary)
+    const paths = residentPaths(join(temporary, "runtime"))
+    const executable = join(process.cwd(), "dist", "bin", `${process.platform}-${process.arch}`, "hapsland-resident")
+    const child = spawn(executable, [paths.directory], { stdio: "pipe" })
+    if (child.pid !== undefined) processes.push(child.pid)
+    const result = childResult(child)
+    await waitFor(async () => (existsSync(paths.socket) ? true : undefined), 8_000)
+    await result
+    expect(child.exitCode).toBe(0)
+    expect(existsSync(paths.socket)).toBe(false)
+    expect(existsSync(paths.owner)).toBe(false)
+    expect(existsSync(paths.lock)).toBe(false)
+  })
+
   it("releases ownership after startup failure without deleting an unsafe endpoint", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-startup-failure-"))
     directories.push(temporary)
@@ -167,6 +183,8 @@ describe("resident separate-process lifecycle", () => {
       }
     }, 26_000)
     expect(existsSync(paths.owner)).toBe(false)
+    expect(existsSync(paths.socket)).toBe(false)
+    expect(existsSync(paths.lock)).toBe(false)
     const second = await runClient(ensureResident(paths, 5_000))
     processes.push(second.pid)
     expect(second.pid).not.toBe(first.pid)

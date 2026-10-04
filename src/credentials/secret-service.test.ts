@@ -206,6 +206,42 @@ int main(void) {
     ).resolves.toMatchObject({ status: "present", source: "environment", value: "environment-marker" })
   })
 
+  it("resolves a project file without native storage and preserves hook-captured input", async () => {
+    process.env.TEST_SECRET_MODE = "unavailable"
+    const file = join(root, ".env")
+    writeFileSync(file, "TYPESAFE_API_KEY=file-marker\n")
+    await expect(
+      run(
+        resolveCredential({
+          envVar: "TYPESAFE_API_KEY",
+          environmentOnly: false,
+          root,
+          userDirectory: join(root, "user"),
+          statePath: lifecycle
+        })
+      )
+    ).resolves.toMatchObject({ status: "present", source: "environment", value: "file-marker", file })
+    await expect(
+      run(
+        resolveCredential({
+          envVar: "TYPESAFE_API_KEY",
+          environmentOnly: false,
+          root,
+          environmentValue: null,
+          statePath: lifecycle
+        })
+      )
+    ).resolves.toMatchObject({ status: "unavailable", source: "saved" })
+  })
+
+  it("reports rejected file input as a file failure rather than a native-store failure", async () => {
+    const file = join(root, ".env.local")
+    mkdirSync(file)
+    await expect(
+      run(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, root, statePath: lifecycle }))
+    ).resolves.toMatchObject({ status: "unavailable", source: "environment", file })
+  })
+
   it("honors an explicitly absent hook environment instead of the resident launch environment", async () => {
     await run(saveCredential("saved-marker", lifecycle))
     process.env.TYPESAFE_API_KEY = "stale-resident-environment-marker"

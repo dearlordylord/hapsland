@@ -14,7 +14,7 @@ const historicalEvidence = JSON.parse(
 describe("first-review live runner provenance policy", () => {
   it("derives the installed CLI and artifact digest from its own npm pack result", () => {
     expect(runner).toContain('["pack", "--json", "--pack-destination", runnerRoot]')
-    expect(runner).toContain('createHash("sha256").update(await readFile(tarballPath)).digest("hex")')
+    expect(runner).toMatch(/createHash\("sha256"\)\s*\.update\(await readFile\(tarballPath\)\)\s*\.digest\("hex"\)/u)
     expect(runner).toContain("const invokedCli = join(installPrefix")
     expect(runner).toContain("const resolvedCli = await realpath(cli)")
     expect(runner).toContain("invoked CLI does not resolve inside the installed packed artifact")

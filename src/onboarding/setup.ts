@@ -241,6 +241,31 @@ const reportInteractiveCredential = (outcome: InteractiveCredentialOutcome, prog
   reportInteractiveCredentialAction(outcome, progress)
 }
 
+const credentialPendingSummary = (resolution: CredentialResolution): string => {
+  if (resolution.source === "saved" && resolution.status === "unavailable")
+    return "native credential storage is unavailable; Hapsland could not check for a saved Jev key"
+  if (resolution.status === "missing")
+    return "a Jev API key is required; no key was found in the selected credential source"
+  return `the selected ${resolution.source} credential is ${resolution.status}`
+}
+
+const credentialPendingAction = (
+  request: SetupRequest,
+  settings: ReviewSettings,
+  environmentOnly: boolean,
+  resolution: CredentialResolution
+): string => {
+  if (resolution.file !== undefined)
+    return `restore a readable regular credential file at ${resolution.file}, then rerun setup`
+  if (resolution.status === "locked")
+    return "unlock the login keyring in the desktop session, then rerun setup interactively"
+  if (request.credential === "environment" || environmentOnly)
+    return `set ${settings.credentialEnvVar} in the selected host execution environment, then rerun setup`
+  if (resolution.status === "missing" || resolution.status === "invalid")
+    return "rerun setup interactively in a user terminal for masked credential entry; use --new-key to replace a saved key"
+  return `restore native credential storage (Linux: a session D-Bus Secret Service with a default collection; macOS: login Keychain), or set ${settings.credentialEnvVar} in the terminal before setup and launching the agent`
+}
+
 const reportCredentialResolution = (
   request: SetupRequest,
   settings: ReviewSettings,
@@ -253,8 +278,13 @@ const reportCredentialResolution = (
     stages.push({
       stage: "credential",
       status: "complete",
-      summary: `a review credential is available from ${resolution.source}`,
-      observed: { source: resolution.source, inspectedContext: "setup-process", valueDisclosed: false }
+      summary: `a review credential is available from ${resolution.file ?? resolution.source}`,
+      observed: {
+        source: resolution.source,
+        ...(resolution.file === undefined ? {} : { file: resolution.file }),
+        inspectedContext: "setup-process",
+        valueDisclosed: false
+      }
     })
     completed.push("credential available to setup")
   } else {
@@ -262,14 +292,10 @@ const reportCredentialResolution = (
     stages.push({
       stage: "credential",
       status: "pending",
-      summary:
-        resolution.source === "saved" && resolution.status === "unavailable"
-          ? "native credential storage is unavailable; Hapsland could not check for a saved Jev key"
-          : resolution.status === "missing"
-            ? "a Jev API key is required; no key was found in the selected credential source"
-            : `the selected ${resolution.source} credential is ${resolution.status}`,
+      summary: credentialPendingSummary(resolution),
       observed: {
         source: resolution.source,
+        ...(resolution.file === undefined ? {} : { file: resolution.file }),
         status: resolution.status,
         inspectedContext: "setup-process",
         valueDisclosed: false
@@ -278,14 +304,7 @@ const reportCredentialResolution = (
     actions.push({
       stage: "credential",
       code,
-      action:
-        resolution.status === "locked"
-          ? "unlock the login keyring in the desktop session, then rerun setup interactively"
-          : request.credential === "environment" || environmentOnly
-            ? `set ${settings.credentialEnvVar} in the selected host execution environment, then rerun setup`
-            : resolution.status === "missing" || resolution.status === "invalid"
-              ? "rerun setup interactively in a user terminal for masked credential entry; use --new-key to replace a saved key"
-              : `restore native credential storage (Linux: a session D-Bus Secret Service with a default collection; macOS: login Keychain), or set ${settings.credentialEnvVar} in the terminal before setup and launching the agent`
+      action: credentialPendingAction(request, settings, environmentOnly, resolution)
     })
     pending.push("make the selected credential available")
   }
@@ -333,6 +352,53 @@ const maskedCredentialReader = (
   return undefined
 }
 
+const newCredentialReader = (
+  request: SetupRequest,
+  options: SetupOptions,
+  environmentOnly: boolean,
+  installed: boolean
+) => {
+  if (request.credential !== "saved" || environmentOnly || !installed || request.interactive !== true) return undefined
+  return options.readCredential
+}
+
+const reportNewCredentialPending = (settings: ReviewSettings, environmentOnly: boolean, progress: SetupProgress) => {
+  progress.stages.push({
+    stage: "credential",
+    status: "pending",
+    summary: environmentOnly
+      ? "new saved key entry cannot replace the configured environment credential"
+      : "a new Jev key requires interactive entry after installation approval"
+  })
+  progress.actions.push({
+    stage: "credential",
+    code: "provide-credential",
+    action: environmentOnly
+      ? `set ${settings.credentialEnvVar} in the selected host execution environment; remove the explicit credentialEnvVar setting to use saved login`
+      : "run hapsland setup with --new-key in a user terminal and approve installation"
+  })
+  progress.pending.push("enter a new credential")
+}
+
+const setupNewCredential = Effect.fn("Setup.newCredential")(function* (
+  request: SetupRequest,
+  options: SetupOptions,
+  settings: ReviewSettings,
+  installed: boolean,
+  environmentOnly: boolean,
+  progress: SetupProgress
+) {
+  const reader = newCredentialReader(request, options, environmentOnly, installed)
+  if (reader === undefined) {
+    reportNewCredentialPending(settings, environmentOnly, progress)
+    return
+  }
+  const result = yield* readInteractiveCredential(reader, settings)
+  if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress)
+  else if (result.resolution !== undefined)
+    reportCredentialResolution(request, settings, false, result.resolution, progress)
+})
+
 const setupCredential = Effect.fn("Setup.credential")(function* (
   request: SetupRequest,
   options: SetupOptions,
@@ -343,40 +409,17 @@ const setupCredential = Effect.fn("Setup.credential")(function* (
   const environmentOnly =
     request.credential === "environment" || settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   if (request.newKey === true) {
-    if (
-      request.credential !== "saved" ||
-      environmentOnly ||
-      !installed ||
-      request.interactive !== true ||
-      options.readCredential === undefined
-    ) {
-      progress.stages.push({
-        stage: "credential",
-        status: "pending",
-        summary: environmentOnly
-          ? "new saved key entry cannot replace the configured environment credential"
-          : "a new Jev key requires interactive entry after installation approval"
-      })
-      progress.actions.push({
-        stage: "credential",
-        code: "provide-credential",
-        action: environmentOnly
-          ? `set ${settings.credentialEnvVar} in the selected host execution environment; remove the explicit credentialEnvVar setting to use saved login`
-          : "run hapsland setup with --new-key in a user terminal and approve installation"
-      })
-      progress.pending.push("enter a new credential")
-      return
-    }
-    const result = yield* readInteractiveCredential(options.readCredential, settings)
-    if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress)
-    else if (result.resolution !== undefined)
-      reportCredentialResolution(request, settings, false, result.resolution, progress)
+    yield* setupNewCredential(request, options, settings, installed, environmentOnly, progress)
     return
   }
   if (request.credential === "skip") {
     reportSkippedCredential(request, progress)
   } else {
-    let resolution = yield* resolveCredential({ envVar: settings.credentialEnvVar, environmentOnly })
+    let resolution = yield* resolveCredential({
+      envVar: settings.credentialEnvVar,
+      environmentOnly,
+      root: settings.configuration.policy.root
+    })
     let interactiveOutcome: InteractiveCredentialOutcome | undefined
     const readCredential = maskedCredentialReader(request, options, resolution, installed)
     if (readCredential !== undefined) {

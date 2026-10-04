@@ -128,8 +128,11 @@ invalid and administratively suspended states are reported without the value by
 login when Linux storage is locked; start a Secret Service provider for that user session when
 unavailable. On macOS, unlock or authorize the selected default Keychain from an explicit login.
 
-The default nonempty `TYPESAFE_API_KEY` takes precedence over the saved item. Selecting
-`credentialEnvVar` in user or project configuration is an explicit environment-only choice;
+Setup and hooks share key lookup: explicit process environment, repository `.env.local`,
+repository `.env`, then the user Hapsland configuration directory’s `.env`; see
+[credential lookup](installation-workflows.md#personal-development-on-your-own-clients).
+These sources take precedence over the native saved item. Selecting
+`credentialEnvVar` in user or project configuration is an explicit environment/file choice;
 missing, empty or invalid selected values do not fall back to the saved default. Replacement and
 logout advance a nonsecret generation file. Resident work captured under an older generation is
 dropped before a provider call. Logout deletes only the owned credential item.

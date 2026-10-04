@@ -36,7 +36,15 @@ for (const access of [
 ]) {
   if (client.includes(access)) throw new Error(`resident dispatch configuration bypass returned: ${access}`)
 }
-if (!client.includes("Config.Redacted(settings.credentialEnvVar)")) {
+const credentialInput = read("src/credentials/input.ts")
+if (
+  !client.includes("resolveCredentialInput({ envVar: settings.credentialEnvVar, root })") ||
+  !client.includes("Redacted.value(credentialInput.value)") ||
+  !credentialInput.includes("readonly value?: Redacted.Redacted") ||
+  !credentialInput.includes("Config.Redacted(options.envVar)") ||
+  credentialInput.includes("Redacted.value(") ||
+  credentialInput.includes("process.env")
+) {
   throw new Error("resident dispatch credential configuration must remain redacted until IPC construction")
 }
 
@@ -54,7 +62,7 @@ if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(/u.tes
 }
 if (
   /process\.env(?:\[|\.REVIEW_CREDENTIAL_)/u.test(credentials) ||
-  !credentials.includes("Config.Redacted(options.envVar)") ||
+  !credentials.includes("yield* resolveCredentialInput(options)") ||
   !credentials.includes('Schedule.spaced("10 millis")')
 ) {
   throw new Error("credential configuration and lock polling must use redacted Config and Schedule")

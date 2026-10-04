@@ -24,6 +24,7 @@ import * as Config from "effect/Config"
 import * as Option from "effect/Option"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
+import * as Deferred from "effect/Deferred"
 
 import * as Schema from "effect/Schema"
 import type * as HttpClient from "effect/http/HttpClient"
@@ -455,6 +456,7 @@ export interface ResidentRuntimeOperations {
   readonly handle: (request: ResidentRequest) => Effect.Effect<ResidentResponse, ResidentAdapterError>
   readonly stats: () => Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>
   readonly whenIdle: () => Effect.Effect<void>
+  readonly whenClosed: Effect.Effect<void>
 }
 
 export interface ResidentRuntime {
@@ -539,6 +541,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   options: ResidentRuntimeOptions = {}
 ) {
   paths ??= yield* resolveResidentPaths()
+  const closed = yield* Deferred.make<void>()
   const runtimeConfiguration = yield* makeResidentRuntimeConfiguration().pipe(
     Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" }))
   )
@@ -5117,7 +5120,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       })
     )
   })
-  const close = yield* Effect.cached(Effect.suspend(() => residentDispose()))
+  const disposeOnce = yield* Effect.cached(Effect.suspend(() => residentDispose()))
+  const close = disposeOnce.pipe(Effect.tap(() => Deferred.succeed(closed, undefined)))
   const residentDispatcher: Dispatcher<string, Job> = yield* makeDispatcher<string, Job>(
     residentLedger,
     (job) => ({
@@ -5127,7 +5131,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     (entry) => residentRun(entry.value, entry.sequence)
   ).pipe(Effect.provideService(Scope.Scope, residentDispatchScope))
   const operations = Object.freeze(
-    ResidentRuntimeService.of({ lifetime, paths, listen, close, handle: residentHandle, stats, whenIdle })
+    ResidentRuntimeService.of({
+      lifetime,
+      paths,
+      listen,
+      close,
+      handle: residentHandle,
+      stats,
+      whenIdle,
+      whenClosed: Deferred.await(closed)
+    })
   )
   const runtime: ResidentRuntime = Object.freeze({
     operations,

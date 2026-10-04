@@ -22,11 +22,9 @@ const stopped = Effect.callback<void>((resume) => {
   const stop = () => resume(Effect.void)
   process.once("SIGTERM", stop)
   process.once("SIGINT", stop)
-  process.once("beforeExit", stop)
   return Effect.sync(() => {
     process.removeListener("SIGTERM", stop)
     process.removeListener("SIGINT", stop)
-    process.removeListener("beforeExit", stop)
   })
 })
 
@@ -62,7 +60,7 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
       .listen()
       .pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })))
     yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }))
-    yield* Effect.never
+    yield* server.whenClosed
   }).pipe(Effect.provide(runtimeLayer))
 })
 

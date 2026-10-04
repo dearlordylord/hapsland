@@ -459,7 +459,10 @@ const runDirectCodexHook = (
   Effect.gen(function* () {
     if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const
     const reply = yield* adaptCodexReply(nativeEvent, hostVersion)
-    const owner = yield* ensureResidentEffect().pipe(Effect.option)
+    const owner = yield* ensureResidentEffect(
+      undefined,
+      Math.max(1, directHookDeadline - (yield* hookMonotonicMillis) - 500)
+    ).pipe(Effect.option)
     if (Option.isNone(owner)) {
       recordCodexHookActivity(reply, activityPath, "resident-unavailable", "unavailable")
       return { handled: true, output: {} } as const
@@ -545,6 +548,7 @@ const statusReadiness = (settings: ReviewSettings | undefined, credential: Statu
       envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
       present,
       source: credential.source,
+      ...(credential.file === undefined ? {} : { file: credential.file }),
       status: credential.status
     }
   }
@@ -552,6 +556,7 @@ const statusReadiness = (settings: ReviewSettings | undefined, credential: Statu
 const statusCredential = Effect.fn("Cli.statusCredential")(function* (settings: ReviewSettings | undefined) {
   return yield* resolveCredential({
     envVar: settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR,
+    ...(settings === undefined ? {} : { root: settings.configuration.policy.root }),
     environmentOnly:
       settings !== undefined && settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   })
@@ -640,6 +645,7 @@ const runOperation = Effect.fn("Cli.runOperation")(function* (
     case "credentials": {
       const resolution = yield* resolveCredential({
         envVar: credentialEnvVar,
+        root,
         environmentOnly: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
       })
       return {
@@ -648,6 +654,7 @@ const runOperation = Effect.fn("Cli.runOperation")(function* (
         credentialEnvVar,
         present: resolution.status === "present",
         source: resolution.source,
+        ...(resolution.file === undefined ? {} : { file: resolution.file }),
         status: resolution.status
       }
     }
@@ -738,6 +745,7 @@ const doctorRepositoryChecks = Effect.fn("Cli.doctorRepositoryChecks")(function*
   )
   const credential = yield* resolveCredential({
     envVar: settings.credentialEnvVar,
+    root: settings.configuration.policy.root,
     environmentOnly: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   })
   const fileSelection = fileSelectionReadiness(settings)

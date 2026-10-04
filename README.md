@@ -308,8 +308,8 @@ whether the resolved source is present. On Linux and macOS, `hapsland --login` u
 terminal input with the platform's native credential store;
 `hapsland --login --credential-stdin` is the explicit headless form, and
 `hapsland --logout` removes the owned saved item. Project configuration refers to a
-credential environment-variable name; secret values and environment files are never
-stored in project files or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
+credential environment-variable name; secret values are never stored in review
+configuration or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
 [provider selection and limits](docs/review-providers.md). Arbitrary endpoint routing is not supported. Hooks do not prompt.
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
@@ -319,7 +319,14 @@ The supported Codex event boundary is documented in the
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
 hooks invoke the packed standalone CLI and never depend on this source path.
-Live use reads `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
+Setup and hooks read the selected key from environment → project `.env.local` →
+project `.env` → user `~/.config/hapsland/.env` (or `$XDG_CONFIG_HOME/hapsland/.env`).
+An explicit environment value takes priority, including empty. The default key reference
+then falls back to native saved login. File keys need no special agent launcher;
+[credential lookup](docs/installation-workflows.md#personal-development-on-your-own-clients)
+describes file limits and diagnostics.
+
+Live use selects `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
 through the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`.
 The initial direct-event capture profile is Linux-only. It binds the adapted working-tree

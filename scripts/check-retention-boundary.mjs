@@ -65,7 +65,9 @@ if (
 
 if (
   server.includes("runtime.observeCapacity(") ||
-  !capacity.includes("Math.max(records.runtime.peakLedgerBytes, projectCanonical(next.canonical).global.bytes)")
+  !/Math\.max\(\s*records\.runtime\.peakLedgerBytes\s*,\s*projectCanonical\(next\.canonical\)\.global\.bytes\s*\)/u.test(
+    capacity
+  )
 ) {
   throw new Error("peak retention must observe every published shared-owner commit, not server sampling checkpoints")
 }

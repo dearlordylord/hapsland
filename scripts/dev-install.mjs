@@ -9,7 +9,6 @@ import {
   writeDevCandidate,
   withDevInstallLock
 } from "./dev-install-cache.mjs"
-import { loadDevEnvFile } from "./dev-install-env.mjs"
 import { packDevelopmentArchive } from "./dev-pack.mjs"
 import { stageRelease } from "../src/onboarding/distribution.ts"
 
@@ -27,7 +26,6 @@ if (
     "usage: npm run dev-install -- --host=claude|codex|pi [--update | --new-key] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]"
   )
 }
-loadDevEnvFile(process.cwd())
 const environment = {
   ...process.env,
   HAPSLAND_ACTIVE_DISPATCH: "1",

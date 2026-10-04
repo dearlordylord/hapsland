@@ -52,9 +52,9 @@ export * from "./sizes.ts"
 export type { CanonicalEvent, CanonicalCommand, CanonicalProjection, JevRequestOutcome }
 export const REPLAY_FORMAT = "monkey-business/1"
 export const RANDOM_ALGORITHM = "xorshift32/1"
-export const LOGIC_IDENTITY = "canonical-source-sha256:c75c63f1c243f7df350237464e217d89518a9b0366e468b2a18ba782a9d4c061"
+export const LOGIC_IDENTITY = "canonical-source-sha256:37b89d141bc822bde9cb1754dd223c8c477b5bb52656a49b6c98eab3db50c200"
 export const PREPARATION_IDENTITY =
-  "import-preparation-sha256:c85f59d667624daf084d024fab190a3e372bd1d0bdcd669d7241967ad3c497fa"
+  "import-preparation-sha256:9fd0b26af5a780d1e39eff4c06b0bd7126285b79ed37ccfecb3b1dc01161835b"
 
 export * from "./lifecycle-profile.ts"
 export type RunInput =

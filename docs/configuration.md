@@ -311,8 +311,13 @@ configuration were retired under issue #148. The configuration parser rejects
 `editPermitLimits` controls only simultaneously pending pre-edit permits and belongs in
 the user configuration because the resident is shared across projects.
 
-Credentials are references only. The value is read from the named environment
-variable at dispatch and is never persisted, printed, or included in diagnostics.
+Credentials are references only. The selected key is read at dispatch from the named environment variable, then
+repository `.env.local`, repository `.env`, then the user Hapsland `.env` file.
+An explicit environment value, including empty, masks file values. Without a
+selected key, the built-in reference can use native saved login; explicit
+`credentialEnvVar` settings select environment/file authentication only. File
+credentials are not copied or persisted by Hapsland, and values are never printed
+or included in diagnostics. See [credential lookup](installation-workflows.md#personal-development-on-your-own-clients) for file requirements.
 The configuration schema rejects retired `consent` and `enabled` fields.
 User-only `reviewBackend` settings select Jev or Cloudflare Clef/Clef-flash.
 Each selection determines a fixed provider origin and model route; arbitrary
