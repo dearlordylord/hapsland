@@ -3,8 +3,13 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runWorkloadNative } from "./workload-native-runner.mjs";
-import { NATIVE_C_EMISSION_TIMEOUT_MS, NATIVE_CLANG_TIMEOUT_MS } from "./native-preflight.mjs";
+import { retainOutput, runWorkloadNative } from "./workload-native-runner.mjs";
+import {
+  assertNativeFixtureIdentity,
+  captureNativeFixtureIdentity,
+  NATIVE_C_EMISSION_TIMEOUT_MS,
+  NATIVE_CLANG_TIMEOUT_MS,
+} from "./native-preflight.mjs";
 import { nativeRunFixtures } from "./native-run-fixtures.mjs";
 
 const NATIVE_RUN_C_EMISSION_TIMEOUT_MS = 90000;
@@ -31,6 +36,7 @@ export function runNativeScenarios() {
 // Test-only emission of original-input fixtures. Preserve the compiler's Nat
 // representation and reduce only the resulting data lists at the host boundary.
 export async function runEmittedScenarios() {
+  const identity = captureNativeFixtureIdentity(aggregateFixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-native-run-js-"));
   try {
     const output = join(directory, "fixture.mjs");
@@ -48,6 +54,11 @@ export async function runEmittedScenarios() {
     const execution = spawnSync(process.execPath, [output], { encoding: "utf8", timeout: NATIVE_RUN_JS_EXECUTION_TIMEOUT_MS });
     if (execution.error || execution.status !== 0)
       throw execution.error ?? new Error(execution.stdout + execution.stderr);
+    assertNativeFixtureIdentity(identity, aggregateFixture);
+    retainOutput(execution.stdout, identity, "emitted-js", {
+      emission: NATIVE_RUN_JS_EMISSION_TIMEOUT_MS,
+      execution: NATIVE_RUN_JS_EXECUTION_TIMEOUT_MS,
+    });
     return JSON.parse(execution.stdout);
   } finally {
     rmSync(directory, { recursive: true, force: true });

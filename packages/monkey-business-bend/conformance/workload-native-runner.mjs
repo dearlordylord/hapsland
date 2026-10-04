@@ -17,7 +17,7 @@ import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
 // Keep complete offline vectors inside the existing harness run for later
 // comparison diagnosis. These receipts are evidence, never a compilation cache.
-function retainOutput(output, identity, lane, timeouts, resume) {
+export function retainOutput(output, identity, lane, timeouts, resume) {
   const failureFile = process.env.HAPSLAND_TEST_FAILURES_FILE;
   if (!failureFile) return;
   const outputs = join(dirname(failureFile), "workload-outputs");
