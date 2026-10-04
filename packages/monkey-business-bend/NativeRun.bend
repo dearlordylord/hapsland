@@ -478,7 +478,7 @@ def finish_present(finish: Maybe<&2,StopScenario.Finish>) -> Bool:
 def active_finish(state: T.State, p: Nat) -> Bool:
   Engine.stop_active(core(state),p)
 
-def context(+state: T.State, action: Driver.Action, +job: Maybe<&2,T.Job>, outcome: Maybe<&2,Canonical.RequestOutcome>) -> Driver.Context:
+def context(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, outcome: Maybe<&2,Canonical.RequestOutcome>) -> Driver.Context:
   match state:
     case T.State{_, _, _, _, _, environment, _, _, _,jobs}:
       Driver.with_scope(job_context(job,action,outcome,environment,
