@@ -14,7 +14,7 @@ def controlled_state(result: T.Controlled) -> T.State:
 # validation precedes the zero-budget branch, as it does at the host boundary.
 # Unproved proposal (outside the checked law family): for state and endpoint
 # satisfying True == Run.advance_input_supported(state, 0n, endpoint),
-# Run.advance(state, 0n, endpoint) == T.Advanced{state, []}.
+# Run.advance(state, 0n, endpoint) == T.Advanced{state, [], []}.
 # The concrete zero-budget instance remains in the proposal evidence runner.
 
 # Every original and proposed state; refusal rolls back the entire owner.
