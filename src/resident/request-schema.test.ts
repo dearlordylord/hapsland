@@ -82,10 +82,10 @@ describe("exact resident request alternatives", () => {
   it("retains only supported runtime identities and the Claude edit route", () => {
     const observation = admission.observation;
     const identity = observation.advicee;
-    for (const hostVersion of ["0.155.1", "0.156.0"]) {
+    for (const hostVersion of ["0.155.1", "0.156.0", "0.160.0", "0.161.0"]) {
       expect(decode({ ...admission, observation: { ...observation, advicee: { ...identity, hostVersion } } })).toBeDefined();
     }
-    for (const change of [{ hostVersion: "0.157.0" }, { host: "opencode", hostVersion: "1.14.44", turnId: null },
+    for (const change of [{ hostVersion: "invalid" }, { host: "opencode", hostVersion: "1.14.44", turnId: null },
       { turnId: null }, { host: "claude-code", hostVersion: "2.1.218", turnId: "turn" }]) {
       expect(decode({ ...admission, observation: { ...observation, advicee: { ...identity, ...change } } })).toBeUndefined();
     }

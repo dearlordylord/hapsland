@@ -60,8 +60,8 @@ const error = (cause: unknown) => (cause instanceof Error ? cause.message : "ins
 
 const paths = (home: string) => ({
   settings: join(home, "settings.json"),
-  ownership: join(home, ".realtime-review-tool", "claude-installation-v1.json"),
-  lock: join(home, ".realtime-review-tool", "claude-installation.lock"),
+  ownership: join(home, ".hapsland", "claude-installation-v1.json"),
+  lock: join(home, ".hapsland", "claude-installation.lock"),
 });
 
 const file = (path: string): string | undefined => {

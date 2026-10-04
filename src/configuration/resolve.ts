@@ -141,8 +141,16 @@ export const effectiveEditPermitLimits = (
   };
 };
 
-export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean =>
-  policy.layers.find((layer) => layer.name === "user")?.document.sessionAnalytics ?? false;
+export const sessionAnalyticsSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> => {
+  let setting = originated(false, { layer: "built-in", source: "built-in", field: "sessionAnalytics" });
+  for (const layer of policy.layers) {
+    if (layer.document.sessionAnalytics !== undefined)
+      setting = originated(layer.document.sessionAnalytics, origin(layer, "sessionAnalytics"));
+  }
+  return setting;
+};
+
+export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean => sessionAnalyticsSetting(policy).value;
 
 export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
   policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS;
@@ -153,7 +161,6 @@ export const effectiveReviewBackend = (policy: Pick<ResolvedPolicy, "layers">): 
 const userOwnedControls = [
   { field: "editPermitLimits", reason: "only user configuration may set shared resident edit permit limits" },
   { field: "virtualRoundQuietMs", reason: "only user configuration may set the shared resident virtual round timeout" },
-  { field: "sessionAnalytics", reason: "only user configuration may set session analytics" },
 ] as const;
 
 const validateUserControls = (layers: ReadonlyArray<ConfigurationLayer>) => {

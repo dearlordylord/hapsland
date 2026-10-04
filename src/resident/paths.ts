@@ -39,8 +39,8 @@ export const resolveResidentPaths = Effect.fn("ResidentEndpoint.resolvePaths")(f
   })));
   const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
   const directory = Option.getOrElse(configuration.override, () => Option.match(configuration.runtime, {
-    onNone: () => join(tmpdir(), `realtime-review-tool-${uid}`),
-    onSome: (runtime) => join(runtime, "realtime-review-tool"),
+    onNone: () => join(tmpdir(), `hapsland-${uid}`),
+    onSome: (runtime) => join(runtime, "hapsland"),
   }));
   return residentPaths(directory);
 });

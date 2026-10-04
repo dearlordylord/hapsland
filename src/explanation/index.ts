@@ -1,3 +1,4 @@
+import { sessionAnalyticsSetting } from "../configuration/resolve.ts";
 import type { ConfigurationOrigin, PatternOrigin, ResolvedPolicy } from "../configuration/types.ts";
 import { selectGlobalPath, type ProtectedGate, type SelectionDecision } from "../policy/file-policy.ts";
 
@@ -15,6 +16,13 @@ export type PathExplanation = {
   readonly matchingExcludes: ReadonlyArray<PatternOrigin>;
   readonly allExcludes: ReadonlyArray<PatternOrigin>;
   readonly origins: ReadonlyArray<ConfigurationOrigin>;
+  readonly configuration: {
+    readonly layers: ReadonlyArray<{ readonly name: string; readonly source: string }>;
+    readonly sessionAnalytics: ReturnType<typeof sessionAnalyticsSetting>;
+    readonly credentialEnvVar: ResolvedPolicy["credentialEnvVar"];
+    readonly claudeFeedbackMode: ResolvedPolicy["claudeFeedbackMode"];
+    readonly graphLimits: ResolvedPolicy["graphLimits"];
+  };
 };
 
 const uniqueOrigins = (values: ReadonlyArray<ConfigurationOrigin>): ReadonlyArray<ConfigurationOrigin> => {
@@ -52,6 +60,13 @@ export const explainPath = (policy: ResolvedPolicy, path: string): PathExplanati
     matchingExcludes: selection.matchingExcludes,
     allExcludes,
     origins,
+    configuration: {
+      layers: policy.layers.map(({ name, source }) => ({ name, source })),
+      sessionAnalytics: sessionAnalyticsSetting(policy),
+      credentialEnvVar: policy.credentialEnvVar,
+      claudeFeedbackMode: policy.claudeFeedbackMode,
+      graphLimits: policy.graphLimits,
+    },
   };
 };
 
@@ -66,6 +81,9 @@ export const formatPathExplanation = (explanation: PathExplanation): string =>
   [
     `${explanation.path}: ${pathSelectionLabel(explanation.selected)} (${explanation.reason})`,
     `policy: ${explanation.policyDigest}`,
+    "configuration layers (low to high precedence):",
+    ...explanation.configuration.layers.map(layer => `  ${layer.name}: ${layer.source}`),
+    `sessionAnalytics: ${explanation.configuration.sessionAnalytics.value} [${explanation.configuration.sessionAnalytics.origin.layer} ${explanation.configuration.sessionAnalytics.origin.source}#sessionAnalytics]`,
     "effective includes:",
     ...explanation.effectiveIncludes.map(formattedPattern),
     ...overriddenIncludeLines(explanation.overriddenIncludes),

@@ -1,9 +1,10 @@
+import { HAPSLAND_STATE_DIRECTORY } from "../runtime/user-paths.ts";
 import { packageCommand } from "../runtime/package-runtime.ts";
 import * as Effect from "effect/Effect";
 import { Clock, Config, Exit, Option, Ref, Schedule, Schema } from "effect";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { readActivity } from "../activity/status.ts";
 import { inspectResidentEffect as inspectResident } from "../resident/client.ts";
@@ -116,7 +117,7 @@ const recordPath = (statePath: string, id: string): string => join(statePath, `$
 const claimDirectory = (statePath: string, id: string): string => join(statePath, `${id}.claimed`);
 const claimedRecordPath = (statePath: string, id: string): string => join(claimDirectory(statePath, id), "record.json");
 const budgetPath = (statePath: string, id: string): string => join(statePath, `${id}.budget.json`);
-const demoParent = (): string => join(tmpdir(), "realtime-review-tool-demos");
+const demoParent = (): string => join(tmpdir(), "hapsland-demos");
 
 const matchesDemoOwner = (marker: unknown, record: Pick<DemoRecord, "id" | "cleanupToken">): boolean => {
   return typeof marker === "object" && marker !== null &&
@@ -347,7 +348,7 @@ const demoReviewLatency = (activity: ReturnType<typeof readActivity> | undefined
 const observeDemoActivity = Effect.fn("FirstReviewDemo.observeDemoActivity")(function* (root: string, sessionId: string | undefined, deadlineAt: number) {
   const observedSessionId = sessionId ?? "";
   const activityPath = yield* Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
-    Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
+    Config.withDefault(join(HAPSLAND_STATE_DIRECTORY, "activity")),
   );
   const observeActivity = Effect.fn("FirstReviewDemo.observeActivity")(function* () {
     if (sessionId === undefined) return undefined;

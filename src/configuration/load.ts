@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import { access, readFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { HAPSLAND_CONFIG_DIRECTORY } from "../runtime/user-paths.ts";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { decodeConfigurationText } from "./decode.ts";
 import { configurationError, ConfigurationError } from "./errors.ts";
@@ -8,7 +8,7 @@ import { captureConfiguration, resolveConfiguration, type ConfigurationLayer } f
 
 export const PROJECT_CONFIGURATION_FILES = [".review.jsonc", ".realtime-review.jsonc"] as const;
 
-export const DEFAULT_USER_CONFIGURATION_FILE = join(homedir(), ".config", "realtime-review-tool", "config.jsonc");
+export const DEFAULT_USER_CONFIGURATION_FILE = join(HAPSLAND_CONFIG_DIRECTORY, "config.jsonc");
 
 export type LoadConfigurationOptions = {
   /** Explicit path is useful for tests and managed user installations. */

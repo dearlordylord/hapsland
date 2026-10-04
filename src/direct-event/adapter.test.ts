@@ -54,10 +54,10 @@ describe("direct-event Codex Add adapter", () => {
       expect(await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "Stop"))).toBeUndefined();
     }
   });
-  it("preserves the selected 0.156.0 host identity", async () => {
+  it.each(["0.156.0", "0.160.0", "0.161.0"])("preserves the selected %s host identity", async (version) => {
     const root = await makeGitFixture();
-    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), "0.156.0"));
-    expect(result?.advicee.hostVersion).toBe("0.156.0");
+    const result = await Effect.runPromise(adaptCodexAdd(addEvent(root), version));
+    expect(result?.advicee.hostVersion).toBe(version);
   });
   it("preserves the complete explicit advicee and canonical Git root", async () => {
     const root = await makeGitFixture();

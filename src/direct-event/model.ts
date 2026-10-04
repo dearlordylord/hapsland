@@ -5,10 +5,9 @@ import type { ReviewTarget } from "../rules/targets.ts";
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts";
 import type { GraphLimits } from "../configuration/graph-limits.ts";
 
-export const CODEX_HOST_VERSIONS = ["0.155.1", "0.156.0"] as const;
-export type CodexHostVersion = typeof CODEX_HOST_VERSIONS[number];
+export type CodexHostVersion = string;
 export const isCodexHostVersion = (value: unknown): value is CodexHostVersion =>
-  typeof value === "string" && CODEX_HOST_VERSIONS.some((version) => version === value);
+  typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
 
 export type DirectAdvicee = {
   readonly host: "codex-cli";

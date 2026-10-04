@@ -57,7 +57,7 @@ describe("offline installed integration doctor", () => {
     const codexHome = join(root, "codex home");
     const runtime = join(root, "runtime");
     const fakeCodex = join(root, "codex");
-    writeFileSync(fakeCodex, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+    writeFileSync(fakeCodex, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
     chmodSync(fakeCodex, 0o700);
     setEnvironment("REVIEW_INSTALL_RUNTIME", process.execPath);
     setEnvironment("REVIEW_INSTALL_ENTRYPOINT", createInstallationPackageFixture(root));

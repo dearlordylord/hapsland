@@ -5,7 +5,7 @@ import { join } from "node:path";
 export const installationPackageDeclaration = () => ({
   schemaVersion: 1,
   runtime: { name: "node", version: process.version.slice(1) },
-  codex: { compatibleVersions: ["0.155.1", "0.156.0"] },
+  codex: { testedVersions: ["0.155.1", "0.156.0"] },
   profiles: [{ operatingSystem: process.platform, architecture: process.arch }],
   residentProtocol: 1,
 });

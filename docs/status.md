@@ -110,9 +110,8 @@ being presented as healthy review.
 
 ## Optional session analytics
 
-Analytics recording is **disabled by default**. Enable it in the user configuration
-at `~/.config/realtime-review-tool/config.jsonc` (merge this field into an existing
-version-one document):
+Analytics recording is **disabled by default**. Enable it for a repository in
+its root `.review.jsonc` (merge this field into an existing version-one document):
 
 ```jsonc
 {
@@ -121,8 +120,10 @@ version-one document):
 }
 ```
 
-Only user configuration may set this field. Project configuration cannot enable or
-disable it. Set it to `false` or remove it to stop future recording. Existing recorded
+Project configuration overrides the user default in either direction. User defaults
+are read from `$XDG_CONFIG_HOME/hapsland/config.jsonc`, normally
+`~/.config/hapsland/config.jsonc`. Set `sessionAnalytics` to `false` in a project
+to stop future recording there; omission inherits the user default. Existing recorded
 analytics remain readable until expiry or eviction; enablement never reconstructs earlier
 work. Each work item captures the recording setting, which is refreshed before provider
 dispatch; already-started work can still finish recording after the setting changes.
@@ -168,3 +169,11 @@ per detail; IDs outside the safe printable identifier subset are omitted, and
 `ruleIdsTruncated` reports omissions. These records show which rules fired, not their
 full finding text or whether the agent acted. Use the native session transcript for that
 additional evidence. The storage root can be relocated with `REVIEW_ACTIVITY_PATH`.
+
+Activity is stored under `$XDG_STATE_HOME/hapsland/activity`, normally
+`~/.local/state/hapsland/activity`. XDG bases must be absolute; absent, empty or
+relative bases use their standard defaults. The explicit `REVIEW_ACTIVITY_PATH`
+overrides that location. Superseded `realtime-review-tool` config/state directories
+are not read or migrated automatically. If you used the earlier pre-release, move
+your chosen configuration to the new location before restarting the agent; old
+activity remains in its original directory.

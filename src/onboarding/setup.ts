@@ -486,7 +486,7 @@ const reportCompatibility = (
     actions.push({
       stage: "compatibility",
       code: "select-supported-host",
-      action: `select a declared ${hostName} executable and the exact declared Node runtime, then rerun setup`,
+      action: `select a declared ${hostName} executable and the packaged Bun runtime, then rerun setup`,
     });
   } else {
     stages.push({

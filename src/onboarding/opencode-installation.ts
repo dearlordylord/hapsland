@@ -29,8 +29,8 @@ const OwnedRecord = Schema.Struct({
 interface OwnedRecord extends Schema.Schema.Type<typeof OwnedRecord> {}
 const paths = (home: string) => ({
   plugin: join(home, "plugins", "hapsland.mjs"),
-  ownership: join(home, ".realtime-review-tool", "opencode-installation-v1.json"),
-  lock: join(home, ".realtime-review-tool", "opencode-installation.lock"),
+  ownership: join(home, ".hapsland", "opencode-installation-v1.json"),
+  lock: join(home, ".hapsland", "opencode-installation.lock"),
 });
 const FileError = Schema.Struct({ code: Schema.String });
 const nativeFileCode = (cause: unknown): string | undefined => {

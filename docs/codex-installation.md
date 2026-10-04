@@ -80,7 +80,7 @@ the single action reported for that stage. Doctor never prompts, launches or rep
 resident, changes Codex configuration, or calls Jev.
 
 The packaged `hapsland` CLI exposes versioned, noninteractive JSON operations for the
-declared Codex CLI 0.155.1 and 0.156.0 profiles with Bun 1.3.14 on Linux arm64 and macOS arm64.
+Codex CLI lifecycle-hook contract with Bun 1.3.14 on Linux arm64 and macOS arm64.
 Compilation and installed execution evidence are recorded separately in the compatibility guide.
 Its public commands select the matching platform's standalone Bun executable.
 They run without Node or Bun on PATH.
@@ -304,3 +304,19 @@ run still requires an authenticated Codex profile, completed native trust, and a
 available to the real hook context.
 
 For automation, `install-preview` and `install` accept `reinstall: true` with the same proposal-digest authorization. This explicitly replaces marked Hapsland entries and can replace damaged ownership metadata. See [recovery and removal](installation-workflows.md#disablement-removal-and-recovery) for journal recovery and the limits of safe reconstruction.
+
+## Codex upgrades and installation eligibility
+
+Installation does not use a version allowlist. A bounded `codex --version`
+probe must identify a stable semantic version, and `codex features list` must
+advertise the `hooks` capability. The enabled/disabled feature configuration,
+owned hooks and native trust are checked separately; an upgrade does not bypass
+those checks. Hook commands retain the observed version, while adapter and IPC
+validation enforce the actual supported payload and identity contract.
+
+`package-runtime.json` records `codex.testedVersions` as observation coverage,
+not allowed versions. Earlier exact-version trials remain historical evidence;
+accepting an installation on a newer version is not a claim of native repair,
+all modes or all race cases having been tested there. If Codex changes a required
+capability or payload, report that concrete incompatibility rather than rejecting
+it solely because its version number changed.
