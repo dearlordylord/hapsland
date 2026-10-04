@@ -107,10 +107,25 @@ def queued_feedback(value: List<&2,Edge.Runtime> & List<&2,Capsule>, commands: L
   match value:
     case (runtime,capsules): (runtime,command_factory(commands,Facts{capsules,scope,diagnostic,profile,provided}))
 
-def feedback_transition(transition: Engine.NoticeTransition, runtime: List<&2,Edge.Runtime>,
+# Keep the actual owner transition behind a singleton list across the caller
+# continuation; this changes no wire or policy fact.
+def notice_transition(before: List<&2,Edge.Runtime>, after: List<&2,Edge.Runtime>, scope: Notice.Scope, event: C.CanonicalEvent,
+    commands: List<&2,C.Command>, now: Nat, profile: Expiry.Profile) -> List<&2,Engine.NoticeTransition>:
+  match before after:
+    case Edge.Runtime{before,_,_,_} <> Nil{} Edge.Runtime{after,_,_,_} <> Nil{}:
+      [Engine.notice_after(before,after,scope,event,commands,now,profile)]
+    case _ _: []
+
+def notice_owner(runtime: List<&2,Edge.Runtime>, event: C.CanonicalEvent, provided: Maybe<&2,Nat>) -> Nat:
+  match runtime:
+    case Edge.Runtime{+state,_,_,_} <> Nil{}:
+      Edge.maybe_owner(Engine.scope_event(state,state,event,provided))
+    case _: 0n
+
+def feedback_transition(transition: List<&2,Engine.NoticeTransition>, runtime: List<&2,Edge.Runtime>,
     facts: Facts, +scope: Notice.Scope, diagnostic: Maybe<&2,String>, commands: List<&2,C.Command>, at: Nat, owner: Nat) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
   match transition runtime facts scope:
-    case Engine.NoticeTransition{+state,events} Edge.Runtime{_,queue,jobs,delay} <> Nil{}
+    case Engine.NoticeTransition{+state,events} <> Nil{} Edge.Runtime{_,queue,jobs,delay} <> Nil{}
         Facts{capsules,_,_,profile,provided} Notice.Scope{+partition,+group,+key,+maximum_keys,+reservation_bytes,+cooldown,+maximum_count}:
       queued_feedback(queue_events(events,[Edge.Runtime{state,queue,jobs,delay}],capsules,at,owner,
         Some{Notice.Scope{partition,group,key,maximum_keys,reservation_bytes,cooldown,maximum_count}},None{}),commands,
@@ -118,15 +133,14 @@ def feedback_transition(transition: Engine.NoticeTransition, runtime: List<&2,Ed
     case _ runtime facts _:
       (runtime,command_factory(commands,facts))
 
-def feedback_facts(+facts: Facts, before: List<&2,Edge.Runtime>, +after: List<&2,Edge.Runtime>, +event: C.CanonicalEvent,
+def feedback_facts(+facts: Facts, +before: List<&2,Edge.Runtime>, +after: List<&2,Edge.Runtime>, +event: C.CanonicalEvent,
     +result: C.Step, +now: Nat) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
-  match facts before after:
-    case Facts{capsules,Some{+scope},+diagnostic,+profile,+provided}
-        Edge.Runtime{+before,_,_,_} <> Nil{} Edge.Runtime{+state,_,_,_} <> Nil{}:
-      feedback_transition(Engine.notice_after(before,state,scope,event,Edge.actual_commands(result),now,profile),
+  match facts:
+    case Facts{capsules,Some{+scope},+diagnostic,+profile,+provided}:
+      feedback_transition(notice_transition(before,after,scope,event,Edge.actual_commands(result),now,profile),
         after,Facts{capsules,Some{scope},diagnostic,profile,provided},scope,diagnostic,Edge.actual_commands(result),now,
-        Edge.maybe_owner(Engine.scope_event(before,before,event,provided)))
-    case facts _ after: (after,command_factory(Edge.actual_commands(result),facts))
+        notice_owner(before,event,provided))
+    case facts: (after,command_factory(Edge.actual_commands(result),facts))
 
 def feedback(before: List<&2,Edge.Runtime>, after: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
     result: C.Step, now: Nat, hook: Edge.CommandHook<Facts>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
@@ -144,30 +158,8 @@ def frame_scopes(frame: Edge.ObservedFrame) -> Maybe<&2,List<&2,Maybe<&2,Nat>>>:
     case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
     case Edge.UnexpectedInput{}: None{}
 
-# Resolve the event's actual owner before passing a fallback to the shared
-# command-scope owner, exactly as public inputPartition/commandScope do.
-def command_scopes(commands: List<&2,C.Command>, +before: Types.State, +after: Types.State,
-    +provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
-  match commands:
-    case Nil{}: []
-    case command <> tail: Engine.scope_command(before,after,command,provided) <> command_scopes(tail,before,after,provided)
-
-def resolved_canonical(+before: List<&2,Types.State>, +after: List<&2,Types.State>,
-    time: Nat, order: Nat, +event: C.CanonicalEvent, +result: List<&2,C.Step>,
-    runtime_before: List<&2,Edge.Runtime>, runtime_after: List<&2,Edge.Runtime>,
-    +provided: Maybe<&2,Nat>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,Edge.PhysicalDelivery>) -> Edge.ObservedFrame:
-  match before after result:
-    case +before_state <> Nil{} after_state <> Nil{} step <> Nil{}:
-      Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,
-        command_scopes(Edge.actual_commands(step),before_state,after_state,Engine.scope_event(before_state,before_state,event,provided)),receipt,physical}
-    case _ _ _: Edge.UnexpectedInput{}
-
-def resolved_frame(frame: Edge.ObservedFrame) -> Edge.ObservedFrame:
-  match frame:
-    case Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,_,receipt,physical}:
-      resolved_canonical(before,after,time,order,event,result,runtime_before,runtime_after,provided,receipt,physical)
-    case frame: frame
-
+# Shared Edge.frame_scopes captures the actual event owner before command scopes.
+# Retain those genuine observer facts rather than resolving them a second time.
 def before_capsules(frame: Edge.ObservedFrame, capsules: List<&2,Capsule>) -> List<&2,Capsule>:
   match frame:
     case Edge.CanonicalFrame{_,_,_,order,_,_,_,_,_,_,_,_}: without_order(capsules,order)
@@ -176,8 +168,7 @@ def before_capsules(frame: Edge.ObservedFrame, capsules: List<&2,Capsule>) -> Li
 def observed_frames(frame: Maybe<&2,Edge.ObservedFrame>, receipt: Maybe<&2,Callbacks.Target>, diagnostic: Maybe<&2,String>,
     before: List<&2,Capsule>, +after: List<&2,Capsule>, frames: List<&2,Frame>) -> List<&2,Frame>:
   match frame:
-    case Some{frame}:
-      +actual=resolved_frame(frame)
+    case Some{+actual}:
       List.append(&2,Frame,frames,[Observed{Wire.observation(actual),receipt,frame_scopes(actual),diagnostic,before_capsules(actual,before),after}])
     case None{}: frames
 
