@@ -479,11 +479,22 @@ def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonica
     case Canonical.RetireReview{_,_,_,operation}: settled_job(state,operation)
     case _: state
 
-def queued_action(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action,
-    +job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+def source_job_one(values: List<&2,Maybe<&2,Driver.SourceJob>>) -> Maybe<&2,Driver.SourceJob>:
+  match values:
+    case value <> Nil{}: value
+    case _: None{}
+
+# Keep original source independent from active binding, before retaining callbacks.
+def queued_source_action(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action,
+    job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>,
+    source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
   match valid:
-    case True{}: callback_register(enqueue(state,time,T.Event{action,active_job(action,job),source,original_source(job)}),next_order(state),time,action,capture)
+    case True{}: callback_register(enqueue(state,time,T.Event{action,active_job(action,job),source,source_job_one(source_jobs)}),next_order(state),time,action,capture)
     case False{}: invalid(state)
+
+def queued_action(valid: Bool, state: T.State, time: Nat, action: Driver.Action,
+    +job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+  queued_source_action(valid,state,time,action,job,source,[original_source(job)],capture)
 
 def scheduled_action(valid: Bool, state: T.State, time: Nat, action: Driver.Action, job: Maybe<&2,T.Job>) -> T.State:
   queued_action(valid,state,time,action,job,None{},None{})
@@ -509,17 +520,27 @@ def issued_actions(state: T.State, job: Maybe<&2, T.Job>, issued: Engine.IssuedA
 def issue(+state: T.State, actions: List<&2, Driver.Action>, job: Maybe<&2, T.Job>) -> T.State:
   issued_actions(state, job, Engine.issue_actions(core(state), actions))
 
-def capsule_scheduled(valid: Bool, state: T.State, time: Nat, action: Driver.Action,
-    job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
-  queued_action(valid,state,time,action,job,Some{capsule},capture)
-
-def capsule_actions(actions: List<&2,Driver.Action>, +state: T.State,
-    +job: Maybe<&2,T.Job>, +capsule: T.EmissionContext, +capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+def context_actions(actions: List<&2,Driver.Action>, +state: T.State,
+    +job: Maybe<&2,T.Job>, +source: Maybe<&2,T.EmissionContext>,
+    +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>, +capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
   match actions:
     case Nil{}: state
     case +action <> tail:
-      capsule_actions(tail,capsule_scheduled(Nat.is_le(action_delay(action),Nat.sub(maximum(),clock(state))),
-        state,Nat.add(clock(state),action_delay(action)),action,job,capsule,capture),job,capsule,capture)
+      context_actions(tail,queued_source_action(Nat.is_le(action_delay(action),Nat.sub(maximum(),clock(state))),
+        state,Nat.add(clock(state),action_delay(action)),action,job,source,source_jobs,capture),job,source,source_jobs,capture)
+
+def capsule_actions(actions: List<&2,Driver.Action>, state: T.State,
+    +job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+  context_actions(actions,state,job,Some{capsule},[original_source(job)],capture)
+
+def context_issued(state: T.State, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>,
+    source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>, issued: Engine.IssuedActions) -> T.State:
+  match issued:
+    case Engine.IssuedActions{updated,actions}: context_actions(actions,replace_core(state,updated),job,source,source_jobs,None{})
+
+def issue_source_context(+state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>,
+    source: Maybe<&2,T.EmissionContext>, source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
+  context_issued(state,job,source,source_jobs,Engine.issue_actions(core(state),actions))
 
 def capsule_issued(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>, issued: Engine.IssuedActions) -> T.State:
   match issued:
@@ -1266,8 +1287,9 @@ def product_ordinary(state: T.State, values: List<&2,ProductCarry>) -> List<&2,T
 
 def product_post(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
   match states values:
-    case state <> Nil{} ProductCarry{_,_,job,_,_,_,_,post,_,source,_,_} <> Nil{}:
-      [issue_context(state,post,job,source)]
+    case state <> Nil{} ProductCarry{_,_,job,_,_,_,_,post,_,_,_,source_job} <> Nil{}:
+      # Public emitDriver(afterActions) is unprepared but retains its original source.
+      [issue_source_context(state,post,job,None{},[source_job])]
     case _ _: []
 
 def product_feedback_box(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
