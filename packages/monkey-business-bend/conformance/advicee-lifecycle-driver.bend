@@ -1330,7 +1330,7 @@ def published_runtime(published: List<&2,Engine.CachePublished>, runtime: List<&
       [Runtime{state,
         actions(Engine.sharing_actions(List.append(&2,Canonical.CanonicalEvent,removed,releases)),cache_facts(facts,queue,now,job),now,job),
         jobs,delay}]
-    case _: []
+    case _ _: []
 
 def observed_publication_ready(-F: Data, +runtime: List<&2,Runtime>, before: List<&2,Runtime>,
     +result: Canonical.Step, event: Canonical.CanonicalEvent, +job: Job, +now: Nat, order: Nat,
