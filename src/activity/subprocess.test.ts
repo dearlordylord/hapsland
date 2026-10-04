@@ -1,6 +1,7 @@
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { EventEmitter } from "node:events";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -24,7 +25,7 @@ const waitForExit = (child: ChildProcess, timeoutMs: number): Promise<boolean> =
       child.removeListener("close", onClose);
       resolve(exited);
     };
-    const onError = () => finish(true);
+    const onError = () => undefined;
     const onExit = () => finish(true);
     const onClose = () => finish(true);
     child.once("error", onError);
@@ -35,18 +36,17 @@ const waitForExit = (child: ChildProcess, timeoutMs: number): Promise<boolean> =
   });
 };
 
-const terminate = async (fixture: ResidentFixture): Promise<void> => {
+const terminate = async (fixture: ResidentFixture, timeoutMs = RESIDENT_EXIT_TIMEOUT_MS): Promise<void> => {
   const child = fixture.child;
   if (child === undefined || child.exitCode !== null || child.signalCode !== null) return;
   for (const signal of ["SIGTERM", "SIGKILL"] as const) {
     if (child.exitCode !== null || child.signalCode !== null) return;
-    let delivered: boolean;
-    try { delivered = child.kill(signal); }
+    try { child.kill(signal); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ESRCH") return;
       throw error;
     }
-    if (!delivered || await waitForExit(child, RESIDENT_EXIT_TIMEOUT_MS)) return;
+    if (await waitForExit(child, timeoutMs)) return;
   }
   throw new Error(`resident subprocess ${fixture.spawnedPid ?? "unknown"} did not exit after bounded cleanup`);
 };
@@ -75,6 +75,24 @@ const waitFor = (predicate: () => boolean, timeoutMs = 5_000) => {
 };
 
 describe("production resident activity subprocess", () => {
+  it("does not treat failed signal delivery or an error event as resident exit", async () => {
+    const child = new EventEmitter() as unknown as ChildProcess;
+    child.exitCode = null;
+    child.signalCode = null;
+    child.pid = 1234;
+    const signals: Array<NodeJS.Signals | number | undefined> = [];
+    child.on("error", () => undefined);
+    child.kill = (signal?: NodeJS.Signals | number) => {
+      signals.push(signal);
+      queueMicrotask(() => child.emit("error", new Error("signal was not delivered")));
+      return false;
+    };
+    await expect(terminate({ root: "", child, spawnedPid: child.pid }, 1)).rejects.toThrow(
+      "resident subprocess 1234 did not exit after bounded cleanup",
+    );
+    expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+  });
+
   it("reports a controlled native event as pending, then restarted/lost after resident death", () => {
     const root = mkdtempSync(join(tmpdir(), "resident-activity-subprocess-"));
     const fixture: ResidentFixture = { root };
