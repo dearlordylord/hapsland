@@ -91,7 +91,7 @@ def run(script: Originals.Script) -> Trace:
   match script:
     case Originals.Script{+edits, until}:
       loop(120n, declared(Engine.declare_advicee(Engine.configure_seed(
-        Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), 7n), 1n, 7)),
+        Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), 7n), 1n, 7n)),
         queue(edits, Minimal.Queue{[], 0n, 0n}), edits, until, [])
 
 def frame_rows(frames: List<&2, Frame>) -> List<&2, List<&2, Nat>>:

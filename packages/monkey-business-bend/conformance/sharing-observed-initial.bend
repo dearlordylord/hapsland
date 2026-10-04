@@ -38,7 +38,7 @@ def session(profile: Workload.Profile, state: Types.State, identity: Nat, name: 
     agents: List<&2,Agent>, ih: Types.State -> List<&2,Agent> -> Initialized) -> Initialized:
   match profile:
     case Workload.Profile{settings,+seed,codes,bytes,units,duration}:
-      declared(Engine.declare_advicee(state,identity,seed),name,
+      declared(Engine.declare_advicee(state,identity,U32.to_nat(seed)),name,
         Workload.Profile{settings,seed,codes,bytes,units,duration},agents,ih)
 
 def sessions(list: List<&2,Inputs.SessionInput>, state: Types.State, agents: List<&2,Agent>) -> Initialized:

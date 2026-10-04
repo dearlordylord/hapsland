@@ -222,7 +222,7 @@ def originals(count: Nat, queue: Queue, +index: Nat) -> Queue:
 def initial() -> Types.State:
   Engine.configure_workload(Engine.configure_workload(declared(Engine.declare_advicee(
     declared(Engine.declare_advicee(Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
-      Nat.add(U32.to_nat(4294967295), 18n), 11)), 99n, 12)),
+      Nat.add(U32.to_nat(4294967295), 18n), 11n)), 99n, 12n)),
     1n, profile(11, 10n, [5n])), 2n, profile(12, 20n, [7n]))
 
 def healthy(runtime: Runtime, ih: Runtime -> Bool -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
@@ -372,7 +372,7 @@ def loop(fuel: Nat, runtime: Runtime, phase: Bool) -> List<&2, List<&2, Nat>>:
 
 def scope_row(scope: Maybe<&2, Advicees.Scope>) -> List<&2, Nat>:
   match scope:
-    case Some{Advicees.Scope{identity, partition, seed}}: [identity, partition, U32.to_nat(seed)]
+    case Some{Advicees.Scope{identity, partition, seed}}: [identity, partition, seed]
     case None{}: [0n, 0n, 0n]
 
 def duplicate_row(declared: Engine.AdviceeDeclared) -> List<&2, Nat>:
@@ -383,7 +383,7 @@ def duplicate_row(declared: Engine.AdviceeDeclared) -> List<&2, Nat>:
 def registry_rows(+state: Types.State) -> List<&2, List<&2, Nat>>:
   [90n <> scope_row(Engine.advicee_identity(state, Nat.add(U32.to_nat(4294967295), 18n))),
     90n <> scope_row(Engine.advicee_identity(state, 99n)),
-    duplicate_row(Engine.declare_advicee(state, Nat.add(U32.to_nat(4294967295), 18n), 777))]
+    duplicate_row(Engine.declare_advicee(state, Nat.add(U32.to_nat(4294967295), 18n), 777n))]
 
 def cancellation() -> List<&2, List<&2, Nat>>:
   loop(80n, Runtime{initial(),
