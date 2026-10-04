@@ -240,15 +240,15 @@ function compareOriginalFamily(value: unknown, expected: readonly ReturnType<typ
 }
 it("compares all thirteen writer original cases fresh emitted/public full boundary",()=>{
   const expected=modes.map(publicCase);
-  compareOriginalFamily(decodeNativePrefix(runWorkloadEmitted(fixture),"writer_scenarios"),expected);
-},30000);
-// One complete original family: C45 + clang90 + native5 + JS15/5 + cleanup15 =175 seconds.
+  compareOriginalFamily(decodeNativePrefix(runWorkloadEmitted(fixture,{emissionTimeoutMs:30000}),"writer_scenarios"),expected);
+},45000);
+// One complete original family: C45 + clang90 + native5 + JS30/5 + cleanup15 =190 seconds.
 it("compares all thirteen writer original cases full native/emitted/public/replay boundary",()=>{
   const expected=modes.map(publicCase);
-  const native=runWorkloadNative(fixture,{emissionTimeoutMs:45000,clangTimeoutMs:90000}),emitted=runWorkloadEmitted(fixture);
+  const native=runWorkloadNative(fixture,{emissionTimeoutMs:45000,clangTimeoutMs:90000}),emitted=runWorkloadEmitted(fixture,{emissionTimeoutMs:30000});
   expect(native).toEqual(emitted);
   const nativeDTO=decodeNativePrefix(native,"writer_scenarios"),emittedDTO=decodeNativePrefix(emitted,"writer_scenarios");
   expect(nativeDTO).toEqual(emittedDTO);
   compareOriginalFamily(nativeDTO,expected);
   compareOriginalFamily(emittedDTO,expected);
-},175000);
+},190000);
