@@ -104,7 +104,8 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       same(decodePrefixGraphEvent(input.event), encodeImportGraphEvent(event.fact), `${field} item ${order} full graph event`);
     } else if (input.$ === "advicee_lifecycle_driver.FinishIntent") {
       if (publicItem.input.kind !== "finish") throw new Error("native Finish intent changed public input kind");
-      const scope = premise.agentScopes.find(scope => scope.agent === (publicItem.input.agent ?? "agent-1"));
+      const agent = publicItem.input.agent ?? "agent-1";
+      const scope = premise.agentScopes.find(scope => scope.agent === agent);
       if (!scope) throw new Error("original Finish has no actual declared advicee scope");
       same(input.partition,scope.partition,`${field} item ${order} original Finish advicee`);
       same(readNat(input.started), publicItem.input.at, `${field} item ${order} original Stop start`);
@@ -122,7 +123,8 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       if (publicItem.input.kind !== "edit") throw new Error("native original edit changed public input kind");
       const job = input;
       if (job.$ !== "advicee_lifecycle_driver.SourceEdit") throw new TypeError("original Edit lost its arrival source fence");
-      const scope = premise.agentScopes.find(scope => scope.agent === (publicItem.input.agent ?? "agent-1"));
+      const agent = publicItem.input.agent ?? "agent-1";
+      const scope = premise.agentScopes.find(scope => scope.agent === agent);
       if (!scope) throw new Error("original Edit has no actual declared advicee scope");
       same(job.partition, scope.partition, `${field} item ${order} original advicee`);
       same(job.activity, publicItem.activityScope ?? 1, `${field} item ${order} captured activity incarnation`);

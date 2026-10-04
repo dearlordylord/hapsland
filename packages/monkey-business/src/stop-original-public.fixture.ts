@@ -8,7 +8,7 @@ export const originalWaitingStopConfig = {
   finishDeadline: 8, outcome: "clear",
   fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 1, maxFiles: 1, maxImports: 0,
     minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 },
-  inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }, { at: 3, kind: "finish" }],
+  inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }, { at: 3, kind: "finish" }] as const,
 } satisfies RunConfig;
 export const originalWaitingStopBoundaries = [3, 10, 20] as const;
 
