@@ -12,12 +12,12 @@ function checked(command, args, timeout) {
   if(result.error || result.status !== 0) throw new Error(`${command}: ${result.error?.code ?? result.status}: ${result.stderr}`);
   return result.stdout;
 }
-function stream(command,args,directory,label) {
+function stream(command,args,directory,label,executionTimeoutMs) {
   return new Promise((accept,reject)=>{
     const child=spawn(command,args,{detached:true,stdio:["ignore","pipe","pipe"],env:{...process.env,BEND_NO_TELEMETRY:"1"}});
-    let pending=Buffer.alloc(0),stderr="",failure;const files=[];
+    let pending=Buffer.alloc(0),stderr="",failure,totalBytes=0;const files=[];const started=performance.now();
     const stop=error=>{if(!failure){failure=error;try{process.kill(-child.pid,"SIGKILL");}catch(error){if(error.code!=="ESRCH")failure=error;}}};
-    const timer=setTimeout(()=>stop(new Error(`${label} execution exceeded 5000ms`)),5000);
+    const timer=setTimeout(()=>stop(new Error(`${label} execution exceeded ${executionTimeoutMs}ms`)),executionTimeoutMs);
     child.stdout.on("data",data=>{
       if(failure)return;
       pending=Buffer.concat([pending,data]);
@@ -26,17 +26,18 @@ function stream(command,args,directory,label) {
         const line=pending.subarray(0,end);pending=pending.subarray(end+1);
         try{if(!line.length)throw new Error("empty batch");JSON.parse(line.toString("utf8"));
           if(files.length>=145)throw new Error("unexpected extra game batch");
-          const file=join(directory,`${label}-${files.length}.json`);writeFileSync(file,line);files.push(file);
+          const file=join(directory,`${label}-${files.length}.json`);writeFileSync(file,line);files.push(file);totalBytes+=line.length;
         }catch(error){stop(error);return;}}
       if(pending.length>LIMIT)stop(new Error(`${label} batch exceeds 16MiB`));
     });
     child.stderr.on("data",data=>{stderr+=data.toString();if(Buffer.byteLength(stderr)>65536)stop(new Error(`${label} stderr bound`));});
     child.on("error",stop);
-    child.on("close",code=>{clearTimeout(timer);if(failure)reject(failure);else if(code!==0)reject(new Error(`${label} exit ${code}: ${stderr}`));else if(pending.length||!files.length)reject(new Error(`${label} incomplete batch stream`));else accept(files);});
+    child.on("close",code=>{clearTimeout(timer);if(failure){failure.message+=` (batches=${files.length}, bytes=${totalBytes}, pendingBytes=${pending.length}, elapsedMs=${Math.round(performance.now()-started)})`;reject(failure);}else if(code!==0)reject(new Error(`${label} exit ${code}: ${stderr}`));else if(pending.length||!files.length)reject(new Error(`${label} incomplete batch stream`));else accept(files);});
   });
 }
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
-export async function createGameStreams(fixture,ownerSources) {
+export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000}={}) {
+  if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000)throw new Error("unsupported game diagnostic execution allowance");
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   const root=fileURLToPath(new URL("../../",import.meta.url));
   const sources=[...ownerSources.map(owner=>({file:resolve(root,owner.path),expected:owner.sha256})),
@@ -47,10 +48,10 @@ export async function createGameStreams(fixture,ownerSources) {
     verify();const c=join(directory,"game.c"),binary=join(directory,"game"),js=join(directory,"game.cjs");
     checked(tools[0].file,[fileURLToPath(fixture),"-o",c],30000);verify();
     const cHash=hash(c);checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],30000);verify();
-    const binaryHash=hash(binary);const native=await stream(binary,[],directory,"native");verify();
+    const binaryHash=hash(binary);const native=await stream(binary,[],directory,"native",executionTimeoutMs);verify();
     if(hash(c)!==cHash||hash(binary)!==binaryHash)throw new Error("native artifact changed");
     checked(tools[0].file,[fileURLToPath(fixture),"-o",js],30000);verify();
-    const jsHash=hash(js);const emitted=await stream(process.execPath,[js],directory,"emitted");verify();
+    const jsHash=hash(js);const emitted=await stream(process.execPath,[js],directory,"emitted",executionTimeoutMs);verify();
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){rmSync(directory,{recursive:true,force:true});throw error;}
