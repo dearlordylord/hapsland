@@ -756,7 +756,7 @@ def stop_failed_submission(stopped: Engine.StopHandled, facts: StopScenario.Comm
       Canonical.SubmissionBegin{_,+group,_,_,_,_,_,_}:
       Engine.StopHandled{state,collector_combined(following,
         failed_submission_output(Engine.stop_active(state,group),facts,event,command)),ended,fit_attempt,output}
-    case _ _: stopped
+    case unchanged _: unchanged
 
 def stop_command_with_failed_output(state: Types.State, +event: Canonical.CanonicalEvent,
     +command: Canonical.Command, context: Driver.Context, environment: Environment, now: Nat) -> Engine.StopHandled:
