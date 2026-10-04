@@ -85,7 +85,7 @@ for (const seed of [0,3,17,41]) {
     assert.equal(checkpoint.checkpoint,index,"exact checkpoint order");
     assert.equal(checkpoint.offset,0,"checkpoint begins at tick zero");
     const checkChunk=chunk=>{
-      for(const field of ["config","creation_seed","campaign_seed","original","checkpoint","input","before","after"])
+      for(const field of ["config","creation_seed","campaign_seed","original","checkpoint","input","before","after","final_world"])
         assert.deepEqual(chunk[field],checkpoint[field],`immutable batch metadata ${field}`);
     };
     function* checkpointTicks() {
@@ -198,7 +198,7 @@ for (const seed of [0,3,17,41]) {
     assert.deepEqual(restored.observe(), run.observe(), "full ordinary replay at every game midpoint");
   }
 
-  // The final checkpoint after-world is the actual trace endpoint, checked above.
+  assert.deepEqual(endpoint(one(envelope.final_world)),callbackPublicBoundary(run.observe(),[],[]).endpoint);
 }
 
 assert.equal(batchIndex,streams.native.length,"no trailing or unknown campaign batches");
