@@ -991,11 +991,14 @@ export class Run {
       this.queue[0].at > untilTime
     )
       return;
-    if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? "")) {
-      const head = this.queue[0];
+    const head = this.queue[0];
+    if (!this.canonicalAllowed && (head?.input.kind === "canonical"
+      || head?.input.kind === "preparationGraph" && this.core.preparationActive(head.input.event))) {
       // A refused original writer fact advances physical queue time without
       // a Canonical observation. Replay must consume that same head before
-      // its viewing endpoint fence; an eligible event remains blocked.
+      // its viewing endpoint fence; an eligible event remains blocked. An
+      // inactive preparation fact is consumed below without producing an
+      // observation, so it must remain visible to the endpoint reconstruction.
       if (head?.input.kind === "canonical" && (
         (head.responseOrigin?.control.kind === "backgroundWriter"
           && !this.core.responseValid(head.responseOrigin.target,head.at,head.input.event))
@@ -1009,7 +1012,6 @@ export class Run {
       }
       return;
     }
-    const head = this.queue[0];
     if (head?.input.kind === "canonical" && head.input.event.kind === "preparationCompleted") {
       if (target && this.count >= target.eventCount) return;
       const owner = this.inputPartition(head);
