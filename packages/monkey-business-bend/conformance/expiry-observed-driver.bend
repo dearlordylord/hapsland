@@ -32,7 +32,7 @@ type Capsule is Data:
 type ControlEvents is Data:
   ControlEvents{events: List<&2,C.CanonicalEvent>, scope: Maybe<&2,Notice.Scope>, diagnostic: Maybe<&2,String>, partition: Nat}
 type Facts is Data:
-  Facts{capsules: List<&2,Capsule>, scope: Maybe<&2,Notice.Scope>, diagnostic: Maybe<&2,String>, profile: Expiry.Profile}
+  Facts{capsules: List<&2,Capsule>, scope: Maybe<&2,Notice.Scope>, diagnostic: Maybe<&2,String>, profile: Expiry.Profile, provided: Maybe<&2,Nat>}
 type Frame is Data:
   Observed{frame: Edge.ObservedFrame, receipt: Maybe<&2,Callbacks.Target>, scopes: Maybe<&2,List<&2,Maybe<&2,Nat>>>, diagnostic: Maybe<&2,String>, before_capsules: List<&2,Capsule>, after_capsules: List<&2,Capsule>}
   Control{input: Original, before: List<&2,Edge.Runtime>, after: List<&2,Edge.Runtime>, before_profile: Expiry.Profile, after_profile: Expiry.Profile, before_capsules: List<&2,Capsule>, after_capsules: List<&2,Capsule>}
@@ -67,11 +67,11 @@ def capsule(capsules: List<&2,Capsule>, +order: Nat) -> Capsule:
 def without_order(capsules: List<&2,Capsule>, +order: Nat) -> List<&2,Capsule>:
   match capsules:
     case Nil{}: []
-    case Capsule{+identity,+scope,+diagnostic} <> tail:
+    case Capsule{+identity,+scope,+diagnostic} <> +tail:
       Bool.pick(List<&2,Capsule>,Nat.is_eq(identity,order),without_order(tail,order),
         Capsule{identity,scope,diagnostic} <> without_order(tail,order))
 
-def source_job(state: Types.State, partition: Nat) -> Edge.Job:
+def source_job(state: Types.State, +partition: Nat) -> Edge.Job:
   Edge.NoJob{partition,Edge.life_value(Engine.lifecycle_entry(state,partition))}
 
 def queue_events(events: List<&2,C.CanonicalEvent>, runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>,
@@ -100,30 +100,29 @@ def hook_facts(hook: Edge.CommandHook<Facts>) -> Facts:
     case Edge.HookFault{facts}: facts
 
 def queued_feedback(value: List<&2,Edge.Runtime> & List<&2,Capsule>, commands: List<&2,C.Command>,
-    scope: Maybe<&2,Notice.Scope>, diagnostic: Maybe<&2,String>, profile: Expiry.Profile) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+    scope: Maybe<&2,Notice.Scope>, diagnostic: Maybe<&2,String>, profile: Expiry.Profile, provided: Maybe<&2,Nat>) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
   match value:
-    case (runtime,capsules): (runtime,command_factory(commands,Facts{capsules,scope,diagnostic,profile}))
+    case (runtime,capsules): (runtime,command_factory(commands,Facts{capsules,scope,diagnostic,profile,provided}))
 
 def feedback_transition(transition: Engine.NoticeTransition, runtime: List<&2,Edge.Runtime>,
-    facts: Facts, +scope: Notice.Scope, diagnostic: Maybe<&2,String>, commands: List<&2,C.Command>, at: Nat) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+    facts: Facts, +scope: Notice.Scope, diagnostic: Maybe<&2,String>, commands: List<&2,C.Command>, at: Nat, owner: Nat) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
   match transition runtime facts scope:
     case Engine.NoticeTransition{+state,events} Edge.Runtime{_,queue,jobs,delay} <> Nil{}
-        Facts{capsules,_,_,profile} Notice.Scope{+partition,+group,+key,+maximum_keys,+reservation_bytes,+cooldown,+maximum_count}:
-      queued_feedback(queue_events(events,[Edge.Runtime{state,queue,jobs,delay}],capsules,at,partition,
+        Facts{capsules,_,_,profile,provided} Notice.Scope{+partition,+group,+key,+maximum_keys,+reservation_bytes,+cooldown,+maximum_count}:
+      queued_feedback(queue_events(events,[Edge.Runtime{state,queue,jobs,delay}],capsules,at,owner,
         Some{Notice.Scope{partition,group,key,maximum_keys,reservation_bytes,cooldown,maximum_count}},None{}),commands,
-        Some{Notice.Scope{partition,group,key,maximum_keys,reservation_bytes,cooldown,maximum_count}},diagnostic,profile)
+        Some{Notice.Scope{partition,group,key,maximum_keys,reservation_bytes,cooldown,maximum_count}},diagnostic,profile,provided)
     case _ runtime facts _:
       (runtime,command_factory(commands,facts))
 
-def feedback_facts(+facts: Facts, before: List<&2,Edge.Runtime>, +after: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
-    +result: C.Step, now: Nat) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
+def feedback_facts(+facts: Facts, before: List<&2,Edge.Runtime>, +after: List<&2,Edge.Runtime>, +event: C.CanonicalEvent,
+    +result: C.Step, +now: Nat) -> List<&2,Edge.Runtime> & Edge.CommandHook<Facts>:
   match facts before after:
-    case +facts Edge.Runtime{before,_,_,_} <> Nil{} Edge.Runtime{+state,_,_,_} <> Nil{}:
-      match facts:
-        case Facts{_,Some{+scope},diagnostic,+profile}:
-          feedback_transition(Engine.notice_after(before,state,scope,event,Edge.actual_commands(result),now,profile),
-            after,facts,scope,diagnostic,Edge.actual_commands(result),now)
-        case facts: (after,command_factory(Edge.actual_commands(result),facts))
+    case Facts{capsules,Some{+scope},+diagnostic,+profile,+provided}
+        Edge.Runtime{+before,_,_,_} <> Nil{} Edge.Runtime{+state,_,_,_} <> Nil{}:
+      feedback_transition(Engine.notice_after(before,state,scope,event,Edge.actual_commands(result),now,profile),
+        after,Facts{capsules,Some{scope},diagnostic,profile,provided},scope,diagnostic,Edge.actual_commands(result),now,
+        Edge.maybe_owner(Engine.scope_event(before,before,event,provided)))
     case facts _ after: (after,command_factory(Edge.actual_commands(result),facts))
 
 def feedback(before: List<&2,Edge.Runtime>, after: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
@@ -150,15 +149,20 @@ def command_scopes(commands: List<&2,C.Command>, +before: Types.State, +after: T
     case Nil{}: []
     case command <> tail: Engine.scope_command(before,after,command,provided) <> command_scopes(tail,before,after,provided)
 
+def resolved_canonical(+before: List<&2,Types.State>, +after: List<&2,Types.State>,
+    time: Nat, order: Nat, +event: C.CanonicalEvent, +result: List<&2,C.Step>,
+    runtime_before: List<&2,Edge.Runtime>, runtime_after: List<&2,Edge.Runtime>,
+    +provided: Maybe<&2,Nat>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,Edge.PhysicalDelivery>) -> Edge.ObservedFrame:
+  match before after result:
+    case +before_state <> Nil{} after_state <> Nil{} step <> Nil{}:
+      Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,
+        command_scopes(Edge.actual_commands(step),before_state,after_state,Engine.scope_event(before_state,before_state,event,provided)),receipt,physical}
+    case _ _ _: Edge.UnexpectedInput{}
+
 def resolved_frame(frame: Edge.ObservedFrame) -> Edge.ObservedFrame:
   match frame:
-    case Edge.CanonicalFrame{+before,+after,time,order,+event,+result,runtime_before,runtime_after,+provided,_,receipt,physical}:
-      match before after result:
-        case before_state <> Nil{} after_state <> Nil{} step <> Nil{}:
-          +resolved=Engine.scope_event(before_state,before_state,event,provided)
-          Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,
-            command_scopes(Edge.actual_commands(step),before_state,after_state,resolved),receipt,physical}
-        case _ _ _: Edge.UnexpectedInput{}
+    case Edge.CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,_,receipt,physical}:
+      resolved_canonical(before,after,time,order,event,result,runtime_before,runtime_after,provided,receipt,physical)
     case frame: frame
 
 def before_capsules(frame: Edge.ObservedFrame, capsules: List<&2,Capsule>) -> List<&2,Capsule>:
@@ -190,7 +194,7 @@ def completed(observed: Edge.Observed<Facts>, receipt: Maybe<&2,Callbacks.Target
   match observed previous:
     case Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},_} Trace{_,capsules,_,consumed,frames,profile,_}:
       invalid(Trace{runtime,capsules,issued,consumed,frames,profile,False{}})
-    case Edge.Observed{+runtime,+frame,Edge.HookEnd{Facts{+capsules,_,diagnostic,_}}}
+    case Edge.Observed{+runtime,+frame,Edge.HookEnd{Facts{+capsules,_,diagnostic,_,_}}}
         Trace{_,before_capsules,_,consumed,frames,profile,valid}:
       Trace{runtime,capsules,issued,counted(frame,consumed),observed_frames(frame,receipt,diagnostic,before_capsules,capsules,frames),profile,valid && Edge.runtime_valid(runtime)}
     case _ previous: invalid(previous)
@@ -199,12 +203,20 @@ def stepped(value: Transport.Stepped<Facts>, issued: Nat, previous: Trace) -> Tr
   match value:
     case Transport.Stepped{observed,receipt}: completed(observed,receipt,issued,previous)
 
-def selected_capsule(value: Capsule, runtime: List<&2,Edge.Runtime>, issued: Nat, endpoint: Nat,
-    previous: Trace, capsules: List<&2,Capsule>, order: Nat, profile: Expiry.Profile) -> Trace:
+# Capture the original queued transport binding before Engine.step. It is
+# separate from the Notice policy scope and never resolved from the endpoint.
+def input_provided(input: Edge.Input) -> Maybe<&2,Nat>:
+  match input:
+    case Edge.Event{_,job,_}: Some{Edge.job_partition(job)}
+    case _: None{}
+
+def selected_capsule(value: Capsule, +runtime: List<&2,Edge.Runtime>, issued: Nat, endpoint: Nat,
+    previous: Trace, capsules: List<&2,Capsule>, +order: Nat, profile: Expiry.Profile) -> Trace:
   match value:
     case Capsule{_,scope,diagnostic}:
       stepped(Transport.step(Facts,runtime,endpoint,Edge.default_environment(),
-        commands => factory(commands,Facts{without_order(capsules,order),scope,diagnostic,profile})),issued,previous)
+        commands => factory(commands,Facts{without_order(capsules,order),scope,diagnostic,profile,
+          input_provided(Edge.lookup(Edge.runtime_items(runtime),order))})),issued,previous)
 
 def selected_entries(entries: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>, issued: Nat, endpoint: Nat, previous: Trace) -> Trace:
   match entries previous:
@@ -235,7 +247,7 @@ def pending(trace: Trace, endpoint: Nat) -> Bool:
       pending_entries(Edge.runtime_entries(Edge.runtime_sync(runtime)),endpoint)
     case _: False{}
 
-def advanced_step(+trace: Trace, before: Nat, budget: Nat, ih: Trace -> Nat -> Trace) -> Trace:
+def advanced_step(+trace: Trace, before: Nat, +budget: Nat, ih: Trace -> Nat -> Trace) -> Trace:
   match trace:
     case Trace{_,_,_,after,_,_,_}:
       ih(trace,Bool.pick(Nat,Nat.is_lt(before,after),Nat.sub(budget,1n),budget))
@@ -252,13 +264,13 @@ def advance(fuel: Nat, budget: Nat, +trace: Trace, +endpoint: Nat) -> Trace:
     case 1n+rest budget:
       advance_pending(pending(trace,endpoint),trace,endpoint,budget,next => remaining => advance(rest,remaining,next,endpoint))
 
-def boundary_completed(value: Trace, before: Nat, endpoint: Nat, budget: Nat) -> Trace:
+def boundary_completed(value: Trace, before: Nat, +endpoint: Nat, budget: Nat) -> Trace:
   match value:
     case Trace{+runtime,+capsules,+issued,+consumed,frames,+profile,+valid}:
       Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,
         [Boundary{endpoint,budget,Nat.sub(consumed,before),runtime,capsules}]),profile,valid && Bool.not(pending(Trace{runtime,capsules,issued,consumed,[],profile,valid},endpoint))}
 
-def boundary(+trace: Trace, endpoint: Nat, budget: Nat) -> Trace:
+def boundary(+trace: Trace, +endpoint: Nat, +budget: Nat) -> Trace:
   match trace:
     case Trace{_,_,_,before,_,_,_}:
       boundary_completed(advance(10000n,budget,trace,endpoint),before,endpoint,budget)
@@ -270,7 +282,7 @@ def control_event(value: Maybe<&2,C.CanonicalEvent>, scope: Notice.Scope, diagno
     case Some{event}: ControlEvents{[event],Some{scope},diagnostic,partition}
     case None{}: ControlEvents{[],Some{scope},diagnostic,partition}
 
-def control_events(input: Original, state: Types.State, profile: Expiry.Profile) -> ControlEvents:
+def control_events(input: Original, state: Types.State, +profile: Expiry.Profile) -> ControlEvents:
   match input:
     case Original{at,Failure{+partition,+group,+key,sequence,diagnostic}}:
       control_event(Engine.notice_failure(state,scope(partition,group,key,profile),at,key,sequence),scope(partition,group,key,profile),Some{diagnostic},partition)
@@ -280,32 +292,45 @@ def control_events(input: Original, state: Types.State, profile: Expiry.Profile)
       ControlEvents{Engine.notice_collection_prune(state,partition,group,at),Some{scope(partition,group,900000n,profile)},None{},partition}
     case _: ControlEvents{[],None{},None{},1n}
 
-def selection(input: Original, +at: Nat, value: List<&2,Edge.Runtime> & List<&2,Capsule>) -> List<&2,Edge.Runtime> & List<&2,Capsule>:
-  match input value:
-    case Original{_,Collect{+partition,group,composed,bound,allowed}} (runtime,capsules):
+def selection_input(input: Original, at: Nat, runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>) -> List<&2,Edge.Runtime> & List<&2,Capsule>:
+  match input:
+    case Original{_,Collect{+partition,group,composed,bound,allowed}}:
       queue_events([C.NoticeSelect{partition,group,composed,bound,allowed}],runtime,capsules,at,partition,None{},None{})
-    case _ value: value
+    case _: (runtime,capsules)
 
-def controlled(value: List<&2,Edge.Runtime> & List<&2,Capsule>, before: List<&2,Edge.Runtime>, previous: Trace, input: Original) -> Trace:
-  match value previous input:
-    case (+runtime,+capsules) Trace{_,before_capsules,issued,consumed,frames,+profile,valid} Original{_,Profile{+next}}:
+def selection(input: Original, at: Nat, value: List<&2,Edge.Runtime> & List<&2,Capsule>) -> List<&2,Edge.Runtime> & List<&2,Capsule>:
+  match value:
+    case (runtime,capsules): selection_input(input,at,runtime,capsules)
+
+def controlled_input(+runtime: List<&2,Edge.Runtime>, +capsules: List<&2,Capsule>, before: List<&2,Edge.Runtime>,
+    previous: Trace, +input: Original) -> Trace:
+  match previous input:
+    case Trace{_,before_capsules,issued,consumed,frames,+profile,valid} Original{_,Profile{+next}}:
       Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,[Control{input,before,runtime,profile,next,before_capsules,capsules}]),next,valid}
-    case (+runtime,+capsules) Trace{_,before_capsules,issued,consumed,frames,+profile,valid} input:
+    case Trace{_,before_capsules,issued,consumed,frames,+profile,valid} input:
       Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,[Control{input,before,runtime,profile,profile,before_capsules,capsules}]),profile,valid}
 
-def control_queued(input: Original, at: Nat, generated: ControlEvents,
+def controlled(value: List<&2,Edge.Runtime> & List<&2,Capsule>, before: List<&2,Edge.Runtime>, previous: Trace, input: Original) -> Trace:
+  match value:
+    case (runtime,capsules): controlled_input(Edge.runtime_sync(runtime),capsules,before,previous,input)
+
+def control_queued(+input: Original, +at: Nat, generated: ControlEvents,
     +runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>, previous: Trace) -> Trace:
   match generated:
     case ControlEvents{events,scope,diagnostic,partition}:
       controlled(selection(input,at,queue_events(events,runtime,capsules,at,partition,scope,diagnostic)),runtime,previous,input)
 
+def control_runtime(+runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>, profile: Expiry.Profile,
+    +input: Original, at: Nat, trace: Trace) -> Trace:
+  match runtime:
+    case Edge.Runtime{state,_,_,_} <> Nil{}:
+      control_queued(input,at,control_events(input,state,profile),runtime,capsules,trace)
+    case _: invalid(trace)
+
 def control(+trace: Trace, +input: Original) -> Trace:
   match trace input:
-    case Trace{+runtime,capsules,_,_,_,profile,True{}} Original{+at,_}:
-      match runtime:
-        case Edge.Runtime{state,_,_,_} <> Nil{}:
-          control_queued(input,at,control_events(input,state,profile),runtime,capsules,trace)
-        case _: invalid(trace)
+    case Trace{runtime,capsules,_,_,_,profile,True{}} Original{at,_}:
+      control_runtime(runtime,capsules,profile,input,at,trace)
     case trace _: invalid(trace)
 
 def action(trace: Trace, +input: Original) -> Trace:
@@ -335,13 +360,17 @@ def raw_originals_queued(value: List<&2,Edge.Runtime> & List<&2,Capsule>, ih: Li
   match value:
     case (runtime,capsules): ih(runtime,capsules)
 
+def raw_original(input: Original, runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>,
+    ih: List<&2,Edge.Runtime> -> List<&2,Capsule> -> (List<&2,Edge.Runtime> & List<&2,Capsule>)) -> List<&2,Edge.Runtime> & List<&2,Capsule>:
+  match input:
+    case Original{+at,action}:
+      raw_originals_queued(raw_queued(raw_input(Original{at,action}),at,runtime,capsules),ih)
+
 def raw_originals(inputs: List<&2,Original>, runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>) -> List<&2,Edge.Runtime> & List<&2,Capsule>:
   match inputs:
     case Nil{}: (runtime,capsules)
-    case +input <> tail:
-      match input:
-        case Original{at,_}:
-          raw_originals_queued(raw_queued(raw_input(input),at,runtime,capsules),next => scopes => raw_originals(tail,next,scopes))
+    case input <> tail:
+      raw_original(input,runtime,capsules,next => scopes => raw_originals(tail,next,scopes))
 
 # Next is evaluated by Initial.start before external inputs are enqueued.
 # Suspend subsequently changes the genuine workload generation, leaving stale
@@ -373,12 +402,18 @@ def initial() -> List<&2,Edge.Runtime>:
     SharingInputs.SessionInput{"second",2n,Workload.Profile{Session.Settings{100,15,5,500,0,300},2654435762,[115,101,99,111,110,100],100n,[100n],None{}}}],
     Engine.configure_credentials(Engine.configure_seed(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),1n),True{},1n),[])))
 
-def started(value: List<&2,Edge.Runtime> & List<&2,Capsule>, +inputs: List<&2,Original>, +profile: Expiry.Profile) -> Envelope:
+# Public queuePush publishes each constructor enqueue into Engine.scheduler.
+# Publish the same actual inputs before capturing construction/suspension; this
+# is an owner transition, not a comparison-time normalization.
+def started_synced(+constructed: List<&2,Edge.Runtime>, +capsules: List<&2,Capsule>,
+    +inputs: List<&2,Original>, +profile: Expiry.Profile) -> Envelope:
+  +suspended=suspend([1n,2n],constructed)
+  Envelope{inputs,profile,Startup{constructed,suspended,capsules},
+    originals(inputs,boundary(Trace{suspended,capsules,0n,0n,[],profile,Edge.runtime_valid(suspended)},0n,100n))}
+
+def started(value: List<&2,Edge.Runtime> & List<&2,Capsule>, inputs: List<&2,Original>, profile: Expiry.Profile) -> Envelope:
   match value:
-    case (+constructed,+capsules):
-      +suspended=suspend([1n,2n],constructed)
-      Envelope{inputs,profile,Startup{constructed,suspended,capsules},
-        originals(inputs,boundary(Trace{suspended,capsules,0n,0n,[],profile,Edge.runtime_valid(suspended)},0n,100n))}
+    case (constructed,capsules): started_synced(Edge.runtime_sync(constructed),capsules,inputs,profile)
 
 def run(+inputs: List<&2,Original>, +profile: Expiry.Profile) -> Envelope:
   started(raw_originals(inputs,initial(),[]),inputs,profile)
