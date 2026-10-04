@@ -113,13 +113,15 @@ function frozenNativeInput(mode: number) {
       deadline_step: tree.deadlineStep ?? 0, local_work: tree.localWork ?? 0, min_source: tree.minSourceBytes, max_source: tree.maxSourceBytes,
       min_tree: tree.minTreeBytes, max_tree: tree.maxTreeBytes },
     graph: { $: "ImportGraph.Limits", version: 1, source_bytes: 262144, tree_bytes: 20480, files: 8, read_bytes: 1572864, outgoing_edges: 16, depth: 4, work: 128 },
-    preparation_delay: source.preparation, output_delay: 0, output_lease: 30000, reuse_entries: mode === 12 ? 8 : 0, reuse_bytes: mode === 12 ? 1 : 0 },
+    preparation_delay: source.preparation, output_delay: 0, output_lease: 30000,
+    outcomes: {$:"Driver.OutcomeEnvironment",outcome:{$:"Some",value:{$:"Canonical.RequestFinding"}},
+      weights:list([0,1078525952,1078525952,0,0,0].map(high=>({$:"Numeric.Words",high,low:0})))}, reuse_entries: mode === 12 ? 8 : 0, reuse_bytes: mode === 12 ? 1 : 0 },
     edits: list(source.inputs.map(edit => {
       if (edit.kind !== "edit") throw new TypeError("expected original writer edit");
       return mode === 12 ? { $: "writer_original_inputs.SharedEdit", original: {
       $: "sharing_original_inputs.Edit", agent: edit.agent, at: edit.at, bytes: edit.bytes, units: list(edit.unitBytes!),
-      subject: "same", input: "same", namespace: { $: "sharing_original_inputs.Namespace", partition: "agent-1", work: none, credential: none, prepared: "shared-original" } } }
-      : { $: "writer_original_inputs.Edit", agent: edit.agent, at: edit.at, bytes: edit.bytes, units: list(edit.unitBytes!) }; })), jev_delay: source.delay,
+      subject: "same", input: "same", namespace: { $: "sharing_original_inputs.Namespace", partition: "agent-1", work: none, credential: none, prepared: "shared-original" },outcome:{$:"Some",value:{$:"Canonical.RequestFinding"}} } }
+      : { $: "writer_original_inputs.Edit", agent: edit.agent, at: edit.at, bytes: edit.bytes, units: list(edit.unitBytes!),outcome:{$:"Some",value:{$:"Canonical.RequestFinding"}} }; })), jev_delay: source.delay,
     boundaries: list(source.boundaries.map(nativeBoundary)) };
 
 }
