@@ -1,5 +1,6 @@
 import Base
 import ./LAWS.bend as Laws
+import ./ImportGraph.bend as ImportGraph
 
 def Laws.completed_edit_history_starts_empty():
   {==}
@@ -103,11 +104,31 @@ def Laws.canonical_expired_permit_does_not_create_round():
 def Laws.ledger_resize_changes_purpose_without_new_reservation():
   {==}
 
-def Laws.import_graph_exclusion_has_no_read_command():
+# Internal lemmas keep the unchanged limit value abstract during conversion.
+# The accepted closed laws below retain their exact propositions and constants.
+def graph_exclusion_has_no_read_command(+limits: ImportGraph.Limits) ->
+    {ImportGraph.checked(limits, ImportGraph.Edge{2n, 1n}, 2n, False{},
+      Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+        Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, True{}, False{}, limits},
+        ImportGraph.SkipImport{2n, ImportGraph.Excluded{}}} : ImportGraph.Step}:
   {==}
 
-def Laws.import_graph_exclusion_keeps_remaining_edges():
+def graph_exclusion_keeps_remaining_edges(+limits: ImportGraph.Limits) ->
+    {ImportGraph.checked(limits, ImportGraph.Edge{2n, 1n}, 2n, False{},
+      ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 100n,
+      1n, False{}, False{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+        ImportGraph.Edge{3n, 1n} <> Nil{}, 2n <> 1n <> Nil{},
+        1n, 100n, 100n, 1n, False{}, True{}, False{}, limits},
+        ImportGraph.SkipImport{2n, ImportGraph.Excluded{}}} : ImportGraph.Step}:
   {==}
+
+def Laws.import_graph_exclusion_has_no_read_command():
+  graph_exclusion_has_no_read_command(Laws.graph_limits())
+
+def Laws.import_graph_exclusion_keeps_remaining_edges():
+  graph_exclusion_keeps_remaining_edges(Laws.graph_limits())
 
 def Laws.import_graph_excluded_finishes_incomplete():
   {==}
