@@ -1,3 +1,4 @@
+import { commandHookGroup } from "../runtime/hook-catalog.ts";
 import { currentCommand, commandEntrypoint, commandTokens, versionProbeArguments, observedRuntimeVersion, expectedRuntimeVersion } from "../runtime/package-runtime.ts";
 import { Config, Effect, Schema } from "effect";
 import { execFileClosedStdin } from "./host-process.ts";
@@ -192,16 +193,13 @@ const inputs = (
   } catch {
     /* readiness reports missing path */
   }
-  const command = `${commandTokens(runtime, entrypoint).map(quote).join(" ")} --claude-hook --controlled-writer --composed-edit-hook ${MARKER}`;
-  const composed = (kind: "stop" | "prompt" | "before-edit") =>
-    `${kind === "before-edit" ? "exec " : ""}${commandTokens(runtime, entrypoint).map(quote).join(" ")} --composed-${kind}-hook --composed-host=claude-code ${COMPOSED_MARKER}`;
-  const group = { matcher: "Edit|Write", hooks: [{ type: "command", command, timeout: 5 }] };
-  const stopGroup = { hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] };
-  const preGroup = {
-    matcher: "Edit|Write",
-    hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }],
-  };
-  const promptGroup = { hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] };
+  const options = { command: commandTokens(runtime, entrypoint).map(quote).join(" "), editMarker: MARKER, composedMarker: COMPOSED_MARKER };
+  const group = commandHookGroup("claude", "PostToolUse", options);
+  const command = group.hooks[0]!.command;
+  const stopGroup = commandHookGroup("claude", "Stop", options);
+  const subagentStopGroup = commandHookGroup("claude", "SubagentStop", options);
+  const preGroup = commandHookGroup("claude", "PreToolUse", options);
+  const promptGroup = commandHookGroup("claude", "UserPromptSubmit", options);
   return {
     home,
     runtime,
@@ -210,6 +208,7 @@ const inputs = (
     group,
     preGroup,
     stopGroup,
+    subagentStopGroup,
     promptGroup,
     paths: paths(home),
     host: host(observed),
@@ -342,7 +341,7 @@ const composedPlanEvents = (kind: Kind, input: ClaudeInputs, record: OwnedRecord
     },
     {
       event: "SubagentStop" as const,
-      next: nextComposedGroup(kind, input.stopGroup),
+      next: nextComposedGroup(kind, input.subagentStopGroup),
       fingerprint: composed.subagentStopDigest,
       expected: expected.SubagentStop,
     },
@@ -377,14 +376,14 @@ const installationOwnedRecord = (input: ClaudeInputs): OwnedRecord => ({
     PostToolUse: input.group,
     PreToolUse: input.preGroup,
     Stop: input.stopGroup,
-    SubagentStop: input.stopGroup,
+    SubagentStop: input.subagentStopGroup,
     UserPromptSubmit: input.promptGroup,
   },
   composed: {
     preToolUseDigest: digest(canonical(input.preGroup)),
     stopDigest: digest(canonical(input.stopGroup)),
     promptDigest: digest(canonical(input.promptGroup)),
-    subagentStopDigest: digest(canonical(input.stopGroup)),
+    subagentStopDigest: digest(canonical(input.subagentStopGroup)),
   },
 });
 const missingContentDigest = (content: string | undefined): string => digest(content ?? "<missing>");

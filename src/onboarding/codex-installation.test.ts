@@ -291,6 +291,38 @@ describe("public Codex installation operations", async () => {
     writeFileSync(path, JSON.stringify(settings));
     expect((await runInstallation(uninstallCodexIntegration({ codexHome: home, codexExecutable: bin }))).status).toBe("conflict");
   });
+  it.each(["present", "missing", "modified"] as const)("retires the old owned prompt hook safely when %s", async (state) => {
+    const { root, home, bin } = fixture();
+    const environment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: localPackage(root, "1.0.0") };
+    await previewAndInstall(home, bin, environment);
+    const hooksPath = join(home, "hooks.json");
+    const previous = JSON.parse(readFileSync(hooksPath, "utf8"));
+    const retained = { hooks: [{ ...previous.hooks.Stop[0].hooks[0], command: previous.hooks.Stop[0].hooks[0].command.replace("--composed-stop-hook", "--composed-prompt-hook"), timeout: 4 }] };
+    const independent = { hooks: [{ type: "command", command: "user-prompt-command", timeout: 2 }] };
+    previous.hooks.UserPromptSubmit = state === "missing" ? [independent] : [independent, structuredClone(retained)];
+    if (state === "modified") previous.hooks.UserPromptSubmit[1].hooks[0].timeout = 3;
+    writeFileSync(hooksPath, JSON.stringify(previous));
+    const recordPath = join(home, ".hapsland", "installation-v1.json");
+    const record = JSON.parse(readFileSync(recordPath, "utf8"));
+    record.hookGroups.UserPromptSubmit = retained;
+    record.composedFingerprints.prompt = sha256(`installation-v1:hook\0${stableJson(retained)}`);
+    writeFileSync(recordPath, JSON.stringify(record));
+    const request = { codexHome: home, codexExecutable: bin };
+    const preview = await invoke({ ...request, operation: "update-preview" }, environment);
+    if (state === "modified") {
+      expect(preview.status).toBe("conflict");
+      expect(JSON.parse(readFileSync(hooksPath, "utf8"))).toEqual(previous);
+      return;
+    }
+    expect(preview.status).toBe("preview");
+    const proposalDigest = (preview.proposal as { digest: string }).digest;
+    expect((await invoke({ ...request, operation: "update", proposalDigest }, environment)).status).toBe("updated");
+    expect(JSON.parse(readFileSync(hooksPath, "utf8")).hooks.UserPromptSubmit).toEqual([independent]);
+    const updated = JSON.parse(readFileSync(recordPath, "utf8"));
+    expect(updated.hookGroups.UserPromptSubmit).toBeUndefined();
+    expect(updated.composedFingerprints.prompt).toBeUndefined();
+  });
+
   it("updates an older owned installation to add SubagentStop", async () => {
     const { root, home, bin } = fixture();
     const environment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: localPackage(root, "1.0.0") };
@@ -725,7 +757,7 @@ responses_websockets_v2 = true`);
     expect(JSON.stringify(hooks.hooks.PreToolUse)).toContain("exec ");
     expect(JSON.stringify(hooks.hooks.PreToolUse)).toContain("--composed-before-edit-hook");
     expect(JSON.stringify(hooks.hooks)).toContain("--composed-stop-hook");
-    expect(JSON.stringify(hooks.hooks)).toContain("--composed-prompt-hook");
+    expect(JSON.stringify(hooks.hooks)).not.toContain("--composed-prompt-hook");
     expect(JSON.stringify(hooks.hooks)).toContain("SubagentStop");
     expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(beforeConfig);
     expect(readFileSync(join(home, "grant.json"), "utf8")).toBe("repository-grant\n");

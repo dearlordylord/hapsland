@@ -11,6 +11,7 @@
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
+| Installed hook inventory | `npm run hooks:generate`; `npm run docs:check` | README table generated from the shared Codex, Claude Code and Pi hook catalog | Documentation matches registration definitions; no native lifecycle execution claim |
 | Comparison scenario documentation | `node scripts/generate-abide-scenario-pages.mjs --check` | Six generated reader pages, 36 linked input variants and helpers, measured fixture digest and frozen per-scenario results | Inline code and displayed scenario outcomes match their owners; offline, no new measurement |
 | Focused implementation checks | `npm run test:focused -- <test files>`; `npm run check:fast` | Explicit test files and typing/configuration checks; no full suite or proof chain | Changed owners only; does not qualify full source coverage |
 | Development snapshot cache and packing | `node --test scripts/dev-install-cache.test.mjs scripts/dev-pack.test.mjs` | Build-input changes, ignored tool caches, lock ownership, archive integrity, npm file selection and executable bins | Local dev archives use gzip level 1; npm release packing is unchanged. Installer UI and cache-management code do not invalidate compiled snapshots. |

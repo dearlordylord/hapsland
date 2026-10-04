@@ -1,3 +1,4 @@
+import { commandHookGroup, commandHooks } from "../runtime/hook-catalog.ts";
 import { currentCommand, commandEntrypoint, commandTokens, packageRootFromEntrypoint, expectedRuntimeVersion, commandFromEntrypoint, runtimeProbeArguments } from "../runtime/package-runtime.ts";
 import { Config, Effect, Schema } from "effect";
 import { execFileClosedStdin } from "./host-process.ts";
@@ -40,7 +41,6 @@ const OWNERSHIP_VERSION = 1 as const;
 const RESULT_VERSION = 1 as const;
 const OWNED_MARKER = "--review-tool-owned=codex-v1";
 const COMPOSED_MARKER = "--review-tool-composed-owned=codex-v1";
-const OWNED_MATCHER = "^(apply_patch|Edit|Write|Bash)$";
 const PRODUCT_DIRECTORY = ".hapsland";
 
 type JsonObject = { [key: string]: unknown };
@@ -84,7 +84,6 @@ interface OwnershipRecord {
   readonly hookGroups?: Record<string, unknown>;
   readonly composedFingerprints?: {
     readonly stop: string;
-    readonly prompt: string;
     readonly subagentStop?: string;
     readonly preToolUse?: string;
   };
@@ -146,81 +145,23 @@ const parseJsonObject = (file: FileSnapshot): JsonObject => {
 
 const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
-const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) => {
-  const controlled = controlledReviewer ? " --controlled-reviewer" : "";
-  const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
+const codexHookOptions = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer: boolean) => ({
+  command: commandTokens(runtime, entrypoint).map(quoteShell).join(" "),
+  editMarker: OWNED_MARKER,
+  composedMarker: COMPOSED_MARKER,
+  ...(hostVersion === "0.155.1" ? {} : { versionFlag: `--codex-version=${hostVersion}` }),
+  controlledReviewer,
+});
+const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => {
+  const options = codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer);
   return {
-    type: "command",
-    command: `${commandTokens(runtime, entrypoint).map(quoteShell).join(" ")} --codex-hook${controlled} --controlled-writer --composed-edit-hook ${OWNED_MARKER}${version}`,
-    timeout: 10,
+    PreToolUse: commandHookGroup("codex", "PreToolUse", options),
+    Stop: commandHookGroup("codex", "Stop", options),
+    SubagentStop: commandHookGroup("codex", "SubagentStop", options),
   };
 };
-
-const composedCommand = (
-  runtime: string,
-  entrypoint: string,
-  hostVersion: string,
-  kind: "background" | "stop" | "prompt" | "before-edit",
-  controlledReviewer = false,
-) => {
-  const controlled = controlledReviewer ? " --controlled-reviewer" : "";
-  const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
-  const exec = kind === "before-edit" ? "exec " : "";
-  return `${exec}${commandTokens(runtime, entrypoint).map(quoteShell).join(" ")} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
-};
-
-const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => ({
-  PreToolUse: {
-    matcher: OWNED_MATCHER,
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "before-edit", controlledReviewer),
-        timeout: 5,
-      },
-    ],
-  },
-  Stop: {
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "stop", controlledReviewer),
-        timeout: 5,
-      },
-    ],
-  },
-  SubagentStop: {
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "stop", controlledReviewer),
-        timeout: 5,
-      },
-    ],
-  },
-  UserPromptSubmit: {
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "prompt", controlledReviewer),
-        timeout: 4,
-      },
-    ],
-  },
-});
-
-const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) => ({
-  matcher: OWNED_MATCHER,
-  hooks: [
-    ownedHook(runtime, entrypoint, hostVersion, controlledReviewer),
-    {
-      type: "command",
-      command: composedCommand(runtime, entrypoint, hostVersion, "background", controlledReviewer),
-      timeout: 25,
-      async: true,
-    },
-  ],
-});
+const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) =>
+  commandHookGroup("codex", "PostToolUse", codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer));
 
 const hookFingerprint = (value: unknown) => sha256(`installation-v1:hook\0${stableJson(value)}`);
 
@@ -252,7 +193,6 @@ const withComposedGroups = (
     ["PreToolUse", "preToolUse"],
     ["Stop", "stop"],
     ["SubagentStop", "subagentStop"],
-    ["UserPromptSubmit", "prompt"],
   ] as const) {
     next = reconcileOwnedEvent(next, event, target?.[event], {
       marker: COMPOSED_MARKER,
@@ -263,7 +203,14 @@ const withComposedGroups = (
       label: "Codex",
     });
   }
-  return next;
+  return reconcileOwnedEvent(next, "UserPromptSubmit", undefined, {
+    marker: COMPOSED_MARKER,
+    fingerprint: hookFingerprint,
+    expectedFingerprint: expectedGroups?.UserPromptSubmit === undefined ? undefined : hookFingerprint(expectedGroups.UserPromptSubmit),
+    expectedGroup: expectedGroups?.UserPromptSubmit,
+    restoreMissing: true,
+    label: "Codex",
+  });
 };
 
 const addOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
@@ -505,7 +452,6 @@ const disableOwnedFeature = (content: string): string => {
 
 const ComposedFingerprints = Schema.Struct({
   stop: Schema.String,
-  prompt: Schema.String,
   subagentStop: Schema.optional(Schema.String),
   preToolUse: Schema.optional(Schema.String),
 });
@@ -575,7 +521,6 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       : {
           composedFingerprints: {
             stop: value.composedFingerprints.stop,
-            prompt: value.composedFingerprints.prompt,
             ...(value.composedFingerprints.subagentStop === undefined
               ? {}
               : { subagentStop: value.composedFingerprints.subagentStop }),
@@ -989,10 +934,6 @@ const makeOwnershipRecord = (
     subagentStop: hookFingerprint(
       composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
         .SubagentStop,
-    ),
-    prompt: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
-        .UserPromptSubmit,
     ),
   },
   owned: [
@@ -1412,11 +1353,9 @@ const validateMutationCurrent = (change: Mutation, completed: boolean) => {
 const recoveryComposedFingerprints = (priorOwnership: Record<string, unknown> | undefined) => {
   const priorComposed =
     isObject(priorOwnership?.composedFingerprints) &&
-    typeof priorOwnership.composedFingerprints.stop === "string" &&
-    typeof priorOwnership.composedFingerprints.prompt === "string"
+    typeof priorOwnership.composedFingerprints.stop === "string"
       ? {
           stop: priorOwnership.composedFingerprints.stop,
-          prompt: priorOwnership.composedFingerprints.prompt,
           ...(typeof priorOwnership.composedFingerprints.preToolUse === "string"
             ? { preToolUse: priorOwnership.composedFingerprints.preToolUse }
             : {}),
@@ -1483,7 +1422,6 @@ const validateCurrentRecoveryHooks = (inputs: ReturnType<typeof buildInputs>, pl
   withComposedGroups(currentRoot, targetComposed, {
     preToolUse: hookFingerprint(targetComposed.PreToolUse),
     stop: hookFingerprint(targetComposed.Stop),
-    prompt: hookFingerprint(targetComposed.UserPromptSubmit),
     subagentStop: hookFingerprint(targetComposed.SubagentStop),
   });
 };
@@ -1833,7 +1771,7 @@ const ownedChanges = (inputs: ReturnType<typeof buildInputs>) => ({
   hook: {
     file: inputs.paths.hooks,
     event: "PostToolUse",
-    matcher: OWNED_MATCHER,
+    matcher: commandHooks.codex.afterEdit.matcher,
     handlers: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).hooks,
     groups: {
       PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),

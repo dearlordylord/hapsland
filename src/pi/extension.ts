@@ -1,3 +1,4 @@
+import { piHooks, piHookCommand } from "../runtime/hook-catalog.ts";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -40,7 +41,7 @@ const nativeOutput = (event: Event): Event | undefined => {
 };
 const identity = (ctx: Context, tool: string, id: string): Identity => ({ cwd: ctx.cwd, session_id: ctx.sessionManager.getSessionId(), tool_use_id: id, host_version: "1.0.0", tool_name: tool });
 const partition = (id: Identity): string => `${id.cwd}\0${id.session_id}`;
-const supported = (event: Event): boolean => event.toolName === "edit" && typeof event.toolCallId === "string" && event.toolCallId.length > 0 && event.parentToolCallId === undefined && event.agent_id === undefined;
+const supported = (event: Event): boolean => event.toolName === piHooks.toolCall.tool && typeof event.toolCallId === "string" && event.toolCallId.length > 0 && event.parentToolCallId === undefined && event.agent_id === undefined;
 
 /** Hooks use one bounded command call; source and review state belong to the resident. */
 const command = (options: Options, value: unknown): Promise<Event> => {
@@ -49,12 +50,12 @@ const command = (options: Options, value: unknown): Promise<Event> => {
   return new Promise(resolve => {
   const env = { ...process.env, ...options.env };
   const argv = options.command ?? [fileURLToPath(new URL("../../bin/launch.sh", import.meta.url))];
-  const args = [...argv.slice(1), "--pi-hook", ...(env.REVIEW_CONTROL_JSON === undefined ? [] : ["--controlled-reviewer"])];
+  const args = [...argv.slice(1), ...piHookCommand.flags, ...(env.REVIEW_CONTROL_JSON === undefined ? [] : ["--controlled-reviewer"])];
   const child = spawn(argv[0]!, args, { env, stdio: ["pipe", "pipe", "ignore"] });
   let output = "";
   let settled = false;
   const finish = (result: Event) => { if (settled) return; settled = true; clearTimeout(timer); resolve(result); };
-  const timer = setTimeout(() => { child.kill("SIGKILL"); finish({ status: "unavailable" }); }, 7_000);
+  const timer = setTimeout(() => { child.kill("SIGKILL"); finish({ status: "unavailable" }); }, piHookCommand.timeoutMs);
   child.stdout.on("data", (data: Buffer) => { output += data.toString(); if (output.length > 262_144) { child.kill(); finish({ status: "unavailable" }); } });
   child.on("error", () => finish({ status: "unavailable" }));
   child.on("close", code => { try { finish(code === 0 ? JSON.parse(output) : { status: "unavailable" }); } catch { finish({ status: "unavailable" }); } });
@@ -72,7 +73,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
   let active: { id: Identity; generation: number } | undefined;
   const send = (id: Identity, operation: string, fields: Event = {}) => command(options, { ...id, operation, ...fields });
   const prune = () => { for (const [key, call] of calls) if (call.expires <= Date.now()) calls.delete(key); };
-  api.on("agent_start", async (_event, ctx) => {
+  api.on(piHooks.agentStart.event, async (_event, ctx) => {
     active = { id: identity(ctx, "finish", randomUUID()), generation: epoch };
   });
   const registerCall = async (id: Identity, key: string, fingerprint: string) => {
@@ -104,7 +105,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     const output = { entries: [...entries, { type: "custom_message", customType: "hapsland", content: result.text, display: false }], continue: event.continue || result.continued };
     return acknowledgeOffer(id, result, output, generation, { stopToken: result.stopToken, continued: result.continued });
   };
-  api.on("tool_call", async (event, ctx) => {
+  api.on(piHooks.toolCall.event, async (event, ctx) => {
     prune();
     if (!supported(event) || calls.size >= 64) return;
     const fingerprint = digest(event.input);
@@ -114,7 +115,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     if (calls.has(key)) return;
     await registerCall(id, key, fingerprint);
   });
-  api.on("tool_result", async (event, ctx) => {
+  api.on(piHooks.toolResult.event, async (event, ctx) => {
     prune();
     if (!supported(event)) return;
     const incoming = identity(ctx, event.toolName, event.toolCallId);
@@ -126,7 +127,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     if (event.isError !== false || call.input !== digest(event.input) || original === undefined) { await send(call.id, "retire"); return; }
     return editOffer(call.id, event, original);
   });
-  api.on("agent_before_settle", async (event, ctx) => {
+  api.on(piHooks.beforeSettle.event, async (event, ctx) => {
     if (!Array.isArray(event.entries)) return;
     const entries = [...event.entries];
     const id = identity(ctx, "finish", randomUUID());
@@ -144,8 +145,8 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     await Promise.all(ownedCalls.map(call => send(call.id, "retire")));
     await Promise.all(ownedPartitions.map(id => send(id, "close")));
   };
-  api.on("session_before_switch", cleanup);
-  api.on("session_shutdown", cleanup);
+  api.on(piHooks.beforeSwitch.event, cleanup);
+  api.on(piHooks.shutdown.event, cleanup);
   const retirePartition = async (id: Identity) => {
     const target = partition(id);
     const ownedCalls: Identity[] = [];
@@ -158,7 +159,7 @@ export const createPiExtension = (options: Options = {}) => (api: ExtensionAPI):
     await Promise.all(ownedCalls.map(call => send(call, "retire")));
     await send(id, "close");
   };
-  api.on("agent_settled", async () => {
+  api.on(piHooks.settled.event, async () => {
     const origin = boundary ?? active; boundary = undefined; active = undefined;
     if (origin === undefined || origin.generation !== epoch) return;
     epoch++;

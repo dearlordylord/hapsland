@@ -339,3 +339,29 @@ The maintainer-only semantic evaluation protocol and its sanitized offline miles
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
 [`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
 the review hook never run the maintainer evaluation suite against Jev.
+
+<!-- hapsland-hooks:start -->
+## Agent hooks
+
+Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.
+
+| Runtime | Event | Selection | Mode | Limit | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| Codex | `PreToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 10 s | Report the edit and collect ready advice |
+| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Async command | 25 s | Deliver advice that finishes after the edit response |
+| Codex | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Codex | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Claude Code | `PreToolUse` | `Edit\|Write` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
+| Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify the resident of the user prompt; does not open a review round |
+| Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
+| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register a supported edit attempt |
+| Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
+| Pi | `agent_before_settle` | All | Extension callback | 7 s per IPC call | Offer review advice before the agent settles |
+| Pi | `session_before_switch` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
+| Pi | `session_shutdown` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
+| Pi | `agent_settled` | All | Extension callback | 7 s per IPC call | Close the originating agent partition |
+<!-- hapsland-hooks:end -->
