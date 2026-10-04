@@ -198,10 +198,15 @@ def connected(file: TreeFile, target: Nat) -> TreeFile:
     case TreeFile{id, depth, allowed, source, tree, edges, missing, unreadable, unsupported}:
       TreeFile{id, depth, allowed, source, tree, List.append(&2, Nat, edges, [target]), missing, unreadable, unsupported}
 
+def pick_tree_file(selected: Bool, yes: TreeFile, no: TreeFile) -> TreeFile:
+  match selected:
+    case True{}: yes
+    case False{}: no
+
 def connect(files: List<&2, TreeFile>, +parent: Nat, +target: Nat) -> List<&2, TreeFile>:
   match files:
     case Nil{}: []
-    case +head <> tail: Bool.pick(TreeFile, Nat.is_eq(file_target(head), parent), connected(head, target), head) <> connect(tail, parent, target)
+    case +head <> tail: pick_tree_file(Nat.is_eq(file_target(head), parent), connected(head, target), head) <> connect(tail, parent, target)
 
 def appended(made: Made, files: List<&2, TreeFile>) -> Files:
   match made:

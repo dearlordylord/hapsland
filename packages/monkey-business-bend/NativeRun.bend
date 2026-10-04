@@ -38,6 +38,11 @@ def replace_core(state: T.State, value: EngineTypes.State) -> T.State:
     case T.State{_, items, next, count, seed, environment, latest, valid, prepared,jobs,host}:
       T.State{[value], items, next, count, seed, environment, latest, valid, prepared,jobs,host}
 
+def pick_state(selected: Bool, yes: T.State, no: T.State) -> T.State:
+  match selected:
+    case True{}: yes
+    case False{}: no
+
 def invalid(state: T.State) -> T.State:
   match state:
     case T.State{core, items, next, count, seed, environment, latest, _, prepared,jobs,host}:
@@ -928,7 +933,7 @@ def cancel_finish_items(items: List<&2, T.Item>, +state: T.State, +attempt: Nat,
     case Nil{}: replaced_items(state, List.reverse(&2, T.Item, kept))
     case T.Item{+order, +input} <> tail:
       +remove = finish_equal(input_finish(input), attempt)
-      cancel_finish_items(tail, Bool.pick(T.State, remove, replace_core(state, Engine.cancel(core(state), order)), state), attempt,
+      cancel_finish_items(tail, pick_state(remove, replace_core(state, Engine.cancel(core(state), order)), state), attempt,
         Bool.pick(List<&2, T.Item>, remove, kept, T.Item{order, input} <> kept))
 
 def cancel_finish(state: T.State, attempt: Nat) -> T.State:
@@ -952,7 +957,7 @@ def cancel_expiry_items(items: List<&2, T.Item>, +state: T.State, +advice: Nat, 
     case Nil{}: replaced_items(state, List.reverse(&2, T.Item, kept))
     case T.Item{+order, +input} <> tail:
       +remove = expiry_matches(input, advice)
-      cancel_expiry_items(tail, Bool.pick(T.State, remove, replace_core(state, Engine.cancel(core(state), order)), state), advice,
+      cancel_expiry_items(tail, pick_state(remove, replace_core(state, Engine.cancel(core(state), order)), state), advice,
         Bool.pick(List<&2, T.Item>, remove, kept, T.Item{order, input} <> kept))
 
 def cancel_expiry(state: T.State, +advice: Nat) -> T.State:
@@ -1187,7 +1192,7 @@ def wake_finish(+state: T.State, finish: StopScenario.Finish) -> T.State:
   match finish:
     case StopScenario.Finish{p, l, r, +attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output}:
       +finish = {StopScenario.Finish{p, l, r, attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output} : StopScenario.Finish}
-      Bool.pick(T.State, has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish,None{}))
+      pick_state(has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish,None{}))
     case _: state
 
 def wake_finishes(finishes: List<&2, StopScenario.Finish>, state: T.State) -> T.State:
@@ -1445,12 +1450,12 @@ def finish_available(found: Maybe<&2, StopScenario.Finish>, +state: T.State, p: 
   match found:
     case Some{_}: state
     case None{}:
-      Bool.pick(T.State, Nat.is_le(200n, Nat.sub(maximum(), clock(state))) && Nat.is_lt(next_finish(state), maximum()),
+      pick_state(Nat.is_le(200n, Nat.sub(maximum(), clock(state))) && Nat.is_lt(next_finish(state), maximum()),
         finish_stored(state, p, l, r, recurring), invalid(state))
 
 def finish_round(+state: T.State, +p: Nat, +recurring: Bool, round: Maybe<&2, Canonical.Round>) -> T.State:
   match round:
-    case None{}: Bool.pick(T.State, recurring, workload(state, p, Workload.Next{}), state)
+    case None{}: pick_state(recurring, workload(state, p, Workload.Next{}), state)
     case Some{Canonical.Round{_, l, r, _, _, _, _, _}}:
       finish_available(StopScenario.find(finish_scopes(state), p), state, p, l, r, recurring)
 
@@ -1458,7 +1463,7 @@ def start_finish(+state: T.State, +p: Nat, recurring: Bool) -> T.State:
   finish_round(state, p, recurring, Canonical.find_round(p, Driver.rounds(Engine.canonical(core(state)))))
 
 def recurring_next(+state: T.State, +p: Nat, recurring: Bool) -> T.State:
-  Bool.pick(T.State, recurring, workload(state, p, Workload.Next{}), state)
+  pick_state(recurring, workload(state, p, Workload.Next{}), state)
 
 def activity_job(+state: T.State, +partition: Nat, activity: Nat, +bytes: Nat, +units: List<&2,Nat>, revision: Nat, repair: Bool) -> T.State:
   +lifetime = Engine.activity_lifetime(core(state),partition)

@@ -56,11 +56,16 @@ def cooldown(kind: U32) -> U32:
 def upgrade_cost(level: U32) -> U32:
   (20 + level * 20 : U32)
 
+def pick_timer(found: Bool, current: M.Timer, fallback: M.Timer) -> M.Timer:
+  match found:
+    case True{}: current
+    case False{}: fallback
+
 def find_timer(+id: Nat, items: List<&2, M.Timer>) -> M.Timer:
   match items:
     case Nil{}: M.Timer{id, 0, 0, id, 100, 1, 0}
     case +item <> rest:
-      Bool.pick(M.Timer, Nat.is_eq(id, M.timer_id(item)), item, find_timer(id, rest))
+      pick_timer(Nat.is_eq(id, M.timer_id(item)), item, find_timer(id, rest))
 def age(+id: Nat, +phase: U32, items: List<&2, M.Timer>) -> U32:
   +timer = find_timer(id, items)
   Bool.pick(U32, U32.is_eq(M.timer_phase(timer), phase), M.timer_age(timer), 0)

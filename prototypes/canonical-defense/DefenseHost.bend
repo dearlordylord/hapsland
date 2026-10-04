@@ -163,6 +163,10 @@ def controlled(world: M.World, result: T.Controlled) -> M.World:
     case T.Controlled{state,_}: M.with_engine(world,state)
 def action(+world: M.World, control: T.Control) -> M.World:
   controlled(world,Run.control(M.engine(world),control))
+def pick_world(selected: Bool, yes: M.World, no: M.World) -> M.World:
+  match selected:
+    case True{}: yes
+    case False{}: no
 def start(world: M.World) -> M.World:
   action(world,T.WorkloadControl{Some{1n},Workload.Burst{1n}})
 def frame_counts(commands: List<&2,C.Command>, +kind: U32) -> U32:
@@ -196,7 +200,7 @@ def refiner_fired(items: List<&2,M.Tower>) -> Bool:
 def refined_weights() -> List<&2,Numeric.Words>:
   [Numeric.Words{0n,0n},Numeric.Words{1071644672n,0n},Numeric.Words{1072693248n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n}]
 def refinement(+world: M.World) -> M.World:
-  Bool.pick(M.World,refiner_fired(M.towers(world)),action(world,T.JevProfile{3200n,refined_weights()}),world)
+  pick_world(refiner_fired(M.towers(world)),action(world,T.JevProfile{3200n,refined_weights()}),world)
 type TickObserved is Data:
   TickObserved{world: M.World, frames: List<&2,T.Frame>, physical: List<&2,T.PhysicalDelivery>}
 def tick_applied(world: M.World, advanced: T.Advanced) -> TickObserved:
@@ -238,7 +242,7 @@ def upgrade_items(items: List<&2, M.Tower>, index: U32) -> List<&2, M.Tower>:
 def upgrade_found(+world: M.World, found: Maybe<&2, M.Tower>) -> M.World:
   match world found:
     case M.World{core, t, p, l, c, +g, h, +ts, ms, a, o, r, cl, d, auto, x, y, +selected, work, flash} Some{+tower}:
-      Bool.pick(M.World, Bool.and((M.level(tower) < 3 : U32), (g >= upgrade_cost(M.level(tower)) : U32)),
+      pick_world(Bool.and((M.level(tower) < 3 : U32), (g >= upgrade_cost(M.level(tower)) : U32)),
         M.World{core, t, p, l, c, M.sub(g, upgrade_cost(M.level(tower))), h, upgrade_items(ts, selected), ms, a, o, r, cl, d, auto, x, y, selected, work, flash}, world)
     case _ _: world
 def upgrade(+world: M.World) -> M.World:
@@ -309,12 +313,12 @@ def select(world: M.World, index: U32) -> M.World:
 def build(+world: M.World, +x: U32, +y: U32, +kind: U32) -> M.World:
   match world:
     case M.World{core, t, p, l, c, +g, +h, ts, ms, a, o, r, cl, d, auto, mx, my, _, work, flash}:
-      Bool.pick(M.World, Bool.and(placement_valid(world, x, y), Bool.and((g >= tower_cost(kind) : U32), Bool.and((kind < 7 : U32), (h > 0 : U32)))),
+      pick_world(Bool.and(placement_valid(world, x, y), Bool.and((g >= tower_cost(kind) : U32), Bool.and((kind < 7 : U32), (h > 0 : U32)))),
         M.World{core, t, p, l, c, M.sub(g, tower_cost(kind)), h, M.Tower{snap(x), snap(y), kind, 1, 0, 0, 0n, 240} <> ts,
           ms, a, o, r, cl, d, auto, mx, my, 0, work, flash}, world)
 def click(+world: M.World, +x: U32, +y: U32) -> M.World:
   +index = tower_hit(M.towers(world), x, y, 1)
-  Bool.pick(M.World, (index > 0 : U32), select(move(world, x, y), index), build(move(world, x, y), x, y, M.choice(world)))
+  pick_world((index > 0 : U32), select(move(world, x, y), index), build(move(world, x, y), x, y, M.choice(world)))
 def road_site(+world: M.World,+tower: M.Tower,+fallback: U32) -> U32:
   +point: Map.Point = Map.Point{M.tx(tower),M.ty(tower)}
   +radius = E.range(M.tkind(tower),M.level(tower))
