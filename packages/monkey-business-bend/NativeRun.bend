@@ -526,6 +526,15 @@ def issue_prepared(+state: T.State, actions: List<&2,Driver.Action>, job: Maybe<
 def issue_prepared_output(+state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
   capsule_issued(state,job,capsule,capture,Engine.issue_actions(core(state),actions))
 
+# Collector and Stop actions are genuine nonordinary emissions. Public Run
+# appends them after the ordinary handler's PendingEffects coalescing.
+def append_prepared(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, capsule: T.EmissionContext) -> T.State:
+  capsule_actions(actions,state,job,capsule,None{})
+
+def append_prepared_output(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>,
+    capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+  capsule_actions(actions,state,job,capsule,capture)
+
 def issue_context(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>) -> T.State:
   match source:
     case Some{capsule}: issue_prepared(state,actions,job,capsule)
@@ -829,7 +838,7 @@ def collector_handled(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.
     +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, changed: Engine.CollectorHandled) -> T.State:
   match changed:
     case Engine.CollectorHandled{updated,Driver.Handled{True{},actions}}:
-      issue_prepared(replace_core(state,updated),actions,job,T.EmissionContext{prepared,receipt})
+      append_prepared(replace_core(state,updated),actions,job,T.EmissionContext{prepared,receipt})
     case Engine.CollectorHandled{updated,_}:
       +replaced = replace_core(state,updated)
       ordinary_handled(replaced,job,Engine.handle(core(replaced),action_event(action),command,prepared),T.EmissionContext{prepared,receipt},
@@ -968,10 +977,10 @@ def native_stop_issue(ended: Maybe<&2,StopScenario.Ended>, original: Maybe<&2,St
     state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, output: Maybe<&2,OutputScenario.Capture>, +capsule: T.EmissionContext) -> T.State:
   match ended original output:
     case Some{StopScenario.Ended{+finish,continuation}} _ _:
-      finish_feedback(issue_prepared(cancel_finish(state,finish_attempt(finish)),actions,Some{finish_job(finish)},capsule),finish,continuation)
+      finish_feedback(append_prepared(cancel_finish(state,finish_attempt(finish)),actions,Some{finish_job(finish)},capsule),finish,continuation)
     case None{} Some{finish} None{}: finish_actions_context(actions,state,finish,Some{capsule})
-    case None{} Some{finish} Some{capture}: issue_prepared_output(state,actions,Some{finish_job(finish)},capsule,Some{capture})
-    case None{} None{} _: issue_prepared(state,actions,job,capsule)
+    case None{} Some{finish} Some{capture}: append_prepared_output(state,actions,Some{finish_job(finish)},capsule,Some{capture})
+    case None{} None{} _: append_prepared(state,actions,job,capsule)
 
 def native_stop_handled(state: T.State, changed: Engine.StopHandled, +action: Driver.Action, +job: Maybe<&2,T.Job>,
     command: Canonical.Command, original: Maybe<&2,StopScenario.Finish>, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>) -> T.State:
