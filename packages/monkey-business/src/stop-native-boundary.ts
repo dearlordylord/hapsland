@@ -238,10 +238,14 @@ export function compareOriginalStopFamilyTrace(value: unknown, expected: ReturnT
   same(traces.length,11,"full original Stop scenario count");
   same(expected.length,11,"independent public original scenario count");
   same(frozenInputs.length,11,"independent frozen original declaration count");
-  for (const [caseIndex, value] of traces.entries()) {
-    const trace = readRecord(value), original = expected[caseIndex];
+  for (const [caseIndex, value] of traces.entries()) compareOriginalStopCaseTrace(value,expected[caseIndex],frozenInputs[caseIndex],caseIndex);
+}
+
+export function compareOriginalStopCaseTrace(value: unknown, original: ReturnType<typeof originalStopPublicCases>[number] | undefined, frozenInput: unknown, caseIndex: number): void {
+  try {
+    const trace = readRecord(value);
     if (!original || trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError(`invalid full original Stop trace at case ${caseIndex}`);
-    same(trace.input,frozenInputs[caseIndex],`case ${caseIndex} complete original input`);
+    same(trace.input,frozenInput,`case ${caseIndex} complete original input`);
     const frames = list(trace.frames).map(readRecord);
     for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.Boundary"].includes(String(frame.$))) throw new TypeError("uncompared original Stop frame");
     compareStopObservedOwners(frames,original.frames,original);
@@ -263,5 +267,8 @@ export function compareOriginalStopFamilyTrace(value: unknown, expected: ReturnT
       compareRuntime(frame.runtime,boundary.runtime,`case ${caseIndex} boundary ${index} complete runtime`,original);
     }
     compareRuntime(trace.endpoint,original.endpoint,`case ${caseIndex} complete endpoint`,original);
+
+  } catch (error) {
+    throw new Error(`original Stop case ${caseIndex}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
