@@ -1035,7 +1035,7 @@ responses_websockets_v2 = true`);
 });
 
 describe("Codex update and explicit reinstall journeys", () => {
-  it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground"])("updates deleted Codex %s without losing settings", (missing) => {
+  it.each(["groups", "foreground"] as const)("repairs missing Codex %s without losing settings", (damage) => {
     const { root, home, bin } = fixture();
     const entrypoint = localPackage(root, "0.1.0");
     const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
@@ -1044,15 +1044,19 @@ describe("Codex update and explicit reinstall journeys", () => {
     const preview = invoke({ ...request, operation: "install-preview" }, environment);
     invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
     const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"));
-    if (missing === "foreground" || missing === "background") hooks.hooks.PostToolUse[0].hooks.splice(missing === "foreground" ? 0 : 1, 1);
-    else if (missing === "feature") writeFileSync(join(home, "config.toml"), 'model = "user-model"\n');
-    else delete hooks.hooks[missing];
+    const original = structuredClone(hooks);
+    if (damage === "groups") {
+      for (const event of ["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit"]) delete hooks.hooks[event];
+    } else {
+      hooks.hooks.PostToolUse[0].hooks.splice(0, 1);
+    }
     writeFileSync(join(home, "hooks.json"), JSON.stringify(hooks));
     const diagnosis = invoke({ ...request, operation: "doctor", cwd: root }, environment);
     expect(diagnosis.checks).toEqual(expect.arrayContaining([expect.objectContaining({ stage: "configuration-ownership", status: "conflict" })]));
     const update = invoke({ ...request, operation: "update-preview" }, environment);
     expect(update.status).toBe("preview");
     invoke({ ...request, operation: "update", proposalDigest: (update.proposal as { digest: string }).digest }, environment);
+    expect(JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"))).toEqual(original);
     expect(readFileSync(join(home, "config.toml"), "utf8")).toContain('model = "user-model"');
     const repeated = invoke({ ...request, operation: "update-preview" }, environment);
     expect(repeated).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
