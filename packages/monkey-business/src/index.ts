@@ -18,7 +18,7 @@ import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
 import { readRecord, readBool, readNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 import { decodeDriver, decodeDriverEvent, encodeDriverOutcome, decodeDriverOutcome, type DriverAction } from "./driver-codec.ts";
-import { SharedCore } from "./shared-core.ts";
+import { SharedCore, type WorkloadSource } from "./shared-core.ts";
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
 import { Schema } from "effect";
@@ -225,6 +225,7 @@ export type Replay = {
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
+  workloadSource?: WorkloadSource;
   writerRelease?: SharedWriterRelease;
   writerOrigin?: { readonly pending: SharedWriterPending; readonly control: Extract<WriterControl, {action:"claim"}>; readonly sequence: number };
   responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl | WriterControl; readonly sequence: number };
@@ -611,14 +612,16 @@ export class Run {
       input: copy(input),
     });
   }
-  private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, activityScope?: number) {
+  private enqueue(input: RunInput & { readonly workloadSource?: WorkloadSource }, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, activityScope?: number) {
     integer(input.at, "virtual time");
     if (input.at < this.clock)
       throw new RangeError("cannot schedule in the past");
+    const { workloadSource, ...callerInput } = input;
     this.queuePush({
       at: input.at,
       order: this.order++,
-      input: copy(input),
+      input: copy(callerInput),
+      ...(workloadSource === undefined ? {} : { workloadSource }),
       ...(activityScope === undefined ? {} : { activityScope }),
       ...(job ? { job } : {}),
       ...(expiryAdvice !== undefined ? { expiryAdvice } : {}),
@@ -1115,14 +1118,19 @@ export class Run {
             this.enqueue(input);
         return this.step(untilTime);
       }
-      item.driverSourceJob = freezeCanonicalData({ partition, lifetime: this.core.activityLifetime(partition),
+      item.driverSourceJob ??= freezeCanonicalData({ partition, lifetime: this.core.activityLifetime(partition),
         bytes: item.input.bytes, units: [...item.input.unitBytes],
         outcome: item.input.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(item.input.outcome) } });
       const permits = this.permitsEnabled;
       if (!round && !permits) {
         const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
         for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emitDriver(action, item.input);
-        if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input, undefined, item.activityScope);
+        if (readBool(plan.retry)) {
+          this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input, undefined, item.activityScope);
+          const retry = this.scheduled.get(this.order - 1);
+          if (!retry) throw new Error("original Edit retry lost its issued queue entry");
+          retry.driverSourceJob = item.driverSourceJob;
+        }
         return this.step(untilTime);
       }
       if (this.config.lifecycles?.reuse && "revision" in item.input && !("evaluationInputs" in item.input)) {
