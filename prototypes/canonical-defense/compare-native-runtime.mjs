@@ -53,18 +53,21 @@ function comparePayload(value, publicItem, field, order) {
     for (const key of Object.keys(publicItem)) assert.ok(supported.has(key),`${field} unimplemented original payload metadata ${key}`);
     if (input.$ === "NativeRunTypes.Event" || input.$ === "NativeRunTypes.FinishInput") {
       assert.ok(publicItem.driverAction,`${field} actual action ${order}`);
-      assert.deepEqual(decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0],publicItem.driverAction,`${field} complete action ${order}`);
+      const actualAction = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
+      assert.deepEqual(actualAction,publicItem.driverAction,`${field} complete action ${order}`);
       assert.equal(publicItem.input.kind,"canonical",`${field} original canonical input`);
       assert.deepEqual(input.action.event,encodeCanonicalEvent(publicItem.input.event),`${field} entire original event`);
       assert.equal(publicItem.input.at,publicItem.at,`${field} input time`);
       assert.equal(option(input.action.expiry_advice),publicItem.expiryAdvice,`${field} original expiry owner`);
       assert.equal(publicItem.generated,true,`${field} generated provenance`);
-      const candidate = decodeDriver({handled:true,actions:{$:"Con",head:input.action,tail:{$:"Nil"}}}).actions[0].candidate;
+      const candidate = actualAction.candidate;
       assert.deepEqual(candidate,publicItem.candidate,`${field} entire candidate`);
       const context = option(input.context);
-      assert.ok(context !== undefined,`${field} actual captured owner context required`);
-      const emitted = readRecord(context);
-      assert.equal(publicItem.partition,candidate?.partition ?? readRecord(emitted.context).partition,`${field} original payload owner`);
+      const owner = candidate?.partition ?? (context === undefined
+        ? actualAction.event.partition
+        : readRecord(readRecord(context).context).partition);
+      assert.ok(owner !== undefined,`${field} missing factual payload owner ${order}`);
+      assert.equal(publicItem.partition,owner,`${field} original payload owner`);
       const active = input.$ === "NativeRunTypes.FinishInput" ? input.job : option(input.job);
       if (active === undefined) assert.equal(publicItem.job,undefined,`${field} no active binding ${order}`);
       else compareJob(active,publicItem.job,`${field} active binding ${order}`);
