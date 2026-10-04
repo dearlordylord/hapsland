@@ -73,3 +73,34 @@ test("game streams join split batches once and reject incomplete or malformed li
     await assert.rejects(streamGameBatches(process.execPath, child(["[", "invalid]\n"]), directory, "invalid", 1000), /JSON|Unexpected token/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+test("retained full game batches survive cleanup and require exact identity and bytes", async () => {
+  const { retainGameOutputs, restoreGameOutputs } = await import("../prototypes/canonical-defense/game-stream-runner.mjs");
+  const root = mkdtempSync(join(tmpdir(), "hapsland-game-output-"));
+  const original = join(root,"original"), restored = join(root,"restored");
+  const { mkdirSync } = await import("node:fs");
+  mkdirSync(original);mkdirSync(restored);
+  const saved = process.env.HAPSLAND_TEST_FAILURES_FILE;
+  const identity = { fixture: "exact.bend", sources: [{file:"source",expected:"source-hash"}],
+    tools: [{file:"compiler",expected:"tool-hash"}], origin: {native:"explicit compiler receipt",emitted:"fresh JS emission"} };
+  try {
+    const files = Array.from({length:145}, (_,index) => { const file=join(original,`batch-${index}.json`);writeFileSync(file,JSON.stringify([index,281474976710655]));return file; });
+    delete process.env.HAPSLAND_TEST_FAILURES_FILE;
+    assert.equal(retainGameOutputs(files,files,identity),undefined);
+    process.env.HAPSLAND_TEST_FAILURES_FILE=join(root,"failures.jsonl");
+    const receipt=retainGameOutputs(files,files,identity);
+    rmSync(original,{recursive:true});
+    const result=restoreGameOutputs(receipt,identity,restored);
+    assert.equal(result.native.length,145);assert.equal(result.emitted.length,145);
+    assert.deepEqual(result.origin,identity.origin);
+    assert.deepEqual(result.native.map(file=>JSON.parse(readFileSync(file,"utf8"))), Array.from({length:145},(_,index)=>[index,281474976710655]));
+    assert.throws(()=>restoreGameOutputs(receipt,{...identity,tools:[]},restored),/identity changed/);
+    const manifest=JSON.parse(readFileSync(receipt,"utf8"));
+    const { dirname } = await import("node:path");
+    writeFileSync(join(dirname(receipt),manifest.native[0].file),"changed gzip");
+    assert.throws(()=>restoreGameOutputs(receipt,identity,restored),/gzip changed/);
+  } finally {
+    if(saved===undefined)delete process.env.HAPSLAND_TEST_FAILURES_FILE;else process.env.HAPSLAND_TEST_FAILURES_FILE=saved;
+    rmSync(root,{recursive:true,force:true});
+  }
+});

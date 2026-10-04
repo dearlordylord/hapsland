@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync, statSync, existsSync, mkdirSync, chmodSync } from "node:fs";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { isDeepStrictEqual } from "node:util";
 import { tmpdir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -153,6 +154,45 @@ export function streamGameBatches(command,args,directory,label,executionTimeoutM
     child.on("close",code=>{clearTimeout(timer);if(failure){failure.message+=` (batches=${files.length}, bytes=${totalBytes}, pendingBytes=${pendingBytes}, elapsedMs=${Math.round(performance.now()-started)})`;reject(failure);}else if(code!==0)reject(new Error(`${label} exit ${code}: ${stderr}`));else if(pendingBytes||!files.length)reject(new Error(`${label} incomplete batch stream`));else accept(files);});
   });
 }
+// Retained offline batches are read only on an explicit request, never automatically.
+export function retainGameOutputs(native,emitted,identity) {
+  const failureFile=process.env.HAPSLAND_TEST_FAILURES_FILE;
+  if(!failureFile)return undefined;
+  const outputs=join(dirname(failureFile),"workload-outputs");mkdirSync(outputs,{recursive:true});
+  const directory=mkdtempSync(join(outputs,`game-output-${process.pid}-`));
+  const batches=files=>{
+    if(files.length!==145)throw new Error("Retained game output requires all 145 batches");
+    return files.map((file,index)=>{
+      const bytes=readFileSync(file);if(bytes.length>LIMIT)throw new Error("Retained game batch exceeds 16MiB");
+      JSON.parse(bytes.toString("utf8"));const name=`${basename(file)}.gz`;
+      const compressed=gzipSync(bytes);writeFileSync(join(directory,name),compressed);
+      return{index,file:name,bytes:bytes.length,sha256:digest(bytes),gzipSha256:digest(compressed)};
+    });
+  };
+  const receipt=join(directory,"receipt.json");
+  writeFileSync(receipt,JSON.stringify({lane:"game-output",identity,native:batches(native),emitted:batches(emitted)},null,2)+"\n");
+  console.log(`Retained offline game outputs: ${receipt}`);return receipt;
+}
+export function restoreGameOutputs(path,identity,directory) {
+  const receipt=JSON.parse(readFileSync(path,"utf8"));
+  if(receipt.lane!=="game-output"||!isDeepStrictEqual(receipt.identity.fixture,identity.fixture)||
+      !isDeepStrictEqual(receipt.identity.sources,identity.sources)||!isDeepStrictEqual(receipt.identity.tools,identity.tools))
+    throw new Error("Game output source/tool identity changed");
+  const read=(entries,label)=>{
+    if(!Array.isArray(entries)||entries.length!==145)throw new Error("Incomplete retained game output");
+    return entries.map((entry,index)=>{
+      if(entry.index!==index||typeof entry.file!=="string"||basename(entry.file)!==entry.file||
+          !Number.isSafeInteger(entry.bytes)||entry.bytes<1||entry.bytes>LIMIT)throw new Error("Invalid retained game batch");
+      const compressed=readFileSync(join(dirname(path),entry.file));
+      if(digest(compressed)!==entry.gzipSha256)throw new Error("Retained game gzip changed");
+      const bytes=gunzipSync(compressed,{maxOutputLength:LIMIT});
+      if(bytes.length!==entry.bytes||digest(bytes)!==entry.sha256)throw new Error("Retained game output changed");
+      JSON.parse(bytes.toString("utf8"));const file=join(directory,`${label}-${index}.json`);writeFileSync(file,bytes);return file;
+    });
+  };
+  return{native:read(receipt.native,"native"),emitted:read(receipt.emitted,"emitted"),origin:receipt.identity.origin};
+}
+
 // Failed scoped compiler output is diagnostic evidence, never an artifact cache.
 function retainCompilerFailure(directory,fixture,phase,completed,sources,tools,timeouts,error) {
   const failureFile=process.env.HAPSLAND_TEST_FAILURES_FILE;
@@ -199,7 +239,7 @@ function compilerReceipt(path,fixture,sources,tools) {
   return receipt;
 }
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
-export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,overallDeadlineMs}={}) {
+export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,resumeOutputReceipt,overallDeadlineMs}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000 && executionTimeoutMs!==180000)throw new Error("unsupported finite game execution allowance");
   if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<0||emissionTimeoutMs>120000)throw new RangeError("invalid game C emission allowance");
   if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>120000)throw new RangeError("invalid game clang allowance");
@@ -216,12 +256,17 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
   const verify=()=>{for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);};
   verify();
   const fixturePath=realpathSync(fileURLToPath(fixture));
-  const resume=resumeCompilerReceipt===undefined?null:compilerReceipt(resumeCompilerReceipt,fixturePath,sources,tools);
+  const resume=resumeOutputReceipt!==undefined||resumeCompilerReceipt===undefined?null:compilerReceipt(resumeCompilerReceipt,fixturePath,sources,tools);
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   let phase="C emission";const completed=[];
   const timeouts={emission:emissionTimeoutMs,clang:clangTimeoutMs,execution:executionTimeoutMs,jsEmission:30000,
     ...(deadline===null?{}:{overallDeadlineMs:deadline,overallBudgetMs:380000})};
   try{
+    if(resumeOutputReceipt!==undefined){
+      const restored=restoreGameOutputs(resumeOutputReceipt,{fixture:fixturePath,sources,tools},directory);verify();
+      console.log("Explicit retained game output comparison; no compiler or execution qualification rerun");
+      return{...restored,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
+    }
     const c=join(directory,"game.c"),binary=join(directory,"game"),js=join(directory,"game.cjs");
     if(resume)writeFileSync(c,resumeArtifact(resume.c));
     else {
@@ -238,6 +283,9 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
     phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],phaseAllowance(30000,deadline));completed.push("JS emission");verify();
     const jsHash=hash(js);phase="JS execution";const emitted=await streamGameBatches(process.execPath,[js],directory,"emitted",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);verify();
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
+    try{retainGameOutputs(native,emitted,{fixture:fixturePath,sources,tools,
+      origin:{native:resume?"explicit compiler receipt":"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash}});}
+    catch{console.error("Offline game outputs could not be retained");}
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){
     try{retainCompilerFailure(directory,fixturePath,phase,completed,sources,tools,
