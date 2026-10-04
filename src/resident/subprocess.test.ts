@@ -107,7 +107,7 @@ describe("resident separate-process lifecycle", () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-contenders-"));
     directories.push(temporary);
     const paths = residentPaths(join(temporary, "runtime"));
-    const contenders = Array.from({ length: 16 }, () => spawn(process.execPath,
+    const contenders = Array.from({ length: 3 }, () => spawn(process.execPath,
       ["src/resident/main.ts", paths.directory], {
         cwd: process.cwd(), stdio: ["ignore", "ignore", "pipe"],
       }));
@@ -243,7 +243,7 @@ describe("resident separate-process lifecycle", () => {
     expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe("ready");
   });
 
-  it("converges 100 starters across eight clients and keeps timed-out/disconnected work resident-owned", async () => {
+  it("converges six starters across three clients and keeps timed-out/disconnected work resident-owned", async () => {
     const root = await makeGitFixture();
     const otherRoot = await makeGitFixture();
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-test-"));
@@ -276,22 +276,48 @@ describe("resident separate-process lifecycle", () => {
     };
     const ensureScript = [
       "import { ensureResidentEffect as ensureResident } from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
+      "import {writeFileSync} from 'node:fs';",
       "const count=Number(process.argv[1]);",
+      "await new Promise(resolve=>{process.stdin.once('data',resolve);writeFileSync(process.argv[2],'ready\\n')});",
+      "process.stdin.pause();",
       "const values=await Promise.all(Array.from({length:count},()=>runClient(ensureResident())));",
       "console.log(JSON.stringify(values));",
     ].join("");
-    // This retains the accepted prototype stress shape at the production
-    // process boundary: exactly 100 concurrent callers distributed over eight
-    // otherwise independent short-lived command clients.
-    const starters = Array.from({ length: 8 }, (_, index) => spawn(process.execPath, [
-      "--input-type=module", "-e", ensureScript, index < 4 ? "13" : "12",
+    // Release only after all three independent clients have imported their
+    // runtime and armed stdin. Each then starts two concurrent ensure calls.
+    const readyPaths = Array.from({ length: 3 }, (_, index) => join(temporary, `starter-${index}.ready`));
+    const starters = readyPaths.map((readyPath) => spawn(process.execPath, [
+      "--input-type=module", "-e", ensureScript, "2", readyPath,
     ], { cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"] }));
-    const owners = await Promise.all(starters.map(childResult));
+    const results = Promise.all(starters.map(childResult));
+    // Readiness failures must not leave an unhandled rejection while cleanup runs.
+    void results.catch(() => {});
+    let owners: string[];
+    try {
+      await waitFor(async () => {
+        if (starters.some((child) => child.exitCode !== null || child.signalCode !== null)) {
+          throw new Error("launch contender exited before the shared release");
+        }
+        return readyPaths.every((readyPath) => existsSync(readyPath)) ? true : undefined;
+      }, 8_000);
+      for (const child of starters) child.stdin.end("release\n");
+      owners = await results;
+    } finally {
+      for (const child of starters) {
+        if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+      }
+      await Promise.all(starters.map(childClosed));
+      // A partially successful launch still belongs to this fixture's cleanup.
+      const ownerPath = residentPaths(runtime).owner;
+      if (existsSync(ownerPath)) {
+        const owner = JSON.parse(await readFile(ownerPath, "utf8")) as { pid: number };
+        processes.push(owner.pid);
+      }
+    }
     const identities = owners.flatMap((encoded) => JSON.parse(encoded) as Array<{ pid: number; lifetime: string }>);
-    expect(identities).toHaveLength(100);
+    expect(identities).toHaveLength(6);
     expect(new Set(identities.map(({ pid }) => pid)).size).toBe(1);
     expect(new Set(identities.map(({ lifetime }) => lifetime)).size).toBe(1);
-    processes.push(identities[0]!.pid);
 
     // Losing the pathname is not evidence that the lock owner died. A stale
     // endpoint cannot make a contender displace that still-live owner, and

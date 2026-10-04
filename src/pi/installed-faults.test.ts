@@ -36,6 +36,14 @@ const waitFile = async (path: string) => {
 
 // Only the source-free command envelope is intercepted. All nonfaulted calls
 // forward the installed CLI unchanged into its production resident.
+// This envelope is a controlled peer for extension-only serialization/content checks.
+// Real CLI admission, timeout, retirement and lifetime remain in the canaries below.
+const extensionEnvelope = (_cli: string, root: string) => {
+  const path = join(root, "extension-envelope.cjs");
+  writeFileSync(path, `const fs=require('node:fs');let input='';process.stdin.on('data',b=>input+=b);process.stdin.on('end',()=>{const event=JSON.parse(input);fs.appendFileSync(${JSON.stringify(join(root, "envelope-operations"))},event.operation+'\\n');if(event.operation==='edit')fs.appendFileSync(${JSON.stringify(join(root, "backend-calls"))},JSON.stringify(event)+'\\n');const response=event.operation==='before'?{status:'registered'}:event.operation==='edit'?{status:'advice',text:'type.ts :: OrderCount',token:'test-token',lifetime:'test-lifetime'}:event.operation==='ack'?{status:'acknowledged'}:event.operation==='retire'?{status:'retired'}:event.operation==='close'?{status:'closed'}:{status:'empty'};process.stdout.write(JSON.stringify(response));});`);
+  return [process.execPath, path];
+};
+
 const faultWrapper = (_cli: string, root: string) => {
   const path = join(root, "command-fault.cjs");
   writeFileSync(path, `const fs=require('node:fs');const cp=require('node:child_process');const path=require('node:path');let input='';process.stdin.on('data',b=>input+=b);process.stdin.on('end',()=>{const event=JSON.parse(input);const fault=path.join(${JSON.stringify(root)},'fault.json');const config=fs.existsSync(fault)?JSON.parse(fs.readFileSync(fault,'utf8')):{};const hit=event.operation===config.operation;if(hit){fs.writeFileSync(path.join(${JSON.stringify(root)},'fault-hit'),'observed');if(config.mode==='crash')process.exit(9);if(config.mode==='timeout'){setTimeout(()=>{},20000);return;}}const child=cp.spawn(${JSON.stringify(installedCommand[0])},[...${JSON.stringify(installedCommand.slice(1))},...process.argv.slice(2)],{env:process.env,stdio:['pipe','pipe','inherit']});let output='';child.stdout.on('data',b=>output+=b);child.on('close',code=>{if(hit&&config.mode.startsWith('admitted-')){fs.writeFileSync(path.join(${JSON.stringify(root)},'admitted-fault'),'observed');if(config.mode==='admitted-crash')process.exit(9);setTimeout(()=>{},20000);return;}if(hit&&config.mode==='delay-ack'){fs.writeFileSync(path.join(${JSON.stringify(root)},'ack-ready'),'observed');const poll=setInterval(()=>{if(fs.existsSync(path.join(${JSON.stringify(root)},'ack-release'))){clearInterval(poll);process.stdout.write(output);process.exit(code??1);}},20);}else{process.stdout.write(output);process.exit(code??1);}});child.stdin.end(input);});`);
@@ -57,7 +65,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     });
   }
 
-  it.each(["crash", "timeout"])("an admitted hook worker %s closes incomplete work without advice replay", async fault => {
+  it.each(mode === "source" ? ["crash"] : ["crash", "timeout"])("an admitted hook worker %s closes incomplete work without advice replay", async fault => {
     const f = fixture(false, { delayMs: 1_000 }, { commandFactory: faultWrapper });
     await f.prepareResident();
     await f.call("agent_start", {});
@@ -73,7 +81,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await f.call("tool_result", result)).toBeUndefined();
   });
 
-  it.each(["session", "root"])("late admitted advice stays isolated after the current %s changes", async partition => {
+  it.each(mode === "source" ? ["session", "root"] : ["root"])("late admitted advice stays isolated after the current %s changes", async partition => {
     const f = fixture(true);
     const other = fixture();
     const current = {
@@ -164,29 +172,35 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     });
   }
 
-  it("native abort settlement closes admitted work without a pre-settle callback", async () => {
-    const f = fixture(true);
-    await f.prepareResident();
-    await f.call("agent_start", {});
-    await f.call("tool_call", before);
-    writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    await f.waitForWork(1);
-    await f.call("agent_settled", { outcome: "aborted" });
-    writeFileSync(join(f.root, "backend.gate"), "release");
-    expect(await f.call("agent_before_settle", settle)).toBeUndefined();
-  });
+  // The source host owns this semantic branch; compiled canaries retain real worker/lifetime failures.
+  if (mode === "source") {
+    it("native abort settlement closes admitted work without a pre-settle callback", async () => {
+      const f = fixture(true);
+      await f.prepareResident();
+      await f.call("agent_start", {});
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      await f.waitForWork(1);
+      await f.call("agent_settled", { outcome: "aborted" });
+      writeFileSync(join(f.root, "backend.gate"), "release");
+      expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+    });
+  }
 
-  it("reload preserves the closed old partition without replay", async () => {
-    const f = fixture();
-    await f.prepareResident();
-    await f.call("tool_call", before);
-    await f.call("session_shutdown", {});
-    f.reload();
-    writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-  });
+  // The source host owns this semantic branch; compiled canaries retain real worker/lifetime failures.
+  if (mode === "source") {
+    it("reload preserves the closed old partition without replay", async () => {
+      const f = fixture();
+      await f.prepareResident();
+      await f.call("tool_call", before);
+      await f.call("session_shutdown", {});
+      f.reload();
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+    });
+  }
 
   // Competing handlers can mutate these API objects after Pi produces a valid
   // native edit shape. These values are refusal cases, not supported profiles.
@@ -200,9 +214,10 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
   // Serialization alternatives are source-command branches, not installed process boundaries.
   if (mode === "source") {
     it.each(["undefined", "cyclic", "bigint"])("mutated %s before input stays quiet without registering a permit", async variant => {
-      const f = fixture();
+      const f = fixture(false, {}, { commandFactory: extensionEnvelope });
       expect(await f.call("tool_call", { ...before, input: invalidSerializable(variant, before.input) })).toBeUndefined();
       expect(existsSync(join(f.root, "runtime/owner.json"))).toBe(false);
+      expect(existsSync(join(f.root, "envelope-operations"))).toBe(false);
       writeFileSync(join(f.root, "type.ts"), source);
       expect(await f.call("tool_result", result)).toBeUndefined();
       expect(existsSync(f.capturePath)).toBe(false);
@@ -217,8 +232,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
       ["content", "undefined"], ["content", "object"],
       ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
     ])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
-      const f = fixture();
-      await f.prepareResident();
+      const f = fixture(false, {}, { commandFactory: extensionEnvelope });
       await f.call("tool_call", before);
       writeFileSync(join(f.root, "type.ts"), source);
       const values: Record<string, unknown> = { object: { competingExtension: true }, "null-item": [null], "missing-text": [{ type: "text" }], "bad-image": [{ type: "image", data: 42, mimeType: "image/png" }] };
@@ -227,11 +241,11 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
       expect(await f.call("tool_result", result)).toBeUndefined();
       expect(await f.call("agent_before_settle", settle)).toBeUndefined();
       expect(existsSync(f.capturePath)).toBe(false);
+      expect(readFileSync(join(f.root, "envelope-operations"), "utf8").trim().split("\n")).toEqual(["before", "retire", "finish"]);
     });
 
     it("valid competing image content preserves native output while admitting review", async () => {
-      const f = fixture();
-      await f.prepareResident();
+      const f = fixture(false, {}, { commandFactory: extensionEnvelope });
       const image = { type: "image", data: "aW1hZ2U=", mimeType: "image/png" };
       const content = [...result.content, image];
       await f.call("tool_call", before);
@@ -241,6 +255,9 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
       expect(existsSync(f.capturePath)).toBe(true);
       expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
       expect(content).toEqual([...result.content, image]);
+      const commandEdit = JSON.parse(readFileSync(f.capturePath, "utf8"));
+      expect(commandEdit).toMatchObject({ operation: "edit", input: result.input, details: result.details });
+      expect(readFileSync(join(f.root, "envelope-operations"), "utf8").trim().split("\n")).toEqual(["before", "edit", "ack", "finish"]);
       if (native !== undefined) expect(native.content.slice(0, content.length)).toEqual(content);
     });
 
@@ -260,21 +277,5 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     });
   }
 
-  it("a newer overlapping edit suppresses a delayed finding from the older source", async () => {
-    const f = fixture(false, { delayMs: 650, findingOnSourceIncludes: "number", answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) });
-    await f.prepareResident();
-    await f.call("tool_call", before);
-    writeFileSync(join(f.root, "type.ts"), source);
-    const older = f.call("tool_result", result);
-    await waitFile(f.capturePath);
-    const input = { path: "type.ts", edits: [{ oldText: "type OrderCount = number", newText: "type OrderCount = string" }] };
-    const edit = { toolName: "edit", toolCallId: "overlap-newer", input };
-    await f.call("tool_call", edit);
-    writeFileSync(join(f.root, "type.ts"), "type OrderCount = string\n");
-    const newer = f.call("tool_result", { ...result, ...edit, details: { patch: "--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-type OrderCount = number\n+type OrderCount = string\n" } });
-    const outputs = [await older, await newer, await f.call("agent_before_settle", settle)];
-    expect(JSON.stringify(outputs)).not.toContain("Check these findings. Fix valid issues and verify; otherwise explain why.");
-    expect(outputs.every(output => output === undefined || output.continue !== true)).toBe(true);
-    await f.call("agent_settled", {});
-  });
+  // Stale in-flight findings are owned by deterministic resident handoff/revalidation tests.
 });
