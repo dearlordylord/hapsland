@@ -227,7 +227,7 @@ type Compact is Data:
 def terminal_context(action: Driver.Action, healed: Bool) -> Driver.Context:
   match action:
     case Driver.Action{_, _, candidate, _, _}:
-      Driver.Context{1n, 1n, 1n, 10n, True{}, 1n, Bool.pick(Canonical.RequestOutcome, healed, Canonical.RequestFinding{}, Canonical.RequestClear{}), True{}, True{}, True{}, True{}, 600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n, False{}, True{}}
+      Driver.Context{1n, 1n, 1n, 10n, True{}, 1n, Some{Bool.pick(Canonical.RequestOutcome, healed, Canonical.RequestFinding{}, Canonical.RequestClear{})}, True{}, True{}, True{}, True{}, 600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n, False{}, True{}}
 
 def terminal_count(event: Canonical.CanonicalEvent, totals: Totals, rejected: Nat) -> Totals:
   match event totals:

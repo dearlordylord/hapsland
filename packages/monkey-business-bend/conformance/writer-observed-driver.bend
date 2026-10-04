@@ -58,6 +58,7 @@ def action_binding(capsule: Maybe<&2,Originals.Capsule>, action: Driver.Action,
 def job_partition(job: Edge.Job) -> Nat:
   match job:
     case Edge.Job{partition,_,_,_,_}: partition
+    case Edge.NoJob{partition,_}: partition
 
 def enqueued(list: List<&2,Driver.Action>, queue: Edge.Queue,
     bindings: List<&2,Originals.Binding>, +capsule: Maybe<&2,Originals.Capsule>,
@@ -65,7 +66,7 @@ def enqueued(list: List<&2,Driver.Action>, queue: Edge.Queue,
   match list queue:
     case Nil{} queue: (queue,bindings)
     case +action <> tail Edge.Queue{items,+sequence,synced}:
-      +payload=Context.captured(state,action,job_partition(job),False{},Context.configured_fallback())
+      +payload=Context.captured(state,action,job_partition(job),False{})
       enqueued(tail,Edge.actions([action],Edge.Queue{items,sequence,synced},now,Context.queued(payload,job)),
         Originals.bind_context(action_binding(capsule,action,sequence,bindings),sequence,payload),capsule,now,job,state)
 

@@ -33,7 +33,7 @@ def sharing_runtime(value: Capture.Captured) -> List<&2,Edge.Runtime>:
 
 def physical_capture(allowed: Bool, event: C.CanonicalEvent, now: Nat, environment: Edge.Environment) -> Maybe<&2,OutputFacts.Capture>:
   match environment:
-    case Edge.Environment{_,_,_,_,delay,lease,_}: Output.authorized_capture(allowed,event,now,delay,lease)
+    case Edge.Environment{_,_,_,_,delay,lease,_,_}: Output.authorized_capture(allowed,event,now,delay,lease)
 
 def issued(value: Output.Issued, runtime: List<&2,Edge.Runtime>, bindings: List<&2,Originals.Binding>) -> Captured:
   match value runtime:
@@ -44,17 +44,18 @@ def issued(value: Output.Issued, runtime: List<&2,Edge.Runtime>, bindings: List<
 def job_partition(job: Edge.Job) -> Nat:
   match job:
     case Edge.Job{partition,_,_,_,_}: partition
+    case Edge.NoJob{partition,_}: partition
 
 def payload_of(+state: Types.State, +action: Driver.Action, available: Bool,
     job: Edge.Job) -> Context.Payload:
   match action:
     case Driver.Action{_,_,_,requested,_}:
-      Context.captured(state,action,job_partition(job),Bool.and(available,requested),Context.configured_fallback())
+      Context.captured(state,action,job_partition(job),Bool.and(available,requested))
 
 def replaced(equal: Bool, item: Edge.Item, payload: Context.Payload) -> Edge.Item:
   match equal item:
-    case True{} Edge.Item{at,order,Edge.Event{action,job}}:
-      Edge.Item{at,order,Edge.Event{action,Context.queued(payload,job)}}
+    case True{} Edge.Item{at,order,Edge.Event{action,job,source}}:
+      Edge.Item{at,order,Edge.Event{action,Context.queued(payload,job),source}}
     case _ item: item
 
 def queued_context(items: List<&2,Edge.Item>, +order: Nat, +payload: Context.Payload) -> List<&2,Edge.Item>:
@@ -86,7 +87,7 @@ def fresh_action(fresh: Bool, +action: Driver.Action, +runtime: List<&2,Edge.Run
 def fresh(item: Edge.Item, runtime: List<&2,Edge.Runtime>, +cutoff: Nat,
     bindings: List<&2,Originals.Binding>, original: Maybe<&2,Originals.Capsule>, allowed: Bool, available: Bool, environment: Edge.Environment) -> Captured:
   match item:
-    case Edge.Item{at,+order,Edge.Event{action,job}}:
+    case Edge.Item{at,+order,Edge.Event{action,job,_}}:
       fresh_action(Nat.is_le(cutoff,order),action,runtime,at,order,job,bindings,original,allowed,available,environment)
     case _: Captured{runtime,bindings,True{}}
 
@@ -132,7 +133,7 @@ def sharing_command(+facts: Sharing.Facts, actual: C.Command, runtime: List<&2,E
 
 def job_available(found: Maybe<&2,Context.Payload>, command: C.Command) -> Bool:
   match found:
-    case Some{Context.Payload{_,has_job,_}}: Bool.or(has_job,Context.operation_job(command))
+    case Some{Context.Payload{_,has_job}}: Bool.or(has_job,Context.operation_job(command))
     case None{}: True{}
 
 def command(+facts: Facts, +actual: C.Command, runtime: List<&2,Edge.Runtime>,

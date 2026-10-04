@@ -8,7 +8,7 @@ import ./native-run-projection.bend as Projection
 
 def view(observation: T.Observation) -> List<&2, Nat>:
   match observation:
-    case T.Observation{time, count, _, _, queued, valid}: [time, count, queued, Projection.boolean(valid)]
+    case T.Observation{time, count, _, _, queued, valid, _}: [time, count, queued, Projection.boolean(valid)]
 
 def config(jev: Nat, preparation: Nat, lifetime: Nat, generation: Nat,
     weights: List<&2, Numeric.Words>, original: T.Config) -> T.Config:

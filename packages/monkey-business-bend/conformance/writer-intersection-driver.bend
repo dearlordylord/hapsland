@@ -76,10 +76,10 @@ def departed(value: Engine.SharingDeparture, +before: Types.State, queue: Edge.Q
 
 def leave_original(found: Maybe<&2,Captures.Original>, +scope: Freshness.Scope, runtime: Writer.Runtime, input: Inputs.Control) -> Writer.Runtime:
   match found scope runtime:
-    case Some{Captures.Original{_,Sharing.Edit{_,_,bytes,units,_,_,_}}} Freshness.Scope{+p,+l,+r,+o}
+    case Some{Captures.Original{_,Sharing.Edit{_,_,bytes,units,_,_,_,outcome}}} Freshness.Scope{+p,+l,+r,+o}
         Writer.Runtime{Edge.Runtime{+state,queue,jobs,delay} <> Nil{},bindings,frames,consumed,valid}:
       departed(Engine.sharing_leave(state,Freshness.Scope{p,l,r,o}),state,queue,jobs,delay,bindings,frames,consumed,valid,input,
-        Freshness.Scope{p,l,r,o},Edge.Job{p,l,bytes,units,C.RequestFinding{}})
+        Freshness.Scope{p,l,r,o},Edge.Job{p,l,bytes,units,outcome})
     case _ _ runtime: invalid(runtime)
 
 def leave(scope: Maybe<&2,Freshness.Scope>, originals: List<&2,Captures.Original>, runtime: Writer.Runtime, input: Inputs.Control) -> Writer.Runtime:

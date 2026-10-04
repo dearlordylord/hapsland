@@ -1,4 +1,5 @@
 import Base
+import ./Numeric.bend as Numeric
 import ./JevEffects.bend as JevEffects
 import ./OutputScenario.bend as Output
 import ../agent-flow-bend/Canonical.bend as Canonical
@@ -8,9 +9,23 @@ import ../agent-flow-bend/Dispatch.bend as Dispatch
 type Candidate is Data:
   Candidate{partition: Nat, advice: Nat, round: Nat, token: Nat, surface: Handoff.Surface, selection: Bool}
 
+# Original source facts remain separate from the selected physical result.
+type SourceJob is Data:
+  SourceJob{partition: Nat, lifetime: Nat, bytes: Nat, units: List<&2,Nat>, outcome: Maybe<&2,Canonical.RequestOutcome>}
+type OutcomeEnvironment is Data:
+  OutcomeEnvironment{outcome: Maybe<&2,Canonical.RequestOutcome>, weights: List<&2,Numeric.Words>}
+type OutcomeSource is Data:
+  EditForced{}
+  RunForced{}
+  Sampled{}
+type OutcomeReceipt is Data:
+  OutcomeReceipt{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, request: Nat,
+    outcome: Canonical.RequestOutcome, source: OutcomeSource, job: Maybe<&2,SourceJob>,
+    stream_before: Maybe<&2,U32>, stream_after: Maybe<&2,U32>}
+
 type Context is Data:
   Context{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat, job: Bool,
-    jev_delay: Nat, outcome: Canonical.RequestOutcome, current_work: Bool,
+    jev_delay: Nat, outcome: Maybe<&2,Canonical.RequestOutcome>, current_work: Bool,
     credential_ready: Bool, credential_generation: Bool, source_readable: Bool,
     advice_lifetime: Nat, candidate: Maybe<&2, Candidate>, automatic_collection: Bool,
     automatic_review: Bool, automatic_output: Bool, output_certain: Bool,
@@ -21,6 +36,54 @@ type Action is Data:
 
 type Handled is Data:
   Handled{handled: Bool, actions: List<&2, Action>}
+
+# Factual public event binding. A source job has a separate immutable scope;
+# events lacking the complete tuple retain the supplied input owner, 1 / 0.
+type ContextScope is Data:
+  ContextScope{partition: Nat, lifetime: Nat, round: Nat}
+
+def context_scope(event: Canonical.CanonicalEvent, provided: Nat) -> ContextScope:
+  match event:
+    case Canonical.QuietRoundTick{partition,lifetime,round,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.QuietRoundReset{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case Canonical.ClosePermitRound{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.AdmitObservation{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case Canonical.StartObservation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.CompleteObservation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.InterruptObservation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.BeginPreparation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.BeginObservedPreparation{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.InterruptPreparation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.PreparationCompleted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.StartReview{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestReady{partition,lifetime,round,_,_,_,_,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestStarted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestInterrupted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestSettled{partition,lifetime,round,_,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.ReviewCompleted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.RetireReview{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.CancelReview{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.ReviewObserved{partition,lifetime,round,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.FindingCountUpdated{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.QueueDispatch{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.DispatchSettled{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.StopPolled{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.CollectionReady{_,partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.OutputStarted{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case Canonical.OutputTerminal{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.RetirePartition{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case _: ContextScope{provided,1n,0n}
+
+def with_scope(context: Context, scope: ContextScope) -> Context:
+  match context scope:
+    case Context{_,_,_,bytes,job,delay,outcome,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,lease,background,dispatch}
+        ContextScope{p,l,r}:
+      Context{p,l,r,bytes,job,delay,outcome,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,lease,background,dispatch}
+
+def with_outcome(context: Context, selected: Maybe<&2,Canonical.RequestOutcome>) -> Context:
+  match context:
+    case Context{p,l,r,bytes,job,delay,_,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,output_lease,background,dispatch}:
+      Context{p,l,r,bytes,job,delay,selected,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,output_lease,background,dispatch}
 
 def immediate(event: Canonical.CanonicalEvent, job: Bool) -> Action:
   Action{event, 0n, None{}, job, None{}}
@@ -177,7 +240,7 @@ def handle(+state: Canonical.State, +event: Canonical.CanonicalEvent, command: C
       dispatch_work(find_operation(work_list(state), operation), context)
     case Canonical.UnitAdmitted{operation, _, _, _, _} Context{p, l, r, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, True{}}:
       Handled{True{}, [immediate(Canonical.QueueDispatch{p, l, r, operation}, False{})]}
-    case Canonical.JevRequestIssued{p, l, r, o, request} Context{_, _, _, _, _, delay, outcome, _, _, _, _, _, _, _, True{}, _, _, _, _, _, _}:
+    case Canonical.JevRequestIssued{p, l, r, o, request} Context{_, _, _, _, _, delay, Some{outcome}, _, _, _, _, _, _, _, True{}, _, _, _, _, _, _}:
       issued_outcome(outcome, p, l, r, o, request, delay)
     case Canonical.RetainFinding{} Context{_, _, _, _, _, _, _, _, _, _, _, +lifetime, _, _, _, _, _, _, _, _, _}:
       retained(event, lifetime)

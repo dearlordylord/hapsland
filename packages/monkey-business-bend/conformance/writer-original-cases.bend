@@ -1,4 +1,6 @@
 import Base
+import ../../agent-flow-bend/Canonical.bend as C
+import ./advicee-lifecycle-driver.bend as Edge
 import ./writer-original-inputs.bend as Inputs
 import ./writer-observed-driver.bend as Writer
 import ./sharing-original-inputs.bend as Shared
@@ -28,7 +30,7 @@ def tree(fixed: Bool) -> Tree.Profile:
     case True{}: Tree.Profile{2n,2n,1n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n}
     case False{}: Tree.Profile{3n,8n,3n,3n,15n,0n,0n,0n,0n,0n,0n,0n,512n,4096n,256n,2048n}
 def configuration(seed: Nat, retention: Nat, sessions: List<&2,Shared.SessionInput>, fixed: Bool, preparation: Nat) -> Shared.Configuration:
-  Shared.Configuration{seed,Ledger.Limits{32n,100000n,16n,50000n},retention,sessions,tree(fixed),Shared.graph_limits(),preparation,0n,30000n,0n,0n}
+  Shared.Configuration{seed,Ledger.Limits{32n,100000n,16n,50000n},retention,sessions,tree(fixed),Shared.graph_limits(),preparation,0n,30000n,0n,0n,Edge.outcome_environment(Some{C.RequestFinding{}})}
 def lifetime(mode: Nat) -> Nat:
   match mode:
     case 3n: 7n
@@ -49,7 +51,7 @@ def attempted(mode: Nat) -> Writer.Control:
     case _: Writer.Attempt{"owner",target(1n,1n,51n),False{}}
 def directed(+mode: Nat) -> Inputs.Scenario:
   Inputs.Scenario{configuration(1n,1000n,[session("owner",1n,1,[111,119,110,101,114])],True{},2n),
-    [Inputs.Edit{"owner",0n,10n,[5n]}],5n,
+    [Inputs.Edit{"owner",0n,10n,[5n],Some{C.RequestFinding{}}}],5n,
     List.append(&2,Inputs.Boundary,[Inputs.Advance{0n,100n},Inputs.WriterControl{Writer.Claim{"owner",claim(1n,1n,51n,lifetime(mode))}}],
     List.append(&2,Inputs.Boundary,duplicate(mode),List.append(&2,Inputs.Boundary,[Inputs.Advance{7n,200n}],
     List.append(&2,Inputs.Boundary,release(mode),[Inputs.WriterControl{attempted(mode)},Inputs.Advance{8n,200n}]))))}
@@ -72,7 +74,7 @@ def seeded(+mode: Nat, +seed: Nat, seed32: U32, other_seed: U32, +preparation: N
   +cutoff=Nat.add(ready,2n)
   Inputs.Scenario{configuration(seed,2000n,[session("agent-1",1n,seed32,[97,103,101,110,116,45,49]),
     session("healthy-writer",2n,other_seed,[104,101,97,108,116,104,121,45,119,114,105,116,101,114])],False{},preparation),
-    [Inputs.Edit{"agent-1",0n,10n,[5n]},Inputs.Edit{"healthy-writer",0n,10n,[5n]}],delay,
+    [Inputs.Edit{"agent-1",0n,10n,[5n],Some{C.RequestFinding{}}},Inputs.Edit{"healthy-writer",0n,10n,[5n],Some{C.RequestFinding{}}}],delay,
     List.append(&2,Inputs.Boundary,[Inputs.Advance{0n,500n},
       Inputs.WriterControl{Writer.Claim{"agent-1",claim(1n,1n,51n,cutoff)}},
       Inputs.WriterControl{Writer.Claim{"healthy-writer",claim(2n,2n,61n,Nat.add(cutoff,10n))}}],
@@ -86,7 +88,7 @@ def seeded(+mode: Nat, +seed: Nat, seed32: U32, other_seed: U32, +preparation: N
 # Original public intersections retained at full input/event/state boundaries.
 def overlapping() -> Inputs.Scenario:
   Inputs.Scenario{configuration(1n,1000n,[session("agent-1",1n,1,[97,103,101,110,116,45,49])],False{},2n),
-    [Inputs.Edit{"agent-1",0n,10n,[5n]}],5n,[
+    [Inputs.Edit{"agent-1",0n,10n,[5n],Some{C.RequestFinding{}}}],5n,[
       Inputs.Advance{0n,100n},Inputs.WriterControl{Writer.Claim{"agent-1",claim(1n,1n,51n,20n)}},
       Inputs.IntersectionControl{Intersection.OutputProfile{5n,20n}},Inputs.Advance{7n,200n},
       Inputs.IntersectionControl{Intersection.OpenResponse{"agent-1",Response.Response{1n,1n,1n,7n,30n,False{}}}},
@@ -95,11 +97,10 @@ def overlapping() -> Inputs.Scenario:
       Inputs.WriterControl{Writer.Release{"agent-1",target(1n,1n,51n)}},Inputs.Advance{8n,100n},Inputs.Advance{12n,200n}]}
 
 def shared_configuration() -> Shared.Configuration:
-  Shared.Configuration{1n,Ledger.Limits{32n,100000n,16n,50000n},3000n,
-    [session("agent-1",1n,1,[97,103,101,110,116,45,49])],tree(False{}),Shared.graph_limits(),2n,0n,30000n,8n,1n}
+  Shared.Configuration{1n,Ledger.Limits{32n,100000n,16n,50000n},3000n,[session("agent-1",1n,1,[97,103,101,110,116,45,49])],tree(False{}),Shared.graph_limits(),2n,0n,30000n,8n,1n,Edge.outcome_environment(Some{C.RequestFinding{}})}
 
 def shared_edit() -> Inputs.Edit:
-  Inputs.SharedEdit{Shared.Edit{"agent-1",0n,10n,[5n],"same","same",Shared.Namespace{"agent-1",None{},None{},"shared-original"}}}
+  Inputs.SharedEdit{Shared.Edit{"agent-1",0n,10n,[5n],"same","same",Shared.Namespace{"agent-1",None{},None{},"shared-original"},Some{C.RequestFinding{}}}}
 
 def shared_member() -> Inputs.Scenario:
   Inputs.Scenario{shared_configuration(),[shared_edit(),shared_edit()],10n,[

@@ -5,6 +5,7 @@ import ./stop-observed-initial.bend as Initial
 import ./advicee-lifecycle-driver.bend as Edge
 import ./sharing-observed-transport.bend as Transport
 import ../Engine.bend as Engine
+import ../OutputScenario.bend as Output
 import ../Scheduler.bend as Scheduler
 import ../StopScenario.bend as Stop
 import ../../agent-flow-bend/Canonical.bend as C
@@ -123,11 +124,25 @@ def boundary_record(value: Inputs.Boundary, initial: Nat, running: Running) -> R
       Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,
         [Wire.Boundary{value,Nat.sub(observations,initial),runtime}]),valid,observations}
 
+def scheduled(result: Initial.Initialized, running: Running) -> Running:
+  match result running:
+    case Initial.Initialized{runtime,_,accepted} Running{input,_,issued,frames,valid,observations}:
+      Running{input,runtime,issued,frames,valid && accepted,observations}
+
+def scheduled_boundary(+value: Inputs.Input, +input: Inputs.Scenario, +runtime: List<&2,Edge.Runtime>,
+    issued: Nat, frames: List<&2,Wire.Frame>, valid: Bool, +observations: Nat) -> Running:
+  match input:
+    case Inputs.Scenario{configuration,_,_}:
+      boundary_record(Inputs.Schedule{value},observations,
+        scheduled(Initial.scheduled(value,configuration,runtime),Running{input,runtime,issued,frames,valid,observations}))
+
 def boundary(value: Inputs.Boundary, running: Running, environment: Edge.Environment) -> Running:
   match value running:
     case Inputs.Advance{+endpoint,+budget} Running{input,runtime,issued,frames,valid,+observations}:
       boundary_record(Inputs.Advance{endpoint,budget},observations,
         advance(1000n,budget,Running{input,runtime,issued,frames,valid,observations},environment,endpoint))
+    case Inputs.Schedule{value} Running{input,runtime,issued,frames,valid,observations}:
+      scheduled_boundary(value,input,runtime,issued,frames,valid,observations)
 
 def boundaries(list: List<&2,Inputs.Boundary>, running: Running, +environment: Edge.Environment) -> Running:
   match list running:
@@ -150,3 +165,9 @@ def scenario(+input: Inputs.Scenario) -> Wire.Trace:
 
 def first() -> Wire.Trace:
   scenario(Inputs.first_waiting())
+
+def original_scenarios() -> List<&2,Wire.Trace>:
+  [scenario(Inputs.first_waiting()),scenario(Inputs.equal_waiting()),scenario(Inputs.late_waiting()),
+   scenario(Inputs.late_preparation()),scenario(Inputs.no_round()),scenario(Inputs.repeated_finish()),
+   scenario(Inputs.background(Output.Certain{})),scenario(Inputs.background(Output.Uncertain{})),
+   scenario(Inputs.configured_no_round()),scenario(Inputs.group_output()),scenario(Inputs.other_advicee_output())]

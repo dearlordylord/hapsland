@@ -17,8 +17,8 @@ export * from "./callback-controls.ts";
 import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
 import { readRecord, readBool, readNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
-import { decodeDriver, decodeDriverEvent, encodeDriverOutcome } from "./driver-codec.ts";
-import { SharedCore } from "./shared-core.ts";
+import { decodeDriver, decodeDriverEvent, encodeDriverOutcome, decodeDriverOutcome, type DriverAction } from "./driver-codec.ts";
+import { SharedCore, type WorkloadSource } from "./shared-core.ts";
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
 import { Schema } from "effect";
@@ -225,9 +225,16 @@ export type Replay = {
 };
 type CandidateContext = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
+  workloadSource?: WorkloadSource;
   writerRelease?: SharedWriterRelease;
   writerOrigin?: { readonly pending: SharedWriterPending; readonly control: Extract<WriterControl, {action:"claim"}>; readonly sequence: number };
   responseOrigin?: { readonly target: CollectionResponseIdentity; readonly control: CollectionResponseControl | WriterControl; readonly sequence: number };
+  driverAction?: DriverAction;
+  driverContext?: unknown;
+  driverOutcomeReceipt?: unknown;
+  driverSourceJob?: { readonly partition: number; readonly lifetime: number; readonly bytes: number; readonly units: readonly number[]; readonly outcome: ReturnType<typeof encodeDriverOutcome> };
+  stopFact?: { readonly at: number; readonly event: CanonicalEvent };
+  stopCapture?: StopCapture;
   noticeScope?: ReturnType<typeof encodeNoticeScope>;
   noticeDiagnostic?: OperationalNoticeKind;
   callbackReceipt?: CallbackReceipt;
@@ -253,7 +260,7 @@ type Scheduled = {
 export type RunRuntimeSnapshot = {
   readonly engine: ReturnType<SharedCore["snapshotState"]>;
   readonly queue: readonly Readonly<Scheduled>[];
-  readonly jobs: readonly (readonly [number, Extract<RunInput, { kind: "edit" }>])[];
+  readonly jobs: readonly (readonly [number, Extract<RunInput, { kind: "edit" }> & { readonly driverSourceJob?: Scheduled["driverSourceJob"] }])[];
   readonly issuedRequests: readonly (readonly [number, Extract<CanonicalCommand, { kind: "jevRequestIssued" }>])[];
   readonly retainedCallbacks: readonly { readonly order: number; readonly receipt: CallbackReceipt;
     readonly payload: Readonly<Scheduled>; readonly fact: unknown }[];
@@ -424,7 +431,7 @@ export class Run {
     number,
     Extract<CanonicalCommand, { kind: "jevRequestIssued" }>
   >();
-  private jobs = new Map<number, Extract<RunInput, { kind: "edit" }>>();
+  private jobs = new Map<number, Extract<RunInput, { kind: "edit" }> & { readonly driverSourceJob?: Scheduled["driverSourceJob"] }>();
   private readonly config: RunConfig;
   private readonly generators = new Map<number, ReturnType<SharedCore["session"]>>();
   private readonly scopes: { agent: string; partition: number; seed: number }[] = [];
@@ -605,14 +612,16 @@ export class Run {
       input: copy(input),
     });
   }
-  private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, activityScope?: number) {
+  private enqueue(input: RunInput & { readonly workloadSource?: WorkloadSource }, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, activityScope?: number) {
     integer(input.at, "virtual time");
     if (input.at < this.clock)
       throw new RangeError("cannot schedule in the past");
+    const { workloadSource, ...callerInput } = input;
     this.queuePush({
       at: input.at,
       order: this.order++,
-      input: copy(input),
+      input: copy(callerInput),
+      ...(workloadSource === undefined ? {} : { workloadSource }),
       ...(activityScope === undefined ? {} : { activityScope }),
       ...(job ? { job } : {}),
       ...(expiryAdvice !== undefined ? { expiryAdvice } : {}),
@@ -626,14 +635,18 @@ export class Run {
     expiryAdvice?: number,
     provenance: "environment" | "canonicalFeedback" = "environment",
     capture?: OutputCapture,
+    sourceAction?: DriverAction,
+    sourceContext?: unknown,
   ) {
     const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
     this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
     const scheduled = this.queue.find(item => item.order === this.order - 1)!;
+    scheduled.driverAction = freezeCanonicalData(copy(sourceAction ?? { event, delay, job: !!job, ...(expiryAdvice === undefined ? {} : { expiryAdvice }) }));
+    if (sourceContext !== undefined) scheduled.driverContext = freezeCanonicalData(copy(sourceContext));
     scheduled.generated = true;
     scheduled.partition = partition;
     const rawReceipt = provenance === "environment"
-      ? this.core.issueCallback(event, scheduled.order, scheduled.at, checkedCapture) : undefined;
+      ? this.core.issueCallback(event, scheduled.order, scheduled.at, scheduled.driverAction, checkedCapture) : undefined;
     if (rawReceipt) {
       const receipt = freezeCanonicalData({ target: decodeCallbackTarget(readRecord(decodeSharedValue(rawReceipt)).target),
         issuedAt: this.clock, dueAt: scheduled.at, ...(checkedCapture === undefined ? {} : { outputCapture: checkedCapture }) });
@@ -855,11 +868,11 @@ export class Run {
   private revalidateEnvironment() {
       const context = this.driverContext({ kind: "finalCandidateCheck", ownerCurrent: true, credentialGeneration: true,
         credentialAuthorized: this.environment.credentialReady, expired: false, workCurrent: this.environment.currentWork, hasFindings: true },
-        { at: this.clock, order: 0, input: { at: this.clock, kind: "finish" } }, "clear");
+        { at: this.clock, order: 0, input: { at: this.clock, kind: "finish" } }, undefined);
       context.background = this.generators.size > 0;
       for (const action of decodeDriver({ handled: true, actions: this.core.revalidate(context) }).actions) {
         const partition = action.candidate?.partition ?? this.inputPartition({ at: this.clock, order: 0, input: { at: this.clock, kind: "canonical", event: action.event } });
-        this.event(partition, action.event, action.delay);
+        this.event(partition, action.event, action.delay, undefined, action.expiryAdvice, "environment", undefined, action);
         if (action.candidate) {
           const scheduled = this.scheduled.get(this.order - 1);
           if (!scheduled) throw new Error("shared driver action lost source facts");
@@ -867,7 +880,7 @@ export class Run {
         }
       }
   }
-  private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
+  private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome | undefined, job?: Extract<RunInput, { kind: "edit" }>) {
     const partition = this.inputPartition(item);
     const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: partition, lifetime: 1, round: 0 };
     const automaticReview = !(this.config.lifecycles?.cancellation === "suppressed") && (!!this.config.lifecycles?.reuse || !(job && "revisionSubject" in job && job.revisionSubject !== undefined));
@@ -875,7 +888,7 @@ export class Run {
     const automaticOutput = this.candidateOutputBytes === undefined && this.outputProfile.outcome !== "failed" && this.outputProfile.delayMs < this.outputProfile.leaseMs;
     const c = item.candidate;
     return { $: "Driver.Context", partition: binding.partition, lifetime: binding.lifetime, round: binding.round,
-      bytes: job?.bytes ?? 0, job: !!job, jev_delay: this.jevDelay, outcome: encodeDriverOutcome(outcome),
+      bytes: job?.bytes ?? 0, job: !!job, jev_delay: this.jevDelay, outcome: outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(outcome) },
       current_work: this.environment.currentWork, credential_ready: this.environment.credentialReady,
       credential_generation: this.credentialGenerationMatches(c?.advice ?? ("advice" in event ? event.advice : 0)),
       source_readable: this.environment.sourceReadable ?? true, advice_lifetime: this.config.adviceLifetime ?? 600000,
@@ -884,15 +897,27 @@ export class Run {
       automatic_collection: automaticCollection, automatic_review: automaticReview, automatic_output: automaticOutput,
       output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: this.generators.has(partition), automatic_dispatch: true };
   }
+  private retainSourceJob(operation: number, item: Scheduled) {
+    if (!item.job) throw new Error("operation source job is absent");
+    this.jobs.set(operation, freezeCanonicalData({ ...item.job,
+      ...(item.driverSourceJob === undefined ? {} : { driverSourceJob: item.driverSourceJob }) }));
+  }
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
     const partition = this.core.commandScope(index, this.inputPartition(item));
     const job = ("operation" in command ? this.jobs.get(command.operation) : undefined)
       ?? (partition === this.inputPartition(item) ? item.job : undefined);
-    const sampling = command.kind === "jevRequestIssued" && this.config.lifecycles?.cancellation !== "suppressed" && (!!this.config.lifecycles?.reuse || !(job && "revisionSubject" in job && job.revisionSubject !== undefined));
-    const outcome = job?.outcome ?? this.outcome ?? (sampling ? this.core.sample(this.outcomeWeights) : "clear");
     const scoped = { ...item, partition: partition ?? 0 };
-    const context = this.driverContext(event, scoped, outcome, job);
-    if (partition !== undefined) { context.partition = partition; context.background = this.generators.has(partition); }
+    const supplied = this.driverContext(event, scoped, undefined, job);
+    if (partition !== undefined) { supplied.partition = partition; supplied.background = this.generators.has(partition); }
+    const sourceJob = ("operation" in command ? this.jobs.get(command.operation)?.driverSourceJob : undefined)
+      ?? (partition === this.inputPartition(item) ? item.driverSourceJob : undefined);
+    const prepared = this.core.prepareCommandContext(index, sourceJob === undefined ? { $: "None" }
+      : { $: "Some", value: { $: "Driver.SourceJob", ...sourceJob,
+          units: sourceJob.units.reduceRight<unknown>((tail,head) => ({ $: "Con", head, tail }), { $: "Nil" }) } },
+      this.outcome, this.outcomeWeights, supplied);
+    const context = readRecord(prepared.context);
+    const selected = readRecord(context.outcome);
+    const outcome = selected.$ === "Some" ? decodeDriverOutcome(selected.value) : undefined;
     const collector = this.core.collectorHandle(index,context);
     const stop = this.core.stopHandle(index, context, { now: this.clock, profile: this.outputProfile,
       ...(this.candidateOutputBytes === undefined ? {} : { bytes: this.candidateOutputBytes }),
@@ -901,7 +926,7 @@ export class Run {
       ? this.core.responseHandle(event,index,context,item.responseOrigin.target) : this.core.handle(event, index, context));
     const handled = { handled: collector.handled || ordinary.handled || stop.handled,
       actions: [...collector.actions, ...ordinary.actions, ...stop.actions] };
-    if (!handled.handled) return { handled: false, outcome: undefined };
+    if (!handled.handled) return { handled: false, outcome, context, receipt: prepared.receipt, sourceJob };
     if (stop.ended) this.queue = this.queue.filter(queued =>
       queued.finishAttempt !== stop.ended!.finish.attempt || queued.partition !== stop.ended!.finish.partition);
     for (const action of handled.actions) {
@@ -911,7 +936,11 @@ export class Run {
         && (action.event.kind === "submissionTerminal" || action.event.kind === "submissionExpiryCheck")
         ? { attempt: { kind: "individual" as const, advice: action.event.advice, token: action.event.token }, started: this.clock, profile: { ...this.outputProfile } } : undefined;
       const provenance = command.kind === "submissionExpired" ? "canonicalFeedback" : "environment";
-      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, provenance, output);
+      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice, provenance, output, action, context);
+      const queued = this.scheduled.get(this.order - 1);
+      if (!queued) throw new Error("shared driver action lost original issuance facts");
+      if (sourceJob) queued.driverSourceJob = sourceJob;
+      queued.driverOutcomeReceipt = prepared.receipt;
       if (item.responseOrigin && action.event.kind !== "submissionTerminal" && action.event.kind !== "submissionExpiryCheck"
         && action.event.kind !== "collectionLeaseCheck" && action.event.kind !== "collectionReleaseLease") {
         const scheduled = this.scheduled.get(this.order - 1);
@@ -938,7 +967,7 @@ export class Run {
       const session = this.generators.get(stop.ended.finish.partition);
       if (session) for (const input of session.onFinish(this.clock,stop.ended.continuation)) this.enqueue(input);
     }
-    return { handled: true, outcome };
+    return { handled: true, outcome, context, receipt: prepared.receipt, sourceJob };
   }
   private expireResponsesAtClock() {
     const changed = this.core.responseExpire(this.clock);
@@ -1013,7 +1042,22 @@ export class Run {
     if (item.activityScope !== undefined && (item.input.kind === "canonical" ? item.generated && !this.core.activityEventValid(item.input.event, partition, item.activityScope) : item.input.kind !== "preparationGraph" && !this.core.activityValid(partition, item.activityScope))) {
       return this.step(untilTime);
     }
-    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
+    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => {
+      this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
+      const queued = this.scheduled.get(this.order - 1);
+      if (!queued) throw new Error("emission lost its original queued source");
+      if (item.driverSourceJob) queued.driverSourceJob = item.driverSourceJob;
+    };
+    const emitDriver = (action: DriverAction, sourceJob?: Extract<RunInput, { kind: "edit" }>) => {
+      const context = undefined;
+      this.event(partition, action.event, action.delay, action.job ? sourceJob : undefined,
+        action.expiryAdvice, "environment", undefined, action, context);
+      if (item.driverSourceJob) {
+        const scheduled = this.scheduled.get(this.order - 1);
+        if (!scheduled) throw new Error("shared Driver emission lost original source job");
+        scheduled.driverSourceJob = item.driverSourceJob;
+      }
+    };
     const emitInitialOutput = (capture: OutputCapture, terminalOnly = false) => {
       const actions = initialOutputActions(capture, terminalOnly);
       for (const action of actions) {
@@ -1074,10 +1118,13 @@ export class Run {
             this.enqueue(input);
         return this.step(untilTime);
       }
+      item.driverSourceJob = freezeCanonicalData({ partition, lifetime: this.core.activityLifetime(partition),
+        bytes: item.input.bytes, units: [...item.input.unitBytes],
+        outcome: item.input.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(item.input.outcome) } });
       const permits = this.permitsEnabled;
       if (!round && !permits) {
         const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
-        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay);
+        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emitDriver(action, item.input);
         if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input, undefined, item.activityScope);
         return this.step(untilTime);
       }
@@ -1107,19 +1154,19 @@ export class Run {
         const lifetime = this.core.activityLifetime(partition);
         const capture = encodePermitCapture({ partition, lifetime, tool, started: timing.started, deadline: timing.deadline,
           postDelay: timing.duration, outcome: this.permitProfile.outcome, limits: this.permitLimits });
-        emit(decodeDriverEvent(this.core.issuePermit(capture, timing.started)), timing.started - this.clock, item.input);
+        emitDriver(this.core.issuePermit(capture, timing.started, this.clock), item.input);
         const issued = this.scheduled.get(this.order - 1);
         if (!issued) throw new Error("PRE capture lost its scheduled source facts");
         issued.permitCapture = { capture, started: timing.started };
       } else {
         const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
-        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay, item.input);
+        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emitDriver(action, item.input);
       }
       return this.step(untilTime);
     }
     let event = item.input.event;
     if (item.generated && ["jevRequestSettled", "jevRequestReady", "finalCandidateCheck"].includes(event.kind)) {
-      const context = this.driverContext(event, item, "clear");
+      const context = this.driverContext(event, item, undefined);
       event = decodeDriverEvent(this.core.fence(event, true, context));
     }
     if (event.kind === "cachePrepare" || event.kind === "cacheCommit") Object.assign(this.metadata, { reuse: { entryLimit: event.entryLimit, byteLimit: event.byteLimit } });
@@ -1213,7 +1260,7 @@ export class Run {
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
-          this.jobs.set(command.id, item.job);
+          this.retainSourceJob(command.id, item);
           if (this.config.lifecycles?.quietWindowMs)
             for (const action of this.core.quietCommand(event,commandIndex,partition,this.clock)) emit(action.event,action.delay);
           if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
@@ -1247,7 +1294,7 @@ export class Run {
             throw new Error(
               "unhandled required command: prepare lacks synthetic job",
             );
-          this.jobs.set(command.operation, item.job);
+          this.retainSourceJob(command.operation, item);
           effects.push({
             kind: "preparation",
             phase: "started",
@@ -1283,7 +1330,7 @@ export class Run {
           });
           const completion = decodeDriver({ handled: true, actions: { $: "Con", head: this.core.preparationCompleted({ ...scope, operation: command.operation }, item.job.unitBytes, this.config.preparationDelay ?? 2), tail: { $: "Nil" } } }).actions[0];
           if (!completion) throw new Error("missing preparation completion action");
-          emit(completion.event, completion.delay, item.job);
+          emitDriver(completion, item.job);
           break;
         }
         case "unitAdmitted": {
@@ -1291,7 +1338,7 @@ export class Run {
             throw new Error(
               "unhandled required command: unitAdmitted lacks job",
             );
-          this.jobs.set(command.operation, item.job);
+          this.retainSourceJob(command.operation, item);
           if (!driven) throw new Error("unhandled shared review unit dispatch");
           break;
         }
@@ -1318,7 +1365,15 @@ export class Run {
           this.issuedRequests.set(command.request, command);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
-          const selectedOutcome = driver.outcome ?? job?.outcome ?? this.outcome ?? this.core.sample(this.outcomeWeights);
+          const emitRequest = (event: CanonicalEvent, delay = 0) => {
+            this.event(partition, event, delay, undefined, undefined, "environment", undefined, undefined, driver.context);
+            const queued = this.scheduled.get(this.order - 1);
+            if (!queued) throw new Error("manual request emission lost source selection");
+            if (driver.sourceJob) queued.driverSourceJob = driver.sourceJob;
+            queued.driverOutcomeReceipt = driver.receipt;
+          };
+          const selectedOutcome = driver.outcome;
+          if (selectedOutcome === undefined) throw new Error("issued request lacks genuine shared outcome selection");
           if (selectedOutcome !== "neverSent") effects.push({
             kind: "jev",
             phase: "started",
@@ -1328,17 +1383,17 @@ export class Run {
           });
           if (driven) break;
           // Synthetic outcomes supply the same lifecycle facts required by native callbacks.
-          if (selectedOutcome !== "neverSent") emit({ kind: "jevRequestStarted", ...binding });
+          if (selectedOutcome !== "neverSent") emitRequest({ kind: "jevRequestStarted", ...binding });
           if (selectedOutcome === "interrupted" && this.config.lifecycles?.cancellation === "suppressed") {
-            emit({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
-            emit({ kind: "jevRequestSettled", ...binding, outcome: "interrupted", currentWork: false }, this.jevDelay);
+            emitRequest({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+            emitRequest({ kind: "jevRequestSettled", ...binding, outcome: "interrupted", currentWork: false }, this.jevDelay);
             break;
           }
-          if (selectedOutcome === "interrupted") emit({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+          if (selectedOutcome === "interrupted") emitRequest({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
           for (const check of decodeDriver({ handled: true, actions: this.core.freshnessChecks(binding) }).actions) {
-            emit(check.event, this.jevDelay);
+            emitRequest(check.event, this.jevDelay);
           }
-          emit(
+          emitRequest(
             {
               kind: "jevRequestSettled",
               ...binding,
@@ -1476,7 +1531,7 @@ export class Run {
       }
     }
     for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      emit(action.event, action.delay, action.job ? item.job : undefined, action.expiryAdvice);
+      emitDriver(action, item.job);
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find(w => w.operation === event.operation)?.parent;
       if (parent) this.jobs.delete(parent);
@@ -1627,9 +1682,10 @@ export class Run {
     if (!f) return;
     const at = this.clock + delay;
     if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === partition && item.at === at)) return;
-    const facts = wakeStopFacts(this.finishCapture(partition,f),at);
+    const capture = this.finishCapture(partition,f);
+    const facts = wakeStopFacts(capture,at);
     for (const fact of facts) this.queuePush({ at: fact.at, order: this.order++,
-      finishAttempt: f.attempt, partition,
+      finishAttempt: f.attempt, partition, stopFact: copy(fact), stopCapture: copy(capture),
       input: { at: fact.at, kind: "canonical", event: fact.event } });
   }
   /** Physical job observation only; recorded ownership is measured in Bend. */

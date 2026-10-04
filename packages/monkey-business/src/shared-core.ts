@@ -1,3 +1,6 @@
+import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts";
+import { encodeDriverOutcome } from "./driver-codec.ts";
+import { prepareSharedCommandContext } from "../../../src/canonical/simulation-adapter.ts";
 import { commandSharedQuiet, afterSharedQuiet, generatedSharedQuiet } from "../../../src/canonical/simulation-adapter.ts";
 import { peekSharedWriterRelease, deliverSharedWriterRelease, type SharedWriterRelease, attemptSharedWriter, prepareSharedWriter, claimSharedWriter, afterSharedWriter, releaseSharedWriter, type SharedWriterPending } from "../../../src/canonical/simulation-adapter.ts";
 import type { WriterCapture, WriterTarget } from "./writer-controls.ts";
@@ -21,7 +24,7 @@ import { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
 import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
 import { decodeImportGraphStep, encodeImportGraphEvent, projectImportGraph, initialImportGraph } from "../../../src/canonical/graph-adapter.ts";
-import { configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming, sampleSharedOutcome } from "../../../src/canonical/simulation-adapter.ts";
+import { configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming } from "../../../src/canonical/simulation-adapter.ts";
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
@@ -32,6 +35,16 @@ import { decodeAdviceeLifecycles, encodeAdviceeLifecycle, type AdviceeLifecycleA
 import { sharedActivityEventValid, actSharedLifecycle, sharedLifecycleEntries, sharedActivityScope, sharedActivityValid, sharedActivityLifetime, editSharedActivity, issueSharedPermit, issuedSharedPermit, consumedSharedPermit } from "../../../src/canonical/simulation-adapter.ts";
 
 /** The shared Bend owner holds both production reducers; this boundary validates and projects. */
+export type WorkloadSource = ReturnType<typeof actSharedWorkload>["events"][number];
+type WorkloadInput = SessionInput & { readonly workloadSource: WorkloadSource };
+function workloadInput(event: WorkloadSource, agent: string): WorkloadInput {
+  const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring,
+    workloadSource: freezeCanonicalData({ ...event, units: [...event.units] }) };
+  if (event.kind === 0) return { ...common, kind: "task", task: event.task };
+  if (event.kind === 2) return { ...common, kind: "finish" };
+  return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
+}
+
 export class SharedCore {
   private state: EngineState;
   private structuralTransition: unknown;
@@ -86,8 +99,8 @@ export class SharedCore {
   noticePrune(partition: number, group: number, now: number) { return pruneSharedNotices(this.state, partition, group, now); }
   noticeFailure(scope: unknown, now: number, key: number, sequence: number) { return suppliedSharedNotice(this.state, scope, now, key, sequence); }
   noticeOwned(partition: number, group: number, key: number, action: "lease" | "acknowledge") { return ownedSharedNotice(this.state, partition, group, key, action); }
-  issueCallback(event: CanonicalEvent, order: number, at: number, capture?: unknown) {
-    const issued = issueSharedCallback(this.state, event, order, at, capture);
+  issueCallback(event: CanonicalEvent, order: number, at: number, action: import("./driver-codec.ts").DriverAction, capture?: unknown) {
+    const issued = issueSharedCallback(this.state, event, order, at, action, capture);
     this.state = issued.state;
     return issued.receipt;
   }
@@ -126,12 +139,7 @@ export class SharedCore {
     this.state = transition.state;
     const changed = readRecord(transition.changed);
     const cleanup = readRecord(transition.cleanup);
-    const events: SessionInput[] = transition.events.map(event => {
-      const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring };
-      if (event.kind === 0) return { ...common, kind: "task", task: event.task };
-      if (event.kind === 2) return { ...common, kind: "finish" };
-      return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
-    });
+    const events = transition.events.map(event => workloadInput(event,agent));
     return { changed, cleanup, events };
   }
   admitFreshness(scope: FreshnessScope, source: FreshnessSource, index: number, sharing = false) {
@@ -168,7 +176,7 @@ export class SharedCore {
     return result.events;
   }
   freshnessChecks(scope: FreshnessScope) { return sharedFreshnessChecks(this.state, encodeFreshnessScope({ partition: scope.partition, lifetime: scope.lifetime, round: scope.round, operation: scope.operation })); }
-  issuePermit(capture: unknown, issuanceNow: number) { return issueSharedPermit(this.state, capture, issuanceNow); }
+  issuePermit(capture: unknown, started: number, now: number) { return issueSharedPermit(this.state, capture, started, now); }
   issuedPermit(capture: unknown, token: number) { return issuedSharedPermit(this.state, capture, token); }
   consumedPermit(index: number, partition: number, lifetime: number) { return consumedSharedPermit(this.state, index, partition, lifetime); }
   eventScope(event: CanonicalEvent, provided?: number) { return sharedEventScope(this.state, event, provided); }
@@ -185,22 +193,18 @@ export class SharedCore {
   }
   get now() { return sharedClock(this.state); }
   preTiming(partition: number, duration: number | undefined, fallback: number, lifetime: number) { return preSharedTiming(this.state, partition, duration, fallback, lifetime); }
-  sample(weights: OutcomeWeights) {
+  prepareCommandContext(index: number, sourceJob: unknown, configured: JevRequestOutcome | undefined, weights: OutcomeWeights, context: unknown) {
     const values = validateOutcomeWeights(weights);
     const encoded = JEV_OUTCOME_ORDER.map(kind => doubleWords(values[kind])).reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
-    const next = sampleSharedOutcome(this.state, encoded);
-    this.state = next.state;
-    return JEV_OUTCOME_ORDER[next.outcome]!;
+    const prepared = prepareSharedCommandContext(this.state, index, sourceJob,
+      { $: "Driver.OutcomeEnvironment", outcome: configured === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(configured) }, weights: encoded }, context);
+    this.state = prepared.state;
+    return { context: prepared.context, receipt: prepared.receipt };
   }
-  workloadAction(partition: number, agent: string, action: unknown): SessionInput[] {
+  workloadAction(partition: number, agent: string, action: unknown): WorkloadInput[] {
     const changed = actSharedWorkload(this.state, partition, action);
     this.state = changed.state;
-    return changed.events.map(event => {
-      const common = { at: event.at, generation: event.generation, agent, recurring: event.recurring };
-      if (event.kind === 0) return { ...common, kind: "task", task: event.task };
-      if (event.kind === 2) return { ...common, kind: "finish" };
-      return { ...common, kind: "edit", bytes: event.bytes, unitBytes: event.units, revision: event.revision, ...(event.repair ? { repair: true } : {}) };
-    });
+    return changed.events.map(event => workloadInput(event,agent));
   }
   workloadControl(partition: number, agent: string, control: SessionControl | { readonly kind: "editDuration"; readonly durationMs: number }) {
     const native = control.kind === "editPace" ? { $: "Workload.Pace", interval: control.intervalMs }

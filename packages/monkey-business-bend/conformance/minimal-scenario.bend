@@ -58,7 +58,7 @@ def context_values(action: Driver.Action, outcome: Canonical.RequestOutcome,
     current: Bool, credential: Bool, generation: Bool, readable: Bool, lifetime: Nat) -> Driver.Context:
   match action:
     case Driver.Action{_, _, candidate, _, _}:
-      Driver.Context{1n, lifetime, 1n, 10n, True{}, 5n, outcome, current, credential, generation, readable,
+      Driver.Context{1n, lifetime, 1n, 10n, True{}, 5n, Some{outcome}, current, credential, generation, readable,
         600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n, False{}, True{}}
 
 def context_active(active: Bool, action: Driver.Action, config: Config) -> Driver.Context:

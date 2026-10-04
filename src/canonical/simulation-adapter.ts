@@ -4,7 +4,7 @@ import { encodeCollectorProfile } from "../../packages/monkey-business/src/colle
 import { validateCollectionResponseControl, encodeCollectionResponse, encodeCollectionResponseIdentity, decodeCollectionResponseIdentity, type CollectionResponseIdentity, type CollectionResponseControl } from "../../packages/monkey-business/src/collection-scenario.ts";
 import { validateOutputCapture, encodeOutputCapture, validateOutputAttemptControl } from "../../packages/monkey-business/src/output-controls.ts";
 import { encodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
-import { decodeDriver, decodeDriverEvent } from "../../packages/monkey-business/src/driver-codec.ts";
+import { decodeDriver, decodeDriverEvent, encodeDriverAction, decodePreparedDriverContext, type DriverAction } from "../../packages/monkey-business/src/driver-codec.ts";
 import SharedEngine, { type EngineState } from "../../packages/monkey-business-bend/engine.mjs";
 import { Schema } from "effect";
 import { decoder, readRecord, readBendList, readNat, readBool, Nat } from "./boundary-schema.ts";
@@ -94,6 +94,15 @@ export const stepSharedGraph = (state: EngineState, key: unknown, position: bigi
   decodeImportGraphStep(result);
   return { state: retain(state, transition.state), before, result, structural: transition };
 };
+export const prepareSharedCommandContext = (state: EngineState, index: number, sourceJob: unknown, environment: unknown, context: unknown) => {
+  sharedCheck(state);
+  const command = sharedCommands.get(state)?.[index];
+  if (!command) throw new RangeError("missing shared command");
+  const prepared = SharedEngine.prepare_command_context(state, command, encodeSharedValue(sourceJob), encodeSharedValue(environment), encodeSharedValue(context));
+  const decoded = decodePreparedDriverContext(decodeSharedValue(prepared.context),decodeSharedValue(prepared.receipt));
+  return { state: retain(state, prepared.state), ...decoded };
+};
+
 export const driveSharedCommand = (state: EngineState, event: CanonicalEvent, index: number, context: unknown): unknown => {
   sharedCheck(state);
   const command = sharedCommands.get(state)?.[index];
@@ -148,9 +157,13 @@ export const actSharedLifecycle = (state: EngineState, partition: number, action
   }) };
 };
 
-export const issueSharedPermit = (state: EngineState, capture: unknown, issuanceNow: number): unknown => {
+export const issueSharedPermit = (state: EngineState, capture: unknown, started: number, now: number): DriverAction => {
   sharedCheck(state);
-  return decodeSharedValue(SharedEngine.permit_issue(encodeSharedValue(capture), BigInt(readNat(issuanceNow))));
+  if (readNat(started) < readNat(now)) throw new RangeError("PRE issuance starts before its source time");
+  const action = decodeSharedValue(SharedEngine.permit_issue_action(encodeSharedValue(capture), BigInt(readNat(started)), BigInt(readNat(now))));
+  const decoded = decodeDriver({ handled: true, actions: { $: "Con", head: action, tail: { $: "Nil" } } }).actions[0];
+  if (!decoded) throw new TypeError("missing genuine PRE action");
+  return freezeCanonicalData(decoded);
 };
 
 export const issuedSharedPermit = (state: EngineState, capture: unknown, token: number): unknown => {
@@ -262,13 +275,6 @@ export const preSharedTiming = (state: EngineState, partition: number, provided:
   if (!timing.valid) throw new RangeError("PRE due time outside u48 clock");
   return timing;
 };
-export const sampleSharedOutcome = (state: EngineState, weights: unknown) => {
-  sharedCheck(state);
-  const transition = SharedEngine.sample_outcome(state, encodeSharedValue(weights));
-  const outcome = readNat(transition.outcome);
-  if (outcome > 5) throw new TypeError("invalid shared outcome");
-  return { state: retain(state, transition.state), outcome };
-};
 
 const credentialFacts = decoder(Schema.Struct({ $: Schema.Literal("CredentialFacts.State"), available: Schema.Boolean, generation: Nat, issued: Schema.Unknown }));
 export const sharedCredentialFacts = (state: EngineState) => {
@@ -347,16 +353,17 @@ export const sharedPreparationActive = (state: EngineState, partition: number, l
 // these small immutable facts; no state ancestry or completed-callback archive.
 const callbackReceipts = new WeakSet<object>();
 const callbackReceiptResidents = new WeakMap<object, object>();
-export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number, capture?: unknown) => {
+export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number, action: DriverAction, capture?: unknown) => {
   sharedCheck(state);
+  const encodedAction = encodeDriverAction(action);
+  if (JSON.stringify(encodeCanonicalEvent(event)) !== JSON.stringify(readRecord(encodedAction).event)) throw new TypeError("callback action event mismatch");
   const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
   const encoded = encodeSharedValue(encodeCanonicalEvent(event));
   const owner = SharedEngine.callback_owner(state, encoded);
   if (readRecord(owner).$ === "None") return { state, receipt: undefined };
-  const action = { $: "Driver.Action", event: encodeCanonicalEvent(event), delay: 0, candidate: { $: "None" }, job: false, expiry_advice: { $: "None" } };
   const issued = checkedCapture === undefined
-    ? SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action))
-    : SharedEngine.callback_issue_output(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(action), encodeSharedValue(encodeOutputCapture(checkedCapture)));
+    ? SharedEngine.callback_issue(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(encodedAction))
+    : SharedEngine.callback_issue_output(state, readRecord(owner).value, BigInt(readNat(order)), BigInt(readNat(at)), encodeSharedValue(encodedAction), encodeSharedValue(encodeOutputCapture(checkedCapture)));
   const captured = readRecord(issued.receipt);
   if (captured.$ === "None") {
     if (issued.state !== state) throw new TypeError("refused callback issuance changed original state");

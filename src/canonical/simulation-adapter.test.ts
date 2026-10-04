@@ -53,15 +53,23 @@ describe("trusted simulation composition boundary", () => {
   });
   it("refuses a mismatched output capture without minting the preexisting receipt", () => {
     const original = initialSharedCanonical(limits);
-    const existing = issueSharedCallback(original, { kind: "jevRequestStarted", partition: 2, lifetime: 3, round: 4, operation: 5, request: 6 }, 7, 2);
+    const existing = issueSharedCallback(original, { kind: "jevRequestStarted", partition: 2, lifetime: 3, round: 4, operation: 5, request: 6 }, 7, 2, { event: { kind: "jevRequestStarted", partition: 2, lifetime: 3, round: 4, operation: 5, request: 6 }, delay: 0, job: false });
     expect(existing.receipt).toBeDefined();
     const before = sharedCallbackOriginals(existing.state);
-    const refused = issueSharedCallback(existing.state, { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, 8, 3,
+    const refused = issueSharedCallback(existing.state, { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, 8, 3, { event: { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, delay: 0, job: false },
       { attempt: { kind: "individual", advice: 7, token: 9 }, started: 0, profile: { outcome: "certain", delayMs: 3, leaseMs: 10 } });
     expect(refused.state).toBe(existing.state);
     expect(refused.receipt).toBeUndefined();
     expect(sharedCallbackOriginals(refused.state)).toEqual(before);
     expect(projectSharedCanonical(refused.state)).toBe(projectSharedCanonical(existing.state));
+  });
+  it("retains the original delayed callback action without changing its due time", () => {
+    const state = initialSharedCanonical(limits);
+    const issued = issueSharedCallback(state,
+      { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, 8, 3,
+      { event: { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, delay: 2, job: true });
+    expect(decodeSharedValue(issued.receipt)).toMatchObject({ at: 3, action: { delay: 2, job: true,
+      event: { $: "Canonical.PreparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4 } } });
   });
   it("validates exact output domains before touching shared state or receipt provenance", () => {
     const state = initialSharedCanonical(limits);
@@ -71,7 +79,7 @@ describe("trusted simulation composition boundary", () => {
     for (const value of [{ ...capture, extra: true }, { ...capture, profile: { ...capture.profile, extra: true } },
       { ...capture, profile: { ...capture.profile, outcome: { $: "OutputScenario.Certain", extra: true } } },
       { ...capture, attempt: { ...capture.attempt, advice: 0 } }, { ...capture, started: 2 ** 48 }]) {
-      expect(() => issueSharedCallback(state, event, 8, 3, value)).toThrow();
+      expect(() => issueSharedCallback(state, event, 8, 3, { event: { kind: "preparationCompleted", partition: 1, lifetime: 2, round: 3, operation: 4, unitBytes: [7] }, delay: 0, job: false }, value)).toThrow();
     }
     for (const [scope, outcome] of [[{ ...target, extra: true }, "certain"],
       [{ ...target, effect: { ...target.effect, extra: true } }, "certain"],
