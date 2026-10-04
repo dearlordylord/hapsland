@@ -105,6 +105,7 @@ function compareFinishRegistration(frame, source, field) {
 
   assert.equal(frame.$,"NativeRunTypes.ProductFrame",`${field} native registration anchor family`);
   assert.equal(frame.time,source.time,`${field} native registration anchor time`);
+  const details = readRecord(frame.details), core = one(details.before.core), consumed = option(details.consumed);
   const polls = source.after.queue.filter(item => item.partition === finish.partition &&
     item.finishAttempt === finish.attempt && item.input.kind === "canonical" &&
     item.input.event.kind === "stopPolled");
@@ -122,7 +123,10 @@ function compareFinishRegistration(frame, source, field) {
       `${field} native registration first poll event`);
   }
 
-  const details = readRecord(frame.details), core = one(details.before.core);
+  const firstPoll = polls.find(item => item.at === source.time);
+  assert.ok(firstPoll,`${field} original registration first poll source`);
+  assert.ok(consumed,`${field} native registration consumed source`);
+  compareConsumed(consumed,firstPoll,`${field} native registration`,firstPoll.order,core);
   assert.deepEqual(nativeStopFinish(core,finish.partition),finish,
     `${field} native registered Stop`);
 }
@@ -192,7 +196,29 @@ function comparePayload(value, publicItem, field, order, core) {
     } else if (input.$ === "NativeRunTypes.Edit") {
       assert.equal(publicItem.input.kind,"edit",`${field} retry kind ${order}`);
       compareJob(input.job,{ ...publicItem.input,driverSourceJob:publicItem.driverSourceJob },`${field} retry ${order}`);
+    } else if (input.$ === "NativeRunTypes.CacheFact") {
+      const fact = readRecord(input.fact);
+      assert.ok(publicItem.cacheFact,`${field} actual cache fact ${order}`);
+      assert.equal(publicItem.input.kind,"canonical",`${field} cache fact input ${order}`);
+      assert.deepEqual(fact.event,encodeCanonicalEvent(publicItem.cacheFact.event),`${field} complete cache fact event ${order}`);
+      assert.equal(publicItem.cacheFact.partition,publicItem.partition,`${field} cache fact owner ${order}`);
     } else throw new Error(`${field} unsupported genuine queued family ${String(input.$)}; comparison must be implemented`);
+}
+
+function compareConsumed(value, publicItem, field, order, core) {
+  const consumed = readRecord(value);
+  assert.equal(consumed.$,"NativeRunTypes.ConsumedInput",`${field} consumed source family`);
+  assert.equal(consumed.order,publicItem.order,`${field} consumed source order`);
+  const input = readRecord(consumed.input), delay = option(consumed.action_delay);
+  if (input.$ === "NativeRunTypes.Event" || input.$ === "NativeRunTypes.FinishInput") {
+    const action = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
+    assert.equal(delay,action.delay,`${field} consumed source action delay`);
+    if (publicItem.driverAction !== undefined)
+      assert.equal(delay,publicItem.driverAction.delay,`${field} public source action delay`);
+  } else {
+    assert.equal(delay,undefined,`${field} non-action consumed source delay`);
+  }
+  comparePayload(consumed.input,publicItem,`${field} consumed source`,order,core);
 }
 
 /** Compare actual transport facts. Missing host-owned registries remain an error. */
@@ -293,6 +319,13 @@ export function compareNativeFrames(values, publicFrames, field) {
       compareNativeRuntime(delivery.before,original.before,`${field} frame ${index} physical ${deliveryIndex} before`);
       compareNativeRuntime(delivery.after,original.after,`${field} frame ${index} physical ${deliveryIndex} after`);
       assert.deepEqual(delivery.action,original.delivery,`${field} frame ${index} physical ${deliveryIndex} entire original action`);
+    }
+    const consumed = option(details.consumed);
+    if (actual.kind === "sharing") {
+      assert.equal(consumed,undefined,`${field} frame ${index} sharing leaves source queued`);
+    } else {
+      assert.ok(consumed,`${field} frame ${index} missing consumed source`);
+      compareConsumed(consumed,physical[0]?.scheduled ?? actual.scheduled,`${field} frame ${index}`,actual.scheduled.order,core);
     }
     if (frame.$ === "NativeRunTypes.ProductFrame") {
       assert.equal(actual.kind,"canonical",`${field} original product observation family`);

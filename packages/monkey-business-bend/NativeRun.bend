@@ -645,13 +645,39 @@ def scope_snapshot_commands(before: T.RuntimeSnapshot, after: List<&2,EngineType
 
 def scope_details(details: T.FrameDetails, commands: List<&2,Canonical.Command>, +provided: Maybe<&2,Nat>) -> T.FrameDetails:
   match details:
-    case T.FrameDetails{+before,after,prepared,source,+transition_after,receipt,physical,_,_}:
+    case T.FrameDetails{+before,after,prepared,source,+transition_after,receipt,physical,_,_,consumed}:
       T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,provided,
-        scope_snapshot_commands(before,transition_after,commands,provided)}
+        scope_snapshot_commands(before,transition_after,commands,provided),consumed}
 
 def frame_details(before: T.RuntimeSnapshot, +state: T.State, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>) -> T.FrameDetails:
   match state:
-    case T.State{_,_,_,_,_,_,_,_,prepared,jobs,host}: T.FrameDetails{before,after_snapshot(state),prepared,source,transition_after,None{},[],None{},[]}
+    case T.State{_,_,_,_,_,_,_,_,prepared,jobs,host}: T.FrameDetails{before,after_snapshot(state),prepared,source,transition_after,None{},[],None{},[],None{}}
+
+def input_action_delay(input: T.Input) -> Maybe<&2,Nat>:
+  match input:
+    case T.Event{Driver.Action{_,delay,_,_,_},_,_,_}: Some{delay}
+    case T.FinishInput{Driver.Action{_,delay,_,_,_},_,_,_}: Some{delay}
+    case _: None{}
+
+def consumed_details(details: T.FrameDetails, order: Nat, +input: T.Input) -> T.FrameDetails:
+  match details:
+    case T.FrameDetails{+before,after,prepared,source,+transition_after,receipt,physical,provided,scopes,_}:
+      T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,provided,scopes,
+        Some{T.ConsumedInput{order,input,input_action_delay(input)}}}
+
+def consumed_frame(frame: T.Frame, order: Nat, +input: T.Input) -> T.Frame:
+  match frame:
+    case T.ProductFrame{sequence,time,event,before,after,commands,reason,details}:
+      T.ProductFrame{sequence,time,event,before,after,commands,reason,consumed_details(details,order,input)}
+    case T.GraphFrame{sequence,time,key,position,fact,before,after,command,details}:
+      T.GraphFrame{sequence,time,key,position,fact,before,after,command,consumed_details(details,order,input)}
+
+def consumed_step(step: T.Step, order: Nat, +input: T.Input) -> T.Step:
+  match step:
+    case T.Step{+state,Some{+frame},physical}:
+      +observed = consumed_frame(frame,order,input)
+      T.Step{recorded_latest(state,observed),Some{observed},physical}
+    case step: step
 
 def product_frame(+state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State,
     after: Canonical.State, +commands: List<&2,Canonical.Command>, reason: Maybe<&2,Canonical.Reason>,
@@ -1011,11 +1037,17 @@ def ordinary_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.J
     source: Maybe<&2,T.EmissionContext>, +scope: Maybe<&2,Nat>, source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
   command_bound(state,action,command,source,scope,scoped_fallback(job,scope),source_job,lookup_command_job(state,command))
 
-def provided_input(job: Maybe<&2,T.Job>, source_job: Maybe<&2,Driver.SourceJob>) -> Maybe<&2,Nat>:
+def provided_source(source: Maybe<&2,T.EmissionContext>) -> Maybe<&2,Nat>:
+  match source:
+    case Some{T.EmissionContext{context,_}}: Some{Engine.collector_partition(context)}
+    case None{}: None{}
+
+def provided_input(job: Maybe<&2,T.Job>, source_job: Maybe<&2,Driver.SourceJob>,
+    source: Maybe<&2,T.EmissionContext>) -> Maybe<&2,Nat>:
   match job source_job:
     case Some{T.Job{partition,_,_,_,_,_,_,_,_}} _: Some{partition}
     case None{} Some{Driver.SourceJob{partition,_,_,_,_}}: Some{partition}
-    case None{} None{}: None{}
+    case None{} None{}: provided_source(source)
 
 def ordinary_commands(commands: List<&2, Canonical.Command>, state: T.State,
     +action: Driver.Action, +job: Maybe<&2, T.Job>, +source: Maybe<&2,T.EmissionContext>,
@@ -1023,7 +1055,7 @@ def ordinary_commands(commands: List<&2, Canonical.Command>, state: T.State,
   match commands:
     case Nil{}: state
     case +command <> tail: ordinary_commands(tail,ordinary_command(state,action,job,command,source,
-      Engine.scope_command(before,after,command,provided_input(job,source_job)),source_job),action,job,source,before,after,source_job)
+      Engine.scope_command(before,after,command,provided_input(job,source_job,source)),source_job),action,job,source,before,after,source_job)
 
 def scoped_round(job: T.Job, found: Maybe<&2, Canonical.Round>) -> T.Job:
   match job found:
@@ -1134,13 +1166,13 @@ def product_feedback(+state: T.State, +event: Canonical.CanonicalEvent, commands
 
 def advanced_product(+state: T.State, +event: Canonical.CanonicalEvent, +action: Driver.Action,
     +job: Maybe<&2, T.Job>, +before: Canonical.State, +after: Canonical.State, +commands: List<&2, Canonical.Command>, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
-  product_frame(event_jobs(refusal_jobs(commands,event,before,product_feedback(issue_context(ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job),post,job,source),event,commands,job,source)),event,before), event, before, after, commands, None{},runtime_before,source,transition_after,provided_input(job,source_job))
+  product_frame(event_jobs(refusal_jobs(commands,event,before,product_feedback(issue_context(ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job),post,job,source),event,commands,job,source)),event,before), event, before, after, commands, None{},runtime_before,source,transition_after,provided_input(job,source_job,source))
 
 def product_result(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action,
     +job: Maybe<&2, T.Job>, +before: Canonical.State, result: Canonical.Step, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
   match result:
     case Canonical.Advanced{after, commands}: advanced_product(state, event, action, job, before, after, commands, post,runtime_before,source,transition_after,source_job)
-    case Canonical.Rejected{after, reason}: product_frame(event_jobs(wake_event(issue_context(state,post,job,source),event),event,before), event, before, after, [], Some{reason},runtime_before,source,transition_after,provided_input(job,source_job))
+    case Canonical.Rejected{after, reason}: product_frame(event_jobs(wake_event(issue_context(state,post,job,source),event),event,before), event, before, after, [], Some{reason},runtime_before,source,transition_after,provided_input(job,source_job,source))
 
 def transition_commands(result: Canonical.Step) -> List<&2,Canonical.Command>:
   match result:
@@ -1316,8 +1348,8 @@ def physical_delivery(receipt: Maybe<&2,Callbacks.Fact>, before: T.RuntimeSnapsh
 
 def physical_details(details: T.FrameDetails, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,T.PhysicalDelivery>) -> T.FrameDetails:
   match details:
-    case T.FrameDetails{before,after,prepared,source,transition_after,_,_,provided,scopes}:
-      T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,provided,scopes}
+    case T.FrameDetails{before,after,prepared,source,transition_after,_,_,provided,scopes,consumed}:
+      T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,provided,scopes,consumed}
 
 def physical_frame(frame: T.Frame, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,T.PhysicalDelivery>) -> T.Frame:
   match frame:
@@ -1335,12 +1367,12 @@ def physical_step(step: T.Step, receipt: Maybe<&2,Callbacks.Fact>, +physical: Li
     case T.Step{state,None{},prior}: T.Step{state,None{},List.append(&2,T.PhysicalDelivery,prior,physical)}
 
 def delivered_run(+before: T.State, +after: T.State, +receipt: Maybe<&2,Callbacks.Fact>,
-    +action: Maybe<&2,Driver.Action>, value: T.Input) -> T.Step:
-  physical_step(input(after,delivered_input(action,value)),receipt,
-    physical_delivery(receipt,runtime_snapshot(before),runtime_snapshot(after),action))
+    +action: Maybe<&2,Driver.Action>, order: Nat, +value: T.Input) -> T.Step:
+  consumed_step(physical_step(input(after,delivered_input(action,value)),receipt,
+    physical_delivery(receipt,runtime_snapshot(before),runtime_snapshot(after),action)),order,value)
 
 def original_delivery(+state: T.State, +value: T.Input, +order: Nat, +receipt: Maybe<&2,Callbacks.Fact>) -> T.Step:
-  delivered_run(state,delivered_state(state,value,order),receipt,physical_action(receipt,clock(state)),value)
+  delivered_run(state,delivered_state(state,value,order),receipt,physical_action(receipt,clock(state)),order,value)
 
 def located_run(+state: T.State, located: T.Located, +order: Nat) -> T.Step:
   match located:

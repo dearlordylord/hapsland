@@ -2302,9 +2302,20 @@ def list_maybe_nat(values: List<&2,List<&2,Maybe<&2,Nat>>>, suffix: List<&2,Nat>
     case +value <> Nil{}: List.length(&2,Maybe<&2,Nat>,value) <> list_maybe_nat_items([value],suffix)
     case _: 999999n <> suffix
 
+def nativeruntypes_consumedinput(values: List<&2,NativeRunTypes.ConsumedInput>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case NativeRunTypes.ConsumedInput{v0,v1,v2} <> Nil{}: 0n <> v0 <> nativeruntypes_input([v1],maybe_nat([v2],suffix))
+    case _: 999999n <> suffix
+
+def maybe_nativeruntypes_consumedinput(values: List<&2,Maybe<&2,NativeRunTypes.ConsumedInput>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> nativeruntypes_consumedinput([value],suffix)
+    case _: 999999n <> suffix
+
 def nativeruntypes_framedetails(values: List<&2,NativeRunTypes.FrameDetails>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case NativeRunTypes.FrameDetails{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> nativeruntypes_runtimesnapshot([v0],nativeruntypes_runtimesnapshot([v1],list_nativeruntypes_emissioncontext([v2],maybe_nativeruntypes_emissioncontext([v3],list_types_state([v4],maybe_callbacks_fact([v5],list_nativeruntypes_physicaldelivery([v6],maybe_nat([v7],list_maybe_nat([v8],suffix)))))))))
+    case NativeRunTypes.FrameDetails{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9} <> Nil{}: 0n <> nativeruntypes_runtimesnapshot([v0],nativeruntypes_runtimesnapshot([v1],list_nativeruntypes_emissioncontext([v2],maybe_nativeruntypes_emissioncontext([v3],list_types_state([v4],maybe_callbacks_fact([v5],list_nativeruntypes_physicaldelivery([v6],maybe_nat([v7],list_maybe_nat([v8],maybe_nativeruntypes_consumedinput([v9],suffix))))))))))
     case _: 999999n <> suffix
 
 def list_importgraph_bounded_items(values: List<&2,List<&2,ImportGraph.Bounded>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

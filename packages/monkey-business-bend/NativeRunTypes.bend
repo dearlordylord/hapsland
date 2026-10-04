@@ -56,9 +56,11 @@ type RuntimeSnapshot is Data:
     seed: Nat, environment: Environment, valid: Bool, jobs: List<&2,StoredJob>, host: HostFacts}
 type PhysicalDelivery is Data:
   PhysicalDelivery{before: RuntimeSnapshot, after: RuntimeSnapshot, action: Maybe<&2,Driver.Action>}
+type ConsumedInput is Data:
+  ConsumedInput{order: Nat, input: Input, action_delay: Maybe<&2,Nat>}
 type FrameDetails is Data:
   FrameDetails{before: RuntimeSnapshot, after: RuntimeSnapshot,
-    prepared: List<&2,EmissionContext>, source: Maybe<&2,EmissionContext>, transition_after: List<&2,EngineTypes.State>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
+    prepared: List<&2,EmissionContext>, source: Maybe<&2,EmissionContext>, transition_after: List<&2,EngineTypes.State>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, consumed: Maybe<&2,ConsumedInput>}
 type Frame is Data:
   ProductFrame{sequence: Nat, time: Nat, event: Canonical.CanonicalEvent,
     before: List<&2, Canonical.State>, after: List<&2, Canonical.State>, commands: List<&2, Canonical.Command>, rejection: Maybe<&2, Canonical.Reason>, details: FrameDetails}
