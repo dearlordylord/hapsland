@@ -499,11 +499,6 @@ def command_actions_prepared(list: List<&2,Driver.Action>, queue: Queue, +now: N
     case action <> tail: command_action_append(command,action,queue,now,job,source,
       q => command_actions_prepared(tail,q,now,job,source,command))
 
-def prepared_issued(result: Engine.IssuedActions, queue: Queue, jobs: List<&2,Stored>, now: Nat,
-    job: Job, delay: Nat, source: Maybe<&2,EmissionContext>, command: Canonical.Command) -> Runtime:
-  match result:
-    case Engine.IssuedActions{state,actions}: Runtime{state,command_actions_prepared(actions,queue,now,job,source,command),jobs,delay}
-
 def interpreted_with(result: Driver.Handled, environment: Environment, value: Canonical.Command,
     +state: Types.State, queue: Queue, jobs: List<&2,Stored>, +now: Nat, +job: Job, delay: Nat,
     source: Maybe<&2,EmissionContext>) -> Runtime:
