@@ -160,6 +160,3 @@ def trace_rows(result: Trace) -> List<&2, List<&2, Nat>>:
 
 def trace() -> List<&2, List<&2, Nat>>:
   trace_rows(until(1000n, Run.create(original_config(), 7n), 150n, []))
-
-def main() -> IO(Unit):
-  IO.print(Projection.bracket(Projection.show_rows(trace())))

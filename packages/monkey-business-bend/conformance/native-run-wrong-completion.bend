@@ -4,7 +4,6 @@ import ../NativeRunTypes.bend as T
 import ../Driver.bend as Driver
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ./native-run-scenario.bend as Trace
-import ./native-run-projection.bend as Projection
 
 # Original wrong-parent callback at the current clock while legitimate
 # preparation still owns its graph. It must not release that graph.
@@ -19,6 +18,3 @@ def rejected_completion(result: Trace.Trace) -> Trace.Trace:
 def trace() -> List<&2, List<&2, Nat>>:
   Trace.trace_rows(rejected_completion(Trace.until(1000n,
     Run.create(Trace.original_config(), 7n), 10n, [])))
-
-def main() -> IO(Unit):
-  IO.print(Projection.bracket(Projection.show_rows(trace())))

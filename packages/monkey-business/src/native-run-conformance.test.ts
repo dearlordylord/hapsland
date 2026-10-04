@@ -1,6 +1,6 @@
-import { expect, it } from "vitest";
+import { beforeAll, expect, it } from "vitest";
 import { createRun, restoreReplay, type RunConfig } from "./index.ts";
-import { runNative, runEmitted } from "../../monkey-business-bend/conformance/native-run-runner.mjs";
+import { runNativeScenarios, runEmittedScenarios } from "../../monkey-business-bend/conformance/native-run-runner.mjs";
 import { nativeRows, publicRows } from "../../monkey-business-bend/conformance/native-run-public.mjs";
 
 // Independently specified original inputs. Native executes the same workload
@@ -17,10 +17,23 @@ const original: RunConfig = {
     minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 },
 };
 
-it("runs continuous original workload and Finish facts through one native owner", async () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/native-run-scenario.bend", import.meta.url);
-  const native = runNative(fixture);
-  expect(await runEmitted(fixture)).toEqual(native);
+let nativeCases: number[][][] = [];
+
+beforeAll(async () => {
+  nativeCases = runNativeScenarios();
+  const emittedCases = await runEmittedScenarios();
+  expect(nativeCases).toHaveLength(7);
+  expect(emittedCases).toEqual(nativeCases);
+}, 275000);
+
+function nativeCase(index: number): number[][] {
+  const rows = nativeCases[index];
+  if (rows === undefined) throw new Error(`Missing native Run scenario ${index}`);
+  return rows;
+}
+
+it("runs continuous original workload and Finish facts through one native owner", () => {
+  const native = nativeCase(0);
   const run = createRun(original);
   run.advance({ untilTime: 150, maxEvents: 1000 });
   expect(nativeRows(native)).toEqual(publicRows(run.observations));
@@ -36,10 +49,8 @@ it("runs continuous original workload and Finish facts through one native owner"
   expect(restored.observe()).toEqual(run.observe());
 }, 30000);
 
-it.each(["restore", "rotate"] as const)("keeps captured issuance authority through credential %s", async mode => {
-  const fixture = new URL(`../../monkey-business-bend/conformance/native-run-credential-${mode}.bend`, import.meta.url);
-  const native = runNative(fixture);
-  expect(await runEmitted(fixture)).toEqual(native);
+it.each(["restore", "rotate"] as const)("keeps captured issuance authority through credential %s", mode => {
+  const native = nativeCase(mode === "restore" ? 1 : 2);
   const run = createRun({ ...original, outcome: "finding" });
   const boundary = mode === "restore" ? "jevRequestSettled" : "jevRequestStarted";
   for (let count = 0; count < 1000; count++) {
@@ -66,10 +77,8 @@ it.each(["restore", "rotate"] as const)("keeps captured issuance authority throu
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
 }, 30000);
 
-it("preserves initial u48 clock and root-seed acceptance without narrowing to controls", async () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/native-run-boundaries.bend", import.meta.url);
-  const native = runNative(fixture);
-  expect(await runEmitted(fixture)).toEqual(native);
+it("preserves initial u48 clock and root-seed acceptance without narrowing to controls", () => {
+  const native = nativeCase(3);
   const accepted = [0, 0, 1, 1], refused = [0, 0, 0, 0];
   expect(native).toEqual([accepted, accepted, accepted, accepted,
     accepted, refused, refused, accepted, refused, [1, ...accepted]]);
@@ -89,10 +98,8 @@ it("preserves initial u48 clock and root-seed acceptance without narrowing to co
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
 }, 30000);
 
-it("captures issued facts before a future raw-subnormal profile control", async () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/native-run-future-profile.bend", import.meta.url);
-  const native = runNative(fixture);
-  expect(await runEmitted(fixture)).toEqual(native);
+it("captures issued facts before a future raw-subnormal profile control", () => {
+  const native = nativeCase(4);
   const run = createRun(original);
   run.advance({ untilTime: 12, maxEvents: 1000 });
   run.applyControl({ kind: "jevProfile", delayMs: 5,
@@ -106,10 +113,8 @@ it("captures issued facts before a future raw-subnormal profile control", async 
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
 }, 30000);
 
-it("preserves the active graph after an original wrong-parent callback", async () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/native-run-wrong-completion.bend", import.meta.url);
-  const native = runNative(fixture);
-  expect(await runEmitted(fixture)).toEqual(native);
+it("preserves the active graph after an original wrong-parent callback", () => {
+  const native = nativeCase(5);
   const run = createRun(original);
   run.advance({ untilTime: 10, maxEvents: 1000 });
   run.schedule({ kind: "canonical", at: run.now,
@@ -124,10 +129,8 @@ it("preserves the active graph after an original wrong-parent callback", async (
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
 }, 30000);
 
-it("preserves empty future review-unit sizes through actual preparation and replay", async () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/native-run-empty-sizes.bend", import.meta.url);
-  const native = runNative(fixture);
-  expect(await runEmitted(fixture)).toEqual(native);
+it("preserves empty future review-unit sizes through actual preparation and replay", () => {
+  const native = nativeCase(6);
   const run = createRun(original);
   run.applyControl({ kind: "sizes", reservationBytes: 1, reviewUnitBytes: [] });
   run.advance({ untilTime: 30, maxEvents: 1000 });

@@ -4,7 +4,6 @@ import ../NativeRunTypes.bend as T
 import ./native-run-scenario.bend as Trace
 import ./native-run-event-boundary.bend as Boundary
 import ./native-run-credential-restore.bend as Credential
-import ./native-run-projection.bend as Projection
 
 def rotated(result: Trace.Trace) -> Trace.Trace:
   match result:
@@ -15,6 +14,3 @@ def rotated(result: Trace.Trace) -> Trace.Trace:
 def trace() -> List<&2, List<&2, Nat>>:
   Trace.trace_rows(rotated(Boundary.until_event(1000n,
     Run.create(Credential.finding_config(Trace.original_config()), 7n), 11n, [])))
-
-def main() -> IO(Unit):
-  IO.print(Projection.bracket(Projection.show_rows(trace())))

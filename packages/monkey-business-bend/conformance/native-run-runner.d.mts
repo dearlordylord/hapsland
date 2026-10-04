@@ -1,2 +1,2 @@
-export function runNative(fixture: URL): number[][];
-export function runEmitted(fixture: URL, entrypoint?: string): Promise<number[][]>;
+export function runNativeScenarios(): number[][][];
+export function runEmittedScenarios(): Promise<number[][][]>;

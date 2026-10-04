@@ -3,7 +3,6 @@ import ../NativeRun.bend as Run
 import ../NativeRunTypes.bend as T
 import ../Numeric.bend as Numeric
 import ./native-run-scenario.bend as Trace
-import ./native-run-projection.bend as Projection
 
 # First request already has its Clear outcome and deadline at clock12. The
 # original later control supplies raw MIN_VALUE, not a precomputed sampler CDF.
@@ -22,6 +21,3 @@ def profile(result: Trace.Trace) -> Trace.Trace:
 def trace() -> List<&2, List<&2, Nat>>:
   Trace.trace_rows(profile(Trace.until(1000n,
     Run.create(Trace.original_config(), 7n), 12n, [])))
-
-def main() -> IO(Unit):
-  IO.print(Projection.bracket(Projection.show_rows(trace())))

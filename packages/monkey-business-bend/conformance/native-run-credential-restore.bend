@@ -5,7 +5,6 @@ import ../NativeRunTypes.bend as T
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ./native-run-scenario.bend as Trace
 import ./native-run-event-boundary.bend as Boundary
-import ./native-run-projection.bend as Projection
 
 def finding_config(config: T.Config) -> T.Config:
   match config:
@@ -32,6 +31,3 @@ def unavailable(result: Trace.Trace) -> Trace.Trace:
 def trace() -> List<&2, List<&2, Nat>>:
   Trace.trace_rows(unavailable(Boundary.until_event(1000n,
     Run.create(finding_config(Trace.original_config()), 7n), 12n, [])))
-
-def main() -> IO(Unit):
-  IO.print(Projection.bracket(Projection.show_rows(trace())))

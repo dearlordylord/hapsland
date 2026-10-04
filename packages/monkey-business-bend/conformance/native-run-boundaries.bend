@@ -44,6 +44,3 @@ def trace() -> List<&2, List<&2, Nat>>:
    initial(7n, 5n, 2n, 600000n, 1n, [Numeric.Words{0n, 0n}, Numeric.Words{0n, 0n},
      Numeric.Words{0n, 0n}, Numeric.Words{0n, 0n}, Numeric.Words{0n, 0n}, Numeric.Words{0n, 0n}]),
    controlled(Run.control(Run.create(Trace.original_config(), 7n), T.WorkloadControl{Some{1n}, Workload.Sizes{1n, []}}))]
-
-def main() -> IO(Unit):
-  IO.print(Projection.bracket(Projection.show_rows(trace())))
