@@ -8,6 +8,7 @@ import { encodePreparationGraphLimits } from "../../packages/monkey-business/src
 import { doubleWords } from "../../packages/monkey-business/src/numeric-codec.ts";
 import { decodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
 import { decodeOutputCapture } from "../../packages/monkey-business/src/output-controls.ts";
+import { decodeStopFound } from "../../packages/monkey-business/src/stop-codec.ts";
 import { JEV_OUTCOME_ORDER } from "../../packages/monkey-business/src/outcomes.ts";
 
 const list = value => readBendList(value, value => value, 2048);
@@ -47,11 +48,56 @@ function compareContext(value, original, field) {
   assert.deepEqual(record.receipt,original.driverOutcomeReceipt,`${field} prepared original receipt`);
 }
 
-function comparePayload(value, publicItem, field, order) {
+function nativeStopFinish(core, partition) {
+  const state = readRecord(core), scenarios = readRecord(state.scenarios), stop = readRecord(scenarios.stop);
+  const finish = list(stop.finishes).map(readRecord).find(value => value.partition === partition);
+  return finish === undefined ? undefined : decodeStopFound({ $: "Some", value: finish });
+}
+
+function compareStopPayload(value, publicItem, core, field, order) {
+    const input = readRecord(value), stopFact = publicItem.stopFact, capture = publicItem.stopCapture;
+    assert.equal(input.$,"NativeRunTypes.FinishInput",`${field} Stop fact input ${order}`);
+    assert.ok(stopFact,`${field} missing original Stop fact ${order}`);
+    assert.ok(capture,`${field} missing original Stop capture ${order}`);
+    assert.equal(publicItem.input.kind,"canonical",`${field} original Stop input kind ${order}`);
+    assert.deepEqual(publicItem.input.event,stopFact.event,`${field} original Stop input event ${order}`);
+    assert.equal(publicItem.input.at,stopFact.at,`${field} original Stop input time ${order}`);
+    assert.equal(publicItem.at,stopFact.at,`${field} original Stop fact time ${order}`);
+    assert.equal(publicItem.partition,capture.partition,`${field} original Stop partition ${order}`);
+    assert.equal(publicItem.activityScope,capture.lifetime,`${field} original Stop activity scope ${order}`);
+    assert.equal(publicItem.finishAttempt,capture.attempt,`${field} original Stop attempt ${order}`);
+    for (const key of ["driverAction","driverContext","driverOutcomeReceipt","driverSourceJob","candidate","callbackReceipt","expiryAdvice","fitFinish","generated"])
+      assert.equal(publicItem[key],undefined,`${field} unexpected Stop payload metadata ${key} ${order}`);
+
+    const finish = nativeStopFinish(core,capture.partition);
+    assert.ok(finish,`${field} native Stop registry lost original finish ${order}`);
+    assert.deepEqual({ partition:capture.partition, lifetime:capture.lifetime, round:capture.round,
+      attempt:capture.attempt, token:capture.token, started:capture.started, deadline:capture.cutoff },
+      { partition:finish.partition, lifetime:finish.lifetime, round:finish.round,
+        attempt:finish.attempt, token:finish.token, started:finish.started, deadline:finish.deadline },
+      `${field} full original Stop capture ${order}`);
+
+    const action = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
+    assert.deepEqual(action,{ event:stopFact.event, delay:finish.deadline - finish.started, job:false },
+      `${field} original Stop source action ${order}`);
+    const job = readRecord(input.job);
+    assert.equal(job.$,"NativeRunTypes.Job",`${field} original Stop job ${order}`);
+    assert.deepEqual([job.partition,job.lifetime,job.round,job.bytes,list(job.units),job.revision,job.repair,option(job.duration),option(job.source_job)],
+      [capture.partition,capture.lifetime,capture.round,0,[],0,false,undefined,undefined],
+      `${field} original Stop source job ${order}`);
+    assert.equal(input.attempt,capture.attempt,`${field} original Stop input attempt ${order}`);
+    compareContext(input.context,publicItem,`${field} Stop item ${order}`);
+}
+
+function comparePayload(value, publicItem, field, order, core) {
     const input = readRecord(value);
-    const supported = new Set(["input","at","order","driverAction","driverContext","driverOutcomeReceipt","driverSourceJob","callbackReceipt","job","finishAttempt","expiryAdvice","generated","partition","candidate","activityScope","workloadSource"]);
+    const supported = new Set(["input","at","order","driverAction","driverContext","driverOutcomeReceipt","driverSourceJob","stopFact","stopCapture","callbackReceipt","job","finishAttempt","expiryAdvice","generated","partition","candidate","activityScope","workloadSource"]);
     for (const key of Object.keys(publicItem)) assert.ok(supported.has(key),`${field} unimplemented original payload metadata ${key}`);
     if (input.$ === "NativeRunTypes.Event" || input.$ === "NativeRunTypes.FinishInput") {
+      if (publicItem.stopFact) {
+        compareStopPayload(value,publicItem,core,field,order);
+        return;
+      }
       assert.ok(publicItem.driverAction,`${field} actual action ${order}`);
       const actualAction = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
       assert.deepEqual(actualAction,publicItem.driverAction,`${field} complete action ${order}`);
@@ -120,7 +166,7 @@ export function compareNativeRuntime(value, original, field) {
     const times = scheduled.filter(value => value.order === order);
     assert.equal(times.length,1,`${field} scheduler ownership ${order}`);
     assert.equal(times[0].at,publicItem.at,`${field} actual scheduled time ${order}`);
-    comparePayload(item.input,publicItem,`${field} item ${order}`,order);
+    comparePayload(item.input,publicItem,`${field} item ${order}`,order,core);
   }
   const jobs = list(runtime.jobs).map(readRecord);
   assert.equal(jobs.length,original.jobs.length,`${field} full retained job count`);
@@ -157,7 +203,7 @@ export function compareNativeRuntime(value, original, field) {
     assert.equal(originalCallback.payload.order,callback.order);
     assert.equal(originalCallback.payload.at,callback.due_at);
     assert.deepEqual(originalCallback.payload.callbackReceipt,originalCallback.receipt);
-    comparePayload(callback.payload,originalCallback.payload,`${field} retained payload ${callback.order}`,callback.order);
+    comparePayload(callback.payload,originalCallback.payload,`${field} retained payload ${callback.order}`,callback.order,core);
   }
 }
 
