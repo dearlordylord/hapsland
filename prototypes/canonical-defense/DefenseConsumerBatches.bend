@@ -31,7 +31,7 @@ def tick_batches(ticks: List<&2,Observed.TickSnapshot>, +batch: Batch, +offset: 
           Nat.mod(Nat.add(count,1n),64n)))
 
 def checkpoint_batches(checkpoints: List<&2,Observed.Checkpoint>, +config: T.Config,
-    +creation: Nat, +campaign: Nat, +original: List<&2,Observed.Input>, +final_world: List<&2,M.World>, index: Nat) -> List<&2,Batch>:
+    +creation: Nat, +campaign: Nat, +original: List<&2,Observed.Input>, +final_world: List<&2,M.World>, +index: Nat) -> List<&2,Batch>:
   match checkpoints:
     case Nil{}: []
     case Observed.Checkpoint{input,before,after,ticks} <> tail:
