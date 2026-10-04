@@ -51,16 +51,16 @@ Hypotheses: formatting/allocation and repeated envelope serialization increase t
 
 ### E3 Isolate compiler runtime and phase costs
 
-- [ ] Prepare the identical uninstrumented compiler JS payload and frozen source closure for both runtimes.
-- [ ] Compare Bun 1.3.14 and 1.4.2 with equal **240-second compiler limits**, recording hashes, elapsed time, peak RSS, exit and emitted C.
-- [ ] If still necessary, add stage markers to distinguish frontend, lowering iterations, reachability and C writing.
-- [ ] Record a cause supported by evidence, or state that the result remains inconclusive; decide whether an upstream reproduction is warranted.
+- [x] Prepare identical uninstrumented compiler JS: extracted original SHA256 `546fc6036d1e718404ce628e5405ec4574c24fb70af43016dc6a832ef388e214`, independently confirmed against an earlier clean extraction. Only adaptation is the installed Base directory path; compiler expressions unchanged. Both runtimes verified locally.
+- [x] Compare Bun 1.3.14 and 1.4.2 with equal **240-second compiler limits**, recording hashes, elapsed time, peak RSS, exit and emitted C. Sequential trial started on the same Bool.pick candidate; receipts `/tmp/hapsland-e3-compiler-runtime/`.
+- [ ] Deferred: only if still necessary, add stage markers to distinguish frontend, lowering iterations, reachability and C writing.
+- [x] Record a bounded result: Bun 1.3.14 took 36.69s/5,855,064 KiB peak RSS; 1.4.2 took 24.35s/4,209,720 KiB. Both emitted identical C matching the retained baseline. Runtime version affects this pair; packaging effects and earlier timing variability remain unisolated. No new upstream defect established; no stage instrumentation needed now.
 
 Hypothesis: compiler runtime or packaging contributes to variability. The prior instrumented Bun 1.4.2 run is not an uncontaminated comparison with the packaged CLI. The known 247-live-word limitation is separate from timeouts.
 
 ### E4 Reduce TS observation copies
 
-- [ ] Identify repeated copies in `structuralBefore` and `structuralRecord`.
+- [x] Identify repeated copies: `structuralRecord` clones already copied/frozen `before` and `after` again. Candidate: copy mutable details and freeze the frame while reusing immutable snapshots; keep `runtimeSnapshot` unchanged. Isolated implementation underway.
 - [ ] Test one change with structural observations enabled and the same schedule, at most 10 seconds per execution.
 - [ ] Verify mutation isolation, frame data and replay; record measured cost and decision.
 
@@ -82,9 +82,13 @@ Append one row per terminal experiment; include failed preparation. Store detail
 
 | E2 chunked native output | Candidate `749acf78`, unchanged saved baseline | C 240s; clang 120s; execution 10s each | C 33.35s, clang 40.66s. Baseline/candidate: 20/20 complete batches, 6,455,296/4,861,952 output bytes; peak RSS 132,508/108,592 KiB | All 20 common batches byte-identical; full 145-batch validation not run | No demonstrated speed improvement; retain experiment, proceed to E3 |
 
+| E3 compiler runtime | Same uninstrumented payload and Bool.pick source closure | 240s per runtime | Bun 1.3.14: 36.69s; 1.4.2: 24.35s (33.6% less time), 28.1% less peak RSS | Identical emitted C; sources unchanged; no execution in this experiment | Runtime difference measured once; proceed to E4 |
+
 Detailed terminal evidence: [initial experiment receipts](performance-evidence/2026-10-04-initial-experiments.json).
 
 Focused writer evidence: [chunked writer canary](performance-evidence/2026-10-04-chunked-writer-canary.json). Canary success does not close the full-game comparison checkbox.
 
 
 Detailed E2 comparison: [native prefix measurements](performance-evidence/2026-10-04-chunked-output-comparison.json).
+
+Detailed E3 comparison: [compiler runtime measurements](performance-evidence/2026-10-04-compiler-runtime-comparison.json).
