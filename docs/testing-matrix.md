@@ -67,7 +67,7 @@ release as Vitest and emits Istanbul JSON, not raw V8 coverage.
 Coverage runs allow a 30-second test-runner watchdog for instrumentation
 overhead; ordinary tests keep Vitest's five-second default, and explicit
 fixture/product deadlines remain unchanged. The bounded Monkey Business
-lifecycle replay stress cases have their own 30-second watchdog in both modes.
+lifecycle replay stress cases have their own 60-second watchdog in both modes.
 These runner limits are not product latency requirements.
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
 from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
