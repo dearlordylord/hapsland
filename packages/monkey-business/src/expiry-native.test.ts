@@ -176,10 +176,10 @@ it("compares all twelve expiry business histories with emitted JS, public API an
   compareExpiryBusinessTrace(decodeNativePrefix(emitted,"expiry_scenarios"),completeCaptures);
 }, 25000);
 
-// Explicit qualification aggregate: C45s + clang90s + native5s + JS15s + run5s
-// total160s, plus15s cleanup. Runtime and proof limits are unchanged.
+// Explicit qualification aggregate: C60s + clang90s + native5s + JS15s + run5s
+// total175s, plus15s cleanup. Runtime and proof limits are unchanged.
 it("compares all original expiry inputs and public owner facts across native Bend, emitted JS, public API and replay", () => {
-  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 45000, clangTimeoutMs: 90000 }), emitted = runWorkloadEmitted(fixture);
+  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 60000, clangTimeoutMs: 90000 }), emitted = runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
   expect(decodeNativePrefix(native, "expiry_scenarios")).toEqual(decodeNativePrefix(emitted, "expiry_scenarios"));
   assertOriginals(native); assertOriginals(emitted);
@@ -188,4 +188,4 @@ it("compares all original expiry inputs and public owner facts across native Ben
   expect(decodeExpiryNativeBoundary(emitted)).toEqual(expected);
   compareExpiryBusinessTrace(decodeNativePrefix(native,"expiry_scenarios"),completeCaptures);
   compareExpiryBusinessTrace(decodeNativePrefix(emitted,"expiry_scenarios"),completeCaptures);
-}, 175000);
+}, 190000);

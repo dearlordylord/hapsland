@@ -110,8 +110,8 @@ it("reports a bounded-output failure and cleans the fresh directory", () => {
 
 it("allows an explicit bounded C allowance without changing clang or execution defaults", () => {
   spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
-  expect(runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs: 45000 })).toEqual([0]);
-  expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([45000, 30000, 5000]);
+  expect(runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs: 60000 })).toEqual([0]);
+  expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([60000, 30000, 5000]);
 });
 
 it("allows an explicit clang90 allowance without changing emission or execution defaults", () => {
@@ -126,7 +126,7 @@ it("rejects a clang allowance over90 before identity capture or spawn", () => {
   expect(preflight.capture).not.toHaveBeenCalled();
 });
 
-it.each([0, -1, 45001, 1.5, Number.NaN, Number.POSITIVE_INFINITY])("rejects invalid C allowance %s before any spawn", emissionTimeoutMs => {
+it.each([0, -1, 60001, 1.5, Number.NaN, Number.POSITIVE_INFINITY])("rejects invalid C allowance %s before any spawn", emissionTimeoutMs => {
   expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs })).toThrow("invalid native C emission timeout");
   expect(spawn).not.toHaveBeenCalled();
   expect(preflight.capture).not.toHaveBeenCalled();
