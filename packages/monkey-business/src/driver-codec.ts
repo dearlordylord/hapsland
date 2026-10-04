@@ -2,7 +2,7 @@ import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.
 import { CanonicalEventSchema } from "../../../src/canonical/models.ts";
 import { decodeCanonicalConstructor } from "../../../src/canonical/constructors.ts";
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
-import { readRecord, readNat, readBool, readBendList, decoder } from "../../../src/canonical/boundary-schema.ts";
+import { readRecord, readNat, readBool, readBendList, decoder, Word } from "../../../src/canonical/boundary-schema.ts";
 import type { CanonicalEvent, JevRequestOutcome } from "../../../src/canonical/adapter.ts";
 
 export type DriverCandidate = { partition: number; advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
@@ -109,4 +109,52 @@ export const encodeDriverAction = (value: DriverAction): unknown => {
   return { $: "Driver.Action", event: encodeCanonicalEvent(readEvent(value.event)), delay: readNat(value.delay), job: readBool(value.job),
     candidate: candidate ? { $: "Some", value: { $: "Driver.Candidate", partition: readNat(candidate.partition), advice: readNat(candidate.advice), round: readNat(candidate.round), token: readNat(candidate.token), surface: { $: `Handoff.${surfaces[candidate.surface]}` }, selection: readBool(candidate.selection ?? false) } } : { $: "None" },
     expiry_advice: value.expiryAdvice === undefined ? { $: "None" } : { $: "Some", value: readNat(value.expiryAdvice) } };
+};
+
+export const decodeDriverOutcome = (value: unknown): JevRequestOutcome => {
+  const tag = readRecord(value).$;
+  const outcome = Object.entries(outcomeTags).find(([,name]) => tag === `Canonical.${name}`)?.[0];
+  if (outcome === undefined) throw new TypeError("invalid Driver outcome");
+  decodeCanonicalConstructor(value, String(tag));
+  return outcome as JevRequestOutcome;
+};
+
+const exactDriverRecord = (value: unknown, tag: string, fields: readonly string[]) => {
+  const record = readRecord(value);
+  const keys = ["$",...fields];
+  if (record.$ !== tag || Object.keys(record).length !== keys.length || keys.some(key => !Object.hasOwn(record,key))) throw new TypeError(`invalid ${tag} fields`);
+  return record;
+};
+const driverMaybe = (value: unknown, validate: (value: unknown) => void): void => {
+  const option = readRecord(value);
+  if (option.$ === "None") exactDriverRecord(value,"None",[]);
+  else { const some = exactDriverRecord(value,"Some",["value"]); validate(some.value); }
+};
+export const validateDriverSourceJob = (value: unknown): void => {
+  const job = exactDriverRecord(value,"Driver.SourceJob",["partition","lifetime","bytes","units","outcome"]);
+  readNat(job.partition); readNat(job.lifetime); readNat(job.bytes);
+  readBendList(job.units,readNat,1024); driverMaybe(job.outcome,decodeDriverOutcome);
+};
+export const decodePreparedDriverContext = (contextValue: unknown, receiptValue: unknown) => {
+  const context = exactDriverRecord(contextValue,"Driver.Context",["partition","lifetime","round","bytes","job","jev_delay","outcome","current_work","credential_ready","credential_generation","source_readable","advice_lifetime","candidate","automatic_collection","automatic_review","automatic_output","output_certain","output_delay","output_lease","background","automatic_dispatch"]);
+  for (const field of ["partition","lifetime","round","bytes","jev_delay","advice_lifetime","output_delay","output_lease"]) readNat(context[field]);
+  for (const field of ["job","current_work","credential_ready","credential_generation","source_readable","automatic_collection","automatic_review","automatic_output","output_certain","background","automatic_dispatch"]) readBool(context[field]);
+  driverMaybe(context.outcome,decodeDriverOutcome);
+  driverMaybe(context.candidate,value => {
+    const candidate = exactDriverRecord(value,"Driver.Candidate",["partition","advice","round","token","surface","selection"]);
+    for (const field of ["partition","advice","round","token"]) readNat(candidate[field]);
+    readBool(candidate.selection); const tag=readRecord(candidate.surface).$;
+    if (tag !== "Handoff.Edit" && tag !== "Handoff.Background" && tag !== "Handoff.Stop") throw new TypeError("invalid Driver candidate surface");
+    exactDriverRecord(candidate.surface,tag,[]);
+  });
+  driverMaybe(receiptValue,value => {
+    const receipt = exactDriverRecord(value,"Driver.OutcomeReceipt",["partition","lifetime","round","operation","request","outcome","source","job","stream_before","stream_after"]);
+    for (const field of ["partition","lifetime","round","operation","request"]) readNat(receipt[field]);
+    decodeDriverOutcome(receipt.outcome); driverMaybe(receipt.job,validateDriverSourceJob);
+    const source=readRecord(receipt.source).$;
+    if (source !== "Driver.EditForced" && source !== "Driver.RunForced" && source !== "Driver.Sampled") throw new TypeError("invalid Driver outcome source");
+    exactDriverRecord(receipt.source,source,[]);
+    driverMaybe(receipt.stream_before,decoder(Word)); driverMaybe(receipt.stream_after,decoder(Word));
+  });
+  return freezeCanonicalData({context,receipt:receiptValue});
 };

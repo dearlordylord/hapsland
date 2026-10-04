@@ -1,3 +1,6 @@
+import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts";
+import { encodeDriverOutcome } from "./driver-codec.ts";
+import { prepareSharedCommandContext } from "../../../src/canonical/simulation-adapter.ts";
 import { commandSharedQuiet, afterSharedQuiet, generatedSharedQuiet } from "../../../src/canonical/simulation-adapter.ts";
 import { peekSharedWriterRelease, deliverSharedWriterRelease, type SharedWriterRelease, attemptSharedWriter, prepareSharedWriter, claimSharedWriter, afterSharedWriter, releaseSharedWriter, type SharedWriterPending } from "../../../src/canonical/simulation-adapter.ts";
 import type { WriterCapture, WriterTarget } from "./writer-controls.ts";
@@ -21,7 +24,7 @@ import { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
 import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
 import { decodeImportGraphStep, encodeImportGraphEvent, projectImportGraph, initialImportGraph } from "../../../src/canonical/graph-adapter.ts";
-import { configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming, sampleSharedOutcome } from "../../../src/canonical/simulation-adapter.ts";
+import { configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming } from "../../../src/canonical/simulation-adapter.ts";
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
@@ -168,7 +171,7 @@ export class SharedCore {
     return result.events;
   }
   freshnessChecks(scope: FreshnessScope) { return sharedFreshnessChecks(this.state, encodeFreshnessScope({ partition: scope.partition, lifetime: scope.lifetime, round: scope.round, operation: scope.operation })); }
-  issuePermit(capture: unknown, issuanceNow: number) { return issueSharedPermit(this.state, capture, issuanceNow); }
+  issuePermit(capture: unknown, started: number, now: number) { return issueSharedPermit(this.state, capture, started, now); }
   issuedPermit(capture: unknown, token: number) { return issuedSharedPermit(this.state, capture, token); }
   consumedPermit(index: number, partition: number, lifetime: number) { return consumedSharedPermit(this.state, index, partition, lifetime); }
   eventScope(event: CanonicalEvent, provided?: number) { return sharedEventScope(this.state, event, provided); }
@@ -185,12 +188,13 @@ export class SharedCore {
   }
   get now() { return sharedClock(this.state); }
   preTiming(partition: number, duration: number | undefined, fallback: number, lifetime: number) { return preSharedTiming(this.state, partition, duration, fallback, lifetime); }
-  sample(weights: OutcomeWeights) {
+  prepareCommandContext(index: number, sourceJob: unknown, configured: JevRequestOutcome | undefined, weights: OutcomeWeights, context: unknown) {
     const values = validateOutcomeWeights(weights);
     const encoded = JEV_OUTCOME_ORDER.map(kind => doubleWords(values[kind])).reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
-    const next = sampleSharedOutcome(this.state, encoded);
-    this.state = next.state;
-    return JEV_OUTCOME_ORDER[next.outcome]!;
+    const prepared = prepareSharedCommandContext(this.state, index, sourceJob,
+      { $: "Driver.OutcomeEnvironment", outcome: configured === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(configured) }, weights: encoded }, context);
+    this.state = prepared.state;
+    return { context: prepared.context, receipt: prepared.receipt };
   }
   workloadAction(partition: number, agent: string, action: unknown): SessionInput[] {
     const changed = actSharedWorkload(this.state, partition, action);

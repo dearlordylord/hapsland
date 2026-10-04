@@ -50,6 +50,44 @@ describe("public weighted request profile", () => {
     mixed.advance({ maxEvents: 1000 });
     expect(settled(mixed)).toEqual(["neverSent", ...draws(new SeededOutcomeSampler(7), DEFAULT_OUTCOME_WEIGHTS, 15)]);
   });
+  it.each([
+    { source: "EditForced", outcome: "finding" as const, edit: "finding" as const, configured: "clear" as const },
+    { source: "RunForced", outcome: "clear" as const, edit: undefined, configured: "clear" as const },
+    { source: "Sampled", outcome: "clear" as const, edit: undefined, configured: undefined },
+  ])("retains original job override separately from $source selection", ({source,outcome,edit,configured}) => {
+    const run = createRun({ seed: 7, inputs: [{ ...inputs[0]!, ...(edit === undefined ? {} : { outcome: edit }) }],
+      ...(configured === undefined ? { outcomeWeights: weights({ clear: 100 }) } : { outcome: configured }) });
+    const receipts: unknown[] = [];
+    run.subscribeStructural(frame => {
+      for (const pending of frame.after.queue) {
+        const option = pending.driverOutcomeReceipt as { $?: string; value?: unknown } | undefined;
+        if (option?.$ === "Some") receipts.push(option.value);
+      }
+    });
+    run.advance({ maxEvents: 1000 });
+    expect(settled(run)).toEqual([outcome]);
+    expect(receipts.length).toBeGreaterThan(0);
+    for (const receipt of receipts) expect(receipt).toMatchObject({
+      source: { $: `Driver.${source}` },
+      outcome: { $: outcome === "finding" ? "Canonical.RequestFinding" : "Canonical.RequestClear" },
+      job: { $: "Some", value: { partition: 1, lifetime: 1, bytes: 10,
+        outcome: edit === undefined ? { $: "None" } : { $: "Some", value: { $: "Canonical.RequestFinding" } } } },
+      ...(source === "Sampled" ? { stream_before: { $: "Some" }, stream_after: { $: "Some" } }
+        : { stream_before: { $: "None" }, stream_after: { $: "None" } }),
+    });
+    expect(restoreReplay(run.exportReplay()).runtimeSnapshot()).toEqual(run.runtimeSnapshot());
+  });
+  it.each([undefined,"interrupted" as const])("manual suppressed backend preserves shared outcome draws with override %s", forced => {
+    const config = { seed: 7, inputs: inputs.slice(0,3).map(input => ({ ...input, ...(forced === undefined ? {} : { outcome: forced }) })) };
+    const automatic = createRun(config);
+    const manual = createRun({ ...config, lifecycles: { cancellation: "suppressed" } });
+    automatic.advance({ maxEvents: 1000 });
+    manual.advance({ maxEvents: 1000 });
+    expect(settled(manual)).toEqual(settled(automatic));
+    expect(restoreReplay(manual.exportReplay()).runtimeSnapshot()).toEqual(manual.runtimeSnapshot());
+    expect(manual.runtimeSnapshot().engine).toMatchObject({ random: (automatic.runtimeSnapshot().engine as { random: unknown }).random });
+    if (forced === "interrupted") expect(manual.observations.filter(frame => frame.event.kind === "jevRequestInterrupted")).toHaveLength(3);
+  });
   it("rejects invalid config and controls before altering replay or sampling state", () => {
     expect(() => createRun({ outcomeWeights: weights() })).toThrow("At least one");
     expect(() => createRun({ outcome: "clear", outcomeWeights: DEFAULT_OUTCOME_WEIGHTS } as never)).toThrow("choose explicit");

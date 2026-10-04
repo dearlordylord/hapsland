@@ -89,7 +89,7 @@ declare const Engine: {
  activity_valid(state: EngineState, partition: bigint, incarnation: bigint): boolean;
  activity_lifetime(state: EngineState, partition: bigint): number;
  activity_edit(state: EngineState, partition: bigint, incarnation: bigint): { state: EngineState; plan: unknown };
- permit_issue(capture: unknown, now: bigint): unknown;
+ permit_issue_action(capture: unknown, started: bigint, now: bigint): unknown;
  permit_issued(capture: unknown, token: bigint): unknown;
  permit_consumed(state: EngineState, command: unknown, partition: bigint, lifetime: bigint): unknown;
 
@@ -120,7 +120,6 @@ declare const Engine: {
  workload_valid(state: EngineState, partition: bigint, generation: bigint, recurring: boolean): boolean;
  workload_duration(state: EngineState, partition: bigint, fallback: bigint): number;
  pre_timing(state: EngineState, partition: bigint, provided: unknown, fallback: bigint, lifetime: bigint): unknown;
- sample_outcome(state: EngineState, weights: unknown): { state: EngineState; outcome: number };
  /** Positive sampler-domain binary64: finite sum <=600; no overflow/NaN. */
  numeric_add(a: unknown, b: unknown): unknown;
  /** Positive total, operands <=600 and ratio <=1 (subnormals included). */
@@ -151,6 +150,7 @@ declare const Engine: {
  edit(state: EngineState, partition: bigint, lifetime: bigint): unknown;
  preparation_fact_time(delay: bigint, index: bigint, count: bigint): bigint;
  preparation_completed(partition: bigint, lifetime: bigint, round: bigint, operation: bigint, units: unknown, delay: bigint): unknown;
+ prepare_command_context(state: EngineState, command: unknown, source_job: unknown, environment: unknown, context: unknown): { state: EngineState; context: unknown; receipt: unknown };
  handle(state: EngineState, event: unknown, command: unknown, context: unknown): unknown;
 };
 export default Engine;

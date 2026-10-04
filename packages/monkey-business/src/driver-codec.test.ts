@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { decodeDriverEvent } from "./driver-codec.ts";
+import { decodeDriverEvent, decodePreparedDriverContext } from "./driver-codec.ts";
 const member = (state: unknown) => ({ $: "Canonical.ReuseMemberCheck", joined_state: state,
  stale_unavailable: false, has_revision: true, has_advice_id: true });
 it.each(["Pending","Clear","Finding","Unavailable"])("decodes exact joined %s facts immutably", state => {
@@ -91,4 +91,30 @@ it.each(["StopGroupPolled", "StopGroupEnded"])("decodes exact %s scope lists and
  expect(() => decodeDriverEvent({ ...wire, scopes: list(Array.from({length:1025}, () => scope)) })).toThrow();
  expect(() => decodeDriverEvent({ ...wire, extra: 1 })).toThrow();
  if (tag === "StopGroupPolled") expect(() => decodeDriverEvent({ ...wire, extra_pending: 1 })).toThrow();
+});
+
+it("preserves a complete sampled receipt and rejects malformed provenance", () => {
+  const none = { $: "None" };
+  const selected = { $: "Canonical.RequestFinding" };
+  const context = { $: "Driver.Context", partition: 2, lifetime: 3, round: 4, bytes: 10, job: false,
+    jev_delay: 8, outcome: { $: "Some", value: selected }, current_work: true, credential_ready: true,
+    credential_generation: true, source_readable: true, advice_lifetime: 600000, candidate: none,
+    automatic_collection: true, automatic_review: false, automatic_output: true, output_certain: true,
+    output_delay: 0, output_lease: 30, background: false, automatic_dispatch: true };
+  const receipt = { $: "Some", value: { $: "Driver.OutcomeReceipt", partition: 2, lifetime: 3, round: 4,
+    operation: 5, request: 6, outcome: selected, source: { $: "Driver.Sampled" },
+    job: { $: "Some", value: { $: "Driver.SourceJob", partition: 1, lifetime: 7, bytes: 10,
+      units: { $: "Con", head: 5, tail: { $: "Nil" } }, outcome: none } },
+    stream_before: { $: "Some", value: 123 }, stream_after: { $: "Some", value: 456 } } };
+  const result = decodePreparedDriverContext(context,receipt);
+  expect(result).toEqual({context,receipt});
+  expect(Object.isFrozen(result)).toBe(true);
+  for (const malformed of [
+    { ...receipt, extra: true },
+    { $: "Some", value: { ...receipt.value, source: { $: "Driver.Unknown" } } },
+    { $: "Some", value: { ...receipt.value, stream_after: { $: "Some", value: 2 ** 32 } } },
+    { $: "Some", value: { ...receipt.value, job: { $: "Some", value: { ...receipt.value.job.value, units: false } } } },
+  ]) expect(() => decodePreparedDriverContext(context,malformed)).toThrow();
+  expect(() => decodePreparedDriverContext({ ...context, job: 1 },receipt)).toThrow();
+  expect(() => decodePreparedDriverContext({ ...context, outcome: { $: "Some", value: { ...selected, extra: 1 } } },receipt)).toThrow();
 });
