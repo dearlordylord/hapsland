@@ -491,3 +491,8 @@ The 2026-10-01 run has 24 selected demonstrated cells and zero Jev requests. Its
 | [`run-clean-package-conformance.mjs`](../scripts/run-clean-package-conformance.mjs), [`run-setup-package-conformance.mjs`](../scripts/run-setup-package-conformance.mjs) | Current package gates. They are not duplicates of source-checkout native sessions. |
 
 Avoid adding a new per-language native runner for the same source-checkout adoption or failure scenario. Extend the common fixture table and this matrix instead. Historical records remain immutable evidence; their scripts can be retired only after inbound links and reproduction requirements are resolved.
+
+The original four twelve-cycle Jev recovery fixture explicitly gives its emitted
+JavaScript process a 4 MiB V8 stack for recursive generated functions. The
+runner validates a maximum of 4 MiB; other callers keep Node defaults. This
+does not extend the five-second execution limit or reduce the original inputs.

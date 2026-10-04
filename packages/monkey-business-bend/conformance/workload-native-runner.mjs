@@ -192,7 +192,8 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
 // Fresh emitted-JS execution is an independent diagnostic/validation axis. It
 // never reuses a native result or substitutes for the native gate above, and
 // it uses the same pinned Bend/source identity before running the output.
-export function runWorkloadEmitted(fixture, { emissionTimeoutMs = 15000 } = {}) {
+export function runWorkloadEmitted(fixture, { emissionTimeoutMs = 15000, stackSizeKiB } = {}) {
+  if (stackSizeKiB !== undefined && (!Number.isSafeInteger(stackSizeKiB) || stackSizeKiB < 256 || stackSizeKiB > 4096)) throw new RangeError("invalid JS stack allowance");
   if (!Number.isSafeInteger(emissionTimeoutMs) || emissionTimeoutMs <= 0) throw new RangeError("invalid JS emission timeout");
   const identity = captureNativeFixtureIdentity(fixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-js-"));
@@ -206,9 +207,9 @@ const value = Fixture.json();
 if (typeof value !== "string") throw new TypeError("compiler JSON String ABI changed");
 process.stdout.write(value);
 `);
-    const output = checked(process.execPath, [program], 5000, "JS execution");
+    const output = checked(process.execPath, [...(stackSizeKiB === undefined ? [] : [`--stack-size=${stackSizeKiB}`]), program], 5000, "JS execution");
     assertNativeFixtureIdentity(identity, fixture);
-    retainOutput(output, identity, "emitted-js", { emission: emissionTimeoutMs, execution: 5000 });
+    retainOutput(output, identity, "emitted-js", { emission: emissionTimeoutMs, execution: 5000, ...(stackSizeKiB === undefined ? {} : { stackSizeKiB }) });
     return JSON.parse(output);
   } finally {
     rmSync(directory, { recursive: true, force: true });

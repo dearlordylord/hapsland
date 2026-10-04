@@ -77,7 +77,7 @@ const row = (frame: Observation): number[] => {
 it("compares four original twelve-cycle recovery scripts with the stateful native driver and public replay", () => {
   const fixture = new URL("../../monkey-business-bend/conformance/jev-recovery-native.bend", import.meta.url);
   const native = runWorkloadNative(fixture, { emissionTimeoutMs: 90000, clangTimeoutMs: 120000, executionTimeoutMs: 5000 }) as number[][][];
-  const emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
+  const emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000, stackSizeKiB: 4096 });
   expect(native).toEqual(emitted);
   const faults = ["neverSent", "backendFailure", "timeout", "interrupted"] as const;
   const expectedTimes = Array.from({ length: 24 }, (_, index) => index * 20 + 7);
