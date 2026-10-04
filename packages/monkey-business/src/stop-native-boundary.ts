@@ -280,13 +280,13 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
             if (failedReleaseScope)
               same([readNat(job.partition),readNat(job.lifetime)], [failedReleaseScope.partition,failedReleaseScope.lifetime],
                 `${field} item ${order} failed individual release core scope`);
-            else throw new TypeError("NoJob original scope lacks genuine action or captured command context");
+            else throw new TypeError(`${field} item ${order} NoJob original scope lacks genuine action or captured command context`);
           }
         } else if (job.$ === "advicee_lifecycle_driver.Unbound") {
           same(publicItem.job,undefined,`${field} item ${order} absent active source binding`);
           const original=readRecord(job.source);
           same(original.$,"Driver.SourceJob",`${field} item ${order} original source constructor`);
-          if (!publicItem.driverSourceJob) throw new TypeError("unbound action lost its genuine original source job");
+          if (!publicItem.driverSourceJob) throw new TypeError(`${field} item ${order} unbound action lost its genuine original source job`);
           same({partition:original.partition,lifetime:original.lifetime,bytes:original.bytes,units:list(original.units),outcome:original.outcome},publicItem.driverSourceJob,`${field} item ${order} complete immutable unbound source`);
         } else compareJob(input.job, publicItem.driverSourceJob, `${field} item ${order} source job`);
       }
