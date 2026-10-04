@@ -15,6 +15,7 @@ import ../../packages/monkey-business-bend/CollectorScenario.bend as CollectorSc
 import ../../packages/agent-flow-bend/Configuration.bend as Configuration
 import ../../packages/monkey-business-bend/CredentialFacts.bend as CredentialFacts
 import ./DefenseAuto.bend as DefenseAuto
+import ./DefenseConsumerBatches.bend as DefenseConsumerBatches
 import ./DefenseConsumerObserved.bend as DefenseConsumerObserved
 import ./DefenseModel.bend as DefenseModel
 import ../../packages/agent-flow-bend/Delivery.bend as Delivery
@@ -2446,45 +2447,24 @@ def list_defenseconsumerobserved_ticksnapshot(values: List<&2,List<&2,DefenseCon
     case +value <> Nil{}: List.length(&2,DefenseConsumerObserved.TickSnapshot,value) <> list_defenseconsumerobserved_ticksnapshot_items([value],suffix)
     case _: 999999n <> suffix
 
-def defenseconsumerobserved_checkpoint(values: List<&2,DefenseConsumerObserved.Checkpoint>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def defenseconsumerbatches_batch(values: List<&2,DefenseConsumerBatches.Batch>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseConsumerObserved.Checkpoint{v0,v1,v2,v3} <> Nil{}: 0n <> defenseconsumerobserved_input([v0],list_defensemodel_world([v1],list_defensemodel_world([v2],list_defenseconsumerobserved_ticksnapshot([v3],suffix))))
+    case DefenseConsumerBatches.GameBatch{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11} <> Nil{}: 0n <> nativeruntypes_config([v0],v1 <> v2 <> list_defenseconsumerobserved_input([v3],v4 <> defenseconsumerobserved_input([v5],list_defensemodel_world([v6],list_defensemodel_world([v7],v8 <> list_defenseconsumerobserved_ticksnapshot([v9],boolean(v10,list_defensemodel_world([v11],suffix))))))))
     case _: 999999n <> suffix
 
-def list_defenseconsumerobserved_checkpoint_items(values: List<&2,List<&2,DefenseConsumerObserved.Checkpoint>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: defenseconsumerobserved_checkpoint([head],list_defenseconsumerobserved_checkpoint_items([tail],suffix))
-    case _: 999999n <> suffix
-
-def list_defenseconsumerobserved_checkpoint(values: List<&2,List<&2,DefenseConsumerObserved.Checkpoint>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case +value <> Nil{}: List.length(&2,DefenseConsumerObserved.Checkpoint,value) <> list_defenseconsumerobserved_checkpoint_items([value],suffix)
-    case _: 999999n <> suffix
-
-def defenseconsumerobserved_trace(values: List<&2,DefenseConsumerObserved.Trace>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case DefenseConsumerObserved.Trace{v0,v1} <> Nil{}: 0n <> list_defensemodel_world([v0],list_defenseconsumerobserved_checkpoint([v1],suffix))
-    case _: 999999n <> suffix
-
-def defenseconsumerobserved_envelope(values: List<&2,DefenseConsumerObserved.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case DefenseConsumerObserved.Envelope{v0,v1,v2,v3,v4} <> Nil{}: 0n <> nativeruntypes_config([v0],v1 <> v2 <> list_defenseconsumerobserved_input([v3],defenseconsumerobserved_trace([v4],suffix)))
-    case _: 999999n <> suffix
-
-def list_defenseconsumerobserved_envelope_items(values: List<&2,List<&2,DefenseConsumerObserved.Envelope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def list_defenseconsumerbatches_batch_items(values: List<&2,List<&2,DefenseConsumerBatches.Batch>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: defenseconsumerobserved_envelope([head],list_defenseconsumerobserved_envelope_items([tail],suffix))
+    case Con{head,tail} <> Nil{}: defenseconsumerbatches_batch([head],list_defenseconsumerbatches_batch_items([tail],suffix))
     case _: 999999n <> suffix
 
-def list_defenseconsumerobserved_envelope(values: List<&2,List<&2,DefenseConsumerObserved.Envelope>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+def list_defenseconsumerbatches_batch(values: List<&2,List<&2,DefenseConsumerBatches.Batch>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2,DefenseConsumerObserved.Envelope,value) <> list_defenseconsumerobserved_envelope_items([value],suffix)
+    case +value <> Nil{}: List.length(&2,DefenseConsumerBatches.Batch,value) <> list_defenseconsumerbatches_batch_items([value],suffix)
     case _: 999999n <> suffix
 
-def game_consumer(values: List<&2,DefenseConsumerObserved.Envelope>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  list_defenseconsumerobserved_envelope([values],suffix)
+def game_consumer(values: List<&2,DefenseConsumerBatches.Batch>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  list_defenseconsumerbatches_batch([values],suffix)
 
 def number_prefix(comma: Bool, value: Nat, suffix: String) -> String:
   match comma:
