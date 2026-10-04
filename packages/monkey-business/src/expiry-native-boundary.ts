@@ -203,6 +203,7 @@ export function compareExpiryFullTrace(value: unknown, expected: readonly Return
       exact(native.time,actual.time,`case ${caseIndex} frame ${index} time`);
       exact(native.order,actual.scheduled.order,`case ${caseIndex} frame ${index} original order`);
       exact(maybe(native.provided),actual.scheduled.partition ?? 1,`case ${caseIndex} frame ${index} original provided scope`);
+      if (actual.observation.event.kind === "preparationGraph") throw new TypeError("canonical Notice frame changed original graph event kind");
       exact(decodePrefixCanonicalEvent(native.event),encodeCanonicalEvent(actual.observation.event),`case ${caseIndex} frame ${index} event`);
       exact(fullSingle(native.result),readRecord(actual.transition).result,`case ${caseIndex} frame ${index} entire result`);
       exact(fullList(native.command_scopes).map(maybe),actual.observation.commandScopes,`case ${caseIndex} frame ${index} scopes`);
