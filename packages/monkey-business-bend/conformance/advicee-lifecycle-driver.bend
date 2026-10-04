@@ -498,11 +498,16 @@ def emission_owner(event: Workload.Emission) -> Nat:
   match event:
     case Workload.Emission{_, owner, _, _, _, _, _, _, _, _}: owner
 
+def activity_incarnation(scope: Maybe<&2,Nat>) -> Nat:
+  match scope:
+    case Some{value}: value
+    case None{}: 1n
+
 def emissions(events: List<&2, Workload.Emission>, queue: Queue, +state: Types.State) -> Queue:
   match events:
     case Nil{}: queue
     case +event <> tail:
-      emission_append(event, queue, life_value(Engine.lifecycle_entry(state, emission_owner(event))),
+      emission_append(event, queue, activity_incarnation(Engine.activity_scope(state,emission_owner(event))),
         q => emissions(tail, q, state))
 
 # A checked private result carries a refusal beside the unchanged full runtime.
