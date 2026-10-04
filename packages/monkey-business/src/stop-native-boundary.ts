@@ -145,7 +145,9 @@ function compareEmissions(value: unknown, source: RunStructuralFrame, config: Ru
       if (item.input.kind !== "canonical") throw new Error(`${at} action changed public input kind`);
       const action=decodeDriver({handled:true,actions:{$:"Con",head:emission.action,tail:{$:"Nil"}}}).actions[0]!;
       same(readRecord(emission.action).event,encodeCanonicalEvent(item.input.event),`${at} actual effect event`);
-      same(item.at,source.time+action.delay,`${at} original effect delay`);
+      // Stop wake facts already carry an absolute producer time; only ordinary
+      // driver emissions expose a captured relative Driver.Action delay publicly.
+      if (item.driverAction) same(action.delay,item.driverAction.delay,`${at} captured effect delay`);
       same(action.expiryAdvice,item.expiryAdvice,`${at} expiry identity`);
       same(action.candidate,item.candidate,`${at} actual candidate`);
       same(optional(emission.attempt),item.fitFinish,`${at} original Finish attempt`);
