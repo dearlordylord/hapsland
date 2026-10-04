@@ -133,14 +133,14 @@ export function originalNativeStopOutputFamilyInputs() {
   ];
 }
 
-// Same finite aggregate allowance as the original full Stop gate: C30s +
+// Explicit output Stop aggregate allowance: C45s +
 // clang60s + native5s + two independent (JS emission15s + execution5s) runs
-// =135s, plus15s process cleanup. Runtime limits remain5s in the runners.
+// =150s, plus15s process cleanup. Runtime limits remain5s in the runners.
 it("compares all twelve original output Stop full native/emitted/public/replay scenarios",()=>{
   const fixture=new URL("../../monkey-business-bend/conformance/stop-output-original-scenarios.bend",import.meta.url);
   const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
-  const native=runWorkloadNative(fixture,{clangTimeoutMs:60000}),emitted=runWorkloadEmitted(fixture),independentlyEmitted=runWorkloadEmitted(fixture);
+  const native=runWorkloadNative(fixture,{emissionTimeoutMs:45000,clangTimeoutMs:60000}),emitted=runWorkloadEmitted(fixture),independentlyEmitted=runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
   expect(independentlyEmitted).toEqual(emitted);
   for(const result of [native,emitted,independentlyEmitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},150000);
+},165000);

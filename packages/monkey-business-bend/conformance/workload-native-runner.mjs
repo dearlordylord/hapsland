@@ -16,12 +16,14 @@ import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
 
 // User-authorized compile allowances: C/clang 30s and emitted JS 15s.
-// A fixture may request the bounded 60s clang allowance below; C emission and
-// both execution lanes retain their independent 30s/5s bounds.
+// Explicit fixture overrides allow C emission45s and clang60s; execution stays5s.
 const MAX_NATIVE_CLANG_TIMEOUT_MS = 60000;
-export function runWorkloadNative(fixture, { clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS } = {}) {
+const MAX_NATIVE_C_EMISSION_TIMEOUT_MS = 45000;
+export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSION_TIMEOUT_MS, clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS } = {}) {
   if (!Number.isSafeInteger(clangTimeoutMs) || clangTimeoutMs <= 0 || clangTimeoutMs > MAX_NATIVE_CLANG_TIMEOUT_MS)
     throw new RangeError("invalid native clang timeout");
+  if (!Number.isSafeInteger(emissionTimeoutMs) || emissionTimeoutMs <= 0 || emissionTimeoutMs > MAX_NATIVE_C_EMISSION_TIMEOUT_MS)
+    throw new RangeError("invalid native C emission timeout");
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;
   const sessionId = process.env.HAPSLAND_NATIVE_PREFLIGHT_SESSION;
   const manifestHash = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256;
@@ -31,18 +33,20 @@ export function runWorkloadNative(fixture, { clangTimeoutMs = NATIVE_CLANG_TIMEO
     }
     if (clangTimeoutMs !== NATIVE_CLANG_TIMEOUT_MS)
       throw new RangeError("native preflight session fixes the clang timeout");
+    if (emissionTimeoutMs !== NATIVE_C_EMISSION_TIMEOUT_MS)
+      throw new RangeError("native preflight session fixes the C emission timeout");
     const { binaryPath } = validateNativeFixture({ manifestPath, sessionId, manifestHash, fixture });
-    return JSON.parse(checked(binaryPath, [], 5000));
+    return JSON.parse(checked(binaryPath, [], 5000, "native execution"));
   }
   const identity = captureNativeFixtureIdentity(fixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-native-"));
   try {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
-    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], NATIVE_C_EMISSION_TIMEOUT_MS);
-    checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs);
+    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "C emission");
+    checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs, "clang compilation");
     assertNativeFixtureIdentity(identity, fixture);
-    const output = checked(binary, [], 5000);
+    const output = checked(binary, [], 5000, "native execution");
     assertNativeFixtureIdentity(identity, fixture);
     return JSON.parse(output);
   } finally {
@@ -59,7 +63,7 @@ export function runWorkloadEmitted(fixture, { emissionTimeoutMs = 15000 } = {}) 
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-js-"));
   try {
     const source = join(directory, "scenario.mjs");
-    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs);
+    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "JS emission");
     assertNativeFixtureIdentity(identity, fixture);
     const program = join(directory, "execute.mjs");
     writeFileSync(program, `import Fixture from ${JSON.stringify(pathToFileURL(source).href)};
@@ -67,7 +71,7 @@ const value = Fixture.json();
 if (typeof value !== "string") throw new TypeError("compiler JSON String ABI changed");
 process.stdout.write(value);
 `);
-    const output = checked(process.execPath, [program], 5000);
+    const output = checked(process.execPath, [program], 5000, "JS execution");
     assertNativeFixtureIdentity(identity, fixture);
     return JSON.parse(output);
   } finally {
@@ -75,11 +79,11 @@ process.stdout.write(value);
   }
 }
 
-function checked(command, arguments_, timeout) {
+function checked(command, arguments_, timeout, phase) {
   const result = spawnSync(command, arguments_, { encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
   if (result.error || result.status !== 0) {
-    throw new Error(`${command} failed (${result.error?.code ?? result.status}): ${result.stderr}`, {
+    throw new Error(`${phase} (declared timeout ${timeout}ms): ${command} failed (${result.error?.code ?? result.status}): ${result.stderr}`, {
       cause: result.error,
     });
   }

@@ -102,3 +102,35 @@ it("reports a bounded-output failure and cleans the fresh directory", () => {
   if (typeof binary !== "string") throw new Error("native binary path unavailable");
   expect(existsSync(binary.slice(0, binary.lastIndexOf("/")))).toBe(false);
 });
+
+
+it("allows an explicit bounded C allowance without changing clang or execution defaults", () => {
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  expect(runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs: 45000 })).toEqual([0]);
+  expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([45000, 30000, 5000]);
+});
+
+it.each([0, -1, 45001, 1.5, Number.NaN, Number.POSITIVE_INFINITY])("rejects invalid C allowance %s before any spawn", emissionTimeoutMs => {
+  expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs })).toThrow("invalid native C emission timeout");
+  expect(spawn).not.toHaveBeenCalled();
+  expect(preflight.capture).not.toHaveBeenCalled();
+});
+
+it("rejects a C override for a fixed preflight session before validation or spawn", () => {
+  vi.stubEnv("HAPSLAND_NATIVE_PREFLIGHT_MANIFEST", "/tmp/manifest.json");
+  vi.stubEnv("HAPSLAND_NATIVE_PREFLIGHT_SESSION", "session");
+  vi.stubEnv("HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256", "hash");
+  try {
+    const fixture = new URL("../../monkey-business-bend/conformance/permit-scenario.bend", import.meta.url);
+    expect(() => runWorkloadNative(fixture, { emissionTimeoutMs: 45000 })).toThrow("preflight session fixes the C emission timeout");
+    expect(preflight.validate).not.toHaveBeenCalled();
+    expect(spawn).not.toHaveBeenCalled();
+  } finally { vi.unstubAllEnvs(); }
+});
+
+it("identifies the failed C phase and declared allowance without retrying", () => {
+  spawn.mockReturnValue({ status: null, error: { code: "ETIMEDOUT" }, stdout: "", stderr: "" });
+  expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { emissionTimeoutMs: 45000 }))
+    .toThrow(/C emission \(declared timeout 45000ms\).*ETIMEDOUT/);
+  expect(spawn).toHaveBeenCalledTimes(1);
+});
