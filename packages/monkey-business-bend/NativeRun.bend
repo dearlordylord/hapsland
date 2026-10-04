@@ -31,32 +31,43 @@ def core_value(values: List<&2, EngineTypes.State>) -> EngineTypes.State:
 
 def core(state: T.State) -> EngineTypes.State:
   match state:
-    case T.State{value, _, _, _, _, _, _, _, _,jobs}: core_value(value)
+    case T.State{value, _, _, _, _, _, _, _, _,jobs,host}: core_value(value)
 
 def replace_core(state: T.State, value: EngineTypes.State) -> T.State:
   match state:
-    case T.State{_, items, next, count, seed, environment, latest, valid, prepared,jobs}:
-      T.State{[value], items, next, count, seed, environment, latest, valid, prepared,jobs}
+    case T.State{_, items, next, count, seed, environment, latest, valid, prepared,jobs,host}:
+      T.State{[value], items, next, count, seed, environment, latest, valid, prepared,jobs,host}
 
 def invalid(state: T.State) -> T.State:
   match state:
-    case T.State{core, items, next, count, seed, environment, latest, _, prepared,jobs}:
-      T.State{core, items, next, count, seed, environment, latest, False{}, prepared,jobs}
+    case T.State{core, items, next, count, seed, environment, latest, _, prepared,jobs,host}:
+      T.State{core, items, next, count, seed, environment, latest, False{}, prepared,jobs,host}
 
 def clock(state: T.State) -> Nat:
   Engine.clock(core(state))
 
+# Host-owned registries record actual issuance facts; logical Dispatch release is
+# deliberately not a substitute for the public request/payload owners.
+def runtime_items(state: T.State) -> List<&2,T.Item>:
+  match state:
+    case T.State{_,items,_,_,_,_,_,_,_,_,_}: items
+
+def generator_configured(state: T.State, partition: Nat) -> T.State:
+  match state:
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,partitions}}:
+      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,List.append(&2,Nat,partitions,[partition])}}
+
 def next_order(state: T.State) -> Nat:
   match state:
-    case T.State{_, _, next, _, _, _, _, _, _,jobs}: next
+    case T.State{_, _, next, _, _, _, _, _, _,jobs,host}: next
 
 def maximum() -> Nat:
   Advicees.maximum()
 
 def enqueued(valid: Bool, state: T.State, time: Nat, input: T.Input) -> T.State:
   match valid state:
-    case True{} T.State{core, items, +next, count, seed, environment, latest, valid, prepared,jobs}:
-      T.State{[Engine.enqueue(core_value(core), time, next)], List.append(&2, T.Item, items, [T.Item{next, input}]), (next + 1n : Nat), count, seed, environment, latest, valid, prepared,jobs}
+    case True{} T.State{core, items, +next, count, seed, environment, latest, valid, prepared,jobs,host}:
+      T.State{[Engine.enqueue(core_value(core), time, next)], List.append(&2, T.Item, items, [T.Item{next, input}]), (next + 1n : Nat), count, seed, environment, latest, valid, prepared,jobs,host}
     case False{} state: invalid(state)
 
 def enqueue(+state: T.State, +time: Nat, input: T.Input) -> T.State:
@@ -89,10 +100,10 @@ def workload_changed(state: T.State, changed: Engine.WorkloadTransition) -> T.St
 def workload(+state: T.State, partition: Nat, action: Workload.Action) -> T.State:
   workload_changed(state, Engine.workload_action(core(state), partition, action))
 
-def configure_profile(+state: T.State, partition: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
+def configure_profile(+state: T.State, +partition: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
   match profile:
     case None{}: state
-    case Some{profile}: replace_core(state,Engine.configure_workload(core(state),partition,profile))
+    case Some{profile}: generator_configured(replace_core(state,Engine.configure_workload(core(state),partition,profile)),partition)
 
 def configured_scope(state: T.State, profile: Maybe<&2,Workload.Profile>, scope: Maybe<&2,Advicees.Scope>) -> T.State:
   match scope:
@@ -128,7 +139,7 @@ def startup(advicees: List<&2,T.Advicee>, +state: T.State) -> T.State:
 
 def initial_core(environment: T.Environment, limits: Ledger.Limits, seed: Nat) -> EngineTypes.State:
   match environment:
-    case T.Environment{_, _, _, _, _, _, _, _, _, ready, generation, _, _}:
+    case T.Environment{_, _, _, _, _, _, _, _, _, ready, generation, _, _,output_profile}:
       Engine.configure_credentials(Engine.configure_seed(Engine.initial(limits), seed), ready, generation)
 
 def weight_valid(weight: Numeric.Words) -> Bool:
@@ -147,22 +158,42 @@ def weights_enabled(weights: List<&2, Numeric.Words>) -> Bool:
     case Nil{}: False{}
     case Numeric.Words{high, low} <> tail: Nat.is_gt(high, 0n) || Nat.is_gt(low, 0n) || weights_enabled(tail)
 
+def candidate_bytes_valid(bytes: Maybe<&2,Nat>) -> Bool:
+  match bytes:
+    case None{}: True{}
+    case Some{bytes}: Nat.is_le(bytes,maximum())
+
+def output_profile_valid(profile: T.OutputProfile) -> Bool:
+  match profile:
+    case T.OutputProfile{_,bytes}: candidate_bytes_valid(bytes)
+
+def output_certain(profile: T.OutputProfile) -> Bool:
+  match profile:
+    case T.OutputProfile{OutputScenario.Certain{},_}: True{}
+    case _: False{}
+
+def output_automatic(profile: T.OutputProfile, delay: Nat, lease: Nat) -> Bool:
+  match profile:
+    case T.OutputProfile{OutputScenario.Failed{},_}: False{}
+    case T.OutputProfile{_,Some{_}}: False{}
+    case T.OutputProfile{_,None{}}: Nat.is_lt(delay,lease)
+
 def initial_environment_supported(environment: T.Environment) -> Bool:
   match environment:
-    case T.Environment{jev, _, +weights, preparation, _, _, output, +lease, _, _, +generation, _, +lifetime}:
+    case T.Environment{jev, _, +weights, preparation, _, _, output, +lease, _, _, +generation, _, +lifetime,output_profile}:
       Nat.is_le(jev, maximum()) && Nat.is_le(preparation, maximum()) &&
         Nat.is_le(output, 1000000000n) && Nat.is_gt(lease, 0n) && Nat.is_le(lease, 1000000000n) &&
         Nat.is_gt(generation, 0n) && Nat.is_le(generation, 1000000000n) &&
         Nat.is_gt(lifetime, 0n) && Nat.is_le(lifetime, maximum()) &&
-        Nat.is_eq(List.length(&2, Numeric.Words, weights), 6n) && weights_valid(weights) && weights_enabled(weights)
+        Nat.is_eq(List.length(&2, Numeric.Words, weights), 6n) && weights_valid(weights) && weights_enabled(weights) && output_profile_valid(output_profile)
 
 def created(supported: Bool, +advicees: List<&2, T.Advicee>, limits: Ledger.Limits,
     +environment: T.Environment, +seed: Nat, collectors: Maybe<&2,CollectorScenario.Profile>) -> T.State:
   match supported:
     case True{}:
-      startup(advicees,configure(advicees,T.State{[Engine.collector_configure(initial_core(environment,limits,seed),collectors)],[],0n,0n,seed,environment,[],True{},[],[]}))
+      startup(advicees,configure(advicees,T.State{[Engine.collector_configure(initial_core(environment,limits,seed),collectors)],[],0n,0n,seed,environment,[],True{},[],[],T.HostFacts{[],[],[]}}))
     case False{}:
-      T.State{[Engine.initial(limits)], [], 0n, 0n, 0n, environment, [], False{}, [],[]}
+      T.State{[Engine.initial(limits)], [], 0n, 0n, 0n, environment, [], False{}, [],[],T.HostFacts{[],[],[]}}
 
 def create(config: T.Config, +seed: Nat) -> T.State:
   match config:
@@ -176,12 +207,12 @@ def latest_frame(frames: List<&2, T.Frame>) -> Maybe<&2, T.Frame>:
 
 def runtime_snapshot(state: T.State) -> T.RuntimeSnapshot:
   match state:
-    case T.State{core,items,next,count,seed,environment,_,valid,_,jobs}:
-      T.RuntimeSnapshot{core,items,next,count,seed,environment,valid,jobs}
+    case T.State{core,items,next,count,seed,environment,_,valid,_,jobs,host}:
+      T.RuntimeSnapshot{core,items,next,count,seed,environment,valid,jobs,host}
 
 def observed(+state: T.State) -> T.Observation:
   match state:
-    case T.State{+core, +items, _, count, _, _, latest, valid, _,jobs}:
+    case T.State{+core, +items, _, count, _, _, latest, valid, _,jobs,host}:
       T.Observation{Engine.clock(core_value(core)), count, Engine.canonical(core_value(core)), latest_frame(latest), List.length(&2, T.Item, items), valid,runtime_snapshot(state)}
 
 def observe(state: T.State) -> T.Observation:
@@ -202,18 +233,40 @@ def locate(items: List<&2, T.Item>, +order: Nat) -> T.Located:
 
 def replaced_items(state: T.State, items: List<&2, T.Item>) -> T.State:
   match state:
-    case T.State{core, _, next, count, seed, environment, latest, valid, prepared,jobs}:
-      T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs}
+    case T.State{core, _, next, count, seed, environment, latest, valid, prepared,jobs,host}:
+      T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs,host}
 
-def callback_registered(state: T.State, issued: Engine.CallbackIssued) -> T.State:
+def payload_selected(equal: Bool, input: T.Input, rest: Maybe<&2,T.Input>) -> Maybe<&2,T.Input>:
+  match equal:
+    case True{}: Some{input}
+    case False{}: rest
+
+def payload_at(items: List<&2,T.Item>, +order: Nat) -> Maybe<&2,T.Input>:
+  match items:
+    case Nil{}: None{}
+    case T.Item{key,input} <> tail: payload_selected(Nat.is_eq(key,order),input,payload_at(tail,order))
+
+def retained_payload(state: T.State, payload: Maybe<&2,T.Input>, issued_at: Nat, due_at: Nat, order: Nat, fact: Callbacks.Fact) -> T.State:
+  match payload state:
+    case Some{payload} T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,partitions}}:
+      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,
+        T.HostFacts{requests,List.append(&2,T.RetainedCallback,callbacks,[T.RetainedCallback{order,issued_at,due_at,payload,fact}]),partitions}}
+    case None{} state: invalid(state)
+
+def retain_callback(+state: T.State, +order: Nat, due_at: Nat, issued_at: Nat, receipt: Maybe<&2,Callbacks.Fact>) -> T.State:
+  match receipt:
+    case Some{fact}: retained_payload(state,payload_at(runtime_items(state),order),issued_at,due_at,order,fact)
+    case None{}: state
+
+def callback_registered(state: T.State, order: Nat, due_at: Nat, issued_at: Nat, issued: Engine.CallbackIssued) -> T.State:
   match issued:
-    case Engine.CallbackIssued{updated,_}: replace_core(state,updated)
+    case Engine.CallbackIssued{updated,receipt}: retain_callback(replace_core(state,updated),order,due_at,issued_at,receipt)
 
-def callback_owned(+state: T.State, owner: Maybe<&2,Callbacks.Owner>, order: Nat, time: Nat,
+def callback_owned(+state: T.State, owner: Maybe<&2,Callbacks.Owner>, +order: Nat, +time: Nat,
     action: Driver.Action, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
   match owner capture:
-    case Some{owner} Some{capture}: callback_registered(state,Engine.callback_issue_output(core(state),owner,order,time,action,capture))
-    case Some{owner} None{}: callback_registered(state,Engine.callback_issue(core(state),owner,order,time,action))
+    case Some{owner} Some{capture}: callback_registered(state,order,time,clock(state),Engine.callback_issue_output(core(state),owner,order,time,action,capture))
+    case Some{owner} None{}: callback_registered(state,order,time,clock(state),Engine.callback_issue(core(state),owner,order,time,action))
     case None{} _: state
 
 def callback_register(+state: T.State, +order: Nat, +time: Nat, +action: Driver.Action,
@@ -242,12 +295,12 @@ def active_job(action: Driver.Action, job: Maybe<&2,T.Job>) -> Maybe<&2,T.Job>:
 
 def stored_jobs(state: T.State) -> List<&2,T.StoredJob>:
   match state:
-    case T.State{_,_,_,_,_,_,_,_,_,jobs}: jobs
+    case T.State{_,_,_,_,_,_,_,_,_,jobs,host}: jobs
 
 def replace_jobs(state: T.State, jobs: List<&2,T.StoredJob>) -> T.State:
   match state:
-    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,_}:
-      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs}
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,_,host}:
+      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,host}
 
 def removed_job(equal: Bool, job: T.StoredJob, next: List<&2,T.StoredJob>) -> List<&2,T.StoredJob>:
   match equal:
@@ -391,11 +444,27 @@ def refusal_jobs(commands: List<&2,Canonical.Command>, +event: Canonical.Canonic
     case Nil{}: state
     case command <> tail: refusal_jobs(tail,event,before,refusal_command(command,event,before,state))
 
+def request_kept(equal: Bool, value: T.IssuedRequest, rest: List<&2,T.IssuedRequest>) -> List<&2,T.IssuedRequest>:
+  match equal:
+    case True{}: rest
+    case False{}: value <> rest
+
+def remove_request(values: List<&2,T.IssuedRequest>, +request: Nat) -> List<&2,T.IssuedRequest>:
+  match values:
+    case Nil{}: []
+    case T.IssuedRequest{+key,command} <> tail:
+      request_kept(Nat.is_eq(key,request),T.IssuedRequest{key,command},remove_request(tail,request))
+
+def request_settled(state: T.State, request: Nat) -> T.State:
+  match state:
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,partitions}}:
+      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{remove_request(requests,request),callbacks,partitions}}
+
 def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State) -> T.State:
   match event:
     case Canonical.PreparationCompleted{p,l,r,+operation,_}:
       drop_parent(drop_job(state,operation),preparation_parent(Canonical.find_work(p,l,r,operation,Driver.work_list(before))))
-    case Canonical.JevRequestSettled{_,_,_,operation,_,_,_}: settled_job(state,operation)
+    case Canonical.JevRequestSettled{_,_,_,operation,request,_,_}: settled_job(request_settled(state,request),operation)
     case Canonical.ReviewObserved{_,_,_,operation,_,_}: settled_job(state,operation)
     case Canonical.ReviewCompleted{_,_,_,operation,_}: settled_job(state,operation)
     case Canonical.RetireReview{_,_,_,operation}: settled_job(state,operation)
@@ -460,29 +529,38 @@ def issue_context(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2
 
 def prepared_record(state: T.State, capsule: T.EmissionContext) -> T.State:
   match state:
-    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs}:
-      T.State{core,items,next,count,seed,environment,latest,valid,List.append(&2,T.EmissionContext,prepared,[capsule]),jobs}
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,host}:
+      T.State{core,items,next,count,seed,environment,latest,valid,List.append(&2,T.EmissionContext,prepared,[capsule]),jobs,host}
 
 def action_event(action: Driver.Action) -> Canonical.CanonicalEvent:
   match action:
     case Driver.Action{event,_,_,_,_}: event
 
-def context_environment(job: T.Job, supplied: Bool, action: Driver.Action, outcome: Maybe<&2,Canonical.RequestOutcome>, environment: T.Environment, collection: Bool) -> Driver.Context:
+def partition_present(values: List<&2,Nat>, +partition: Nat) -> Bool:
+  match values:
+    case Nil{}: False{}
+    case value <> tail: Nat.is_eq(value,partition) || partition_present(tail,partition)
+
+def generated_partition(state: T.State, partition: Nat) -> Bool:
+  match state:
+    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,_,partitions}}: partition_present(partitions,partition)
+
+def context_environment(job: T.Job, supplied: Bool, action: Driver.Action, outcome: Maybe<&2,Canonical.RequestOutcome>, environment: T.Environment, collection: Bool, background: Bool) -> Driver.Context:
   match job action environment:
     case T.Job{p, l, r, bytes, _, _, _, _, _} Driver.Action{_, _, candidate, _, _}
-      T.Environment{delay, _, _, _, _, _, output, lease, current, credential, _, readable, lifetime}:
+      T.Environment{delay, _, _, _, _, _, +output, +lease, current, credential, _, readable, lifetime,+output_profile}:
       Driver.Context{p, l, r, bytes, supplied, delay, outcome, current, credential, True{}, readable,
-        lifetime, candidate, collection, True{}, True{}, True{}, output, lease, True{}, True{}}
+        lifetime, candidate, collection, True{}, output_automatic(output_profile,output,lease), output_certain(output_profile), output, lease, background, True{}}
 
 def source_present(source: Maybe<&2,Driver.SourceJob>) -> Bool:
   match source:
     case Some{_}: True{}
     case None{}: False{}
 
-def job_context(job: Maybe<&2, T.Job>, action: Driver.Action, outcome: Maybe<&2,Canonical.RequestOutcome>, environment: T.Environment, collection: Bool) -> Driver.Context:
+def job_context(job: Maybe<&2, T.Job>, action: Driver.Action, outcome: Maybe<&2,Canonical.RequestOutcome>, environment: T.Environment, collection: Bool, background: Bool) -> Driver.Context:
   match job:
-    case Some{+job}: context_environment(job,source_present(original_source(Some{job})),action,outcome,environment,collection)
-    case None{}: context_environment(T.Job{0n, 1n, 0n, 0n, [], 0n, False{}, None{}, None{}}, False{}, action, outcome, environment,collection)
+    case Some{+job}: context_environment(job,source_present(original_source(Some{job})),action,outcome,environment,collection,background)
+    case None{}: context_environment(T.Job{0n, 1n, 0n, 0n, [], 0n, False{}, None{}, None{}}, False{}, action, outcome, environment,collection,background)
 
 def finish_present(finish: Maybe<&2,StopScenario.Finish>) -> Bool:
   match finish:
@@ -494,21 +572,43 @@ def active_finish(state: T.State, p: Nat) -> Bool:
 
 def context(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, outcome: Maybe<&2,Canonical.RequestOutcome>) -> Driver.Context:
   match state:
-    case T.State{_, _, _, _, _, environment, _, _, _,jobs}:
+    case T.State{_, _, _, _, _, environment, _, _, _,jobs,host}:
       Driver.with_scope(job_context(job,action,outcome,environment,
-        Bool.not(Engine.collector_configured(core(state))) && Bool.not(active_finish(state,job_partition(job)))),
+        Bool.not(Engine.collector_configured(core(state))) && Bool.not(active_finish(state,job_partition(job))),
+        generated_partition(state,job_partition(job))),
         Driver.context_scope(action_event(action),job_partition(job)))
+
+def callback_live(originals: List<&2,Callbacks.Original>, +order: Nat) -> Bool:
+  match originals:
+    case Nil{}: False{}
+    case Callbacks.Original{Callbacks.Fact{Callbacks.Target{_,_,key},_,_,_},_,_} <> tail:
+      Nat.is_eq(key,order) || callback_live(tail,order)
+
+def callback_kept(live: Bool, value: T.RetainedCallback, tail: List<&2,T.RetainedCallback>) -> List<&2,T.RetainedCallback>:
+  match live:
+    case True{}: value <> tail
+    case False{}: tail
+
+def live_payloads(values: List<&2,T.RetainedCallback>, +originals: List<&2,Callbacks.Original>) -> List<&2,T.RetainedCallback>:
+  match values:
+    case Nil{}: []
+    case T.RetainedCallback{+order,at,due,payload,fact} <> tail:
+      callback_kept(callback_live(originals,order),T.RetainedCallback{order,at,due,payload,fact},live_payloads(tail,originals))
+
+def recorded_host(host: T.HostFacts, originals: List<&2,Callbacks.Original>) -> T.HostFacts:
+  match host:
+    case T.HostFacts{requests,callbacks,partitions}: T.HostFacts{requests,live_payloads(callbacks,originals),partitions}
 
 # Both recorded frames and their after snapshots use this same genuine count transition.
 def recorded_runtime(state: T.State) -> T.State:
   match state:
-    case T.State{core,items,next,count,seed,environment,latest,valid,_,jobs}:
-      T.State{core,items,next,Nat.add(count,1n),seed,environment,latest,valid,[],jobs}
+    case T.State{+core,items,next,count,seed,environment,latest,valid,_,jobs,host}:
+      T.State{core,items,next,Nat.add(count,1n),seed,environment,latest,valid,[],jobs,recorded_host(host,Engine.callback_originals(core_value(core)))}
 
 def recorded_latest(state: T.State, frame: T.Frame) -> T.State:
   match state:
-    case T.State{core,items,next,count,seed,environment,_,valid,prepared,jobs}:
-      T.State{core,items,next,count,seed,environment,[frame],valid,prepared,jobs}
+    case T.State{core,items,next,count,seed,environment,_,valid,prepared,jobs,host}:
+      T.State{core,items,next,count,seed,environment,[frame],valid,prepared,jobs,host}
 
 def recorded(+state: T.State, +frame: T.Frame) -> T.Step:
   T.Step{recorded_latest(recorded_runtime(state),frame),Some{frame},[]}
@@ -529,11 +629,11 @@ def scope_commands(commands: List<&2,Canonical.Command>, +before: EngineTypes.St
 
 def snapshot_core(before: T.RuntimeSnapshot) -> EngineTypes.State:
   match before:
-    case T.RuntimeSnapshot{states,_,_,_,_,_,_,_}: core_value(states)
+    case T.RuntimeSnapshot{states,_,_,_,_,_,_,_,host}: core_value(states)
 
 def scope_snapshot_commands(before: T.RuntimeSnapshot, after: List<&2,EngineTypes.State>, commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
   match before:
-    case T.RuntimeSnapshot{states,_,_,_,_,_,_,_}: scope_commands(commands,core_value(states),core_value(after),provided)
+    case T.RuntimeSnapshot{states,_,_,_,_,_,_,_,host}: scope_commands(commands,core_value(states),core_value(after),provided)
 
 def scope_details(details: T.FrameDetails, commands: List<&2,Canonical.Command>, +provided: Maybe<&2,Nat>) -> T.FrameDetails:
   match details:
@@ -543,13 +643,13 @@ def scope_details(details: T.FrameDetails, commands: List<&2,Canonical.Command>,
 
 def frame_details(before: T.RuntimeSnapshot, +state: T.State, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>) -> T.FrameDetails:
   match state:
-    case T.State{_,_,_,_,_,_,_,_,prepared,jobs}: T.FrameDetails{before,after_snapshot(state),prepared,source,transition_after,None{},[],None{},[]}
+    case T.State{_,_,_,_,_,_,_,_,prepared,jobs,host}: T.FrameDetails{before,after_snapshot(state),prepared,source,transition_after,None{},[],None{},[]}
 
 def product_frame(+state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State,
     after: Canonical.State, +commands: List<&2,Canonical.Command>, reason: Maybe<&2,Canonical.Reason>,
     runtime_before: T.RuntimeSnapshot, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>, provided: Maybe<&2,Nat>) -> T.Step:
   match state:
-    case T.State{+core,_,_,+count,_,_,_,_,_,jobs}:
+    case T.State{+core,_,_,+count,_,_,_,_,_,jobs,host}:
       recorded(state,T.ProductFrame{count,Engine.clock(core_value(core)),event,[before],[after],commands,reason,
         scope_details(frame_details(runtime_before,state,source,transition_after),commands,provided)})
 
@@ -561,7 +661,7 @@ def graph_frame(+state: T.State, +key: EngineTypes.GraphKey, position: Nat, fact
     before: ImportGraph.Bounded, after: ImportGraph.Bounded, command: ImportGraph.Command,
     runtime_before: T.RuntimeSnapshot) -> T.Step:
   match state:
-    case T.State{+core,_,_,+count,_,_,_,_,_,jobs}:
+    case T.State{+core,_,_,+count,_,_,_,_,_,jobs,host}:
       recorded(state,T.GraphFrame{count,Engine.clock(core_value(core)),key,position,fact,[before],[after],command,
         scope_details(frame_details(runtime_before,state,None{},[core_value(core)]),[],Some{graph_partition(key)})})
 
@@ -614,13 +714,13 @@ def timed_inputs(inputs: List<&2, T.Input>, state: T.State, +start: Nat, +delay:
 
 def preparation_inputs(+state: T.State, +job: T.Job, operation: Nat) -> List<&2, T.Input>:
   match state job:
-    case T.State{_, _, _, _, seed, T.Environment{_, _, _, _, profile, limits, _, _, _, _, _, _, _}, _, _, _,jobs}
+    case T.State{_, _, _, _, seed, T.Environment{_, _, _, _, profile, limits, _, _, _, _, _, _, _,output_profile}, _, _, _,jobs,host}
       T.Job{p, l, r, _, units, _, _, _, _}:
       unit_inputs(units, seed, p, l, r, operation, 0n, profile, limits)
 
 def preparation_delay(state: T.State) -> Nat:
   match state:
-    case T.State{_, _, _, _, _, T.Environment{_, _, _, delay, _, _, _, _, _, _, _, _, _}, _, _, _,jobs}: delay
+    case T.State{_, _, _, _, _, T.Environment{_, _, _, delay, _, _, _, _, _, _, _, _, _,output_profile}, _, _, _,jobs,host}: delay
 
 def preparation_completed(state: T.State, job: T.Job, operation: Nat, delay: Nat) -> T.State:
   match job:
@@ -639,27 +739,53 @@ def prepare(+state: T.State, job: T.Job, operation: Nat) -> T.State:
   +delay = preparation_delay(state)
   preparation_bounded(Nat.is_le(delay, Nat.sub(maximum(), clock(state))), state, job, operation, delay)
 
-def handled_prepared(state: T.State, job: Maybe<&2, T.Job>, result: Driver.Handled, capsule: T.EmissionContext) -> T.State:
-  match result:
-    case Driver.Handled{_, actions}: issue_prepared(state, actions, job,capsule)
-
 def handled_actions(state: T.State, job: Maybe<&2,T.Job>, result: Driver.Handled) -> T.State:
   match result:
     case Driver.Handled{_,actions}: issue(state,actions,job)
 
 def outcome_environment(state: T.State) -> Driver.OutcomeEnvironment:
   match state:
-    case T.State{_,_,_,_,_,T.Environment{_,outcome,weights,_,_,_,_,_,_,_,_,_,_},_,_, _,jobs}:
+    case T.State{_,_,_,_,_,T.Environment{_,outcome,weights,_,_,_,_,_,_,_,_,_,_,output_profile},_,_, _,jobs,host}:
       Driver.OutcomeEnvironment{outcome,weights}
 
+def individual_capture(state: T.State, advice: Nat, token: Nat) -> Maybe<&2,OutputScenario.Capture>:
+  match state:
+    case T.State{+core,_,_,_,_,T.Environment{_,_,_,_,_,_,delay,lease,_,_,_,_,_,T.OutputProfile{outcome,_}},_,_,_,_,_}:
+      Some{OutputScenario.Capture{OutputScenario.Individual{advice,token},Engine.clock(core_value(core)),outcome,delay,lease}}
+
+def begun_capture(authorize: Bool, state: T.State, advice: Nat, token: Nat) -> Maybe<&2,OutputScenario.Capture>:
+  match authorize state:
+    case True{} state: individual_capture(state,advice,token)
+    case False{} T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,delay,lease,current,ready,generation,readable,lifetime,T.OutputProfile{OutputScenario.Failed{},bytes}},latest,valid,prepared,jobs,host}:
+      individual_capture(T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,delay,lease,current,ready,generation,readable,lifetime,T.OutputProfile{OutputScenario.Failed{},bytes}},latest,valid,prepared,jobs,host},advice,token)
+    case False{} _: None{}
+
+def output_command_capture(state: T.State, event: Canonical.CanonicalEvent, command: Canonical.Command) -> Maybe<&2,OutputScenario.Capture>:
+  match command event:
+    case Canonical.SubmissionBegun{} Canonical.SubmissionBegin{advice,_,_,token,_,authorize,_,_}: begun_capture(authorize,state,advice,token)
+    case Canonical.SubmissionAuthorized{} Canonical.SubmissionBegin{advice,_,_,token,_,_,_,_}: individual_capture(state,advice,token)
+    case Canonical.SubmissionAuthorized{} Canonical.SubmissionAuthorize{advice,token}: individual_capture(state,advice,token)
+    case _ _: None{}
+
+def output_unhandled(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>, actions: List<&2,Driver.Action>) -> T.State:
+  match capture:
+    case Some{+capture}: issue_prepared_output(state,Driver.output_actions(OutputScenario.issued(capture)),job,capsule,Some{capture})
+    case None{}: issue_prepared(state,actions,job,capsule)
+
+def ordinary_handled(state: T.State, job: Maybe<&2,T.Job>, result: Driver.Handled, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+  match result:
+    case Driver.Handled{True{},actions}: issue_prepared_output(state,actions,job,capsule,capture)
+    case Driver.Handled{False{},actions}: output_unhandled(state,job,capsule,capture,actions)
+
 def collector_handled(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
-    command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, changed: Engine.CollectorHandled) -> T.State:
+    +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, changed: Engine.CollectorHandled) -> T.State:
   match changed:
     case Engine.CollectorHandled{updated,Driver.Handled{True{},actions}}:
       issue_prepared(replace_core(state,updated),actions,job,T.EmissionContext{prepared,receipt})
     case Engine.CollectorHandled{updated,_}:
       +replaced = replace_core(state,updated)
-      handled_prepared(replaced,job,Engine.handle(core(replaced),action_event(action),command,prepared),T.EmissionContext{prepared,receipt})
+      ordinary_handled(replaced,job,Engine.handle(core(replaced),action_event(action),command,prepared),T.EmissionContext{prepared,receipt},
+        output_command_capture(replaced,action_event(action),command))
 
 def handle_prepared(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
     +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>) -> T.State:
@@ -725,8 +851,8 @@ def cancel_finish_items(items: List<&2, T.Item>, +state: T.State, +attempt: Nat,
 
 def cancel_finish(state: T.State, attempt: Nat) -> T.State:
   match state:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs}:
-      cancel_finish_items(items, T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs}, attempt, [])
+    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs,host}:
+      cancel_finish_items(items, T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs,host}, attempt, [])
 
 def finish_feedback(state: T.State, finish: StopScenario.Finish, continuation: Bool) -> T.State:
   match finish:
@@ -749,8 +875,8 @@ def cancel_expiry_items(items: List<&2, T.Item>, +state: T.State, +advice: Nat, 
 
 def cancel_expiry(state: T.State, +advice: Nat) -> T.State:
   match state:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs}:
-      cancel_expiry_items(items, T.State{core, items, next, count, seed, environment, latest, valid, prepared,remove_job(jobs,advice)}, advice, [])
+    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs,host}:
+      cancel_expiry_items(items, T.State{core, items, next, count, seed, environment, latest, valid, prepared,remove_job(jobs,advice),host}, advice, [])
 
 def cancel_retired(state: T.State, action: Driver.Action) -> T.State:
   match action:
@@ -781,10 +907,14 @@ def ordinary_fallback(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T
     case Canonical.Prepare{operation, _}: prepare_job(state, job, operation)
     case command: handle_prepared(state, action, job, command, prepared,receipt)
 
+def native_output_facts(now: Nat, delay: Nat, lease: Nat, profile: T.OutputProfile) -> StopScenario.CommandFacts:
+  match profile:
+    case T.OutputProfile{outcome,bytes}: StopScenario.CommandFacts{now,outcome,delay,lease,bytes,None{}}
+
 def native_stop_facts(state: T.State) -> StopScenario.CommandFacts:
   match state:
-    case T.State{+core,_,_,_,_,T.Environment{_,_,_,_,_,_,delay,lease,_,_,_,_,_},_,_, _,jobs}:
-      StopScenario.CommandFacts{Engine.clock(core_value(core)),OutputScenario.Certain{},delay,lease,None{},None{}}
+    case T.State{+core,_,_,_,_,T.Environment{_,_,_,_,_,_,delay,lease,_,_,_,_,_,output_profile},_,_, _,jobs,host}:
+      native_output_facts(Engine.clock(core_value(core)),delay,lease,output_profile)
 
 def native_stop_issue(ended: Maybe<&2,StopScenario.Ended>, original: Maybe<&2,StopScenario.Finish>,
     state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, output: Maybe<&2,OutputScenario.Capture>, +capsule: T.EmissionContext) -> T.State:
@@ -821,9 +951,31 @@ def command_partition(+context: Driver.Context, scope: Maybe<&2,Nat>) -> Driver.
       Driver.with_scope(context,Driver.ContextScope{partition,lifetime,round})
     case context None{}: context
 
+def request_put_selected(equal: Bool, original: T.IssuedRequest, tail: List<&2,T.IssuedRequest>, request: Nat,
+    command: Canonical.Command, next: List<&2,T.IssuedRequest>) -> List<&2,T.IssuedRequest>:
+  match equal:
+    case True{}: T.IssuedRequest{request,command} <> tail
+    case False{}: original <> next
+
+def put_request(values: List<&2,T.IssuedRequest>, +request: Nat, +command: Canonical.Command) -> List<&2,T.IssuedRequest>:
+  match values:
+    case Nil{}: [T.IssuedRequest{request,command}]
+    case T.IssuedRequest{+key,original} <> +tail:
+      request_put_selected(Nat.is_eq(key,request),T.IssuedRequest{key,original},tail,request,command,put_request(tail,request,command))
+
+def request_issued(state: T.State, request: Nat, command: Canonical.Command) -> T.State:
+  match state:
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{requests,callbacks,partitions}}:
+      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs,T.HostFacts{put_request(requests,request,command),callbacks,partitions}}
+
+def issued_command(state: T.State, command: Canonical.Command) -> T.State:
+  match command:
+    case Canonical.JevRequestIssued{p,l,r,operation,+request}: request_issued(state,request,Canonical.JevRequestIssued{p,l,r,operation,request})
+    case _: state
+
 def command_selected(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command,
     source: Maybe<&2,T.EmissionContext>, scope: Maybe<&2,Nat>, source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
-  prepared_command(remember_command(state,command,job),action,job,command,Engine.prepare_command_context(core(state),command,
+  prepared_command(issued_command(remember_command(state,command,job),command),action,job,command,Engine.prepare_command_context(core(state),command,
     source_job,outcome_environment(state),command_partition(command_context(state,action,job,source),scope)))
 
 def command_bound(state: T.State, action: Driver.Action, command: Canonical.Command,
@@ -894,7 +1046,7 @@ def queued_poll(items: List<&2, T.Item>, +entries: List<&2, Scheduler.Entry>, +a
 
 def has_poll(state: T.State, attempt: Nat) -> Bool:
   match state:
-    case T.State{+core, items, _, _, _, _, _, _, _,jobs}: queued_poll(items, scheduler_entries(core_value(core)), attempt, Engine.clock(core_value(core)))
+    case T.State{+core, items, _, _, _, _, _, _, _,jobs,host}: queued_poll(items, scheduler_entries(core_value(core)), attempt, Engine.clock(core_value(core)))
 
 def wake_finish(+state: T.State, finish: StopScenario.Finish) -> T.State:
   match finish:
@@ -1176,8 +1328,8 @@ def located_run(+state: T.State, located: T.Located, +order: Nat) -> T.Step:
 
 def take_payload(state: T.State, +order: Nat) -> T.Step:
   match state:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs}:
-      located_run(T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs}, locate(items, order),order)
+    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs,host}:
+      located_run(T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs,host}, locate(items, order),order)
 
 def queue_head(entries: List<&2, Scheduler.Entry>) -> Maybe<&2, Scheduler.Entry>:
   match entries:
@@ -1197,7 +1349,7 @@ def within(entry: Maybe<&2, Scheduler.Entry>, endpoint: Nat) -> Bool:
 
 def state_valid(state: T.State) -> Bool:
   match state:
-    case T.State{_, _, _, _, _, _, _, valid, prepared,jobs}: valid
+    case T.State{_, _, _, _, _, _, _, valid, prepared,jobs,host}: valid
 
 # Candidate private transport only: keep the entire native state opaque to
 # recursive forwarding. Public T.State and all facts/controls remain unchanged.
@@ -1277,8 +1429,8 @@ def sharing_input(state: T.State, located: T.Located, order: Nat, endpoint: Nat,
 def sharing_peek(+value: T.State, entry: Maybe<&2, Scheduler.Entry>, endpoint: Nat,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match value entry:
-    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs} Some{Scheduler.Entry{_,+order}}:
-      sharing_input(T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs},locate(items,order),order,endpoint,rest)
+    case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs,host} Some{Scheduler.Entry{_,+order}}:
+      sharing_input(T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs,host},locate(items,order),order,endpoint,rest)
     case value None{}: take_carrier([value],rest)
 
 def sharing_carrier(states: List<&2,T.State>, endpoint: Nat,
@@ -1403,14 +1555,14 @@ def revalidate_environment(+state: T.State) -> T.State:
 
 def environment_control(+state: T.State, current: Bool, +ready: Bool, +generation: Nat, readable: Bool) -> T.Controlled:
   match state:
-    case T.State{core, items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, _, _, _, _, lifetime}, latest, valid, prepared,jobs}:
-      +changed = revalidate_environment(T.State{[Engine.configure_credentials(core_value(core), ready, generation)], items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid, prepared,jobs})
+    case T.State{core, items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, _, _, _, _, lifetime,output_profile}, latest, valid, prepared,jobs,host}:
+      +changed = revalidate_environment(T.State{[Engine.configure_credentials(core_value(core), ready, generation)], items, next, count, seed, T.Environment{delay, outcome, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host})
       atomic_control(state_valid(changed), state, changed)
 
 def jev_control(state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) -> T.Controlled:
   match state:
-    case T.State{core, items, next, count, seed, T.Environment{_, _, _, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid, prepared,jobs}:
-      T.Controlled{T.State{core, items, next, count, seed, T.Environment{delay, None{}, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime}, latest, valid, prepared,jobs}, True{}}
+    case T.State{core, items, next, count, seed, T.Environment{_, _, _, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host}:
+      T.Controlled{T.State{core, items, next, count, seed, T.Environment{delay, None{}, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host}, True{}}
 
 def jev_supported(valid: Bool, state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) -> T.Controlled:
   match valid:
@@ -1463,8 +1615,8 @@ def lifecycle_finish_items(items: List<&2,T.Item>, +partition: Nat, +attempt: Na
 # callback registry and its scheduler facts remain under their existing owner.
 def lifecycle_finish_removed(state: T.State, +partition: Nat, attempt: Nat) -> T.State:
   match state:
-    case T.State{+core,items,next,count,seed,environment,latest,valid,prepared,jobs}:
-      T.State{[Engine.stop_close(core_value(core),partition)],lifecycle_finish_items(items,partition,attempt),next,count,seed,environment,latest,valid,prepared,jobs}
+    case T.State{+core,items,next,count,seed,environment,latest,valid,prepared,jobs,host}:
+      T.State{[Engine.stop_close(core_value(core),partition)],lifecycle_finish_items(items,partition,attempt),next,count,seed,environment,latest,valid,prepared,jobs,host}
 
 
 def lifecycle_finish(+state: T.State, partition: Nat, finish: Maybe<&2,StopScenario.Finish>) -> T.State:
@@ -1497,8 +1649,20 @@ def lifecycle_scope(+state: T.State, scope: Maybe<&2,Advicees.Scope>, action: Ad
 def lifecycle(+state: T.State, identity: Nat, action: AdviceeLifecycle.Action) -> T.Controlled:
   lifecycle_scope(state,Engine.advicee_identity(core(state),identity),action)
 
+def output_profile_changed(state: T.State, outcome: OutputScenario.Outcome, delay: Nat, lease: Nat) -> T.State:
+  match state:
+    case T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,_,_,current,ready,generation,readable,lifetime,T.OutputProfile{_,bytes}},latest,valid,prepared,jobs,host}:
+      T.State{core,items,next,count,seed,T.Environment{jev,forced,weights,prep,tree,limits,delay,lease,current,ready,generation,readable,lifetime,T.OutputProfile{outcome,bytes}},latest,valid,prepared,jobs,host}
+
+def output_control(valid: Bool, state: T.State, outcome: OutputScenario.Outcome, delay: Nat, lease: Nat) -> T.Controlled:
+  match valid:
+    case True{}: T.Controlled{output_profile_changed(state,outcome,delay,lease),True{}}
+    case False{}: T.Controlled{state,False{}}
+
 def control(+state: T.State, control: T.Control) -> T.Controlled:
   match control:
+    case T.OutputProfileControl{outcome,+delay,+lease}:
+      output_control(Nat.is_le(delay,1000000000n) && Nat.is_gt(lease,0n) && Nat.is_le(lease,1000000000n),state,outcome,delay,lease)
     case T.AdviceeLifecycleControl{identity,action}: lifecycle(state,identity,action)
     case T.WorkloadControl{identity, +value}: controlled_workload(workload_supported(value), state, identity, value)
     case T.JevProfile{+delay, +weights}:
