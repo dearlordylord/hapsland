@@ -6,6 +6,7 @@ import { readBendList, readRecord, readNat, readBool } from "../../../src/canoni
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts";
 import { decodeStopFound } from "./stop-codec.ts";
 import { decodeDriver, decodePreparedDriverContext, encodeDriverAction, encodeDriverOutcome, type DriverAction } from "./driver-codec.ts";
+import SharedEngine from "../../monkey-business-bend/engine.mjs";
 import type { originalWaitingStopPublic, originalStopPublicCases, originalStopOutputPublicCases } from "./stop-original-public.fixture.ts";
 import type { RunRuntimeSnapshot, RunStructuralFrame, RunConfig } from "./index.ts";
 
@@ -90,6 +91,87 @@ function compareEmission(value: unknown, source: RunRuntimeSnapshot["queue"][num
   same(decoded.receipt,source.driverOutcomeReceipt,`${field} actual selected outcome receipt`);
 }
 
+/** A failed individual release has a real public scheduled action but may carry
+ * no public Driver context or source job. Its routing scope comes from that
+ * same detached engine snapshot and the matching live release lease. */
+function failedIndividualReleaseScope(event: DriverAction["event"],
+    source: RunRuntimeSnapshot, publicItem: RunRuntimeSnapshot["queue"][number], premise: StopRuntimePremise,
+    field: string): { readonly partition: number; readonly lifetime: number } | undefined {
+  const failedProfile = premise.input.outputProfile?.outcome === "failed" || source.outputProfile.outcome === "failed";
+  const publicEvent = publicItem.input.kind === "canonical" ? publicItem.input.event : undefined;
+  if (event.kind !== "submissionRelease" && event.kind !== "collectionReleaseLease") return undefined;
+  if (!failedProfile || !publicEvent || publicEvent.kind !== event.kind ||
+      publicItem.driverContext !== undefined ||
+      publicItem.driverSourceJob !== undefined || publicItem.driverOutcomeReceipt !== undefined ||
+      publicItem.callbackReceipt !== undefined || publicItem.generated !== true || !publicItem.driverAction ||
+      publicItem.driverAction.job !== false || publicItem.driverAction.event.kind !== event.kind) return undefined;
+
+  const partition = publicItem.partition;
+  if (partition === undefined || !Number.isSafeInteger(partition) || partition < 0)
+    throw new TypeError(`${field} failed individual release has no actual public owner partition`);
+  const owners = premise.agentScopes.filter(scope => scope.partition === partition);
+  same(owners.length, 1, `${field} failed individual release unique declared owner`);
+
+  const encodedActivity = optional(SharedEngine.activity_scope(source.engine, BigInt(partition)));
+  if (encodedActivity === undefined || publicItem.activityScope === undefined)
+    throw new TypeError(`${field} failed individual release lacks its actual activity fence`);
+  same(readNat(encodedActivity), publicItem.activityScope, `${field} failed individual release actual activity fence`);
+
+  const advice = readNat(event.advice), token = readNat(event.token);
+  const canonical = readRecord(SharedEngine.canonical(source.engine));
+  const rounds = list(canonical.rounds).map(readRecord).filter(round => readNat(round.partition) === partition);
+  same(rounds.length, 1, `${field} failed individual release active owner round`);
+  const round = rounds[0]!;
+  const lifetime = SharedEngine.activity_lifetime(source.engine, BigInt(partition));
+  same(readNat(round.lifetime), lifetime, `${field} failed individual release core lifetime`);
+
+  const collection = readRecord(canonical.collection);
+  const collectionLeases = list(collection.leases).map(readRecord).filter(lease => readNat(lease.advice) === advice);
+  same(collectionLeases.length, 1, `${field} failed individual release collection lease owner`);
+  same(readNat(collectionLeases[0]!.owner), token, `${field} failed individual release collection lease token`);
+
+  const delivery = readRecord(collection.delivery);
+  const submissions = readRecord(delivery.submissions);
+  const batches = list(submissions.batches).map(readRecord)
+    .filter(batch => readNat(batch.advice) === advice && readNat(batch.token) === token);
+  const submissionLeases = list(submissions.leases).map(readRecord)
+    .filter(lease => readNat(lease.advice) === advice);
+  const verifyActiveStopBatch = () => {
+    same(batches.length, 1, `${field} failed individual release active Stop batch`);
+    const batch = batches[0]!;
+    same(batch.surface, { $: "Handoff.Stop" }, `${field} failed individual release Stop surface`);
+    same(readNat(batch.round), readNat(round.id), `${field} failed individual release batch round`);
+    same(readRecord(batch.phase).$, "Delivery.Reserved", `${field} failed individual release active batch phase`);
+    same(submissionLeases.length, 1, `${field} failed individual release submission lease`);
+    const current = readRecord(submissionLeases[0]!.current);
+    same([readNat(current.round), current.closed], [readNat(round.id), false], `${field} failed individual release current lease round`);
+    const phase = readRecord(current.phase);
+    same([phase.$, readNat(phase.token), phase.surface], ["Handoff.Reserved", token, { $: "Handoff.Stop" }],
+      `${field} failed individual release current Stop lease`);
+  };
+  if (event.kind === "submissionRelease") verifyActiveStopBatch();
+  else if (batches.length === 0)
+    same(submissionLeases.length, 0, `${field} collection release follows consumed Stop batch`);
+  else verifyActiveStopBatch();
+  return { partition, lifetime };
+}
+
+/** No complete public capsule exists for these authentic emitted actions.
+ * Compare only the native routing identity used by the release and grounded
+ * in the matching public source snapshot; other private context fields have
+ * no public counterpart and are not claimed as parity. */
+function compareFailedIndividualReleaseEmission(value: unknown, source: RunRuntimeSnapshot["queue"][number],
+    scope: { readonly partition: number; readonly lifetime: number }, field: string): void {
+  same(source.driverContext, undefined, `${field} absent original public Driver context`);
+  const emission = optional(value);
+  if (emission === undefined) return;
+  const raw = readRecord(emission);
+  if (raw.$ !== "advicee_lifecycle_driver.EmissionContext") throw new TypeError("invalid genuine Driver emission capsule");
+  const decoded = decodePreparedDriverContext(raw.context, raw.receipt);
+  same([decoded.context.partition, decoded.context.lifetime], [scope.partition, scope.lifetime],
+    `${field} failed individual release native routing identity`);
+}
+
 /** Transport representations differ, but every pending native item must match
  * an actual public slot. Relative delays and inactive candidates come from
  * enqueue metadata, never subtraction from a later endpoint. */
@@ -111,6 +193,7 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
     const input = readRecord(item.input);
     if (input.$ === "advicee_lifecycle_driver.Event" || input.$ === "advicee_lifecycle_driver.FitEvent") {
       if (publicItem.input.kind !== "canonical") throw new Error("queued Driver action changed input kind");
+      let failedReleaseScope: { readonly partition: number; readonly lifetime: number } | undefined;
       const issuance = readRecord(input.issuance);
       if (issuance.$ === "advicee_lifecycle_driver.RawInput") {
         if (input.$ !== "advicee_lifecycle_driver.Event") throw new TypeError(`${field} RawInput must remain an initial Event`);
@@ -144,7 +227,13 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
           if (context) same([job.partition,job.lifetime],[readNat(context.partition),readNat(context.lifetime)],`${field} item ${order} captured no-job command scope`);
           else if ("partition" in event && "lifetime" in event)
             same([job.partition,job.lifetime],[event.partition,event.lifetime],`${field} item ${order} original no-job scope`);
-          else throw new TypeError("NoJob original scope lacks genuine action or captured command context");
+          else {
+            failedReleaseScope = failedIndividualReleaseScope(event, source, publicItem, premise, `${field} item ${order}`);
+            if (failedReleaseScope)
+              same([readNat(job.partition),readNat(job.lifetime)], [failedReleaseScope.partition,failedReleaseScope.lifetime],
+                `${field} item ${order} failed individual release core scope`);
+            else throw new TypeError("NoJob original scope lacks genuine action or captured command context");
+          }
         } else if (job.$ === "advicee_lifecycle_driver.Unbound") {
           same(publicItem.job,undefined,`${field} item ${order} absent active source binding`);
           const original=readRecord(job.source);
@@ -159,7 +248,9 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       } else if (issuance.$ === "advicee_lifecycle_driver.RawInput" || issuance.$ === "advicee_lifecycle_driver.CanonicalFeedback") {
         same(publicItem.callbackReceipt,undefined,`${field} item ${order} nonenvironmental callback provenance`);
       } else throw new TypeError("unrecognized original queued issuance provenance");
-      compareEmission(input.context,publicItem,`${field} item ${order}`);
+      if (failedReleaseScope)
+        compareFailedIndividualReleaseEmission(input.context,publicItem,failedReleaseScope,`${field} item ${order}`);
+      else compareEmission(input.context,publicItem,`${field} item ${order}`);
       same(input.$ === "advicee_lifecycle_driver.FitEvent" ? readNat(input.attempt) : undefined,
         publicItem.fitFinish, `${field} item ${order} original fit attempt`);
     } else if (input.$ === "advicee_lifecycle_driver.Fact") {
