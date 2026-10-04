@@ -36,11 +36,12 @@ export function runWorkloadNative(fixture) {
 
 // Fresh emitted-JS execution is an independent diagnostic/validation axis. It
 // never reuses a native result or substitutes for the native gate above.
-export function runWorkloadEmitted(fixture) {
+export function runWorkloadEmitted(fixture, { emissionTimeoutMs = 15000 } = {}) {
+  if (!Number.isSafeInteger(emissionTimeoutMs) || emissionTimeoutMs <= 0) throw new RangeError("invalid JS emission timeout");
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-js-"));
   try {
     const source = join(directory, "scenario.mjs");
-    checked("bend", [fileURLToPath(fixture), "-o", source], 15000);
+    checked("bend", [fileURLToPath(fixture), "-o", source], emissionTimeoutMs);
     const program = join(directory, "execute.mjs");
     writeFileSync(program, `import Fixture from ${JSON.stringify(pathToFileURL(source).href)};
 const value = Fixture.json();

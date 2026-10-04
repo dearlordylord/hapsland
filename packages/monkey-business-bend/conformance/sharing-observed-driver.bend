@@ -57,10 +57,10 @@ def provided(job: Maybe<&2,Edge.Job>) -> Maybe<&2,Nat>:
 
 def frame_scopes(frame: Edge.ObservedFrame, context: Maybe<&2,Nat>) -> Maybe<&2,List<&2,Maybe<&2,Nat>>>:
   match frame:
-    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_}: Some{scopes}
-    case Edge.CacheFrame{_,_,_,_,_,_,_,_,_,_,scopes,_}: Some{scopes}
-    case Edge.GraphFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
-    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
+    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_,_}: Some{scopes}
+    case Edge.CacheFrame{_,_,_,_,_,_,_,_,_,_,scopes,_,_}: Some{scopes}
+    case Edge.GraphFrame{_,_,_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
+    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}: Some{[]}
     case Edge.UnexpectedInput{}: None{}
 
 def record(frame: Maybe<&2,Edge.ObservedFrame>, receipt: Maybe<&2,Callbacks.Target>,
@@ -109,7 +109,7 @@ def selected(head: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>,
     case Scheduler.Entry{at,+order} <> _ Trace{_,_,+queued,+labels,+originals,_,_,_,_}:
       +facts=Hook.selected(Edge.lookup(Edge.runtime_items(runtime),order),labels,originals,Provenance.original(queued,order),at)
       stepped(Transport.step(Hook.Facts,runtime,endpoint,
-        environment,commands => Hook.factory(commands,facts)),Edge.runtime_sequence(runtime),previous)
+        environment,commands => Edge.transition_hook(Hook.Facts,Hook.factory(commands,facts))),Edge.runtime_sequence(runtime),previous)
     case _ previous: fail(previous)
 
 def captured_synced(+runtime: List<&2,Edge.Runtime>, issued: Nat, environment: Edge.Environment,
@@ -204,7 +204,7 @@ def member_selected(equal: Bool, scope: Freshness.Scope, index: Nat,
 def member(list: List<&2,Frame>, +partition: Nat, index: Nat) -> Maybe<&2,Freshness.Scope>:
   match list:
     case Nil{}: None{}
-    case Observed{Edge.CanonicalFrame{_,_,_,_,C.BeginObservedPreparation{+p,l,r,observation,_},_,_,_,_,_,_},_,_,_} <> tail:
+    case Observed{Edge.CanonicalFrame{_,_,_,_,C.BeginObservedPreparation{+p,l,r,observation,_},_,_,_,_,_,_,_},_,_,_} <> tail:
       member_selected(Nat.is_eq(p,partition),Freshness.Scope{p,l,r,observation},index,
         i => member(tail,partition,i))
     case _ <> tail: member(tail,partition,index)

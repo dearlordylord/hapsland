@@ -839,15 +839,18 @@ def frame_scopes(result: Canonical.Step, before: List<&2,Runtime>, after: List<&
 # Full structural observation seam for consumers of this same factual edge.
 # Existing compact fixture entry points remain unchanged. A command hook supplies
 # original input captures; all commands and transitions still come from Engine.
+type PhysicalDelivery is Data:
+  PhysicalDelivery{before: List<&2,Runtime>, after: List<&2,Runtime>, action: Maybe<&2,Driver.Action>}
+
 type ObservedFrame is Data:
   CanonicalFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
-    order: Nat, event: Canonical.CanonicalEvent, result: List<&2,Canonical.Step>, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>}
+    order: Nat, event: Canonical.CanonicalEvent, result: List<&2,Canonical.Step>, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>}
   GraphFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
-    order: Nat, key: Types.GraphKey, position: Nat, event: Graph.GraphEvent, result: List<&2,Types.GraphTransition>, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>}
+    order: Nat, key: Types.GraphKey, position: Nat, event: Graph.GraphEvent, result: List<&2,Types.GraphTransition>, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>}
   CacheFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
-    order: Nat, fact: CacheRuntime.Fact, event: Canonical.CanonicalEvent, result: List<&2,Canonical.Step>, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>}
+    order: Nat, fact: CacheRuntime.Fact, event: Canonical.CanonicalEvent, result: List<&2,Canonical.Step>, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>}
   FinishFrame{before: List<&2,Types.State>, after: List<&2,Types.State>, time: Nat,
-    order: Nat, input: StopScenario.Input, finish: Maybe<&2,StopScenario.Finish>, created: Bool, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>}
+    order: Nat, input: StopScenario.Input, finish: Maybe<&2,StopScenario.Finish>, created: Bool, runtime_before: List<&2,Runtime>, runtime_after: List<&2,Runtime>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>}
   UnexpectedInput{}
 # A callback is linear (Type). It returns the next callback with the updated
 # factual captures. Factories must build this finite chain from the actual
@@ -856,6 +859,21 @@ type CommandHook<-F: Data> is Type:
   HookEnd{facts: F}
   HookFault{facts: F}
   HookNext{facts: F, handle: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled, apply: F -> Canonical.Command -> List<&2,Runtime> -> (List<&2,Runtime> & CommandHook<F>)}
+type TransitionHook<-F: Data> is Type:
+  TransitionHook{hook: CommandHook<F>, apply: List<&2,Runtime> -> List<&2,Runtime> -> Canonical.CanonicalEvent -> Canonical.Step -> Nat -> CommandHook<F> -> (List<&2,Runtime> & CommandHook<F>)}
+
+def transition_identity(-F: Data, _before: List<&2,Runtime>, after: List<&2,Runtime>,
+    _event: Canonical.CanonicalEvent, _result: Canonical.Step, _now: Nat,
+    hook: CommandHook<F>) -> List<&2,Runtime> & CommandHook<F>:
+  (after,hook)
+
+def transition_hook(-F: Data, hook: CommandHook<F>) -> TransitionHook<F>:
+  TransitionHook{hook,transition_identity(F)}
+
+def transition_commands(-F: Data, transition: TransitionHook<F>) -> CommandHook<F>:
+  match transition:
+    case TransitionHook{hook,_}: hook
+
 type Commanded<-F: Data> is Type:
   Commanded{runtime: List<&2,Runtime>, hook: CommandHook<F>, valid: Bool}
 type Observed<-F: Data> is Type:
@@ -916,10 +934,10 @@ def observed_collector_finished(-F: Data, changed: Engine.CollectorHandled, emit
     +result: Canonical.Step, hook: CommandHook<F>) -> Observed<F>:
   match changed:
     case Engine.CollectorHandled{+state,Driver.Handled{_,following}}:
-      +after:List<&2,Runtime>=[Runtime{state,stop_wake_queue(stop_wake_event(event),state,
-          actions(List.append(&2,Driver.Action,emitted,following),queue,now,job),now),jobs,delay}]
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,stop_wake_queue(stop_wake_event(event),state,
+          actions(List.append(&2,Driver.Action,emitted,following),queue,now,job),now),jobs,delay}])
       Observed{after,
-        Some{CanonicalFrame{runtime_states(before),[state],now,order,event,[result],before,after,Some{job_partition(job)},frame_scopes(result,before,after,Some{job_partition(job)}),None{}}},hook}
+        Some{CanonicalFrame{runtime_states(before),runtime_states(after),now,order,event,[result],before,after,Some{job_partition(job)},frame_scopes(result,before,after,Some{job_partition(job)}),None{},[]}},hook}
 
 def observed_finished_ready(-F: Data, emitted: List<&2,Driver.Action>, runtime: List<&2,Runtime>,
     before: List<&2,Runtime>, +event: Canonical.CanonicalEvent, now: Nat, order: Nat,
@@ -951,7 +969,7 @@ def observed_finished(-F: Data, runtime: List<&2,Runtime>, +before: List<&2,Runt
 def observed_following(-F: Data, pair: List<&2,Runtime> & CommandHook<F>,
     ih: List<&2,Runtime> -> CommandHook<F> -> Commanded<F>) -> Commanded<F>:
   (next,following)=pair
-  ih(next,following)
+  ih(runtime_sync(next),following)
 
 # The event remains in its direct linear carrier; callbacks keep the incoming
 # runtime carrier instead of exposing all fields in their continuation.
@@ -968,7 +986,7 @@ def observed_interpreted(-F: Data, result: Interpreted, facts: F, +command: Cano
     apply: F -> Canonical.Command -> List<&2,Runtime> -> (List<&2,Runtime> & CommandHook<F>),
     ih: List<&2,Runtime> -> CommandHook<F> -> Commanded<F>) -> Commanded<F>:
   match result:
-    case Interpreted{runtime,True{}}: observed_following(F,apply(facts,command,runtime),ih)
+    case Interpreted{runtime,True{}}: observed_following(F,apply(facts,command,runtime_sync(runtime)),ih)
     case Interpreted{runtime,False{}}: Commanded{runtime,HookFault{facts},False{}}
 
 def observed_apply(-F: Data, valid: Bool, events: Array<Canonical.CanonicalEvent>, runtime: List<&2,Runtime>,
@@ -999,25 +1017,42 @@ def observed_commanded(-F: Data, commanded: Commanded<F>, before: List<&2,Runtim
     case Commanded{runtime,hook,True{}}: observed_finished(F,runtime,before,event,now,order,job,result,hook)
     case Commanded{runtime,hook,_}: Observed{runtime,Some{UnexpectedInput{}},hook}
 
-def observed_result(-F: Data, +result: Canonical.Step, runtime: List<&2,Runtime>, before: List<&2,Runtime>,
-    +event: Canonical.CanonicalEvent, +job: Job, +now: Nat, order: Nat,
-    candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+def actual_commands(result: Canonical.Step) -> List<&2,Canonical.Command>:
   match result:
-    case Canonical.Advanced{_,+list}:
-      observed_commanded(F,observed_commands(F,list,runtime,event,now,job,candidate,environment,factory(list)),before,event,now,order,job,result)
-    case Canonical.Rejected{_,_}:
-      observed_finished(F,runtime,before,event,now,order,job,result,factory([]))
+    case Canonical.Advanced{_,commands}: commands
+    case Canonical.Rejected{_,_}: []
+
+# The event transition runs once, including rejected/zero-command steps. Cache
+# facts already queued by the existing publication path remain before its facts;
+# command actions follow it, matching the public runner's enqueue order.
+def observed_transition_ready(-F: Data, transitioned: List<&2,Runtime> & CommandHook<F>,
+    +result: Canonical.Step, before: List<&2,Runtime>, +event: Canonical.CanonicalEvent,
+    +job: Job, +now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
+    environment: Environment) -> Observed<F>:
+  match transitioned:
+    case (runtime,hook):
+      observed_commanded(F,observed_commands(F,actual_commands(result),runtime_sync(runtime),event,now,job,candidate,environment,hook),
+        before,event,now,order,job,result)
+
+def observed_transition_hook(-F: Data, transition: TransitionHook<F>, +result: Canonical.Step,
+    runtime: List<&2,Runtime>, +before: List<&2,Runtime>, +event: Canonical.CanonicalEvent,
+    job: Job, +now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
+    environment: Environment) -> Observed<F>:
+  match transition:
+    case TransitionHook{hook,apply}:
+      observed_transition_ready(F,apply(before,runtime_sync(runtime),event,result,now,hook),result,before,event,job,now,order,candidate,environment)
+
+def observed_result(-F: Data, +result: Canonical.Step, runtime: List<&2,Runtime>, before: List<&2,Runtime>,
+    event: Canonical.CanonicalEvent, job: Job, now: Nat, order: Nat,
+    candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  observed_transition_hook(F,factory(actual_commands(result)),result,runtime,before,event,job,now,order,candidate,environment)
 
 def cache_facts(list: List<&2,CacheRuntime.Fact>, queue: Queue, +now: Nat, +job: Job) -> Queue:
   match list:
     case Nil{}: queue
     case fact <> tail: cache_facts(tail,append(queue,now,Cache{fact,job}),now,job)
 
-def actual_commands(result: Canonical.Step) -> List<&2,Canonical.Command>:
-  match result:
-    case Canonical.Advanced{_,commands}: commands
-    case Canonical.Rejected{_,_}: []
 
 def runtime_cache_begin(runtime: List<&2,Runtime>, state: Types.State, event: Canonical.CanonicalEvent,
     commands: List<&2,Canonical.Command>) -> List<&2,Engine.CachePublished>:
@@ -1034,28 +1069,28 @@ def observed_published(-F: Data, published: List<&2,Engine.CachePublished>, +run
     event: Canonical.CanonicalEvent, +job: Job, +now: Nat, order: Nat,
     candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
     result: Canonical.Step, removed: List<&2,Canonical.CanonicalEvent>,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match published runtime:
     case Engine.CachePublished{state,facts,releases} <> Nil{} Runtime{_,queue,jobs,delay} <> Nil{}:
       observed_result(F,result,[Runtime{state,
         actions(Engine.sharing_actions(List.append(&2,Canonical.CanonicalEvent,removed,releases)),cache_facts(facts,queue,now,job),now,job),
         jobs,delay}],runtime,event,job,now,order,candidate,environment,factory)
-    case _ runtime: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case _ runtime: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def observed_transition(-F: Data, transition: List<&2,Engine.Transition>, +runtime: List<&2,Runtime>,
     +event: Canonical.CanonicalEvent, job: Job, now: Nat, order: Nat,
     candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match transition:
     case Engine.Transition{state,+result} <> Nil{}:
       observed_published(F,runtime_cache_begin(runtime,state,event,actual_commands(result)),runtime,event,
         job,now,order,candidate,environment,result,runtime_cache_removed(runtime,actual_commands(result)),factory)
-    case _: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case _: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def cache_observed(-F: Data, observed: Observed<F>, fact: CacheRuntime.Fact) -> Observed<F>:
   match observed:
-    case Observed{runtime,Some{CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,scopes,receipt}},hook}:
-      Observed{runtime,Some{CacheFrame{before,after,time,order,fact,event,result,runtime_before,runtime_after,provided,scopes,receipt}},hook}
+    case Observed{runtime,Some{CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,scopes,receipt,physical}},hook}:
+      Observed{runtime,Some{CacheFrame{before,after,time,order,fact,event,result,runtime_before,runtime_after,provided,scopes,receipt,physical}},hook}
     case observed: observed
 
 def runtime_cache_apply(runtime: List<&2,Runtime>, fact: CacheRuntime.Fact) -> List<&2,Engine.CacheApplied>:
@@ -1094,31 +1129,31 @@ def cache_applied_queue(applied: List<&2,Engine.CacheApplied>, queue: List<&2,Qu
 def observed_cache_ready(-F: Data, queue: List<&2,Queue>, applied: List<&2,Engine.CacheApplied>,
     runtime: List<&2,Runtime>, before: List<&2,Runtime>, fact: CacheRuntime.Fact,
     job: Job, now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match queue applied runtime:
     case queue <> Nil{} Engine.CacheApplied{state,event,result,_,_,True{}} <> Nil{}
         Runtime{_,_,jobs,delay} <> Nil{}:
       cache_observed(F,observed_result(F,result,[Runtime{state,queue,jobs,delay}],before,event,job,now,order,None{},environment,factory),fact)
-    case _ _ runtime: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case _ _ runtime: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def observed_cache_valid(-F: Data, valid: Bool, +applied: List<&2,Engine.CacheApplied>, +runtime: List<&2,Runtime>,
     fact: CacheRuntime.Fact, +job: Job, +now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match valid:
     case True{}:
       observed_cache_ready(F,cache_applied_queue(applied,runtime_queues(runtime),
         cache_applied_actions(applied,runtime_cache_removed(runtime,cache_applied_commands(applied))),now,job),
         applied,runtime,runtime,fact,job,now,order,environment,factory)
-    case False{}: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case False{}: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def observed_cache(-F: Data, +applied: List<&2,Engine.CacheApplied>, runtime: List<&2,Runtime>,
     fact: CacheRuntime.Fact, job: Job, now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_cache_valid(F,cache_applied_valid(applied),applied,runtime,fact,job,now,order,environment,factory)
 
 def observed_cache_input(-F: Data, +runtime: List<&2,Runtime>, +fact: CacheRuntime.Fact,
     job: Job, now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_cache(F,runtime_cache_apply(runtime,fact),runtime,fact,job,now,order,environment,factory)
 
 def runtime_step(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> List<&2,Engine.Transition>:
@@ -1128,11 +1163,11 @@ def runtime_step(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> 
 
 def observed_completion(-F: Data, completion: List<&2,SharingRuntime.Completion>, +runtime: List<&2,Runtime>,
     job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match completion:
     case SharingRuntime.Completion{+event,True{}} <> Nil{}:
       observed_transition(F,runtime_step(runtime,event),runtime,event,job,now,order,candidate,environment,factory)
-    case _: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case _: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def runtime_completion(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> List<&2,SharingRuntime.Completion>:
   match runtime:
@@ -1141,11 +1176,11 @@ def runtime_completion(runtime: List<&2,Runtime>, event: Canonical.CanonicalEven
 
 def observed_fenced(-F: Data, events: List<&2,Canonical.CanonicalEvent>, +runtime: List<&2,Runtime>,
     job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match events:
     case event <> Nil{}:
       observed_completion(F,runtime_completion(runtime,event),runtime,job,now,order,candidate,environment,factory)
-    case _: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case _: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 def runtime_fence(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, environment: Environment,
     job: Job, candidate: Maybe<&2,Driver.Candidate>) -> List<&2,Canonical.CanonicalEvent>:
@@ -1156,31 +1191,31 @@ def runtime_fence(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, en
 
 def observed_event(-F: Data, +runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
     +job: Job, now: Nat, order: Nat, +candidate: Maybe<&2,Driver.Candidate>, +environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_fenced(F,runtime_fence(runtime,event,environment,job,candidate),runtime,job,now,order,candidate,environment,factory)
 
 def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2,Stored>,
     +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
   match attempt:
     case Engine.EditAttempt{state,Driver.EditPlan{retry,emitted}}:
-      Observed{[Runtime{state,retry_edit(retry,actions(emitted,queue,now,job),now,job),jobs,delay}],None{},hook}
+      Observed{runtime_sync([Runtime{state,retry_edit(retry,actions(emitted,queue,now,job),now,job),jobs,delay}]),None{},hook}
 
 def observed_graph(-F: Data, +result: Types.GraphTransition, +before: List<&2,Runtime>, queue: Queue,
     jobs: List<&2,Stored>, now: Nat, order: Nat, key: Types.GraphKey, position: Nat,
     event: Graph.GraphEvent, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
   match result:
     case Types.GraphTransition{+state,_,_}:
-      +after:List<&2,Runtime>=[Runtime{state,queue,jobs,delay}]
-      Observed{after,Some{GraphFrame{runtime_states(before),[state],now,order,key,position,event,[result],before,after,None{},[],None{}}},hook}
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,queue,jobs,delay}])
+      Observed{after,Some{GraphFrame{runtime_states(before),runtime_states(after),now,order,key,position,event,[result],before,after,None{},[],None{},[]}},hook}
     case Types.GraphRejected{+state}:
-      +after:List<&2,Runtime>=[Runtime{state,queue,jobs,delay}]
-      Observed{after,Some{GraphFrame{runtime_states(before),[state],now,order,key,position,event,[result],before,after,None{},[],None{}}},hook}
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,queue,jobs,delay}])
+      Observed{after,Some{GraphFrame{runtime_states(before),runtime_states(after),now,order,key,position,event,[result],before,after,None{},[],None{},[]}},hook}
 
 def observed_workload(-F: Data, result: Engine.WorkloadTransition, queue: Queue,
     jobs: List<&2,Stored>, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
   match result:
     case Engine.WorkloadTransition{+state,events,True{}}:
-      Observed{[Runtime{state,emissions(events,queue,state),jobs,delay}],None{},hook}
+      Observed{runtime_sync([Runtime{state,emissions(events,queue,state),jobs,delay}]),None{},hook}
     case Engine.WorkloadTransition{state,_,False{}}:
       Observed{[Runtime{state,queue,jobs,delay}],Some{UnexpectedInput{}},hook}
 
@@ -1270,9 +1305,9 @@ def observed_finish_registered(-F: Data, registered: Engine.StopRegistered, +bef
     hook: CommandHook<F>) -> Observed<F>:
   match registered:
     case Engine.StopRegistered{+state,+finish,+created}:
-      +after:List<&2,Runtime>=[Runtime{state,stop_registration_queue(created,finish,queue,stop_input_job(input)),jobs,delay}]
+      +after:List<&2,Runtime>=runtime_sync([Runtime{state,stop_registration_queue(created,finish,queue,stop_input_job(input)),jobs,delay}])
       Observed{after,
-        Some{FinishFrame{runtime_states(before),[state],now,order,input,finish,created,before,after,Some{job_partition(stop_input_job(input))},[],None{}}},hook}
+        Some{FinishFrame{runtime_states(before),runtime_states(after),now,order,input,finish,created,before,after,Some{job_partition(stop_input_job(input))},[],None{},[]}},hook}
 
 def observed_finish(-F: Data, +runtime: List<&2,Runtime>, +input: StopScenario.Input, now: Nat, order: Nat,
     hook: CommandHook<F>) -> Observed<F>:
@@ -1299,8 +1334,8 @@ def observed_finish_intent(-F: Data, runtime: List<&2,Runtime>, p: Nat, started:
 
 def observed_input_state(-F: Data, +value: Input, +runtime: List<&2,Runtime>,
     now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
-  observed_input_ready(F,input_valid(value,runtime),value,runtime,now,order,environment_graph(environment),factory([]))
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  observed_input_ready(F,input_valid(value,runtime),value,runtime,now,order,environment_graph(environment),transition_commands(F,factory([])))
 
 def stop_fit_profile(profile: Maybe<&2,StopProfile>, attempt: Nat) -> Maybe<&2,StopProfile>:
   match profile:
@@ -1315,16 +1350,16 @@ def stop_fit_environment(environment: Environment, attempt: Nat) -> Environment:
 
 def observed_input(-F: Data, value: Input, runtime: List<&2,Runtime>,
     now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match value:
     case Event{Driver.Action{event,_,candidate,_,_},job}:
       observed_event(F,runtime,event,job,now,order,candidate,environment,factory)
     case FitEvent{Driver.Action{event,_,candidate,_,_},job,attempt}:
       observed_event(F,runtime,event,job,now,order,candidate,stop_fit_environment(environment,attempt),factory)
     case Cache{fact,job}: observed_cache_input(F,runtime,fact,job,now,order,environment,factory)
-    case Finish{input}: observed_finish(F,runtime,input,now,order,factory([]))
-    case FinishIntent{p,started,cutoff,recurring}: observed_finish_intent(F,runtime,p,started,cutoff,recurring,now,order,factory([]))
-    case Missing{}: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+    case Finish{input}: observed_finish(F,runtime,input,now,order,transition_commands(F,factory([])))
+    case FinishIntent{p,started,cutoff,recurring}: observed_finish_intent(F,runtime,p,started,cutoff,recurring,now,order,transition_commands(F,factory([])))
+    case Missing{}: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
     case value: observed_input_state(F,value,runtime,now,order,environment,factory)
 
 def taken_items(taken: List<&2,Engine.Taken>, runtime: List<&2,Runtime>) -> List<&2,Item>:
@@ -1344,21 +1379,21 @@ def taken_runtime(+taken: List<&2,Engine.Taken>, +runtime: List<&2,Runtime>) -> 
 
 # Carry the exact selected fact across physical consumption. The callback owner
 # removes delivered originals, so a later lookup is not evidence of issuance.
-def observed_receipt_frame(frame: ObservedFrame, receipt: Maybe<&2,Callbacks.Fact>) -> ObservedFrame:
+def observed_receipt_frame(frame: ObservedFrame, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>) -> ObservedFrame:
   match frame:
-    case CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,scopes,_}:
-      CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,scopes,receipt}
-    case GraphFrame{before,after,time,order,key,position,event,result,runtime_before,runtime_after,provided,scopes,_}:
-      GraphFrame{before,after,time,order,key,position,event,result,runtime_before,runtime_after,provided,scopes,receipt}
-    case CacheFrame{before,after,time,order,fact,event,result,runtime_before,runtime_after,provided,scopes,_}:
-      CacheFrame{before,after,time,order,fact,event,result,runtime_before,runtime_after,provided,scopes,receipt}
-    case FinishFrame{before,after,time,order,input,finish,created,runtime_before,runtime_after,provided,scopes,_}:
-      FinishFrame{before,after,time,order,input,finish,created,runtime_before,runtime_after,provided,scopes,receipt}
+    case CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,scopes,_,_}:
+      CanonicalFrame{before,after,time,order,event,result,runtime_before,runtime_after,provided,scopes,receipt,physical}
+    case GraphFrame{before,after,time,order,key,position,event,result,runtime_before,runtime_after,provided,scopes,_,_}:
+      GraphFrame{before,after,time,order,key,position,event,result,runtime_before,runtime_after,provided,scopes,receipt,physical}
+    case CacheFrame{before,after,time,order,fact,event,result,runtime_before,runtime_after,provided,scopes,_,_}:
+      CacheFrame{before,after,time,order,fact,event,result,runtime_before,runtime_after,provided,scopes,receipt,physical}
+    case FinishFrame{before,after,time,order,input,finish,created,runtime_before,runtime_after,provided,scopes,_,_}:
+      FinishFrame{before,after,time,order,input,finish,created,runtime_before,runtime_after,provided,scopes,receipt,physical}
     case UnexpectedInput{}: UnexpectedInput{}
 
-def observed_receipted(-F: Data, observed: Observed<F>, receipt: Maybe<&2,Callbacks.Fact>) -> Observed<F>:
+def observed_receipted(-F: Data, observed: Observed<F>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>) -> Observed<F>:
   match observed:
-    case Observed{runtime,Some{frame},hook}: Observed{runtime,Some{observed_receipt_frame(frame,receipt)},hook}
+    case Observed{runtime,Some{frame},hook}: Observed{runtime,Some{observed_receipt_frame(frame,receipt,physical)},hook}
     case observed: observed
 
 def delivered_input(action: Maybe<&2,Driver.Action>, input: Input) -> Input:
@@ -1366,11 +1401,6 @@ def delivered_input(action: Maybe<&2,Driver.Action>, input: Input) -> Input:
     case Some{action} Event{_,job}: Event{action,job}
     case Some{action} FitEvent{_,job,attempt}: FitEvent{action,job,attempt}
     case _ input: input
-
-def delivered_receipt_input(receipt: Maybe<&2,Callbacks.Fact>, input: Input, now: Nat) -> Input:
-  match receipt:
-    case Some{fact}: delivered_input(Engine.output_deliver(fact,now),input)
-    case None{}: input
 
 def delivered_state(input: Input, state: Types.State, order: Nat) -> Types.State:
   match input:
@@ -1384,25 +1414,39 @@ def delivered_runtime(input: Input, runtime: List<&2,Runtime>, order: Nat) -> Li
       [Runtime{delivered_state(input,state,order),queue,jobs,delay}]
     case runtime: runtime
 
-def observed_delivered(-F: Data, +input: Input, runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>,
-    now: Nat, +order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
-  observed_receipted(F,observed_input(F,input,delivered_runtime(input,runtime,order),now,order,environment,factory),receipt)
+def physical_delivery(receipt: Maybe<&2,Callbacks.Fact>, before: List<&2,Runtime>,
+    after: List<&2,Runtime>, action: Maybe<&2,Driver.Action>) -> List<&2,PhysicalDelivery>:
+  match receipt:
+    case Some{_}: [PhysicalDelivery{before,after,action}]
+    case None{}: []
 
-def observed_delivery(-F: Data, input: Input, runtime: List<&2,Runtime>, +receipt: Maybe<&2,Callbacks.Fact>,
-    +now: Nat, order: Nat, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
-  observed_delivered(F,delivered_receipt_input(receipt,input,now),runtime,receipt,now,order,environment,factory)
+def observed_delivered(-F: Data, input: Input, +before: List<&2,Runtime>, +after: List<&2,Runtime>,
+    +receipt: Maybe<&2,Callbacks.Fact>, +action: Maybe<&2,Driver.Action>,
+    now: Nat, order: Nat, environment: Environment,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  observed_receipted(F,observed_input(F,delivered_input(action,input),after,now,order,environment,factory),
+    receipt,physical_delivery(receipt,before,after,action))
+
+def receipt_delivery(receipt: Maybe<&2,Callbacks.Fact>, now: Nat) -> Maybe<&2,Driver.Action>:
+  match receipt:
+    case Some{fact}: Engine.output_deliver(fact,now)
+    case None{}: None{}
+
+def observed_delivery(-F: Data, +input: Input, +runtime: List<&2,Runtime>, +receipt: Maybe<&2,Callbacks.Fact>,
+    +now: Nat, +order: Nat, environment: Environment,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  observed_delivered(F,input,runtime,delivered_runtime(input,runtime,order),receipt,
+    receipt_delivery(receipt,now),now,order,environment,factory)
 
 def observed_taken(-F: Data, +taken: List<&2,Engine.Taken>, +runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>,
     environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match taken:
     case Engine.Taken{_,Some{Scheduler.Entry{now,+order}}} <> Nil{}:
       observed_delivery(F,lookup(runtime_items(runtime),order),taken_runtime(taken,runtime),receipt,now,order,environment,factory)
     case Engine.Taken{_,None{}} <> Nil{}:
-      Observed{taken_runtime(taken,runtime),None{},factory([])}
-    case _: Observed{runtime,Some{UnexpectedInput{}},factory([])}
+      Observed{taken_runtime(taken,runtime),None{},transition_commands(F,factory([]))}
+    case _: Observed{runtime,Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
 # Projection runs on one copy; the original recursive carrier stays closed
 # across both sync and take, just as it does across command callbacks.
@@ -1413,13 +1457,13 @@ def observed_take(runtime: List<&2,Runtime>) -> List<&2,Engine.Taken>:
     case _: []
 
 def observed_take_ready(-F: Data, taken: List<&2,Engine.Taken>, runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>,
-    environment: Environment, factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    environment: Environment, factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_taken(F,taken,runtime,receipt,environment,factory)
 
 def observe_step_with(-F: Data, +runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_take_ready(F,observed_take(runtime),runtime,receipt,environment,factory)
 
 def observe_step(-F: Data, runtime: List<&2,Runtime>,
-    factory: List<&2,Canonical.Command> -> CommandHook<F>) -> Observed<F>:
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observe_step_with(F,runtime,None{},default_environment(),factory)

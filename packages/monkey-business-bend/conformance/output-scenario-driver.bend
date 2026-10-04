@@ -204,7 +204,7 @@ def selected_receipt(originals: List<&2,Callbacks.Original>, +order: Nat) -> May
 
 def frame_scopes(frame: Edge.ObservedFrame) -> List<&2,Maybe<&2,Nat>>:
   match frame:
-    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_}: scopes
+    case Edge.CanonicalFrame{_,_,_,_,_,_,_,_,_,scopes,_,_}: scopes
     case _: Nil{}
 
 def observed_frame(+runtime: List<&2,Edge.Runtime>, frame: Maybe<&2,Edge.ObservedFrame>,
@@ -248,7 +248,7 @@ def observed(value: Transport.Stepped<Facts>, previous: Runtime, receipt: Maybe<
 
 def step_receipted(receipt: Maybe<&2,Callbacks.Fact>, runtime: List<&2,Edge.Runtime>,
     environment: Edge.Environment, previous: Runtime, +facts: Facts) -> Runtime:
-  observed(Transport.step(Facts,runtime,20n,environment,commands => hook(commands,facts)),previous,receipt)
+  observed(Transport.step(Facts,runtime,20n,environment,commands => Edge.transition_hook(Facts,hook(commands,facts))),previous,receipt)
 
 def step_selected(queue: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>, environment: Edge.Environment,
     previous: Runtime, facts: Facts) -> Runtime:

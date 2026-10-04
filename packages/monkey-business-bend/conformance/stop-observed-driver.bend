@@ -41,15 +41,15 @@ def finish_before(before: List<&2,Edge.Runtime>, provided: Maybe<&2,Nat>) -> May
 
 def frame_finish(frame: Edge.ObservedFrame) -> Maybe<&2,Stop.Finish>:
   match frame:
-    case Edge.FinishFrame{_,_,_,_,_,finish,_,_,_,_,_,_}: finish
-    case Edge.CanonicalFrame{_,_,_,_,_,_,before,_,provided,_,_}: finish_before(before,provided)
-    case Edge.CacheFrame{_,_,_,_,_,_,_,before,_,provided,_,_}: finish_before(before,provided)
-    case Edge.GraphFrame{_,_,_,_,_,_,_,_,before,_,provided,_,_}: finish_before(before,provided)
+    case Edge.FinishFrame{_,_,_,_,_,finish,_,_,_,_,_,_,_}: finish
+    case Edge.CanonicalFrame{_,_,_,_,_,_,before,_,provided,_,_,_}: finish_before(before,provided)
+    case Edge.CacheFrame{_,_,_,_,_,_,_,before,_,provided,_,_,_}: finish_before(before,provided)
+    case Edge.GraphFrame{_,_,_,_,_,_,_,_,before,_,provided,_,_,_}: finish_before(before,provided)
     case Edge.UnexpectedInput{}: None{}
 
 def consumed(frame: Edge.ObservedFrame) -> Nat:
   match frame:
-    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_}: 0n
+    case Edge.FinishFrame{_,_,_,_,_,_,_,_,_,_,_,_,_}: 0n
     case Edge.UnexpectedInput{}: 0n
     case _: 1n
 
@@ -75,7 +75,7 @@ def observed(value: Transport.Stepped<Facts>, input: Inputs.Scenario, frames: Li
 def selected(runtime: List<&2,Edge.Runtime>, issued: Nat, input: Inputs.Scenario,
     frames: List<&2,Wire.Frame>, observations: Nat, environment: Edge.Environment, endpoint: Nat,
     ih: Nat -> Running -> Running) -> Running:
-  observed(Transport.step(Facts,runtime,endpoint,environment,commands => hook(commands,Facts{issued})),
+  observed(Transport.step(Facts,runtime,endpoint,environment,commands => Edge.transition_hook(Facts,hook(commands,Facts{issued}))),
     input,frames,observations,ih)
 
 def in_horizon(entries: List<&2,Scheduler.Entry>, endpoint: Nat) -> Bool:
