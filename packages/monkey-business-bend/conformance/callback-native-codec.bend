@@ -2474,12 +2474,134 @@ def advicee_lifecycle_driver_environment(values: List<&2,advicee_lifecycle_drive
     case advicee_lifecycle_driver.Environment{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 0n <> v0 <> treefacts_profile([v1],importgraph_limits([v2],v3 <> v4 <> v5 <> maybe_advicee_lifecycle_driver_stopprofile([v6],driver_outcomeenvironment([v7],suffix))))
     case _: 999999n <> suffix
 
+def stop_observed_wire_businessstate(values: List<&2,stop_observed_wire.BusinessState>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.BusinessState{v0,v1} <> Nil{}: 0n <> canonical_state([v0],list_stopscenario_finish([v1],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_businessstate_items(values: List<&2,List<&2,stop_observed_wire.BusinessState>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_observed_wire_businessstate([head],list_stop_observed_wire_businessstate_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_businessstate(values: List<&2,List<&2,stop_observed_wire.BusinessState>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_observed_wire.BusinessState,value) <> list_stop_observed_wire_businessstate_items([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_observed_wire_endpoint(values: List<&2,stop_observed_wire.Endpoint>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.Endpoint{v0,v1} <> Nil{}: 0n <> v0 <> list_stop_observed_wire_businessstate([v1],suffix)
+    case _: 999999n <> suffix
+
+def stop_observed_wire_outcome(values: List<&2,stop_observed_wire.Outcome>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.Advanced{v0} <> Nil{}: 0n <> list_canonical_command([v0],suffix)
+    case stop_observed_wire.Rejected{v0} <> Nil{}: 1n <> canonical_reason([v0],suffix)
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_outcome_items(values: List<&2,List<&2,stop_observed_wire.Outcome>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_observed_wire_outcome([head],list_stop_observed_wire_outcome_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_outcome(values: List<&2,List<&2,stop_observed_wire.Outcome>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_observed_wire.Outcome,value) <> list_stop_observed_wire_outcome_items([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_observed_wire_graphresult(values: List<&2,stop_observed_wire.GraphResult>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.GraphAdvanced{v0,v1,v2} <> Nil{}: 0n <> importgraph_bounded([v0],importgraph_bounded([v1],importgraph_command([v2],suffix)))
+    case stop_observed_wire.GraphRejected{} <> Nil{}: 1n <> suffix
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_graphresult_items(values: List<&2,List<&2,stop_observed_wire.GraphResult>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_observed_wire_graphresult([head],list_stop_observed_wire_graphresult_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_graphresult(values: List<&2,List<&2,stop_observed_wire.GraphResult>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_observed_wire.GraphResult,value) <> list_stop_observed_wire_graphresult_items([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_observed_wire_observation(values: List<&2,stop_observed_wire.Observation>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.Canonical{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 0n <> v0 <> v1 <> list_stop_observed_wire_businessstate([v2],list_stop_observed_wire_businessstate([v3],canonical_canonicalevent([v4],list_stop_observed_wire_outcome([v5],maybe_nat([v6],list_maybe_nat([v7],suffix))))))
+    case stop_observed_wire.Cache{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 1n <> v0 <> v1 <> list_stop_observed_wire_businessstate([v2],list_stop_observed_wire_businessstate([v3],cacheruntime_fact([v4],canonical_canonicalevent([v5],list_stop_observed_wire_outcome([v6],maybe_nat([v7],list_maybe_nat([v8],suffix)))))))
+    case stop_observed_wire.Graph{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9} <> Nil{}: 2n <> v0 <> v1 <> list_stop_observed_wire_businessstate([v2],list_stop_observed_wire_businessstate([v3],types_graphkey([v4],v5 <> importgraph_graphevent([v6],list_stop_observed_wire_graphresult([v7],maybe_nat([v8],list_maybe_nat([v9],suffix)))))))
+    case stop_observed_wire.Finish{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 3n <> v0 <> v1 <> list_stop_observed_wire_businessstate([v2],list_stop_observed_wire_businessstate([v3],stopscenario_input([v4],maybe_stopscenario_finish([v5],boolean(v6,maybe_nat([v7],list_maybe_nat([v8],suffix)))))))
+    case _: 999999n <> suffix
+
+def stop_observed_wire_physical(values: List<&2,stop_observed_wire.Physical>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.Physical{v0,v1,v2,v3,v4} <> Nil{}: 0n <> v0 <> v1 <> list_stop_observed_wire_businessstate([v2],list_stop_observed_wire_businessstate([v3],maybe_driver_action([v4],suffix)))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_physical_items(values: List<&2,List<&2,stop_observed_wire.Physical>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_observed_wire_physical([head],list_stop_observed_wire_physical_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_physical(values: List<&2,List<&2,stop_observed_wire.Physical>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_observed_wire.Physical,value) <> list_stop_observed_wire_physical_items([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_observed_wire_origin(values: List<&2,stop_observed_wire.Origin>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.Environmental{} <> Nil{}: 0n <> suffix
+    case stop_observed_wire.CanonicalFeedback{} <> Nil{}: 1n <> suffix
+    case stop_observed_wire.RawInput{} <> Nil{}: 2n <> suffix
+    case _: 999999n <> suffix
+
+def stop_observed_wire_issuedfacts(values: List<&2,stop_observed_wire.IssuedFacts>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.IssuedFacts{v0,v1,v2,v3} <> Nil{}: 0n <> maybe_driver_sourcejob([v0],maybe_driver_outcomereceipt([v1],maybe_outputscenario_capture([v2],stop_observed_wire_origin([v3],suffix))))
+    case _: 999999n <> suffix
+
+def maybe_stop_observed_wire_issuedfacts(values: List<&2,Maybe<&2,stop_observed_wire.IssuedFacts>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case None{} <> Nil{}: 0n <> suffix
+    case Some{value} <> Nil{}: 1n <> stop_observed_wire_issuedfacts([value],suffix)
+    case _: 999999n <> suffix
+
+def stop_observed_wire_emission(values: List<&2,stop_observed_wire.Emission>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case stop_observed_wire.Action{v0,v1,v2,v3,v4} <> Nil{}: 0n <> v0 <> v1 <> driver_action([v2],maybe_nat([v3],stop_observed_wire_issuedfacts([v4],suffix)))
+    case stop_observed_wire.Edit{v0,v1,v2} <> Nil{}: 1n <> v0 <> v1 <> maybe_driver_sourcejob([v2],suffix)
+    case stop_observed_wire.SourceEdit{v0,v1,v2,v3,v4,v5,v6} <> Nil{}: 2n <> v0 <> v1 <> v2 <> v3 <> v4 <> list_nat([v5],maybe_canonical_requestoutcome([v6],suffix))
+    case stop_observed_wire.FinishInput{v0,v1,v2} <> Nil{}: 3n <> v0 <> v1 <> stopscenario_input([v2],suffix)
+    case stop_observed_wire.FinishIntent{v0,v1,v2,v3,v4,v5} <> Nil{}: 4n <> v0 <> v1 <> v2 <> v3 <> v4 <> boolean(v5,suffix)
+    case stop_observed_wire.GraphInput{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 5n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> importgraph_graphevent([v7],suffix)
+    case stop_observed_wire.Arrival{v0,v1,v2,v3} <> Nil{}: 6n <> v0 <> v1 <> workload_emission([v2],v3 <> suffix)
+    case stop_observed_wire.CacheInput{v0,v1,v2,v3} <> Nil{}: 7n <> v0 <> v1 <> cacheruntime_fact([v2],maybe_driver_sourcejob([v3],suffix))
+    case stop_observed_wire.Missing{v0,v1} <> Nil{}: 8n <> v0 <> v1 <> suffix
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_emission_items(values: List<&2,List<&2,stop_observed_wire.Emission>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: stop_observed_wire_emission([head],list_stop_observed_wire_emission_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_stop_observed_wire_emission(values: List<&2,List<&2,stop_observed_wire.Emission>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,stop_observed_wire.Emission,value) <> list_stop_observed_wire_emission_items([value],suffix)
+    case _: 999999n <> suffix
+
 def stop_observed_wire_frame(values: List<&2,stop_observed_wire.Frame>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case stop_observed_wire.Control{v0,v1,v2,v3,v4} <> Nil{}: 0n <> stop_original_inputs_boundary([v0],advicee_lifecycle_driver_environment([v1],advicee_lifecycle_driver_environment([v2],list_advicee_lifecycle_driver_runtime([v3],list_advicee_lifecycle_driver_runtime([v4],suffix)))))
-    case stop_observed_wire.Observed{v0,v1} <> Nil{}: 1n <> advicee_lifecycle_driver_observedframe([v0],maybe_stopscenario_finish([v1],suffix))
-    case stop_observed_wire.Boundary{v0,v1,v2} <> Nil{}: 2n <> stop_original_inputs_boundary([v0],v1 <> list_advicee_lifecycle_driver_runtime([v2],suffix))
-    case stop_observed_wire.InvalidTransport{v0} <> Nil{}: 3n <> list_advicee_lifecycle_driver_runtime([v0],suffix)
+    case stop_observed_wire.Control{v0,v1,v2,v3,v4} <> Nil{}: 0n <> stop_original_inputs_boundary([v0],advicee_lifecycle_driver_environment([v1],advicee_lifecycle_driver_environment([v2],stop_observed_wire_endpoint([v3],stop_observed_wire_endpoint([v4],suffix)))))
+    case stop_observed_wire.Observed{v0,v1,v2,v3,v4,v5} <> Nil{}: 1n <> stop_observed_wire_observation([v0],maybe_stopscenario_finish([v1],maybe_callbacks_fact([v2],list_stop_observed_wire_physical([v3],maybe_stop_observed_wire_issuedfacts([v4],list_stop_observed_wire_emission([v5],suffix))))))
+    case stop_observed_wire.PhysicalOnly{v0,v1,v2,v3} <> Nil{}: 2n <> stop_observed_wire_physical([v0],callbacks_fact([v1],maybe_stop_observed_wire_issuedfacts([v2],list_stop_observed_wire_emission([v3],suffix))))
+    case stop_observed_wire.Boundary{v0,v1,v2} <> Nil{}: 3n <> stop_original_inputs_boundary([v0],v1 <> stop_observed_wire_endpoint([v2],suffix))
+    case stop_observed_wire.InvalidTransport{} <> Nil{}: 4n <> suffix
     case _: 999999n <> suffix
 
 def list_stop_observed_wire_frame_items(values: List<&2,List<&2,stop_observed_wire.Frame>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2495,7 +2617,7 @@ def list_stop_observed_wire_frame(values: List<&2,List<&2,stop_observed_wire.Fra
 
 def stop_observed_wire_trace(values: List<&2,stop_observed_wire.Trace>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case stop_observed_wire.Trace{v0,v1,v2,v3} <> Nil{}: 0n <> stop_original_inputs_scenario([v0],list_stop_observed_wire_frame([v1],list_advicee_lifecycle_driver_runtime([v2],boolean(v3,suffix))))
+    case stop_observed_wire.Trace{v0,v1,v2,v3} <> Nil{}: 0n <> stop_original_inputs_scenario([v0],list_stop_observed_wire_frame([v1],stop_observed_wire_endpoint([v2],boolean(v3,suffix))))
     case _: 999999n <> suffix
 
 def list_stop_observed_wire_trace_items(values: List<&2,List<&2,stop_observed_wire.Trace>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
