@@ -334,7 +334,7 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
     if (mode === "quality") await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") });
     else if (mode === "focused") {
       if (selection.nodeFiles.length) await run.runStage({ name: "node-focused", command: process.execPath, args: ["--test", ...selection.nodeFiles] });
-      if (selection.vitestFiles.length) await run.runStage({ name: "vitest-focused", command: join(root, "node_modules", ".bin", "vitest"), args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options] });
+      if (selection.vitestFiles.length) await run.runStage({ name: "vitest-focused", command: join(root, "node_modules", ".bin", "vitest"), args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options], env: { HAPSLAND_FOCUSED_TEST_SELECTION: JSON.stringify({ files: selection.vitestFiles, options: selection.options }) } });
     } else {
       const precheckFailures = [];
       for (const [name, ...stageArgs] of precheckStages) {

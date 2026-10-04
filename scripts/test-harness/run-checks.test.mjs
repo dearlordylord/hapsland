@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, readFile, rm, chmod } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -216,4 +216,24 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWor
   assert.equal(oldStatus.scope, null);
   assert.equal(oldStatus.state, "passed");
   assert.throws(() => cli(["status", "--scope=original-output"]), /No recorded run for scope/);
+});
+
+
+test("actual focused CLI rejects an all-skipped selector and permits selected execution", async t => {
+  const root = await fixture(t);
+  const repository = fileURLToPath(new URL("../../", import.meta.url));
+  await symlink(join(repository, "node_modules"), join(root, "node_modules"), "dir");
+  await writeFile(join(root, "one.test.ts"), 'import { it } from "vitest"; it("actual selected case", () => {});');
+  const reporter = fileURLToPath(new URL("./immediate-errors.mjs", import.meta.url));
+  await writeFile(join(root, "vitest.config.mjs"), `export default { test: { reporters: ["default", ${JSON.stringify(reporter)}] } };`);
+  const cli = pattern => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(["focused", "one.test.ts", ${JSON.stringify('--testNamePattern=' + pattern)}, "--timeout-ms=10000"], ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 15000 });
+  assert.throws(() => cli("absent selector"));
+  const failedId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id;
+  const failed = JSON.parse(await readFile(join(root, ".test-runs", failedId, "status.json"), "utf8"));
+  assert.equal(failed.state, "failed");
+  assert.equal(failed.failures, 1);
+  assert.match(await readFile(join(root, ".test-runs", failedId, "failures.jsonl"), "utf8"), /zero tests/);
+  cli("actual selected case");
+  const passedId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id;
+  assert.equal(JSON.parse(await readFile(join(root, ".test-runs", passedId, "status.json"), "utf8")).state, "passed");
 });
