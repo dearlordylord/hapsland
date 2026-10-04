@@ -1,4 +1,5 @@
 import Base
+import ../../packages/monkey-business-bend/OutputScenario.bend as Output
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
 import ../../packages/monkey-business-bend/Session.bend as Session
 import ../../packages/monkey-business-bend/Workload.bend as Workload
@@ -25,7 +26,7 @@ def consumer_config() -> T.Config:
     T.Environment{3200n, None{}, consumer_weights(), 800n,
       Tree.Profile{1n, 3n, 2n, 2n, 0n, 0n, 0n, 10n, 0n, 0n, 0n, 0n, 4n, 8n, 3n, 6n},
       Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n},
-      800n, 5000n, True{}, True{}, 1n, True{}, 20000n}, None{}}
+      800n, 5000n, True{}, True{}, 1n, True{}, 20000n,T.OutputProfile{Output.Certain{},None{}}}, None{}}
 
 # The sole generated owner codec needs the game_consumer family registration.
 # No local schema or lossy row projection substitutes for that integration seam.

@@ -5,6 +5,8 @@ import { decodePrefixGraphEvent } from "../../packages/monkey-business/src/callb
 import { encodeCanonicalEvent } from "../../src/canonical/canonical-boundary.ts";
 import { encodeImportGraphEvent } from "../../src/canonical/graph-adapter.ts";
 import { doubleWords } from "../../packages/monkey-business/src/numeric-codec.ts";
+import { decodeCallbackTarget } from "../../packages/monkey-business/src/callback-controls.ts";
+import { decodeOutputCapture } from "../../packages/monkey-business/src/output-controls.ts";
 import { JEV_OUTCOME_ORDER } from "../../packages/monkey-business/src/outcomes.ts";
 
 const list = value => readBendList(value, value => value, 2048);
@@ -44,36 +46,25 @@ function compareContext(value, original, field) {
   assert.deepEqual(record.receipt,original.driverOutcomeReceipt,`${field} prepared original receipt`);
 }
 
-/** Compare actual transport facts. Missing host-owned registries remain an error. */
-export function compareNativeRuntime(value, original, field) {
-  const runtime = readRecord(value), core = one(runtime.core), environment = readRecord(runtime.environment);
-  assert.equal(runtime.valid,true,`${field} native validity`);
-  assert.deepEqual(core,original.engine,`${field} entire Engine state`);
-  assert.equal(runtime.next,original.order,`${field} next queue order`);
-  assert.equal(runtime.count,original.eventCount,`${field} observation count`);
-  assert.equal(environment.jev_delay,original.jevDelay,`${field} live Jev delay`);
-  assert.deepEqual(environment.outcome,original.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(original.outcome) },`${field} live outcome`);
-  assert.deepEqual(list(environment.weights),JEV_OUTCOME_ORDER.map(kind => doubleWords(original.outcomeWeights[kind])),`${field} full outcome weights`);
-  assert.deepEqual([environment.current_work,environment.credential_ready,environment.credential_generation,environment.source_readable],
-    [original.environment.currentWork,original.environment.credentialReady,original.environment.credentialGeneration ?? 1,original.environment.sourceReadable ?? true],`${field} live environment`);
-  assert.deepEqual([environment.output_delay,environment.output_lease],[original.outputProfile.delayMs,original.outputProfile.leaseMs],`${field} original output timing`);
-  assert.equal(original.outputProfile.outcome,"certain",`${field} supported original output outcome`);
-  const items = list(runtime.items).map(readRecord), scheduled = list(readRecord(core.scheduler).queue).map(readRecord);
-  assert.equal(items.length,original.queue.length,`${field} full pending payload count`);
-  const orders = new Set();
-  for (const item of items) {
-    const order = readNat(item.order);
-    assert.ok(!orders.has(order),`${field} duplicate queue order`); orders.add(order);
-    const publicItem = original.queue.find(value => value.order === order);
-    assert.ok(publicItem,`${field} original queued payload ${order}`);
-    const times = scheduled.filter(value => value.order === order);
-    assert.equal(times.length,1,`${field} scheduler ownership ${order}`);
-    assert.equal(times[0].at,publicItem.at,`${field} actual scheduled time ${order}`);
-    const input = readRecord(item.input);
+function comparePayload(value, publicItem, field, order) {
+    const input = readRecord(value);
+    const supported = new Set(["input","at","order","driverAction","driverContext","driverOutcomeReceipt","driverSourceJob","callbackReceipt","job","finishAttempt","expiryAdvice","generated","partition","candidate","activityScope","workloadSource"]);
+    for (const key of Object.keys(publicItem)) assert.ok(supported.has(key),`${field} unimplemented original payload metadata ${key}`);
     if (input.$ === "NativeRunTypes.Event" || input.$ === "NativeRunTypes.FinishInput") {
       assert.ok(publicItem.driverAction,`${field} actual action ${order}`);
       assert.deepEqual(decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0],publicItem.driverAction,`${field} complete action ${order}`);
-      const active = option(input.job);
+      assert.equal(publicItem.input.kind,"canonical",`${field} original canonical input`);
+      assert.deepEqual(input.action.event,encodeCanonicalEvent(publicItem.input.event),`${field} entire original event`);
+      assert.equal(publicItem.input.at,publicItem.at,`${field} input time`);
+      assert.equal(option(input.action.expiry_advice),publicItem.expiryAdvice,`${field} original expiry owner`);
+      assert.equal(publicItem.generated,true,`${field} generated provenance`);
+      const candidate = decodeDriver({handled:true,actions:{$:"Con",head:input.action,tail:{$:"Nil"}}}).actions[0].candidate;
+      assert.deepEqual(candidate,publicItem.candidate,`${field} entire candidate`);
+      const context = option(input.context);
+      assert.ok(context !== undefined,`${field} actual captured owner context required`);
+      const emitted = readRecord(context);
+      assert.equal(publicItem.partition,candidate?.partition ?? readRecord(emitted.context).partition,`${field} original payload owner`);
+      const active = input.$ === "NativeRunTypes.FinishInput" ? input.job : option(input.job);
       if (active === undefined) assert.equal(publicItem.job,undefined,`${field} no active binding ${order}`);
       else compareJob(active,publicItem.job,`${field} active binding ${order}`);
       const source = input.$ === "NativeRunTypes.Event" ? option(input.source_job) : undefined;
@@ -96,6 +87,36 @@ export function compareNativeRuntime(value, original, field) {
       assert.equal(publicItem.input.kind,"edit",`${field} retry kind ${order}`);
       compareJob(input.job,{ ...publicItem.input,driverSourceJob:publicItem.driverSourceJob },`${field} retry ${order}`);
     } else throw new Error(`${field} unsupported genuine queued family ${String(input.$)}; comparison must be implemented`);
+}
+
+/** Compare actual transport facts. Missing host-owned registries remain an error. */
+export function compareNativeRuntime(value, original, field) {
+  const runtime = readRecord(value), core = one(runtime.core), environment = readRecord(runtime.environment);
+  assert.equal(runtime.valid,true,`${field} native validity`);
+  assert.deepEqual(core,original.engine,`${field} entire Engine state`);
+  assert.equal(runtime.next,original.order,`${field} next queue order`);
+  assert.equal(runtime.count,original.eventCount,`${field} observation count`);
+  assert.equal(environment.jev_delay,original.jevDelay,`${field} live Jev delay`);
+  assert.deepEqual(environment.outcome,original.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(original.outcome) },`${field} live outcome`);
+  assert.deepEqual(list(environment.weights),JEV_OUTCOME_ORDER.map(kind => doubleWords(original.outcomeWeights[kind])),`${field} full outcome weights`);
+  assert.deepEqual([environment.current_work,environment.credential_ready,environment.credential_generation,environment.source_readable],
+    [original.environment.currentWork,original.environment.credentialReady,original.environment.credentialGeneration ?? 1,original.environment.sourceReadable ?? true],`${field} live environment`);
+  assert.deepEqual([environment.output_delay,environment.output_lease],[original.outputProfile.delayMs,original.outputProfile.leaseMs],`${field} original output timing`);
+  const profile = readRecord(environment.output_profile);
+  assert.equal(profile.outcome.$,`OutputScenario.${original.outputProfile.outcome[0].toUpperCase()}${original.outputProfile.outcome.slice(1)}`,`${field} live output outcome`);
+  assert.equal(option(profile.candidate_bytes),undefined,`${field} original candidate byte profile`);
+  const items = list(runtime.items).map(readRecord), scheduled = list(readRecord(core.scheduler).queue).map(readRecord);
+  assert.equal(items.length,original.queue.length,`${field} full pending payload count`);
+  const orders = new Set();
+  for (const item of items) {
+    const order = readNat(item.order);
+    assert.ok(!orders.has(order),`${field} duplicate queue order`); orders.add(order);
+    const publicItem = original.queue.find(value => value.order === order);
+    assert.ok(publicItem,`${field} original queued payload ${order}`);
+    const times = scheduled.filter(value => value.order === order);
+    assert.equal(times.length,1,`${field} scheduler ownership ${order}`);
+    assert.equal(times[0].at,publicItem.at,`${field} actual scheduled time ${order}`);
+    comparePayload(item.input,publicItem,`${field} item ${order}`,order);
   }
   const jobs = list(runtime.jobs).map(readRecord);
   assert.equal(jobs.length,original.jobs.length,`${field} full retained job count`);
@@ -104,11 +125,35 @@ export function compareNativeRuntime(value, original, field) {
     assert.ok(!operations.has(stored.operation),`${field} duplicate retained job`); operations.add(stored.operation);
     compareJob(stored.job,original.jobs.find(([id]) => id === stored.operation)?.[1],`${field} retained ${stored.operation}`);
   }
-  // The owner is adding these exact factual registries. Core Dispatch requests
-  // are not host issuedRequests, and original callback facts alone omit payloads.
-  for (const name of ["issuedRequests","retainedCallbacks","generatorPartitions"]) {
-    assert.ok(Object.hasOwn(runtime,name),`${field} pending actual native ${name} owner registry`);
-    assert.deepEqual(runtime[name],original[name],`${field} entire ${name}`);
+  const host = readRecord(runtime.host);
+  assert.equal(host.$,"NativeRunTypes.HostFacts");
+  assert.deepEqual(list(host.generator_partitions),original.generatorPartitions,`${field} original generator registry`);
+  const issued = list(host.issued_requests).map(readRecord);
+  assert.equal(issued.length,original.issuedRequests.length,`${field} issued request count`);
+  assert.deepEqual(issued.map(entry => {
+    const command = readRecord(entry.command);
+    assert.equal(command.$,"Canonical.JevRequestIssued");
+    assert.equal(entry.request,command.request);
+    return [entry.request,{ kind:"jevRequestIssued",partition:command.partition,lifetime:command.lifetime,
+      round:command.round,operation:command.operation,request:command.request }];
+  }),original.issuedRequests,`${field} entire original issued requests`);
+  const retained = list(host.retained_callbacks).map(readRecord);
+  assert.equal(retained.length,original.retainedCallbacks.length,`${field} retained callback count`);
+  const retainedOrders = new Set();
+  for (const callback of retained) {
+    assert.ok(!retainedOrders.has(callback.order),`${field} duplicate retained callback`);
+    retainedOrders.add(callback.order);
+    const originalCallback = original.retainedCallbacks.find(value => value.order === callback.order);
+    assert.ok(originalCallback,`${field} original retained callback ${callback.order}`);
+    assert.deepEqual(callback.fact,originalCallback.fact,`${field} entire retained fact ${callback.order}`);
+    const fact = readRecord(callback.fact), completion = option(fact.completion);
+    assert.deepEqual({ target:decodeCallbackTarget(fact.target),issuedAt:callback.issued_at,dueAt:callback.due_at,
+      ...(completion === undefined ? {} : { outputCapture:decodeOutputCapture(completion) }) },
+      originalCallback.receipt,`${field} original retained receipt ${callback.order}`);
+    assert.equal(originalCallback.payload.order,callback.order);
+    assert.equal(originalCallback.payload.at,callback.due_at);
+    assert.deepEqual(originalCallback.payload.callbackReceipt,originalCallback.receipt);
+    comparePayload(callback.payload,originalCallback.payload,`${field} retained payload ${callback.order}`,callback.order);
   }
 }
 
