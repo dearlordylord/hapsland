@@ -52,7 +52,8 @@ function compareObservation(value: unknown, source: RunStructuralFrame, field: s
   // Graph carries its complete source scope in key, not a supplied Canonical scope.
   same(optional(observation.provided),source.kind !== "callbackDelivery" && source.kind !== "finishRegistration" && source.observation.preparation
     ? undefined : source.kind === "finishRegistration" ? source.registration.finish?.partition
-      : source.scheduled.partition,`${field} original provided scope`);
+      // Run.inputPartition supplies this exact default to Engine.scope_event.
+      : source.scheduled.partition ?? 1,`${field} original provided scope`);
   if (source.kind === "callbackDelivery") throw new Error(`${field} physical delivery became product observation`);
   if (source.kind === "finishRegistration") {
     tagged(observation,"Finish");
@@ -208,7 +209,7 @@ function compareObserved(values: readonly unknown[], sources: readonly RunStruct
       const originalFinish=source.kind === "finishRegistration" ? source.registration.finish
         : source.kind !== "callbackDelivery" && source.observation.preparation ? undefined
         : decodeStopRegistry(readRecord(readRecord(readRecord(source.before.engine).scenarios).stop).finishes)
-          .find(finish=>finish.partition === source.scheduled.partition);
+          .find(finish=>finish.partition === (source.scheduled.partition ?? 1));
       same(decodeStopFound(wire.original_finish),originalFinish,`${at} original selected Finish`);
       const physical=sources.filter(frame=>frame.kind === "callbackDelivery" && frame.scheduled.order === source.scheduled.order);
       same(list(wire.physical).length,physical.length,`${at} physical count`);
