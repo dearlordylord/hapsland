@@ -37,6 +37,49 @@ type Action is Data:
 type Handled is Data:
   Handled{handled: Bool, actions: List<&2, Action>}
 
+# Factual public event binding. A source job has a separate immutable scope;
+# events lacking the complete tuple retain the supplied input owner, 1 / 0.
+type ContextScope is Data:
+  ContextScope{partition: Nat, lifetime: Nat, round: Nat}
+
+def context_scope(event: Canonical.CanonicalEvent, provided: Nat) -> ContextScope:
+  match event:
+    case Canonical.QuietRoundTick{partition,lifetime,round,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.QuietRoundReset{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case Canonical.ClosePermitRound{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.AdmitObservation{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case Canonical.StartObservation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.CompleteObservation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.InterruptObservation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.BeginPreparation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.BeginObservedPreparation{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.InterruptPreparation{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.PreparationCompleted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.StartReview{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestReady{partition,lifetime,round,_,_,_,_,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestStarted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestInterrupted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.JevRequestSettled{partition,lifetime,round,_,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.ReviewCompleted{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.RetireReview{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.CancelReview{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.ReviewObserved{partition,lifetime,round,_,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.FindingCountUpdated{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.QueueDispatch{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.DispatchSettled{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.StopPolled{partition,lifetime,round,_}: ContextScope{partition,lifetime,round}
+    case Canonical.CollectionReady{_,partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.OutputStarted{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case Canonical.OutputTerminal{partition,lifetime,round,_,_}: ContextScope{partition,lifetime,round}
+    case Canonical.RetirePartition{partition,lifetime,round}: ContextScope{partition,lifetime,round}
+    case _: ContextScope{provided,1n,0n}
+
+def with_scope(context: Context, scope: ContextScope) -> Context:
+  match context scope:
+    case Context{_,_,_,bytes,job,delay,outcome,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,lease,background,dispatch}
+        ContextScope{p,l,r}:
+      Context{p,l,r,bytes,job,delay,outcome,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,lease,background,dispatch}
+
 def with_outcome(context: Context, selected: Maybe<&2,Canonical.RequestOutcome>) -> Context:
   match context:
     case Context{p,l,r,bytes,job,delay,_,current,credential,generation,readable,lifetime,candidate,collection,review,output,certain,output_delay,output_lease,background,dispatch}:

@@ -34,6 +34,7 @@ type EmissionContext is Data:
   EmissionContext{context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
 type Input is Data:
   Edit{job: Job}
+  SourceEdit{partition: Nat, activity: Nat, bytes: Nat, units: List<&2,Nat>, outcome: Maybe<&2,Canonical.RequestOutcome>}
   Finish{input: StopScenario.Input}
   FinishIntent{partition: Nat, started: Nat, cutoff: Nat, recurring: Bool}
   Event{action: Driver.Action, job: Job, context: Maybe<&2,EmissionContext>}
@@ -375,6 +376,15 @@ def edit_plan(attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2, Stored>,
 
 # Invoke the supplied owner once before factual transport. Prepare's generated
 # tree remains the existing environmental fallback only for an unhandled command.
+def handled_actions(value: Driver.Handled) -> List<&2,Driver.Action>:
+  match value:
+    case Driver.Handled{_,actions}: actions
+
+def prepared_issued(result: Engine.IssuedActions, queue: Queue, jobs: List<&2,Stored>, now: Nat,
+    job: Job, delay: Nat, source: Maybe<&2,EmissionContext>) -> Runtime:
+  match result:
+    case Engine.IssuedActions{state,actions}: Runtime{state,actions_prepared(actions,queue,now,job,source),jobs,delay}
+
 def interpreted_with(result: Driver.Handled, environment: Environment, value: Canonical.Command,
     +state: Types.State, queue: Queue, jobs: List<&2,Stored>, +now: Nat, +job: Job, delay: Nat,
     source: Maybe<&2,EmissionContext>) -> Runtime:
@@ -383,12 +393,7 @@ def interpreted_with(result: Driver.Handled, environment: Environment, value: Ca
       Runtime{state,generated_with(Engine.generate_tree(seed,operation,0n,tree,graph),queue,
         now,operation,round(Engine.canonical(state),job_partition(job)),job,preparation_delay),jobs,delay}
     case result _ _:
-      match Engine.issue_actions(state,handled_actions(result)):
-        case Engine.IssuedActions{state,actions}: Runtime{state,actions_prepared(actions,queue,now,job,source),jobs,delay}
-
-def handled_actions(value: Driver.Handled) -> List<&2,Driver.Action>:
-  match value:
-    case Driver.Handled{_,actions}: actions
+      prepared_issued(Engine.issue_actions(state,handled_actions(result)),queue,jobs,now,job,delay,source)
 
 def collector_combined(first: Driver.Handled, second: Driver.Handled) -> Driver.Handled:
   match first second:
@@ -568,7 +573,8 @@ def interpret_with_handler(+environment: Environment, +value: Canonical.Command,
     +job: Job, +delay: Nat, +candidate: Maybe<&2,Driver.Candidate>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
   interpret_prepared(Engine.prepare_command_context(state,value,source_job(job),environment_outcomes(environment),
-    context_with(environment,state,job,delay,candidate)),environment,value,event,queue,jobs,now,job,delay,candidate,handler)
+    Driver.with_scope(context_with(environment,state,job,delay,candidate),
+      Driver.context_scope(event,job_partition(job)))),environment,value,event,queue,jobs,now,job,delay,candidate,handler)
 
 def default_handler(state: Types.State, event: Canonical.CanonicalEvent,
     command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
@@ -676,6 +682,9 @@ def arrival(+event: Workload.Emission, +lifetime: Nat, +state: Types.State, queu
 def input(input: Input, +state: Types.State, queue: Queue, jobs: List<&2, Stored>,
     +now: Nat, +delay: Nat, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match input:
+    case SourceEdit{+p,+activity,bytes,units,outcome}:
+      edit_plan(Engine.activity_edit(state,p,activity),queue,jobs,
+        Job{p,Engine.activity_lifetime(state,p),bytes,units,outcome},now,delay,ih)
     case Edit{+job}: edit_valid(Engine.activity_valid(state, job_partition(job), job_lifetime(job)), state, queue, jobs, job, now, delay, ih)
     case Event{Driver.Action{+event, _, +candidate, _, _},+job,_}:
       +fenced = Engine.fence(state, event, True{}, context(state, job, delay, candidate))
@@ -1320,6 +1329,7 @@ def runtime_workload(runtime: List<&2,Runtime>, p: Nat, g: Nat, recurring: Bool)
 
 def input_valid(value: Input, +runtime: List<&2,Runtime>) -> Bool:
   match value:
+    case SourceEdit{p,activity,_,_,_}: runtime_activity(runtime,p,activity)
     case Edit{+job}: runtime_activity(runtime,job_partition(job),job_lifetime(job))
     case Fact{p,l,r,o,_,_}: runtime_preparation(runtime,p,l,r,o)
     case Arrival{Workload.Emission{_,+p,g,_,_,_,_,_,_,recurring},lifetime}:
@@ -1329,6 +1339,9 @@ def input_valid(value: Input, +runtime: List<&2,Runtime>) -> Bool:
 def observed_input_ready(-F: Data, valid: Bool, value: Input, runtime: List<&2,Runtime>,
     +now: Nat, order: Nat, limits: Graph.Limits, hook: CommandHook<F>) -> Observed<F>:
   match value runtime:
+    case SourceEdit{+p,+activity,bytes,units,outcome} Runtime{+state,queue,jobs,delay} <> Nil{}:
+      observed_edit(F,Engine.activity_edit(state,p,activity),queue,jobs,
+        Job{p,Engine.activity_lifetime(state,p),bytes,units,outcome},now,delay,hook)
     case Edit{job} Runtime{state,queue,jobs,delay} <> Nil{}:
       observed_edit_valid(F,valid,state,queue,jobs,job,now,delay,hook)
     case Fact{p,l,r,o,position,event} Runtime{state,queue,jobs,delay} <> Nil{}:

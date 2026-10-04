@@ -66,7 +66,7 @@ def enqueued(list: List<&2,Driver.Action>, queue: Edge.Queue,
   match list queue:
     case Nil{} queue: (queue,bindings)
     case +action <> tail Edge.Queue{items,+sequence,synced}:
-      +payload=Context.captured(state,action,job_partition(job),False{},Context.configured_fallback())
+      +payload=Context.captured(state,action,job_partition(job),False{})
       enqueued(tail,Edge.actions([action],Edge.Queue{items,sequence,synced},now,Context.queued(payload,job)),
         Originals.bind_context(action_binding(capsule,action,sequence,bindings),sequence,payload),capsule,now,job,state)
 

@@ -50,7 +50,7 @@ def payload_of(+state: Types.State, +action: Driver.Action, available: Bool,
     job: Edge.Job) -> Context.Payload:
   match action:
     case Driver.Action{_,_,_,requested,_}:
-      Context.captured(state,action,job_partition(job),Bool.and(available,requested),Context.configured_fallback())
+      Context.captured(state,action,job_partition(job),Bool.and(available,requested))
 
 def replaced(equal: Bool, item: Edge.Item, payload: Context.Payload) -> Edge.Item:
   match equal item:
@@ -133,7 +133,7 @@ def sharing_command(+facts: Sharing.Facts, actual: C.Command, runtime: List<&2,E
 
 def job_available(found: Maybe<&2,Context.Payload>, command: C.Command) -> Bool:
   match found:
-    case Some{Context.Payload{_,has_job,_}}: Bool.or(has_job,Context.operation_job(command))
+    case Some{Context.Payload{_,has_job}}: Bool.or(has_job,Context.operation_job(command))
     case None{}: True{}
 
 def command(+facts: Facts, +actual: C.Command, runtime: List<&2,Edge.Runtime>,

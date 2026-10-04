@@ -10,47 +10,16 @@ import ./advicee-lifecycle-driver.bend as Edge
 type Scope is Data:
   Scope{partition: Nat, lifetime: Nat, round: Nat}
 type Payload is Data:
-  Payload{scope: Scope, has_job: Bool, fallback: C.RequestOutcome}
-
-# The original writer public runner explicitly supplies RunConfig.outcome
-# finding for every directed/seeded/intersection input (writer-native.test).
-# This is that configuration fact, never an inference from Edit.outcome.
-def configured_fallback() -> C.RequestOutcome:
-  C.RequestFinding{}
+  Payload{scope: Scope, has_job: Bool}
 
 # Public driverContext uses the original event tuple only when all three fields
 # exist. Its no-tuple fallback is lifetime 1 / round 0, not the latest round.
+def scope_value(value: Driver.ContextScope) -> Scope:
+  match value:
+    case Driver.ContextScope{p,l,r}: Scope{p,l,r}
+
 def scope(event: C.CanonicalEvent, provided: Nat) -> Scope:
-  match event:
-    case C.QuietRoundTick{partition,lifetime,round,_,_,_}: Scope{partition,lifetime,round}
-    case C.QuietRoundReset{partition,lifetime,round}: Scope{partition,lifetime,round}
-    case C.ClosePermitRound{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.AdmitObservation{partition,lifetime,round}: Scope{partition,lifetime,round}
-    case C.StartObservation{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.CompleteObservation{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.InterruptObservation{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.BeginPreparation{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.BeginObservedPreparation{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.InterruptPreparation{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.PreparationCompleted{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.StartReview{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.JevRequestReady{partition,lifetime,round,_,_,_,_,_,_,_}: Scope{partition,lifetime,round}
-    case C.JevRequestStarted{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.JevRequestInterrupted{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.JevRequestSettled{partition,lifetime,round,_,_,_,_}: Scope{partition,lifetime,round}
-    case C.ReviewCompleted{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.RetireReview{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.CancelReview{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.ReviewObserved{partition,lifetime,round,_,_,_}: Scope{partition,lifetime,round}
-    case C.FindingCountUpdated{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.QueueDispatch{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.DispatchSettled{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.StopPolled{partition,lifetime,round,_}: Scope{partition,lifetime,round}
-    case C.CollectionReady{_,partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.OutputStarted{partition,lifetime,round}: Scope{partition,lifetime,round}
-    case C.OutputTerminal{partition,lifetime,round,_,_}: Scope{partition,lifetime,round}
-    case C.RetirePartition{partition,lifetime,round}: Scope{partition,lifetime,round}
-    case _: Scope{provided,1n,0n}
+  scope_value(Driver.context_scope(event,provided))
 
 def owner(found: Maybe<&2,Nat>, fallback: Nat) -> Nat:
   match found:
@@ -65,16 +34,16 @@ def candidate_owner(candidate: Maybe<&2,Driver.Candidate>, fallback: Nat) -> Nat
 # Called at the actual action append boundary with the issuance state. No later
 # state reconstructs the original event lifetime or a response capability.
 def captured(+state: Types.State, action: Driver.Action, +provided: Nat,
-    has_job: Bool, fallback: C.RequestOutcome) -> Payload:
+    has_job: Bool) -> Payload:
   match action:
     case Driver.Action{+event,_,candidate,_,_}:
       Payload{scope(event,candidate_owner(candidate,
-        owner(Engine.scope_event(state,state,event,Some{provided}),provided))),has_job,fallback}
+        owner(Engine.scope_event(state,state,event,Some{provided}),provided))),has_job}
 
 def input_action(+action: Driver.Action, state: Types.State, partition: Nat) -> Maybe<&2,Payload>:
   match action:
     case Driver.Action{_,_,_,has_job,_}:
-      Some{captured(state,action,partition,has_job,configured_fallback())}
+      Some{captured(state,action,partition,has_job)}
 
 # A missing append binding is captured only from the selected physical payload
 # before its actual step. Existing immutable order bindings always win.
@@ -95,7 +64,7 @@ def preparation(found: Maybe<&2,Payload>, input: Edge.Input, states: List<&2,Typ
 
 def provided(found: Maybe<&2,Payload>, fallback: Maybe<&2,Nat>) -> Maybe<&2,Nat>:
   match found:
-    case Some{Payload{Scope{partition,_,_},_,_}}: Some{partition}
+    case Some{Payload{Scope{partition,_,_},_}}: Some{partition}
     case None{}: fallback
 
 # The same factual owner query supplies the handler context and frame scopes.
@@ -121,11 +90,11 @@ def observed_owner(frame: Edge.ObservedFrame, found: Maybe<&2,Payload>,
 
 def queued(payload: Payload, job: Edge.Job) -> Edge.Job:
   match payload job:
-    case Payload{Scope{partition,lifetime,_},False{},fallback} _:
+    case Payload{Scope{partition,lifetime,_},False{}} _:
       Edge.NoJob{partition,lifetime}
-    case Payload{Scope{partition,lifetime,_},True{},_} Edge.Job{_,_,bytes,units,outcome}:
+    case Payload{Scope{partition,lifetime,_},True{}} Edge.Job{_,_,bytes,units,outcome}:
       Edge.Job{partition,lifetime,bytes,units,outcome}
-    case Payload{Scope{partition,lifetime,_},True{},_} Edge.NoJob{_,_}: Edge.NoJob{partition,lifetime}
+    case Payload{Scope{partition,lifetime,_},True{}} Edge.NoJob{_,_}: Edge.NoJob{partition,lifetime}
 
 # These commands obtain their actual operation job through common Edge's
 # command_job before this hook. A response capsule does not create such a job.
@@ -138,7 +107,7 @@ def operation_job(command: C.Command) -> Bool:
 def applied(+payload: Payload, +state: Types.State, event: C.CanonicalEvent, command: C.Command,
     context: Driver.Context) -> Driver.Context:
   match payload context:
-    case Payload{Scope{+partition,lifetime,round},_,_}
+    case Payload{Scope{+partition,lifetime,round},_}
         Driver.Context{_,_,_,bytes,job,delay,outcome,work,credential,generation,readable,
           advice_lifetime,candidate,collection,review,output,certain,output_delay,
           output_lease,background,dispatch}:
@@ -147,7 +116,7 @@ def applied(+payload: Payload, +state: Types.State, event: C.CanonicalEvent, com
         advice_lifetime,candidate,collection,review,output,certain,output_delay,
         output_lease,background,dispatch}
 
-def absent_context(payload: Payload, fallback: C.RequestOutcome, state: Types.State,
+def absent_context(payload: Payload, state: Types.State,
     event: C.CanonicalEvent, command: C.Command, context: Driver.Context) -> Driver.Context:
   match context:
     case Driver.Context{p,l,r,_,_,delay,outcome,work,credential,generation,readable,
@@ -157,21 +126,16 @@ def absent_context(payload: Payload, fallback: C.RequestOutcome, state: Types.St
         work,credential,generation,readable,advice_lifetime,candidate,collection,
         review,output,certain,output_delay,output_lease,background,dispatch})
 
-def absent(+payload: Payload, state: Types.State, event: C.CanonicalEvent, command: C.Command,
-    context: Driver.Context) -> Driver.Context:
-  match payload:
-    case Payload{_,_,fallback}: absent_context(payload,fallback,state,event,command,context)
-
 def selected(has_job: Bool, payload: Payload, state: Types.State, event: C.CanonicalEvent, command: C.Command,
     context: Driver.Context) -> Driver.Context:
   match has_job:
     case True{}: applied(payload,state,event,command,context)
-    case False{}: absent(payload,state,event,command,context)
+    case False{}: absent_context(payload,state,event,command,context)
 
 def adjusted(+payload: Payload, state: Types.State, event: C.CanonicalEvent, +command: C.Command,
     context: Driver.Context) -> Driver.Context:
   match payload:
-    case Payload{_,has_job,_}:
+    case Payload{_,has_job}:
       selected(Bool.or(has_job,operation_job(command)),payload,state,event,command,context)
 
 def adjust(found: Maybe<&2,Payload>, state: Types.State, event: C.CanonicalEvent, command: C.Command,
