@@ -1,0 +1,10 @@
+{
+  "receipt": "/workspace/typescript/jev-worktrees/game-numeric-output/.test-runs/20261004230027672-1877539-a716e9/workload-outputs/game-output-1877553-BxC9BN/receipt.json",
+  "receipt_sha256": "4e766caceedccaf4ff0e90d147496672d07a598b17f0eeb775eca667cc99e897",
+  "all145_batch_hashes_match": true,
+  "gzip_and_uncompressed_hashes_verified": true,
+  "bytes_per_lane": 82303930,
+  "native_provenance": "Explicit successful prepared C/binary; actual complete native execution",
+  "js_provenance": "Fresh JS emission and complete execution",
+  "public_verdict": "Failed campaign0 tick200 source binding; no full public/replay acceptance"
+}

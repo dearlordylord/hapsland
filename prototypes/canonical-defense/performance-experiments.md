@@ -100,7 +100,8 @@ Detailed E4 comparison: [TS observation measurements and equality hashes](perfor
 
 - [x] Persist a separate 180-second full-validation native/JS execution allowance; keep short probes at 10 seconds and the maintained overall deadline finite.
 - [x] Remove repeated growing-buffer copies/scans in the stdout reader, preserving all bounds and exact JSON.
-- [ ] Explicitly resume verified saved C/native binary; run all 145 native and JS batches, all four campaigns/3,222 ticks, public boundaries and replay. A diagnostic prefix does not satisfy this item.
+- [x] Explicitly resume verified successful C/native preparation; actualnative+JS full145streams completed and retained. All145bytehashes match.
+- [ ] Fix the concrete SourceJob discrepancy, then finish allfourcampaigns/3,222ticks/public/replay using explicit source-validated retainedvectors. No repeatnative/JSgeneration unless Bend/core/output source changes.
 - [x] Record the first full-validation terminal result: native exceeded 180 seconds with 105/145 complete batches, 58,165,264 complete bytes and 2,172,807 pending bytes. JS/public/replay did not run. Acceptance remains incomplete; investigate selective C optimization next.
 
 This is the previously required full acceptance milestone, not a longer performance probe. Native/JS allowances are 180 seconds each inside the existing 380-second supervisor; no compiler regeneration is planned for the retained matching source closure.
@@ -117,12 +118,18 @@ Detailed E6 result: [selective compiler attempt](performance-evidence/2026-10-04
 
 ## E7 Direct numeric IO
 
-- [ ] Add a prototype-local supported C/JS IO effect that consumes the unchanged numeric word list, bypassing decimal cons-String construction.
-- [ ] Verify literal native/JS byte equality for empty, zero, u48 maximum and long-list cases under small canary limits.
-- [ ] Prepare the full candidate once with finite C240/clang120 caps; execute baseline/candidate diagnostic comparison at most10s each.
-- [ ] If exact output and throughput justify it, run the original full145/native-JS/public/replay milestone with retained-output custody and finite overall deadline.
+- [x] Add a prototype-local supported C/JS IO effect that consumes the unchanged numeric word list, bypassing decimal cons-String construction.
+- [x] Verify literal native/JS byte equality: both exactly561bytes, expectedSHA `e7a033f94b80b0665266dbff4afda28abdcf9eb57f75ad72c1581673c7a31ac0`. Native0.001s/JS0.019s, canaryfrontend/emission/clang allwithin declaredlimits; no fullgameclaim. Source377397f2; standardsreview0findings.
+- [x] Prepare the full candidate once: C93.425s, clang94.278s, within C240/clang120 caps. Diagnostic10s: baseline19batches/4,358,144bytes; candidate62/35,045,376bytes. All19 common completebatches exact. Nativefull145/JS/public/replay still pending; proceed to full milestone with explicitly verified prepared artifacts.
+- [x] Run the original full milestone with retained verified C/binary. Native and fresh JS both completed145batches; all145 uncompressed hashes match (82,303,930bytes perlane), allgzip/uncompressed hashes verified. Publiccomparison failed at campaign0/tick200/physical1/queueitem133 sourcebinding: NativeNone vsTS sourcejob(partition1,lifetime1,bytes100,units10/20,outcomeNone). Fullrun33.35s; no public/replay acceptance yet.
 
 ## Other original-checklist boundaries completed during investigation
 
 - [x] NativeRun seven original native/emitted/public/replay cases: fresh7/7 PASS, matching retained14531-byte vectors; initialu48 configuration corrected without changing runtime-control limits. [Evidence](performance-evidence/2026-10-04-native-run-qualification.json).
 - [x] Issue191/192/195 public/dashboard gaps:53 publictests +3 dashboardtests PASS; collector-meter/exclusiveStopslot/callbackHold-Release browserchecks nowPASS using locally extracted libraries. Stale advicee locators corrected; assertions retained. [Evidence](performance-evidence/2026-10-04-public-browser-qualification.json).
+
+E7 canary: [direct numeric native/JS evidence](performance-evidence/2026-10-04-direct-numeric-canary.json).
+
+E7 full-source diagnostic: [preparation and exact prefix comparison](performance-evidence/2026-10-04-direct-numeric-game-comparison.json).
+
+Fullproducer evidence: [all145byte-equal batches](performance-evidence/2026-10-04-full-game-producers.json). Raw scoped receipts remain in the recorded worktree run directory.
