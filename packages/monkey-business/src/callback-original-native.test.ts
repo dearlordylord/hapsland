@@ -135,17 +135,16 @@ const nativePrograms = [
   ["latePreparationRetainedOne", "late-preparation-retained-one"],
 ] as const;
 
-it.each(nativePrograms)("compares original %s at the full immutable public boundary", (kind, name) => {
-  const expected = [runCase(kind)];
-  // Every original program is mandatory; each runs from a fresh native fixture.
-  // Native input is the original program, never this public observation trace.
-  const fixture = new URL(`../../monkey-business-bend/conformance/callback-original-${name}.bend`, import.meta.url);
-  const native = runWorkloadNative(fixture);
-  const emitted = runWorkloadEmitted(fixture);
+it("compares all six original callback cases at the full immutable native/emitted/public/replay boundary", () => {
+  const expected = nativePrograms.map(([kind]) => runCase(kind));
+  // Every original program remains mandatory inside one fresh aggregate root.
+  // Native inputs are the original programs, never public observation traces.
+  const fixture = new URL("../../monkey-business-bend/conformance/callback-original-scenarios.bend", import.meta.url);
+  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
-  const nativeDTO = decodeCallbackNativePrefix(native);
-  const emittedDTO = decodeCallbackNativePrefix(emitted);
+  const nativeDTO = decodeCallbackNativePrefix(native), emittedDTO = decodeCallbackNativePrefix(emitted);
   expect(nativeDTO).toEqual(emittedDTO);
+  expect(expected).toHaveLength(6);
   expect(decodeCallbackNativeBoundary(nativeDTO)).toEqual(expected);
   expect(decodeCallbackNativeBoundary(emittedDTO)).toEqual(expected);
 }, WORKLOAD_CONFORMANCE_TIMEOUT_MS);

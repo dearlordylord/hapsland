@@ -123,25 +123,32 @@ function publicCase(mode: number) {
   return { ...boundary, boundaries, eventCount: run.observe().eventCount };
 }
 
-it.each(programs)("compares original %s full native/emitted/public/replay boundaries", name => {
-  const mode = programs.indexOf(name), expected = publicCase(mode);
-  const fixture = new URL(`../../monkey-business-bend/conformance/sharing-original-${name}.bend`, import.meta.url);
+it("compares all seven original sharing full native/emitted/public/replay boundaries", () => {
+  const expectedCases = programs.map((_, mode) => publicCase(mode));
+  const fixture = new URL("../../monkey-business-bend/conformance/sharing-native.bend", import.meta.url);
   const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture);
-  // Includes every recursively generated owner field, all physical orders,
-  // original CacheFact capsules, graph results and pending transport payloads.
+  // Complete equality retains every recursively generated owner field, physical
+  // order, original CacheFact capsule, graph result and pending payload.
   expect(native).toEqual(emitted);
-  const nativeDTO = decodeNativePrefix(native, "sharing_scenarios"), emittedDTO = decodeNativePrefix(emitted, "sharing_scenarios");
-  expect(nativeDTO).toEqual(emittedDTO);
-  expect(readRecord(nativeDTO).input).toEqual(frozenNativeInput(mode));
-  expect(readRecord(emittedDTO).input).toEqual(frozenNativeInput(mode));
-  const actual = decodeSharingNativeBoundary(nativeDTO);
-  expect(actual).toEqual(expected);
-  expect(decodeSharingNativeBoundary(emittedDTO)).toEqual(expected);
-  // Original endpoint oracle from the six directed native cases is retained.
-  if (mode < 6) {
-    const projection = expected.endpoint.projection;
-    expect(actual.endpoint.projection.global).toEqual(projection.global);
-    expect(actual.endpoint.projection.partitions).toEqual(projection.partitions);
-    expect(actual.endpoint.projection.dispatch.requests).toEqual([]);
+  if (!Array.isArray(native) || !Array.isArray(emitted)) throw new TypeError("sharing aggregate must retain the original vector list");
+  expect(native).toHaveLength(7);
+  expect(emitted).toHaveLength(7);
+  for (const [mode, name] of programs.entries()) {
+    const expected = expectedCases[mode];
+    if (!expected) throw new Error(`missing original sharing case ${name}`);
+    const nativeDTO = decodeNativePrefix(native[mode], "sharing_scenarios"), emittedDTO = decodeNativePrefix(emitted[mode], "sharing_scenarios");
+    expect(nativeDTO, name).toEqual(emittedDTO);
+    expect(readRecord(nativeDTO).input, name).toEqual(frozenNativeInput(mode));
+    expect(readRecord(emittedDTO).input, name).toEqual(frozenNativeInput(mode));
+    const actual = decodeSharingNativeBoundary(nativeDTO);
+    expect(actual, name).toEqual(expected);
+    expect(decodeSharingNativeBoundary(emittedDTO), name).toEqual(expected);
+    // Retain the endpoint oracle from all six original directed native cases.
+    if (mode < 6) {
+      const projection = expected.endpoint.projection;
+      expect(actual.endpoint.projection.global, name).toEqual(projection.global);
+      expect(actual.endpoint.projection.partitions, name).toEqual(projection.partitions);
+      expect(actual.endpoint.projection.dispatch.requests, name).toEqual([]);
+    }
   }
 }, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
