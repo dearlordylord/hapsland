@@ -241,11 +241,45 @@ def scenario(+input: Inputs.Scenario) -> Wire.Trace:
 def first() -> Wire.Trace:
   scenario(Inputs.first_waiting())
 
+type OriginalCase is Data:
+  OriginalFirstWaiting{}
+  OriginalEqualWaiting{}
+  OriginalLateWaiting{}
+  OriginalLatePreparation{}
+  OriginalNoRound{}
+  OriginalRepeatedFinish{}
+  OriginalBackgroundCertain{}
+  OriginalBackgroundUncertain{}
+  OriginalConfiguredNoRound{}
+  OriginalGroupOutput{}
+  OriginalOtherAdviceeOutput{}
+
+def original_input(entry: OriginalCase) -> Inputs.Scenario:
+  match entry:
+    case OriginalFirstWaiting{}: Inputs.first_waiting()
+    case OriginalEqualWaiting{}: Inputs.equal_waiting()
+    case OriginalLateWaiting{}: Inputs.late_waiting()
+    case OriginalLatePreparation{}: Inputs.late_preparation()
+    case OriginalNoRound{}: Inputs.no_round()
+    case OriginalRepeatedFinish{}: Inputs.repeated_finish()
+    case OriginalBackgroundCertain{}: Inputs.background(Output.Certain{})
+    case OriginalBackgroundUncertain{}: Inputs.background(Output.Uncertain{})
+    case OriginalConfiguredNoRound{}: Inputs.configured_no_round()
+    case OriginalGroupOutput{}: Inputs.group_output()
+    case OriginalOtherAdviceeOutput{}: Inputs.other_advicee_output()
+
+def original_trace(entry: OriginalCase) -> Wire.Trace:
+  scenario(original_input(entry))
+
+def original_traces(cases: List<&2,OriginalCase>) -> List<&2,Wire.Trace>:
+  match cases:
+    case Nil{}: []
+    case head <> tail: original_trace(head) <> original_traces(tail)
+
 def original_scenarios() -> List<&2,Wire.Trace>:
-  [scenario(Inputs.first_waiting()),scenario(Inputs.equal_waiting()),scenario(Inputs.late_waiting()),
-   scenario(Inputs.late_preparation()),scenario(Inputs.no_round()),scenario(Inputs.repeated_finish()),
-   scenario(Inputs.background(Output.Certain{})),scenario(Inputs.background(Output.Uncertain{})),
-   scenario(Inputs.configured_no_round()),scenario(Inputs.group_output()),scenario(Inputs.other_advicee_output())]
+  original_traces([OriginalFirstWaiting{},OriginalEqualWaiting{},OriginalLateWaiting{},OriginalLatePreparation{},
+    OriginalNoRound{},OriginalRepeatedFinish{},OriginalBackgroundCertain{},OriginalBackgroundUncertain{},
+    OriginalConfiguredNoRound{},OriginalGroupOutput{},OriginalOtherAdviceeOutput{}])
 
 # All original #195 caller inputs execute through the same maintained owner.
 def output_traces(inputs: List<&2,Inputs.Scenario>) -> List<&2,Wire.Trace>:

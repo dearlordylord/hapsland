@@ -1427,6 +1427,10 @@ type PendingEvent is Data:
     job: List<&2,Job>, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
     environment: List<&2,Environment>}
 
+def pending_event(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, job: Job,
+    now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment) -> PendingEvent:
+  PendingEvent{runtime,[event],[job],now,order,candidate,[environment]}
+
 def pending_runtime(pending: PendingEvent) -> List<&2,Runtime>:
   match pending:
     case PendingEvent{runtime,_,_,_,_,_,_}: runtime
@@ -1483,7 +1487,7 @@ def observed_pending(-F: Data, +pending: PendingEvent,
 def observed_event(-F: Data, runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
     job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observed_pending(F,PendingEvent{runtime,[event],[job],now,order,candidate,[environment]},factory)
+  observed_pending(F,pending_event(runtime,event,job,now,order,candidate,environment),factory)
 
 def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2,Stored>,
     +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
@@ -1763,9 +1767,21 @@ def observed_take_ready(-F: Data, taken: List<&2,Engine.Taken>, runtime: List<&2
     environment: Environment, factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_taken(F,taken,runtime,receipt,environment,factory)
 
+type ObserveRequest is Data:
+  ObserveRequest{runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
+
+def observe_request(runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment) -> ObserveRequest:
+  ObserveRequest{runtime,receipt,environment}
+
+def observe_request_ready(-F: Data, +request: ObserveRequest,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  match request:
+    case ObserveRequest{+runtime,receipt,environment}:
+      observed_take_ready(F,observed_take(runtime),runtime,receipt,environment,factory)
+
 def observe_step_with(-F: Data, +runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observed_take_ready(F,observed_take(runtime),runtime,receipt,environment,factory)
+  observe_request_ready(F,observe_request(runtime,receipt,environment),factory)
 
 def observe_step(-F: Data, runtime: List<&2,Runtime>,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
