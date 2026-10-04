@@ -23,8 +23,11 @@ Configuration and creation-seed agreement are validated through the independentl
 The maintained entry point owns one 380-second overall deadline, including
 source/tool checks, every public midpoint, replay, and process-group cleanup.
 C emission uses its remaining budget; clang compilation is capped at 120 seconds,
-JavaScript emission at 30 seconds, and each execution lane at 15 seconds, all
-within that deadline. The ordinary runner defaults remain 30/30/5 seconds.
+JavaScript emission at 30 seconds, and each full-validation execution lane at 180 seconds, all
+within that deadline. Diagnostic performance probes remain capped at 10 seconds.
+The stdout reader scans each incoming chunk once and assembles each complete JSON
+line once, retaining the 16 MiB line bound and 145-batch maximum.
+The ordinary runner defaults remain 30/30/5 seconds.
 A zero C phase cap requires the finite supervisor handoff. Per-frame semantic validation runs through
 `compareNativeFrames`; the outer loop separately accumulates actual delivered
 targets and retains every tick's physical comparison, including silent callbacks.

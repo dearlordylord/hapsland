@@ -30,8 +30,7 @@
 ### E1 Optimize the saved executable
 
 - [x] Attempt compilation of the unchanged retained game C with clang `-O1`, at most **120 seconds**; preserve `-O0`.
-- [ ] Run each executable once for at most **10 seconds**, with identical draining and output accounting.
-- [ ] Compare first-output time, complete batches, bytes and peak RSS; compare every common complete batch byte-for-byte.
+Execution and O0/O1 comparison were **not run** because preparation produced no O1 executable. These follow-up steps are cancelled for this terminal experiment; there is no runtime improvement claim.
 - [x] Record a decision: **inconclusive preparation failure**. Clang exhausted 120 seconds (observed 120.184s including termination); no O1 executable or runtime comparison. Remaining execution/comparison steps were not run.
 
 Hypothesis: `-O0` amplifies runtime overhead. No Bend source or transport changes are required. A faster prefix does not establish full correctness. If preparation times out, record that result and proceed to E2; do not silently raise the limit.
@@ -39,7 +38,7 @@ Hypothesis: `-O0` amplifies runtime overhead. No Bend source or transport change
 ### E2 Attribute and reduce trace serialization cost
 
 - [x] Profile a post-simulation window: 8.022s execution; sampling began after first output at 2.184s. Among 210 samples, text formatting 138 (65.7%), IO 46 (21.9%), numeric encoding 25 (11.9%), and one shared engine-labelled helper (0.5%).
-- [ ] Quantify repeated envelope data (`config`, `original`, `final_world`) separately from tick/frame data using available output.
+- [x] Quantify repeated envelope data on the retained 20-batch campaign-0 prefix: 43,020 words / 108,580 bytes, about 2.5% of 4,359,638 total JSON bytes. All fields match their repeated serialization hashes; every array decodes completely. Observation fields contribute 4,250,818 bytes. Do not extrapolate to all 145 batches; no deduplication change justified.
 - [x] Choose the text formatting/string allocation path for a bounded chunked-output experiment. Preserve exact numeric text and line boundaries; do not assume quadratic complexity.
 - [x] Prepare the isolated chunked writer and verify a small executable canary: exact equality for empty, zero, u48 maximum and 258 words crossing a chunk boundary (561 bytes total). Initial candidate `d8dce5d3`; this establishes small-case grammar only.
 - [x] Remove growing-left string accumulation: candidate `749acf78` buffers reversed decimal pieces and prepends them. Focused canary remains byte-identical; JS emission 0.155s, execution 0.021s.
@@ -53,7 +52,7 @@ Hypotheses: formatting/allocation and repeated envelope serialization increase t
 
 - [x] Prepare identical uninstrumented compiler JS: extracted original SHA256 `546fc6036d1e718404ce628e5405ec4574c24fb70af43016dc6a832ef388e214`, independently confirmed against an earlier clean extraction. Only adaptation is the installed Base directory path; compiler expressions unchanged. Both runtimes verified locally.
 - [x] Compare Bun 1.3.14 and 1.4.2 with equal **240-second compiler limits**, recording hashes, elapsed time, peak RSS, exit and emitted C. Sequential trial started on the same Bool.pick candidate; receipts `/tmp/hapsland-e3-compiler-runtime/`.
-- [ ] Deferred: only if still necessary, add stage markers to distinguish frontend, lowering iterations, reachability and C writing.
+Stage markers are unnecessary for this completed comparison; add them only if a new unexplained compiler failure needs localization.
 - [x] Record a bounded result: Bun 1.3.14 took 36.69s/5,855,064 KiB peak RSS; 1.4.2 took 24.35s/4,209,720 KiB. Both emitted identical C matching the retained baseline. Runtime version affects this pair; packaging effects and earlier timing variability remain unisolated. No new upstream defect established; no stage instrumentation needed now.
 
 Hypothesis: compiler runtime or packaging contributes to variability. The prior instrumented Bun 1.4.2 run is not an uncontaminated comparison with the packaged CLI. The known 247-live-word limitation is separate from timeouts.
@@ -68,9 +67,7 @@ Hypothesis: compiler runtime or packaging contributes to variability. The prior 
 
 **Deferred after E4:** no specific expensive carrier family is established by profiling. Do not remove working arity mitigation on speculation; revisit only when attribution identifies a candidate.
 
-- [ ] Identify a specific expensive carrier family from profiling.
-- [ ] Change only that family; preserve the working arity mitigation.
-- [ ] Check affected semantics and emitted continuation widths; record the decision.
+- [x] Evaluate the prerequisite and record the decision: current samples do not identify an expensive carrier family. No carrier mutation is justified. A future attributed candidate must preserve the arity mitigation and pass affected semantic/continuation-width checks.
 
 ## Result log
 
@@ -98,3 +95,34 @@ Detailed E2 comparison: [native prefix measurements](performance-evidence/2026-1
 Detailed E3 comparison: [compiler runtime measurements](performance-evidence/2026-10-04-compiler-runtime-comparison.json).
 
 Detailed E4 comparison: [TS observation measurements and equality hashes](performance-evidence/2026-10-04-ts-observation-comparison.json).
+
+## Full game acceptance follow-through
+
+- [x] Persist a separate 180-second full-validation native/JS execution allowance; keep short probes at 10 seconds and the maintained overall deadline finite.
+- [x] Remove repeated growing-buffer copies/scans in the stdout reader, preserving all bounds and exact JSON.
+- [ ] Explicitly resume verified saved C/native binary; run all 145 native and JS batches, all four campaigns/3,222 ticks, public boundaries and replay. A diagnostic prefix does not satisfy this item.
+- [x] Record the first full-validation terminal result: native exceeded 180 seconds with 105/145 complete batches, 58,165,264 complete bytes and 2,172,807 pending bytes. JS/public/replay did not run. Acceptance remains incomplete; investigate selective C optimization next.
+
+This is the previously required full acceptance milestone, not a longer performance probe. Native/JS allowances are 180 seconds each inside the existing 380-second supervisor; no compiler regeneration is planned for the retained matching source closure.
+
+## E6 Selective saved-C optimization
+
+- [x] Compile a reversible pragma-only derivative of the saved C at O1, at most 120 seconds. Optimize the 12 identified decimal/text segment functions and three spin helpers; keep other generated segments/helpers unoptimized. Runtime prelude remains eligible for O1; the generated-function region also leaves intervening IO-buffer support unoptimized until the IO marker. This is the exact current candidate scope, not a claim that all runtime support is optimized.
+Execution was not run: selective compilation also exhausted 120 seconds (120.194s observed). No optimized executable exists.
+- [x] Record a decision: preparation remains inconclusive; stop compiler-flag experiments after the two bounded O1 strategies. No limit increase or repeated build planned.
+
+Detailed envelope measurement: [field spans and exact byte counts](performance-evidence/2026-10-04-envelope-measurement.json). Each file was parsed under a 10-second bound; maximum observed 6.844s.
+
+Detailed E6 result: [selective compiler attempt](performance-evidence/2026-10-04-selective-c-optimization.json).
+
+## E7 Direct numeric IO
+
+- [ ] Add a prototype-local supported C/JS IO effect that consumes the unchanged numeric word list, bypassing decimal cons-String construction.
+- [ ] Verify literal native/JS byte equality for empty, zero, u48 maximum and long-list cases under small canary limits.
+- [ ] Prepare the full candidate once with finite C240/clang120 caps; execute baseline/candidate diagnostic comparison at most10s each.
+- [ ] If exact output and throughput justify it, run the original full145/native-JS/public/replay milestone with retained-output custody and finite overall deadline.
+
+## Other original-checklist boundaries completed during investigation
+
+- [x] NativeRun seven original native/emitted/public/replay cases: fresh7/7 PASS, matching retained14531-byte vectors; initialu48 configuration corrected without changing runtime-control limits. [Evidence](performance-evidence/2026-10-04-native-run-qualification.json).
+- [x] Issue191/192/195 public/dashboard gaps:53 publictests +3 dashboardtests PASS; collector-meter/exclusiveStopslot/callbackHold-Release browserchecks nowPASS using locally extracted libraries. Stale advicee locators corrected; assertions retained. [Evidence](performance-evidence/2026-10-04-public-browser-qualification.json).
