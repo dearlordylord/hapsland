@@ -204,6 +204,26 @@ another full run. After two attempts without new discriminating evidence, name
 competing causes and change the experiment. Additional broad runs or reviewers
 alone do not advance diagnosis.
 
+Before an expensive native comparison, validate the changed Bend source and
+generated transport, then exercise changed comparison code against retained
+vectors when their source, tool and artifact identities still match. A comparator
+change alone does not require another compilation. Use the maintained runners;
+temporary diagnostics must preserve their assertions, deadlines and provenance
+checks. Freeze the checked sources until the process is terminal.
+
+Native Bend and emitted JavaScript must agree on their complete encoded output.
+At the public API boundary, compare independently expected contract facts rather
+than requiring identical private bookkeeping. A native wrapper has no implied
+public field: ground its relevant identity in actual public inputs or owner state,
+and remove unsupported internal-shape assertions instead of inventing context.
+
+Do not repeat an unchanged failed check. The next run must test a concrete repair,
+a competing cause, or an explicitly declared bounded budget amendment. Reuse a
+successful result only for the exact inputs and scope it validated. Optional
+proposal proofs are separate from business qualification; do not make them a
+completion gate unless an accepted contract requires them. Accepted production
+laws and required behavior checks remain part of their owning checks.
+
 The [runner](../scripts/test-harness/run-checks.mjs) writes its command manifest
 before execution, complete stage logs, elapsed times and observed exits under
 ignored `.test-runs/`. `npm run test:status -- <run-id>` reads the retained status
@@ -214,6 +234,11 @@ not the failure inventory. Ordinary independent precheck failures are collected
 rather than hiding subsequent checks behind a shell `&&` chain. A timeout or
 interruption stops work and never counts as success. Freeze the candidate during
 qualification; concurrent full gates in the same worktree are rejected.
+
+Source-identification failures must produce terminal run records. Independent
+prechecks still report their failures, but a failed prerequisite must prevent
+dependent package preparation and the full test suite from starting. Skipped
+dependent stages are recorded with their reason and do not count as passing.
 
 Before a command expected to exceed one minute, declare its expected duration and
 wall-clock stop time. The runner supplies a finite deadline: five minutes for focused checks and
