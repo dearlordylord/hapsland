@@ -42,7 +42,7 @@ describe("declarative CLI subprocess contracts", () => {
   });
 
   it.each([
-    ["unknown"], ["--unknown"], ["update", "--chanel=next"], ["setup", "--claude-home="],
+    ["doctor", "--new-key"], ["update", "--new-key"], ["--new-key"], ["unknown"], ["--unknown"], ["update", "--chanel=next"], ["setup", "--claude-home="],
     ["setup", "--claude-home", ""], ["setup", "--host"], ["update", "--host", "--channel=next"],
     ["update", "claude", "--host=codex"], ["update", "codex", "claude"],
     ["update", "--host=claude", "--host", "codex"], ["update", "--channel=next", "--channel", "latest"],
@@ -179,4 +179,9 @@ it.each([
     }
     expect(readdirSync(profile)).toEqual([]);
   } finally { rmSync(profile, { recursive: true, force: true }); }
+});
+
+it.each([["setup", "codex", "--new-key"], ["setup", "codex", "--new-key=true"], ["--pilot", "--host=codex", "--new-key"]])("preserves forced key entry across CLI dispatch: %j", async (...args) => {
+  const result = await parse(args);
+  expect(result.invocation?.client.flags.get("--new-key")).toBe("true");
 });

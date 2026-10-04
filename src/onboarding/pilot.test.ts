@@ -247,3 +247,13 @@ it("propagates activation failure before starting the doctor", async () => {
   await expect(Effect.runPromise(runPilotSetup(f.options, f.ports))).rejects.toThrow("activation unavailable");
   expect(f.events).toEqual(["activate"]);
 });
+
+it("carries new-key through preview and approved interactive setup", async () => {
+  const f = fixture();
+  await Effect.runPromise(runPilotSetup({ ...f.options, newKey: true }, f.ports));
+  const requests = vi.mocked(f.ports.run).mock.calls.map(call => call[0]);
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toMatchObject({ newKey: true });
+  expect(requests[0]?.interactive).toBeUndefined();
+  expect(requests[1]).toMatchObject({ newKey: true, interactive: true });
+});

@@ -33,6 +33,7 @@ type SetupFields = {
   readonly credential: "saved" | "environment" | "skip";
   readonly installProposalDigest?: string;
   readonly interactive?: boolean;
+  readonly newKey?: boolean;
 };
 
 export type SetupRequest = SetupFields &
@@ -276,7 +277,7 @@ const reportInteractiveCredentialAction = (
           ? "unlock the login keyring, then run hapsland --login"
           : outcome.status === "invalid"
             ? "run hapsland --login again and enter a nonempty credential"
-            : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run hapsland --login",
+            : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run hapsland --login. Alternatively set TYPESAFE_API_KEY before setup and launching the agent",
   });
 };
 
@@ -354,7 +355,10 @@ const reportCredentialResolution = (
     stages.push({
       stage: "credential",
       status: "pending",
-      summary: `the selected ${resolution.source} credential is ${resolution.status}`,
+      summary: resolution.source === "saved" && resolution.status === "unavailable"
+        ? "native credential storage is unavailable; Hapsland could not check for a saved Jev key"
+        : resolution.status === "missing" ? "a Jev API key is required; no key was found in the selected credential source"
+        : `the selected ${resolution.source} credential is ${resolution.status}`,
       observed: {
         source: resolution.source,
         status: resolution.status,
@@ -370,7 +374,9 @@ const reportCredentialResolution = (
           ? "unlock the login keyring in the desktop session, then rerun setup interactively"
           : request.credential === "environment" || environmentOnly
             ? `set ${settings.credentialEnvVar} in the selected host execution environment, then rerun setup`
-            : "rerun setup interactively in a user terminal for masked credential entry",
+            : resolution.status === "missing" || resolution.status === "invalid"
+              ? "rerun setup interactively in a user terminal for masked credential entry; use --new-key to replace a saved key"
+              : `restore native credential storage (Linux: a session D-Bus Secret Service with a default collection; macOS: login Keychain), or set ${settings.credentialEnvVar} in the terminal before setup and launching the agent`,
     });
     pending.push("make the selected credential available");
   }
@@ -379,9 +385,8 @@ const reportCredentialResolution = (
 const readInteractiveCredential = Effect.fn("Setup.readCredential")(function* (
   readCredential: () => Effect.Effect<string, unknown>,
   settings: ReviewSettings,
-  initialResolution: CredentialResolution,
 ) {
-  let resolution = initialResolution;
+  let resolution: CredentialResolution | undefined;
   let interactiveOutcome: InteractiveCredentialOutcome | undefined;
   const valueResult = yield* readCredential().pipe(Effect.result);
   if (valueResult._tag === "Success") {
@@ -434,6 +439,22 @@ const setupCredential = Effect.fn("Setup.credential")(function* (
   const environmentOnly =
     request.credential === "environment" ||
     settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in";
+  if (request.newKey === true) {
+    if (request.credential !== "saved" || environmentOnly || !installed || request.interactive !== true || options.readCredential === undefined) {
+      progress.stages.push({ stage: "credential", status: "pending", summary: environmentOnly
+        ? "new saved key entry cannot replace the configured environment credential"
+        : "a new Jev key requires interactive entry after installation approval" });
+      progress.actions.push({ stage: "credential", code: "provide-credential", action: environmentOnly
+        ? `set ${settings.credentialEnvVar} in the selected host execution environment; remove the explicit credentialEnvVar setting to use saved login`
+        : "run hapsland setup with --new-key in a user terminal and approve installation" });
+      progress.pending.push("enter a new credential");
+      return;
+    }
+    const result = yield* readInteractiveCredential(options.readCredential, settings);
+    if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress);
+    else if (result.resolution !== undefined) reportCredentialResolution(request, settings, false, result.resolution, progress);
+    return;
+  }
   if (request.credential === "skip") {
     reportSkippedCredential(request, progress);
   } else {
@@ -449,11 +470,9 @@ const setupCredential = Effect.fn("Setup.credential")(function* (
       installed,
     );
     if (readCredential !== undefined) {
-      ({ resolution, interactiveOutcome } = yield* readInteractiveCredential(
-        readCredential,
-        settings,
-        resolution,
-      ));
+      const result = yield* readInteractiveCredential(readCredential, settings);
+      interactiveOutcome = result.interactiveOutcome;
+      if (result.resolution !== undefined) resolution = result.resolution;
     }
     if (interactiveOutcome !== undefined) {
       reportInteractiveCredential(interactiveOutcome, progress);

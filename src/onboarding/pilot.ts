@@ -10,6 +10,7 @@ type SetupResult = Effect.Success<ReturnType<typeof runSetup>>;
 type SetupStage = SetupResult["stages"][number];
 export interface PilotOptions {
   readonly terminal: boolean;
+  readonly newKey?: boolean;
   readonly host: SetupClient;
   readonly fields: ReturnType<typeof profileFields>;
   readonly cwd: string;
@@ -152,6 +153,7 @@ export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOpt
     ...options.fields,
     scope: { cwd: options.cwd, review: "enabled" },
     credential: "saved",
+    ...(options.newKey ? { newKey: true } : {}),
   };
   let credentialEntered = false;
   const entered = () => {

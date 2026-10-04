@@ -8,9 +8,11 @@ import { stageRelease } from "../src/onboarding/distribution.ts";
 const args = process.argv.slice(2);
 const host = args.find(arg => arg.startsWith("--host="))?.slice("--host=".length);
 const update = args.includes("--update");
+const newKey = args.includes("--new-key");
+if (update && newKey) throw new Error("--new-key requires guided setup; omit --update");
 const forwarded = args.filter(arg => /^--(?:claude|codex|pi)-(?:home|executable)=/.test(arg));
-if ((host !== "claude" && host !== "codex" && host !== "pi") || args.some(arg => arg !== `--host=${host}` && arg !== "--update" && !forwarded.includes(arg))) {
-  throw new Error("usage: npm run dev-install -- --host=claude|codex|pi [--update] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]");
+if ((host !== "claude" && host !== "codex" && host !== "pi") || args.some(arg => arg !== `--host=${host}` && arg !== "--update" && arg !== "--new-key" && !forwarded.includes(arg))) {
+  throw new Error("usage: npm run dev-install -- --host=claude|codex|pi [--update | --new-key] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]");
 }
 const environment = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" };
 delete environment.REVIEW_INSTALL_RUNTIME;
@@ -31,4 +33,4 @@ const snapshotPath = join(candidate.prefix, "snapshot.json");
 const snapshot = JSON.parse(readFileSync(snapshotPath, "utf8"));
 writeFileSync(snapshotPath, JSON.stringify({ ...snapshot, commit: run("git", ["rev-parse", "HEAD"], "pipe").trim(), dirty: run("git", ["status", "--porcelain"], "pipe").trim() !== "" }, null, 2) + "\n", { mode: 0o600 });
 process.stdout.write(`Local candidate ${candidate.packageVersion}: ${candidate.executable}\nRetained archive: ${candidate.identity.archive ?? destination}\n`);
-run(candidate.executable, update ? ["update", host, `--target=${candidate.executable}`, ...forwarded] : ["setup", host, ...forwarded]);
+run(candidate.executable, update ? ["update", host, `--target=${candidate.executable}`, ...forwarded] : ["setup", host, ...(newKey ? ["--new-key"] : []), ...forwarded]);

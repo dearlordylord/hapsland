@@ -34,6 +34,10 @@ hapsland setup codex
 hapsland setup pi
 ```
 
+Setup rechecks credentials on every run: a nonempty `TYPESAFE_API_KEY` takes precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; setup does not validate the key against Jev. Package installation alone does not ask for a key.
+
+Use `hapsland setup codex --new-key` (also supported for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and an accessible native store. It does not override environment credential precedence: unset the environment key to use saved login. With an explicit `credentialEnvVar`, set that variable instead. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
+
 Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. It makes no Jev request. All three clients accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex|pi` invokes the same guided flow (bare `--pilot` opens the same client selector).
 
 The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
@@ -122,6 +126,14 @@ standalone packages embed Bun and do not require users to install it separately.
 mise exec bun@1.3.14 -- npm run dev-install -- --host=claude --update
 mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --update
 ```
+
+To request a replacement key during development installation:
+
+```sh
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
+```
+
+`--new-key` cannot be combined with `--update`, which does not run guided credential entry. If native storage is unavailable, set `TYPESAFE_API_KEY` securely in the terminal before normal setup, then start the agent from that same environment. Hapsland does not save this environment key.
 
 Before submitting a code change, run the contributor checks separately:
 

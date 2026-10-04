@@ -264,6 +264,7 @@ const setupOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: F
     credential: Schema.Literals(["saved", "environment", "skip"]),
     installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
     interactive: Schema.optionalKey(Schema.Boolean),
+    newKey: Schema.optionalKey(Schema.Boolean),
     ...fields,
   });
 const SetupOperation = Schema.Union([
@@ -1287,7 +1288,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
   const cwd = process.cwd();
   const command = currentCommand();
   return yield* runPilotSetup(
-    { terminal, host, fields: hostFields(host), cwd, platform: process.platform },
+    { terminal, host, fields: hostFields(host), cwd, platform: process.platform, newKey: clientArguments?.flags.has("--new-key") ?? false },
     {
       run: (request, entered) => {
         if (configuration === undefined) return Effect.fail(new Error("setup configuration unavailable"));
@@ -1573,7 +1574,7 @@ if (cliSwitch("feedback-preview")) {
               ...(clientArguments.host === undefined ? [] : [clientArguments.host]),
               ...[...clientArguments.flags]
                 .filter(([name]) => name !== "--host")
-                .flatMap(([name, value]) => [name, value]),
+                .map(([name, value]) => `${name}=${value}`),
             ]).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)),
           );
     if (dispatched !== undefined) process.exitCode = dispatched;
