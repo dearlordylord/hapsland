@@ -4,7 +4,7 @@ import { runNative } from "../../packages/monkey-business-bend/conformance/nativ
 import { createNativePreflight, cleanupNativePreflight } from "../../packages/monkey-business-bend/conformance/native-preflight.mjs";
 import { decodeNativePrefixWithDescriptors } from "../../packages/monkey-business/src/callback-native-prefix.ts";
 import { callbackNativeDescriptors as gameDescriptors } from "./defense-consumer-metadata.ts";
-import { decodeObservedFrame, decodeObservedState, stateEndpoint } from "../../packages/monkey-business/src/sharing-native-boundary.ts";
+import { decodeObservedState, stateEndpoint } from "../../packages/monkey-business/src/sharing-native-boundary.ts";
 import { callbackPublicBoundary } from "../../packages/monkey-business/src/callback-native-codec.ts";
 import { readBendList, readNat, readRecord } from "../../src/canonical/boundary-schema.ts";
 import { createRun, restoreReplay } from "../../packages/monkey-business/src/index.ts";
@@ -113,12 +113,34 @@ for (const envelope of envelopes) {
           run.advance({ untilTime: ticks * 20, maxEvents: 256 });
         }
         for (const raw of list(physical.frames)) {
-          // NativeRun currently lacks canonical/Engine before/after for graph
-          // frames and exact scope/receipt capture. The common owner must add
-          // this factual sidecar; inventing it from tick endpoints is invalid.
-          const observed = readRecord(raw).observed;
-          assert.ok(observed, "pending shared NativeRun full observed-frame capture; no lossy fallback");
-          nativeFrames.push(decodeObservedFrame(observed, receipts));
+          const frame = readRecord(raw), details = readRecord(frame.details);
+          assert.equal(details.$, "NativeRunTypes.FrameDetails");
+          // These are the actual per-frame source snapshots, never tick endpoints.
+          const runtimeBefore = readRecord(details.before), runtimeAfter = readRecord(details.after);
+          assert.equal(runtimeBefore.$, "NativeRunTypes.RuntimeSnapshot");
+          assert.equal(runtimeAfter.$, "NativeRunTypes.RuntimeSnapshot");
+          decodeObservedState(runtimeBefore.core);
+          decodeObservedState(runtimeAfter.core);
+          decodeObservedState(details.transition_after);
+          list(details.prepared).forEach(value => assert.equal(readRecord(value).$, "NativeRunTypes.EmissionContext"));
+          list(details.command_scopes).forEach(value => {
+            const scope = readRecord(value);
+            assert.ok(scope.$ === "None" || scope.$ === "Some");
+            if (scope.$ === "Some") readNat(scope.value);
+          });
+          const receipt = readRecord(details.receipt);
+          assert.ok(receipt.$ === "None" || receipt.$ === "Some");
+          if (receipt.$ === "Some") assert.equal(readRecord(receipt.value).$, "Callbacks.Fact");
+          for (const value of list(details.physical)) {
+            const delivery = readRecord(value);
+            assert.equal(delivery.$, "NativeRunTypes.PhysicalDelivery");
+            decodeObservedState(readRecord(delivery.before).core);
+            decodeObservedState(readRecord(delivery.after).core);
+          }
+          // A native snapshot is not an Edge Runtime: item/job bindings and
+          // deliveries without an observation still need the shared owner's
+          // complete publication contract. Do not fabricate an Edge envelope.
+          throw new Error("pending complete NativeRun runtime/job and no-frame physical boundary comparison");
         }
       }
       assert.equal(afterWorld.clock, ticks);
