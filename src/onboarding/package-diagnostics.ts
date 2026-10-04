@@ -1,9 +1,9 @@
+import { packageRoot, packageCommand, commandEntrypoint, runtimeVersion } from "../runtime/package-runtime.ts";
 import { Effect, Schema } from "effect";
 import { nativeArchitecture } from "./native-architecture.ts";
 import { execFileClosedStdin } from "./host-process.ts";
 import { accessSync, constants, existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 type Check = {
   readonly name: string;
@@ -13,7 +13,6 @@ type Check = {
   readonly action?: string;
 };
 
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const RuntimeDeclaration = Schema.Struct({
   runtime: Schema.Struct({ name: Schema.String, version: Schema.String }),
   profiles: Schema.Array(
@@ -105,17 +104,18 @@ const inspectDescriptorFacility = (
 };
 
 const inspectResidentEntry = (): Check => {
-  const resident = join(packageRoot, "dist", "resident", "main.js");
+  const command = packageCommand("resident");
+  const resident = commandEntrypoint(command);
   try {
-    accessSync(resident, constants.R_OK);
-    return check("resident-entry", true, resident, "readable packaged resident entry");
+    accessSync(resident, command.args.length === 0 ? constants.X_OK : constants.R_OK);
+    return check("resident-entry", true, resident, "available packaged resident command");
   } catch {
     return check(
       "resident-entry",
       false,
       "unavailable",
-      "readable packaged resident entry",
-      "reinstall the package; dist/resident/main.js is missing or unreadable",
+      "available packaged resident command",
+      "reinstall the package; the resident command is missing or unavailable",
     );
   }
 };
@@ -185,10 +185,10 @@ export const diagnosePackage = Effect.fn("PackageDoctor.inspect")(function* () {
   const checks = [
     check(
       "runtime",
-      process.version === `v${declaration.runtime.version}`,
-      process.version,
-      `Node ${declaration.runtime.version}`,
-      `install and invoke Node ${declaration.runtime.version}`,
+      runtimeVersion() === declaration.runtime.version,
+      runtimeVersion(),
+      `${declaration.runtime.name} ${declaration.runtime.version}`,
+      `install and invoke the packaged ${declaration.runtime.name} ${declaration.runtime.version} executable`,
     ),
     check(
       "platform-profile",

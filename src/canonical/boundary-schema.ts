@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 /** Bend's immediate Nat is 48 bits; byte pairs must remain within that range. */
 export const Nat = Schema.Number.check(

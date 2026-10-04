@@ -1,10 +1,16 @@
+import { packageAssetPath } from "../runtime/package-runtime.ts";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { Clock, Config, Effect, Option, Redacted, Schedule, Schema } from "effect";
+import * as Clock from "effect/Clock";
+import * as Config from "effect/Config";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
+import * as Schedule from "effect/Schedule";
+import * as Schema from "effect/Schema";
 import { runSecretServiceProcess, type SecretServiceOperation } from "./secret-service-process.ts";
 
 export const CREDENTIAL_LOOKUP_DEADLINE_MS = 750;
@@ -56,13 +62,7 @@ const initialState: CredentialState = {
   savedUseSuspended: false,
 };
 
-const moduleDirectory = dirname(fileURLToPath(import.meta.url));
-const packagedHelper = resolve(
-  moduleDirectory,
-  "../../native/prebuilt",
-  `${process.platform}-${process.arch}`,
-  "credential-secret-service",
-);
+const packagedHelper = packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
 
 const helperPathConfig = Config.NonEmptyString("REVIEW_CREDENTIAL_HELPER").pipe(Config.withDefault(packagedHelper));
 const statePathConfig = Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(

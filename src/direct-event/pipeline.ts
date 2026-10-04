@@ -1,4 +1,5 @@
-import { formatReviewFeedback } from "../feedback/message.ts";
+import { assertReviewEngineBoundary } from "../runtime/review-engine-boundary.ts";
+import { toCodexDirectEventOutput, type Finding, type CodexDirectEventOutput } from "./output.ts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
@@ -58,6 +59,8 @@ import {
   type DirectFilePolicy,
 } from "./selection.ts";
 
+assertReviewEngineBoundary("pipeline");
+
 export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const;
 
 export type DirectReviewContext = {
@@ -95,15 +98,6 @@ export type PreparedObservation = {
   readonly outcomes: ReadonlyArray<PrepareOutcome>;
 };
 
-export type Finding = {
-  readonly path: string;
-  readonly declaration: string;
-  readonly ruleId: string;
-  readonly probability: number;
-  readonly message: string;
-  readonly semanticIdentity: string;
-};
-
 /** Complete evaluated inputs retained until handoff; digests alone are not freshness. */
 export type EvaluatedUnit = {
   readonly prepared: PreparedUnit;
@@ -139,13 +133,6 @@ export type DirectReviewResult =
       readonly evaluations: ReadonlyArray<EvaluatedUnit>;
       readonly output: CodexDirectEventOutput;
     };
-
-export type CodexDirectEventOutput = {
-  readonly hookSpecificOutput: {
-    readonly hookEventName: "PostToolUse";
-    readonly additionalContext: string;
-  };
-};
 
 const sameAdvicee = (left: DirectAdvicee, right: DirectAdvicee): boolean =>
   canonicalValue(left) === canonicalValue(right);
@@ -1081,13 +1068,6 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   const answers = evaluated.success.value.answers;
   if (!expectedProbabilityAnswers(prepared, answers)) return { status: "backend" } as const;
   return evaluateProbabilityAnswers(prepared, answers);
-});
-
-export const toCodexDirectEventOutput = (findings: ReadonlyArray<Finding>): CodexDirectEventOutput => ({
-  hookSpecificOutput: {
-    hookEventName: "PostToolUse",
-    additionalContext: formatReviewFeedback(findings),
-  },
 });
 
 /** Core path consumes the one immutable observation produced at the host boundary. */

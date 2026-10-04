@@ -1,3 +1,4 @@
+import { assertReviewEngineBoundary } from "../runtime/review-engine-boundary.ts";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -10,6 +11,8 @@ import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import type { ProviderIdentity } from "./catalog.ts";
 import { probabilityRequest, requestLimitViolation, type ProbabilityRule } from "./request.ts";
+
+assertReviewEngineBoundary("cloudflare");
 
 const ResponseBody = Schema.Struct({
   success: Schema.Literal(true),

@@ -17,8 +17,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.20.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Verify platform profile
+        run: test "$(uname -m)" = arm64
       - name: Install development dependencies
-        run: npm install --legacy-peer-deps
+        run: bun install --frozen-lockfile
+      - name: Verify Node and Bun share the OS monotonic clock
+        run: HAPSLAND_BUILD_BUN=bun node scripts/check-runtime-clock.mjs --source-only
       - name: Verify packaged bounded setup journeys
         run: npm run conformance:setup-package
       - name: Verify packaged CLI, parser, capture, and resident path
@@ -28,5 +35,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-package-evidence
-          path: evidence/package/clean-darwin-node-24.20.0-*.json
+          path: evidence/package/clean-darwin-bun-1.3.14-*.json
           if-no-files-found: error

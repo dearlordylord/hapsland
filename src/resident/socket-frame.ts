@@ -46,6 +46,9 @@ export const makeSocketFramePort = Effect.fn("ResidentSocket.make")((socket: Soc
     write: Effect.fn("ResidentSocket.write")((encoded: string) => Effect.sync(() => {
       if (socket.destroyed) return false;
       socket.end(`${encoded}\n`);
+      // Read handlers are detached after the first frame. Drain EOF so Bun can
+      // acknowledge native closure and release the bounded connection slot.
+      socket.resume();
       return true;
     })),
     read: Effect.callback<SocketFrame>((resume) => {

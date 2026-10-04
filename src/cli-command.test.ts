@@ -115,7 +115,18 @@ describe("declarative CLI subprocess contracts", () => {
   it("keeps machine-readable package identity stdout stable", () => {
     const result = cli(["--package-identity"]);
     expect(result.status).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ name: "@hapsland/hapsland", runtime: process.execPath });
+    expect(JSON.parse(result.stdout)).toEqual({ name: "@hapsland/hapsland", executable: process.execPath, args: [join(process.cwd(), "src/cli.ts")] });
+    expect(result.stderr).toBe("");
+    expect(result.files).toEqual([]);
+  });
+  it("reports the selected runtime without reading stdin or creating state", () => {
+    const result = cli(["--runtime-identity"]);
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({
+      version: process.version,
+      platform: process.platform,
+      architecture: process.arch,
+    });
     expect(result.stderr).toBe("");
     expect(result.files).toEqual([]);
   });

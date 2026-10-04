@@ -1,5 +1,6 @@
+import type { profileFields } from "./client-command.ts";
 import * as Effect from "effect/Effect";
-import { formatFailure, formatProposal, type invokeLifecycle, type profileFields } from "./client-lifecycle.ts";
+import { formatFailure, formatProposal, type invokeLifecycle } from "./client-lifecycle.ts";
 import type { SetupClient } from "./client-selection.ts";
 
 type LifecycleResult = Effect.Success<ReturnType<typeof invokeLifecycle>>;

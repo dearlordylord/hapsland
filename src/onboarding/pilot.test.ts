@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { expect, it, vi } from "vitest";
 import { runPilotSetup, type PilotOptions, type PilotPorts } from "./pilot.ts";
-import { profileFields } from "./client-lifecycle.ts";
+import { profileFields } from "./client-command.ts";
 import type { runSetup } from "./setup.ts";
 import type { HostProcessResult } from "./host-process.ts";
 

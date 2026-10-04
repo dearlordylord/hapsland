@@ -36,6 +36,52 @@ const initializeRepository = (root: string, requestedStatePath?: string) => {
 };
 
 describe("JSON subprocess contract", () => {
+  it("explains a repository path through the deferred command without reviewing source", () => {
+    const root = makeTemporaryDirectory("review-cli-explain-");
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    const capturePath = join(root, "backend-calls");
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--explain"], {
+      cwd: process.cwd(), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
+      input: JSON.stringify({ version: 1, operation: "explain", cwd: root, path: "example.ts" }),
+      env: { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }) },
+    });
+    expect(child.status).toBe(0);
+    expect(JSON.parse(child.stdout)).toMatchObject({ version: 1, operation: "explain",
+      repository: { canonicalRoot: root }, explanation: { path: "example.ts", normalizedPath: "example.ts" },
+      text: expect.stringContaining("example.ts:") });
+    expect(existsSync(capturePath)).toBe(false);
+    expect(existsSync(join(root, "runtime"))).toBe(false);
+  });
+
+  it.each([false, true])("keeps Claude input quiet without valid dispatch metadata, composed=%s", composed => {
+    const root = makeTemporaryDirectory("review-cli-claude-dispatch-");
+    roots.push(root);
+    const statePath = initializeRepository(root);
+    const path = join(root, "type.ts");
+    const content = "type OrderCount = number\n";
+    writeFileSync(path, content);
+    const capturePath = join(root, "backend-calls");
+    const child = spawnSync(process.execPath, ["src/cli.ts", "--claude-hook", "--controlled-reviewer",
+      ...(composed ? ["--composed-edit-hook"] : [])], {
+      cwd: process.cwd(), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS,
+      input: JSON.stringify({ hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+        session_id: "source-dispatch", tool_use_id: "source-dispatch-tool",
+        tool_input: { file_path: path, content },
+        tool_response: { filePath: path, content, originalFile: null, userModified: false } }),
+      env: { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
+        REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"), REVIEW_CREDENTIAL_STATE_PATH: "",
+        REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }) },
+    });
+    expect(child.status).toBe(0);
+    expect(child.stdout).toBe("{}\n");
+    expect(child.stderr).toBe("");
+    expect(existsSync(capturePath)).toBe(false);
+    expect(existsSync(join(root, "runtime"))).toBe(false);
+    expect(readFileSync(path, "utf8")).toBe(content);
+  });
+
   it.each(["REVIEW_STATE_PATH", "REVIEW_CONSENT_FILE", "REVIEW_ACTIVITY_PATH", "REVIEW_USER_CONFIG_PATH"])("rejects empty %s instead of falling back to another path", (key) => {
     const root = makeTemporaryDirectory("review-empty-path-");
     roots.push(root);

@@ -39,8 +39,8 @@ it("reports package readiness from individual checks and returns the matching ex
   const declaration = JSON.parse(readFileSync(new URL("../package-runtime.json", import.meta.url), "utf8"));
   expect(checks.find((check) => check.name === "runtime")).toMatchObject({
     observed: process.version,
-    required: `Node ${declaration.runtime.version}`,
-    status: process.version === `v${declaration.runtime.version}` ? "ready" : "unsupported",
+    required: `${declaration.runtime.name} ${declaration.runtime.version}`,
+    status: "unsupported",
   });
   const profileDeclared = declaration.profiles.some(
     (profile: { operatingSystem: string; architecture: string }) =>

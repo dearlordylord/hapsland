@@ -1,5 +1,6 @@
+import type { Finding } from "../direct-event/output.ts";
 import type { DirectObservation, PreparedUnit } from "../direct-event/model.ts";
-import type { EvaluatedUnit, Finding } from "../direct-event/pipeline.ts";
+import type { EvaluatedUnit } from "../direct-event/pipeline.ts";
 import type { CapacityLedger, CapacityReservation } from "./capacity.ts";
 import type { WorkRevision } from "./revision.ts";
 import type { RoundWork } from "./round-records.ts";

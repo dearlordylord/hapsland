@@ -1,27 +1,33 @@
+import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs";
+import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs";
+import { preparePackageInstall } from "./test-harness/package-install.mjs";
+import { configuredRules } from "../src/policy/rules.ts";
 import { nativeFindingLines, nativeFindingsSubmittedOnce } from "./package-finding-output.mjs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { access, chmod, copyFile, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime.json"), "utf8"));
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
+const archiveArgumentIndex = process.argv.indexOf("--archive");
+const suppliedArchive = process.argv.find(argument => argument.startsWith("--archive="))?.slice("--archive=".length)
+  ?? (archiveArgumentIndex < 0 ? undefined : process.argv[archiveArgumentIndex + 1]);
+if (archiveArgumentIndex >= 0 && (!suppliedArchive || suppliedArchive.startsWith("--"))) throw new Error("--archive requires a local archive path");
 const registryArtifact = process.argv.includes("--registry-artifact");
 const releaseManifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const expectedSha256 = process.argv.find((argument) => argument.startsWith("--expected-sha256="))?.slice("--expected-sha256=".length);
+if (registryArtifact && suppliedArchive !== undefined) throw new Error("Choose a local archive or registry archive, not both");
 if (registryArtifact && !/^[0-9a-f]{64}$/.test(expectedSha256 ?? "")) {
   throw new Error("registry conformance requires --expected-sha256=REVIEWED_ARCHIVE_SHA256");
 }
 const exerciseSecretService = !process.argv.includes("--skip-credential-lifecycle") && (process.argv.includes("--secret-service") || process.platform === "darwin");
 const exerciseCredentialFixture = process.argv.includes("--credential-fixture");
 const exerciseCredentialLifecycle = exerciseSecretService || exerciseCredentialFixture;
-if (process.version !== `v${runtimeDeclaration.runtime.version}`) {
-  throw new Error(`package conformance requires Node v${runtimeDeclaration.runtime.version}; found ${process.version}. Select the pinned Node version before running this command.`);
-}
 let selectedCodexVersion;
 if (executeRealCodex) {
   const profile = runtimeDeclaration.profiles.find((item) =>
@@ -41,7 +47,7 @@ if (executeRealCodex) {
     throw new Error(`authenticated real Codex validation requires ${compatible.map((version) => `codex-cli ${version}`).join(" or ")}; found ${result.version || "unavailable"}. Select a declared Codex CLI version before running this command.`);
   }
 }
-const outputPath = join(root, `evidence/package/clean-${process.platform}-node-24.20.0-${process.arch}${executeRealCodex ? `-real-codex-${selectedCodexVersion}` : ""}.json`);
+const outputPath = join(root, `evidence/package/clean-${process.platform}-bun-1.3.14-${process.arch}${executeRealCodex ? `-real-codex-${selectedCodexVersion}` : ""}.json`);
 const run = (command, args, options = {}) => new Promise((resolveRun, reject) => {
   const child = spawn(command, args, {
     cwd: options.cwd,
@@ -65,6 +71,7 @@ const run = (command, args, options = {}) => new Promise((resolveRun, reject) =>
 });
 const mustRun = async (command, args, options = {}) => {
   const result = await run(command, args, options);
+  if (options.requireQuiet === true && result.stderr.trim().length > 0) throw new Error("Successful installed hook emitted stderr (including any runtime tripwire diagnostic)");
   if (result.code !== 0) {
     const output = [result.stdout, result.stderr].filter((value) => value.trim().length > 0).join("\n").trim();
     throw new Error(`${command} ${args.join(" ")} failed (${result.code}):${output.length > 0 ? `\n${output}` : " no command output"}`);
@@ -117,7 +124,8 @@ const installLocalPackageVariant = async ({
   const artifactName = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error(`npm pack did not produce the ${version} tarball`);
   const tarball = join(artifacts, artifactName);
-  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], {
+  const installer = await preparePackageInstall(installation, tarball);
+  await mustRun(installer.executable, installer.args, {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -146,6 +154,7 @@ const runInstalledHooks = async (codexHome, event, options) => {
         env: options.env,
         input: JSON.stringify(event),
         shell: true,
+        requireQuiet: true,
       });
       if (result.stdout.trim().length > 0) outputs.push(parseJson(result.stdout, "installed hook output"));
     }
@@ -367,7 +376,7 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
 });
 
 const temporary = await mkdtemp(join(tmpdir(), "review-package-conformance-"));
-let residentPid;
+const ownedResidents = new Map();
 let separateRuntime;
 let testKeychainPath;
 let secondaryTestKeychainPath;
@@ -411,9 +420,13 @@ try {
   if (sourceManifest.scripts?.prepack !== "npm run build" || sourceManifest.scripts?.postinstall !== undefined) {
     throw new Error("source package must build before packing without an install-time lifecycle script");
   }
+  if (suppliedArchive !== undefined) {
+    await copyFile(resolve(suppliedArchive), join(artifacts, "reviewed-local.tgz"));
+  } else {
   await mustRun("npm", registryArtifact
     ? ["pack", `${releaseManifest.name}@${releaseManifest.version}`, "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", artifacts]
     : ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
+  }
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
@@ -422,16 +435,16 @@ try {
   if (registryArtifact && artifactSha256 !== expectedSha256) {
     throw new Error(`registry archive SHA-256 differs from reviewed artifact: ${artifactSha256}`);
   }
-  // Force the local layout expected by this fixture. An effective global
-  // install silently places package bins under prefix/bin instead.
-  await mustRun("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--bin-links=true", "--prefix", installation, tarball], { cwd: temporary, timeoutMs: 120_000 });
+  const installer = await preparePackageInstall(installation, tarball);
+  await mustRun(installer.executable, installer.args, { cwd: temporary, timeoutMs: 120_000 });
   const packageDirectory = join(installation, "node_modules", sourceManifest.name);
   const binDirectory = join(installation, "node_modules", ".bin");
   const cli = join(binDirectory, "hapsland");
   let activeCli = cli;
   const parser = join(binDirectory, "hapsland-parser");
   const doctor = join(binDirectory, "hapsland-doctor");
-  const doctorSource = join(packageDirectory, "dist", "package-doctor.js");
+  const profileDirectory = join(packageDirectory, "dist/bin", `${process.platform}-${process.arch}`);
+  const doctorExecutable = join(profileDirectory, "hapsland-doctor");
   for (const [name, path] of [["hapsland", cli], ["hapsland-parser", parser], ["hapsland-doctor", doctor]]) {
     try {
       await access(path);
@@ -450,12 +463,6 @@ try {
     const contents = await readFile(join(packageDirectory, documentation), "utf8");
     if (contents.trim().length === 0) throw new Error(`packaged documentation is empty: ${documentation}`);
   }
-  const targetPackage = await installLocalPackageVariant({
-    sourcePackage: packageDirectory,
-    temporary,
-    version: "0.0.1-local",
-    residentProtocol: 1,
-  });
   // npm can return ELSPROBLEMS for tree-sitter's optional peer layout even
   // when the exact production dependencies are installed and loadable. The
   // JSON tree remains authoritative for the dev-dependency exclusion below;
@@ -463,34 +470,33 @@ try {
   const productionTree = await run("npm", ["ls", "--global=false", "--all", "--omit=dev", "--json"], { cwd: installation });
   if (productionTree.stdout.trim().length === 0) throw new Error("npm ls did not return a production dependency tree");
   const dependencyTree = parseJson(productionTree.stdout, "production dependency tree");
-  for (const forbidden of ["typescript", "vitest", "@types/bun"]) {
+  for (const forbidden of ["typescript", "vitest", "@types/bun", "node-linux-arm64", "node-bin-darwin-arm64", "bun"]) {
     if (dependencyTree.dependencies?.[forbidden] !== undefined) throw new Error(`development dependency installed: ${forbidden}`);
   }
 
-  const wrongNodeDirectory = join(temporary, "wrong-node-path");
-  await mkdir(wrongNodeDirectory);
-  await writeFile(join(wrongNodeDirectory, "node"), "#!/bin/sh\nexit 91\n", { mode: 0o700 });
-  const launcherEnvironment = { ...process.env, PATH: `${wrongNodeDirectory}:${process.env.PATH ?? ""}` };
+  const launcherEnvironment = standaloneEnvironment(join(temporary, "standalone-path"), process.env, executeRealCodex ? ["codex"] : []);
   const doctorRun = await mustRun(doctor, [], { cwd: temporary, env: launcherEnvironment });
   const doctorResult = parseJson(doctorRun.stdout, "package doctor");
   if (doctorResult.status !== "ready") throw new Error("package doctor did not report ready");
-  if (doctorResult.checks.find((check) => check.name === "runtime")?.observed !== process.version) {
-    throw new Error("package doctor used the shell's Node instead of the packaged runtime");
+  if (doctorResult.checks.find((check) => check.name === "runtime")?.observed !== runtimeDeclaration.runtime.version) {
+    throw new Error("package doctor did not use the declared standalone Bun runtime");
   }
+  const runtimeIdentity = parseJson((await mustRun(cli, ["--runtime-identity"], { cwd: temporary, env: launcherEnvironment })).stdout, "standalone runtime identity");
+  if (runtimeIdentity.version !== runtimeDeclaration.runtime.version || runtimeIdentity.platform !== process.platform || runtimeIdentity.architecture !== process.arch) throw new Error("standalone runtime identity differs from the selected profile");
   await mustRun(cli, ["--help"], { cwd: temporary, env: launcherEnvironment });
-  const missingCommands = await run(process.execPath, [doctorSource], { cwd: temporary, env: { ...process.env, PATH: join(temporary, "missing-path") } });
+  const missingCommands = await run(doctorExecutable, [], { cwd: temporary, env: { ...launcherEnvironment, PATH: join(temporary, "missing-path") } });
   const missingCommandDiagnosis = parseJson(missingCommands.stdout, "package doctor missing-command diagnosis");
   if (missingCommands.code !== 1 || !["git"].every((name) => missingCommandDiagnosis.checks.some((check) => check.name === name && check.status === "unsupported" && typeof check.action === "string"))) {
     throw new Error("package doctor did not provide actionable missing-command diagnoses");
   }
   const parserRun = await mustRun(parser, [], {
-    cwd: temporary,
+    cwd: temporary, env: launcherEnvironment,
     input: JSON.stringify({ path: "fixture.ts", source: "export interface Delivery { id: string; destination: string }" }),
   });
   const parserResult = parseJson(parserRun.stdout, "packaged parser");
   if (parserResult.status !== "analyzed") throw new Error("packaged parser did not analyze the fixture");
   const rustParserRun = await mustRun(parser, [], {
-    cwd: temporary,
+    cwd: temporary, env: launcherEnvironment,
     input: JSON.stringify({ path: "fixture.rs", source: "struct Receipt { id: String }\nenum Delivery { Pending, Delivered(Receipt) }" }),
   });
   const rustParserResult = parseJson(rustParserRun.stdout, "packaged Rust parser");
@@ -502,7 +508,7 @@ try {
   }
 
   const bendParserRun = await mustRun(parser, [], {
-    cwd: temporary,
+    cwd: temporary, env: launcherEnvironment,
     input: JSON.stringify({ path: "fixture.bend", source: "import Base\ntype Receipt is Data:\n  Receipt{id: String}\ntype Delivery is Data:\n  Pending{}\n  Delivered{receipt: Receipt}" }),
   });
   const bendParserResult = parseJson(bendParserRun.stdout, "packaged Bend parser");
@@ -520,120 +526,62 @@ try {
   await writeFile(join(repository, "README.md"), "synthetic package fixture\n", { mode: 0o600 });
   await mustRun("git", ["add", "README.md"], { cwd: repository });
   await mustRun("git", ["commit", "--quiet", "-m", "fixture"], { cwd: repository });
-  progress("installed-rust-cross-file-preparation");
-  const rustRepository = join(temporary, "rust-cross-file-repository");
-  await mkdir(join(rustRepository, "src"), { recursive: true });
-  await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: rustRepository });
-  await writeFile(join(rustRepository, "Cargo.toml"), '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n');
-  const rustRootSource = "mod receipt; use receipt::Receipt as R; struct Root { a: R, b: crate::receipt::Receipt }\n";
-  await writeFile(join(rustRepository, "src/lib.rs"), rustRootSource);
-  await writeFile(join(rustRepository, "src/receipt.rs"), "pub struct Receipt { id: String }\n");
-  const rustPreparationHelper = join(installation, "rust-cross-file-check.mjs");
-  await writeFile(rustPreparationHelper, `
-import * as Effect from "effect/Effect";
-import { pathToFileURL } from "node:url";
-import { join } from "node:path";
-const [installed, repository] = process.argv.slice(2);
-const load = (path) => import(pathToFileURL(join(installed, "dist", path)).href);
-const { adaptCodexAdd } = await load("direct-event/adapter.js");
-const { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } = await load("direct-event/pipeline.js");
-const { compileRulePack } = await load("rules/compiler.js");
-const { TYPE_INPUT_CONTRACT } = await load("rules/targets.js");
-const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("runtime/review-config.js");
-const rules = compileRulePack({ schemaVersion: 1, id: "rust-package", contentVersion: "1", rules: [{
-  id: "shape", question: "Does this type admit invalid states?", criteria: { false: "No", true: "Yes" },
-  message: "Use an enum", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
-    capabilities: ["root-declaration", "resolved-outbound-types"] }],
-}] }, "package-conformance");
-await Effect.runPromise(Effect.gen(function* () {
-  const observation = yield* adaptCodexAdd({ hook_event_name: "PostToolUse", tool_name: "apply_patch",
-    session_id: "rust-package-session", turn_id: "rust-package-turn", tool_use_id: "rust-package-add",
-    cwd: repository, tool_input: { command: ${JSON.stringify(`*** Begin Patch\n*** Add File: src/lib.rs\n+${rustRootSource.trim()}\n*** End Patch`)} }, tool_response: {} });
-  if (observation === undefined) throw new Error("installed Rust observation adaptation failed");
-  const context = { controlledWriter: true, advicee: observation.advicee,
-    settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules };
-  const result = yield* prepareObservation(observation, context);
-  const ready = result.outcomes.find((outcome) => outcome.status === "ready");
-  if (ready?.status !== "ready") throw new Error("installed Rust cross-file preparation failed");
-  const rendered = preparedProviderInput(ready.prepared);
-  if (rendered?.artifact.name !== "Root" || rendered.artifact.domain !== "src/lib.rs" ||
-      !rendered.evidence.nodes.some((node) => node.name === "Receipt" && node.domain === "src/receipt.rs") ||
-      !rendered.evidence.edges.some((edge) => edge.symbol === "R" && edge.kind === "expanded") ||
-      !rendered.evidence.edges.some((edge) => edge.symbol === "crate::receipt::Receipt" && edge.kind === "included") ||
-      JSON.stringify(ready.prepared.input.sourceFingerprints?.map((source) => source.path)) !==
-        JSON.stringify(["Cargo.toml", "src/lib.rs", "src/receipt.rs"]) ||
-      !(yield* preparedUnitStillCurrent(observation, ready.prepared, context))) {
-    throw new Error("installed Rust cross-file rendering or source authority failed");
-  }
-}));
-console.log(JSON.stringify({ status: "passed", cargoAuthority: true, supportingFileResolved: true, rendered: true }));
-`);
-  const rustPreparation = parseJson((await mustRun(process.execPath,
-    [rustPreparationHelper, packageDirectory, rustRepository], { cwd: temporary })).stdout,
-    "installed Rust cross-file preparation");
-  if (rustPreparation.status !== "passed") throw new Error("installed Rust cross-file check did not pass");
+  const checkCrossFile = async (language, entry, source, supportingEntry, supportingSource) => {
+    const repository = join(temporary, `${language}-cross-file-repository`);
+    await mkdir(dirname(join(repository, entry)), { recursive: true });
+    await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
+    if (language === "rust") await writeFile(join(repository, "Cargo.toml"), '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n');
+    await writeFile(join(repository, entry), source);
+    await writeFile(join(repository, supportingEntry), supportingSource);
+    const summaryPath = join(temporary, `${language}-cross-file-summary.jsonl`);
+    const isolatedRuntime = join(temporary, `${language}-cross-file-runtime`);
+    const rule = { schemaVersion: 1, id: `${language}-package`, contentVersion: "1", rules: [{
+      id: "shape", question: "Does this type admit invalid states?", criteria: { false: "No", true: "Yes" },
+      message: "Use a constrained type", reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v1",
+        capabilities: ["root-declaration", "resolved-outbound-types"] }],
+    }] };
+    await writeFile(join(repository, "pack.json"), JSON.stringify(rule));
+    await writeFile(join(repository, ".review.jsonc"), '{"version":1,"packs":["pack.json"]}');
+    const env = { ...launcherEnvironment, REVIEW_RESIDENT_DIR: isolatedRuntime,
+      REVIEW_STATE_PATH: join(temporary, `${language}-cross-file-state`), REVIEW_INSTALL_CONTROLLED: "1",
+      REVIEW_USER_CONFIG_PATH: join(temporary, "cross-file-user.json"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: { [`${language}-package/shape`]: { _tag: "Probability", probability: 0.9 } }, requestSummaryPath: summaryPath }) };
+    delete env.TYPESAFE_API_KEY; delete env.OPENAI_API_KEY;
+    const event = { hook_event_name: "PreToolUse", tool_name: "apply_patch", session_id: `${language}-package-session`, turn_id: `${language}-package-turn`, tool_use_id: `${language}-package-add`, cwd: repository,
+      tool_input: { command: `*** Begin Patch\n*** Add File: ${entry}\n${source.trimEnd().split("\n").map(line => `+${line}`).join("\n")}\n*** End Patch` }, tool_response: {} };
+    const residentCommand = { executable: join(profileDirectory, "hapsland-resident"), args: [] };
+    ownedResidents.set(isolatedRuntime, [residentCommand]);
+    try {
+      await mustRun(cli, ["--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"], { cwd: repository, env, input: JSON.stringify(event), requireQuiet: true });
+      await mustRun(cli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], { cwd: repository, env, input: JSON.stringify({ ...event, hook_event_name: "PostToolUse" }), requireQuiet: true });
+      await mustRun(cli, ["--composed-stop-hook", "--composed-host=codex-cli", "--controlled-reviewer"], { cwd: repository, env, input: JSON.stringify({ ...event, hook_event_name: "Stop", stop_hook_active: false }), requireQuiet: true });
+      const summaries = jsonLines(await readFile(summaryPath, "utf8"));
+      if (!summaries.some(summary => summary.evidenceNodes >= 1 && summary.expandedEdges >= 1)) throw new Error(`installed ${language} cross-file review did not expand supporting evidence: ${JSON.stringify(summaries)}`);
+      return { status: "passed", installedCliReview: true, supportingEvidenceExpanded: true, noExternalInterpreterOnPath: true };
+    } finally {
+      await cleanupOwnedResident(isolatedRuntime, [residentCommand]);
+      ownedResidents.delete(isolatedRuntime);
+    }
+  };
+  progress("installed-cross-file-preparation");
+  const rustPreparation = await checkCrossFile("rust", "src/lib.rs", "mod receipt; use receipt::Receipt as R; struct Root { a: R, b: crate::receipt::Receipt }\n", "src/receipt.rs", "pub struct Receipt { id: String }\n");
+  const bendPreparation = await checkCrossFile("bend", "src/model.bend", "import Base\nimport ./receipt.bend as R\ntype Root is Data:\n  Root{left: R.Receipt, right: R.Receipt}\n", "src/receipt.bend", "import Base\ntype Receipt is Data:\n  Receipt{id: String}\n");
 
-  progress("installed-bend-cross-file-preparation");
-  const bendRepository = join(temporary, "bend-cross-file-repository");
-  await mkdir(join(bendRepository, "src"), { recursive: true });
-  await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: bendRepository });
-  const bendRootSource = "import Base\nimport ./receipt.bend as R\ntype Root is Data:\n  Root{receipt: R.Receipt}\n";
-  await writeFile(join(bendRepository, "src/model.bend"), bendRootSource);
-  await writeFile(join(bendRepository, "src/receipt.bend"), "import Base\ntype Receipt is Data:\n  Receipt{id: String}\n");
-  const bendPreparationHelper = join(installation, "bend-cross-file-check.mjs");
-  await writeFile(bendPreparationHelper, `
-import * as Effect from "effect/Effect";
-import { pathToFileURL } from "node:url";
-import { join } from "node:path";
-const [installed, repository] = process.argv.slice(2);
-const load = (path) => import(pathToFileURL(join(installed, "dist", path)).href);
-const { adaptCodexAdd } = await load("direct-event/adapter.js");
-const { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } = await load("direct-event/pipeline.js");
-const { compileRulePack } = await load("rules/compiler.js");
-const { TYPE_INPUT_CONTRACT } = await load("rules/targets.js");
-const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("runtime/review-config.js");
-const rules = compileRulePack({ schemaVersion: 1, id: "bend-package", contentVersion: "1", rules: [{
-  id: "shape", question: "Does this type admit invalid states?", criteria: { false: "No", true: "Yes" },
-  message: "Use a datatype", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
-    capabilities: ["root-declaration", "resolved-outbound-types"] }],
-}] }, "package-conformance");
-await Effect.runPromise(Effect.gen(function* () {
-  const observation = yield* adaptCodexAdd({ hook_event_name: "PostToolUse", tool_name: "apply_patch",
-    session_id: "bend-package-session", turn_id: "bend-package-turn", tool_use_id: "bend-package-add",
-    cwd: repository, tool_input: { command: ${JSON.stringify(`*** Begin Patch\n*** Add File: src/model.bend\n${bendRootSource.trim().split("\n").map((line) => `+${line}`).join("\n")}\n*** End Patch`)} }, tool_response: {} });
-  if (observation === undefined) throw new Error("installed Bend observation adaptation failed");
-  const reads = [];
-  const context = { controlledWriter: true, advicee: observation.advicee,
-    settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules,
-    captureHooks: { sourceRead: (path) => reads.push(path) } };
-  const result = yield* prepareObservation(observation, context);
-  const ready = result.outcomes.find((outcome) => outcome.status === "ready");
-  if (ready?.status !== "ready") throw new Error("installed Bend cross-file preparation failed");
-  const rendered = preparedProviderInput(ready.prepared);
-  if (rendered?.artifact.name !== "Root" || rendered.artifact.domain !== "src/model.bend" ||
-      !rendered.evidence.nodes.some((node) => node.name === "Receipt" && node.domain === "src/receipt.bend") ||
-      !rendered.evidence.edges.some((edge) => edge.symbol === "R.Receipt" && edge.kind === "expanded") ||
-      reads.filter((path) => path === "src/receipt.bend").length !== 2 ||
-      JSON.stringify(ready.prepared.input.sourceFingerprints?.map((source) => source.path)) !==
-        JSON.stringify(["src/model.bend", "src/receipt.bend"]) ||
-      !(yield* preparedUnitStillCurrent(observation, ready.prepared, context))) {
-    throw new Error("installed Bend cross-file rendering or source authority failed");
-  }
-}));
-console.log(JSON.stringify({ status: "passed", qualifiedImportResolved: true, stableCaptures: true, supportingFileResolved: true, rendered: true }));
-`);
-  const bendPreparation = parseJson((await mustRun(process.execPath,
-    [bendPreparationHelper, packageDirectory, bendRepository], { cwd: temporary })).stdout,
-    "installed Bend cross-file preparation");
-  if (bendPreparation.status !== "passed") throw new Error("installed Bend cross-file check did not pass");
-
+  const targetPackage = await installLocalPackageVariant({
+    sourcePackage: packageDirectory,
+    temporary,
+    version: "0.0.1-local",
+    residentProtocol: 1,
+  });
+  ownedResidents.set(runtime, [{ executable: join(profileDirectory, "hapsland-resident"), args: [] },
+    { executable: join(dirname(await realpath(targetPackage.cli)), "../dist/bin", `${process.platform}-${process.arch}`, "hapsland-resident"), args: [] }]);
   const answers = Object.fromEntries([
     "r1_inferred_case", "r2_meaningless_combinations", "r3_split_correlations",
     "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",
     "r7_name_wider_than_type", "r8_name_claims_resource", "r9_body_reaches_undeclared",
   ].map((id) => [id, { _tag: "Probability", probability: 0.91 }]));
   const env = {
-    ...process.env,
+    ...launcherEnvironment,
     REVIEW_STATE_PATH: state,
     REVIEW_USER_CONFIG_PATH: join(temporary, "state", "user.jsonc"),
     REVIEW_RESIDENT_DIR: runtime,
@@ -654,7 +602,7 @@ console.log(JSON.stringify({ status: "passed", qualifiedImportResolved: true, st
     if (process.platform !== "linux") throw new Error("the deterministic credential fixture is Linux-only");
     const helper = join(temporary, "credential-helper.mjs");
     const vault = join(temporary, "state", "credential-vault");
-    await writeFile(helper, `#!/usr/bin/env node
+    await writeFile(helper, `#!${process.execPath}
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
 if (operation === "probe") console.log('{"version":1,"status":"available"}');
@@ -738,55 +686,10 @@ else if (operation === "get") {
   await chmod(fakeCodex, 0o700);
   const independentHook = join(temporary, "independent-hook.mjs");
   await writeFile(independentHook, `import { appendFileSync, readFileSync, realpathSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
 const event = JSON.parse(readFileSync(0, "utf8"));
 const input = event?.tool_input && typeof event.tool_input === "object" ? event.tool_input : {};
 const command = typeof input.command === "string" ? input.command : "";
-const record = { observed: true, sessionId: typeof event?.session_id === "string" ? event.session_id : null, hookEventName: typeof event?.hook_event_name === "string" ? event.hook_event_name : null, toolName: typeof event?.tool_name === "string" ? event.tool_name : null, payloadKeys: Object.keys(event ?? {}).sort(), toolInputKeys: Object.keys(input).sort(), commandBytes: Buffer.byteLength(command), commandEndsWithNewline: command.endsWith("\\n"), parserAccepted: false, observationAccepted: false, candidateOperation: null, targetMatches: false, candidateAbsolute: false, candidateLexicallyWithinRoot: false, candidateRealpathWithinRoot: false, canonicalRootAliasesCandidateParent: false, pathEligible: false, captureAvailable: false, analysisStatus: "not-run", diagnosticError: null, patchStart: command.startsWith("*** Begin Patch\\n"), patchEnd: command.trimEnd().endsWith("*** End Patch"), patchHeaders: command.split("\\n").filter((line) => /^\\*\\*\\* (Add|Update|Delete) File: /.test(line)).length };
-try {
-  if (command.length > 0 && process.env.REVIEW_ADAPTER_MODULE !== undefined) {
-    const adapter = await import(pathToFileURL(process.env.REVIEW_ADAPTER_MODULE).href);
-    record.parserAccepted = adapter.nativeDirectCandidates(command) !== undefined;
-    const Effect = await import(pathToFileURL(process.env.REVIEW_EFFECT_MODULE).href);
-    const adapted = await Effect.runPromise(adapter.adaptCodexDirectEvent(event, "0.156.0"));
-    record.observationAccepted = adapted !== undefined;
-    if (adapted !== undefined) {
-      const candidate = adapted.candidates[0];
-      record.candidateOperation = candidate?.operation ?? null;
-      record.targetMatches = candidate?.path === "installed.ts" || candidate?.path.endsWith("/installed.ts") === true;
-      if (candidate !== undefined) {
-        const candidatePath = candidate.path;
-        const root = adapted.root;
-        record.candidateAbsolute = isAbsolute(candidatePath);
-        const lexical = resolve(root, candidatePath);
-        const lexicalRelative = relative(root, lexical);
-        record.candidateLexicallyWithinRoot = lexicalRelative !== ".." && !lexicalRelative.startsWith(".." + sep) && !isAbsolute(lexicalRelative);
-        try {
-          const canonicalRoot = realpathSync(root);
-          const canonicalCandidate = realpathSync(lexical);
-          const canonicalRelative = relative(canonicalRoot, canonicalCandidate);
-          record.candidateRealpathWithinRoot = canonicalRelative !== ".." && !canonicalRelative.startsWith(".." + sep) && !isAbsolute(canonicalRelative);
-          record.canonicalRootAliasesCandidateParent = canonicalRoot !== root && canonicalCandidate.startsWith(canonicalRoot + sep);
-        } catch {}
-        const selection = await import(pathToFileURL(process.env.REVIEW_SELECTION_MODULE).href);
-        const eligible = await Effect.runPromise(selection.eligibleNamedPath(root, candidatePath, undefined, adapted.rootIdentity));
-        record.pathEligible = eligible !== undefined;
-        if (eligible !== undefined && candidate.operation === "add") {
-          const capture = await import(pathToFileURL(process.env.REVIEW_CAPTURE_MODULE).href);
-          const captured = await Effect.runPromise(capture.captureStable(root, eligible, {}, adapted.rootIdentity));
-          record.captureAvailable = captured !== undefined;
-          if (captured !== undefined) {
-            const analyzer = await import(pathToFileURL(process.env.REVIEW_ANALYZER_MODULE).href);
-            record.analysisStatus = analyzer.analyzeTypeFile(candidatePath, captured.text).status;
-          }
-        }
-      }
-    }
-  }
-} catch (error) {
-  record.diagnosticError = error instanceof Error ? error.name : "unknown";
-}
+const record = { observed: true, sessionId: typeof event?.session_id === "string" ? event.session_id : null, hookEventName: typeof event?.hook_event_name === "string" ? event.hook_event_name : null, toolName: typeof event?.tool_name === "string" ? event.tool_name : null, payloadKeys: Object.keys(event ?? {}).sort(), toolInputKeys: Object.keys(input).sort(), commandBytes: Buffer.byteLength(command), commandEndsWithNewline: command.endsWith("\\n"), patchStart: command.startsWith("*** Begin Patch\\n"), patchEnd: command.trimEnd().endsWith("*** End Patch"), patchHeaders: command.split("\\n").filter((line) => /^\\*\\*\\* (Add|Update|Delete) File: /.test(line)).length };
 const response = event?.tool_response && typeof event.tool_response === "object" ? event.tool_response : {};
 record.responseKeys = Object.keys(response).sort();
 record.responseFailed = response.success === false || response.is_error === true;
@@ -807,18 +710,13 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   });
   const installPreview = parseJson(installPreviewRun.stdout, "installation preview");
   const ownedPreview = installPreview.proposal?.ownedChanges;
-  const runtimePackage = process.platform === "darwin" ? "node-bin-darwin-arm64" : "node-linux-arm64";
-  const runtimePaths = [
-    join(installation, "node_modules", runtimePackage, "bin", "node"),
-    join(packageDirectory, "node_modules", runtimePackage, "bin", "node"),
-  ];
-  const packagedRuntimes = [...runtimePaths, ...await Promise.all(runtimePaths.map((path) => realpath(path).catch(() => path)))];
+  const packagedRuntimes = [join(profileDirectory, "hapsland"), await realpath(join(profileDirectory, "hapsland"))];
   const previewChecks = {
     preview: installPreview.status === "preview",
     fileSelection: !("sourceEgressAuthorized" in installPreview),
     changes: Array.isArray(installPreview.proposal?.changes),
     runtime: packagedRuntimes.includes(ownedPreview?.runtime?.executable),
-    entrypoint: typeof ownedPreview?.runtime?.entrypoint === "string",
+    args: Array.isArray(ownedPreview?.runtime?.args) && ownedPreview.runtime.args.length === 0,
     featureKey: ownedPreview?.feature?.key === "hooks",
     featureValue: ownedPreview?.feature?.value === true,
     matcher: ownedPreview?.hook?.matcher === "^(apply_patch|Edit|Write|Bash)$",
@@ -917,7 +815,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const hooksAfterUpdate = await readFile(join(codexHome, "hooks.json"), "utf8");
   if (updateResult.status !== "updated" || updateResult.resumed !== true ||
       updateResult.restart?.required !== true || updateResult.restart?.processesStopped !== false ||
-      !hooksAfterUpdate.includes(updatePreview.proposal.target.entrypoint)) {
+      !hooksAfterUpdate.includes(updatePreview.proposal.target.executable)) {
     throw new Error("compatible local package update did not complete from the target package");
   }
   activeCli = targetPackage.cli;
@@ -950,7 +848,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   }, { cwd: temporary, env: installedHostEnvironment });
   // The installed async PostToolUse collector can deliver advice before Stop.
   // This fixture awaits each installed command, so validate both supported delivery paths.
-  const { configuredRules: packagedRules } = await import(pathToFileURL(join(packageDirectory, "dist/policy/rules.js")).href);
+  const packagedRules = configuredRules;
   const expectedFindingLines = packagedRules.map((rule) => `profile.ts :: Delivery: ${rule.message}`).sort();
   const deliveryOutputs = [...postToolOutputs, ...stopOutputs];
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
@@ -1001,7 +899,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     await runInstalledHooks(codexHome, { ...restartEvent, hook_event_name: "PreToolUse" },
       { cwd: temporary, env: credentialRestartEnvironment });
     await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], {
-      cwd: temporary, env: credentialRestartEnvironment, input: JSON.stringify(restartEvent),
+      cwd: temporary, env: credentialRestartEnvironment, input: JSON.stringify(restartEvent), requireQuiet: true,
     });
     let replacementOwner;
     for (let attempt = 0; attempt < 100; attempt += 1) {
@@ -1032,7 +930,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
       if (submissions === 2 && nativeFindingLines(restartCollectionOutputs, "restarted.ts :: Restarted").length > 0) break;
     }
-    if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent native credential");
+    if (submissions !== 2) throw new Error(`restarted resident did not reuse the persistent native credential: ${JSON.stringify({ submissions, activityStages: (await readActivityMarkers(activity)).map(marker => marker.stage), outcomes: jsonLines(await readFile(outcomes, "utf8").catch(() => "")).map(outcome => outcome.outcome), distinctPid: replacementOwner.pid !== firstOwner.pid, distinctLifetime: replacementOwner.lifetime !== firstOwner.lifetime })}`);
     const expectedRestartFindingLines = packagedRules.map((rule) => `restarted.ts :: Restarted: ${rule.message}`).sort();
     if (!nativeFindingsSubmittedOnce(restartCollectionOutputs, "restarted.ts :: Restarted", expectedRestartFindingLines)) {
       throw new Error("restarted resident did not deliver the credential-backed finding exactly once");
@@ -1222,11 +1120,6 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       ...env,
       CODEX_HOME: codexHome,
       INDEPENDENT_HOOK_LOG: independentLog,
-      REVIEW_ADAPTER_MODULE: join(packageDirectory, "dist", "direct-event", "adapter.js"),
-      REVIEW_EFFECT_MODULE: join(installation, "node_modules", "effect", "dist", "Effect.js"),
-      REVIEW_SELECTION_MODULE: join(packageDirectory, "dist", "direct-event", "selection.js"),
-      REVIEW_CAPTURE_MODULE: join(packageDirectory, "dist", "direct-event", "capture.js"),
-      REVIEW_ANALYZER_MODULE: join(packageDirectory, "dist", "direct-event", "analyzer.js"),
     };
     realCodexStage = "host-execution";
     const host = await run("codex", [
@@ -1264,8 +1157,8 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     const activityStages = (await readActivityMarkers(activity)).slice(activityBefore.length)
       .map(({ kind, stage }) => kind === "submission" ? "submitted" : typeof stage === "string" ? stage : "unknown");
     const independentEvents = jsonLines(await readFile(independentLog, "utf8").catch(() => "")).slice(independentBefore)
-      .map(({ hookEventName, toolName, payloadKeys, toolInputKeys, commandBytes, commandEndsWithNewline, parserAccepted, observationAccepted, candidateOperation, targetMatches, candidateAbsolute, candidateLexicallyWithinRoot, candidateRealpathWithinRoot, canonicalRootAliasesCandidateParent, pathEligible, captureAvailable, analysisStatus, diagnosticError, patchStart, patchEnd, patchHeaders, responseKeys, responseFailed, controlledInstall, controlledReviewConfigured, residentConfigured }) => ({
-        hookEventName, toolName, payloadKeys, toolInputKeys, commandBytes, commandEndsWithNewline, parserAccepted, observationAccepted, candidateOperation, targetMatches, candidateAbsolute, candidateLexicallyWithinRoot, candidateRealpathWithinRoot, canonicalRootAliasesCandidateParent, pathEligible, captureAvailable, analysisStatus, diagnosticError, patchStart, patchEnd, patchHeaders,
+      .map(({ hookEventName, toolName, payloadKeys, toolInputKeys, commandBytes, commandEndsWithNewline, patchStart, patchEnd, patchHeaders, responseKeys, responseFailed, controlledInstall, controlledReviewConfigured, residentConfigured }) => ({
+        hookEventName, toolName, payloadKeys, toolInputKeys, commandBytes, commandEndsWithNewline, patchStart, patchEnd, patchHeaders,
         responseKeys, responseFailed, controlledInstall, controlledReviewConfigured, residentConfigured,
       }));
     realCodex = {
@@ -1396,8 +1289,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       secretRetainedInEvidence: false,
     };
   }
-  const finalOwner = parseJson(await readFile(join(runtime, "owner.json"), "utf8").catch(() => "null"), "final resident owner");
-  if (typeof finalOwner?.pid === "number") residentPid = finalOwner.pid;
+
 
   const uninstallPreviewRun = await mustRun(activeCli, ["--uninstall"], {
     cwd: temporary, env, input: JSON.stringify({ version: 1, operation: "uninstall", codexHome }),
@@ -1421,8 +1313,8 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const evidence = {
     schemaVersion: 1,
     recordedAt: new Date().toISOString(),
-    package: { name: installedManifest.name, version: installedManifest.version, artifact: basename(tarball), source: registryArtifact ? "npm-registry" : "local-pack", sha256: artifactSha256 },
-    environment: { node: process.version, operatingSystem: process.platform, architecture: process.arch },
+    package: { name: installedManifest.name, version: installedManifest.version, artifact: basename(tarball), source: registryArtifact ? "npm-registry" : suppliedArchive === undefined ? "local-pack" : "reviewed-local-archive", sha256: artifactSha256 },
+    environment: { harnessNode: process.version, installedRuntime: runtimeIdentity, nodeOrBunOnInstalledPath: false, operatingSystem: process.platform, architecture: process.arch },
     ...(process.env.GITHUB_RUN_ID === undefined ? {} : {
       continuousIntegration: {
         provider: "github-actions",
@@ -1435,6 +1327,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     rustPreparation,
     bendPreparation,
     installation: {
+      packageManager: installer.manager,
       preview: "passed",
       installed: "passed",
       idempotent: "passed",
@@ -1474,14 +1367,8 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
   if (realCodexFailure !== undefined) throw realCodexFailure;
 } finally {
-  if (typeof residentPid === "number") {
-    try { process.kill(residentPid, "SIGTERM"); } catch {}
-    for (let attempt = 0; attempt < 50; attempt += 1) {
-      try { process.kill(residentPid, 0); }
-      catch { break; }
-      await new Promise((resolveWait) => setTimeout(resolveWait, 100));
-    }
-  }
+  const cleanup = await Promise.allSettled([...ownedResidents].map(([directory, commands]) => cleanupOwnedResident(directory, commands)));
+  const failures = cleanup.filter(result => result.status === "rejected");
   if (previousDefaultKeychain !== undefined) {
     await run("security", ["default-keychain", "-s", previousDefaultKeychain], { cwd: temporary });
   }
@@ -1492,6 +1379,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (secondaryTestKeychainPath !== undefined) {
     await run("security", ["delete-keychain", secondaryTestKeychainPath], { cwd: temporary });
   }
+  if (failures.length > 0) throw new AggregateError(failures.map(result => result.reason), "Resident cleanup uncertain; temporary fixture state retained");
   await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
   if (separateRuntime !== undefined) {
     await rm(separateRuntime, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);

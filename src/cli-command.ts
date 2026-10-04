@@ -1,26 +1,18 @@
-import { Argument, Command, Flag } from "effect/cli";
+import { isHookInvocation } from "./runtime/hook-invocation.ts";
+import * as Argument from "effect/cli/Argument";
+import * as Command from "effect/cli/Command";
+import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
 import * as Console from "effect/Console";
-import { CliConfig, CliError, CliOutput, GlobalFlag } from "effect/cli";
+import * as CliConfig from "effect/cli/CliConfig";
+import * as CliError from "effect/cli/CliError";
+import * as CliOutput from "effect/cli/CliOutput";
+import * as GlobalFlag from "effect/cli/GlobalFlag";
 import * as Option from "effect/Option";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { clientCommands, type ClientCommand } from "./onboarding/client-lifecycle.ts";
+import { clientCommands, type ClientCommand } from "./onboarding/client-command.ts";
 import type { SetupClient } from "./onboarding/client-selection.ts";
 
-/** Transport classification only: used when help/errors short-circuit declarative handlers. */
-const hookFlags = new Set([
-  "--codex-hook",
-  "--claude-hook",
-  "--pi-hook",
-  "--opencode-hook",
-  "--composed-edit-hook",
-  "--composed-before-edit-hook",
-  "--composed-background-hook",
-  "--composed-stop-hook",
-  "--composed-prompt-hook",
-]);
-export const isHookInvocation = (args: ReadonlyArray<string>) =>
-  args.some((argument) => hookFlags.has(argument.split("=")[0] ?? argument));
 const validate = <A>(read: () => A) =>
   Effect.try({
     try: read,
@@ -77,6 +69,7 @@ const operationFlags = {
   login: switchFlag("login", [], false),
   logout: switchFlag("logout", [], false),
   "package-identity": switchFlag("package-identity"),
+  "runtime-identity": switchFlag("runtime-identity"),
   pilot: switchFlag("pilot", [], false),
 };
 const automationFlags = {

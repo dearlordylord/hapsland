@@ -1,3 +1,4 @@
+import { packageCommand } from "../runtime/package-runtime.ts";
 import * as Effect from "effect/Effect";
 import { Clock, Config, Exit, Option, Ref, Schedule, Schema } from "effect";
 import { createHash, randomUUID } from "node:crypto";
@@ -39,16 +40,6 @@ export const DEMO_DISCLOSURE = {
   repairPrescribed: false,
 } as const;
 
-const VALIDATOR_SOURCE = `import { isSession } from "./session.ts"
-
-const checks = [
-  isSession({ loggedIn: false }),
-  isSession({ loggedIn: true, userId: "demo-user" }),
-  !isSession({ loggedIn: false, userId: "demo-user" }),
-  !isSession({ loggedIn: true }),
-]
-if (checks.some((value) => !value)) process.exit(1)
-`;
 
 const DemoRecord = Schema.Struct({
   version: Schema.Literal(1), id: Schema.String, root: Schema.String, createdAt: Schema.Number,
@@ -180,14 +171,13 @@ const makeFixture = Effect.fn("FirstReviewDemo.makeFixture")((statePath: string)
     (root) => Effect.gen(function* () {
       yield* runFixtureGit(["init", "--quiet", "--initial-branch=main", root]);
       yield* demoIo("write demo source", () => writeFile(join(root, "session.ts"), FLAWED_SOURCE, { mode: 0o600 }));
-      yield* demoIo("write demo validator", () => writeFile(join(root, "validate.mjs"), VALIDATOR_SOURCE, { mode: 0o600 }));
       yield* demoIo("write demo owner", () => writeFile(join(root, ".review-demo-owner.json"),
         `${JSON.stringify({ version: 1, id, cleanupToken })}\n`, { mode: 0o600 }));
       yield* demoIo("write demo configuration", () => writeFile(join(root, ".review.jsonc"), JSON.stringify({
         version: 1, includes: ["session.ts"],
         settings: { deadlineMs: 15_000, concurrency: 1, adviceBudget: 3, transientRetries: 0 },
       }) + "\n", { mode: 0o600 }));
-      yield* runFixtureGit(["-C", root, "add", "session.ts", "validate.mjs", ".review.jsonc", ".review-demo-owner.json"]);
+      yield* runFixtureGit(["-C", root, "add", "session.ts", ".review.jsonc", ".review-demo-owner.json"]);
       yield* runFixtureGit(["-C", root, "-c", "user.name=Review Demo", "-c", "user.email=demo@example.invalid",
         "commit", "--quiet", "-m", "synthetic demo fixture"]);
       const canonicalRoot = yield* demoIo("resolve prepared root", () => realpath(root));
@@ -390,7 +380,9 @@ export const executeInstalledCodexDemo = Effect.fn("FirstReviewDemo.executeInsta
     env: process.env, timeout: 10_000, maxBuffer: 1024 * 1024,
   });
   const hostVersion = version.succeeded ? version.stdout.trim() || "unavailable" : "unavailable";
-  const prompt = `This is an explicitly selected disposable review demo. The existing session.ts is deliberately flawed: it permits a logged-out session with a userId and a logged-in session without one. Do not use web search. Use apply_patch to add the optional field "readonly demoStarted?: true" inside Session. Then respond to any realtime review feedback as you normally would, choosing the repair yourself. If review feedback affects your change, cite its exact rule ID in your final report. Use no more than two apply_patch calls total. Finally run "node validate.mjs" and report its result.`;
+  const validator = packageCommand("parser");
+  const validationCommand = [validator.executable, ...validator.args, "--demo-validate"].map(value => `'${value.replaceAll("'", "'\\''")}'`).join(" ");
+  const prompt = `This is an explicitly selected disposable review demo. The existing session.ts is deliberately flawed: it permits a logged-out session with a userId and a logged-in session without one. Do not use web search. Use apply_patch to add the optional field "readonly demoStarted?: true" inside Session. Then respond to any realtime review feedback as you normally would, choosing the repair yourself. If review feedback affects your change, cite its exact rule ID in your final report. Use no more than two apply_patch calls total. Finally run ${validationCommand} and report its result.`;
   const environment = demoHostEnvironment(options);
   const testSandboxBypass = (yield* Config.String("REVIEW_DEMO_TEST_SANDBOX_BYPASS").pipe(Config.withDefault("0"))) === "1";
   const testModel = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_TEST_CODEX_MODEL")));
@@ -405,7 +397,7 @@ export const executeInstalledCodexDemo = Effect.fn("FirstReviewDemo.executeInsta
     Effect.catch(() => Effect.succeed(before)),
   );
   const now = yield* monotonicMillis;
-  const validation = (yield* execFileClosedStdin(process.execPath, ["validate.mjs"], {
+  const validation = (yield* execFileClosedStdin(validator.executable, [...validator.args, "--demo-validate"], {
     cwd: options.root, timeout: Math.max(1, Math.min(5_000, deadlineAt - now)),
     maxBuffer: 1024 * 1024, env: { ...process.env, NODE_NO_WARNINGS: "1" },
   })).succeeded;

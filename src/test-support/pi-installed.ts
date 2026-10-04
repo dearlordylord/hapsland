@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { execFileSync } from "../../scripts/test-harness/process.mjs";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { expect } from "vitest";
@@ -8,6 +8,7 @@ import { configuredRules } from "../policy/rules.ts";
 import { pathToFileURL } from "node:url";
 import { residentRequestEffect } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
+import { prepareTestPackage, type TestPackage } from "./test-package.ts";
 import { runClient } from "./client-runtime.ts";
 import type { ResidentResponse } from "../resident/protocol.ts";
 
@@ -15,7 +16,9 @@ let createPiExtension: typeof import("../pi/extension.ts")["createPiExtension"];
 export let installedCli: string;
 export let installedCommand: readonly string[];
 let fixtureMode: "source" | "installed";
-let packageRoot: string | undefined;
+let installedPackage: TestPackage | undefined;
+let installedResident: string;
+let installedEnvironment: NodeJS.ProcessEnv;
 export const setupInstalledPi = async (mode: "source" | "installed" = "installed") => {
   fixtureMode = mode;
   if (mode === "source") {
@@ -24,22 +27,22 @@ export const setupInstalledPi = async (mode: "source" | "installed" = "installed
     createPiExtension = (await import("../pi/extension.ts")).createPiExtension;
     return;
   }
-  packageRoot = mkdtempSync(join(tmpdir(), "hapsland-pi-installed-package-"));
-  const artifacts = join(packageRoot, "artifacts");
-  mkdirSync(artifacts);
-  execFileSync("npm", ["run", "build"], { cwd: process.cwd(), stdio: "pipe", timeout: 120_000 });
-  const packed = JSON.parse(execFileSync("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", artifacts], { encoding: "utf8", timeout: 120_000 })) as { filename: string }[];
-  const installation = join(packageRoot, "installation");
-  execFileSync("npm", ["install", "--global=false", "--legacy-peer-deps", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, packed[0]!.filename)], { cwd: packageRoot, stdio: "pipe", timeout: 120_000 });
-  const installed = join(installation, "node_modules/@hapsland/hapsland");
-  installedCli = join(installed, "dist/cli.js");
-  installedCommand = [join(installation, "node_modules/.bin/hapsland")];
-  const extension = await import(/* @vite-ignore */ pathToFileURL(join(installed, "dist/pi/extension.js")).href);
-  createPiExtension = extension.createPiExtension;
+  installedPackage = prepareTestPackage();
+  installedCli = installedPackage.cli.executable;
+  installedResident = installedPackage.resident.executable;
+  installedEnvironment = installedPackage.environment;
+  installedCommand = installedPackage.command;
+  try {
+    const extension = await import(/* @vite-ignore */ pathToFileURL(join(installedPackage.packageRoot, "dist/pi/extension.js")).href);
+    createPiExtension = extension.createPiExtension;
+  } catch (error) {
+    cleanupInstalledPi();
+    throw error;
+  }
 };
 export const cleanupInstalledPi = () => {
-  if (packageRoot !== undefined) rmSync(packageRoot, { recursive: true, force: true });
-  packageRoot = undefined;
+  installedPackage?.cleanup();
+  installedPackage = undefined;
 };
 
 type Handler = (event: any, context: any) => Promise<any>;
@@ -52,16 +55,25 @@ const fixtureOwnerPid = (path: string): number | undefined => {
     return Number.isInteger(pid) && pid > 1 && pid !== process.pid ? pid : undefined;
   } catch { return undefined; }
 };
+export const fixtureCommandMatches = (args: readonly string[], main: string, directory: string): boolean => {
+  const command = args.filter((argument, index) => argument !== "" || index !== args.length - 1);
+  const standalone = !main.endsWith(".ts");
+  const entry = standalone ? 0 : 1;
+  if (command.length !== entry + 2) return false;
+  try { return realpathSync(command[entry]!) === realpathSync(main) && realpathSync(command[entry + 1]!) === realpathSync(directory); }
+  catch { return false; }
+};
 const linuxFixtureProcess = (pid: number, main: string, directory: string) => {
-  const args = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
-  return args.length === 4 && args[3] === "" && realpathSync(args[1]!) === realpathSync(main) && realpathSync(args[2]!) === realpathSync(directory);
+  if (!fixtureCommandMatches(readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0"), main, directory)) return false;
+  const executable = main.endsWith(".ts") ? process.execPath : main;
+  return realpathSync(`/proc/${pid}/exe`) === realpathSync(executable);
 };
 const fixtureProcessRunning = (pid: number, main: string, directory: string): boolean => {
   try {
     if (process.platform === "linux") return linuxFixtureProcess(pid, main, directory);
     const command = execFileSync("ps", ["-ww", "-p", String(pid), "-o", "command="], { encoding: "utf8", timeout: 1_000, stdio: ["ignore", "pipe", "ignore"] }).trim();
     return [main, realpathSync(main)].some(entry =>
-      [directory, realpathSync(directory)].some(root => command.endsWith(`node ${entry} ${root}`)));
+      [directory, realpathSync(directory)].some(root => command.endsWith(main.endsWith(".ts") ? `node ${entry} ${root}` : `${entry} ${root}`)));
   } catch { return false; }
 };
 const signalFixtureProcess = (pid: number, signal: NodeJS.Signals) => {
@@ -123,14 +135,15 @@ const waitForResidentStats = async (root: string, ready: (stats: Extract<Residen
 export const fixture = (gated = false, control: Record<string, unknown> = {}, options: { commandFactory?: (cli: string, root: string) => readonly string[]; env?: NodeJS.ProcessEnv } = {}) => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-pi-boundary-"));
   roots.push(root);
-  residentMains.set(root, join(dirname(installedCli), "resident", fixtureMode === "source" ? "main.ts" : "main.js"));
+  residentMains.set(root, fixtureMode === "source" ? join(dirname(installedCli), "resident/main.ts") : installedResident);
   execFileSync("git", ["init", "--quiet", root]);
   const capturePath = join(root, "backend-calls");
   const handlers = new Map<string, Handler>();
   const environment = () => ({
-    ...process.env,
+    ...(fixtureMode === "source" ? process.env : installedEnvironment),
     REVIEW_RESIDENT_DIR: join(root, "runtime"),
     REVIEW_STATE_PATH: join(root, "state"),
+    REVIEW_ACTIVITY_PATH: join(root, "activity"),
     REVIEW_USER_CONFIG_PATH: join(root, "user.json"),
     ...(gated ? { REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, "backend.gate"), REVIEW_RESIDENT_CONTROLLED: "1" } : {}),
     REVIEW_CONTROL_JSON: JSON.stringify({ capturePath, answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }])), ...control }),
@@ -156,7 +169,7 @@ export const fixture = (gated = false, control: Record<string, unknown> = {}, op
     const directory = join(root, "runtime");
     const command = fixtureMode === "source"
       ? [process.execPath, join(dirname(installedCli), "resident", "main.ts"), directory]
-      : [join(dirname(installedCommand[0]!), "hapsland-resident"), directory];
+      : [installedResident, directory];
     const child = spawn(command[0]!, command.slice(1), { env: environment(), stdio: "ignore" });
     preparedResidents.set(root, child);
     await new Promise<void>((resolve, reject) => { child.once("spawn", resolve); child.once("error", reject); });

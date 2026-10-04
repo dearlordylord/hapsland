@@ -31,7 +31,7 @@ export const piRuntimeAssetsDigest = packageRoot => {
    else if(!onlyJavaScript||entry.name.endsWith('.js'))assets.push([name,hash(readFileSync(child))]);
   }
  };
- visit(join(packageRoot,'dist'),'dist',true);visit(join(packageRoot,'native','prebuilt'),'native/prebuilt');visit(join(packageRoot,'schemas'),'schemas');
+ visit(join(packageRoot,'dist'),'dist');visit(join(packageRoot,'native','prebuilt'),'native/prebuilt');visit(join(packageRoot,'schemas'),'schemas');
  for(const name of ['bin/launch.sh','package-runtime.json'])assets.push([name,hash(readFileSync(join(packageRoot,name)))]);
  assets.sort(([a],[b])=>a.localeCompare(b));
  return {sha256:hash(JSON.stringify(assets)),files:assets.length};
@@ -72,6 +72,7 @@ export async function runPiNativeProfile({project,fixture,language,scenario,mode
   const installed=await execute('npm',['install','--global=false','--legacy-peer-deps','--ignore-scripts=true','--prefer-offline','--omit=dev','--bin-links=true','--prefix',install,tarball],{cwd:temp,timeout:120000});
   if(installed.code!==0)throw new Error('Native production package installation failed');
   const cli=join(install,'node_modules','.bin','hapsland');
+  const hapslandIdentity=JSON.parse((await execute(cli,['--runtime-identity'],{cwd:repo,timeout:10000})).stdout);
   const userConfig=join(temp,'review-config.jsonc');writeFileSync(userConfig,JSON.stringify({version:1}));
   const answers=Object.fromEntries(Object.keys(messages).map(id=>[id,{_tag:'Probability',probability:0}]));
   const env={...process.env,PI_CODING_AGENT_DIR:home,REVIEW_USER_CONFIG_PATH:userConfig,REVIEW_RESIDENT_DIR:runtime,REVIEW_ACTIVITY_PATH:activity,
@@ -88,14 +89,21 @@ export async function runPiNativeProfile({project,fixture,language,scenario,mode
   writeFileSync(observer,`import { appendFileSync, readFileSync } from 'node:fs';\nimport { createHash } from 'node:crypto';\nconst log=${JSON.stringify(eventPath)}, root=${JSON.stringify(join(repo,fixture.entry))};\nconst hash=(s)=>createHash('sha256').update(s).digest('hex');\nconst finding=(s)=>Object.values(${JSON.stringify(messages)}).some(m=>s.includes(m));\nexport default function(pi){\n const emit=(o)=>appendFileSync(log,JSON.stringify({at:Date.now(),...o})+'\\n',{mode:0o600});\n emit({kind:'native-profile',nodeVersion:process.version,platform:process.platform,architecture:process.arch});\n pi.on('tool_result',async(event)=>{\n  let source='';try{source=readFileSync(root,'utf8')}catch{}\n  const text=event.content.filter(c=>c.type==='text').map(c=>c.text).join('\\n');\n  emit({kind:'tool-result',tool:event.toolName,toolUseHash:hash(event.toolCallId),isError:event.isError,finding:finding(text),initial:source===${JSON.stringify(initial)},final:source===${JSON.stringify(fixture.good)},patchPresent:typeof event.details?.patch==='string',pathMatches:event.input.path===${JSON.stringify(fixture.entry)},replacementsMatchCurrent:Array.isArray(event.input.edits)&&event.input.edits.every(e=>typeof e.newText==='string'&&source.includes(e.newText)),unsupported:/unsupported|incomplete|unicode/i.test(text)});\n });\n pi.on('before_provider_request',async(event)=>{emit({kind:'provider-request',finding:finding(JSON.stringify(event.payload))})});\n pi.on('after_provider_response',async(event)=>{emit({kind:'provider-response',status:event.status})});\n pi.on('agent_before_settle',async(event)=>{emit({kind:'before-settle',finding:finding(JSON.stringify(event.entries)),continued:event.continue,canContinue:event.context?.canContinue})});\n pi.on('agent_settled',async()=>{emit({kind:'settled'})});\n}`);
   const trace=join(temp,'transport-observer.mjs');
   writeFileSync(trace,`import {appendFileSync} from 'node:fs';\nconst nativeFetch=globalThis.fetch;globalThis.fetch=async(...args)=>{const url=String(args[0]?.url??args[0]);if(url.includes('/v1/systemone')){appendFileSync(${JSON.stringify(eventPath)},JSON.stringify({kind:'jev-blocked-attempt',at:Date.now()})+'\\n',{mode:0o600});throw new Error('zero-request controlled Pi milestone ceiling')}return nativeFetch(...args)};
-if(process.argv.includes('--pi-hook')){
- const original=process.stdout.write.bind(process.stdout);let buffered='';
- process.stdout.write=function(chunk,...args){
-  buffered+=String(chunk);
-  for(let n;(n=buffered.indexOf('\\n'))>=0;){const line=buffered.slice(0,n);buffered=buffered.slice(n+1);try{const o=JSON.parse(line);appendFileSync(${JSON.stringify(eventPath)},JSON.stringify({kind:'hapsland-response',at:Date.now(),status:o.status,nodeVersion:process.version,findingCount:o.findingCount??0,continued:o.continued??false})+'\\n',{mode:0o600})}catch{}}
-  return original(chunk,...args);
- };
-}`);
+import childProcess from 'node:child_process';
+import {syncBuiltinESMExports} from 'node:module';
+const originalSpawn=childProcess.spawn;
+childProcess.spawn=function(command,args,...options){
+ const child=originalSpawn.call(this,command,args,...options);
+ if(args?.includes('--pi-hook')&&child.stdout){
+  let buffered='';child.stdout.on('data',chunk=>{
+   buffered+=String(chunk);
+   for(let n;(n=buffered.indexOf('\\n'))>=0;){const line=buffered.slice(0,n);buffered=buffered.slice(n+1);try{const o=JSON.parse(line);appendFileSync(${JSON.stringify(eventPath)},JSON.stringify({kind:'hapsland-response',at:Date.now(),status:o.status,findingCount:o.findingCount??0,continued:o.continued??false})+'\\n',{mode:0o600})}catch{}}
+  });
+ }
+ return child;
+};
+syncBuiltinESMExports();
+`);
   if(spawnSync(process.execPath,['--check',trace],{encoding:'utf8'}).status!==0)throw new Error('Generated passive transport observer failed syntax validation');
   env.NODE_OPTIONS=`${env.NODE_OPTIONS??''} --import=${trace}`.trim();
   const action=scenario==='unsupported-write'?`Use write to replace ${fixture.entry} with this exact draft`:`Use edit (edits array) to replace the exact seed ${JSON.stringify(seed)} in ${fixture.entry} with this exact draft`;
@@ -114,7 +122,7 @@ if(process.argv.includes('--pi-hook')){
   const checks=scenario==='adoption'?assessPiAdoption({events,requests,outcomes,finalMatches:source===fixture.good,compiles:compile.status===0,rejectsInvalid:invalid.status===0,setupReady,doctorReady}):{installedSetupReady:setupReady,nativeMutationObserved:events.some(e=>e.tool===(scenario==='unsupported-write'?'write':'edit')&&e.initial&&!e.isError),noActionableAdvice:!events.some(e=>e.finding),sourceLeftAtDraft:source===initial,...(scenario==='reviewer-unavailable'?{reviewAttempted:requests.length>0,unavailableRecorded:activityStages.some(stage=>stage==='incomplete'||stage==='unavailable')}:{noReviewRequest:requests.length===0})};
   checks.noJevRequestAttempt= !events.some(e=>e.kind==='jev-blocked-attempt');
   checks.nativeAgentResponseObserved=events.some(e=>e.kind==='native-message'&&e.role==='assistant');
-  record={schemaVersion:1,recordedAt:new Date().toISOString(),runtime:'Pi',version,language,scenario,mode,declaration,executionProfile:{runtime:'installed-package',installedPackageValidated:true,normalTrustValidated:false,syntheticRepositoryOnly:true},package:{name:'@hapsland/hapsland',version:JSON.parse(readFileSync(join(install,'node_modules/@hapsland/hapsland/package.json'),'utf8')).version,tarballSha256:hash(readFileSync(tarball)),runtimeAssets:piRuntimeAssetsDigest(join(install,'node_modules/@hapsland/hapsland'))},runnerHash,piProfileHash,assertionHelperHash,platform:process.platform,architecture:process.arch,sourceWorktreeDirty:spawnSync('git',['-C',project,'diff','--quiet','--','src','scripts'],{encoding:'utf8'}).status!==0,commit:spawnSync('git',['-C',project,'rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),hostExitCode:result.code,hostSignal:result.signal,elapsedMs:Date.now()-started,providerCalls:events.filter(e=>e.kind==='jev-blocked-attempt').length,agentProvider:model,events:events.map(e=>({...e,atMs:e.at-started,at:undefined})),requestShapes:requests,outcomeSummaries:outcomes,activityStages,checks,rawHostStreamRetained:false,sourceRetained:false,providerBodyRetained:false,credentialsRetained:false,hostBytesDiscarded:Buffer.byteLength(result.stdout)+result.stderrBytes};
+  record={schemaVersion:1,recordedAt:new Date().toISOString(),runtime:'Pi',version,language,scenario,mode,declaration,executionProfile:{runtime:'installed-package',installedPackageValidated:true,normalTrustValidated:false,syntheticRepositoryOnly:true},hapslandRuntime:hapslandIdentity,package:{name:'@hapsland/hapsland',version:JSON.parse(readFileSync(join(install,'node_modules/@hapsland/hapsland/package.json'),'utf8')).version,tarballSha256:hash(readFileSync(tarball)),runtimeAssets:piRuntimeAssetsDigest(join(install,'node_modules/@hapsland/hapsland'))},runnerHash,piProfileHash,assertionHelperHash,platform:process.platform,architecture:process.arch,sourceWorktreeDirty:spawnSync('git',['-C',project,'diff','--quiet','--','src','scripts'],{encoding:'utf8'}).status!==0,commit:spawnSync('git',['-C',project,'rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),hostExitCode:result.code,hostSignal:result.signal,elapsedMs:Date.now()-started,providerCalls:events.filter(e=>e.kind==='jev-blocked-attempt').length,agentProvider:model,events:events.map(e=>({...e,atMs:e.at-started,at:undefined})),requestShapes:requests,outcomeSummaries:outcomes,activityStages,checks,rawHostStreamRetained:false,sourceRetained:false,providerBodyRetained:false,credentialsRetained:false,hostBytesDiscarded:Buffer.byteLength(result.stdout)+result.stderrBytes};
   record.verdict=result.code===0&&Object.values(checks).every(Boolean)?'demonstrated':'incomplete';
  }catch(error){record={schemaVersion:1,recordedAt:new Date().toISOString(),runtime:'Pi',version,language,scenario,mode,declaration,verdict:'incomplete',failureBoundary:error.message,rawHostStreamRetained:false,sourceRetained:false,providerBodyRetained:false,credentialsRetained:false};}
  finally {

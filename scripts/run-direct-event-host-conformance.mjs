@@ -1,3 +1,4 @@
+import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -124,7 +125,7 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
   ].map((id) => [id, { _tag: "Probability", probability: 0.91 }]));
   answers["host-visibility/marker"] = { _tag: "Probability", probability: 0.91 };
   const env = {
-    ...process.env,
+    ...standaloneEnvironment(join(temporary, "standalone-path"), process.env, ["codex"]),
     CODEX_HOME: home,
     REVIEW_STATE_PATH: state,
     REVIEW_RESIDENT_DIR: runtime,
@@ -196,6 +197,7 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
       })).stdout || "null");
   record = {
     schemaVersion: 1,
+    nodeOrBunOnInstalledPath: false,
     recordedAt: date,
     profile: "direct-event-v1",
     environment: versions,

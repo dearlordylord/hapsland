@@ -1,6 +1,7 @@
+import type { CodexDirectEventOutput } from "../direct-event/output.ts";
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts";
 import { CODEX_HOST_VERSIONS, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
-import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
+
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import type { ClaudeHostOutput, CollectionMode } from "./collection.ts";

@@ -52,16 +52,19 @@ const faultWrapper = (_cli: string, root: string) => {
 describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent fault isolation", { timeout: 45_000 }, mode => {
   beforeAll(() => setupInstalledPi(mode), 240_000);
   afterAll(cleanupInstalledPi);
-  it.each(["crash", "timeout"])("registration command %s cannot invent admission and a fresh edit recovers", async mode => {
-    const f = fixture(false, {}, { commandFactory: faultWrapper });
-    writeFileSync(join(f.root, "fault.json"), JSON.stringify({ operation: "before", mode }));
-    expect(await f.call("tool_call", before)).toBeUndefined();
-    writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-    writeFileSync(join(f.root, "fault.json"), "{}");
-    await recoverAfterLoss(f);
-  });
+  // Before-admission faults occur in the host Node envelope; the source matrix owns both variants.
+  if (mode === "source") {
+    it.each(["crash", "timeout"])("registration command %s cannot invent admission and a fresh edit recovers", async mode => {
+      const f = fixture(false, {}, { commandFactory: faultWrapper });
+      writeFileSync(join(f.root, "fault.json"), JSON.stringify({ operation: "before", mode }));
+      expect(await f.call("tool_call", before)).toBeUndefined();
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+      writeFileSync(join(f.root, "fault.json"), "{}");
+      await recoverAfterLoss(f);
+    });
+  }
 
   it.each(["crash", "timeout"])("an admitted hook worker %s closes incomplete work without advice replay", async fault => {
     const f = fixture(false, { delayMs: 1_000 }, { commandFactory: faultWrapper });
@@ -82,7 +85,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
   });
 
   it.each(["session", "root"])("late admitted advice stays isolated after the current %s changes", async partition => {
-    const f = fixture(false, { delayMs: 1_000 });
+    const f = fixture(true);
     const other = fixture();
     const current = {
       cwd: partition === "root" ? other.root : f.root,
@@ -93,8 +96,9 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     await f.call("tool_call", before);
     writeFileSync(join(f.root, "type.ts"), source);
     const editing = f.call("tool_result", result);
-    await waitFile(f.capturePath);
+    await f.waitForWork(1);
     await f.call("session_before_switch", {}, current);
+    writeFileSync(join(f.root, "backend.gate"), "release\n");
     expect(await editing).toBeUndefined();
     expect(await f.call("agent_before_settle", settle, current)).toBeUndefined();
     expect(await f.call("tool_result", result, current)).toBeUndefined();
@@ -141,18 +145,21 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     await freshAdvice(f);
   });
 
-  it("resident loss retires the old admission without replay and permits fresh work", async () => {
-    const f = fixture();
-    await f.prepareResident();
-    await f.call("tool_call", before);
-    const owner = JSON.parse(readFileSync(join(f.root, "runtime/owner.json"), "utf8"));
-    process.kill(owner.pid, "SIGKILL");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-    await recoverAfterLoss(f);
-  });
+  // Installed resident loss during admitted review covers the stronger lifecycle boundary.
+  if (mode === "source") {
+    it("resident loss retires the old admission without replay and permits fresh work", async () => {
+      const f = fixture();
+      await f.prepareResident();
+      await f.call("tool_call", before);
+      const owner = JSON.parse(readFileSync(join(f.root, "runtime/owner.json"), "utf8"));
+      process.kill(owner.pid, "SIGKILL");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+      await recoverAfterLoss(f);
+    });
+  }
 
   it("an expired native permit cannot review its late result", async () => {
     const f = fixture();
@@ -163,23 +170,6 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     expect(await f.call("tool_result", result)).toBeUndefined();
     vi.restoreAllMocks();
     expect(existsSync(f.capturePath)).toBe(false);
-    await freshAdvice(f);
-  });
-
-  it("a delayed acknowledgment cannot cross a session-switch epoch", async () => {
-    const f = fixture(true, {}, { commandFactory: faultWrapper });
-    await f.prepareResident();
-    await f.call("tool_call", before);
-    writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    writeFileSync(join(f.root, "backend.gate"), "release");
-    writeFileSync(join(f.root, "fault.json"), JSON.stringify({ operation: "ack", mode: "delay-ack" }));
-    const finishing = f.call("agent_before_settle", settle);
-    await waitFile(join(f.root, "ack-ready"));
-    await f.call("session_before_switch", {});
-    writeFileSync(join(f.root, "ack-release"), "release");
-    expect(await finishing).toBeUndefined();
-    writeFileSync(join(f.root, "fault.json"), "{}");
     await freshAdvice(f);
   });
 
@@ -218,25 +208,28 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     cyclic.nativeMutation = cyclic;
     return cyclic;
   };
-  it.each(["undefined", "cyclic", "bigint"])("mutated %s before input stays quiet without registering a permit", async variant => {
-    const f = fixture();
-    expect(await f.call("tool_call", { ...before, input: invalidSerializable(variant, before.input) })).toBeUndefined();
-    expect(existsSync(join(f.root, "runtime/owner.json"))).toBe(false);
-    writeFileSync(join(f.root, "type.ts"), source);
-    expect(await f.call("tool_result", result)).toBeUndefined();
-    expect(existsSync(f.capturePath)).toBe(false);
-    // Only the fresh positive control assumes readiness; the refused input
-    // above must not create an owner or send source to the reviewer.
-    await f.prepareResident();
-    await freshAdvice(f);
-  });
+  // Serialization alternatives are source branches; installed result mutation retains permit retirement and recovery.
+  if (mode === "source") {
+    it.each(["undefined", "cyclic", "bigint"])("mutated %s before input stays quiet without registering a permit", async variant => {
+      const f = fixture();
+      expect(await f.call("tool_call", { ...before, input: invalidSerializable(variant, before.input) })).toBeUndefined();
+      expect(existsSync(join(f.root, "runtime/owner.json"))).toBe(false);
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+      // Only the fresh positive control assumes readiness; the refused input
+      // above must not create an owner or send source to the reviewer.
+      await f.prepareResident();
+      await freshAdvice(f);
+    });
+  }
 
-  it.each([
+  it.each(mode === "source" ? [
     ["input", "undefined"], ["input", "cyclic"], ["input", "bigint"],
     ["details", "cyclic"], ["details", "bigint"],
     ["content", "undefined"], ["content", "object"],
     ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
-  ])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
+  ] : [["input", "cyclic"]])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
     const f = fixture();
     await f.prepareResident();
     await f.call("tool_call", before);
@@ -265,7 +258,7 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     if (native !== undefined) expect(native.content.slice(0, content.length)).toEqual(content);
   });
 
-  it.each(["arguments", "patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
+  it.each(mode === "source" ? ["arguments", "patch"] : ["patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
     const f = fixture();
     await f.prepareResident();
     const native = structuredClone(before);

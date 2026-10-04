@@ -1,6 +1,7 @@
+import type { Finding } from "../direct-event/output.ts";
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import type { Finding } from "../direct-event/pipeline.ts";
+
 import {
   MAX_COMBINED_RESPONSE_BYTES,
   PENDING_ADVICE_EXPIRY_MS,

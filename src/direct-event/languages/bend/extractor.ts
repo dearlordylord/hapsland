@@ -1,3 +1,7 @@
+import { assertReviewEngineBoundary } from "../../../runtime/review-engine-boundary.ts";
+
+assertReviewEngineBoundary("bend-extractor");
+
 /** Bounded Bend 2 surface facts. Never executes or imports edited source. */
 export type BendDeclaration = {
   readonly name: string;
