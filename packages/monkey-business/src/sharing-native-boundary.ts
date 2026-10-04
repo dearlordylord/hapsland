@@ -62,12 +62,13 @@ export function decodeObservedFrame(value: unknown, receipts: CallbackTarget[]) 
   const frame = readRecord(value);
   const observed = readRecord(frame.frame);
   const beforeState = decodeObservedState(observed.before), afterState = decodeObservedState(observed.after);
-  // Full physical runtimes are captured at the actual observer source points;
-  // their states must agree with the separately retained owner snapshots.
+  // Physical and owner snapshots come from distinct real scheduler boundaries.
+  // Compare their full business state, without coupling private scheduler clocks.
   const runtimeBefore = tagged(single(observed.runtime_before), "advicee_lifecycle_driver.Runtime");
   const runtimeAfter = tagged(single(observed.runtime_after), "advicee_lifecycle_driver.Runtime");
-  if (!isDeepStrictEqual(runtimeBefore.state,beforeState) || !isDeepStrictEqual(runtimeAfter.state,afterState))
-    throw new TypeError("observed runtime and owner state disagree");
+  if (!isDeepStrictEqual(projectTrustedCanonical(readRecord(runtimeBefore.state).canonical),projectTrustedCanonical(beforeState.canonical))
+    || !isDeepStrictEqual(projectTrustedCanonical(readRecord(runtimeAfter.state).canonical),projectTrustedCanonical(afterState.canonical)))
+    throw new TypeError("observed runtime and owner Canonical business state disagree");
   const before = projectTrustedCanonical(beforeState.canonical), after = projectTrustedCanonical(afterState.canonical);
   const time = readNat(observed.time);
   readNat(observed.order);

@@ -1101,15 +1101,17 @@ def frame_scope_commands(commands: List<&2,Canonical.Command>, +before: Types.St
       Engine.scope_command(before,after,command,provided) <> frame_scope_commands(tail,before,after,provided)
 
 def frame_scope_states(before: List<&2,Types.State>, after: List<&2,Types.State>,
-    commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
+    commands: List<&2,Canonical.Command>, event: Canonical.CanonicalEvent,
+    provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
   match before after:
-    case before <> Nil{} after <> Nil{}: frame_scope_commands(commands,before,after,provided)
+    case +before <> Nil{} after <> Nil{}:
+      frame_scope_commands(commands,before,after,Engine.scope_event(before,before,event,provided))
     case _ _: []
 
 def frame_scopes(result: Canonical.Step, before: List<&2,Runtime>, after: List<&2,Runtime>,
-    provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
+    event: Canonical.CanonicalEvent, provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
   match result:
-    case Canonical.Advanced{_,commands}: frame_scope_states(runtime_states(before),runtime_states(after),commands,provided)
+    case Canonical.Advanced{_,commands}: frame_scope_states(runtime_states(before),runtime_states(after),commands,event,provided)
     case Canonical.Rejected{_,_}: []
 
 # Full structural observation seam for consumers of this same factual edge.
@@ -1213,7 +1215,7 @@ def observed_collector_finished(-F: Data, changed: Engine.CollectorHandled, emit
       +after:List<&2,Runtime>=runtime_sync([Runtime{state,stop_wake_queue(stop_wake_event(event),state,
           actions(List.append(&2,Driver.Action,emitted,following),queue,now,job),now),jobs,delay}])
       Observed{after,
-        Some{CanonicalFrame{runtime_states(before),runtime_states(after),now,order,event,[result],before,after,Some{job_partition(job)},frame_scopes(result,before,after,Some{job_partition(job)}),None{},[]}},hook}
+        Some{CanonicalFrame{runtime_states(before),runtime_states(after),now,order,event,[result],before,after,Some{job_partition(job)},frame_scopes(result,before,after,event,Some{job_partition(job)}),None{},[]}},hook}
 
 def observed_finished_ready(-F: Data, emitted: List<&2,Driver.Action>, runtime: List<&2,Runtime>,
     before: List<&2,Runtime>, +event: Canonical.CanonicalEvent, now: Nat, order: Nat,
