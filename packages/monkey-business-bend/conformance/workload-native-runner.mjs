@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync, copyFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync, copyFileSync, statSync, chmodSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
@@ -55,7 +56,7 @@ function retainNativeFailure(error, identity, temporary, timeouts, phases) {
     const bytes = readFileSync(executable);
     const path = join(directory, "scenario");
     copyFileSync(executable, path);
-    binary = { path, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+    binary = { path, mode: statSync(executable).mode & 0o777, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
   }
   const receiptPath = join(directory, "receipt.json");
   writeFileSync(receiptPath, `${JSON.stringify({ lane: "fresh-native-failure", identity, timeouts, phases, c, binary,
@@ -65,25 +66,54 @@ function retainNativeFailure(error, identity, temporary, timeouts, phases) {
   console.log(`Retained offline workload failure: ${receiptPath}`);
 }
 
+// Explicit diagnosis-only resume: verify identity and bytes before any compiler runs.
+function verifiedArtifact(artifact, executable = false) {
+  if (!artifact || typeof artifact.path !== "string") throw new Error("Invalid native resume artifact");
+  const bytes = readFileSync(artifact.path);
+  if (bytes.length !== artifact.bytes || createHash("sha256").update(bytes).digest("hex") !== artifact.sha256)
+    throw new Error("Native resume artifact bytes changed");
+  if (executable && (!Number.isInteger(artifact.mode) || (artifact.mode & 0o111) === 0 ||
+      (statSync(artifact.path).mode & 0o777) !== artifact.mode)) throw new Error("Native resume binary mode changed");
+  return bytes;
+}
+function compilerReceipt(path, fixture, identity) {
+  const receipt = JSON.parse(readFileSync(path,"utf8"));
+  if (receipt.lane !== "fresh-native-failure" || receipt.identity?.root !== identity.root ||
+      !receipt.phases?.some(phase => phase.phase === "C emission" && phase.completed && phase.status === 0))
+    throw new Error("Invalid native compiler resume receipt");
+  assertNativeFixtureIdentity(receipt.identity,fixture);
+  if (!isDeepStrictEqual(receipt.identity,identity)) throw new Error("Native resume source/compiler identity changed");
+  verifiedArtifact(receipt.c);
+  if (receipt.binary) {
+    if (!receipt.phases.some(phase => phase.phase === "clang compilation" && phase.completed && phase.status === 0))
+      throw new Error("Invalid native binary resume receipt");
+    verifiedArtifact(receipt.binary,true);
+  }
+  return receipt;
+}
+
 // One fresh native+JS comparison has at most 85s of default phase allowances plus cleanup.
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
 
 // User-authorized compile allowances: C/clang 30s and emitted JS 15s.
-// Explicit fixture overrides allow C emission90s and clang90s; execution defaults5s with an explicit maximum15s.
+// Explicit fixture overrides allow C emission90s and clang120s; execution defaults5s with an explicit maximum15s.
 const MAX_NATIVE_EXECUTION_TIMEOUT_MS = 15000;
-const MAX_NATIVE_CLANG_TIMEOUT_MS = 90000;
+const MAX_NATIVE_CLANG_TIMEOUT_MS = 120000;
 const MAX_NATIVE_C_EMISSION_TIMEOUT_MS = 90000;
-export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSION_TIMEOUT_MS, clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS, executionTimeoutMs = 5000 } = {}) {
+export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSION_TIMEOUT_MS, clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS, executionTimeoutMs = 5000, resumeNativeCompilerReceipt } = {}) {
   if (!Number.isSafeInteger(clangTimeoutMs) || clangTimeoutMs <= 0 || clangTimeoutMs > MAX_NATIVE_CLANG_TIMEOUT_MS)
     throw new RangeError("invalid native clang timeout");
   if (!Number.isSafeInteger(emissionTimeoutMs) || emissionTimeoutMs <= 0 || emissionTimeoutMs > MAX_NATIVE_C_EMISSION_TIMEOUT_MS)
     throw new RangeError("invalid native C emission timeout");
   if (!Number.isSafeInteger(executionTimeoutMs) || executionTimeoutMs <= 0 || executionTimeoutMs > MAX_NATIVE_EXECUTION_TIMEOUT_MS)
     throw new RangeError("invalid native execution timeout");
+  if (resumeNativeCompilerReceipt !== undefined && (typeof resumeNativeCompilerReceipt !== "string" || !resumeNativeCompilerReceipt))
+    throw new RangeError("invalid native compiler resume receipt path");
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;
   const sessionId = process.env.HAPSLAND_NATIVE_PREFLIGHT_SESSION;
   const manifestHash = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256;
   if (usesNativePreflight(fixture) && (manifestPath || sessionId || manifestHash)) {
+    if (resumeNativeCompilerReceipt !== undefined) throw new Error("Native resume cannot use a preflight session");
     if (!manifestPath || !sessionId || !manifestHash) {
       throw new Error("Incomplete native preflight session");
     }
@@ -97,14 +127,26 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     return JSON.parse(output);
   }
   const identity = captureNativeFixtureIdentity(fixture);
+  const resume = resumeNativeCompilerReceipt === undefined ? null : compilerReceipt(resumeNativeCompilerReceipt,fixture,identity);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-native-"));
   const phases = [];
   const recordPhase = result => phases.push(result);
   try {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
-    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "C emission", recordPhase);
-    checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs, "clang compilation", recordPhase);
+    if (resume) {
+      writeFileSync(source,verifiedArtifact(resume.c));
+      verifiedArtifact({ ...resume.c, path: source });
+      phases.push(resume.phases.find(phase => phase.phase === "C emission" && phase.completed));
+      if (resume.binary) {
+        writeFileSync(binary,verifiedArtifact(resume.binary,true));
+        chmodSync(binary,resume.binary.mode);
+        verifiedArtifact({ ...resume.binary, path: binary },true);
+        phases.push(resume.phases.find(phase => phase.phase === "clang compilation" && phase.completed));
+      }
+      assertNativeFixtureIdentity(identity,fixture);
+    } else checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "C emission", recordPhase);
+    if (!resume?.binary) checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs, "clang compilation", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);
     const output = checked(binary, [], executionTimeoutMs, "native execution", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);

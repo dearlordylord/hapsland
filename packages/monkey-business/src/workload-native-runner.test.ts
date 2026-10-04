@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from "node:fs";
 import { vi, expect, it, beforeEach } from "vitest";
 const spawn = vi.hoisted(() => vi.fn());
 const preflight = vi.hoisted(() => ({
@@ -133,8 +133,8 @@ it.each([0,-1,15001,1.5,Number.NaN,Number.POSITIVE_INFINITY])("rejects invalid e
   expect(spawn).not.toHaveBeenCalled();
 });
 
-it("rejects a clang allowance over90 before identity capture or spawn", () => {
-  expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { clangTimeoutMs: 90001 })).toThrow("invalid native clang timeout");
+it("rejects a clang allowance over120 before identity capture or spawn", () => {
+  expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { clangTimeoutMs: 120001 })).toThrow("invalid native clang timeout");
   expect(spawn).not.toHaveBeenCalled();
   expect(preflight.capture).not.toHaveBeenCalled();
 });
@@ -309,4 +309,53 @@ it("preserves the original phase error when failure evidence cannot be written",
     expect(existsSync(spawn.mock.calls[0]?.[1][2])).toBe(false);
     expect(readFileSync(blocker, "utf8")).toBe("owned fixture blocker");
   } finally { evidenceLog.mockRestore(); vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+it.each(["C", "fixture", "source", "tool", "incomplete"])("rejects a changed %s resume receipt before compiler spawn", change => {
+  const directory = mkdtempSync(join(tmpdir(), "native-resume-guard-"));
+  const fixture = new URL("file:///tmp/owned-output-bound-fixture.bend");
+  const identity = preflight.capture();
+  const path = join(directory,"scenario.c"), receiptPath = join(directory,"receipt.json");
+  const bytes = Buffer.from("actual retained C");
+  writeFileSync(path,bytes);
+  const receipt = { lane:"fresh-native-failure", identity:structuredClone(identity), phases:[{phase:"C emission",completed:true,status:0}], c:{path,bytes:bytes.length,sha256:createHash("sha256").update(bytes).digest("hex")},binary:null };
+  if(change === "C") writeFileSync(path,"modified C");
+  if(change === "fixture") receipt.identity.root="/tmp/other.bend";
+  if(change === "source") receipt.identity.graph.sha256="changed";
+  if(change === "tool") receipt.identity.inputs.tools.bend.path="/changed/bend";
+  if(change === "incomplete") receipt.phases[0]!.completed=false;
+  writeFileSync(receiptPath,JSON.stringify(receipt));
+  try {
+    expect(() => runWorkloadNative(fixture,{resumeNativeCompilerReceipt:receiptPath})).toThrow();
+    expect(spawn).not.toHaveBeenCalled();
+  } finally { rmSync(directory,{recursive:true,force:true}); }
+});
+it("explicitly resumes verified C without recompiling it", () => {
+  const directory=mkdtempSync(join(tmpdir(),"native-resume-valid-"));
+  const fixture=new URL("file:///tmp/owned-output-bound-fixture.bend");
+  const path=join(directory,"scenario.c"),receiptPath=join(directory,"receipt.json"),bytes=Buffer.from("retained complete C");
+  writeFileSync(path,bytes);
+  writeFileSync(receiptPath,JSON.stringify({lane:"fresh-native-failure",identity:preflight.capture(),phases:[{phase:"C emission",completed:true,status:0}],c:{path,bytes:bytes.length,sha256:createHash("sha256").update(bytes).digest("hex")},binary:null}));
+  spawn.mockReturnValue({status:0,stdout:"[0]",stderr:""});
+  try {
+    expect(runWorkloadNative(fixture,{resumeNativeCompilerReceipt:receiptPath,clangTimeoutMs:120000})).toEqual([0]);
+    expect(spawn.mock.calls.map(call=>call[0])).toEqual(["/mock/clang",expect.stringContaining("hapsland-workload-native-")]);
+    expect(spawn.mock.calls.map(call=>call[2].timeout)).toEqual([120000,5000]);
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+it.each([false,true])("checks retained binary integrity before execution (changed=%s)", changed => {
+  const directory=mkdtempSync(join(tmpdir(),"native-resume-binary-"));
+  const fixture=new URL("file:///tmp/owned-output-bound-fixture.bend");
+  const c=Buffer.from("C"),binary=Buffer.from("compiled binary");
+  const source=join(directory,"scenario.c"),executable=join(directory,"scenario"),receiptPath=join(directory,"receipt.json");
+  writeFileSync(source,c);writeFileSync(executable,binary);chmodSync(executable,0o700);
+  const artifact=(path:string,bytes:Buffer)=>({path,bytes:bytes.length,sha256:createHash("sha256").update(bytes).digest("hex")});
+  writeFileSync(receiptPath,JSON.stringify({lane:"fresh-native-failure",identity:preflight.capture(),phases:[{phase:"C emission",completed:true,status:0},{phase:"clang compilation",completed:true,status:0}],c:artifact(source,c),binary:{...artifact(executable,binary),mode:0o700}}));
+  if(changed) writeFileSync(executable,"changed binary");
+  spawn.mockReturnValue({status:0,stdout:"[0]",stderr:""});
+  try {
+    if(changed) {expect(()=>runWorkloadNative(fixture,{resumeNativeCompilerReceipt:receiptPath})).toThrow("artifact bytes changed");expect(spawn).not.toHaveBeenCalled();}
+    else {expect(runWorkloadNative(fixture,{resumeNativeCompilerReceipt:receiptPath})).toEqual([0]);expect(spawn).toHaveBeenCalledTimes(1);expect(spawn.mock.calls[0]?.[2].timeout).toBe(5000);}
+  } finally {rmSync(directory,{recursive:true,force:true});}
 });

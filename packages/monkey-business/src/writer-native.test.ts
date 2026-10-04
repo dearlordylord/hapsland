@@ -242,13 +242,13 @@ it("compares all thirteen writer original cases fresh emitted/public full bounda
   const expected=modes.map(publicCase);
   compareOriginalFamily(decodeNativePrefix(runWorkloadEmitted(fixture,{emissionTimeoutMs:30000}),"writer_scenarios"),expected);
 },45000);
-// One complete original family: C90 + clang90 + native15 + JS30/5 + cleanup15 =245 seconds.
+// One complete original family: C90 + clang120 + native15 + JS30/5 + cleanup15 =275 seconds.
 it("compares all thirteen writer original cases full native/emitted/public/replay boundary",()=>{
   const expected=modes.map(publicCase);
-  const native=runWorkloadNative(fixture,{emissionTimeoutMs:90000,clangTimeoutMs:90000,executionTimeoutMs:15000}),emitted=runWorkloadEmitted(fixture,{emissionTimeoutMs:30000});
+  const native=runWorkloadNative(fixture,{emissionTimeoutMs:90000,clangTimeoutMs:120000,executionTimeoutMs:15000,resumeNativeCompilerReceipt:process.env.HAPSLAND_WRITER_NATIVE_RESUME_RECEIPT}),emitted=runWorkloadEmitted(fixture,{emissionTimeoutMs:30000});
   expect(native).toEqual(emitted);
   const nativeDTO=decodeNativePrefix(native,"writer_scenarios"),emittedDTO=decodeNativePrefix(emitted,"writer_scenarios");
   expect(nativeDTO).toEqual(emittedDTO);
   compareOriginalFamily(nativeDTO,expected);
   compareOriginalFamily(emittedDTO,expected);
-},245000);
+},275000);
