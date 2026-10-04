@@ -37,9 +37,23 @@ export async function failures(runDirectory) {
     try { return JSON.parse(line); } catch { return { message: "Incomplete failure event", raw: line }; }
   });
 }
-export async function showStatus(root, id, json = false) {
+export async function showStatus(root, id, json = false, scope) {
   const runsRoot = join(root, ".test-runs");
-  const runId = id ?? (await readJson(join(runsRoot, "latest.json"))).id;
+  let scopedId;
+  if (scope !== undefined) {
+    if (id !== undefined) throw new Error("status accepts a run id or --scope, not both");
+    const entries = await readdir(runsRoot, { withFileTypes: true });
+    const matches = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !/^[a-zA-Z0-9_-]+$/.test(entry.name)) continue;
+      const manifest = await readJson(join(runsRoot, entry.name, "manifest.json")).catch(error => { if (error.code === "ENOENT") return null; throw error; });
+      if (manifest?.scope === scope) matches.push({ id: entry.name, startedAt: manifest.startedAt ?? "" });
+    }
+    matches.sort((a, b) => b.startedAt.localeCompare(a.startedAt) || b.id.localeCompare(a.id));
+    scopedId = matches[0]?.id;
+    if (!scopedId) throw new Error(`No recorded run for scope: ${scope}`);
+  }
+  const runId = id ?? scopedId ?? (await readJson(join(runsRoot, "latest.json"))).id;
   if (!/^[a-zA-Z0-9_-]+$/.test(runId)) throw new Error("Invalid run id");
   const runDirectory = join(runsRoot, runId);
   const status = await readJson(join(runDirectory, "status.json"));
@@ -287,9 +301,11 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
   const [mode, ...raw] = argv;
   if (!["test", "focused", "quality", "status"].includes(mode)) throw new Error("Usage: run-checks.mjs test|focused|quality|status [args]");
   if (mode === "status") {
-    const ids = raw.filter(arg => arg !== "--json" && arg !== "--");
+    const scopeArgs = raw.filter(arg => arg.startsWith("--scope="));
+    if (scopeArgs.length > 1 || scopeArgs.some(arg => !arg.slice(8).trim())) throw new Error("Scope must be one nonempty label");
+    const ids = raw.filter(arg => arg !== "--json" && arg !== "--" && !scopeArgs.includes(arg));
     if (ids.length > 1) throw new Error("status accepts one run id and --json");
-    await showStatus(root, ids[0], raw.includes("--json")); return 0;
+    await showStatus(root, ids[0], raw.includes("--json"), scopeArgs[0]?.slice(8)); return 0;
   }
   const timeoutArg = raw.find(arg => arg.startsWith("--timeout-ms="));
   const timeoutMs = timeoutArg ? Number(timeoutArg.split("=")[1]) : mode === "focused" ? 300_000 : 1_500_000;

@@ -196,6 +196,14 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWor
   const qualityManifest = JSON.parse(await readFile(join(root, ".test-runs", qualityId, "manifest.json"), "utf8"));
   assert.match(qualityManifest.sourceDigest, /^[a-f0-9]{64}$/);
   assert.equal(qualityManifest.scope, "quality-slice");
+  const historical = JSON.parse(cli(["status", "--scope=original-output", "--json"]));
+  assert.equal(historical.id, id);
+  assert.equal(historical.state, "passed");
+  assert.equal(historical.sourcePin, first);
+  assert.equal(JSON.parse(cli(["status", "--json"])).id, qualityId);
+  assert.equal(JSON.parse(cli(["status", "--scope=quality-slice", "--json"])).id, qualityId);
+  assert.throws(() => cli(["status", "--scope=missing-slice"]), /No recorded run for scope: missing-slice/);
+  assert.throws(() => cli(["status", id, "--scope=original-output"]), /run id or --scope, not both/);
   const records = await import("node:fs/promises").then(fs => fs.readdir(join(root, ".test-runs", qualityId)));
   const inputs = JSON.parse(await readFile(join(root, ".test-runs", qualityId, records.find(name => name.startsWith("inputs-"))), "utf8"));
   assert.equal(inputs.sourceDigest, qualityManifest.sourceDigest);
@@ -207,4 +215,5 @@ require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWor
   assert.equal(oldStatus.sourcePin, null);
   assert.equal(oldStatus.scope, null);
   assert.equal(oldStatus.state, "passed");
+  assert.throws(() => cli(["status", "--scope=original-output"]), /No recorded run for scope/);
 });
