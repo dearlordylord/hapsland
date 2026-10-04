@@ -59,6 +59,12 @@ type Stage is Data:
 type Runtime is Data:
   Runtime{state: Types.State, queue: Queue, jobs: List<&2, Stored>, delay: Nat}
 
+# A nonrecursive Data wrapper is flattened by the native lowering. The
+# recursive tail makes this carrier one opaque word while a continuation keeps
+# the genuine Engine state alive; the tail is always empty at this boundary.
+type StateCarrier is Data:
+  StateCarrier{state: Types.State, tail: Maybe<&2,StateCarrier>}
+
 # Candidate transport boundary: carry shared state behind a recursive list
 # through scheduler continuations. Lowering benefit is unvalidated.
 # Edge.Runtime remains unchanged for external fixture consumers.
@@ -286,6 +292,22 @@ def round(state: Canonical.State, partition: Nat) -> Nat:
     case Canonical.State{_, rounds, _, _, _, _, _, _, _}:
       round_value(Canonical.find_round(partition, rounds))
 
+def carrier_round(state: StateCarrier, partition: Nat) -> Nat:
+  match state:
+    case StateCarrier{state,_}: round(Engine.canonical(state),partition)
+
+def carrier_collector(state: StateCarrier) -> Bool:
+  match state:
+    case StateCarrier{state,_}: Engine.collector_configured(state)
+
+def carrier_stop(state: StateCarrier, partition: Nat) -> Bool:
+  match state:
+    case StateCarrier{state,_}: Engine.stop_active(state,partition)
+
+def carrier_workload(state: StateCarrier, partition: Nat) -> Bool:
+  match state:
+    case StateCarrier{state,_}: Engine.workload_configured(state,partition)
+
 def facts_with(events: List<&2,Graph.GraphEvent>, queue: Queue, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +now: Nat, +position: Nat, +count: Nat, +delay: Nat) -> Queue:
   match events:
@@ -335,6 +357,20 @@ def sync(items: List<&2, Item>, state: Types.State, +synced: Nat) -> Types.State
   match items:
     case Nil{}: state
     case Item{at, +order, _} <> tail: sync(tail, sync_if(Nat.is_le(synced, order), state, at, order), synced)
+
+def carrier_sync_if(fresh: Bool, state: StateCarrier, at: Nat, order: Nat) -> StateCarrier:
+  match state:
+    case StateCarrier{state,_}: StateCarrier{sync_if(fresh,state,at,order),None{}}
+
+def carrier_sync(items: List<&2,Item>, state: StateCarrier, +synced: Nat) -> StateCarrier:
+  match items:
+    case Nil{}: state
+    case Item{at,+order,_} <> tail:
+      carrier_sync(tail,carrier_sync_if(Nat.is_le(synced,order),state,at,order),synced)
+
+def carrier_take(state: StateCarrier) -> Engine.Taken:
+  match state:
+    case StateCarrier{state,_}: Engine.take(state)
 
 def configured() -> Types.State:
   Engine.configure_workload(Engine.configure_workload(declared(Engine.declare_advicee(
@@ -412,12 +448,30 @@ def context_with(environment: Environment, +state: Types.State, job: Job, delay:
         None{},True{},True{},True{},True{},600000n,candidate,
         Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),
         True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
-
     case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} Unbound{Driver.SourceJob{+partition,+lifetime,_,_,_}}:
       Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),0n,False{},delay,
         None{},True{},True{},True{},True{},600000n,candidate,
         Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),
         True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
+
+def context_with_carrier(environment: Environment, +state: StateCarrier, job: Job, delay: Nat,
+    candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
+  match environment job:
+    case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} Job{+partition,+lifetime,bytes,_,outcome}:
+      Driver.Context{partition,lifetime,carrier_round(state,partition),bytes,True{},delay,
+        None{},True{},True{},True{},True{},600000n,candidate,Bool.not(carrier_collector(state)) && Bool.not(carrier_stop(state,partition)),True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),
+        output_delay,output_lease,carrier_workload(state,partition),True{}}
+    case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} NoJob{+partition,+lifetime}:
+      Driver.Context{partition,lifetime,carrier_round(state,partition),0n,False{},delay,
+        None{},True{},True{},True{},True{},600000n,candidate,
+        Bool.not(carrier_collector(state)) && Bool.not(carrier_stop(state,partition)),
+        True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,carrier_workload(state,partition),True{}}
+
+    case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} Unbound{Driver.SourceJob{+partition,+lifetime,_,_,_}}:
+      Driver.Context{partition,lifetime,carrier_round(state,partition),0n,False{},delay,
+        None{},True{},True{},True{},True{},600000n,candidate,
+        Bool.not(carrier_collector(state)) && Bool.not(carrier_stop(state,partition)),
+        True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,carrier_workload(state,partition),True{}}
 
 def source_job(job: Job) -> Maybe<&2,Driver.SourceJob>:
   match job:
@@ -1420,49 +1474,55 @@ def runtime_step(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> 
     case Runtime{state,_,_,_} <> Nil{}: [Engine.step(state,event)]
     case _: []
 
-# Keep genuine transport values boxed until their owning operation needs them.
-# The affine transition factory remains separate from this data carrier.
-type EventRequest is Data:
-  EventRequest{runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
-    job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
-    environment: Environment}
-
+# Keep the complete pending event behind a recursive carrier until the owner
+# stage consumes its fields. The affine transition factory remains separate.
 type PendingEvent is Data:
   PendingEvent{runtime: List<&2,Runtime>, event: List<&2,Canonical.CanonicalEvent>,
     job: List<&2,Job>, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
-    environment: List<&2,Environment>}
+    environment: List<&2,Environment>, tail: Maybe<&2,PendingEvent>}
 
-def pending_event(request: EventRequest) -> PendingEvent:
-  match request:
-    case EventRequest{runtime,event,job,now,order,candidate,environment}:
-      PendingEvent{runtime,[event],[job],now,order,candidate,[environment]}
+def pending_event(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, job: Job,
+    now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment) -> PendingEvent:
+  PendingEvent{runtime,[event],[job],now,order,candidate,[environment],None{}}
 
 def pending_runtime(pending: PendingEvent) -> List<&2,Runtime>:
   match pending:
-    case PendingEvent{runtime,_,_,_,_,_,_}: runtime
+    case PendingEvent{runtime,_,_,_,_,_,_,_}: runtime
 
 def runtime_completion(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> List<&2,SharingRuntime.Completion>:
   match runtime:
     case Runtime{state,_,_,_} <> Nil{}: [Engine.sharing_completion(state,event)]
     case _: []
 
+def fence_with_context(state: StateCarrier, context: Driver.Context, event: Canonical.CanonicalEvent) -> List<&2,Canonical.CanonicalEvent>:
+  match state:
+    case StateCarrier{state,_}: [Engine.fence(state,event,True{},context)]
+
+def fence_with_carrier(+state: StateCarrier, event: Canonical.CanonicalEvent, environment: Environment,
+    job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> List<&2,Canonical.CanonicalEvent>:
+  fence_with_context(state,context_with_carrier(environment,state,job,delay,candidate),event)
+
+def runtime_fence_state(state: Types.State, event: Canonical.CanonicalEvent, environment: Environment,
+    job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> List<&2,Canonical.CanonicalEvent>:
+  fence_with_carrier(StateCarrier{state,None{}},event,environment,job,delay,candidate)
+
 def runtime_fence(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, environment: Environment,
     job: Job, candidate: Maybe<&2,Driver.Candidate>) -> List<&2,Canonical.CanonicalEvent>:
   match runtime:
     case Runtime{+state,_,_,delay} <> Nil{}:
-      [Engine.fence(state,event,True{},context_with(environment,state,job,delay,candidate))]
+      runtime_fence_state(state,event,environment,job,delay,candidate)
     case _: []
 
 def pending_fence(pending: PendingEvent) -> List<&2,Canonical.CanonicalEvent>:
   match pending:
-    case PendingEvent{runtime,event <> Nil{},job <> Nil{},_,_,candidate,environment <> Nil{}}:
+    case PendingEvent{runtime,event <> Nil{},job <> Nil{},_,_,candidate,environment <> Nil{},_}:
       runtime_fence(runtime,event,environment,job,candidate)
     case _: []
 
 def pending_transition(-F: Data, transition: List<&2,Engine.Transition>, events: List<&2,Canonical.CanonicalEvent>,
     pending: PendingEvent, factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match events pending:
-    case event <> Nil{} PendingEvent{runtime,_,job <> Nil{},now,order,candidate,environment <> Nil{}}:
+    case event <> Nil{} PendingEvent{runtime,_,job <> Nil{},now,order,candidate,environment <> Nil{},_}:
       observed_transition(F,transition,runtime,event,job,now,order,candidate,environment,factory)
     case _ pending: Observed{pending_runtime(pending),Some{UnexpectedInput{}},transition_commands(F,factory([]))}
 
@@ -1490,9 +1550,9 @@ def observed_pending(-F: Data, +pending: PendingEvent,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_fenced(F,pending_fence(pending),pending,factory)
 
-def observed_event(-F: Data, +request: EventRequest,
+def observed_event(-F: Data, +pending: PendingEvent,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observed_pending(F,pending_event(request),factory)
+  observed_pending(F,pending,factory)
 
 def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2,Stored>,
     +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
@@ -1665,9 +1725,9 @@ def observed_input(-F: Data, value: Input, runtime: List<&2,Runtime>,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match value:
     case Event{Driver.Action{event,_,candidate,_,_},job,_,_}:
-      observed_event(F,EventRequest{runtime,event,job,now,order,candidate,environment},factory)
+      observed_event(F,pending_event(runtime,event,job,now,order,candidate,environment),factory)
     case FitEvent{Driver.Action{event,_,candidate,_,_},job,attempt,_,_}:
-      observed_event(F,EventRequest{runtime,event,job,now,order,candidate,stop_fit_environment(environment,attempt)},factory)
+      observed_event(F,pending_event(runtime,event,job,now,order,candidate,stop_fit_environment(environment,attempt)),factory)
     case Cache{fact,job}: observed_cache_input(F,runtime,fact,job,now,order,environment,factory)
     case Finish{input}: observed_finish(F,runtime,input,now,order,transition_commands(F,factory([])))
     case FinishIntent{p,started,cutoff,recurring}: observed_finish_intent(F,runtime,p,started,cutoff,recurring,now,order,transition_commands(F,factory([])))
@@ -1765,33 +1825,24 @@ def observed_taken(-F: Data, +taken: List<&2,Engine.Taken>, +runtime: List<&2,Ru
 def observed_take(runtime: List<&2,Runtime>) -> List<&2,Engine.Taken>:
   match runtime:
     case Runtime{state,Queue{items,_,synced},_,_} <> Nil{}:
-      [Engine.take(sync(items,state,synced))]
+      [carrier_take(carrier_sync(items,StateCarrier{state,None{}},synced))]
     case _: []
 
-type ObserveRequest is Data:
-  ObserveRequest{runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
-
 type ObserveSelection is Data:
-  ObserveSelection{taken: List<&2,Engine.Taken>, runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
+  ObserveSelection{taken: List<&2,Engine.Taken>, runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment, tail: Maybe<&2,ObserveSelection>}
 
-def observe_selection(+request: ObserveRequest) -> ObserveSelection:
-  match request:
-    case ObserveRequest{+runtime,receipt,environment}:
-      ObserveSelection{observed_take(runtime),runtime,receipt,environment}
+def observe_selection(+runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment) -> ObserveSelection:
+  ObserveSelection{observed_take(runtime),runtime,receipt,environment,None{}}
 
 def observe_selection_ready(-F: Data, +selection: ObserveSelection,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match selection:
-    case ObserveSelection{taken,runtime,receipt,environment}:
+    case ObserveSelection{taken,runtime,receipt,environment,_}:
       observed_taken(F,taken,runtime,receipt,environment,factory)
-
-def observe_request_ready(-F: Data, +request: ObserveRequest,
-    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observe_selection_ready(F,observe_selection(request),factory)
 
 def observe_step_with(-F: Data, +runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observe_request_ready(F,ObserveRequest{runtime,receipt,environment},factory)
+  observe_selection_ready(F,observe_selection(runtime,receipt,environment),factory)
 
 def observe_step(-F: Data, runtime: List<&2,Runtime>,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
