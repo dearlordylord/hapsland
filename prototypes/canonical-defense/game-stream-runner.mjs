@@ -99,17 +99,39 @@ function sourceRecords(fixture,ownerSources,root,bendRoot,bendDirectory) {
   for(const source of bendSourceClosure(fixture,root,bendRoot,bendDirectory))add(source.file,source.expected,"Bend import source");
   return [...sources.values()];
 }
+// A zero C phase cap is available only inside the maintained finite supervisor.
+function ownedDeadline(deadline,root) {
+  if(deadline===undefined)return null;
+  if(!Number.isSafeInteger(deadline)||deadline<=Date.now()||deadline>Date.now()+380000)
+    throw new Error("Invalid game overall deadline");
+  // createRun validates the parent once. Here check only its factual handoff:
+  // runStage supplies these coordinates and its narrowed absolute deadline.
+  const supervisor=JSON.parse(process.env.HAPSLAND_GAME_SUPERVISOR_CONTEXT??"null");
+  const stage=JSON.parse(process.env.HAPSLAND_CHECK_CONTEXT??"null");
+  if(!supervisor||!stage||supervisor.root!==root||stage.root!==root||
+      !["id","pid","token"].every(key=>supervisor[key]===stage[key])||
+      ! /^[a-zA-Z0-9_-]+$/.test(stage.id)||typeof stage.token!=="string"||!stage.token||
+      !Number.isSafeInteger(supervisor.deadline)||deadline>supervisor.deadline||stage.deadline!==deadline)
+    throw new Error("Missing finite game supervisor handoff");
+  return deadline;
+}
+function phaseAllowance(cap,deadline) {
+  if(deadline===null)return cap;
+  const remaining=deadline-Date.now();
+  if(remaining<=0)throw new Error("Game overall deadline exhausted");
+  return cap===0?remaining:Math.min(cap,remaining);
+}
 function checked(command, args, timeout) {
   const result = spawnSync(command,args,{encoding:"utf8",timeout,killSignal:"SIGKILL",maxBuffer:LIMIT,
     env:{...process.env,BEND_NO_TELEMETRY:"1"}});
   if(result.error || result.status !== 0) throw new Error(`${command}: ${result.error?.code ?? result.status}: ${result.stderr}`);
   return result.stdout;
 }
-function stream(command,args,directory,label,executionTimeoutMs) {
+function stream(command,args,directory,label,executionTimeoutMs,supervised=false) {
   return new Promise((accept,reject)=>{
-    const child=spawn(command,args,{detached:true,stdio:["ignore","pipe","pipe"],env:{...process.env,BEND_NO_TELEMETRY:"1"}});
+    const child=spawn(command,args,{detached:!supervised,stdio:["ignore","pipe","pipe"],env:{...process.env,BEND_NO_TELEMETRY:"1"}});
     let pending=Buffer.alloc(0),stderr="",failure,totalBytes=0;const files=[];const started=performance.now();
-    const stop=error=>{if(!failure){failure=error;try{process.kill(-child.pid,"SIGKILL");}catch(error){if(error.code!=="ESRCH")failure=error;}}};
+    const stop=error=>{if(!failure){failure=error;try{if(supervised)child.kill("SIGKILL");else process.kill(-child.pid,"SIGKILL");}catch(error){if(error.code!=="ESRCH")failure=error;}}};
     const timer=setTimeout(()=>stop(new Error(`${label} execution exceeded ${executionTimeoutMs}ms`)),executionTimeoutMs);
     child.stdout.on("data",data=>{
       if(failure)return;
@@ -174,17 +196,19 @@ function compilerReceipt(path,fixture,sources,tools) {
   return receipt;
 }
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
-export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt}={}) {
+export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,overallDeadlineMs}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
-  if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<=0||emissionTimeoutMs>90000)throw new RangeError("invalid game C emission allowance");
+  if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<0||emissionTimeoutMs>120000)throw new RangeError("invalid game C emission allowance");
   if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>120000)throw new RangeError("invalid game clang allowance");
   if(resumeCompilerReceipt!==undefined&&(typeof resumeCompilerReceipt!=="string"||!resumeCompilerReceipt))throw new Error("Invalid game resume receipt path");
   const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
-  const bendFile=realpathSync(checked("which",["bend"],5000).trim());
+  const deadline=ownedDeadline(overallDeadlineMs,root);
+  if(emissionTimeoutMs===0&&deadline===null)throw new Error("Zero game C allowance requires a finite owned overall deadline");
+  const bendFile=realpathSync(checked("which",["bend"],phaseAllowance(5000,deadline)).trim());
   const bendLayout=bendSourceLayout(bendFile);
   const sources=sourceRecords(fileURLToPath(fixture),ownerSources,root,bendLayout.root,bendLayout.directory);
   const tools=[{file:bendFile,expected:hash(bendFile)}];
-  const clangFile=realpathSync(checked("which",["clang"],5000).trim());
+  const clangFile=realpathSync(checked("which",["clang"],phaseAllowance(5000,deadline)).trim());
   tools.push({file:clangFile,expected:hash(clangFile)});
   const verify=()=>{for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);};
   verify();
@@ -192,24 +216,29 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
   const resume=resumeCompilerReceipt===undefined?null:compilerReceipt(resumeCompilerReceipt,fixturePath,sources,tools);
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   let phase="C emission";const completed=[];
+  const timeouts={emission:emissionTimeoutMs,clang:clangTimeoutMs,execution:executionTimeoutMs,jsEmission:30000,
+    ...(deadline===null?{}:{overallDeadlineMs:deadline,overallBudgetMs:380000})};
   try{
     const c=join(directory,"game.c"),binary=join(directory,"game"),js=join(directory,"game.cjs");
     if(resume)writeFileSync(c,resumeArtifact(resume.c));
-    else checked(tools[0].file,[fileURLToPath(fixture),"-o",c],emissionTimeoutMs);
+    else {
+      timeouts.actualCEmissionAllowanceMs=phaseAllowance(emissionTimeoutMs,deadline);
+      checked(tools[0].file,[fileURLToPath(fixture),"-o",c],timeouts.actualCEmissionAllowanceMs);
+    }
     completed.push("C emission");verify();
     const cHash=hash(c);phase="clang compilation";
     if(resume?.binary){writeFileSync(binary,resumeArtifact(resume.binary,true));chmodSync(binary,resume.binary.mode);}
-    else checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],clangTimeoutMs);
+    else checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],phaseAllowance(clangTimeoutMs,deadline));
     completed.push("clang compilation");verify();
-    const binaryHash=hash(binary);phase="native execution";const native=await stream(binary,[],directory,"native",executionTimeoutMs);completed.push("native execution");verify();
+    const binaryHash=hash(binary);phase="native execution";const native=await stream(binary,[],directory,"native",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);completed.push("native execution");verify();
     if(hash(c)!==cHash||hash(binary)!==binaryHash)throw new Error("native artifact changed");
-    phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],30000);completed.push("JS emission");verify();
-    const jsHash=hash(js);phase="JS execution";const emitted=await stream(process.execPath,[js],directory,"emitted",executionTimeoutMs);verify();
+    phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],phaseAllowance(30000,deadline));completed.push("JS emission");verify();
+    const jsHash=hash(js);phase="JS execution";const emitted=await stream(process.execPath,[js],directory,"emitted",phaseAllowance(executionTimeoutMs,deadline),deadline!==null);verify();
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){
     try{retainCompilerFailure(directory,fixturePath,phase,completed,sources,tools,
-      {emission:emissionTimeoutMs,clang:clangTimeoutMs,execution:executionTimeoutMs,jsEmission:30000},error);}
+      timeouts,error);}
     catch{try{console.error("Offline game compiler failure evidence could not be retained");}catch{}}
     rmSync(directory,{recursive:true,force:true});throw error;
   }
