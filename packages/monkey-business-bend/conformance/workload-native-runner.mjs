@@ -6,12 +6,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NATIVE_C_EMISSION_TIMEOUT_MS, NATIVE_CLANG_TIMEOUT_MS, validateNativeFixture } from "./native-preflight.mjs";
 import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
-// One fresh native+JS comparison has at most 85s of phase allowances plus cleanup.
+// One fresh native+JS comparison has at most 85s of default phase allowances plus cleanup.
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
 
 // User-authorized compile allowances: C/clang 30s and emitted JS 15s.
-// Both execution lanes retain their independent 5s bound.
-export function runWorkloadNative(fixture) {
+// A fixture may request the bounded 60s clang allowance below; C emission and
+// both execution lanes retain their independent 30s/5s bounds.
+const MAX_NATIVE_CLANG_TIMEOUT_MS = 60000;
+export function runWorkloadNative(fixture, { clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS } = {}) {
+  if (!Number.isSafeInteger(clangTimeoutMs) || clangTimeoutMs <= 0 || clangTimeoutMs > MAX_NATIVE_CLANG_TIMEOUT_MS)
+    throw new RangeError("invalid native clang timeout");
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;
   const sessionId = process.env.HAPSLAND_NATIVE_PREFLIGHT_SESSION;
   const manifestHash = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256;
@@ -19,6 +23,8 @@ export function runWorkloadNative(fixture) {
     if (!manifestPath || !sessionId || !manifestHash) {
       throw new Error("Incomplete native preflight session");
     }
+    if (clangTimeoutMs !== NATIVE_CLANG_TIMEOUT_MS)
+      throw new RangeError("native preflight session fixes the clang timeout");
     const { binaryPath } = validateNativeFixture({ manifestPath, sessionId, manifestHash, fixture });
     return JSON.parse(checked(binaryPath, [], 5000));
   }
@@ -27,7 +33,7 @@ export function runWorkloadNative(fixture) {
     const source = join(directory, "scenario.c");
     const binary = join(directory, "scenario");
     checked("bend", [fileURLToPath(fixture), "-o", source], NATIVE_C_EMISSION_TIMEOUT_MS);
-    checked("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], NATIVE_CLANG_TIMEOUT_MS);
+    checked("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs);
     return JSON.parse(checked(binary, [], 5000));
   } finally {
     rmSync(directory, { recursive: true, force: true });

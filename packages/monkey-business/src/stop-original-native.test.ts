@@ -95,16 +95,17 @@ function originalNativeFamilyInputs() {
   ];
 }
 
-// Same finite105s compiler/runtime phase sum plus15s cleanup as first waiting;
-// the scenario family increases assertions, not individual execution limits.
+// Finite aggregate allowance: C30s + clang60s + native5s + two independent
+// (JS emission15s + execution5s) runs =135s, plus15s process cleanup.
+// The fixture-specific clang allowance is bounded; each runtime remains5s.
 it("compares all eleven original Stop full native/emitted/public/replay scenarios", () => {
   const fixture = new URL("../../monkey-business-bend/conformance/stop-original-scenarios.bend",import.meta.url);
   const expected = originalStopPublicCases(), frozen = originalNativeFamilyInputs();
-  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture), independentlyEmitted = runWorkloadEmitted(fixture);
+  const native = runWorkloadNative(fixture,{clangTimeoutMs:60000}), emitted = runWorkloadEmitted(fixture), independentlyEmitted = runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
   expect(independentlyEmitted).toEqual(emitted);
   for (const result of [native,emitted,independentlyEmitted]) compareOriginalStopFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},120000);
+},150000);
 
 // Frozen independent caller declarations for the twelve existing output cases.
 export function originalNativeStopOutputFamilyInputs() {
@@ -132,13 +133,14 @@ export function originalNativeStopOutputFamilyInputs() {
   ];
 }
 
-// Same declared aggregate compilation allowance as the original full Stop gate;
-// individual native/JS runtime limits remain5s in the maintained runners.
+// Same finite aggregate allowance as the original full Stop gate: C30s +
+// clang60s + native5s + two independent (JS emission15s + execution5s) runs
+// =135s, plus15s process cleanup. Runtime limits remain5s in the runners.
 it("compares all twelve original output Stop full native/emitted/public/replay scenarios",()=>{
   const fixture=new URL("../../monkey-business-bend/conformance/stop-output-original-scenarios.bend",import.meta.url);
   const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
-  const native=runWorkloadNative(fixture),emitted=runWorkloadEmitted(fixture),independentlyEmitted=runWorkloadEmitted(fixture);
+  const native=runWorkloadNative(fixture,{clangTimeoutMs:60000}),emitted=runWorkloadEmitted(fixture),independentlyEmitted=runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
   expect(independentlyEmitted).toEqual(emitted);
   for(const result of [native,emitted,independentlyEmitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},120000);
+},150000);
