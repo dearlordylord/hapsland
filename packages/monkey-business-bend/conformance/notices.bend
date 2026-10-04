@@ -7,8 +7,13 @@ import ../../agent-flow-bend/NoticeState.bend as Notices
 
 # Independent directed inputs shared with the public concurrent-notice test.
 # Reservation identities are the independently expected first two real grants.
+# The parser accepts U32-sized Nat tokens; the accepted counter bound remains
+# the full 48-bit Nat maximum, as in the native Run boundary fixture.
+def maximum_count() -> Nat:
+  Nat.add(Nat.mul(65535n, Nat.add(4294967295n, 1n)), 4294967295n)
+
 def scope(partition: Nat, key: Nat) -> Scenario.Scope:
-  Scenario.Scope{partition, 7n, key, 2n, 128n, 10n, 281474976710655n}
+  Scenario.Scope{partition, 7n, key, 2n, 128n, 10n, maximum_count()}
 
 def accepted(result: C.Step) -> C.State:
   match result:
