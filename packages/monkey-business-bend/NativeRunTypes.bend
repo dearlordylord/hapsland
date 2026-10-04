@@ -2,6 +2,7 @@ import Base
 import ./Types.bend as EngineTypes
 import ./Workload.bend as Workload
 import ./Driver.bend as Driver
+import ./Callbacks.bend as Callbacks
 import ./CollectorScenario.bend as CollectorScenario
 import ./CacheRuntime.bend as CacheRuntime
 import ./Numeric.bend as Numeric
@@ -41,9 +42,11 @@ type Located is Data:
 type RuntimeSnapshot is Data:
   RuntimeSnapshot{core: List<&2,EngineTypes.State>, items: List<&2,Item>, next: Nat, count: Nat,
     seed: Nat, environment: Environment, valid: Bool}
+type PhysicalDelivery is Data:
+  PhysicalDelivery{before: RuntimeSnapshot, after: RuntimeSnapshot, action: Maybe<&2,Driver.Action>}
 type FrameDetails is Data:
   FrameDetails{before: RuntimeSnapshot, after: RuntimeSnapshot,
-    prepared: List<&2,EmissionContext>, source: Maybe<&2,EmissionContext>, transition_after: List<&2,EngineTypes.State>}
+    prepared: List<&2,EmissionContext>, source: Maybe<&2,EmissionContext>, transition_after: List<&2,EngineTypes.State>, receipt: Maybe<&2,Callbacks.Fact>, physical: List<&2,PhysicalDelivery>, provided: Maybe<&2,Nat>, command_scopes: List<&2,Maybe<&2,Nat>>}
 type Frame is Data:
   ProductFrame{sequence: Nat, time: Nat, event: Canonical.CanonicalEvent,
     before: List<&2, Canonical.State>, after: List<&2, Canonical.State>, commands: List<&2, Canonical.Command>, rejection: Maybe<&2, Canonical.Reason>, details: FrameDetails}
