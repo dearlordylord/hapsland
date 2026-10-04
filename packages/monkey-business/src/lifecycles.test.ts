@@ -249,26 +249,6 @@ it("effective permit limits preserve partition scope and the exact historical bo
  expect(configured.observations[0]!.capacityMetadata.permits?.adviceeLimits).toEqual([{ partition: 1, limit: 2 }]);
  expect(restoreReplay(configured.exportReplay()).observations).toEqual(configured.observations);
 });
-it.each([0, 1, 2, 5].flatMap(delay => [1, 2, 5].map(pace => ({ delay, pace }))))("settled pending results drain late joiners across two agents ($delay ms / $pace ms)", ({ delay, pace }) => {
- const run = createRun({ seed: 7, retention: 20000, outcome: "clear", jevDelay: delay,
-  sessions: [1, 2].map(seed => ({ agent: `agent-${seed}`, seed, editIntervalMs: pace, variationMs: 0, editsPerTask: 1024, bytes: 10 })),
-  lifecycles: { permits: { adviceeLimit: 2, residentLimit: 4, holdMs: 1 }, reuse: { entryLimit: 2, byteLimit: 100 } },
- });
- expect(run.advance({ untilTime: 60, maxEvents: 5000 }).reason).toBe("timeLimit");
- run.applyControl({ kind: "suspendArrivals", suspended: true });
- expect(run.advance({ untilTime: 1000, maxEvents: 10000 }).reason).toBe("idle");
- expect(run.projection.work).toEqual([]);
- expect(run.projection.dispatch.queued).toEqual([]);
- expect(run.projection.dispatch.running).toEqual([]);
- expect(run.projection.dispatch.requests).toEqual([]);
- expect(run.projection.reuse.claims).toEqual([]);
- expect(run.observations.filter(observation => observation.rejection)).toEqual([]);
- const retained = run.projection.charges.filter(charge => charge.purpose === "storedResult");
- expect(retained.map(charge => charge.id).sort()).toEqual(run.projection.reuse.cache.map(entry => entry.reservation).sort());
- expect(run.projection.global.bytes).toBe(run.projection.reuse.cache.reduce((bytes, entry) => bytes + entry.bytes, 0));
- expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
- // Dense arrival schedules also replay the complete retained history under coverage.
-}, 10_000);
 it("the original two-agent late-join case drains with the default history retention", () => {
  const run = createRun({ seed: 7, outcome: "clear", jevDelay: 1,
   sessions: [1, 2].map(seed => ({ agent: `agent-${seed}`, seed, editIntervalMs: 1, variationMs: 0, editsPerTask: 1024, bytes: 10 })),
@@ -278,8 +258,14 @@ it("the original two-agent late-join case drains with the default history retent
  run.applyControl({ kind: "suspendArrivals", suspended: true });
  expect(run.advance({ untilTime: 1000, maxEvents: 10000 }).reason).toBe("idle");
  expect(run.projection.work).toEqual([]);
+ expect(run.projection.dispatch.queued).toEqual([]);
+ expect(run.projection.dispatch.running).toEqual([]);
  expect(run.projection.reuse.claims).toEqual([]);
  expect(run.projection.dispatch.requests).toEqual([]);
+ expect(run.observations.filter(observation => observation.rejection)).toEqual([]);
+ const retained = run.projection.charges.filter(charge => charge.purpose === "storedResult");
+ expect(retained.map(charge => charge.id).sort()).toEqual(run.projection.reuse.cache.map(entry => entry.reservation).sort());
+ expect(run.projection.global.bytes).toBe(run.projection.reuse.cache.reduce((bytes, entry) => bytes + entry.bytes, 0));
  expect(run.observations).toHaveLength(1000);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });

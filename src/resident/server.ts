@@ -1,3 +1,4 @@
+import { toCodexDirectEventOutput, type Finding } from "../direct-event/output.ts";
 import { ResidentDispatchControls, dispatchControlsLayer } from "./dispatch-controls.ts";
 import { ResidentReviewControls, reviewControlsLayer } from "./review-controls.ts";
 import { makeSocketFramePort, type SocketFramePort } from "./socket-frame.ts";
@@ -38,9 +39,7 @@ import {
   prepareObservation,
   preparedUnitStillCurrent,
   revalidateEvaluations,
-  toCodexDirectEventOutput,
   type EvaluatedUnit,
-  type Finding,
   type PreparedObservation,
   type DirectReviewContext,
   type RevalidationResult,

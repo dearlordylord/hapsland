@@ -1,8 +1,8 @@
+import { packageRoot } from "../runtime/package-runtime.ts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { accessSync, constants, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { analyzeTypeFile } from "../direct-event/analyzer.ts";
 import { registeredLanguages } from "../direct-event/languages/registry.ts";
 import { inspectResidentEffect as inspectResident } from "../resident/client.ts";
@@ -29,8 +29,6 @@ const readable = (path: string): boolean => {
     return false;
   }
 };
-
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 export const DoctorResult = Schema.Struct({
   version: Schema.Literal(1),
@@ -103,7 +101,7 @@ const runtimeCheck = (value: unknown): DoctorCheck => {
         stage: "runtime",
         status: "unsupported",
         observed: runtime.checks ?? "unavailable",
-        action: "install the exact declared Node runtime and packaged resident entrypoint",
+        action: "reinstall the package containing the declared runtime and resident executable",
       };
 };
 const hostCheck = (value: unknown, host: Readonly<Record<string, unknown>>): DoctorCheck => {

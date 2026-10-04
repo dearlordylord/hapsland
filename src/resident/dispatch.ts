@@ -1,4 +1,7 @@
-import { Effect, Exit, Latch, Scope } from "effect";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Latch from "effect/Latch";
+import * as Scope from "effect/Scope";
 import type { CapacityLedger } from "./capacity.ts";
 
 export type DispatchEntry<K, A> = {

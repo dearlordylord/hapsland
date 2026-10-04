@@ -1,7 +1,8 @@
+import { profileFields } from "./client-command.ts";
 import * as Effect from "effect/Effect";
 import { expect, it, vi } from "vitest";
 import { updateClients, type UpdateOptions, type UpdatePorts } from "./update.ts";
-import { profileFields, type invokeLifecycle } from "./client-lifecycle.ts";
+import { type invokeLifecycle } from "./client-lifecycle.ts";
 import type { SetupClient } from "./client-selection.ts";
 
 type Result = Effect.Success<ReturnType<typeof invokeLifecycle>>;

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-04T02:22:12.216Z",
+  "package": {
+    "name": "@hapsland/hapsland",
+    "version": "0.1.0",
+    "artifact": "reviewed-local.tgz",
+    "source": "reviewed-local-archive",
+    "sha256": "72897a8b18d746057e64021472803fa421dce51f5811700d77f082382defd8de"
+  },
+  "environment": {
+    "harnessNode": "v24.20.0",
+    "installedRuntime": {
+      "version": "1.3.14",
+      "platform": "linux",
+      "architecture": "arm64"
+    },
+    "nodeOrBunOnInstalledPath": false,
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "rustPreparation": {
+    "status": "passed",
+    "installedCliReview": true,
+    "supportingEvidenceExpanded": true,
+    "noExternalInterpreterOnPath": true
+  },
+  "bendPreparation": {
+    "status": "passed",
+    "installedCliReview": true,
+    "supportingEvidenceExpanded": true,
+    "noExternalInterpreterOnPath": true
+  },
+  "installation": {
+    "packageManager": "bun",
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "fileSelection": "effective-settings",
+    "disableDispatchGate": "passed",
+    "update": {
+      "fromVersion": "0.1.0",
+      "toVersion": "0.0.1-local",
+      "preview": "passed",
+      "protocolIncompatibility": "rejected-before-write",
+      "partialRecovery": "resumed",
+      "previousHookRetainedOnPartialFailure": true,
+      "oldGrantFilesPreserved": true,
+      "credentialState": "preserved-controlled-helper",
+      "trustRecordsModified": false,
+      "processesStopped": false,
+      "controlledReviewAfterUpdate": "passed",
+      "independentHookAfterUpdate": "passed"
+    }
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 2,
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
+  },
+  "credentialLifecycle": {
+    "status": "controlled-helper",
+    "loginMs": 254,
+    "separateProcessLookupMs": 116,
+    "defaultKeychainIsolation": "not-applicable",
+    "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
+    "residentControlledTransportResolution": "passed",
+    "logoutBeforeFutureDispatch": "passed"
+  },
+  "realCodex": {
+    "status": "not-requested"
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-passed-real-host-not-requested"
+}

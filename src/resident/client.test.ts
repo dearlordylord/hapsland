@@ -2,6 +2,7 @@ import { runClient } from "../test-support/client-runtime.ts";
 import { makeGitFixture } from "../direct-event/test-fixtures.ts";
 import { it as effectIt } from "@effect/vitest";
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect";
+import * as Scheduler from "effect/Scheduler";
 import { afterEach, describe, expect, it } from "vitest";
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
@@ -37,6 +38,38 @@ afterEach(async () => {
 });
 
 describe("resident client trust boundary", () => {
+  it("sends the IPC frame when scheduling yields before connection handlers run", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "haps-ipc-"));
+    directories.push(directory);
+    await chmod(directory, 0o700);
+    const paths = residentPaths(directory);
+    let received = 0;
+    const server = createServer((socket) => {
+      sockets.push(socket);
+      let frame = "";
+      socket.on("data", (chunk) => {
+        frame += chunk.toString("utf8");
+        if (!frame.includes("\n")) return;
+        expect(JSON.parse(frame)).toEqual({ version: 1, operation: "hello" });
+        received += 1;
+        socket.end(`${JSON.stringify({ version: 1, status: "ready", lifetime: "fixture", pid: process.pid })}\n`);
+      });
+    });
+    servers.push(server);
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(paths.socket, resolve);
+    });
+    await chmod(paths.socket, 0o600);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await Effect.runPromise(residentRequestEffect(paths,
+        { requestRoute: "shared", operation: "hello" }, 300).pipe(
+        Effect.provideService(Scheduler.MaxOpsBeforeYield, 3),
+      ));
+      expect(response).toEqual({ status: "ready", lifetime: "fixture", pid: process.pid });
+    }
+    expect(received).toBe(3);
+  });
   effectIt.effect("uses one absolute readiness deadline and caps every operation to remaining time", () =>
     Effect.gen(function* () {
       const paths = residentPaths("/not-used");

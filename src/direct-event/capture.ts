@@ -1,9 +1,9 @@
+import { packageAssetPath } from "../runtime/package-runtime.ts";
 import { constants, existsSync, type BigIntStats } from "node:fs";
 import { open, realpath, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
 import { execFileClosedStdinBuffer } from "../onboarding/host-process.ts";
 import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
 import type { EligiblePath } from "./selection.ts";
@@ -48,7 +48,7 @@ const darwinCaptureArguments = (
   String(maximum),
 ];
 const availableDarwinCaptureHelper = Effect.fn("DirectEvent.availableDarwinCaptureHelper")(function* () {
-  const helper = fileURLToPath(new URL("../../native/prebuilt/darwin-arm64/capture-open", import.meta.url));
+  const helper = packageAssetPath("native", "prebuilt", "darwin-arm64", "capture-open");
   if (!existsSync(helper)) return yield* Effect.fail(new SourceCaptureError());
   return helper;
 });

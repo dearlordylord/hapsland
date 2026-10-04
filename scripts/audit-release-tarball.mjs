@@ -28,19 +28,15 @@ const names = files.filter((name) => !name.endsWith("/")).map((name) => {
 const allowed = (name) => name === "package.json" || name === "package-runtime.json" ||
   name === "README.md" || name === "bin/launch.sh" ||
   ["schemas/review-config-v1.schema.json", "schemas/review-rule-pack-v1.schema.json"].includes(name) ||
-  ["dist/canonical/canonical.generated.js", "dist/canonical/import-graph.generated.js"].includes(name) ||
   ["docs/codex-installation.md", "docs/claude-installation.md", "docs/opencode-installation.md",
-    "docs/direct-event-v1-supported-profile.md",
-    "docs/installed-release-compatibility.md", "docs/status.md", "docs/configuration.md",
+    "docs/pi-installation.md", "docs/direct-event-v1-supported-profile.md",
+    "docs/installed-release-compatibility.md", "docs/status.md", "docs/configuration.md", "docs/review-providers.md",
     "docs/installation-workflows.md", "docs/npm-publishing.md"].includes(name) ||
-  /^dist\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.js$/i.test(name) ||
+  name === "dist/pi/extension.js" ||
+  /^dist\/bin\/(?:linux|darwin)-arm64\/hapsland(?:-doctor|-parser|-resident)?$/.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name);
 for (const name of names) {
   if (!allowed(name)) throw new Error(`unexpected registry tarball file: ${name}`);
-  if (/^dist\/(?:conformance\/|direct-event\/test-fixtures\.js$|(?:e0|hello|prcheck|r[67][a-z0-9-]*|scan(?:-files)?)\.js$)/.test(name) ||
-      (name.startsWith("dist/test-support/") && name !== "dist/test-support/controlled-decision-model.js")) {
-    throw new Error(`development or conformance artifact in release tarball: ${name}`);
-  }
 }
 const releasePin = validateReleaseCoordinates(JSON.parse(gitFile("scripts/npm-release-pin.json")));
 const manifest = JSON.parse(archiveFile("package.json"));
@@ -51,15 +47,13 @@ if (manifest.name !== "@hapsland/hapsland" || manifest.version !== releasePin.ve
     manifest.bin?.hapsland !== "bin/launch.sh" ||
     Object.keys(manifest.bin ?? {}).some((name) => name.startsWith("review-tool")) ||
     manifest.scripts?.postinstall !== undefined ||
-    manifest.optionalDependencies?.["node-bin-darwin-arm64"] !== "24.20.0" ||
-    manifest.optionalDependencies?.["node-linux-arm64"] !== "24.20.0") {
+    manifest.optionalDependencies !== undefined || manifest.devDependencies?.bun !== "1.3.14") {
   throw new Error("release package manifest differs from reviewed release coordinates or runtime contract");
 }
 const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh",
-  "dist/cli.js", "dist/package-doctor.js", "dist/parser-main.js",
-  "dist/resident/main.js", "dist/canonical/canonical.generated.js",
-  "dist/canonical/import-graph.generated.js"];
+  "dist/pi/extension.js"];
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
+  for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"]) required.push(`dist/bin/${profile}/${command}`);
   for (const artifact of ["credential-secret-service", "tree-sitter/build/Release/tree_sitter_runtime_binding.node",
     "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
     "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",

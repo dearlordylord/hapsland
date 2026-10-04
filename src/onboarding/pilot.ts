@@ -1,6 +1,7 @@
+import type { profileFields } from "./client-command.ts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { formatCompatibility, formatProposal, type profileFields } from "./client-lifecycle.ts";
+import { formatCompatibility, formatProposal } from "./client-lifecycle.ts";
 import type { SetupClient } from "./client-selection.ts";
 import type { SetupRequest, runSetup } from "./setup.ts";
 import type { execFileClosedStdin } from "./host-process.ts";

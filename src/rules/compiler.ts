@@ -1,4 +1,4 @@
-import { Decision } from "effect/ai";
+import * as Decision from "effect/ai/Decision";
 import { APPLIES_FROM, levelOf, type Level } from "../questions.ts";
 import { RuleId } from "../domain/contracts.ts";
 import { ConfigurationError } from "../configuration/errors.ts";

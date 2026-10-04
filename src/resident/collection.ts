@@ -1,7 +1,9 @@
+import type { CodexDirectEventOutput, Finding } from "../direct-event/output.ts";
+import { toCodexDirectEventOutput } from "../direct-event/output.ts";
 import { formatReviewFeedback } from "../feedback/message.ts";
-import { Effect } from "effect";
-import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.ts";
-import { toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
+import * as Effect from "effect/Effect";
+
+
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "../direct-event/claude-output.ts";
 import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";

@@ -190,7 +190,7 @@ describe("public resumable setup operation", () => {
           expect.objectContaining({ file: expect.any(String), beforeDigest: expect.any(String), afterDigest: expect.any(String) }),
         ]),
         ownedChanges: {
-          runtime: { executable: expect.any(String), entrypoint: expect.any(String) },
+          runtime: { executable: expect.any(String), args: expect.any(Array) },
           hook: {
             file: join(test.codexHome, "hooks.json"),
             matcher: "^(apply_patch|Edit|Write|Bash)$",

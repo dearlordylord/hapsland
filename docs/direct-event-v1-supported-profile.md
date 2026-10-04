@@ -17,14 +17,16 @@ exception; they do not retroactively validate the earlier host run.
 This document records the previously measured support boundary. Jev is the external
 review backend. The measured v1 adapter profile was **Codex CLI 0.155.1 / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
-recorded conformance environment, not broader runtime guarantees. The installed package
-profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
+recorded conformance environment, not broader runtime guarantees. The historical installed package
+profile was narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
 at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
 `openat` capture helper. The macOS controlled installed-package path is tested. The real
 Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
 backend, including native interactive trust review. This does not establish a real-host run
-for Codex CLI 0.155.1 or other platform profiles. Package metadata and `hapsland-doctor`
-reject undeclared versions and other platform profiles rather than inferring support.
+for Codex CLI 0.155.1 or other platform profiles. At that validation point, package metadata and `hapsland-doctor`
+rejected undeclared versions and other platform profiles. These observations do not
+validate the current standalone Bun distribution; see
+[installed release compatibility](installed-release-compatibility.md).
 
 The accepted [review specification](type-function-review-proposal.md)
 now requires checked cross-file supporting evidence, a 256 KiB per-source-file

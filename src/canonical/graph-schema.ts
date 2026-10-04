@@ -1,4 +1,5 @@
-import { Schema, SchemaGetter } from "effect";
+import * as Schema from "effect/Schema";
+import * as SchemaGetter from "effect/SchemaGetter";
 import { Nat, decoder, boundedArray } from "./boundary-schema.ts";
 
 // Generated graph output supports bigint; input remains Bend's numeric 48-bit Nat.

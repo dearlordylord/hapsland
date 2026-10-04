@@ -154,7 +154,7 @@ private code. Installation and setup do not send code to Jev.
 The npm command uses your configured global prefix and assumes its `bin`
 directory is on PATH. If installation fails on permissions or the command is
 missing, use the [user-owned prefix alternative](./docs/installation-workflows.md#user-owned-prefix-alternative).
-Keep optional dependencies enabled: they supply Hapsland's Node runtime.
+The package includes its Bun runtime in the standalone executables.
 
 Public registry availability is not established by this guide. See the
 [installation lanes](./docs/installation-workflows.md#stable-installation-and-ordinary-use)
@@ -240,18 +240,18 @@ npm test
 npm run conformance:package
 ```
 
-`npm pack` builds JavaScript release entry points for the review CLI, source parsers,
-resident process, and offline package doctor. The tested installed profile is exactly Node
-24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
-Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated
-Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
-unsupported. After installing the tarball, run
-`hapsland-doctor` for source-free compatibility checks and recovery actions. The public commands
-use an installed, platform-specific Node 24.20.0 runtime, so the shell's Node version does not
-select the review runtime. Installation may fetch production dependencies, including that runtime,
-once; keep optional dependencies enabled. The no-script installation does not compile native code.
-Hook invocations use the installed CLI
-and resident and do not download packages per edit.
+`npm pack` builds standalone executables containing Hapsland and pinned Bun 1.3.14
+for the CLI, parser, resident, and package doctor. Agent-loaded Pi extension JavaScript
+remains a separate integration asset. The declared build targets are Linux arm64 and
+macOS arm64; cross-compilation alone does not establish execution compatibility.
+The [installed compatibility record](./docs/installed-release-compatibility.md)
+distinguishes current validation from earlier Node-based observations.
+
+Public commands use the package's executables and physical native assets. They do not
+require Node or Bun on PATH and do not acquire packages per edit. Run `hapsland-doctor`
+after installation for source-free compatibility checks. Source development and package
+assembly still require the pinned development toolchain; installing the tarball with
+scripts disabled does not compile native code.
 
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
@@ -307,7 +307,7 @@ The supported Codex event boundary is documented in the
 [direct-event profile](./docs/direct-event-v1-supported-profile.md). The installed Codex
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
-hooks invoke the packed `dist/cli.js` entry and never depend on this source path.
+hooks invoke the packed standalone CLI and never depend on this source path.
 Live use reads `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
 through the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`.

@@ -1,11 +1,10 @@
+import { assertReviewEngineBoundary } from "../../runtime/review-engine-boundary.ts";
+import { packageAssetPath } from "../../runtime/package-runtime.ts";
 import { existsSync } from "node:fs";
-import { dirname, resolve, extname } from "node:path";
-import { fileURLToPath } from "node:url";
-const nativeRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../native/prebuilt",
-  `${process.platform}-${process.arch}`,
-);
+import { resolve, extname } from "node:path";
+assertReviewEngineBoundary("native-parser");
+
+const nativeRoot = packageAssetPath("native", "prebuilt", `${process.platform}-${process.arch}`);
 const parserRuntime = resolve(nativeRoot, "tree-sitter");
 const rustLanguage = resolve(nativeRoot, "tree-sitter-rust");
 if (

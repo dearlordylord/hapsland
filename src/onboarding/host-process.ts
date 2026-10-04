@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 export type HostProcessOptions = {
   readonly env: NodeJS.ProcessEnv;

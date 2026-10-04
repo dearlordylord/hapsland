@@ -1,13 +1,15 @@
-import { Clock, Effect } from "effect";
+import { machineMonotonicNanos } from "../runtime/machine-clock.ts";
+import * as Clock from "effect/Clock";
+import * as Effect from "effect/Effect";
 
 /** Shared machine monotonic milliseconds; never a wall clock or runtime turn ID. */
-export const monotonicNow = (): number => Number(process.hrtime.bigint()) / 1_000_000;
+export const monotonicNow = (): number => Number(machineMonotonicNanos()) / 1_000_000;
 
-// Read hrtime before performance.now to obtain a conservative lower bound on
-// Node process start, including imports/startup before this module executes.
+// Read the machine clock before performance.now for a conservative lower bound
+// on process start, including imports/startup before this module executes.
 const sampledNow = monotonicNow();
 export const hookProcessStartedAt = sampledNow - performance.now();
 export const PRE_EDIT_ADMISSION_DEADLINE_MS = 2_500;
 
-/** Caller Clock deadline coordinate; live Node uses the same hrtime origin as native admission facts. */
+/** Caller Clock deadline coordinate; production roots provide the shared machine-monotonic domain. */
 export const hookMonotonicMillis = Clock.monotonicTimeNanos.pipe(Effect.map((now) => Number(now) / 1_000_000));

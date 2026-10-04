@@ -46,7 +46,7 @@ const updaterFixture = (test: ReturnType<typeof fixture>, options: { failHost?: 
   const target = join(test.root, "target"); const requests = join(test.root, "requests.jsonl");
   writeFileSync(target, `#!/usr/bin/env node
 const fs=require('node:fs');
-if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',runtime:process.execPath,entrypoint:${JSON.stringify(join(process.cwd(), 'src/cli.ts'))}})); process.exit(0); }
+if(process.argv.includes('--package-identity')) { console.log(JSON.stringify({name:'@hapsland/hapsland',executable:process.execPath,args:[${JSON.stringify(join(process.cwd(), 'src/cli.ts'))}]})); process.exit(0); }
 const r=JSON.parse(fs.readFileSync(0,'utf8'));
 fs.appendFileSync(${JSON.stringify(requests)},JSON.stringify(r)+'\\n');
 const options=${JSON.stringify(options)};
@@ -180,7 +180,7 @@ it.skipIf(process.platform !== "linux")("public setup uses the active package an
   const entrypoint = join(test.root, "active-cli.mjs");
   const capture = join(test.root, "active-args.json");
   writeFileSync(entrypoint, `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(capture)}, JSON.stringify(process.argv.slice(2))); console.log('active package setup');`);
-  writeFileSync(join(activeRoot, "active.json"), JSON.stringify({ version: 1, executable: entrypoint, runtime: process.execPath, entrypoint }));
+  writeFileSync(join(activeRoot, "active.json"), JSON.stringify({ version: 1, executable: process.execPath, args: [entrypoint] }));
   const result = await terminal(test, ["setup", "claude", ...clients.flags], "y");
   expect(result.code).toBe(0); expect(result.answered).toBe(false);
   expect(JSON.parse(readFileSync(capture, "utf8"))[0]).toBe("setup");

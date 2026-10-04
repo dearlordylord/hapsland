@@ -202,15 +202,15 @@ describe("public Codex installation operations", () => {
       ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: join(process.cwd(), "src/cli.ts"),
     });
     expect(result).toMatchObject({ status: "unsupported", host: { compatibility: { runtime: { supported: false, checks: {
-      node: { ready: true }, platform: { ready: false, observed: "linux" }, architecture: { ready: false, observed: "x64", required: "arm64" },
+      engine: { ready: true, required: "v24.20.0" }, platform: { ready: false, observed: "linux" }, architecture: { ready: false, observed: "x64", required: "arm64" },
     } } } } });
     expect(readdirSync(test.home)).toEqual([]);
   });
 
-  it("accepts matching synthetic runtime/package profiles independently of release support", () => {
+  it("accepts source Node against matching profiles even when package distribution declares Bun", () => {
     const test = fixture();
     const entrypoint = createInstallationPackageFixture(test.root);
-    const declaration = { ...installationPackageDeclaration(), profiles: [{ operatingSystem: "linux", architecture: "x64" }] };
+    const declaration = { ...installationPackageDeclaration(), runtime: { name: "bun", version: "1.3.14" }, profiles: [{ operatingSystem: "linux", architecture: "x64" }] };
     writeFileSync(join(dirname(dirname(entrypoint)), "package-runtime.json"), JSON.stringify(declaration));
     const runtime = join(test.root, "synthetic-x64-runtime");
     writeFileSync(runtime, `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: process.version, platform: "linux", architecture: "x64" })}'\n`, { mode: 0o700 });
@@ -218,7 +218,7 @@ describe("public Codex installation operations", () => {
       ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: entrypoint,
     });
     expect(result).toMatchObject({ status: "preview", host: { compatibility: { runtime: { supported: true, checks: {
-      node: { ready: true }, platform: { ready: true, observed: "linux" }, architecture: { ready: true, observed: "x64" },
+      engine: { ready: true, observed: "v24.20.0", required: "v24.20.0" }, platform: { ready: true, observed: "linux" }, architecture: { ready: true, observed: "x64" },
     } } } } });
     expect(readdirSync(test.home)).toEqual([]);
   });
@@ -315,10 +315,10 @@ describe("public Codex installation operations", () => {
       ownedChanges: {
         runtime: {
           executable: process.execPath,
-          entrypoint: quotedEntrypoint,
-          nodeVersion: process.version,
-          platform: process.platform,
-          architecture: process.arch,
+          args: [quotedEntrypoint],
+          parser: { executable: process.execPath, args: [join(dirname(quotedEntrypoint), "parser-main.js")] },
+          resident: { executable: process.execPath, args: [join(dirname(quotedEntrypoint), "resident", "main.js")] },
+          observed: { version: process.version, platform: process.platform, architecture: process.arch },
         },
         feature: { file: join(home, "config.toml"), table: "features", key: "hooks", value: true },
         hook: {
@@ -529,7 +529,7 @@ responses_websockets_v2 = true`);
       status: "unsupported",
       host: { compatibility: { runtime: { checks: {
         runtime: { ready: true },
-        node: { ready: false, observed: "not-a-supported-node-runtime" },
+        engine: { ready: false, observed: "not-a-supported-runtime" },
       } } } },
     });
     expect(existsSync(join(nonRuntime.home, ".realtime-review-tool"))).toBe(false);
@@ -667,8 +667,8 @@ responses_websockets_v2 = true`);
       status: "preview",
       automaticUpdate: false,
       proposal: {
-        current: { packageVersion: "1.0.0", entrypoint: firstEntrypoint, residentProtocol: 1 },
-        target: { packageVersion: "1.1.0", entrypoint: secondEntrypoint, residentProtocol: 1 },
+        current: { packageVersion: "1.0.0", args: [firstEntrypoint], residentProtocol: 1 },
+        target: { packageVersion: "1.1.0", args: [secondEntrypoint], residentProtocol: 1 },
         changes: [
           { file: join(home, ".realtime-review-tool", "installation-v1.json"), description: "record the target packaged runtime" },
           { file: join(home, "hooks.json"), description: "replace only the owned PostToolUse adapter hook" },
@@ -801,8 +801,8 @@ responses_websockets_v2 = true`);
     expect(readFileSync(hooksPath, "utf8")).toBe(concurrentContent);
   });
 
-  it("rejects missing or malformed target package metadata before update mutation", () => {
-    for (const corruption of ["missing-runtime", "malformed-runtime", "missing-protocol", "missing-version"] as const) {
+  it.each(["missing-runtime", "malformed-runtime", "missing-protocol", "missing-version"] as const)(
+    "rejects %s target package metadata before update mutation", (corruption) => {
       const { root, home, bin } = fixture();
       const firstEntrypoint = localPackage(root, `1.0.0-${corruption}`);
       const targetEntrypoint = localPackage(root, `1.1.0-${corruption}`);
@@ -835,8 +835,8 @@ responses_websockets_v2 = true`);
       expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
       expect(readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8")).toBe(beforeOwnership);
       expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
-    }
-  });
+    },
+  );
 
   it("rejects a self-consistent altered journal that would drop an unrelated hook", () => {
     const { root, home, bin } = fixture();

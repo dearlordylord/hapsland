@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawn } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 const roots: Array<string> = [];
@@ -62,6 +63,13 @@ describe("production resident activity subprocess", () => {
       },
       tool_response: {},
     };
+    // This witness starts with a running resident and observes its loss. Cold
+    // startup admission is covered separately by the resident startup suite.
+    const resident = spawn(process.execPath, ["src/resident/main.ts", runtime], {
+      cwd: process.cwd(), env: environment, detached: true, stdio: "ignore",
+    });
+    resident.unref();
+    waitFor(() => existsSync(join(runtime, "owner.json")) && existsSync(join(runtime, "resident.sock")));
     const before = spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"], {
       cwd: process.cwd(),
       env: environment,

@@ -1,3 +1,4 @@
+import { currentCommand, commandEntrypoint, expectedRuntimeVersion, observedRuntimeVersion, versionProbeArguments } from "../runtime/package-runtime.ts";
 import { Config, Effect, Schema } from "effect";
 import { execFileClosedStdin } from "./host-process.ts";
 import { createHash } from "node:crypto";
@@ -22,8 +23,8 @@ const OwnedRecord = Schema.Struct({
   adapter: Schema.Literal("opencode"),
   home: Schema.String,
   pluginDigest: Schema.String,
-  runtime: Schema.String,
-  entrypoint: Schema.String,
+  executable: Schema.String,
+  args: Schema.Array(Schema.String),
 });
 interface OwnedRecord extends Schema.Schema.Type<typeof OwnedRecord> {}
 const paths = (home: string) => ({
@@ -78,9 +79,9 @@ const configuration = Effect.fn("OpenCodeInstallation.configuration")(
         yield* Config.NonEmptyString("XDG_CONFIG_HOME").pipe(Config.withDefault(join(homedir(), ".config"))),
         "opencode",
       );
-    const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(process.execPath));
+    const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(currentCommand().executable));
     const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(
-      Config.withDefault(process.argv[1] ?? "dist/cli.js"),
+      Config.withDefault(commandEntrypoint(currentCommand())),
     );
     return { home: resolve(home), runtime: resolve(runtime), entrypoint: resolve(entrypoint) };
   },
@@ -93,9 +94,9 @@ const inputs = (
 ) => {
   const { home, entrypoint } = configured;
   const compatibility = {
-    supported: observed === PROFILE && runtimeObserved === "v24.20.0" && existsSync(entrypoint),
+    supported: observed === PROFILE && runtimeObserved === expectedRuntimeVersion(entrypoint) && existsSync(entrypoint),
     host: { observed, required: PROFILE },
-    runtime: { observed: runtimeObserved, required: "v24.20.0" },
+    runtime: { observed: runtimeObserved, required: expectedRuntimeVersion(entrypoint) },
     entrypoint: { path: entrypoint, ready: existsSync(entrypoint) },
   };
   return { home, compatibility, paths: paths(home) };
@@ -256,14 +257,14 @@ const resolveInputs = Effect.fn("OpenCodeInstallation.inputs")(function* (reques
   const hostRun = yield* execFileClosedStdin(request.opencodeExecutable ?? "opencode", ["--version"], options);
   const runtimeRun = yield* execFileClosedStdin(
     configured.runtime,
-    ["-e", "process.stdout.write(process.version)"],
+    versionProbeArguments(configured.runtime, configured.entrypoint),
     options,
   );
   return yield* Effect.sync(() =>
     inputs(
       configured,
       hostRun.succeeded ? hostRun.stdout.trim() : "unavailable",
-      runtimeRun.succeeded ? runtimeRun.stdout.trim() : "unavailable",
+      runtimeRun.succeeded ? observedRuntimeVersion(runtimeRun.stdout) : "unavailable",
     ),
   );
 });
@@ -313,7 +314,7 @@ export const diagnoseOpenCodeIntegration = Effect.fn("OpenCodeInstallation.diagn
     },
     {
       stage: "runtime",
-      status: input.compatibility.runtime.observed === "v24.20.0" ? "ready" : "unsupported",
+      status: input.compatibility.runtime.observed === input.compatibility.runtime.required ? "ready" : "unsupported",
       observed: input.compatibility.runtime,
     },
     {

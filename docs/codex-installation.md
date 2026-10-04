@@ -77,9 +77,10 @@ the single action reported for that stage. Doctor never prompts, launches or rep
 resident, changes Codex configuration, or calls Jev.
 
 The packaged `hapsland` CLI exposes versioned, noninteractive JSON operations for the
-declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
-Its public commands select an exact platform Node runtime from installed optional dependencies,
-independently of the shell's Node version. Install with optional dependencies enabled.
+declared Codex CLI 0.155.1 and 0.156.0 profiles with Bun 1.3.14 on Linux arm64 and macOS arm64.
+Compilation and installed execution evidence are recorded separately in the compatibility guide.
+Its public commands select the matching platform's standalone Bun executable.
+They run without Node or Bun on PATH.
 The archive carries prebuilt native helpers and parser bindings for each declared profile. Installation does not run
 the product's lifecycle scripts or require a compiler; `npm install --ignore-scripts=true` is a
 supported path. Release assembly uses the helper sources and platform build hosts. If a helper
@@ -209,7 +210,7 @@ process. A repeated update returns `already-current`.
 The ownership-record write precedes the hook replacement, so a failure after the first update
 step leaves the previous hook working. Every `partial` update result includes a structured
 `recovery.command` with the original digest. Rerun that exact request from the same target package.
-Recovery binds the exact target package version, executable, entrypoint, and resident protocol.
+Recovery binds the exact target package version, executable, argument vector, and resident protocol.
 It treats the journal as untrusted input: the operation reproduces every recorded transformation
 from its recorded original content and cross-checks the before, after, and proposal digests before
 continuing. Completed and pending files are then validated against current state, preserving
@@ -223,9 +224,9 @@ unrelated hooks, native trust records, and settings required by remaining hooks.
 Requests already sent to Jev cannot be recalled.
 
 Before writing configuration, the installer executes a bounded probe through the selected
-runtime and requires it to report Node 24.20.0 on Linux arm64 or macOS arm64. `/bin/true` or another merely
-executable file is not accepted as a runtime. The CLI, parser, and resident packaged entrypoints
-must all be readable regular files, and a declared Codex CLI version must be ready. The
+standalone executable and requires it to report Bun 1.3.14 on the declared arm64 platform. `/bin/true` or another merely
+executable file is not accepted as the package command. The CLI, parser, and resident packaged commands
+must all be executable regular files, and a declared Codex CLI version must be ready. The
 installer validates `config.toml` and `hooks.json`, preserves object and array order, and
 ordinary installation/update rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
 locally changed owned entries. Missing recorded hooks can be restored by repair/update. Explicit
