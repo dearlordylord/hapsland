@@ -549,18 +549,6 @@ def capsule_issued(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionCont
 def issue_prepared(+state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, capsule: T.EmissionContext) -> T.State:
   capsule_issued(state,job,capsule,None{},Engine.issue_actions(core(state),actions))
 
-def issue_prepared_output(+state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
-  capsule_issued(state,job,capsule,capture,Engine.issue_actions(core(state),actions))
-
-# Collector and Stop actions are genuine nonordinary emissions. Public Run
-# appends them after the ordinary handler's PendingEffects coalescing.
-def append_prepared(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, capsule: T.EmissionContext) -> T.State:
-  capsule_actions(actions,state,job,capsule,None{})
-
-def append_prepared_output(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>,
-    capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
-  capsule_actions(actions,state,job,capsule,capture)
-
 def issue_context(state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>) -> T.State:
   match source:
     case Some{capsule}: issue_prepared(state,actions,job,capsule)
