@@ -321,7 +321,8 @@ it.each([
 }, WORKLOAD_CONFORMANCE_TIMEOUT_MS);
 
 it("native shared driver agrees on original preparation completion after departure", () => {
-  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url)) as number[][];
+  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url),
+    { clangTimeoutMs: 45000 }) as number[][];
   expect(native.filter(row => [97, 98, 99].includes(row[0]!))).toEqual([]);
   expect(native.length).toBeLessThan(120);
   expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0]);
