@@ -8,8 +8,9 @@ const expected = (changed: boolean) => [
   // Shared issuance uses the actual owner allocator, also exercised independently
   // by createRun below: operation/request are3/4, then7/8.
   [12, 7, 1, 1, 1, 3, 4, changed ? 0 : 1],
+  ...(!changed ? [[18, 7]] : []),
   [12, 10, 1, 1, 1, 7, 8, 1],
-  ...(!changed ? [[18, 7]] : []), [18, 10],
+  [18, 10],
   [32, 10, changed ? 1 : 2, changed ? 5 : 10, 0, 0, 0],
 ];
 function nativeMilestones(rows: number[][]): number[][] {
