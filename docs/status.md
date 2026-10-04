@@ -111,7 +111,7 @@ being presented as healthy review.
 ## Optional session analytics
 
 Analytics recording is **disabled by default**. Enable it for a repository in
-its root `.review.jsonc` (merge this field into an existing version-one document):
+its root `.hapsland.jsonc` (merge this field into an existing version-one document):
 
 ```jsonc
 {

@@ -42,7 +42,7 @@ try {
   }));
   const config = { version: 1, packs: [{ id: "noul", enabled: false }, "rules.jsonc"] };
   if (scenario === "exclude-at-admission") config.excludes = [path];
-  await put(root, ".review.jsonc", JSON.stringify(config));
+  await put(root, ".hapsland.jsonc", JSON.stringify(config));
   const statePath = join(root, "consent");
   const observation = await Effect.runPromise(adaptCodexDirectEvent(
     updateEvent(root, path, [securityWireManifest.positive.root]),
@@ -84,7 +84,7 @@ try {
     events.push({ kind: "prepared", source: "production", repoId: "fixture-repo", path });
   }
   if (scenario === "exclude-at-dispatch") {
-    await put(root, ".review.jsonc", JSON.stringify({ ...config, excludes: [path] }));
+    await put(root, ".hapsland.jsonc", JSON.stringify({ ...config, excludes: [path] }));
   }
   events.push({
     kind: "fixtureAuthority", phase: "dispatch", source: "fixture", repoId: "fixture-repo",

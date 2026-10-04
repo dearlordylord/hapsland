@@ -67,7 +67,7 @@ try {
   }));
   const config = { version: 1, packs: [{ id: "noul", enabled: false }, "rules.jsonc"] };
   if (scenario === "exclude-at-admission") config.excludes = [path];
-  await put(root, ".review.jsonc", JSON.stringify(config));
+  await put(root, ".hapsland.jsonc", JSON.stringify(config));
   const statePath = join(root, "consent");
   event("fixtureAuthority", {
     phase: "admission", repoId: "fixture-repo", path,
@@ -139,7 +139,7 @@ try {
     event("postBuildParsed", { source: "production", path });
   }
   if (scenario === "exclude-at-dispatch") {
-    await put(root, ".review.jsonc", JSON.stringify({ ...config, excludes: [path] }));
+    await put(root, ".hapsland.jsonc", JSON.stringify({ ...config, excludes: [path] }));
     event("fixtureAuthority", {
       phase: "dispatch", repoId: "fixture-repo", path, destination: DEFAULT_DESTINATION,
       policyRevision: "excluded", source: "fixture",

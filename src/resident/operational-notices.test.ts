@@ -57,7 +57,7 @@ const installCapacityRule = async (root: string, threshold = 0.7, messageBytes =
         capabilities: ["root-declaration", "resolved-outbound-types"] }],
     }],
   }));
-  await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+  await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
 };
 
 const capacityDispatch = (statePath: string): ResidentDispatchContext => dispatch(statePath, {

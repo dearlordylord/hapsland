@@ -6,7 +6,7 @@ import { decodeConfigurationText } from "./decode.ts";
 import { configurationError, ConfigurationError } from "./errors.ts";
 import { captureConfiguration, resolveConfiguration, type ConfigurationLayer } from "./resolve.ts";
 
-export const PROJECT_CONFIGURATION_FILES = [".review.jsonc", ".realtime-review.jsonc"] as const;
+export const PROJECT_CONFIGURATION_FILE = ".hapsland.jsonc";
 
 export const DEFAULT_USER_CONFIGURATION_FILE = join(HAPSLAND_CONFIG_DIRECTORY, "config.jsonc");
 
@@ -56,18 +56,8 @@ const requestedProjectPath = Effect.fn("Configuration.requestedProjectPath")(fun
   return (yield* exists(candidate)) ? candidate : undefined;
 });
 const discoverProjectPath = Effect.fn("Configuration.discoverProjectPath")(function* (canonicalRoot: string) {
-  const found: Array<string> = [];
-  for (const name of PROJECT_CONFIGURATION_FILES) {
-    const candidate = join(canonicalRoot, name);
-    if (yield* exists(candidate)) found.push(candidate);
-  }
-  if (found.length > 1)
-    return yield* new ConfigurationError({
-      source: canonicalRoot,
-      field: "project",
-      reason: "multiple project configuration files were found at the Git root",
-    });
-  return found[0];
+  const candidate = join(canonicalRoot, PROJECT_CONFIGURATION_FILE);
+  return (yield* exists(candidate)) ? candidate : undefined;
 });
 const projectPath = Effect.fn("Configuration.findProject")(function* (root: string, requested: string | undefined) {
   const canonicalRoot = resolve(root);

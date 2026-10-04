@@ -221,7 +221,7 @@ describe("JSON subprocess contract", () => {
     writeFileSync(source, "type Existing = number\n");
     execFileSync("git", ["init", "--quiet", root]);
     // Malformed configuration must not start review for unsupported events.
-    writeFileSync(join(root, ".review.jsonc"), "{ malformed");
+    writeFileSync(join(root, ".hapsland.jsonc"), "{ malformed");
     const capturePath = join(root, "backend-called.txt");
     const residentDirectory = join(root, "runtime");
     const base = {

@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { decodeConfigurationText } from "./decode.ts";
-import { DEFAULT_USER_CONFIGURATION_FILE, PROJECT_CONFIGURATION_FILES } from "./load.ts";
+import { DEFAULT_USER_CONFIGURATION_FILE, PROJECT_CONFIGURATION_FILE } from "./load.ts";
 import { resolveConfiguration, type ConfigurationLayer } from "./resolve.ts";
 import type { ClaudeFeedbackMode, ConfigurationOrigin } from "./types.ts";
 
@@ -35,12 +35,9 @@ export const readCurrentClaudeFeedbackAuthority = (
     const user = readLayer("user", userConfigPath === undefined
       ? DEFAULT_USER_CONFIGURATION_FILE
       : resolve(userConfigPath));
-    const projects = PROJECT_CONFIGURATION_FILES.map((name) =>
-      readLayer("project", join(canonicalRoot, name))
-    ).filter((layer): layer is ConfigurationLayer => layer !== undefined);
-    if (projects.length > 1) return { valid: false };
+    const project = readLayer("project", join(canonicalRoot, PROJECT_CONFIGURATION_FILE));
     const policy = resolveConfiguration(
-      [...(user === undefined ? [] : [user]), ...projects],
+      [...(user === undefined ? [] : [user]), ...(project === undefined ? [] : [project])],
       canonicalRoot,
     );
     return {

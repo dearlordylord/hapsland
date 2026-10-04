@@ -88,7 +88,7 @@ describe("Claude Code 2.1.218 direct adapter", () => {
   });
   it("selects configured files before the first source read", async () => {
     const root = await makeGitFixture();
-    await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["excluded.ts"]}\n');
+    await writeFile(join(root, ".hapsland.jsonc"), '{"version":1,"excludes":["excluded.ts"]}\n');
     const userConfigPath = join(root, "user-selection.jsonc");
     await writeFile(userConfigPath, '{"version":1,"excludes":["user-excluded.ts"]}\n');
     await writeFile(join(root, ".gitignore"), "ignored.ts\n");

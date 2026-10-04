@@ -9,9 +9,7 @@ File settings select reviewable files. With no file settings, all otherwise
 eligible files are selected when review credentials are available. User exclusions
 accumulate with project exclusions; a user `"**/*"` exclusion turns review off.
 
-Project configuration is read once from the Git working-tree root. The supported
-project names are `.review.jsonc` and `.realtime-review.jsonc`; finding both is an
-error. User defaults are read from
+Project configuration is read once from the Git working-tree root. The project file is `.hapsland.jsonc`. User defaults are read from
 `$REVIEW_USER_CONFIG_PATH`, or (when that variable is absent)
 `$XDG_CONFIG_HOME/hapsland/config.jsonc`, defaulting to
 `~/.config/hapsland/config.jsonc` when the XDG base is absent, empty or relative. There is no nested directory
@@ -34,7 +32,7 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | --- | --- | --- |
 | Built-in | Bundled defaults and Noul rule pack | Supplies defaults when neither user nor project sets a value. |
 | User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Supplies personal defaults and controls shared resident resources and review destination. |
-| Project | `.review.jsonc` or `.realtime-review.jsonc` at the canonical Git root | Overrides ordinary settings for this repository; both files together are an error. There are no nested config layers. |
+| Project | `.hapsland.jsonc` at the canonical Git root | Overrides ordinary settings for this repository. There are no nested config layers. |
 | Rule packs | Explicit `packs` paths in either document | Rule definitions, not another global config layer. Relative paths resolve from the declaring config. |
 
 Project overrides user for `sessionAnalytics` (including `false`) and include

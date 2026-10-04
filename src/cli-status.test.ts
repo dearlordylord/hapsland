@@ -18,7 +18,7 @@ const status = (root: string, format?: "human") => spawnSync(process.execPath, [
 
 it("reads the session receipt when repository configuration is malformed", async () => {
   const root = await makeGitFixture(); roots.push(root);
-  writeFileSync(join(root, ".review.jsonc"), "{malformed");
+  writeFileSync(join(root, ".hapsland.jsonc"), "{malformed");
   const result = status(root);
   expect(result.status, result.stderr).toBe(0);
   expect(JSON.parse(result.stdout)).toMatchObject({ sessionId: "status-session", activitySource: "resident-v1",
@@ -29,7 +29,7 @@ it("reads the session receipt when repository configuration is malformed", async
 
 it("reports empty file selection independently of credential presence", async () => {
   const root = await makeGitFixture(); roots.push(root);
-  writeFileSync(join(root, ".review.jsonc"), JSON.stringify({ version: 1, includes: [] }));
+  writeFileSync(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, includes: [] }));
   const result = status(root);
   expect(result.status, result.stderr).toBe(0);
   expect(JSON.parse(result.stdout).readiness).toMatchObject({ status: "not-ready", configuration: "ready",

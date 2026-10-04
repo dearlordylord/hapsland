@@ -1773,7 +1773,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
             capabilities: ["root-declaration", "resolved-outbound-types"] }],
         }],
       }));
-      await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+      await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
       const statePath = join(root, "consent");
       const capturePath = join(root, "backend-calls");
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
@@ -2296,7 +2296,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       }],
     });
     await put(root, "rules.jsonc", rules("first recommendation"));
-    await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();

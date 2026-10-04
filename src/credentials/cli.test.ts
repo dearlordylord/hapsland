@@ -39,7 +39,7 @@ describe("public credential CLI", () => {
     const marker = "synthetic-cli-secret-marker";
     const entrypoint = join(process.cwd(), "src", "cli.ts");
     spawnSync("git", ["init", "--quiet"], { cwd: root });
-    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n');
+    writeFileSync(join(root, ".hapsland.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n');
     writeFileSync(helper, `#!/usr/bin/env node
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
@@ -142,7 +142,7 @@ if (process.argv[2] === "probe") console.log('{"version":1,"status":"available"}
     const helper = join(root, "helper.mjs");
     const entrypoint = join(process.cwd(), "src", "cli.ts");
     spawnSync("git", ["init", "--quiet"], { cwd: root });
-    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n');
+    writeFileSync(join(root, ".hapsland.jsonc"), '{"version":1,"credentialEnvVar":"ALT_KEY"}\n');
     writeFileSync(helper, `#!/usr/bin/env node
 console.log('{"version":1,"status":"missing"}');
 `, { mode: 0o700 });
