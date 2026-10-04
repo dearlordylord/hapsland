@@ -18,6 +18,9 @@ import ./Scheduler.bend as Scheduler
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/ImportGraph.bend as ImportGraph
 import ../agent-flow-bend/Ledger.bend as Ledger
+import ../agent-flow-bend/Dispatch.bend as Dispatch
+import ./AdviceeLifecycle.bend as AdviceeLifecycle
+import ./AdviceeLifecycleCleanup.bend as LifecycleCleanup
 
 # Generic factual orchestration over the shared decision/effect owner. Every
 # dated input goes through Engine.enqueue/take; this module never selects order.
@@ -73,7 +76,7 @@ def arrival_activity(state: T.State, emission: Workload.Emission) -> Nat:
     case Workload.Emission{_,partition,_,_,_,_,_,_,_,_}:
       activity_incarnation(Engine.activity_scope(core(state),partition))
 
-def arrivals(events: List<&2, Workload.Emission>, state: T.State) -> T.State:
+def arrivals(events: List<&2, Workload.Emission>, +state: T.State) -> T.State:
   match events:
     case Nil{}: state
     case +head <> tail: arrivals(tail, enqueue(state, arrival_time(head), T.Arrival{head,arrival_activity(state,head)}))
@@ -86,7 +89,7 @@ def workload_changed(state: T.State, changed: Engine.WorkloadTransition) -> T.St
 def workload(+state: T.State, partition: Nat, action: Workload.Action) -> T.State:
   workload_changed(state, Engine.workload_action(core(state), partition, action))
 
-def configure_profile(state: T.State, partition: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
+def configure_profile(+state: T.State, partition: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
   match profile:
     case None{}: state
     case Some{profile}: replace_core(state,Engine.configure_workload(core(state),partition,profile))
@@ -112,7 +115,7 @@ def startup_scope(+state: T.State, scope: Maybe<&2,Advicees.Scope>) -> T.State:
     case Some{Advicees.Scope{_,partition,_}}: workload(state,partition,Workload.Next{})
     case None{}: invalid(state)
 
-def startup_profile(state: T.State, identity: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
+def startup_profile(+state: T.State, identity: Nat, profile: Maybe<&2,Workload.Profile>) -> T.State:
   match profile:
     case None{}: state
     case Some{_}: startup_scope(state,Engine.advicee_identity(core(state),identity))
@@ -589,19 +592,24 @@ def cancel_retired(state: T.State, action: Driver.Action) -> T.State:
 def expired(+state: T.State, job: Maybe<&2, T.Job>, advice: Maybe<&2, Nat>) -> T.State:
   match advice:
     case Some{+advice}:
-      handled_actions(state, job, Driver.retired_work(Driver.find_operation(Driver.work_list(Engine.canonical(core(state))), advice), advice))
+      handled_actions(drop_job(state,advice), job, Driver.retired_work(Driver.find_operation(Driver.work_list(Engine.canonical(core(state))), advice), advice))
     case None{}: state
 
 def expired_action(state: T.State, action: Driver.Action, job: Maybe<&2, T.Job>) -> T.State:
   match action:
     case Driver.Action{_, _, _, _, advice}: expired(state, job, advice)
 
+def retired_candidate(state: T.State, action: Driver.Action) -> T.State:
+  match action:
+    case Driver.Action{_,_,Some{Driver.Candidate{_,advice,_,_,_,_}},_,_}: cancel_expiry(state,advice)
+    case _: state
+
 def ordinary_fallback(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T.Job>, command: Canonical.Command, prepared: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>) -> T.State:
   match command:
     case Canonical.CollectionAdviceRetired{}: cancel_retired(state, action)
     case Canonical.CollectionExpired{}: expired_action(state, action, job)
     case Canonical.SubmissionUnsuppressed{}: handle_prepared(state,action,job,Canonical.SubmissionUnsuppressed{},prepared,receipt)
-    case Canonical.RetireCandidate{}: handle_prepared(state,action,job,Canonical.RetireCandidate{},prepared,receipt)
+    case Canonical.RetireCandidate{}: retired_candidate(handle_prepared(state,action,job,Canonical.RetireCandidate{},prepared,receipt),action)
     case Canonical.Prepare{operation, _}: prepare_job(state, job, operation)
     case command: handle_prepared(state, action, job, command, prepared,receipt)
 
@@ -763,6 +771,37 @@ def drop_parent(state: T.State, parent: Maybe<&2,Nat>) -> T.State:
     case Some{operation}: drop_job(state,operation)
     case None{}: state
 
+def running_operation(entries: List<&2,Dispatch.Entry>, +operation: Nat) -> Bool:
+  match entries:
+    case Nil{}: False{}
+    case Dispatch.Entry{_,_,_,owner,_,_,_} <> tail:
+      Nat.is_eq(owner,operation) || running_operation(tail,operation)
+
+def running_before(before: Canonical.State, operation: Nat) -> Bool:
+  match before:
+    case Canonical.State{_,_,_,_,_,_,Dispatch.State{_,running,_,_,_},_,_}:
+      running_operation(running,operation)
+
+def refused_job(remove: Bool, state: T.State, operation: Nat) -> T.State:
+  match remove:
+    case True{}: drop_job(state,operation)
+    case False{}: state
+
+def refusal_command(command: Canonical.Command, event: Canonical.CanonicalEvent,
+    before: Canonical.State, state: T.State) -> T.State:
+  match command event:
+    case Canonical.PreparationRefused{} Canonical.BeginObservedPreparation{_,_,_,operation,_}:
+      drop_job(state,operation)
+    case Canonical.JevRequestUnavailable{} Canonical.JevRequestReady{_,_,_,+operation,_,_,_,_,_,_}:
+      refused_job(running_before(before,operation),state,operation)
+    case _ _: state
+
+def refusal_jobs(commands: List<&2,Canonical.Command>, +event: Canonical.CanonicalEvent,
+    +before: Canonical.State, state: T.State) -> T.State:
+  match commands:
+    case Nil{}: state
+    case command <> tail: refusal_jobs(tail,event,before,refusal_command(command,event,before,state))
+
 def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State) -> T.State:
   match event:
     case Canonical.PreparationCompleted{p,l,r,+operation,_}:
@@ -904,8 +943,8 @@ def product_feedback(+state: T.State, +event: Canonical.CanonicalEvent, commands
     wake_event(collector_completed(state,job,Engine.collector_after(core(state),event),source),event),event,job)
 
 def advanced_product(+state: T.State, +event: Canonical.CanonicalEvent, +action: Driver.Action,
-    +job: Maybe<&2, T.Job>, before: Canonical.State, +after: Canonical.State, +commands: List<&2, Canonical.Command>, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
-  product_frame(event_jobs(product_feedback(issue_context(ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job),post,job,source),event,commands,job,source),event,before), event, before, after, commands, None{},runtime_before,source,transition_after,provided_input(job,source_job))
+    +job: Maybe<&2, T.Job>, +before: Canonical.State, +after: Canonical.State, +commands: List<&2, Canonical.Command>, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
+  product_frame(event_jobs(refusal_jobs(commands,event,before,product_feedback(issue_context(ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job),post,job,source),event,commands,job,source)),event,before), event, before, after, commands, None{},runtime_before,source,transition_after,provided_input(job,source_job))
 
 def product_result(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action,
     +job: Maybe<&2, T.Job>, before: Canonical.State, result: Canonical.Step, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
@@ -1385,8 +1424,65 @@ def controlled_environment(valid: Bool, state: T.State, current: Bool, ready: Bo
     case True{}: environment_control(state, current, ready, generation, readable)
     case False{}: T.Controlled{state, False{}}
 
+def drop_operations(operations: List<&2,Nat>, state: T.State) -> T.State:
+  match operations:
+    case Nil{}: state
+    case operation <> tail: drop_operations(tail,drop_job(state,operation))
+
+def retained_finish_item(remove: Bool, item: T.Item, rest: List<&2,T.Item>) -> List<&2,T.Item>:
+  match remove:
+    case True{}: rest
+    case False{}: item <> rest
+
+def lifecycle_finish_items(items: List<&2,T.Item>, +partition: Nat, +attempt: Nat) -> List<&2,T.Item>:
+  match items:
+    case Nil{}: []
+    case T.Item{order,T.FinishInput{action,T.Job{+p,l,r,bytes,units,revision,repair,duration,source_job},+token,source}} <> tail:
+      retained_finish_item(Nat.is_eq(p,partition) && Nat.is_eq(token,attempt),
+        T.Item{order,T.FinishInput{action,T.Job{p,l,r,bytes,units,revision,repair,duration,source_job},token,source}},
+        lifecycle_finish_items(tail,partition,attempt))
+    case item <> tail: item <> lifecycle_finish_items(tail,partition,attempt)
+
+# Public lifecycle departure removes queued Stop payloads; the original physical
+# callback registry and its scheduler facts remain under their existing owner.
+def lifecycle_finish(+state: T.State, partition: Nat, finish: Maybe<&2,StopScenario.Finish>) -> T.State:
+  match finish:
+    case Some{value}: lifecycle_finish_removed(state,partition,finish_attempt(value))
+    case None{}: state
+
+def lifecycle_finish_removed(state: T.State, +partition: Nat, attempt: Nat) -> T.State:
+  match state:
+    case T.State{+core,items,next,count,seed,environment,latest,valid,prepared,jobs}:
+      T.State{[Engine.stop_close(core_value(core),partition)],lifecycle_finish_items(items,partition,attempt),next,count,seed,environment,latest,valid,prepared,jobs}
+
+def lifecycle_current(+state: T.State, +partition: Nat, entry: Maybe<&2,AdviceeLifecycle.Entry>) -> T.State:
+  match entry:
+    case Some{AdviceeLifecycle.Entry{_,_,AdviceeLifecycle.Active{}}}: state
+    case Some{_}: lifecycle_finish(state,partition,StopScenario.find(finish_scopes(state),partition))
+    case None{}: state
+
+def lifecycle_cleanup(state: T.State, cleanup: LifecycleCleanup.CleanupPlan, events: List<&2,Workload.Emission>) -> T.State:
+  match cleanup:
+    case LifecycleCleanup.CleanupPlan{actions,operations,_}:
+      arrivals(events,issue(drop_operations(operations,state),actions,None{}))
+
+def lifecycle_result(original: T.State, partition: Nat, transition: Engine.LifecycleTransition) -> T.Controlled:
+  match transition:
+    case Engine.LifecycleTransition{+core,AdviceeLifecycle.Changed{_,_,+current,valid},cleanup,events}:
+      T.Controlled{lifecycle_cleanup(lifecycle_current(replace_core(original,core),partition,current),cleanup,events),valid}
+
+def lifecycle_scope(+state: T.State, scope: Maybe<&2,Advicees.Scope>, action: AdviceeLifecycle.Action) -> T.Controlled:
+  match scope:
+    case Some{Advicees.Scope{_,+partition,_}}:
+      lifecycle_result(state,partition,Engine.lifecycle_action(core(state),partition,action))
+    case None{}: T.Controlled{state,False{}}
+
+def lifecycle(+state: T.State, identity: Nat, action: AdviceeLifecycle.Action) -> T.Controlled:
+  lifecycle_scope(state,Engine.advicee_identity(core(state),identity),action)
+
 def control(+state: T.State, control: T.Control) -> T.Controlled:
   match control:
+    case T.AdviceeLifecycleControl{identity,action}: lifecycle(state,identity,action)
     case T.WorkloadControl{identity, +value}: controlled_workload(workload_supported(value), state, identity, value)
     case T.JevProfile{+delay, +weights}:
       jev_supported(Nat.is_le(delay, 1000000000n) && Nat.is_eq(List.length(&2, Numeric.Words, weights), 6n) && weights_valid(weights) && weights_enabled(weights), state, delay, weights)

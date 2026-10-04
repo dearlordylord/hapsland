@@ -1,6 +1,7 @@
 import Base
 import ./Types.bend as EngineTypes
 import ./Workload.bend as Workload
+import ./AdviceeLifecycle.bend as AdviceeLifecycle
 import ./Driver.bend as Driver
 import ./Callbacks.bend as Callbacks
 import ./CollectorScenario.bend as CollectorScenario
@@ -64,6 +65,7 @@ type Step is Data:
 type Advanced is Data:
   Advanced{state: State, frames: List<&2, Frame>, physical: List<&2,PhysicalDelivery>}
 type Control is Data:
+  AdviceeLifecycleControl{identity: Nat, action: AdviceeLifecycle.Action}
   WorkloadControl{identity: Maybe<&2, Nat>, control: Workload.Control}
   JevProfile{delay: Nat, weights: List<&2, Numeric.Words>}
   EnvironmentControl{current_work: Bool, credential_ready: Bool, credential_generation: Nat, source_readable: Bool}
