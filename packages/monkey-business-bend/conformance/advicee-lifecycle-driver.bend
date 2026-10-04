@@ -544,7 +544,7 @@ def stop_poll_items(items: List<&2,Item>, +finish: StopScenario.Finish) -> List<
   match items:
     case Nil{}: []
     case +item <> tail:
-      stop_poll_keep(Bool.not(stop_poll_owned(stop_stop_item_input(item),finish)),item,stop_poll_items(tail,finish))
+      stop_poll_keep(Bool.not(stop_poll_owned(stop_item_input(item),finish)),item,stop_poll_items(tail,finish))
 
 def stop_poll_orders(items: List<&2,Item>, state: Types.State, +finish: StopScenario.Finish) -> Types.State:
   match items:
