@@ -1422,14 +1422,20 @@ def runtime_step(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent) -> 
 
 # Keep genuine transport values boxed until their owning operation needs them.
 # The affine transition factory remains separate from this data carrier.
+type EventRequest is Data:
+  EventRequest{runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
+    job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
+    environment: Environment}
+
 type PendingEvent is Data:
   PendingEvent{runtime: List<&2,Runtime>, event: List<&2,Canonical.CanonicalEvent>,
     job: List<&2,Job>, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>,
     environment: List<&2,Environment>}
 
-def pending_event(runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent, job: Job,
-    now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment) -> PendingEvent:
-  PendingEvent{runtime,[event],[job],now,order,candidate,[environment]}
+def pending_event(request: EventRequest) -> PendingEvent:
+  match request:
+    case EventRequest{runtime,event,job,now,order,candidate,environment}:
+      PendingEvent{runtime,[event],[job],now,order,candidate,[environment]}
 
 def pending_runtime(pending: PendingEvent) -> List<&2,Runtime>:
   match pending:
@@ -1484,10 +1490,9 @@ def observed_pending(-F: Data, +pending: PendingEvent,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   observed_fenced(F,pending_fence(pending),pending,factory)
 
-def observed_event(-F: Data, runtime: List<&2,Runtime>, event: Canonical.CanonicalEvent,
-    job: Job, now: Nat, order: Nat, candidate: Maybe<&2,Driver.Candidate>, environment: Environment,
+def observed_event(-F: Data, +request: EventRequest,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observed_pending(F,pending_event(runtime,event,job,now,order,candidate,environment),factory)
+  observed_pending(F,pending_event(request),factory)
 
 def observed_edit(-F: Data, attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2,Stored>,
     +job: Job, +now: Nat, delay: Nat, hook: CommandHook<F>) -> Observed<F>:
@@ -1659,10 +1664,10 @@ def observed_input(-F: Data, value: Input, runtime: List<&2,Runtime>,
     now: Nat, order: Nat, environment: Environment,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match value:
-    case Event{Driver.Action{event,_,candidate,_,_},job,_,issuance}:
-      observed_event(F,runtime,event,job,now,order,candidate,environment,factory)
-    case FitEvent{Driver.Action{event,_,candidate,_,_},job,attempt,_,issuance}:
-      observed_event(F,runtime,event,job,now,order,candidate,stop_fit_environment(environment,attempt),factory)
+    case Event{Driver.Action{event,_,candidate,_,_},job,_,_}:
+      observed_event(F,EventRequest{runtime,event,job,now,order,candidate,environment},factory)
+    case FitEvent{Driver.Action{event,_,candidate,_,_},job,attempt,_,_}:
+      observed_event(F,EventRequest{runtime,event,job,now,order,candidate,stop_fit_environment(environment,attempt)},factory)
     case Cache{fact,job}: observed_cache_input(F,runtime,fact,job,now,order,environment,factory)
     case Finish{input}: observed_finish(F,runtime,input,now,order,transition_commands(F,factory([])))
     case FinishIntent{p,started,cutoff,recurring}: observed_finish_intent(F,runtime,p,started,cutoff,recurring,now,order,transition_commands(F,factory([])))
@@ -1770,18 +1775,26 @@ def observed_take_ready(-F: Data, taken: List<&2,Engine.Taken>, runtime: List<&2
 type ObserveRequest is Data:
   ObserveRequest{runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
 
-def observe_request(runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment) -> ObserveRequest:
-  ObserveRequest{runtime,receipt,environment}
+type ObserveSelection is Data:
+  ObserveSelection{taken: List<&2,Engine.Taken>, request: ObserveRequest}
+
+def observe_selection(request: ObserveRequest) -> ObserveSelection:
+  match request:
+    case ObserveRequest{runtime,_,_}: ObserveSelection{observed_take(runtime),request}
+
+def observe_selection_ready(-F: Data, +selection: ObserveSelection,
+    factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
+  match selection:
+    case ObserveSelection{taken,ObserveRequest{runtime,receipt,environment}}:
+      observed_taken(F,taken,runtime,receipt,environment,factory)
 
 def observe_request_ready(-F: Data, +request: ObserveRequest,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  match request:
-    case ObserveRequest{+runtime,receipt,environment}:
-      observed_take_ready(F,observed_take(runtime),runtime,receipt,environment,factory)
+  observe_selection_ready(F,observe_selection(request),factory)
 
 def observe_step_with(-F: Data, +runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
-  observe_request_ready(F,observe_request(runtime,receipt,environment),factory)
+  observe_request_ready(F,ObserveRequest{runtime,receipt,environment},factory)
 
 def observe_step(-F: Data, runtime: List<&2,Runtime>,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
