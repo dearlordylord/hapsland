@@ -90,7 +90,10 @@ export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited
   await mkdir(join(runDirectory, "stages"), { recursive: true });
   const startedAt = new Date().toISOString();
   if (!inherited) {
-    await atomicJson(join(runDirectory, "manifest.json"), { ...context, mode, startedAt, plannedStages: mode === "test" ? [...precheckStages.map(stage => stage[0]), "package-build", "package-pack", "vitest"] : [mode] });
+    const plannedStages = mode === "test"
+      ? ["source-identity", ...precheckStages.map(stage => stage[0]), "package-build", "package-pack", "vitest"]
+      : mode === "quality" ? ["source-identity", "quality"] : [mode];
+    await atomicJson(join(runDirectory, "manifest.json"), { ...context, mode, startedAt, plannedStages, skippedStages: [] });
     await atomicJson(join(runsRoot, "latest.json"), { id: context.id });
     await atomicJson(join(runDirectory, "status.json"), { id: context.id, mode, state: "running", startedAt, deadline: context.deadline, pid: process.pid });
   }
@@ -184,6 +187,35 @@ export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited
     output(`${record.state.toUpperCase()} ${name} ${(record.elapsedMs / 1000).toFixed(2)}s; exit ${record.exitCode ?? "none"}${record.signal ? ` signal ${record.signal}` : ""}; log ${logPath}`);
     return record;
   }
+  async function recordSyntheticStage({ name, state, reason = undefined, error = undefined, dependsOn = [] }) {
+    const begin = Date.now();
+    const basename = `${process.pid}-${String(++sequence).padStart(3, "0")}-${name.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+    const record = {
+      name,
+      ownerPid: process.pid,
+      command: null,
+      args: [],
+      startedAt: new Date(begin).toISOString(),
+      state,
+      exitCode: null,
+      signal: null,
+      timedOut: false,
+      elapsedMs: 0,
+      ...(reason ? { reason } : {}),
+      ...(error ? { error } : {}),
+      ...(dependsOn.length ? { dependsOn } : {}),
+    };
+    await atomicJson(join(runDirectory, "stages", `${basename}.json`), record);
+    output(`${state === "failed" ? "FAIL" : "SKIP"} ${name}; ${error ?? reason ?? "no process launched"}`);
+    return record;
+  }
+  async function recordSkippedStage({ name, reason = undefined, dependsOn = [] }) {
+    return recordSyntheticStage({ name, state: "not-started", reason, dependsOn });
+  }
+  async function recordFailedStage({ name, error, reason = undefined, dependsOn = [] }) {
+    const message = error instanceof Error ? error.message : String(error);
+    return recordSyntheticStage({ name, state: "failed", error: message, reason, dependsOn });
+  }
   async function finish() {
     clearInterval(failureTimer);
     await reportFailures();
@@ -209,11 +241,14 @@ export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited
     const errors = await failures(runDirectory);
     const evaluatedStages = inherited ? stages.filter(stage => stage.ownerPid === process.pid) : stages;
     const failedStages = evaluatedStages.filter(stage => stage.state !== "passed");
+    const skippedStages = stages.filter(stage => stage.state === "not-started" && stage.reason).map(stage => ({ name: stage.name, reason: stage.reason, ...(stage.dependsOn?.length ? { dependsOn: stage.dependsOn } : {}) }));
     const success = !aborted && evaluatedStages.length > 0 && failedStages.length === 0 && errors.length === 0;
     const thresholdBreach = mode === "quality" && !aborted && errors.length === 0 && failedStages.length === 1 && failedStages[0].name === "quality" && failedStages[0].exitCode === 2;
     const exitCode = success ? 0 : thresholdBreach ? 2 : 1;
     if (!inherited) {
-      const status = { id: context.id, mode, state: success ? "passed" : aborted ? "aborted" : "failed", exitCode, startedAt, finishedAt: new Date().toISOString(), elapsedMs: Date.now() - Date.parse(startedAt), reason: abortReason, failedStages: failedStages.map(stage => stage.name), failures: errors.length };
+      const status = { id: context.id, mode, state: success ? "passed" : aborted ? "aborted" : "failed", exitCode, startedAt, finishedAt: new Date().toISOString(), elapsedMs: Date.now() - Date.parse(startedAt), reason: abortReason, failedStages: failedStages.map(stage => stage.name), skippedStages, failures: errors.length };
+      const manifest = await readJson(join(runDirectory, "manifest.json"));
+      await atomicJson(join(runDirectory, "manifest.json"), { ...manifest, skippedStages });
       await atomicJson(join(runDirectory, "results.json"), { ...status, stages, testFailures: errors });
       await atomicJson(join(runDirectory, "status.json"), status);
       if (ownsLock && !unresolvedGroups) await unlink(lockPath);
@@ -221,7 +256,7 @@ export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited
     }
     return exitCode;
   }
-  return { root, runDirectory, context, runStage, finish, get aborted() { return aborted; } };
+  return { root, runDirectory, context, runStage, recordSkippedStage, recordFailedStage, finish, get aborted() { return aborted; } };
 }
 
 export async function focusedSelection(root, args) {
@@ -238,7 +273,6 @@ export async function focusedSelection(root, args) {
 }
 
 export async function main(argv = process.argv.slice(2), root = defaultRoot) {
-  const entryTime = Date.now();
   const [mode, ...raw] = argv;
   if (!["test", "focused", "quality", "status"].includes(mode)) throw new Error("Usage: run-checks.mjs test|focused|quality|status [args]");
   if (mode === "status") {
@@ -253,43 +287,53 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
   if (mode === "test" && args.some(arg => arg !== "--coverage")) throw new Error("Full test accepts --coverage only; use focused for file selection.");
   if (mode === "quality" && args.length) throw new Error("Quality does not accept test-selection arguments");
   const selection = mode === "focused" ? await focusedSelection(root, args) : undefined;
-  const { sourceIdentity } = await import("./prepare-archive.mjs");
-  const sourceDigest = mode === "focused" ? undefined : await sourceIdentity(root);
-  const remainingMs = timeoutMs - (Date.now() - entryTime);
-  if (remainingMs <= 0) throw new Error("Deadline expired while identifying inputs; no command started");
-  const run = await createRun({ root, mode, timeoutMs: remainingMs, inherited: process.env[contextVariable] });
-  await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), { sourceDigest });
+  const { sourceIdentity, prepareArchive } = await import("./prepare-archive.mjs");
+  const run = await createRun({ root, mode, timeoutMs, inherited: process.env[contextVariable] });
+  let sourceDigest;
+  try {
+    sourceDigest = mode === "focused" ? undefined : await sourceIdentity(root);
+    await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), { sourceDigest });
+  } catch (error) {
+    await run.recordFailedStage({ name: "source-identity", error, reason: "source-identification-failed" });
+    await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), { sourceIdentityError: error instanceof Error ? error.message : String(error) });
+    return run.finish();
+  }
   try {
     if (mode === "quality") await run.runStage({ name: "quality", command: join(root, "node_modules", ".bin", "crap4ts") });
     else if (mode === "focused") {
       if (selection.nodeFiles.length) await run.runStage({ name: "node-focused", command: process.execPath, args: ["--test", ...selection.nodeFiles] });
       if (selection.vitestFiles.length) await run.runStage({ name: "vitest-focused", command: join(root, "node_modules", ".bin", "vitest"), args: ["run", "--maxWorkers=1", ...selection.vitestFiles, ...selection.options] });
     } else {
+      const precheckFailures = [];
       for (const [name, ...stageArgs] of precheckStages) {
         if (run.aborted) break;
-        await run.runStage({ name, command: process.execPath, args: stageArgs });
+        const result = await run.runStage({ name, command: process.execPath, args: stageArgs });
+        if (result.state !== "passed") precheckFailures.push(result);
       }
-      if (!run.aborted) {
-        const { prepareArchive } = await import("./prepare-archive.mjs");
+      if (precheckFailures.length) {
+        const dependsOn = precheckFailures.map(stage => stage.name);
+        for (const name of ["package-build", "package-pack", "vitest"]) {
+          await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn });
+        }
+      } else if (!run.aborted) {
         let archive;
         try { archive = await prepareArchive({ root, runDirectory: run.runDirectory, runStage: run.runStage }); }
         catch (error) {
-          await atomicJson(join(run.runDirectory, "stages", `${process.pid}-archive-error.json`), { name: "package-archive", startedAt: new Date().toISOString(), state: "failed", exitCode: null, error: error.message, elapsedMs: 0 });
-          console.error(`FAIL package-archive: ${error.message}`);
+          await run.recordFailedStage({ name: "package-archive", error });
+          console.error(`FAIL package-archive: ${error instanceof Error ? error.message : String(error)}`);
         }
         if (!run.aborted && archive) await run.runStage({ name: "vitest", command: join(root, "node_modules", ".bin", "vitest"), args: ["run", "--maxWorkers=1", ...args], env: { HAPSLAND_TEST_PACKAGE_ARCHIVE: archive.archivePath } });
+        else if (!run.aborted) await run.recordSkippedStage({ name: "vitest", reason: "archive-failed", dependsOn: ["package-archive"] });
       }
     }
   } catch (error) {
-    await atomicJson(join(run.runDirectory, "stages", `${process.pid}-runner-error.json`), { name: "runner", startedAt: new Date().toISOString(), state: "failed", exitCode: null, error: error.message, elapsedMs: 0 });
-    console.error(error.message);
+    await run.recordFailedStage({ name: "runner", error });
+    console.error(error instanceof Error ? error.message : String(error));
   }
   try {
-  if (sourceDigest !== undefined && await sourceIdentity(root) !== sourceDigest) {
-    await atomicJson(join(run.runDirectory, "stages", `${process.pid}-changed-inputs.json`), { name: "source-identity", startedAt: new Date().toISOString(), state: "failed", exitCode: null, error: "Source inputs changed during the run; this run does not validate current sources", elapsedMs: 0 });
-  }
+  if (sourceDigest !== undefined && await sourceIdentity(root) !== sourceDigest) await run.recordFailedStage({ name: "source-identity", error: "Source inputs changed during the run; this run does not validate current sources" });
   } catch (error) {
-    await atomicJson(join(run.runDirectory, "stages", `${process.pid}-identity-error.json`), { name: "source-identity", startedAt: new Date().toISOString(), state: "failed", exitCode: null, error: error.message, elapsedMs: 0 });
+    await run.recordFailedStage({ name: "source-identity", error });
   }
   return run.finish();
 }

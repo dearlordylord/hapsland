@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRun, stageResults, focusedSelection } from "./run-checks.mjs";
+import { createRun, stageResults, focusedSelection, main } from "./run-checks.mjs";
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"));
@@ -24,6 +24,45 @@ test("ordinary failure preserves its log and does not suppress independent check
   assert.match(await readFile(results[0].logPath, "utf8"), /first failure/);
   const status = JSON.parse(await readFile(join(run.runDirectory, "status.json"), "utf8"));
   assert.deepEqual(status.failedStages, ["bad"]);
+});
+
+test("source identity failures retain a terminal run record", async t => {
+  const root = await fixture(t);
+  assert.equal(await main(["test", "--timeout-ms=30000"], root), 1);
+  const latest = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8"));
+  const runDirectory = join(root, ".test-runs", latest.id);
+  const manifest = JSON.parse(await readFile(join(runDirectory, "manifest.json"), "utf8"));
+  const results = JSON.parse(await readFile(join(runDirectory, "results.json"), "utf8"));
+  const inputs = JSON.parse(await readFile(join(runDirectory, `inputs-${process.pid}.json`), "utf8"));
+  assert.equal(results.state, "failed");
+  assert.deepEqual(results.failedStages, ["source-identity"]);
+  assert.equal(results.stages.length, 1);
+  assert.equal(results.stages[0].state, "failed");
+  assert.match(results.stages[0].error, /git|repository/i);
+  assert.match(inputs.sourceIdentityError, /git|repository/i);
+  assert.deepEqual(manifest.skippedStages, []);
+});
+
+test("prerequisite failures retain independent checks and record skipped dependents", async t => {
+  const root = await fixture(t);
+  const run = await createRun({ root, mode: "test", timeoutMs: 30_000, inherited: undefined, output() {} });
+  const failed = await run.runStage(command("precheck-failed", "process.exit(9)"));
+  const independent = await run.runStage(command("precheck-independent", "process.exit(0)"));
+  assert.equal(failed.state, "failed");
+  assert.equal(independent.state, "passed");
+  for (const name of ["package-build", "package-pack", "vitest"]) {
+    await run.recordSkippedStage({ name, reason: "prerequisite-failed", dependsOn: [failed.name] });
+  }
+  assert.equal(await run.finish(), 1);
+  const results = JSON.parse(await readFile(join(run.runDirectory, "results.json"), "utf8"));
+  assert.deepEqual(results.skippedStages, [
+    { name: "package-build", reason: "prerequisite-failed", dependsOn: ["precheck-failed"] },
+    { name: "package-pack", reason: "prerequisite-failed", dependsOn: ["precheck-failed"] },
+    { name: "vitest", reason: "prerequisite-failed", dependsOn: ["precheck-failed"] },
+  ]);
+  const manifest = JSON.parse(await readFile(join(run.runDirectory, "manifest.json"), "utf8"));
+  assert.deepEqual(manifest.skippedStages, results.skippedStages);
+  assert.equal(results.stages.filter(stage => stage.state === "not-started").length, 3);
 });
 
 test("deadline terminates a child, persists failure, and admits no later work", async t => {
