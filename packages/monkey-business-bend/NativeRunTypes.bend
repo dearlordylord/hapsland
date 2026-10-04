@@ -24,12 +24,14 @@ type Config is Data:
 type Job is Data:
   Job{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat, units: List<&2, Nat>,
     revision: Nat, repair: Bool, duration: Maybe<&2, Nat>, source_job: Maybe<&2,Driver.SourceJob>}
+type StoredJob is Data:
+  StoredJob{operation: Nat, job: Job}
 type EmissionContext is Data:
   EmissionContext{context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
 type Input is Data:
   Arrival{emission: Workload.Emission, activity: Nat}
   Edit{job: Job}
-  Event{action: Driver.Action, job: Maybe<&2, Job>, context: Maybe<&2,EmissionContext>}
+  Event{action: Driver.Action, job: Maybe<&2, Job>, context: Maybe<&2,EmissionContext>, source_job: Maybe<&2,Driver.SourceJob>}
   CacheFact{fact: CacheRuntime.Fact}
   FinishInput{action: Driver.Action, job: Job, attempt: Nat, context: Maybe<&2,EmissionContext>}
   GraphFact{key: EngineTypes.GraphKey, position: Nat, fact: ImportGraph.GraphEvent, limits: ImportGraph.Limits}
@@ -41,7 +43,7 @@ type Located is Data:
 # This prevents recursive snapshots of previous frame snapshots.
 type RuntimeSnapshot is Data:
   RuntimeSnapshot{core: List<&2,EngineTypes.State>, items: List<&2,Item>, next: Nat, count: Nat,
-    seed: Nat, environment: Environment, valid: Bool}
+    seed: Nat, environment: Environment, valid: Bool, jobs: List<&2,StoredJob>}
 type PhysicalDelivery is Data:
   PhysicalDelivery{before: RuntimeSnapshot, after: RuntimeSnapshot, action: Maybe<&2,Driver.Action>}
 type FrameDetails is Data:
@@ -54,13 +56,13 @@ type Frame is Data:
     fact: ImportGraph.GraphEvent, before: List<&2, ImportGraph.Bounded>, after: List<&2, ImportGraph.Bounded>, command: ImportGraph.Command, details: FrameDetails}
 type State is Data:
   State{core: List<&2, EngineTypes.State>, items: List<&2, Item>, next: Nat, count: Nat,
-    seed: Nat, environment: Environment, latest: List<&2, Frame>, valid: Bool, prepared: List<&2,EmissionContext>}
+    seed: Nat, environment: Environment, latest: List<&2, Frame>, valid: Bool, prepared: List<&2,EmissionContext>, jobs: List<&2,StoredJob>}
 type Observation is Data:
   Observation{time: Nat, event_count: Nat, canonical: Canonical.State, latest: Maybe<&2, Frame>, queued: Nat, valid: Bool, runtime: RuntimeSnapshot}
 type Step is Data:
-  Step{state: State, frame: Maybe<&2, Frame>}
+  Step{state: State, frame: Maybe<&2, Frame>, physical: List<&2,PhysicalDelivery>}
 type Advanced is Data:
-  Advanced{state: State, frames: List<&2, Frame>}
+  Advanced{state: State, frames: List<&2, Frame>, physical: List<&2,PhysicalDelivery>}
 type Control is Data:
   WorkloadControl{identity: Maybe<&2, Nat>, control: Workload.Control}
   JevProfile{delay: Nat, weights: List<&2, Numeric.Words>}

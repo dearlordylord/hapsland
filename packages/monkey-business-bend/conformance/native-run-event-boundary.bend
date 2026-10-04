@@ -23,8 +23,8 @@ def reached(hit: Bool, +state: T.State, frame: T.Frame, rows: List<&2, List<&2, 
 def event_step(result: T.Step, rows: List<&2, List<&2, Nat>>, wanted: Nat,
     rest: T.State -> List<&2, List<&2, Nat>> -> Trace.Trace) -> Trace.Trace:
   match result:
-    case T.Step{state, Some{+frame}}: reached(event_reached(frame, wanted), state, frame, rows, rest)
-    case T.Step{state, None{}}: Trace.Trace{[state], List.reverse(&2, List<&2, Nat>, rows)}
+    case T.Step{state, Some{+frame},_}: reached(event_reached(frame, wanted), state, frame, rows, rest)
+    case T.Step{state, None{},_}: Trace.Trace{[state], List.reverse(&2, List<&2, Nat>, rows)}
 
 def until_event(fuel: Nat, state: T.State, +wanted: Nat, rows: List<&2, List<&2, Nat>>) -> Trace.Trace:
   match fuel:

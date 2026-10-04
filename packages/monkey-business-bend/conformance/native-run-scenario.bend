@@ -143,9 +143,9 @@ def observed_canonical(observation: T.Observation) -> Canonical.State:
 def advanced(transition: T.Advanced, rows: List<&2, List<&2, Nat>>,
     rest: T.State -> List<&2, List<&2, Nat>> -> Trace) -> Trace:
   match transition:
-    case T.Advanced{+state, frame <> Nil{}}:
+    case T.Advanced{+state, frame <> Nil{},_}:
       rest(state, frame_row(frame, observed_canonical(Run.observe(state))) <> rows)
-    case T.Advanced{state, _}: Trace{[state], List.reverse(&2, List<&2, Nat>, rows)}
+    case T.Advanced{state, _,_}: Trace{[state], List.reverse(&2, List<&2, Nat>, rows)}
 
 def until(fuel: Nat, state: T.State, +endpoint: Nat, rows: List<&2, List<&2, Nat>>) -> Trace:
   match fuel:
