@@ -2,6 +2,7 @@ import { beforeAll, expect, it } from "vitest";
 import { createRun, restoreReplay, type RunConfig } from "./index.ts";
 import { runNativeScenarios, runEmittedScenarios } from "../../monkey-business-bend/conformance/native-run-runner.mjs";
 import { nativeRows, publicRows } from "../../monkey-business-bend/conformance/native-run-public.mjs";
+import { readRetainedWorkloadOutput } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Independently specified original inputs. Native executes the same workload
 // owner and dispatcher; it does not consume canonical events recorded here.
@@ -20,8 +21,15 @@ const original: RunConfig = {
 let nativeCases: number[][][] = [];
 
 beforeAll(async () => {
-  nativeCases = runNativeScenarios();
-  const emittedCases = await runEmittedScenarios();
+  const fixture = new URL("../../monkey-business-bend/conformance/native-run-original-scenarios.bend", import.meta.url);
+  const nativeReceipt = process.env.HAPSLAND_NATIVE_RUN_NATIVE_OUTPUT_RECEIPT;
+  const emittedReceipt = process.env.HAPSLAND_NATIVE_RUN_JS_OUTPUT_RECEIPT;
+  // Explicit retained-vector diagnosis only; without supplied receipts both
+  // producers remain fresh. The shared reader refuses changed identities/bytes.
+  const native = nativeReceipt ? readRetainedWorkloadOutput(fixture, nativeReceipt, "fresh-native") : runNativeScenarios();
+  if (!Array.isArray(native)) throw new TypeError("Native Run aggregate must contain original scenario vectors");
+  nativeCases = native;
+  const emittedCases = emittedReceipt ? readRetainedWorkloadOutput(fixture, emittedReceipt, "emitted-js") : await runEmittedScenarios();
   expect(nativeCases).toHaveLength(7);
   expect(emittedCases).toEqual(nativeCases);
 }, 275000);
