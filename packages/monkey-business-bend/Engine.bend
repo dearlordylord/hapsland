@@ -460,7 +460,7 @@ def declared_state(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry
     case Advicees.Declared{advicees, +scope, valid}:
       AdviceeDeclared{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, declared_lifecycle(lifecycles, scope), preparations, declared_activity(activity_scopes, scope), scenarios}, scope, valid}
 
-def declare_advicee(state: Types.State, identity: Nat, seed: U32) -> AdviceeDeclared:
+def declare_advicee(state: Types.State, identity: Nat, seed: Nat) -> AdviceeDeclared:
   match state:
     case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}:
       declared_state(canonical, graphs, scheduler, workloads, random, credentials, Advicees.declare(advicees, identity, seed), opening, retiring, lifecycles, preparations, activity_scopes, scenarios)

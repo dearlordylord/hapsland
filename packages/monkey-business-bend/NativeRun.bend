@@ -105,7 +105,7 @@ def configure(advicees: List<&2, T.Advicee>, +state: T.State) -> T.State:
   match advicees:
     case Nil{}: state
     case T.Advicee{identity, +profile} <> tail:
-      configure(tail, declared(state, profile, Engine.declare_advicee(core(state), identity, profile_seed(profile))))
+      configure(tail, declared(state, profile, Engine.declare_advicee(core(state), identity, U32.to_nat(profile_seed(profile)))))
 
 def startup_scope(+state: T.State, scope: Maybe<&2,Advicees.Scope>) -> T.State:
   match scope:
