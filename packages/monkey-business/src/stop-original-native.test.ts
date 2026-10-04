@@ -2,8 +2,10 @@ import { expect, it } from "vitest";
 import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts";
 import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
-import { compareOriginalWaitingStopTrace, compareOriginalStopFamilyTrace, compareOriginalStopOutputFamilyTrace } from "./stop-native-boundary.ts";
+import { compareOriginalWaitingStopTrace, compareOriginalStopFamilyTrace, compareOriginalStopOutputFamilyTrace, compareStopBusiness } from "./stop-native-boundary.ts";
 import { originalWaitingStopPublic, originalStopPublicCases, originalStopOutputPublicCases } from "./stop-original-public.fixture.ts";
+
+import { createRun } from "./index.ts";
 
 const bendList = (values: readonly unknown[]): unknown => values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
 const none = { $: "None" };
@@ -42,8 +44,8 @@ it("compares original waiting Stop full native/emitted/public/replay boundaries"
   const expected = originalWaitingStopPublic();
   const native = runWorkloadNative(fixture);
   const emitted = runWorkloadEmitted(fixture), independentlyEmitted = runWorkloadEmitted(fixture);
-  // Entire lossless vectors and recursively generated DTOs, including inactive
-  // fallback payloads, receipts, all owner state fields and pending queue items.
+  // Complete contract-shaped native/JS vectors remain equal. Public behavior
+  // comparison pins ordered business facts without private Runtime layout.
   expect(native).toEqual(emitted);
   expect(independentlyEmitted).toEqual(emitted);
   for (const result of [native, emitted, independentlyEmitted]) {
@@ -144,3 +146,15 @@ it("compares all twelve original output Stop full native/emitted/public/replay s
   expect(independentlyEmitted).toEqual(emitted);
   for(const result of [native,emitted,independentlyEmitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
 },165000);
+
+
+it("Stop business comparison ignores private Engine layout but rejects changed actual accounting", () => {
+  const run=createRun({ seed:7,inputs:[{at:0,kind:"edit",bytes:10,unitBytes:[5]}],preparationDelay:2,jevDelay:8,outcome:"clear" });
+  const before=run.runtimeSnapshot(), engine=readRecord(before.engine);
+  const business=bendList([{$:"stop_observed_wire.BusinessState",canonical:engine.canonical,
+    finishes:readRecord(readRecord(engine.scenarios).stop).finishes}]);
+  compareStopBusiness(business,{...before,engine:{...engine,privateDiagnostic:"different representation"}},"test original boundary");
+  run.advance({untilTime:0,maxEvents:100});
+  expect(()=>compareStopBusiness(business,run.runtimeSnapshot(),"test actual changed boundary"))
+    .toThrow("Stop public business layer differs at test actual changed boundary Canonical accounting");
+});

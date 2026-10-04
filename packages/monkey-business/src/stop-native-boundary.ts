@@ -1,512 +1,290 @@
-import { decodeOutputCapture } from "./output-controls.ts";
-import { encodeImportGraphEvent } from "../../../src/canonical/graph-adapter.ts";
 import { isDeepStrictEqual } from "node:util";
-import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.ts";
+import { encodeCanonicalEvent, decodeTrustedCanonicalStep, projectTrustedCanonical } from "../../../src/canonical/canonical-boundary.ts";
+import { encodeImportGraphEvent, projectImportGraph } from "../../../src/canonical/graph-adapter.ts";
 import { readBendList, readRecord, readNat, readBool } from "../../../src/canonical/boundary-schema.ts";
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts";
-import { decodeStopFound } from "./stop-codec.ts";
-import { decodeDriver, decodePreparedDriverContext, encodeDriverAction, encodeDriverOutcome, type DriverAction } from "./driver-codec.ts";
-import SharedEngine from "../../monkey-business-bend/engine.mjs";
+import { decodeDriver, encodeDriverOutcome } from "./driver-codec.ts";
+import { decodeOutputCapture } from "./output-controls.ts";
+import { decodeStopFound, decodeStopRegistry } from "./stop-codec.ts";
 import { originalStopOutputCases } from "./stop-original-public.fixture.ts";
 import type { originalWaitingStopPublic, originalStopPublicCases, originalStopOutputPublicCases } from "./stop-original-public.fixture.ts";
-import type { RunRuntimeSnapshot, RunStructuralFrame, RunConfig } from "./index.ts";
+import type { RunConfig, RunRuntimeSnapshot, RunStructuralFrame } from "./index.ts";
 
 const list = (value: unknown) => readBendList(value, value => value, 2048);
-type OriginalOutputBoundaryDeclaration = (typeof originalStopOutputCases)[number]["boundaries"][number];
-type OriginalOutputPublicBoundary = ReturnType<typeof originalStopOutputPublicCases>[number]["boundaries"][number];
-type StopRuntimePremise = {
-  readonly input: RunConfig;
-  readonly agentScopes: ReturnType<typeof originalWaitingStopPublic>["agentScopes"];
-  readonly frozenInput?: unknown;
-  readonly originalOutputBoundaryDeclarations?: readonly OriginalOutputBoundaryDeclaration[];
-  readonly originalOutputPublicBoundaries?: readonly OriginalOutputPublicBoundary[];
-};
+function same(actual: unknown, expected: unknown, field: string): void {
+  if (!isDeepStrictEqual(actual, expected)) throw new Error(`Stop public business layer differs at ${field}`);
+}
+function tagged(value: unknown, tag: string): Record<string, unknown> {
+  const record = readRecord(value);
+  if (record.$ !== `stop_observed_wire.${tag}`) throw new TypeError(`invalid Stop ${tag}`);
+  return record;
+}
 function single(value: unknown): Record<string, unknown> {
   const values = list(value);
-  if (values.length !== 1) throw new TypeError("Stop observer requires an actual singleton snapshot");
+  if (values.length !== 1) throw new TypeError("Stop business snapshot requires one actual owner projection");
   return readRecord(values[0]);
-}
-function same(actual: unknown, expected: unknown, field: string): void {
-  if (!isDeepStrictEqual(actual, expected)) throw new Error(`Stop observer differs at ${field}`);
 }
 function optional(value: unknown): unknown {
   const record = readRecord(value);
   if (record.$ === "None") return undefined;
-  if (record.$ !== "Some") throw new TypeError("malformed original receipt");
+  if (record.$ !== "Some") throw new TypeError("invalid Stop optional fact");
   return record.value;
 }
-
-function originalFinishWait(config: RunConfig): number {
-  if (config.finishDeadline === undefined) throw new TypeError("original Stop input must declare its finish wait");
-  return config.finishDeadline;
+/** Compare genuine owner facts; never reconstruct a private Runtime or queue. */
+export function compareStopBusiness(value: unknown, source: RunRuntimeSnapshot, field: string): void {
+  const business = tagged(single(value), "BusinessState");
+  const engine = readRecord(source.engine);
+  same(projectTrustedCanonical(business.canonical), projectTrustedCanonical(engine.canonical), `${field} Canonical accounting`);
+  const registry = readRecord(readRecord(engine.scenarios).stop);
+  same(decodeStopRegistry(business.finishes), decodeStopRegistry(registry.finishes), `${field} original Finish registry`);
 }
-
-function nativeAction(value: unknown) {
-  return decodeDriver({ handled: true, actions: { $: "Con", head: value, tail: { $: "Nil" } } }).actions[0];
+function compareEndpoint(value: unknown, source: RunRuntimeSnapshot, field: string): void {
+  const endpoint = tagged(value,"Endpoint");
+  same(readNat(endpoint.time), readNat(readRecord(readRecord(source.engine).scheduler).now), `${field} actual clock`);
+  compareStopBusiness(endpoint.projection,source,field);
 }
-function compareRawInputJob(value: unknown, publicItem: RunRuntimeSnapshot["queue"][number],
-    premise: StopRuntimePremise, field: string): void {
-  const job = readRecord(value);
-  if (job.$ !== "advicee_lifecycle_driver.NoJob") throw new TypeError(`${field} raw input has a genuine source job`);
-  same(Object.keys(job).sort(), ["$", "lifetime", "partition"], `${field} exact RawInput no-job shape`);
-
-  if (premise.frozenInput === undefined) throw new TypeError(`${field} lacks the exact frozen RawInput declaration`);
-  const scenario = readRecord(premise.frozenInput);
-  const event = publicItem.input.kind === "canonical" ? publicItem.input.event : undefined;
-  if (!event) throw new TypeError(`${field} public input is not the frozen canonical schedule`);
-  const encodedEvent = encodeCanonicalEvent(event);
-  const frozenBoundaries = list(scenario.boundaries).map(readRecord);
-  const matchingSchedules = frozenBoundaries.filter(boundary => {
-    if (boundary.$ !== "stop_original_inputs.Schedule") return false;
-    const scheduled = readRecord(boundary.input);
-    return scheduled.$ === "stop_original_inputs.CanonicalInput"
-      && readNat(scheduled.at) === publicItem.at
-      && isDeepStrictEqual(decodePrefixCanonicalEvent(scheduled.event), encodedEvent);
-  });
-  if (matchingSchedules.length > 1) throw new TypeError(`${field} has multiple exact frozen original Schedule declarations`);
-
-  let partition: number | undefined;
-  let lifetime: number;
-  if (matchingSchedules.length === 1) {
-    // Direct raw Schedule declarations carry their event's original lifetime.
-    // StopGroupPolled/Ended name their owner by group; other scoped events name
-    // it by partition. This uses only the original input and startup registry.
-    partition = event.kind === "stopGroupPolled" || event.kind === "stopGroupEnded"
-      ? event.group
-      : "partition" in event ? event.partition : undefined;
-    if (!("lifetime" in event)) throw new TypeError(`${field} frozen RawInput has no original lifetime`);
-    lifetime = event.lifetime;
-  } else {
-    // MismatchedTerminal is a frozen control declaration which derives a real
-    // public Schedule from FinishAuthorize. Keep that public boundary exact,
-    // while deriving Initial's NoJob scope through the same Engine rule used
-    // by schedule_input; the terminal event itself has no lifetime field.
-    const declarations = premise.originalOutputBoundaryDeclarations;
-    const publicBoundaries = premise.originalOutputPublicBoundaries;
-    if (!declarations || !publicBoundaries || declarations.length !== frozenBoundaries.length
-        || publicBoundaries.length !== frozenBoundaries.length)
-      throw new TypeError(`${field} lacks aligned original MismatchedTerminal source and public boundaries`);
-    const matchingMismatches: number[] = [];
-    for (const [index, declaration] of declarations.entries()) {
-      if (!("mismatchedTerminal" in declaration) || declaration.mismatchedTerminal.at !== publicItem.at) continue;
-      const frozen = frozenBoundaries[index];
-      const mismatch = declaration.mismatchedTerminal;
-      const expectedFrozen = {
-        $: "stop_original_inputs.MismatchedTerminal",
-        at: mismatch.at,
-        agent: mismatch.agent === undefined ? { $: "None" } : { $: "Some", value: mismatch.agent },
-      };
-      same(frozen, expectedFrozen, `${field} exact frozen MismatchedTerminal at/agent`);
-      const publicBoundary = publicBoundaries[index];
-      const declaredPublicInput = publicBoundary && "input" in publicBoundary ? publicBoundary.input : undefined;
-      const publicSchedule = declaredPublicInput && "input" in declaredPublicInput ? declaredPublicInput.input : undefined;
-      if (!publicSchedule || publicSchedule.kind !== "canonical" || publicSchedule.event.kind !== "finishTerminal")
-        throw new TypeError(`${field} MismatchedTerminal has no genuine derived public FinishTerminal Schedule`);
-      same(publicSchedule, publicItem.input, `${field} exact derived public Schedule`);
-      same(publicSchedule.at, mismatch.at, `${field} derived Schedule original MismatchedTerminal time`);
-      matchingMismatches.push(index);
-    }
-    if (matchingMismatches.length !== 1)
-      throw new TypeError(`${field} lacks one aligned frozen MismatchedTerminal and derived public Schedule`);
-    const originalEngine = publicBoundaries[matchingMismatches[0]!]!.before.engine;
-    const owner = optional(SharedEngine.scope_event(originalEngine, originalEngine, encodedEvent, { $: "Some", value: 1n }));
-    if (owner === undefined) throw new TypeError(`${field} Initial MismatchedTerminal has no Engine scope owner`);
-    partition = readNat(owner);
-    lifetime = 1;
-  }
-  const declaredOwners = partition === undefined ? [] : premise.agentScopes.filter(scope => scope.partition === partition);
-  if (partition === undefined || declaredOwners.length !== 1)
-    throw new TypeError(`${field} frozen RawInput has no uniquely declared direct owner scope`);
-  same([readNat(job.partition), readNat(job.lifetime)], [partition, lifetime], `${field} frozen RawInput owner scope`);
-}
-function compareJob(value: unknown, captured: RunRuntimeSnapshot["queue"][number]["driverSourceJob"], field: string): void {
-  const job = readRecord(value);
-  if (job.$ !== "advicee_lifecycle_driver.Job" || captured === undefined) throw new TypeError(`${field} lacks genuine source job`);
-  same([readNat(job.partition),readNat(job.lifetime),readNat(job.bytes),list(job.units),job.outcome],
-    [captured.partition,captured.lifetime,captured.bytes,captured.units,captured.outcome], `${field} full original source job`);
-}
-function compareEmission(value: unknown, source: RunRuntimeSnapshot["queue"][number], field: string): void {
-  const emission = optional(value);
-  if (emission === undefined) {
-    same(source.driverContext,undefined,`${field} unprepared context`);
-    same(source.driverOutcomeReceipt,undefined,`${field} unprepared outcome receipt`);
+function compareObservation(value: unknown, source: RunStructuralFrame, field: string): void {
+  const observation = readRecord(value);
+  same(readNat(observation.time), source.time, `${field} actual time`);
+  same(readNat(observation.order), source.scheduled.order, `${field} original selected order`);
+  compareStopBusiness(observation.before,source.before,`${field} before`);
+  compareStopBusiness(observation.after,source.after,`${field} after`);
+  same(optional(observation.provided),source.scheduled.partition,`${field} original provided scope`);
+  if (source.kind === "callbackDelivery") throw new Error(`${field} physical delivery became product observation`);
+  if (source.kind === "finishRegistration") {
+    tagged(observation,"Finish");
+    same(decodeStopFound(observation.finish),source.registration.finish,`${field} actual registered capture`);
+    same(readBool(observation.created),source.registration.created,`${field} actual registration result`);
+    const input=readRecord(observation.input), finish=source.registration.finish;
+    if (!finish) throw new Error(`${field} missing actual registered original Finish`);
+    same([input.partition,input.lifetime,input.round,input.started,input.cutoff,input.recurring],
+      [finish.partition,finish.lifetime,finish.round,finish.started,finish.deadline,finish.recurring],`${field} original registration input`);
+    same(list(observation.command_scopes),[],`${field} registration has no command scopes`);
     return;
   }
-  const raw = readRecord(emission);
-  if (raw.$ !== "advicee_lifecycle_driver.EmissionContext") throw new TypeError("invalid genuine Driver emission capsule");
-  const decoded=decodePreparedDriverContext(raw.context,raw.receipt);
-  same(decoded.context,source.driverContext,`${field} actual command context`);
-  same(decoded.receipt,source.driverOutcomeReceipt,`${field} actual selected outcome receipt`);
+  same(list(observation.command_scopes).map(optional),source.observation.commandScopes ?? [],`${field} command scopes`);
+  const transition = readRecord(source.transition);
+  if (source.observation.preparation) {
+    tagged(observation,"Graph");
+    const event=source.observation.preparation.event, key=readRecord(observation.key);
+    same([key.partition,key.lifetime,key.round,key.operation,key.unit,observation.position],
+      [event.partition,event.lifetime,event.round,event.operation,event.unit,event.step],`${field} original graph identity`);
+    same(decodePrefixGraphEvent(observation.event),encodeImportGraphEvent(event.fact),`${field} original graph event`);
+    const result=single(observation.result);
+    if (result.$ === "stop_observed_wire.GraphRejected") {
+      same(transition.$,"Types.GraphRejected",`${field} original graph rejection`);
+    } else {
+      tagged(result,"GraphAdvanced");
+      same(projectImportGraph(result.before),source.observation.preparation.before,`${field} graph before`);
+      same(projectImportGraph(result.after),source.observation.preparation.after,`${field} graph after`);
+      same(result.command,readRecord(transition.result).command,`${field} actual graph command`);
+    }
+    return;
+  }
+  if (!["stop_observed_wire.Canonical","stop_observed_wire.Cache"].includes(String(observation.$))) throw new TypeError(`${field} unknown business observation`);
+  if (source.observation.event.kind === "preparationGraph") throw new Error(`${field} graph became canonical event`);
+  same(decodePrefixCanonicalEvent(observation.event),encodeCanonicalEvent(source.observation.event),`${field} original event`);
+  const outcome=single(observation.result), state=single(observation.after).canonical;
+  const decoded=outcome.$ === "stop_observed_wire.Advanced"
+    ? decodeTrustedCanonicalStep({$:"Canonical.Advanced",state,commands:outcome.commands})
+    : outcome.$ === "stop_observed_wire.Rejected"
+      ? decodeTrustedCanonicalStep({$:"Canonical.Rejected",state,reason:outcome.reason})
+      : (()=>{throw new TypeError(`${field} invalid original outcome`);})();
+  same(decoded.commands,source.observation.commands,`${field} ordered commands`);
+  same(decoded.rejection,source.observation.rejection,`${field} rejection`);
+  if (observation.$ === "stop_observed_wire.Cache") same(observation.fact,source.source,`${field} actual cache fact`);
 }
-
-/** A failed individual release has a real public scheduled action but may carry
- * no public Driver context or source job. Its routing scope comes from that
- * same detached engine snapshot and the matching live release lease. */
-function failedIndividualReleaseScope(event: DriverAction["event"],
-    source: RunRuntimeSnapshot, publicItem: RunRuntimeSnapshot["queue"][number], premise: StopRuntimePremise,
-    field: string): { readonly partition: number; readonly lifetime: number } | undefined {
-  const failedProfile = premise.input.outputProfile?.outcome === "failed" || source.outputProfile.outcome === "failed";
-  const publicEvent = publicItem.input.kind === "canonical" ? publicItem.input.event : undefined;
-  if (event.kind !== "submissionRelease" && event.kind !== "collectionReleaseLease") return undefined;
-  if (!failedProfile || !publicEvent || publicEvent.kind !== event.kind ||
-      publicItem.driverContext !== undefined ||
-      publicItem.driverSourceJob !== undefined || publicItem.driverOutcomeReceipt !== undefined ||
-      publicItem.callbackReceipt !== undefined || publicItem.generated !== true || !publicItem.driverAction ||
-      publicItem.driverAction.job !== false || publicItem.driverAction.event.kind !== event.kind) return undefined;
-
-  const partition = publicItem.partition;
-  if (partition === undefined || !Number.isSafeInteger(partition) || partition < 0)
-    throw new TypeError(`${field} failed individual release has no actual public owner partition`);
-  const owners = premise.agentScopes.filter(scope => scope.partition === partition);
-  same(owners.length, 1, `${field} failed individual release unique declared owner`);
-
-  const encodedActivity = optional(SharedEngine.activity_scope(source.engine, BigInt(partition)));
-  if (encodedActivity === undefined || publicItem.activityScope === undefined)
-    throw new TypeError(`${field} failed individual release lacks its actual activity fence`);
-  same(readNat(encodedActivity), publicItem.activityScope, `${field} failed individual release actual activity fence`);
-
-  const advice = readNat(event.advice), token = readNat(event.token);
-  const canonical = readRecord(SharedEngine.canonical(source.engine));
-  const rounds = list(canonical.rounds).map(readRecord).filter(round => readNat(round.partition) === partition);
-  same(rounds.length, 1, `${field} failed individual release active owner round`);
-  const round = rounds[0]!;
-  const lifetime = SharedEngine.activity_lifetime(source.engine, BigInt(partition));
-  same(readNat(round.lifetime), lifetime, `${field} failed individual release core lifetime`);
-
-  const collection = readRecord(canonical.collection);
-  const collectionLeases = list(collection.leases).map(readRecord).filter(lease => readNat(lease.advice) === advice);
-  same(collectionLeases.length, 1, `${field} failed individual release collection lease owner`);
-  same(readNat(collectionLeases[0]!.owner), token, `${field} failed individual release collection lease token`);
-
-  const delivery = readRecord(collection.delivery);
-  const submissions = readRecord(delivery.submissions);
-  const batches = list(submissions.batches).map(readRecord)
-    .filter(batch => readNat(batch.advice) === advice && readNat(batch.token) === token);
-  const submissionLeases = list(submissions.leases).map(readRecord)
-    .filter(lease => readNat(lease.advice) === advice);
-  const verifyActiveStopBatch = () => {
-    same(batches.length, 1, `${field} failed individual release active Stop batch`);
-    const batch = batches[0]!;
-    same(batch.surface, { $: "Handoff.Stop" }, `${field} failed individual release Stop surface`);
-    same(readNat(batch.round), readNat(round.id), `${field} failed individual release batch round`);
-    same(readRecord(batch.phase).$, "Delivery.Reserved", `${field} failed individual release active batch phase`);
-    same(submissionLeases.length, 1, `${field} failed individual release submission lease`);
-    const current = readRecord(submissionLeases[0]!.current);
-    same([readNat(current.round), current.closed], [readNat(round.id), false], `${field} failed individual release current lease round`);
-    const phase = readRecord(current.phase);
-    same([phase.$, readNat(phase.token), phase.surface], ["Handoff.Reserved", token, { $: "Handoff.Stop" }],
-      `${field} failed individual release current Stop lease`);
-  };
-  if (event.kind === "submissionRelease") verifyActiveStopBatch();
-  else if (batches.length === 0)
-    same(submissionLeases.length, 0, `${field} collection release follows consumed Stop batch`);
-  else verifyActiveStopBatch();
-  return { partition, lifetime };
+function comparePhysical(value: unknown, source: RunStructuralFrame, field: string): void {
+  const physical=tagged(value,"Physical");
+  if (source.kind !== "callbackDelivery") throw new Error(`${field} missing original physical delivery`);
+  same(readNat(physical.time),source.time,`${field} time`);
+  same(readNat(physical.order),source.scheduled.order,`${field} original order`);
+  compareStopBusiness(physical.before,source.before,`${field} before`);
+  compareStopBusiness(physical.after,source.after,`${field} after`);
+  same(physical.action,source.delivery,`${field} actual action`);
 }
-
-/** No complete public capsule exists for these authentic emitted actions.
- * Compare only the native routing identity used by the release and grounded
- * in the matching public source snapshot; other private context fields have
- * no public counterpart and are not claimed as parity. */
-function compareFailedIndividualReleaseEmission(value: unknown, source: RunRuntimeSnapshot["queue"][number],
-    scope: { readonly partition: number; readonly lifetime: number }, field: string): void {
-  same(source.driverContext, undefined, `${field} absent original public Driver context`);
-  const emission = optional(value);
-  if (emission === undefined) return;
-  const raw = readRecord(emission);
-  if (raw.$ !== "advicee_lifecycle_driver.EmissionContext") throw new TypeError("invalid genuine Driver emission capsule");
-  const decoded = decodePreparedDriverContext(raw.context, raw.receipt);
-  same([decoded.context.partition, decoded.context.lifetime], [scope.partition, scope.lifetime],
-    `${field} failed individual release native routing identity`);
+function compareSourceJob(value: unknown, expected: RunRuntimeSnapshot["queue"][number]["driverSourceJob"], field: string): void {
+  const raw=optional(value);
+  if (raw === undefined) same(expected,undefined,`${field} absent source job`);
+  else {
+    const job=readRecord(raw);
+    same({partition:readNat(job.partition),lifetime:readNat(job.lifetime),bytes:readNat(job.bytes),
+      units:list(job.units).map(readNat),outcome:job.outcome},expected,`${field} original source identity`);
+  }
 }
-
-/** Transport representations differ, but every pending native item must match
- * an actual public slot. Relative delays and inactive candidates come from
- * enqueue metadata, never subtraction from a later endpoint. */
-function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: string, premise: StopRuntimePremise): void {
-  const runtime = single(value), queue = readRecord(runtime.queue);
-  same(runtime.state, source.engine, `${field} full engine`);
-  same(readNat(runtime.delay), source.jevDelay, `${field} original Jev delay`);
-  same(readNat(queue.sequence), source.order, `${field} next queued identity`);
-  const pending = list(queue.items).map(readRecord);
-  same(pending.length, source.queue.length, `${field} pending item count`);
-  const seen = new Set<number>();
-  for (const item of pending) {
-    const order = readNat(item.order);
-    if (seen.has(order)) throw new TypeError("duplicate native queued order");
-    seen.add(order);
-    const publicItem = source.queue.find(candidate => candidate.order === order);
-    if (!publicItem) throw new Error(`${field} loses queued order ${order}`);
-    same(readNat(item.at), publicItem.at, `${field} item ${order} original time`);
-    const input = readRecord(item.input);
-    if (input.$ === "advicee_lifecycle_driver.Event" || input.$ === "advicee_lifecycle_driver.FitEvent") {
-      if (publicItem.input.kind !== "canonical") throw new Error("queued Driver action changed input kind");
-      let failedReleaseScope: { readonly partition: number; readonly lifetime: number } | undefined;
-      const issuance = readRecord(input.issuance);
-      if (issuance.$ === "advicee_lifecycle_driver.RawInput") {
-        if (input.$ !== "advicee_lifecycle_driver.Event") throw new TypeError(`${field} RawInput must remain an initial Event`);
-        const expectedAction: DriverAction = { event: publicItem.input.event, delay: 0, job: false };
-        same(nativeAction(input.action), expectedAction, `${field} item ${order} exact immediate RawInput action`);
-        same(input.action, encodeDriverAction(expectedAction), `${field} item ${order} exact RawInput Driver transport`);
-        same(issuance, { $: "advicee_lifecycle_driver.RawInput" }, `${field} item ${order} exact RawInput provenance`);
-        same(input.context, { $: "None" }, `${field} item ${order} absent RawInput emission context`);
-        compareRawInputJob(input.job, publicItem, premise, `${field} item ${order}`);
-        same(publicItem.input.at, publicItem.at, `${field} item ${order} frozen schedule time`);
-        same(Object.keys(publicItem).filter(key => ["driverAction", "driverContext", "driverOutcomeReceipt", "driverSourceJob",
-          "callbackReceipt", "job", "stopFact", "stopCapture", "fitFinish", "expiryAdvice", "candidate", "generated"]
-          .includes(key)), [], `${field} item ${order} absent public Driver/callback metadata`);
-      } else if (publicItem.stopFact && publicItem.stopCapture) {
-        // Checked Stop.Fact is the original enqueue source; this is the same
-        // factual immediate-action representation used by stop_fact_queue.
-        same(nativeAction(input.action), { event: publicItem.stopFact.event, delay: 0, job: false }, `${field} item ${order} original Stop fact action`);
-        const job = readRecord(input.job), capture = publicItem.stopCapture;
-        same(job.$,"advicee_lifecycle_driver.NoJob",`${field} item ${order} absent Stop job`);
-        same([job.partition,job.lifetime],[capture.partition,capture.lifetime],`${field} item ${order} original Stop source scope`);
-        same(publicItem.driverSourceJob,undefined,`${field} item ${order} absent original source job`);
-        same(readNat(publicItem.stopFact.at), publicItem.at, `${field} item ${order} checked Stop fact time`);
-      } else {
-        if (!publicItem.driverAction) throw new Error("missing actual public queued Driver action");
-        same(nativeAction(input.action), publicItem.driverAction, `${field} item ${order} full action`);
-        const job=readRecord(input.job);
-        if (job.$ === "advicee_lifecycle_driver.NoJob") {
-          same(publicItem.driverSourceJob,undefined,`${field} item ${order} absent original source job`);
-          const event=publicItem.driverAction.event;
-          const context=publicItem.driverContext === undefined ? undefined : readRecord(publicItem.driverContext);
-          if (context) same([job.partition,job.lifetime],[readNat(context.partition),readNat(context.lifetime)],`${field} item ${order} captured no-job command scope`);
-          else if ("partition" in event && "lifetime" in event)
-            same([job.partition,job.lifetime],[event.partition,event.lifetime],`${field} item ${order} original no-job scope`);
-          else {
-            failedReleaseScope = failedIndividualReleaseScope(event, source, publicItem, premise, `${field} item ${order}`);
-            if (failedReleaseScope)
-              same([readNat(job.partition),readNat(job.lifetime)], [failedReleaseScope.partition,failedReleaseScope.lifetime],
-                `${field} item ${order} failed individual release core scope`);
-            else throw new TypeError(`${field} item ${order} NoJob original scope lacks genuine action or captured command context`);
-          }
-        } else if (job.$ === "advicee_lifecycle_driver.Unbound") {
-          same(publicItem.job,undefined,`${field} item ${order} absent active source binding`);
-          const original=readRecord(job.source);
-          same(original.$,"Driver.SourceJob",`${field} item ${order} original source constructor`);
-          if (!publicItem.driverSourceJob) throw new TypeError(`${field} item ${order} unbound action lost its genuine original source job`);
-          same({partition:original.partition,lifetime:original.lifetime,bytes:original.bytes,units:list(original.units),outcome:original.outcome},publicItem.driverSourceJob,`${field} item ${order} complete immutable unbound source`);
-        } else compareJob(input.job, publicItem.driverSourceJob, `${field} item ${order} source job`);
+function compareIssuedFacts(raw: unknown, source: RunRuntimeSnapshot["queue"][number], field: string): void {
+  const job=source.driverSourceJob, receipt=source.driverOutcomeReceipt,
+    output=source.callbackReceipt?.outputCapture;
+  if (raw === undefined) {
+    same([job,receipt,output],[undefined,undefined,undefined],`${field} absent original issuance`);
+    return;
+  }
+  const issued=tagged(raw,"IssuedFacts");
+  const origin=readRecord(issued.origin);
+  if (!["stop_observed_wire.Environmental","stop_observed_wire.CanonicalFeedback","stop_observed_wire.RawInput"].includes(String(origin.$)) || Object.keys(origin).length !== 1)
+    throw new TypeError(`${field} invalid actual issuance origin`);
+  // Public Scheduled does not retain origin; complete native/emitted wire equality still checks it.
+  const capture=optional(issued.output_capture);
+  compareSourceJob(issued.source_job,job,field);
+  same(optional(issued.outcome_receipt),receipt,`${field} immutable outcome receipt`);
+  same(capture === undefined ? undefined : decodeOutputCapture(capture),output,`${field} immutable output capture`);
+}
+function compareIssuance(value: unknown, source: RunStructuralFrame, field: string): void {
+  compareIssuedFacts(optional(value),source.scheduled,field);
+}
+function compareEmissions(value: unknown, source: RunStructuralFrame, config: RunConfig, field: string): void {
+  const emissions=list(value).map(readRecord), appended=source.after.queue.filter(item=>item.order >= source.before.order);
+  same(emissions.length,appended.length,`${field} actual appended effects count`);
+  for (const [index,emission] of emissions.entries()) {
+    const item=appended[index]!, at=`${field} emission ${index}`;
+    same([readNat(emission.time),readNat(emission.order)],[item.at,item.order],`${at} scheduled time/order`);
+    if (emission.$ === "stop_observed_wire.Action") {
+      if (item.input.kind !== "canonical") throw new Error(`${at} action changed public input kind`);
+      const action=decodeDriver({handled:true,actions:{$:"Con",head:emission.action,tail:{$:"Nil"}}}).actions[0]!;
+      same(readRecord(emission.action).event,encodeCanonicalEvent(item.input.event),`${at} actual effect event`);
+      same(item.at,source.time+action.delay,`${at} original effect delay`);
+      same(action.expiryAdvice,item.expiryAdvice,`${at} expiry identity`);
+      same(action.candidate,item.candidate,`${at} actual candidate`);
+      same(optional(emission.attempt),action.event.kind === "collectionFitCheck" ? item.fitFinish : item.finishAttempt,`${at} original Finish attempt`);
+      compareIssuedFacts(emission.issued,item,at);
+    } else if (emission.$ === "stop_observed_wire.Arrival") {
+      if (!item.workloadSource) throw new Error(`${at} missing actual Workload emission`);
+      const event=readRecord(emission.event);
+      same({...event,units:list(event.units)},{$:"Workload.Emission",...item.workloadSource},`${at} actual arrival`);
+      same(readNat(emission.activity),item.activityScope,`${at} activity identity`);
+    } else if (emission.$ === "stop_observed_wire.GraphInput") {
+      if (item.input.kind !== "preparationGraph") throw new Error(`${at} graph input changed kind`);
+      const event=item.input.event;
+      same([emission.partition,emission.lifetime,emission.round,emission.operation,emission.position],
+        [event.partition,event.lifetime,event.round,event.operation,event.step],`${at} graph identity`);
+      same(decodePrefixGraphEvent(emission.event),encodeImportGraphEvent(event.fact),`${at} graph fact`);
+    } else if (emission.$ === "stop_observed_wire.SourceEdit") {
+      if (item.input.kind !== "edit") throw new Error(`${at} source edit changed kind`);
+      same([emission.partition,emission.activity,emission.bytes,list(emission.units),emission.outcome],
+        [item.partition,item.activityScope,item.input.bytes,item.input.unitBytes,item.input.outcome === undefined ? {$:"None"} : {$:"Some",value:encodeDriverOutcome(item.input.outcome)}],`${at} original edit facts`);
+    } else if (emission.$ === "stop_observed_wire.Edit") {
+      if (item.input.kind !== "edit") throw new Error(`${at} retry changed kind`);
+      compareSourceJob(emission.source_job,item.driverSourceJob,at);
+    } else if (emission.$ === "stop_observed_wire.FinishInput" || emission.$ === "stop_observed_wire.FinishIntent") {
+      if (item.input.kind !== "finish") throw new Error(`${at} original Finish input changed kind`);
+      const input=emission.$ === "stop_observed_wire.FinishInput" ? readRecord(emission.input) : emission;
+      const recurring="recurring" in item.input && item.input.recurring === true;
+      same([input.partition,input.started,input.cutoff,input.recurring],
+        [item.partition,item.at,item.at+(config.finishDeadline ?? 200),recurring],`${at} original Finish intent`);
+      if (emission.$ === "stop_observed_wire.FinishInput") {
+        const rounds=projectTrustedCanonical(readRecord(source.after.engine).canonical).rounds;
+        const round=rounds.find(round=>round.partition === item.partition);
+        if (!round) throw new Error(`${at} registered Finish has no actual round`);
+        same([input.lifetime,input.round],[round.lifetime,round.id],`${at} original Finish scope`);
       }
-      if (issuance.$ === "advicee_lifecycle_driver.Environmental") {
-        const capture=optional(issuance.output);
-        same(capture===undefined?undefined:decodeOutputCapture(capture),publicItem.callbackReceipt?.outputCapture,`${field} item ${order} complete original environmental output capture`);
-      } else if (issuance.$ === "advicee_lifecycle_driver.RawInput" || issuance.$ === "advicee_lifecycle_driver.CanonicalFeedback") {
-        same(publicItem.callbackReceipt,undefined,`${field} item ${order} nonenvironmental callback provenance`);
-      } else throw new TypeError("unrecognized original queued issuance provenance");
-      if (failedReleaseScope)
-        compareFailedIndividualReleaseEmission(input.context,publicItem,failedReleaseScope,`${field} item ${order}`);
-      else compareEmission(input.context,publicItem,`${field} item ${order}`);
-      same(input.$ === "advicee_lifecycle_driver.FitEvent" ? readNat(input.attempt) : undefined,
-        publicItem.fitFinish, `${field} item ${order} original fit attempt`);
-    } else if (input.$ === "advicee_lifecycle_driver.Fact") {
-      if (publicItem.input.kind !== "preparationGraph") throw new Error("native graph fact changed public input kind");
-      const event = publicItem.input.event;
-      same([input.partition,input.lifetime,input.round,input.operation,input.position],
-        [event.partition,event.lifetime,event.round,event.operation,event.step], `${field} item ${order} graph tuple`);
-      same(decodePrefixGraphEvent(input.event), encodeImportGraphEvent(event.fact), `${field} item ${order} full graph event`);
-    } else if (input.$ === "advicee_lifecycle_driver.FinishIntent") {
-      if (publicItem.input.kind !== "finish") throw new Error("native Finish intent changed public input kind");
-      const agent = "agent" in publicItem.input ? publicItem.input.agent : "agent-1";
-      const scope = premise.agentScopes.find(scope => scope.agent === agent);
-      if (!scope) throw new Error("original Finish has no actual declared advicee scope");
-      same(input.partition,scope.partition,`${field} item ${order} original Finish advicee`);
-      same(readNat(input.started), publicItem.input.at, `${field} item ${order} original Stop start`);
-      same(readBool(input.recurring), ("recurring" in publicItem.input ? publicItem.input.recurring : false), `${field} item ${order} original recurrence`);
-      // Cutoff is compared against the separately frozen original input;
-      // full registration/capture comparisons preserve its actual owner value.
-      same(readNat(input.cutoff), publicItem.input.at + originalFinishWait(premise.input), `${field} item ${order} original cutoff`);
-    } else if (input.$ === "advicee_lifecycle_driver.Arrival") {
-      if (!publicItem.workloadSource) throw new TypeError("original Arrival lacks genuine public Workload source");
-      const emission = publicItem.workloadSource;
-      const units = emission.units.reduceRight<unknown>((tail,head) => ({ $: "Con", head, tail }),{ $: "Nil" });
-      same(input.event,{ ...emission, units },`${field} item ${order} complete original Workload emission`);
-      same(input.lifetime,publicItem.activityScope ?? 1,`${field} item ${order} original Arrival activity fence`);
-    } else if (input.$ === "advicee_lifecycle_driver.Edit") {
-      if (publicItem.input.kind !== "edit") throw new TypeError("native Edit retry changed original public input kind");
-      compareJob(input.job,publicItem.driverSourceJob,`${field} item ${order} original retry job`);
-    } else if (input.$ === "advicee_lifecycle_driver.SourceEdit") {
-      if (publicItem.input.kind !== "edit") throw new Error("native original edit changed public input kind");
-      const job = input;
-      if (job.$ !== "advicee_lifecycle_driver.SourceEdit") throw new TypeError("original Edit lost its arrival source fence");
-      const agent = "agent" in publicItem.input ? publicItem.input.agent : "agent-1";
-      const scope = premise.agentScopes.find(scope => scope.agent === agent);
-      if (!scope) throw new Error("original Edit has no actual declared advicee scope");
-      same(job.partition, scope.partition, `${field} item ${order} original advicee`);
-      same(job.activity, publicItem.activityScope ?? 1, `${field} item ${order} captured activity incarnation`);
-      same(job.bytes, publicItem.input.bytes, `${field} item ${order} original bytes`);
-      same(list(job.units), publicItem.input.unitBytes, `${field} item ${order} original units`);
-      const override = publicItem.input.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(publicItem.input.outcome) };
-      same(job.outcome, override, `${field} item ${order} original optional override`);
-    } else throw new TypeError(`uncompared Stop queued input ${String(input.$)}`);
-  }
-  const jobs = list(runtime.jobs).map(readRecord);
-  same(jobs.length, source.jobs.length, `${field} retained source job count`);
-  same(jobs.map(job => readNat(job.operation)),source.jobs.map(([operation]) => operation),`${field} retained source job insertion order`);
-  for (const retained of jobs) {
-    const operation = readNat(retained.operation);
-    const original = source.jobs.find(([id]) => id === operation)?.[1];
-    if (!original) throw new Error(`${field} loses original job ${operation}`);
-    compareJob(retained.job,original.driverSourceJob,`${field} job ${operation}`);
+    } else if (emission.$ === "stop_observed_wire.CacheInput") {
+      if (!item.cacheFact || item.input.kind !== "canonical") throw new Error(`${at} missing actual cache effect`);
+      const fact=readRecord(emission.fact), key=readRecord(readRecord(fact.offer).key);
+      same([fact.event,key.partition],[encodeCanonicalEvent(item.cacheFact.event),item.cacheFact.partition],`${at} actual cache effect`);
+      compareSourceJob(emission.source_job,item.driverSourceJob,at);
+    } else throw new TypeError(`${at} missing or unsupported actual emitted effect`);
   }
 }
-
-/** Compare actual observer owner midpoints. Queue/job transport and boundary
- * accounting are separate required comparisons; this function alone is not
- * a full Stop conformance gate. No midpoint is reconstructed from endpoints. */
-export function compareStopObservedOwners(nativeFrames: readonly unknown[], publicFrames: readonly RunStructuralFrame[], premise: StopRuntimePremise): void {
-  const observed = nativeFrames.map(readRecord).filter(frame => frame.$ === "stop_observed_wire.Observed");
-  const actual = publicFrames.filter(frame => frame.kind !== "callbackDelivery");
-  same(observed.length, actual.length, "observed frame count");
-  for (const [index, wire] of observed.entries()) {
-    const source = actual[index];
-    if (!source) throw new Error("missing actual public Stop frame");
-    const frame = readRecord(wire.frame);
-    const before = single(frame.runtime_before), after = single(frame.runtime_after);
-    compareRuntime(frame.runtime_before, source.before, `frame ${index} runtime before`, premise);
-    compareRuntime(frame.runtime_after, source.after, `frame ${index} runtime after`, premise);
-    same(before.state, source.before.engine, `frame ${index} full engine before`);
-    same(after.state, source.after.engine, `frame ${index} full engine after`);
-    same(single(frame.before), source.before.engine, `frame ${index} original before`);
-    same(single(frame.after), source.after.engine, `frame ${index} original after`);
-    same(readNat(frame.time), source.time, `frame ${index} time`);
-    same(readNat(frame.order), source.scheduled.order, `frame ${index} original order`);
-    const physical = publicFrames.filter(value => value.kind === "callbackDelivery" && value.scheduled.order === source.scheduled.order);
-    if (physical.length > 1) throw new Error("duplicate original physical delivery record");
-    const delivered = physical[0];
-    same(optional(frame.receipt), delivered?.kind === "callbackDelivery" ? delivered.fact : undefined, `frame ${index} original selected fact`);
-    const deliveries = list(frame.physical);
-    same(deliveries.length, physical.length, `frame ${index} physical delivery count`);
-    if (delivered?.kind === "callbackDelivery") {
-      const delivery = readRecord(deliveries[0]);
-      if (delivery.$ !== "advicee_lifecycle_driver.PhysicalDelivery") throw new TypeError("missing actual native physical transition");
-      compareRuntime(delivery.before, delivered.before, `frame ${index} physical before`, premise);
-      compareRuntime(delivery.after, delivered.after, `frame ${index} physical after`, premise);
-      same(delivery.action, delivered.delivery, `frame ${index} actual output delivery action`);
-      same(delivered.scheduled.order, source.scheduled.order, `frame ${index} physical selected order`);
-      same(delivered.scheduled.at, source.scheduled.at, `frame ${index} physical original timestamp`);
+function compareObserved(values: readonly unknown[], sources: readonly RunStructuralFrame[], config: RunConfig, field: string): void {
+  const observed=values.map(readRecord).filter(frame=>["stop_observed_wire.Observed","stop_observed_wire.PhysicalOnly"].includes(String(frame.$)));
+  const publicObserved=sources.filter(frame=>frame.kind !== "callbackDelivery" || !sources.some(other=>other.kind !== "callbackDelivery" && other.scheduled.order === frame.scheduled.order));
+  same(observed.length,publicObserved.length,`${field} ordered observation/physical count`);
+  for (const [index,wire] of observed.entries()) {
+    const source=publicObserved[index]!,at=`${field} observation ${index}`;
+    if (wire.$ === "stop_observed_wire.PhysicalOnly") {
+      if (source.kind !== "callbackDelivery") throw new Error(`${at} physical-only became product observation`);
+      comparePhysical(wire.physical,source,at);
+      same(wire.receipt,source.fact,`${at} original selected fact`);
+    } else {
+      compareObservation(wire.observation,source,at);
+      const originalFinish=source.kind === "finishRegistration" ? source.registration.finish
+        : decodeStopRegistry(readRecord(readRecord(readRecord(source.before.engine).scenarios).stop).finishes)
+          .find(finish=>finish.partition === source.scheduled.partition);
+      same(decodeStopFound(wire.original_finish),originalFinish,`${at} original selected Finish`);
+      const physical=sources.filter(frame=>frame.kind === "callbackDelivery" && frame.scheduled.order === source.scheduled.order);
+      same(list(wire.physical).length,physical.length,`${at} physical count`);
+      list(wire.physical).forEach((value,i)=>comparePhysical(value,physical[i]!,`${at} physical ${i}`));
+      same(optional(wire.receipt),physical[0]?.kind === "callbackDelivery" ? physical[0].fact : undefined,`${at} original receipt`);
     }
-    if (frame.$ === "advicee_lifecycle_driver.FinishFrame") {
-      if (source.kind !== "finishRegistration") throw new Error("Stop registration changed observation kind");
-      same(decodeStopFound(frame.finish), source.registration.finish, `frame ${index} registered capture`);
-      same(readBool(frame.created), source.registration.created, `frame ${index} registration result`);
-      continue;
-    }
-    if (source.kind === "finishRegistration") throw new Error("canonical observation became registration");
-    const transition = readRecord(source.transition);
-    if (frame.$ === "advicee_lifecycle_driver.GraphFrame") {
-      same(single(frame.result), transition, `frame ${index} full graph transition`);
-    } else if (frame.$ === "advicee_lifecycle_driver.CanonicalFrame" || frame.$ === "advicee_lifecycle_driver.CacheFrame") {
-      if (source.observation.event.kind === "preparationGraph") throw new Error("canonical frame changed original graph event kind");
-      same(single(frame.result), transition.result, `frame ${index} full canonical result`);
-      same(decodePrefixCanonicalEvent(frame.event), encodeCanonicalEvent(source.observation.event), `frame ${index} original event`);
-      same(list(frame.command_scopes).map(optional), source.observation.commandScopes, `frame ${index} actual command scopes`);
-      if (frame.$ === "advicee_lifecycle_driver.CacheFrame") same(frame.fact, source.source, `frame ${index} original cache fact`);
-    } else throw new TypeError("unsupported full Stop observer constructor");
+    compareIssuance(wire.issuance,source,at);
+    compareEmissions(wire.emissions,source,config,at);
   }
 }
 
-
-export function compareOriginalWaitingStopTrace(value: unknown,
-    expected: ReturnType<typeof originalWaitingStopPublic>): void {
-  const envelope = single(value);
-  if (envelope.$ !== "stop_observed_wire.Envelope") throw new TypeError("wrong Stop family envelope");
-  const traces = list(envelope.traces);
-  if (traces.length !== 1) throw new TypeError("original Stop root changed scenario count");
-  const trace = readRecord(traces[0]);
-  if (trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError("invalid original Stop factual transport");
-  const frames = list(trace.frames).map(readRecord);
-  for (const frame of frames) if (!["stop_observed_wire.Observed", "stop_observed_wire.Boundary"].includes(String(frame.$)))
-    throw new TypeError("uncompared Stop transport frame");
-  compareStopObservedOwners(frames, expected.frames, expected);
-  const boundaries = frames.filter(frame => frame.$ === "stop_observed_wire.Boundary" || frame.$ === "stop_observed_wire.Control");
-  same(boundaries.length, expected.boundaries.length, "original Stop boundary count");
-  for (const [index, frame] of boundaries.entries()) {
-    const input = readRecord(frame.input), original = expected.boundaries[index];
-    if (!original || input.$ !== "stop_original_inputs.Advance") throw new TypeError("wrong original Stop boundary");
-    same([input.endpoint,input.budget,frame.consumed], [original.endpoint,original.budget,original.consumed], `boundary ${index} original budget/count`);
-    compareRuntime(frame.runtime, original.runtime, `boundary ${index} full runtime`, expected);
-  }
-  compareRuntime(trace.endpoint, expected.endpoint, "final actual Stop runtime", expected);
-}
-
-/** All original cases retain the same complete observer contract as waiting. */
-export function compareOriginalStopFamilyTrace(value: unknown, expected: ReturnType<typeof originalStopPublicCases>, frozenInputs: readonly unknown[]): void {
-  const envelope = single(value);
-  if (envelope.$ !== "stop_observed_wire.Envelope") throw new TypeError("wrong original Stop family envelope");
-  const traces = list(envelope.traces);
-  same(traces.length,11,"full original Stop scenario count");
-  same(expected.length,11,"independent public original scenario count");
-  same(frozenInputs.length,11,"independent frozen original declaration count");
-  for (const [caseIndex, value] of traces.entries()) compareOriginalStopCaseTrace(value,expected[caseIndex],frozenInputs[caseIndex],caseIndex);
-}
-
-export function compareOriginalStopCaseTrace(value: unknown, original: ReturnType<typeof originalStopPublicCases>[number] | undefined,
-    frozenInput: unknown, caseIndex: number, originalOutputBoundaryDeclarations?: readonly OriginalOutputBoundaryDeclaration[]): void {
+type PublicCase=ReturnType<typeof originalStopPublicCases>[number];
+function compareCase(value: unknown, original: PublicCase | undefined, frozenInput: unknown, caseIndex: number): void {
+  const field=`case ${caseIndex}`;
   try {
-    const trace = readRecord(value);
-    if (!original || trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError(`invalid full original Stop trace at case ${caseIndex}`);
-    same(trace.input,frozenInput,`case ${caseIndex} complete original input`);
-    const premise: StopRuntimePremise = {
-      input: original.input,
-      agentScopes: original.agentScopes,
-      frozenInput,
-      ...(originalOutputBoundaryDeclarations === undefined ? {} : {
-        originalOutputBoundaryDeclarations,
-        originalOutputPublicBoundaries: original.boundaries,
-      }),
-    };
-    const frames = list(trace.frames).map(readRecord);
-    for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.Boundary","stop_observed_wire.Control"].includes(String(frame.$))) throw new TypeError("uncompared original Stop frame");
-    compareStopObservedOwners(frames,original.frames,premise);
-    const boundaries = frames.filter(frame => frame.$ === "stop_observed_wire.Boundary" || frame.$ === "stop_observed_wire.Control");
-    same(boundaries.length,original.boundaries.length,`case ${caseIndex} boundary count`);
-    for (const [index, frame] of boundaries.entries()) {
-      const boundary = original.boundaries[index], input = readRecord(frame.input);
-      if (!boundary) throw new TypeError("missing independent original boundary");
-      if ("outputProfile" in boundary.input) {
-        if (frame.$ !== "stop_observed_wire.Control" || input.$ !== "stop_original_inputs.OutputProfile") throw new TypeError("original output profile lost genuine control frame");
-        const profile=boundary.input.outputProfile;
-        const outcome={$:`OutputScenario.${profile.outcome[0]!.toUpperCase()}${profile.outcome.slice(1)}`};
-        same(input,{ $:"stop_original_inputs.OutputProfile",outcome,delay:profile.delayMs,lease:profile.leaseMs },`case ${caseIndex} complete future output control`);
-        const config=readRecord(readRecord(frozenInput).configuration);
-        const environment=(snapshot:typeof boundary.runtime)=>({$:"advicee_lifecycle_driver.Environment",seed:config.seed,tree:config.tree,graph:config.graph,preparation_delay:config.preparation_delay,output_delay:snapshot.outputProfile.delayMs,output_lease:snapshot.outputProfile.leaseMs,stop_profile:{$:"Some",value:{$:"advicee_lifecycle_driver.StopProfile",outcome:{$:`OutputScenario.${snapshot.outputProfile.outcome[0]!.toUpperCase()}${snapshot.outputProfile.outcome.slice(1)}`},bytes:config.candidate_bytes}},outcomes:config.outcomes});
-        same(frame.before_environment,environment(boundary.before),`case ${caseIndex} complete original environment before control`);
-        same(frame.after_environment,environment(boundary.runtime),`case ${caseIndex} complete original environment after control`);
-        compareRuntime(frame.before,boundary.before,`case ${caseIndex} genuine control runtime before`,premise);
-        compareRuntime(frame.after,boundary.runtime,`case ${caseIndex} genuine control runtime after`,premise);
-        same(boundary.consumed,0,`case ${caseIndex} control consumes no observation`);
-        continue;
-      } else if ("input" in boundary.input) {
-        if (input.$ !== "stop_original_inputs.Schedule") throw new TypeError("original Schedule changed boundary kind");
-        const scheduled = boundary.input.input;
-        if (scheduled.kind !== "canonical") throw new TypeError("original scheduled boundary must be canonical");
-        same(input.input,{ $: "stop_original_inputs.CanonicalInput", at: scheduled.at, event: encodeCanonicalEvent(scheduled.event) },`case ${caseIndex} scheduled full input`);
-        same(frame.consumed,0,`case ${caseIndex} scheduling consumes no observation`);
-      } else if ("endpoint" in boundary.input) {
-        if (input.$ !== "stop_original_inputs.Advance") throw new TypeError("original Advance changed boundary kind");
-        same([input.endpoint,input.budget,frame.consumed],[boundary.input.endpoint,boundary.input.budget,boundary.consumed],`case ${caseIndex} boundary ${index} exact budget/count`);
+    const trace=tagged(value,"Trace");
+    if (!original || !readBool(trace.valid)) throw new TypeError("invalid actual Stop transport");
+    same(trace.input,frozenInput,`${field} complete original input`);
+    const frames=list(trace.frames).map(readRecord);
+    for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.PhysicalOnly","stop_observed_wire.Boundary","stop_observed_wire.Control"].includes(String(frame.$))) throw new TypeError("uncompared Stop business frame");
+    compareObserved(frames,original.frames,original.input,field);
+    const boundaries=frames.filter(frame=>["stop_observed_wire.Boundary","stop_observed_wire.Control"].includes(String(frame.$)));
+    same(boundaries.length,original.boundaries.length,`${field} boundary count`);
+    for (const [index,frame] of boundaries.entries()) {
+      const source=original.boundaries[index]!,input=readRecord(frame.input),at=`${field} boundary ${index}`;
+      if ("outputProfile" in source.input) {
+        tagged(frame,"Control");
+        const profile=source.input.outputProfile;
+        same(input,{$:"stop_original_inputs.OutputProfile",outcome:{$:`OutputScenario.${profile.outcome[0]!.toUpperCase()}${profile.outcome.slice(1)}`},delay:profile.delayMs,lease:profile.leaseMs},`${at} original future profile`);
+        for (const [value,snapshot,label] of [[frame.before_environment,source.before,"before"],[frame.after_environment,source.runtime,"after"]] as const) {
+          const environment=readRecord(value), stopProfile=readRecord(optional(environment.stop_profile));
+          same([environment.output_delay,environment.output_lease,stopProfile.outcome],
+            [snapshot.outputProfile.delayMs,snapshot.outputProfile.leaseMs,{$:`OutputScenario.${snapshot.outputProfile.outcome[0]!.toUpperCase()}${snapshot.outputProfile.outcome.slice(1)}`}],`${at} ${label} profile`);
+        }
+        compareEndpoint(frame.before,source.before,`${at} before`);
+        compareEndpoint(frame.after,source.runtime,`${at} after`);
+        same(source.consumed,0,`${at} profile consumes no observations`);
+      } else {
+        tagged(frame,"Boundary");
+        if ("input" in source.input) {
+          const scheduled=source.input.input;
+          if (scheduled.kind !== "canonical") throw new TypeError("original Schedule must be canonical");
+          same(input,{$:"stop_original_inputs.Schedule",input:{$:"stop_original_inputs.CanonicalInput",at:scheduled.at,event:encodeCanonicalEvent(scheduled.event)}},`${at} original scheduled input`);
+          same(readNat(frame.consumed),0,`${at} schedule consumes no observation`);
+        } else if ("endpoint" in source.input) {
+          same(input,{$:"stop_original_inputs.Advance",endpoint:source.input.endpoint,budget:source.input.budget},`${at} original advancement`);
+          same(readNat(frame.consumed),source.consumed,`${at} consumed budget`);
+        } else throw new TypeError("unresolved original boundary");
+        compareEndpoint(frame.endpoint,source.runtime,at);
       }
-      else throw new TypeError("unresolved original boundary declaration");
-      compareRuntime(frame.runtime,boundary.runtime,`case ${caseIndex} boundary ${index} complete runtime`,premise);
     }
-    compareRuntime(trace.endpoint,original.endpoint,`case ${caseIndex} complete endpoint`,premise);
-
-  } catch (error) {
-    throw new Error(`original Stop case ${caseIndex}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
-  }
+    compareEndpoint(trace.endpoint,original.endpoint,`${field} endpoint`);
+  } catch(error) { throw new Error(`original Stop ${field}: ${error instanceof Error ? error.message : String(error)}`,{cause:error}); }
 }
-
-export function compareOriginalStopOutputFamilyTrace(value: unknown, expected: ReturnType<typeof originalStopOutputPublicCases>, frozenInputs: readonly unknown[]): void {
-  const envelope=single(value);
-  same(envelope.$,"stop_observed_wire.Envelope","original output family envelope");
-  const traces=list(envelope.traces);
-  same(traces.length,12,"all original output scenario count");
-  same(expected.length,12,"independent original output scenario count");
-  same(frozenInputs.length,12,"independent frozen output declaration count");
-  same(originalStopOutputCases.length,12,"original public output source declaration count");
-  for(const [index,trace] of traces.entries())
-    compareOriginalStopCaseTrace(trace,expected[index],frozenInputs[index],index,originalStopOutputCases[index]?.boundaries);
+export function compareOriginalStopCaseTrace(value: unknown, original: PublicCase | undefined,frozenInput: unknown,caseIndex: number): void {
+  compareCase(value,original,frozenInput,caseIndex);
+}
+function family(value: unknown,count: number): unknown[] {
+  const envelope=tagged(single(value),"Envelope"), traces=list(envelope.traces);
+  same(traces.length,count,"original Stop family count");
+  return traces;
+}
+export function compareOriginalWaitingStopTrace(value: unknown,expected: ReturnType<typeof originalWaitingStopPublic>): void {
+  const traces=family(value,1),trace=tagged(traces[0],"Trace");
+  if (!readBool(trace.valid)) throw new TypeError("invalid waiting Stop transport");
+  const frames=list(trace.frames).map(readRecord);
+  for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.PhysicalOnly","stop_observed_wire.Boundary"].includes(String(frame.$)))
+    throw new TypeError("uncompared waiting Stop business frame");
+  compareObserved(frames,expected.frames,expected.input,"waiting case");
+  const boundaries=frames.filter(frame=>frame.$ === "stop_observed_wire.Boundary");
+  same(boundaries.length,expected.boundaries.length,"waiting boundary count");
+  for (const [index,frame] of boundaries.entries()) {
+    const source=expected.boundaries[index]!;
+    same(frame.input,{$:"stop_original_inputs.Advance",endpoint:source.endpoint,budget:source.budget},`waiting boundary ${index} original input`);
+    same(readNat(frame.consumed),source.consumed,`waiting boundary ${index} consumed budget`);
+    compareEndpoint(frame.endpoint,source.runtime,`waiting boundary ${index}`);
+  }
+  compareEndpoint(trace.endpoint,expected.endpoint,"waiting endpoint");
+}
+export function compareOriginalStopFamilyTrace(value: unknown,expected: ReturnType<typeof originalStopPublicCases>,frozenInputs: readonly unknown[]): void {
+  same(expected.length,11,"independent original Stop cases");same(frozenInputs.length,11,"frozen original Stop cases");
+  family(value,11).forEach((trace,index)=>compareCase(trace,expected[index],frozenInputs[index],index));
+}
+export function compareOriginalStopOutputFamilyTrace(value: unknown,expected: ReturnType<typeof originalStopOutputPublicCases>,frozenInputs: readonly unknown[]): void {
+  same(expected.length,12,"independent output Stop cases");same(frozenInputs.length,12,"frozen output Stop cases");
+  same(originalStopOutputCases.length,12,"original output declaration cases");
+  family(value,12).forEach((trace,index)=>compareCase(trace,expected[index],frozenInputs[index],index));
 }
