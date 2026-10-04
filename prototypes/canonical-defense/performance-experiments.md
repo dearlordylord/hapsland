@@ -101,10 +101,10 @@ Detailed E4 comparison: [TS observation measurements and equality hashes](perfor
 - [x] Persist a separate 180-second full-validation native/JS execution allowance; keep short probes at 10 seconds and the maintained overall deadline finite.
 - [x] Remove repeated growing-buffer copies/scans in the stdout reader, preserving all bounds and exact JSON.
 - [x] Explicitly resume verified successful C/native preparation; actualnative+JS full145streams completed and retained. All145bytehashes match.
-- [ ] Fix the concrete SourceJob discrepancy, then finish allfourcampaigns/3,222ticks/public/replay using explicit source-validated retainedvectors. No repeatnative/JSgeneration unless Bend/core/output source changes.
+- [ ] Fix the concrete SourceJob discrepancy, then finish allfourcampaigns/3,222ticks/public/replay using explicit source-validated retainedvectors. No repeat native/JS generation unless Bend/core/output source changes. The diagnosed fix changes the Bend owner, so its qualification requires fresh producer outputs.
 - [x] Record the first full-validation terminal result: native exceeded 180 seconds with 105/145 complete batches, 58,165,264 complete bytes and 2,172,807 pending bytes. JS/public/replay did not run. Acceptance remains incomplete; investigate selective C optimization next.
 
-This is the previously required full acceptance milestone, not a longer performance probe. Native/JS allowances are 180 seconds each inside the existing 380-second supervisor; no compiler regeneration is planned for the retained matching source closure.
+This is the previously required full acceptance milestone, not a longer performance probe. Native/JS allowances are 180 seconds each inside the existing 380-second supervisor; retained outputs remain useful for diagnosis, while the SourceJob owner fix requires one fresh compiler preparation and producer run.
 
 ## E6 Selective saved-C optimization
 
@@ -133,3 +133,7 @@ E7 canary: [direct numeric native/JS evidence](performance-evidence/2026-10-04-d
 E7 full-source diagnostic: [preparation and exact prefix comparison](performance-evidence/2026-10-04-direct-numeric-game-comparison.json).
 
 Fullproducer evidence: [all145byte-equal batches](performance-evidence/2026-10-04-full-game-producers.json). Raw scoped receipts remain in the recorded worktree run directory.
+
+- [x] Issue #200: current dashboard build passed with the optional game directory physically absent (9.260 seconds at `a495fd90`); the directory was restored afterward. [Evidence](performance-evidence/2026-10-04-no-game-build.json).
+
+SourceJob diagnosis: `product_post` drops the separate source tuple when emitting `Engine.after` actions. Preserve it through queue emission before callback registration; the original failing comparison remains required.

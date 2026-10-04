@@ -1,0 +1,16 @@
+{
+  "head": "a495fd904acfdecc281ebb7b4d6aed8dd8207f17",
+  "scope": "Current dashboard build while optional game directory is physically absent",
+  "command": [
+    "npm",
+    "--prefix",
+    "packages/agent-flow-viz",
+    "run",
+    "build"
+  ],
+  "limit_s": 180,
+  "exit_code": 0,
+  "timed_out": false,
+  "game_restored": true,
+  "elapsed_s": 9.260060400003567
+}
