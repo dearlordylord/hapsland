@@ -768,12 +768,22 @@ def begun_capture(authorize: Bool, state: T.State, advice: Nat, token: Nat) -> M
     case True{}: individual_capture(state,advice,token)
     case False{}: begun_failed_capture(state,advice,token)
 
+def begun_event_capture(state: T.State, event: Canonical.CanonicalEvent) -> Maybe<&2,OutputScenario.Capture>:
+  match event:
+    case Canonical.SubmissionBegin{advice,_,_,token,_,authorize,_,_}: begun_capture(authorize,state,advice,token)
+    case _: None{}
+
+def authorized_event_capture(state: T.State, event: Canonical.CanonicalEvent) -> Maybe<&2,OutputScenario.Capture>:
+  match event:
+    case Canonical.SubmissionBegin{advice,_,_,token,_,_,_,_}: individual_capture(state,advice,token)
+    case Canonical.SubmissionAuthorize{advice,token}: individual_capture(state,advice,token)
+    case _: None{}
+
 def output_command_capture(state: T.State, event: Canonical.CanonicalEvent, command: Canonical.Command) -> Maybe<&2,OutputScenario.Capture>:
-  match command event:
-    case Canonical.SubmissionBegun{} Canonical.SubmissionBegin{advice,_,_,token,_,authorize,_,_}: begun_capture(authorize,state,advice,token)
-    case Canonical.SubmissionAuthorized{} Canonical.SubmissionBegin{advice,_,_,token,_,_,_,_}: individual_capture(state,advice,token)
-    case Canonical.SubmissionAuthorized{} Canonical.SubmissionAuthorize{advice,token}: individual_capture(state,advice,token)
-    case _ _: None{}
+  match command:
+    case Canonical.SubmissionBegun{}: begun_event_capture(state,event)
+    case Canonical.SubmissionAuthorized{}: authorized_event_capture(state,event)
+    case _: None{}
 
 def output_unhandled(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>, actions: List<&2,Driver.Action>) -> T.State:
   match capture:
