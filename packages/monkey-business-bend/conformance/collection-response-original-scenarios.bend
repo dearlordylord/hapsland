@@ -66,5 +66,8 @@ def scenarios(modes: List<&2,Nat>, acc: List<&2,Wire.Envelope>) -> List<&2,Wire.
     case Nil{}: List.reverse(&2,Wire.Envelope,acc)
     case mode <> tail: scenarios(tail,observed(original(mode)) <> acc)
 
+def json() -> String:
+  Codec.render(Codec.writer_scenarios(scenarios([0n,1n,2n,3n,4n],[]),[]))
+
 def main() -> IO(Unit):
-  IO.print(Codec.render(Codec.writer_scenarios(scenarios([0n,1n,2n,3n,4n],[]),[])))
+  IO.print(json())
