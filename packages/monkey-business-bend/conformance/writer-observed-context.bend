@@ -54,7 +54,7 @@ def input_states(action: Driver.Action, partition: Nat, states: List<&2,Types.St
 
 def original_input(input: Edge.Input, states: List<&2,Types.State>) -> Maybe<&2,Payload>:
   match input:
-    case Edge.Event{action,Edge.Job{partition,_,_,_,_},_}: input_states(action,partition,states)
+    case Edge.Event{action,job,_}: input_states(action,Edge.job_partition(job),states)
     case _: None{}
 
 def preparation(found: Maybe<&2,Payload>, input: Edge.Input, states: List<&2,Types.State>) -> Maybe<&2,Payload>:
