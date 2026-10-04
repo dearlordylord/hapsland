@@ -1,22 +1,14 @@
 import Base
-import ./DefenseBalanceTests.bend as Balance
+import ./DefenseConsumerTests.bend as Consumer
+import ./ConfigAgreement.bend as Agreement
+import ./DefensePreviewTests.bend as Preview
+import ./DefenseMapTests.bend as Map
 import ./DefenseDrawTests.bend as Draw
-import ./DefenseBusinessTests.bend as BusinessTests
-import ./DefenseTests.bend as HostTests
-import ./DefensePreviewTests.bend as T0
-import ./DefenseOutputTests.bend as T1
-import ./DefenseAutoTests.bend as T2
-import ./DefenseMapTests.bend as T3
-import ./DefenseRasterTests.bend as T4
-
+import ./DefenseRasterTests.bend as Raster
 def main() -> IO(Unit):
   do IO<Unit>:
+    Consumer.main()
+    Preview.main()
+    Map.main()
     Draw.main()
-    Balance.main()
-    BusinessTests.main()
-    HostTests.main()
-    T0.main()
-    T1.main()
-    T2.main()
-    T3.main()
-    T4.main()
+    Raster.main()

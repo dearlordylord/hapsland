@@ -1,0 +1,11 @@
+{
+  "roots": {
+    "game_consumer": {
+      "module": "prototypes/canonical-defense/DefenseConsumerObserved.bend",
+      "type": "Envelope",
+      "vector": true
+    }
+  },
+  "codec": "prototypes/canonical-defense/DefenseConsumerCodec.bend",
+  "metadata": "prototypes/canonical-defense/defense-consumer-metadata.ts"
+}
