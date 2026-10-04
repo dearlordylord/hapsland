@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { devBuildIdentity, devCacheDirectory, readDevCandidate, writeDevCandidate, withDevInstallLock } from "./dev-install-cache.mjs";
+import { loadDevEnvFile } from "./dev-install-env.mjs";
 import { packDevelopmentArchive } from "./dev-pack.mjs";
 import { stageRelease } from "../src/onboarding/distribution.ts";
 
@@ -15,6 +16,7 @@ const forwarded = args.filter(arg => /^--(?:claude|codex|pi)-(?:home|executable)
 if ((host !== "claude" && host !== "codex" && host !== "pi") || args.some(arg => arg !== `--host=${host}` && arg !== "--update" && arg !== "--new-key" && !forwarded.includes(arg))) {
   throw new Error("usage: npm run dev-install -- --host=claude|codex|pi [--update | --new-key] [--claude-home=PATH|--codex-home=PATH|--pi-home=PATH] [--claude-executable=PATH|--codex-executable=PATH|--pi-executable=PATH]");
 }
+loadDevEnvFile(process.cwd());
 const environment = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1", HAPSLAND_BUILD_PROFILE: `${process.platform}-${process.arch}` };
 delete environment.REVIEW_INSTALL_RUNTIME;
 delete environment.REVIEW_INSTALL_ENTRYPOINT;

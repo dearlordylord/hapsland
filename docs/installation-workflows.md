@@ -133,6 +133,8 @@ To request a replacement key during development installation:
 mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
 ```
 
+`dev-install` additionally reads `.env` from the checkout working directory, using Node's dotenv parser without shell execution. Explicit process environment variables take precedence, including empty values; `.env` fills only missing variables. An absent `.env` is allowed. Values are not printed, and `.env` is excluded from build caching and packaging. This supplies the key to setup and its child processes; it does not export it into the parent terminal. Codex started separately still needs the key in its own environment or native storage.
+
 `--new-key` cannot be combined with `--update`, which does not run guided credential entry. If native storage is unavailable, set `TYPESAFE_API_KEY` securely in the terminal before normal setup, then start the agent from that same environment. Hapsland does not save this environment key.
 
 Before submitting a code change, run the contributor checks separately:
