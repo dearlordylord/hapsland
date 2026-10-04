@@ -360,18 +360,41 @@ def environment_graph(environment: Environment) -> Graph.Limits:
   match environment:
     case Environment{_,_,graph,_,_,_,_,_}: graph
 
+def output_certain(outcome: OutputScenario.Outcome) -> Bool:
+  match outcome:
+    case OutputScenario.Certain{}: True{}
+    case _: False{}
+
+def output_allowed(outcome: OutputScenario.Outcome, bytes: Maybe<&2,Nat>, delay: Nat, lease: Nat) -> Bool:
+  match outcome bytes:
+    case OutputScenario.Failed{} _: False{}
+    case _ Some{_}: False{}
+    case _ None{}: Nat.is_lt(delay,lease)
+
+def profile_certain(profile: Maybe<&2,StopProfile>) -> Bool:
+  match profile:
+    case None{}: True{}
+    case Some{StopProfile{outcome,_}}: output_certain(outcome)
+    case Some{FitProfile{outcome,_,_}}: output_certain(outcome)
+
+def profile_automatic(profile: Maybe<&2,StopProfile>, +delay: Nat, +lease: Nat) -> Bool:
+  match profile:
+    case None{}: Nat.is_lt(delay,lease)
+    case Some{StopProfile{outcome,bytes}}: output_allowed(outcome,bytes,delay,lease)
+    case Some{FitProfile{outcome,bytes,_}}: output_allowed(outcome,bytes,delay,lease)
+
 def context_with(environment: Environment, +state: Types.State, job: Job, delay: Nat,
     candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
   match environment job:
-    case Environment{_,_,_,_,output_delay,output_lease,_,_} Job{+partition,+lifetime,bytes,_,outcome}:
+    case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} Job{+partition,+lifetime,bytes,_,outcome}:
       Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),bytes,True{},delay,
-        None{},True{},True{},True{},True{},600000n,candidate,Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),True{},True{},True{},
+        None{},True{},True{},True{},True{},600000n,candidate,Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),
         output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
-    case Environment{_,_,_,_,output_delay,output_lease,_,_} NoJob{+partition,+lifetime}:
+    case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} NoJob{+partition,+lifetime}:
       Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),0n,False{},delay,
         None{},True{},True{},True{},True{},600000n,candidate,
         Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),
-        True{},True{},True{},output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
+        True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
 
 def source_job(job: Job) -> Maybe<&2,Driver.SourceJob>:
   match job:
