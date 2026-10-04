@@ -83,6 +83,25 @@ smaller projection does not establish lower native compilation cost or qualify
 the new source. Report a Stop lane as passed only after its exact changed-source
 checks and complete native/JavaScript comparison finish successfully.
 
+
+## Other observed family owners
+
+Expiry's twelve original cases use `expiry-observed-native.bend` and the
+`expiry_scenarios` family. `expiry-observed-wire.BusinessState` and `Snapshot`
+carry actual Canonical accounting, notice state/clocks, collection and Stop
+ownership, lifecycle facts, pending business actions and physical receipts.
+The exported `PublicTrace` replaces recursive private runtime serialization;
+`compareExpiryBusinessTrace` compares those facts with the independent public
+controls, boundaries and ordinary replay. Native and emitted JavaScript still
+compare every word of the complete encoding.
+
+Writer's thirteen original cases use one `writer-original-scenarios.bend`
+fixture and one `writer_scenarios` vector. The superseded thirteen per-case
+wrappers have been removed. `writer-native.test.ts` retains every original
+configuration and independent public expectation, with fresh native/JavaScript
+whole-vector equality and public/replay comparison for all thirteen entries.
+Compilation runs once per backend for the family, rather than once per case.
+
 Python 3 is a development prerequisite for the one shared private prefix codec.
 Run `python3 packages/monkey-business-bend/conformance/generate-callback-native-prefix.py`
 after changing a serialized owner declaration, and add `--check` to reject stale
@@ -162,6 +181,6 @@ mutant that republishes the batch; the mutant fails in the proposal's own sectio
 This and the started-request NeverSent refusal law remain candidate proposals for
 owner review under #176, not accepted new product requirements.
 
-Native validation budgets: fresh C emission and external clang compilation default to 30 seconds; emitted-JavaScript compilation, including the maintained Engine build, and source-only checks are bounded at 15 seconds. Native and JavaScript execution remain bounded at 5 seconds. Kernel/proof checks retain their separate 5-second deadline. A default fresh native/JavaScript comparison has a 100-second aggregate test watchdog for its 85 seconds of phase allowances and finite cleanup. The waiting fixture, original eleven Stop scenarios and twelve output Stop scenarios explicitly allow C emission 45 seconds, clang 90 seconds, native execution 5 seconds, and independent JavaScript emission 15/execution 5 seconds, with 175 seconds overall (160 seconds of phases plus 15 seconds cleanup). Other fixtures retain their default bounds. The fixed native preflight manifest rejects a nondefault compilation override. These allowances bound local validation processes; they do not change product deadlines, virtual clocks, original scenario inputs or assertions.
+Native validation budgets: fresh C emission and external clang compilation default to 30 seconds; emitted-JavaScript compilation, including the maintained Engine build, and source-only checks are bounded at 15 seconds. Native and JavaScript execution remain bounded at 5 seconds. Kernel/proof checks retain their separate 5-second deadline. A default fresh native/JavaScript comparison has a 100-second aggregate test watchdog for its 85 seconds of phase allowances and finite cleanup. The waiting fixture, original eleven Stop scenarios and twelve output Stop scenarios explicitly allow C emission 45 seconds, clang 90 seconds, native execution 5 seconds, and independent JavaScript emission 15/execution 5 seconds, with 175 seconds overall (160 seconds of phases plus 15 seconds cleanup). The twelve expiry cases use the same 45/90/5/15/5-second phase bounds and 175-second aggregate. The thirteen-case Writer family uses C emission 45 seconds, clang 90 seconds, native execution 5 seconds and JavaScript emission 30/execution 5 seconds, with 190 seconds overall (175 seconds of phases plus 15 seconds cleanup). Other fixtures retain their default bounds. The fixed native preflight manifest rejects a nondefault compilation override. These allowances bound local validation processes; they do not change product deadlines, virtual clocks, original scenario inputs or assertions.
 
 On 2026-10-03 the user authorized modest timeout increases and asked to be informed. Earlier C-only amendments moved the bound from 5 to 8, 10 and 12 seconds; the full diagnostic root had emitted in 10.75 seconds after its call-size errors were resolved. The later announced amendment sets source/JS compilation to 15 seconds and C/clang compilation to 30 seconds, preserving runtime and proof bounds. Previous failures remain failures; fresh validation under the amended allowances is required. This explicit user authorization overrides the skill's five-second source-check guidance for source-only validation, not the retained kernel/proof gate.

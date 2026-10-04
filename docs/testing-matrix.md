@@ -290,6 +290,32 @@ fixture allowances; default C/clang bounds remain 30 seconds and product
 cutoffs/event budgets remain unchanged. Consult the scoped run receipt and
 retained vectors for actual execution evidence; the allowance is not a pass.
 
+### Expiry and Writer observation owners
+
+`packages/monkey-business/src/expiry-native.test.ts` preserves all twelve
+original expiry cases. Its `expiry_scenarios` transport exports `PublicTrace`
+with the actual `expiry-observed-wire.BusinessState`/`Snapshot` facts, rather
+than recursive private runtime trees. `compareExpiryBusinessTrace` owns public
+accounting, notice clocks, controls, pending actions, physical facts and replay.
+Complete native/emitted output equality remains required. This family uses
+C45/clang90/native5/JS15+5 with a 175-second aggregate watchdog.
+
+`packages/monkey-business/src/writer-native.test.ts` compares all thirteen
+original cases through the single `writer-original-scenarios.bend` fixture and
+`writer_scenarios` vector. The thirteen per-case wrappers have been removed;
+one compilation per backend retains every original case and independent
+public/replay expectation. Its full comparison uses C45/clang90/native5/JS30+5
+with a 190-second aggregate watchdog. These allowances establish no pass by
+themselves and do not change product deadlines.
+
+The optional game consumer command is
+`node --experimental-strip-types prototypes/canonical-defense/verify-consumer.mjs`.
+Declare a 240-second outer deadline: its explicit C45/clang90/JS30 bounds,
+native/JavaScript execution5 bounds and tool-location checks allow 185 seconds;
+55 seconds remain for source hashes, all public/replay comparisons and cleanup.
+Keep all four campaigns, 145 batches and 3,222 ticks. The five geometry/drawing
+roots and candidate game proofs are separate from this shared consumer scope.
+
 Do not repeat an unchanged failed check. The next run must test a concrete repair,
 a competing cause, or an explicitly declared bounded budget amendment. Reuse a
 successful result only for the exact inputs and scope it validated. Optional
