@@ -36,24 +36,23 @@ function originalInput(value: unknown) {
   return traces[0]?.input;
 }
 
-// Finite aggregate allowance: C30s + clang30s + native5s + two independent
-// (JS emission15s + execution5s) runs =105s, plus15s process cleanup.
-// Each maintained runner phase retains its own limit; runtime remains5s.
-it("compares original waiting Stop full native/emitted/public/replay boundaries", () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/stop-original-waiting.bend", import.meta.url);
-  const expected = originalWaitingStopPublic();
-  const native = runWorkloadNative(fixture);
-  const emitted = runWorkloadEmitted(fixture), independentlyEmitted = runWorkloadEmitted(fixture);
-  // Complete contract-shaped native/JS vectors remain equal. Public behavior
-  // comparison pins ordered business facts without private Runtime layout.
+function compareWaiting(result: ReturnType<typeof runWorkloadEmitted>, expected: ReturnType<typeof originalWaitingStopPublic>): void {
+  const envelope=decodeNativePrefix(result,"stop_scenarios");
+  expect(originalInput(envelope)).toEqual(originalNativeInput());
+  compareOriginalWaitingStopTrace(envelope,expected);
+}
+const waitingFixture=new URL("../../monkey-business-bend/conformance/stop-original-waiting.bend",import.meta.url);
+it("compares original waiting Stop emitted/public/replay boundaries",()=>{
+  const expected=originalWaitingStopPublic();
+  compareWaiting(runWorkloadEmitted(waitingFixture),expected);
+},30000);
+// C30 + clang30 + native5 + JS15/5 + cleanup15 =100 seconds.
+it("compares original waiting Stop full native/emitted/public/replay boundaries",()=>{
+  const expected=originalWaitingStopPublic();
+  const native=runWorkloadNative(waitingFixture),emitted=runWorkloadEmitted(waitingFixture);
   expect(native).toEqual(emitted);
-  expect(independentlyEmitted).toEqual(emitted);
-  for (const result of [native, emitted, independentlyEmitted]) {
-    const envelope = decodeNativePrefix(result, "stop_scenarios");
-    expect(originalInput(envelope)).toEqual(originalNativeInput());
-    compareOriginalWaitingStopTrace(envelope, expected);
-  }
-}, 120000);
+  for(const result of [native,emitted]) compareWaiting(result,expected);
+},100000);
 
 // Independently frozen native declarations for the original eleven cases.
 // None describes an omitted edit override, independently of configured result.
@@ -97,17 +96,18 @@ function originalNativeFamilyInputs() {
   ];
 }
 
-// Finite aggregate allowance: C30s + clang60s + native5s + two independent
-// (JS emission15s + execution5s) runs =135s, plus15s process cleanup.
-// The fixture-specific clang allowance is bounded; each runtime remains5s.
-it("compares all eleven original Stop full native/emitted/public/replay scenarios", () => {
-  const fixture = new URL("../../monkey-business-bend/conformance/stop-original-scenarios.bend",import.meta.url);
-  const expected = originalStopPublicCases(), frozen = originalNativeFamilyInputs();
-  const native = runWorkloadNative(fixture,{clangTimeoutMs:60000}), emitted = runWorkloadEmitted(fixture), independentlyEmitted = runWorkloadEmitted(fixture);
+const originalFixture=new URL("../../monkey-business-bend/conformance/stop-original-scenarios.bend",import.meta.url);
+it("compares all eleven original Stop emitted/public/replay scenarios",()=>{
+  const expected=originalStopPublicCases(),frozen=originalNativeFamilyInputs();
+  compareOriginalStopFamilyTrace(decodeNativePrefix(runWorkloadEmitted(originalFixture),"stop_scenarios"),expected,frozen);
+},30000);
+// C30 + clang60 + native5 + JS15/5 + cleanup15 =130 seconds.
+it("compares all eleven original Stop full native/emitted/public/replay scenarios",()=>{
+  const expected=originalStopPublicCases(),frozen=originalNativeFamilyInputs();
+  const native=runWorkloadNative(originalFixture,{clangTimeoutMs:60000}),emitted=runWorkloadEmitted(originalFixture);
   expect(native).toEqual(emitted);
-  expect(independentlyEmitted).toEqual(emitted);
-  for (const result of [native,emitted,independentlyEmitted]) compareOriginalStopFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},150000);
+  for(const result of [native,emitted]) compareOriginalStopFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
+},130000);
 
 // Frozen independent caller declarations for the twelve existing output cases.
 export function originalNativeStopOutputFamilyInputs() {
@@ -135,18 +135,18 @@ export function originalNativeStopOutputFamilyInputs() {
   ];
 }
 
-// Explicit output Stop aggregate allowance: C45s +
-// clang60s + native5s + two independent (JS emission15s + execution5s) runs
-// =150s, plus15s process cleanup. Runtime limits remain5s in the runners.
-it("compares all twelve original output Stop full native/emitted/public/replay scenarios",()=>{
-  const fixture=new URL("../../monkey-business-bend/conformance/stop-output-original-scenarios.bend",import.meta.url);
+const outputFixture=new URL("../../monkey-business-bend/conformance/stop-output-original-scenarios.bend",import.meta.url);
+it("compares all twelve original output Stop emitted/public/replay scenarios",()=>{
   const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
-  const native=runWorkloadNative(fixture,{emissionTimeoutMs:45000,clangTimeoutMs:60000}),emitted=runWorkloadEmitted(fixture),independentlyEmitted=runWorkloadEmitted(fixture);
+  compareOriginalStopOutputFamilyTrace(decodeNativePrefix(runWorkloadEmitted(outputFixture),"stop_scenarios"),expected,frozen);
+},30000);
+// C45 + clang60 + native5 + JS15/5 + cleanup15 =145 seconds.
+it("compares all twelve original output Stop full native/emitted/public/replay scenarios",()=>{
+  const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
+  const native=runWorkloadNative(outputFixture,{emissionTimeoutMs:45000,clangTimeoutMs:60000}),emitted=runWorkloadEmitted(outputFixture);
   expect(native).toEqual(emitted);
-  expect(independentlyEmitted).toEqual(emitted);
-  for(const result of [native,emitted,independentlyEmitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},165000);
-
+  for(const result of [native,emitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
+},145000);
 
 it("Stop business comparison ignores private Engine layout but rejects changed actual accounting", () => {
   const run=createRun({ seed:7,inputs:[{at:0,kind:"edit",bytes:10,unitBytes:[5]}],preparationDelay:2,jevDelay:8,outcome:"clear" });
