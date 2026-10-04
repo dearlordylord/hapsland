@@ -604,7 +604,8 @@ export class Run {
   }
   private structuralRecord(before: RunRuntimeSnapshot | undefined, details: () => RunStructuralDetails): void {
     if (!before || !this.structuralListeners.size) return;
-    const frame = freezeCanonicalData(copy({ ...details(), time: this.clock, before, after: this.runtimeSnapshot() }));
+    // Snapshot owners already copied and froze these graphs; isolate mutable details only.
+    const frame = freezeCanonicalData({ ...copy(details()), time: this.clock, before, after: this.runtimeSnapshot() });
     for (const listener of this.structuralListeners) listener(frame);
   }
   schedule(input: RunInput) {
