@@ -1378,7 +1378,7 @@ def nativeruntypes_config(values: List<&2,NativeRunTypes.Config>, suffix: List<&
 
 def defenseconsumerobserved_input(values: List<&2,DefenseConsumerObserved.Input>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseConsumerObserved.Key{v0} <> Nil{}: 0n <> U32.to_nat(v0) <> suffix
+    case DefenseConsumerObserved.GameKey{v0} <> Nil{}: 0n <> U32.to_nat(v0) <> suffix
     case DefenseConsumerObserved.Ticks{v0} <> Nil{}: 1n <> v0 <> suffix
     case DefenseConsumerObserved.JevProfile{v0,v1} <> Nil{}: 2n <> v0 <> list_numeric_words([v1],suffix)
     case _: 999999n <> suffix
