@@ -319,6 +319,64 @@ def sample_outcome(state: Types.State, weights: List<&2, Numeric.Words>) -> Outc
   match state:
     case Types.State{canonical, graphs, scheduler, workloads, +random, advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios}: sampled_outcome(canonical, graphs, scheduler, workloads, random, Random.sample(Random.outcomes(random), weights), advicees, credentials, opening, retiring, lifecycles, preparations, activity_scopes, scenarios)
 
+# One actual command-context preparation, before every existing command owner.
+# Explicit source/run choices do not advance the independent outcome stream.
+type PreparedCommandContext is Data:
+  PreparedCommandContext{state: Types.State, context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
+
+def outcome_stream(state: Types.State) -> U32:
+  match state:
+    case Types.State{_,_,_,_,random,_,_,_,_,_,_,_,_}: Random.outcomes(random)
+
+def outcome_variant(value: Nat) -> Maybe<&2,Canonical.RequestOutcome>:
+  match value:
+    case 0n: Some{Canonical.NeverSent{}}
+    case 1n: Some{Canonical.RequestFinding{}}
+    case 2n: Some{Canonical.RequestClear{}}
+    case 3n: Some{Canonical.RequestBackendFailure{}}
+    case 4n: Some{Canonical.RequestTimeout{}}
+    case 5n: Some{Canonical.RequestInterrupted{}}
+    case _: None{}
+
+def source_outcome(job: Maybe<&2,Driver.SourceJob>) -> Maybe<&2,Canonical.RequestOutcome>:
+  match job:
+    case Some{Driver.SourceJob{_,_,_,_,outcome}}: outcome
+    case None{}: None{}
+
+def prepared_outcome(+state: Types.State, command: Canonical.Command,
+    job: Maybe<&2,Driver.SourceJob>, selected: Maybe<&2,Canonical.RequestOutcome>,
+    source: Driver.OutcomeSource, before: Maybe<&2,U32>, after: Maybe<&2,U32>, context: Driver.Context) -> PreparedCommandContext:
+  match command selected:
+    case Canonical.JevRequestIssued{p,l,r,o,request} Some{+outcome}:
+      PreparedCommandContext{state,Driver.with_outcome(context,Some{outcome}),
+        Some{Driver.OutcomeReceipt{p,l,r,o,request,outcome,source,job,before,after}}}
+    case _ _: PreparedCommandContext{state,Driver.with_outcome(context,None{}),None{}}
+
+def prepared_sample(sample: OutcomeTransition, command: Canonical.Command,
+    job: Maybe<&2,Driver.SourceJob>, context: Driver.Context, before: U32) -> PreparedCommandContext:
+  match sample:
+    case OutcomeTransition{+state,index}:
+      prepared_outcome(state,command,job,outcome_variant(index),Driver.Sampled{},Some{before},Some{outcome_stream(state)},context)
+
+def prepared_environment(configured: Maybe<&2,Canonical.RequestOutcome>, weights: List<&2,Numeric.Words>,
+    +state: Types.State, command: Canonical.Command, job: Maybe<&2,Driver.SourceJob>, context: Driver.Context) -> PreparedCommandContext:
+  match configured:
+    case Some{outcome}: prepared_outcome(state,command,job,Some{outcome},Driver.RunForced{},None{},None{},context)
+    case None{}: prepared_sample(sample_outcome(state,weights),command,job,context,outcome_stream(state))
+
+def prepared_source(override: Maybe<&2,Canonical.RequestOutcome>, environment: Driver.OutcomeEnvironment,
+    state: Types.State, command: Canonical.Command, job: Maybe<&2,Driver.SourceJob>, context: Driver.Context) -> PreparedCommandContext:
+  match override environment:
+    case Some{outcome} _: prepared_outcome(state,command,job,Some{outcome},Driver.EditForced{},None{},None{},context)
+    case None{} Driver.OutcomeEnvironment{configured,weights}: prepared_environment(configured,weights,state,command,job,context)
+
+def prepare_command_context(state: Types.State, +command: Canonical.Command,
+    +source_job: Maybe<&2,Driver.SourceJob>, environment: Driver.OutcomeEnvironment, +context: Driver.Context) -> PreparedCommandContext:
+  match command context:
+    case Canonical.JevRequestIssued{_,_,_,_,_} _:
+      prepared_source(source_outcome(source_job),environment,state,command,source_job,context)
+    case _ _: PreparedCommandContext{state,context,None{}}
+
 def numeric_add(a: Numeric.Words, b: Numeric.Words) -> Numeric.Words:
   Numeric.plus(a, b)
 
@@ -657,6 +715,11 @@ def lifecycle_action(+state: Types.State, +partition: Nat, action: AdviceeLifecy
 
 def permit_issue(capture: PermitScenario.Capture, now: Nat) -> Canonical.CanonicalEvent:
   PermitScenario.issue(capture, now)
+
+# The PRE source action carries the actual owner's event and relative timing.
+# No command context or outcome selection exists before request issuance.
+def permit_issue_action(capture: PermitScenario.Capture, +started: Nat, now: Nat) -> Driver.Action:
+  Driver.Action{PermitScenario.issue(capture,started),Nat.sub(started,now),None{},True{},None{}}
 
 def permit_issued(capture: PermitScenario.Capture, token: Nat) -> List<&2, PermitScenario.Fact>:
   PermitScenario.issued(capture, token)
