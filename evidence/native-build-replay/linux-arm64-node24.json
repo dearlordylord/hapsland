@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "issue": 104,
+  "status": "pass",
+  "declaredAt": "2026-10-04T13:34:29.176Z",
+  "profile": {
+    "platform": "linux",
+    "arch": "arm64",
+    "node": "v24.20.0"
+  },
+  "scope": "current resident offline security replay held after native parser preparation during actual helper rebuild; historical Quint generator is not executed",
+  "deadlineMs": 120000,
+  "selectedTrials": 3,
+  "scenarios": [
+    "allowed",
+    "exclude-at-dispatch"
+  ],
+  "inputs": {
+    "runnerSha256": "bc1b57e2481a964c5179331dd151bd92e72636b37a0bb8c17042f4cd921f33b9",
+    "helperSha256": "6dbe01d8c744e5488d72f1dc02581d347723f4a0c120f5cb6fe545b43652c6de",
+    "replaySha256": "8a39a645d69bbecc634872c26ae58d9e1a5830d6ec660f66645f7eb90eed0e2e",
+    "publicationSha256": "070ebc477328584bde0f23bd828afdf5f0864e826c38386cc6559e67a5f97a1e",
+    "residentSha256": "41441cf6325d70dbde718d17757a674138fde20d0d8e535d6abde6a623f76dfa",
+    "nativeParserSha256": "1ea14a5272000d55fd6f3387bcf163d9b93b6f8ded4b8c0482242e907298bc68"
+  },
+  "trials": [
+    {
+      "trial": 1,
+      "scenario": "allowed",
+      "startedAt": "2026-10-04T13:34:29.179Z",
+      "preparedAt": "2026-10-04T13:34:29.922Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 1,
+        "postBuildParsed": true,
+        "classifications": [
+          "allowed"
+        ],
+        "authorityDecisions": [
+          "allow"
+        ]
+      },
+      "completedAt": "2026-10-04T13:34:30.624Z"
+    },
+    {
+      "trial": 1,
+      "scenario": "exclude-at-dispatch",
+      "startedAt": "2026-10-04T13:34:30.624Z",
+      "preparedAt": "2026-10-04T13:34:31.302Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 0,
+        "postBuildParsed": true,
+        "classifications": [],
+        "authorityDecisions": [
+          "deny"
+        ]
+      },
+      "completedAt": "2026-10-04T13:34:31.608Z"
+    },
+    {
+      "trial": 2,
+      "scenario": "allowed",
+      "startedAt": "2026-10-04T13:34:31.608Z",
+      "preparedAt": "2026-10-04T13:34:32.361Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 1,
+        "postBuildParsed": true,
+        "classifications": [
+          "allowed"
+        ],
+        "authorityDecisions": [
+          "allow"
+        ]
+      },
+      "completedAt": "2026-10-04T13:34:32.704Z"
+    },
+    {
+      "trial": 2,
+      "scenario": "exclude-at-dispatch",
+      "startedAt": "2026-10-04T13:34:32.704Z",
+      "preparedAt": "2026-10-04T13:34:33.269Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 0,
+        "postBuildParsed": true,
+        "classifications": [],
+        "authorityDecisions": [
+          "deny"
+        ]
+      },
+      "completedAt": "2026-10-04T13:34:33.676Z"
+    },
+    {
+      "trial": 3,
+      "scenario": "allowed",
+      "startedAt": "2026-10-04T13:34:33.676Z",
+      "preparedAt": "2026-10-04T13:34:34.467Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 1,
+        "postBuildParsed": true,
+        "classifications": [
+          "allowed"
+        ],
+        "authorityDecisions": [
+          "allow"
+        ]
+      },
+      "completedAt": "2026-10-04T13:34:34.866Z"
+    },
+    {
+      "trial": 3,
+      "scenario": "exclude-at-dispatch",
+      "startedAt": "2026-10-04T13:34:34.867Z",
+      "preparedAt": "2026-10-04T13:34:35.620Z",
+      "loadedOriginalInode": true,
+      "build": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeInodeReplaced": true,
+      "replay": {
+        "code": 0,
+        "signal": null,
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "outputOverflow": false,
+        "verdict": "pass",
+        "requestCount": 0,
+        "postBuildParsed": true,
+        "classifications": [],
+        "authorityDecisions": [
+          "deny"
+        ]
+      },
+      "completedAt": "2026-10-04T13:34:35.892Z"
+    }
+  ],
+  "liveRequests": 0,
+  "completedAt": "2026-10-04T13:34:35.892Z"
+}

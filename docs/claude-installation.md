@@ -22,8 +22,11 @@ current client work, restart the client, and complete its native trust prompts.
 The default registration is user-wide: [file settings](configuration.md) control
 which repositories and files can be reviewed.
 
-For a fresh checkout build, use `npm run dev-install -- --host=claude`; add
-`--update` when this profile already has Hapsland. See the
+For a fixed checkout snapshot, use
+`mise exec bun@1.3.14 -- npm run dev-install -- --host=claude`.
+Rerun the same command after source changes: it rebuilds and activates the new
+snapshot through guided setup. `--update` optionally selects the dedicated
+update flow; it is not required for repeated installation. See the
 [personal development workflow](installation-workflows.md#personal-development-on-your-own-clients).
 
 Update this integration separately:
@@ -59,7 +62,7 @@ checks or acts on every registered Claude/Codex profile; setup opens the selecto
 For supported source languages and limitations, see the
 [supported-language table](../README.md#supported-languages).
 
-This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and bounded stale, failure, and restart fixtures. The bounded [#136 native evidence](issue-136-native-evidence.md) later observed live Jev findings through Stop and a model-originated repair, without a final acknowledgment token. These selected runs do not establish interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](../evidence/host-94/decision-and-evidence.md).
+This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and bounded stale, failure, and restart fixtures. The bounded [#136 native evidence](../evidence/native-136/index.json) later observed live Jev findings through Stop and a model-originated repair, without a final acknowledgment token. These selected runs do not establish interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](../evidence/host-94/decision-and-evidence.md).
 
 The versioned JSON operations use `host: "claude"`, `claudeHome` (default `~/.claude`), and optionally `claudeExecutable` (default `claude`). Preview is read-only and returns `proposal.digest`. Apply that digest to install or update. The first uninstall call is also a preview; pass its digest to remove the owned entry.
 

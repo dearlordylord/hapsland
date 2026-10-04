@@ -22,8 +22,11 @@ current client work, restart the client, and complete its native trust prompts.
 The default registration is user-wide: [file settings](configuration.md) control
 which repositories and files can be reviewed.
 
-For a fresh checkout build, use `npm run dev-install -- --host=codex`; add
-`--update` when this profile already has Hapsland. See the
+For a fixed checkout snapshot, use
+`mise exec bun@1.3.14 -- npm run dev-install -- --host=codex`.
+Rerun the same command after source changes: it rebuilds and activates the new
+snapshot through guided setup. `--update` optionally selects the dedicated
+update flow; it is not required for repeated installation. See the
 [personal development workflow](installation-workflows.md#personal-development-on-your-own-clients).
 
 Update this integration separately:

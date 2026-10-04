@@ -70,6 +70,12 @@ where documented, including Clef's 64-question limit. Token limits are recorded
 but require a tokenizer before they can be enforced. See
 [provider configuration and limits](./docs/review-providers.md) for details.
 
+Hapsland also manages review resources: each resident has separate pools for
+eight preparation jobs and eight concurrent classifier request permits, plus
+bounded retained state and advice output. See
+[review resources and limits](./docs/review-resources.md) for saturation behavior,
+configuration controls, and the distinction between collection and model limits.
+
 ## A formally checked core
 
 The review request must fit the model’s context, including the rule questions.
@@ -222,13 +228,18 @@ implementation entry points, tests, the website, and research assets.
 Install a fresh local snapshot on your own client without publishing:
 
 ```sh
-npm run dev-install -- --host=claude
-npm run dev-install -- --host=codex
-# Add --update when the selected profile already has Hapsland.
+mise install bun@1.3.14
+mise exec bun@1.3.14 -- npm run dev-install -- --host=claude
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
+# Rerun the same command after source changes; --update optionally selects the update flow.
 ```
 
 For installing a freshly packed snapshot into your own Claude Code or Codex profile,
 see [installation and development workflows](./docs/installation-workflows.md#personal-development-on-your-own-clients).
+
+This installs a fixed snapshot; source edits require rebuilding and updating it.
+The script handles building, packing and activation; no manual archive handling
+or publication is needed. See [repeated installation](./docs/installation-workflows.md#source-changes-and-repeated-installation).
 
 
 ```sh
