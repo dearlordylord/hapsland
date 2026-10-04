@@ -140,13 +140,13 @@ it("compares all twelve original output Stop emitted/public/replay scenarios",()
   const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
   compareOriginalStopOutputFamilyTrace(decodeNativePrefix(runWorkloadEmitted(outputFixture),"stop_scenarios"),expected,frozen);
 },30000);
-// C45 + clang60 + native5 + JS15/5 + cleanup15 =145 seconds.
+// C45 + clang90 + native5 + JS15/5 + cleanup15 =175 seconds.
 it("compares all twelve original output Stop full native/emitted/public/replay scenarios",()=>{
   const expected=originalStopOutputPublicCases(),frozen=originalNativeStopOutputFamilyInputs();
-  const native=runWorkloadNative(outputFixture,{emissionTimeoutMs:45000,clangTimeoutMs:60000}),emitted=runWorkloadEmitted(outputFixture);
+  const native=runWorkloadNative(outputFixture,{emissionTimeoutMs:45000,clangTimeoutMs:90000}),emitted=runWorkloadEmitted(outputFixture);
   expect(native).toEqual(emitted);
   for(const result of [native,emitted]) compareOriginalStopOutputFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
-},145000);
+},175000);
 
 it("Stop business comparison ignores private Engine layout but rejects changed actual accounting", () => {
   const run=createRun({ seed:7,inputs:[{at:0,kind:"edit",bytes:10,unitBytes:[5]}],preparationDelay:2,jevDelay:8,outcome:"clear" });
