@@ -305,9 +305,22 @@ def scoped_source(source: Maybe<&2,Driver.SourceJob>, scope: Maybe<&2,Nat>) -> M
       Bool.pick(Maybe<&2,Driver.SourceJob>,Nat.is_eq(source_partition(source),partition),Some{source},None{})
     case _ _: None{}
 
+# Match actual Map.set insertion semantics: replacement preserves its slot.
+def put_job_selected(equal: Bool, original: T.StoredJob, tail: List<&2,T.StoredJob>,
+    operation: Nat, job: T.Job) -> List<&2,T.StoredJob>:
+  match equal:
+    case True{}: T.StoredJob{operation,job} <> tail
+    case False{}: original <> put_job(tail,operation,job)
+
+def put_job(jobs: List<&2,T.StoredJob>, +operation: Nat, job: T.Job) -> List<&2,T.StoredJob>:
+  match jobs:
+    case Nil{}: [T.StoredJob{operation,job}]
+    case T.StoredJob{+owner,original} <> tail:
+      put_job_selected(Nat.is_eq(owner,operation),T.StoredJob{owner,original},tail,operation,job)
+
 def remember_job(+state: T.State, +operation: Nat, job: Maybe<&2,T.Job>) -> T.State:
   match job:
-    case Some{job}: replace_jobs(state,List.append(&2,T.StoredJob,remove_job(stored_jobs(state),operation),[T.StoredJob{operation,job}]))
+    case Some{job}: replace_jobs(state,put_job(stored_jobs(state),operation,job))
     case None{}: invalid(state)
 
 def remember_command(state: T.State, command: Canonical.Command, job: Maybe<&2,T.Job>) -> T.State:
