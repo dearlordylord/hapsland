@@ -49,13 +49,20 @@ const testFiles = root => {
 
 /** Conservative static inventory: a process-capable import is not proof that
  * every test in the file actually launches a child. Type-only imports do not count. */
-export const inventoryTestHarness = root => {
+export const inventoryTestHarness = (root, selectedFiles) => {
+  const files = selectedFiles === undefined ? testFiles(root) : selectedFiles.map(file => {
+    if (typeof file !== 'string') throw new Error('Focused inventory requires test file paths');
+    const path = resolve(root, file);
+    const local = relative(root, path);
+    if (local === '..' || local.startsWith('../') || local.startsWith('..\\') || !statSync(path).isFile()) throw new Error(`Invalid focused inventory file: ${file}`);
+    return path;
+  });
   const cache = new Map();
   const dependencies = file => {
     if (!cache.has(file)) cache.set(file, importsOf(file));
     return cache.get(file);
   };
-  return testFiles(root).map(file => {
+  return [...new Set(files)].sort().map(file => {
     const path = relative(root, file).replaceAll('\\', '/');
     const pending = [file], seen = new Set();
     let evidence;

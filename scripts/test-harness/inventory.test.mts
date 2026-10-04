@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -37,4 +37,19 @@ it('finds actual imports through cyclic fixtures without treating strings or typ
     expect(entries[path]).toMatchObject({ kind: 'bounded-scenario', timeoutMs: 60_000 });
   }
   expect(timeoutForKind('unit')).toBe(5_000);
+});
+
+
+it('inventories only focused owners while preserving their transitive process classification', () => {
+  const root = mkdtempSync(join(tmpdir(), 'haps-harness-focused-inventory-'));
+  roots.push(root);
+  for (const folder of ['src', 'scripts', 'packages/monkey-business/src']) mkdirSync(join(root, folder), { recursive: true });
+  writeFileSync(join(root, 'src/selected.test.ts'), 'import "./helper.ts";');
+  writeFileSync(join(root, 'src/helper.ts'), 'import { spawn } from "node:child_process";');
+  symlinkSync(join(root, 'missing-source.ts'), join(root, 'src/unrelated.test.ts'));
+  expect(inventoryTestHarness(root, ['src/selected.test.ts'])).toEqual([
+    { path: 'src/selected.test.ts', kind: 'process', processImportIn: 'src/helper.ts', timeoutMs: 60_000 },
+  ]);
+  expect(() => inventoryTestHarness(root)).toThrow();
+  expect(() => inventoryTestHarness(root, ['../outside.test.ts'])).toThrow(/Invalid focused inventory file/);
 });

@@ -225,7 +225,7 @@ test("actual focused CLI rejects an all-skipped selector and permits selected ex
   await symlink(join(repository, "node_modules"), join(root, "node_modules"), "dir");
   await writeFile(join(root, "one.test.ts"), 'import { it } from "vitest"; it("actual selected case", () => {});');
   const reporter = fileURLToPath(new URL("./immediate-errors.mjs", import.meta.url));
-  await writeFile(join(root, "vitest.config.mjs"), `export default { test: { reporters: ["default", ${JSON.stringify(reporter)}] } };`);
+  await writeFile(join(root, "vitest.config.mjs"), `const selected = JSON.parse(process.env.HAPSLAND_FOCUSED_TEST_SELECTION); if (selected.files.length !== 1 || selected.files[0] !== "one.test.ts") throw new Error("focused selection did not reach config"); export default { test: { reporters: ["default", ${JSON.stringify(reporter)}] } };`);
   const cli = pattern => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(["focused", "one.test.ts", ${JSON.stringify('--testNamePattern=' + pattern)}, "--timeout-ms=10000"], ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 15000 });
   assert.throws(() => cli("absent selector"));
   const failedId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id;
