@@ -259,7 +259,7 @@ type Scheduled = {
 export type RunRuntimeSnapshot = {
   readonly engine: ReturnType<SharedCore["snapshotState"]>;
   readonly queue: readonly Readonly<Scheduled>[];
-  readonly jobs: readonly (readonly [number, Extract<RunInput, { kind: "edit" }>])[];
+  readonly jobs: readonly (readonly [number, Extract<RunInput, { kind: "edit" }> & { readonly driverSourceJob?: Scheduled["driverSourceJob"] }])[];
   readonly issuedRequests: readonly (readonly [number, Extract<CanonicalCommand, { kind: "jevRequestIssued" }>])[];
   readonly retainedCallbacks: readonly { readonly order: number; readonly receipt: CallbackReceipt;
     readonly payload: Readonly<Scheduled>; readonly fact: unknown }[];

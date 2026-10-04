@@ -11,17 +11,19 @@ const none = { $: "None" };
 // trace are supplied to the native fixture or used as its configuration.
 function originalNativeInput() {
   return { $: "stop_original_inputs.Scenario", configuration: { $: "stop_original_inputs.Configuration",
-    seed: 7, identity: 1, agent_seed: 7, retention: 1000,
+    seed: 7, advicees: bendList([{ $: "stop_original_inputs.Advicee", agent: "agent-1", identity: 1, agent_seed: 7, workload: none }]), retention: 1000,
     limits: { $: "Ledger.Limits", global_items: 32, global_bytes: 100000, partition_items: 16, partition_bytes: 50000 },
     tree: { $: "TreeFacts.Profile", min_files: 1, max_files: 1, max_imports: 0, max_depth: 3,
       denied_percent: 15, missing_percent: 0, unreadable_percent: 0, repeated_percent: 0, cyclic_percent: 0,
       unsupported_percent: 0, deadline_step: 0, local_work: 0, min_source: 100, max_source: 100, min_tree: 20, max_tree: 20 },
     graph: { $: "ImportGraph.Limits", version: 1, source_bytes: 262144, tree_bytes: 20480, files: 8,
       read_bytes: 1572864, outgoing_edges: 16, depth: 4, work: 128 },
-    preparation_delay: 2, jev_delay: 8, outcome: { $: "Canonical.RequestClear" }, finish_wait: 8,
+    preparation_delay: 2, jev_delay: 8, outcomes: { $: "Driver.OutcomeEnvironment",
+      outcome: { $: "Some", value: { $: "Canonical.RequestClear" } },
+      weights: bendList([0,1078525952,1078525952,0,0,0].map(high => ({ $: "Numeric.Words", high, low: 0 }))) }, finish_wait: 8,
     output: { $: "OutputScenario.Certain" }, output_delay: 0, output_lease: 30000, candidate_bytes: none, collectors: none },
-    inputs: bendList([{ $: "stop_original_inputs.Edit", at: 0, bytes: 10, units: bendList([5]) },
-      { $: "stop_original_inputs.Finish", at: 3, recurring: false }]),
+    inputs: bendList([{ $: "stop_original_inputs.Edit", at: 0, agent: none, bytes: 10, units: bendList([5]), outcome: none },
+      { $: "stop_original_inputs.Finish", at: 3, agent: none, recurring: false }]),
     boundaries: bendList([3, 10, 20].map(endpoint => ({ $: "stop_original_inputs.Advance", endpoint, budget: 100 }))) };
 }
 function originalInput(value: unknown) {

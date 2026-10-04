@@ -4,7 +4,7 @@ import { encodeCanonicalEvent } from "../../../src/canonical/canonical-boundary.
 import { readBendList, readRecord, readNat, readBool } from "../../../src/canonical/boundary-schema.ts";
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts";
 import { decodeStopFound } from "./stop-codec.ts";
-import { decodeDriver, encodeDriverOutcome } from "./driver-codec.ts";
+import { decodeDriver, decodePreparedDriverContext } from "./driver-codec.ts";
 import type { originalWaitingStopPublic } from "./stop-original-public.fixture.ts";
 import type { RunRuntimeSnapshot, RunStructuralFrame } from "./index.ts";
 
@@ -27,21 +27,24 @@ function optional(value: unknown): unknown {
 function nativeAction(value: unknown) {
   return decodeDriver({ handled: true, actions: { $: "Con", head: value, tail: { $: "Nil" } } }).actions[0];
 }
-function compareJob(value: unknown, source: RunRuntimeSnapshot["jobs"][number][1] | undefined,
-    context: unknown, field: string, captured?: RunRuntimeSnapshot["queue"][number]["driverSourceJob"]): void {
+function compareJob(value: unknown, captured: RunRuntimeSnapshot["queue"][number]["driverSourceJob"], field: string): void {
   const job = readRecord(value);
-  if (job.$ !== "advicee_lifecycle_driver.Job") throw new TypeError("missing actual native source job");
-  if (captured) {
-    same([readNat(job.partition),readNat(job.lifetime),readNat(job.bytes),list(job.units),job.outcome],
-      [captured.partition,captured.lifetime,captured.bytes,captured.units,captured.outcome], `${field} full captured source job`);
+  if (job.$ !== "advicee_lifecycle_driver.Job" || captured === undefined) throw new TypeError(`${field} lacks genuine source job`);
+  same([readNat(job.partition),readNat(job.lifetime),readNat(job.bytes),list(job.units),job.outcome],
+    [captured.partition,captured.lifetime,captured.bytes,captured.units,captured.outcome], `${field} full original source job`);
+}
+function compareEmission(value: unknown, source: RunRuntimeSnapshot["queue"][number], field: string): void {
+  const emission = optional(value);
+  if (emission === undefined) {
+    same(source.driverContext,undefined,`${field} unprepared context`);
+    same(source.driverOutcomeReceipt,undefined,`${field} unprepared outcome receipt`);
     return;
   }
-  const facts = readRecord(context);
-  same(readNat(job.partition), facts.partition, `${field} partition`);
-  same(readNat(job.lifetime), facts.lifetime, `${field} lifetime`);
-  same(readNat(job.bytes), source?.bytes ?? facts.bytes, `${field} bytes`);
-  same(list(job.units), source?.unitBytes ?? [], `${field} units`);
-  same(job.outcome, facts.outcome, `${field} captured outcome`);
+  const raw = readRecord(emission);
+  if (raw.$ !== "advicee_lifecycle_driver.EmissionContext") throw new TypeError("invalid genuine Driver emission capsule");
+  const decoded=decodePreparedDriverContext(raw.context,raw.receipt);
+  same(decoded.context,source.driverContext,`${field} actual command context`);
+  same(decoded.receipt,source.driverOutcomeReceipt,`${field} actual selected outcome receipt`);
 }
 
 /** Transport representations differ, but every pending native item must match
@@ -70,14 +73,22 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
         // factual immediate-action representation used by stop_fact_queue.
         same(nativeAction(input.action), { event: publicItem.stopFact.event, delay: 0, job: false }, `${field} item ${order} original Stop fact action`);
         const job = readRecord(input.job), capture = publicItem.stopCapture;
-        same([job.partition,job.lifetime,job.bytes,list(job.units),job.outcome],
-          [capture.partition,capture.lifetime,0,[],encodeDriverOutcome("neverSent")], `${field} item ${order} original Stop source tuple`);
+        same(job.$,"advicee_lifecycle_driver.NoJob",`${field} item ${order} absent Stop job`);
+        same([job.partition,job.lifetime],[capture.partition,capture.lifetime],`${field} item ${order} original Stop source scope`);
+        same(publicItem.driverSourceJob,undefined,`${field} item ${order} absent original source job`);
         same(readNat(publicItem.stopFact.at), publicItem.at, `${field} item ${order} checked Stop fact time`);
       } else {
         if (!publicItem.driverAction) throw new Error("missing actual public queued Driver action");
         same(nativeAction(input.action), publicItem.driverAction, `${field} item ${order} full action`);
-        compareJob(input.job, publicItem.job, publicItem.driverContext, `${field} item ${order} source job`, publicItem.driverSourceJob);
+        const job=readRecord(input.job);
+        if (job.$ === "advicee_lifecycle_driver.NoJob") {
+          same(publicItem.driverSourceJob,undefined,`${field} item ${order} absent original source job`);
+          const event=publicItem.driverAction.event;
+          if (!("partition" in event) || !("lifetime" in event)) throw new TypeError("NoJob original scope is absent from genuine action");
+          same([job.partition,job.lifetime],[event.partition,event.lifetime],`${field} item ${order} original no-job scope`);
+        } else compareJob(input.job, publicItem.driverSourceJob, `${field} item ${order} source job`);
       }
+      compareEmission(input.context,publicItem,`${field} item ${order}`);
       same(input.$ === "advicee_lifecycle_driver.FitEvent" ? readNat(input.attempt) : undefined,
         publicItem.fitFinish, `${field} item ${order} original fit attempt`);
     } else if (input.$ === "advicee_lifecycle_driver.Fact") {
@@ -103,23 +114,16 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       same(job.lifetime, lifecycle.lifetime, `${field} item ${order} original lifetime`);
       same(job.bytes, publicItem.input.bytes, `${field} item ${order} original bytes`);
       same(list(job.units), publicItem.input.unitBytes, `${field} item ${order} original units`);
-      same(job.outcome, encodeDriverOutcome("clear"), `${field} item ${order} frozen original outcome`);
+      same(job.outcome, { $: "None" }, `${field} item ${order} frozen original override absence`);
     } else throw new TypeError(`uncompared Stop queued input ${String(input.$)}`);
   }
-  const lifecycles = list(readRecord(source.engine).lifecycles).map(readRecord);
   const jobs = list(runtime.jobs).map(readRecord);
   same(jobs.length, source.jobs.length, `${field} retained source job count`);
   for (const retained of jobs) {
     const operation = readNat(retained.operation);
     const original = source.jobs.find(([id]) => id === operation)?.[1];
     if (!original) throw new Error(`${field} loses original job ${operation}`);
-    const job = readRecord(retained.job);
-    const lifecycle = lifecycles.find(entry => entry.partition === job.partition);
-    if (!lifecycle) throw new Error(`${field} retained source job has no actual advicee`);
-    same(job.lifetime, lifecycle.lifetime, `${field} job ${operation} lifetime`);
-    same(job.bytes, original.bytes, `${field} job ${operation} bytes`);
-    same(list(job.units), original.unitBytes, `${field} job ${operation} units`);
-    same(job.outcome, encodeDriverOutcome("clear"), `${field} job ${operation} original outcome`);
+    compareJob(retained.job,original.driverSourceJob,`${field} job ${operation}`);
   }
 }
 
