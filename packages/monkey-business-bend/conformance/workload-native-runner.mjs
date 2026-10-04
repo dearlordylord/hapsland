@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync, copyFileSync, statSync, chmodSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
-import { gzipSync } from "node:zlib";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -17,7 +17,7 @@ import { usesNativePreflight } from "./native-preflight-fixtures.mjs";
 
 // Keep complete offline vectors inside the existing harness run for later
 // comparison diagnosis. These receipts are evidence, never a compilation cache.
-function retainOutput(output, identity, lane, timeouts) {
+function retainOutput(output, identity, lane, timeouts, resume) {
   const failureFile = process.env.HAPSLAND_TEST_FAILURES_FILE;
   if (!failureFile) return;
   const outputs = join(dirname(failureFile), "workload-outputs");
@@ -27,11 +27,32 @@ function retainOutput(output, identity, lane, timeouts) {
   const outputPath = join(directory, "output.json.gz");
   writeFileSync(outputPath, gzipSync(bytes));
   const receiptPath = join(directory, "receipt.json");
-  writeFileSync(receiptPath, `${JSON.stringify({ lane, identity, timeouts, outputPath,
+  writeFileSync(receiptPath, `${JSON.stringify({ lane, identity, timeouts, outputPath, resume,
     outputBytes: bytes.length, outputSha256: createHash("sha256").update(bytes).digest("hex"),
     purpose: "Offline execution output for diagnosis; no automatic reuse or acceptance verdict",
   }, null, 2)}\n`);
   console.log(`Retained offline workload output: ${receiptPath}`);
+}
+
+// Explicit retained-vector comparison runs new assertions against an unchanged
+// producer. It never executes a compiler or reports a fresh native/JS run.
+export function readRetainedWorkloadOutput(fixture, receiptPath, expectedLane) {
+  if (!["fresh-native", "resumed-native", "emitted-js"].includes(expectedLane))
+    throw new Error("Invalid retained workload lane");
+  const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
+  const identity = captureNativeFixtureIdentity(fixture);
+  if (receipt.lane !== expectedLane || !isDeepStrictEqual(receipt.identity, identity))
+    throw new Error("Retained workload producer identity changed");
+  assertNativeFixtureIdentity(receipt.identity, fixture);
+  if (!Number.isSafeInteger(receipt.outputBytes) || receipt.outputBytes < 0 || receipt.outputBytes > 16 * 1024 * 1024)
+    throw new Error("Invalid retained workload output bound");
+  const bytes = gunzipSync(readFileSync(receipt.outputPath), { maxOutputLength: 16 * 1024 * 1024 });
+  if (bytes.length !== receipt.outputBytes || createHash("sha256").update(bytes).digest("hex") !== receipt.outputSha256)
+    throw new Error("Retained workload output bytes changed");
+  const output = JSON.parse(bytes.toString("utf8"));
+  assertNativeFixtureIdentity(receipt.identity, fixture);
+  console.log(`Compared retained ${expectedLane} workload output: ${receiptPath}`);
+  return output;
 }
 
 // Keep failed compilation evidence in the same scoped run. A captured identity
@@ -150,7 +171,10 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     assertNativeFixtureIdentity(identity, fixture);
     const output = checked(binary, [], executionTimeoutMs, "native execution", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);
-    retainOutput(output, identity, "fresh-native", { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: executionTimeoutMs });
+    retainOutput(output, identity, resume ? "resumed-native" : "fresh-native",
+      { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: executionTimeoutMs },
+      resume ? { receiptPath: resumeNativeCompilerReceipt,
+        reusedPhases: resume.binary ? ["C emission", "clang compilation"] : ["C emission"], phases } : undefined);
     return JSON.parse(output);
   } catch (error) {
     try {

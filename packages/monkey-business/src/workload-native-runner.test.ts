@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { gunzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from "node:fs";
@@ -27,7 +27,7 @@ vi.mock("../../monkey-business-bend/conformance/native-preflight.mjs", () => ({
   captureNativeFixtureIdentity: preflight.capture,
   validateNativeFixture: preflight.validate,
 }));
-import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted, readRetainedWorkloadOutput } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 beforeEach(() => { spawn.mockReset(); preflight.capture.mockClear(); preflight.assert.mockClear(); preflight.validate.mockClear(); });
 
@@ -358,4 +358,49 @@ it.each([false,true])("checks retained binary integrity before execution (change
     if(changed) {expect(()=>runWorkloadNative(fixture,{resumeNativeCompilerReceipt:receiptPath})).toThrow("artifact bytes changed");expect(spawn).not.toHaveBeenCalled();}
     else {expect(runWorkloadNative(fixture,{resumeNativeCompilerReceipt:receiptPath})).toEqual([0]);expect(spawn).toHaveBeenCalledTimes(1);expect(spawn.mock.calls[0]?.[2].timeout).toBe(5000);}
   } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+it.each(["none", "output", "source", "lane"])("explicit retained comparison checks unchanged producer and complete output (%s)", change => {
+  const directory = mkdtempSync(join(tmpdir(), "native-retained-comparison-"));
+  const fixture = new URL("file:///tmp/owned-output-bound-fixture.bend");
+  const outputPath = join(directory, "output.json.gz"), receiptPath = join(directory, "receipt.json");
+  const bytes = Buffer.from("[[1,2],[3,4]]");
+  const identity = preflight.capture();
+  const receipt = { lane: "fresh-native", identity, outputPath, outputBytes: bytes.length,
+    outputSha256: createHash("sha256").update(bytes).digest("hex") };
+  writeFileSync(outputPath, gzipSync(bytes));
+  if (change === "output") writeFileSync(outputPath, gzipSync(Buffer.from("[[1,2],[3,5]]")));
+  if (change === "source") receipt.identity.graph.sha256 = "changed";
+  if (change === "lane") receipt.lane = "emitted-js";
+  writeFileSync(receiptPath, JSON.stringify(receipt));
+  try {
+    if (change === "none") expect(readRetainedWorkloadOutput(fixture, receiptPath, "fresh-native")).toEqual([[1,2],[3,4]]);
+    else expect(() => readRetainedWorkloadOutput(fixture, receiptPath, "fresh-native")).toThrow();
+    expect(spawn).not.toHaveBeenCalled();
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+it("labels resumed execution with its retained compiler phase provenance", () => {
+  const directory = mkdtempSync(join(tmpdir(), "native-resume-provenance-"));
+  const fixture = new URL("file:///tmp/owned-output-bound-fixture.bend");
+  const path = join(directory, "scenario.c"), receiptPath = join(directory, "receipt.json"), bytes = Buffer.from("retained C");
+  writeFileSync(path, bytes);
+  writeFileSync(receiptPath, JSON.stringify({ lane: "fresh-native-failure", identity: preflight.capture(),
+    phases: [{ phase: "C emission", completed: true, status: 0 }],
+    c: { path, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") }, binary: null }));
+  const oldFailureFile = process.env.HAPSLAND_TEST_FAILURES_FILE;
+  process.env.HAPSLAND_TEST_FAILURES_FILE = join(directory, "failures.jsonl");
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  try {
+    expect(runWorkloadNative(fixture, { resumeNativeCompilerReceipt: receiptPath })).toEqual([0]);
+    const outputs = join(directory, "workload-outputs");
+    const result = JSON.parse(readFileSync(join(outputs, readdirSync(outputs)[0]!, "receipt.json"), "utf8"));
+    expect(result.lane).toBe("resumed-native");
+    expect(result.resume.receiptPath).toBe(receiptPath);
+    expect(result.resume.reusedPhases).toEqual(["C emission"]);
+  } finally {
+    if (oldFailureFile === undefined) delete process.env.HAPSLAND_TEST_FAILURES_FILE;
+    else process.env.HAPSLAND_TEST_FAILURES_FILE = oldFailureFile;
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

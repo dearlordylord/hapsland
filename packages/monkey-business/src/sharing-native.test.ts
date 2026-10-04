@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunInput } from "./index.ts";
-import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import { runWorkloadNative, runWorkloadEmitted, readRetainedWorkloadOutput } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { validateSharingControl, type SharingControl } from "./sharing-controls.ts";
 import { callbackPublicBoundary } from "./callback-native-codec.ts";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
@@ -57,13 +57,15 @@ function frozenNativeInput(mode: number) {
     limits: { $: "Ledger.Limits", global_items: 32, global_bytes: 100000, partition_items: 16, partition_bytes: 50000 },
     retention: 3000, sessions: bendList(sessions), tree, graph: { $: "ImportGraph.Limits", version: 1, source_bytes: 262144,
       tree_bytes: 20480, files: 8, read_bytes: 1572864, outgoing_edges: 16, depth: 4, work: 128 },
-    preparation_delay: 2, output_delay: 0, output_lease: 30000, reuse_entries: 8, reuse_bytes: 1 },
+    preparation_delay: 2, output_delay: 0, output_lease: 30000, reuse_entries: 8, reuse_bytes: 1,
+    outcomes: { $: "Driver.OutcomeEnvironment", outcome: { $: "Some", value: { $: "Canonical.RequestFinding" } },
+      weights: bendList([0, 1078525952, 1078525952, 0, 0, 0].map(high => ({ $: "Numeric.Words", high, low: 0 }))) } },
     edits: bendList(inputs(mode).map(input => {
       if (input.kind !== "edit" || !input.agent || !input.evaluationInputs || input.revisionSubject === undefined || input.revisionInput === undefined)
         throw new Error("incomplete original input fixture");
       return { $: "sharing_original_inputs.Edit", agent: input.agent, at: input.at, bytes: 10, units: bendList([5]),
         subject: input.revisionSubject, input: input.revisionInput,
-        namespace: { $: "sharing_original_inputs.Namespace", partition: input.agent, work: none, credential: none, prepared: input.evaluationInputs[0] } };
+        namespace: { $: "sharing_original_inputs.Namespace", partition: input.agent, work: none, credential: none, prepared: input.evaluationInputs[0] }, outcome: none };
     })), jev_delay: mode === 5 ? 5 : 30, boundaries: bendList(boundaries) };
 }
 
@@ -128,8 +130,12 @@ function publicCase(mode: number) {
 it("compares all seven original sharing full native/emitted/public/replay boundaries", () => {
   const expectedCases = programs.map((_, mode) => publicCase(mode));
   const fixture = new URL("../../monkey-business-bend/conformance/sharing-native.bend", import.meta.url);
-  const native = runWorkloadNative(fixture, { emissionTimeoutMs: 60000, clangTimeoutMs: 90000, executionTimeoutMs: 15000 }),
-    emitted = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
+  const nativeReceipt = process.env.HAPSLAND_SHARING_NATIVE_OUTPUT_RECEIPT;
+  const emittedReceipt = process.env.HAPSLAND_SHARING_JS_OUTPUT_RECEIPT;
+  const native = nativeReceipt ? readRetainedWorkloadOutput(fixture, nativeReceipt, "fresh-native")
+    : runWorkloadNative(fixture, { emissionTimeoutMs: 60000, clangTimeoutMs: 90000, executionTimeoutMs: 15000 });
+  const emitted = emittedReceipt ? readRetainedWorkloadOutput(fixture, emittedReceipt, "emitted-js")
+    : runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
   // Complete equality retains every recursively generated owner field, physical
   // order, original CacheFact capsule, graph result and pending payload.
   expect(native).toEqual(emitted);
