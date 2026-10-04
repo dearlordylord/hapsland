@@ -113,7 +113,7 @@ function compareSourceJob(value: unknown, expected: RunRuntimeSnapshot["queue"][
   }
 }
 function compareIssuedFacts(raw: unknown, source: RunRuntimeSnapshot["queue"][number], field: string): void {
-  const job=source.driverSourceJob, receipt=source.driverOutcomeReceipt,
+  const job=source.driverSourceJob, receipt=source.driverOutcomeReceipt === undefined ? undefined : optional(source.driverOutcomeReceipt),
     output=source.callbackReceipt?.outputCapture;
   if (raw === undefined) {
     same([job,receipt,output],[undefined,undefined,undefined],`${field} absent original issuance`);
