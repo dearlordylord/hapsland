@@ -740,13 +740,36 @@ def stop_command_facts(environment: Environment, now: Nat) -> StopScenario.Comma
   match environment:
     case Environment{_,_,_,_,delay,lease,profile,_}: stop_profile_facts(profile,now,delay,lease)
 
+def failed_submission_output(active: Bool, facts: StopScenario.CommandFacts,
+    event: Canonical.CanonicalEvent, command: Canonical.Command) -> Driver.Handled:
+  match active facts event command:
+    case True{} StopScenario.CommandFacts{now,OutputScenario.Failed{},delay,lease,_,_}
+      Canonical.SubmissionBegin{advice,_,_,token,_,_,_,_} Canonical.SubmissionBegun{}:
+      Driver.Handled{True{},Driver.output_actions(OutputScenario.issued(
+        OutputScenario.Capture{OutputScenario.Individual{advice,token},now,OutputScenario.Failed{},delay,lease}))}
+    case _ _ _ _: Driver.Handled{False{},[]}
+
+def stop_failed_submission(stopped: Engine.StopHandled, facts: StopScenario.CommandFacts,
+    event: Canonical.CanonicalEvent, command: Canonical.Command) -> Engine.StopHandled:
+  match stopped event:
+    case Engine.StopHandled{+state,following,ended,fit_attempt,output}
+      Canonical.SubmissionBegin{_,group,_,_,_,_,_,_}:
+      Engine.StopHandled{state,collector_combined(following,
+        failed_submission_output(Engine.stop_active(state,group),facts,event,command)),ended,fit_attempt,output}
+    case _ _: stopped
+
+def stop_command_with_failed_output(state: Types.State, event: Canonical.CanonicalEvent,
+    command: Canonical.Command, context: Driver.Context, environment: Environment, now: Nat) -> Engine.StopHandled:
+  +facts = stop_command_facts(environment,now)
+  stop_failed_submission(Engine.stop_command(state,event,command,context,facts),facts,event,command)
+
 def interpret_collected(changed: Engine.CollectorHandled, +environment: Environment, +value: Canonical.Command,
     +event: Canonical.CanonicalEvent, +queue: Queue, +jobs: List<&2,Stored>, +now: Nat,
     +job: Job, +delay: Nat, +candidate: Maybe<&2,Driver.Candidate>, +context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
   match changed:
     case Engine.CollectorHandled{+state,first}:
-      interpret_stopped(Engine.stop_command(state,event,value,context,stop_command_facts(environment,now)),
+      interpret_stopped(stop_command_with_failed_output(state,event,value,context,environment,now),
         first,environment,value,event,queue,jobs,now,job,delay,candidate,context,receipt,handler)
 
 def interpret_prepared(prepared: Engine.PreparedCommandContext, +environment: Environment, +value: Canonical.Command,
