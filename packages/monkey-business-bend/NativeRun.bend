@@ -223,6 +223,170 @@ def callback_register(+state: T.State, +order: Nat, +time: Nat, +action: Driver.
       callback_owned(state,Engine.callback_owner(core(state),event),order,time,
         Driver.Action{event,delay,candidate,job,expiry},capture)
 
+def original_source(job: Maybe<&2,T.Job>) -> Maybe<&2,Driver.SourceJob>:
+  match job:
+    case Some{T.Job{_,_,_,_,_,_,_,_,source}}: source
+    case None{}: None{}
+
+
+def job_partition(job: Maybe<&2,T.Job>) -> Nat:
+  match job:
+    case Some{T.Job{p,_,_,_,_,_,_,_,_}}: p
+    case None{}: 0n
+
+
+def active_job(action: Driver.Action, job: Maybe<&2,T.Job>) -> Maybe<&2,T.Job>:
+  match action:
+    case Driver.Action{_,_,_,True{},_}: job
+    case _: None{}
+
+def stored_jobs(state: T.State) -> List<&2,T.StoredJob>:
+  match state:
+    case T.State{_,_,_,_,_,_,_,_,_,jobs}: jobs
+
+def replace_jobs(state: T.State, jobs: List<&2,T.StoredJob>) -> T.State:
+  match state:
+    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,_}:
+      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs}
+
+def removed_job(equal: Bool, job: T.StoredJob, next: List<&2,T.StoredJob>) -> List<&2,T.StoredJob>:
+  match equal:
+    case True{}: next
+    case False{}: job <> next
+
+def remove_job(jobs: List<&2,T.StoredJob>, +operation: Nat) -> List<&2,T.StoredJob>:
+  match jobs:
+    case Nil{}: []
+    case T.StoredJob{+owner,job} <> tail:
+      removed_job(Nat.is_eq(owner,operation),T.StoredJob{owner,job},remove_job(tail,operation))
+
+def stored_found(equal: Bool, job: T.Job, next: Maybe<&2,T.Job>) -> Maybe<&2,T.Job>:
+  match equal:
+    case True{}: Some{job}
+    case False{}: next
+
+def find_stored(jobs: List<&2,T.StoredJob>, +operation: Nat) -> Maybe<&2,T.Job>:
+  match jobs:
+    case Nil{}: None{}
+    case T.StoredJob{owner,job} <> tail:
+      stored_found(Nat.is_eq(owner,operation),job,find_stored(tail,operation))
+
+def command_operation(command: Canonical.Command) -> Maybe<&2,Nat>:
+  match command:
+    case Canonical.Prepare{operation,_}: Some{operation}
+    case Canonical.UnitAdmitted{operation,_,_,_,_}: Some{operation}
+    case Canonical.JevRequestIssued{_,_,_,operation,_}: Some{operation}
+    case Canonical.DispatchStarted{operation,_}: Some{operation}
+    case Canonical.DispatchDiscarded{operation,_}: Some{operation}
+    case Canonical.CancelWork{operation}: Some{operation}
+    case _: None{}
+
+def lookup_operation(jobs: List<&2,T.StoredJob>, operation: Maybe<&2,Nat>) -> Maybe<&2,T.Job>:
+  match operation:
+    case Some{operation}: find_stored(jobs,operation)
+    case None{}: None{}
+
+def lookup_command_job(state: T.State, command: Canonical.Command) -> Maybe<&2,T.Job>:
+  lookup_operation(stored_jobs(state),command_operation(command))
+
+def scoped_fallback(job: Maybe<&2,T.Job>, scope: Maybe<&2,Nat>) -> Maybe<&2,T.Job>:
+  match job scope:
+    case Some{+job} Some{partition}:
+      Bool.pick(Maybe<&2,T.Job>,Nat.is_eq(job_partition(Some{job}),partition),Some{job},None{})
+    case _ _: None{}
+
+def source_partition(source: Driver.SourceJob) -> Nat:
+  match source:
+    case Driver.SourceJob{partition,_,_,_,_}: partition
+
+def scoped_source(source: Maybe<&2,Driver.SourceJob>, scope: Maybe<&2,Nat>) -> Maybe<&2,Driver.SourceJob>:
+  match source scope:
+    case Some{+source} Some{partition}:
+      Bool.pick(Maybe<&2,Driver.SourceJob>,Nat.is_eq(source_partition(source),partition),Some{source},None{})
+    case _ _: None{}
+
+def remember_job(+state: T.State, +operation: Nat, job: Maybe<&2,T.Job>) -> T.State:
+  match job:
+    case Some{job}: replace_jobs(state,List.append(&2,T.StoredJob,remove_job(stored_jobs(state),operation),[T.StoredJob{operation,job}]))
+    case None{}: invalid(state)
+
+def remember_command(state: T.State, command: Canonical.Command, job: Maybe<&2,T.Job>) -> T.State:
+  match command:
+    case Canonical.ObservationAdmitted{operation}: remember_job(state,operation,job)
+    case Canonical.Prepare{operation,_}: remember_job(state,operation,job)
+    case Canonical.UnitAdmitted{operation,_,_,_,_}: remember_job(state,operation,job)
+    case _: state
+
+def drop_job(+state: T.State, operation: Nat) -> T.State:
+  replace_jobs(state,remove_job(stored_jobs(state),operation))
+
+def pending_job(work: List<&2,Canonical.Work>, +operation: Nat) -> Bool:
+  match work:
+    case Nil{}: False{}
+    case Canonical.Work{_,_,_,owner,_,Canonical.PendingFinding{_},_} <> tail:
+      Nat.is_eq(owner,operation) || pending_job(tail,operation)
+    case _ <> tail: pending_job(tail,operation)
+
+def settled_job_selected(keep: Bool, state: T.State, operation: Nat) -> T.State:
+  match keep:
+    case True{}: state
+    case False{}: drop_job(state,operation)
+
+def settled_job(+state: T.State, +operation: Nat) -> T.State:
+  settled_job_selected(pending_job(Driver.work_list(Engine.canonical(core(state))),operation),state,operation)
+
+def preparation_parent(found: Maybe<&2,Canonical.Work>) -> Maybe<&2,Nat>:
+  match found:
+    case Some{Canonical.Work{_,_,_,_,_,_,+parent}}:
+      Bool.pick(Maybe<&2,Nat>,Nat.is_gt(parent,0n),Some{parent},None{})
+    case None{}: None{}
+
+def drop_parent(state: T.State, parent: Maybe<&2,Nat>) -> T.State:
+  match parent:
+    case Some{operation}: drop_job(state,operation)
+    case None{}: state
+
+def running_operation(entries: List<&2,Dispatch.Entry>, +operation: Nat) -> Bool:
+  match entries:
+    case Nil{}: False{}
+    case Dispatch.Entry{_,_,_,owner,_,_,_} <> tail:
+      Nat.is_eq(owner,operation) || running_operation(tail,operation)
+
+def running_before(before: Canonical.State, operation: Nat) -> Bool:
+  match before:
+    case Canonical.State{_,_,_,_,_,_,Dispatch.State{_,running,_,_,_},_,_}:
+      running_operation(running,operation)
+
+def refused_job(remove: Bool, state: T.State, operation: Nat) -> T.State:
+  match remove:
+    case True{}: drop_job(state,operation)
+    case False{}: state
+
+def refusal_command(command: Canonical.Command, event: Canonical.CanonicalEvent,
+    before: Canonical.State, state: T.State) -> T.State:
+  match command event:
+    case Canonical.PreparationRefused{} Canonical.BeginObservedPreparation{_,_,_,operation,_}:
+      drop_job(state,operation)
+    case Canonical.JevRequestUnavailable{} Canonical.JevRequestReady{_,_,_,+operation,_,_,_,_,_,_}:
+      refused_job(running_before(before,operation),state,operation)
+    case _ _: state
+
+def refusal_jobs(commands: List<&2,Canonical.Command>, +event: Canonical.CanonicalEvent,
+    +before: Canonical.State, state: T.State) -> T.State:
+  match commands:
+    case Nil{}: state
+    case command <> tail: refusal_jobs(tail,event,before,refusal_command(command,event,before,state))
+
+def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State) -> T.State:
+  match event:
+    case Canonical.PreparationCompleted{p,l,r,+operation,_}:
+      drop_parent(drop_job(state,operation),preparation_parent(Canonical.find_work(p,l,r,operation,Driver.work_list(before))))
+    case Canonical.JevRequestSettled{_,_,_,operation,_,_,_}: settled_job(state,operation)
+    case Canonical.ReviewObserved{_,_,_,operation,_,_}: settled_job(state,operation)
+    case Canonical.ReviewCompleted{_,_,_,operation,_}: settled_job(state,operation)
+    case Canonical.RetireReview{_,_,_,operation}: settled_job(state,operation)
+    case _: state
+
 def queued_action(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action,
     job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
   match valid:
@@ -296,11 +460,6 @@ def context_environment(job: T.Job, supplied: Bool, action: Driver.Action, outco
       Driver.Context{p, l, r, bytes, supplied, delay, outcome, current, credential, True{}, readable,
         lifetime, candidate, collection, True{}, True{}, True{}, output, lease, True{}, True{}}
 
-def original_source(job: Maybe<&2,T.Job>) -> Maybe<&2,Driver.SourceJob>:
-  match job:
-    case Some{T.Job{_,_,_,_,_,_,_,_,source}}: source
-    case None{}: None{}
-
 def source_present(source: Maybe<&2,Driver.SourceJob>) -> Bool:
   match source:
     case Some{_}: True{}
@@ -310,11 +469,6 @@ def job_context(job: Maybe<&2, T.Job>, action: Driver.Action, outcome: Maybe<&2,
   match job:
     case Some{+job}: context_environment(job,source_present(original_source(Some{job})),action,outcome,environment,collection)
     case None{}: context_environment(T.Job{0n, 1n, 0n, 0n, [], 0n, False{}, None{}, None{}}, False{}, action, outcome, environment,collection)
-
-def job_partition(job: Maybe<&2,T.Job>) -> Nat:
-  match job:
-    case Some{T.Job{p,_,_,_,_,_,_,_,_}}: p
-    case None{}: 0n
 
 def finish_present(finish: Maybe<&2,StopScenario.Finish>) -> Bool:
   match finish:
@@ -653,75 +807,10 @@ def command_partition(+context: Driver.Context, scope: Maybe<&2,Nat>) -> Driver.
       Driver.with_scope(context,Driver.ContextScope{partition,lifetime,round})
     case context None{}: context
 
-def active_job(action: Driver.Action, job: Maybe<&2,T.Job>) -> Maybe<&2,T.Job>:
-  match action:
-    case Driver.Action{_,_,_,True{},_}: job
-    case _: None{}
-
-def stored_jobs(state: T.State) -> List<&2,T.StoredJob>:
-  match state:
-    case T.State{_,_,_,_,_,_,_,_,_,jobs}: jobs
-
-def replace_jobs(state: T.State, jobs: List<&2,T.StoredJob>) -> T.State:
-  match state:
-    case T.State{core,items,next,count,seed,environment,latest,valid,prepared,_}:
-      T.State{core,items,next,count,seed,environment,latest,valid,prepared,jobs}
-
-def removed_job(equal: Bool, job: T.StoredJob, next: List<&2,T.StoredJob>) -> List<&2,T.StoredJob>:
-  match equal:
-    case True{}: next
-    case False{}: job <> next
-
-def remove_job(jobs: List<&2,T.StoredJob>, +operation: Nat) -> List<&2,T.StoredJob>:
-  match jobs:
-    case Nil{}: []
-    case T.StoredJob{+owner,job} <> tail:
-      removed_job(Nat.is_eq(owner,operation),T.StoredJob{owner,job},remove_job(tail,operation))
-
-def stored_found(equal: Bool, job: T.Job, next: Maybe<&2,T.Job>) -> Maybe<&2,T.Job>:
-  match equal:
-    case True{}: Some{job}
-    case False{}: next
-
-def find_stored(jobs: List<&2,T.StoredJob>, +operation: Nat) -> Maybe<&2,T.Job>:
-  match jobs:
-    case Nil{}: None{}
-    case T.StoredJob{owner,job} <> tail:
-      stored_found(Nat.is_eq(owner,operation),job,find_stored(tail,operation))
-
-def command_operation(command: Canonical.Command) -> Maybe<&2,Nat>:
-  match command:
-    case Canonical.Prepare{operation,_}: Some{operation}
-    case Canonical.UnitAdmitted{operation,_,_,_,_}: Some{operation}
-    case Canonical.JevRequestIssued{_,_,_,operation,_}: Some{operation}
-    case Canonical.DispatchStarted{operation,_}: Some{operation}
-    case Canonical.DispatchDiscarded{operation,_}: Some{operation}
-    case Canonical.CancelWork{operation}: Some{operation}
-    case _: None{}
-
-def lookup_operation(jobs: List<&2,T.StoredJob>, operation: Maybe<&2,Nat>) -> Maybe<&2,T.Job>:
-  match operation:
-    case Some{operation}: find_stored(jobs,operation)
-    case None{}: None{}
-
-def lookup_command_job(state: T.State, command: Canonical.Command) -> Maybe<&2,T.Job>:
-  lookup_operation(stored_jobs(state),command_operation(command))
-
-def scoped_fallback(job: Maybe<&2,T.Job>, scope: Maybe<&2,Nat>) -> Maybe<&2,T.Job>:
-  match job scope:
-    case Some{+job} Some{partition}:
-      Bool.pick(Maybe<&2,T.Job>,Nat.is_eq(job_partition(Some{job}),partition),Some{job},None{})
-    case _ _: None{}
-
-def source_partition(source: Driver.SourceJob) -> Nat:
-  match source:
-    case Driver.SourceJob{partition,_,_,_,_}: partition
-
-def scoped_source(source: Maybe<&2,Driver.SourceJob>, scope: Maybe<&2,Nat>) -> Maybe<&2,Driver.SourceJob>:
-  match source scope:
-    case Some{+source} Some{partition}:
-      Bool.pick(Maybe<&2,Driver.SourceJob>,Nat.is_eq(source_partition(source),partition),Some{source},None{})
-    case _ _: None{}
+def command_selected(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command,
+    source: Maybe<&2,T.EmissionContext>, scope: Maybe<&2,Nat>, source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
+  prepared_command(remember_command(state,command,job),action,job,command,Engine.prepare_command_context(core(state),command,
+    source_job,outcome_environment(state),command_partition(command_context(state,action,job,source),scope)))
 
 def command_bound(state: T.State, action: Driver.Action, command: Canonical.Command,
     source: Maybe<&2,T.EmissionContext>, +scope: Maybe<&2,Nat>, fallback: Maybe<&2,T.Job>,
@@ -729,93 +818,6 @@ def command_bound(state: T.State, action: Driver.Action, command: Canonical.Comm
   match found:
     case Some{+job}: command_selected(state,action,Some{job},command,source,scope,original_source(Some{job}))
     case None{}: command_selected(state,action,fallback,command,source,scope,scoped_source(source_job,scope))
-
-def remember_job(+state: T.State, +operation: Nat, job: Maybe<&2,T.Job>) -> T.State:
-  match job:
-    case Some{job}: replace_jobs(state,List.append(&2,T.StoredJob,remove_job(stored_jobs(state),operation),[T.StoredJob{operation,job}]))
-    case None{}: invalid(state)
-
-def remember_command(state: T.State, command: Canonical.Command, job: Maybe<&2,T.Job>) -> T.State:
-  match command:
-    case Canonical.ObservationAdmitted{operation}: remember_job(state,operation,job)
-    case Canonical.Prepare{operation,_}: remember_job(state,operation,job)
-    case Canonical.UnitAdmitted{operation,_,_,_,_}: remember_job(state,operation,job)
-    case _: state
-
-def drop_job(+state: T.State, operation: Nat) -> T.State:
-  replace_jobs(state,remove_job(stored_jobs(state),operation))
-
-def pending_job(work: List<&2,Canonical.Work>, +operation: Nat) -> Bool:
-  match work:
-    case Nil{}: False{}
-    case Canonical.Work{_,_,_,owner,_,Canonical.PendingFinding{_},_} <> tail:
-      Nat.is_eq(owner,operation) || pending_job(tail,operation)
-    case _ <> tail: pending_job(tail,operation)
-
-def settled_job_selected(keep: Bool, state: T.State, operation: Nat) -> T.State:
-  match keep:
-    case True{}: state
-    case False{}: drop_job(state,operation)
-
-def settled_job(+state: T.State, +operation: Nat) -> T.State:
-  settled_job_selected(pending_job(Driver.work_list(Engine.canonical(core(state))),operation),state,operation)
-
-def preparation_parent(found: Maybe<&2,Canonical.Work>) -> Maybe<&2,Nat>:
-  match found:
-    case Some{Canonical.Work{_,_,_,_,_,_,+parent}}:
-      Bool.pick(Maybe<&2,Nat>,Nat.is_gt(parent,0n),Some{parent},None{})
-    case None{}: None{}
-
-def drop_parent(state: T.State, parent: Maybe<&2,Nat>) -> T.State:
-  match parent:
-    case Some{operation}: drop_job(state,operation)
-    case None{}: state
-
-def running_operation(entries: List<&2,Dispatch.Entry>, +operation: Nat) -> Bool:
-  match entries:
-    case Nil{}: False{}
-    case Dispatch.Entry{_,_,_,owner,_,_,_} <> tail:
-      Nat.is_eq(owner,operation) || running_operation(tail,operation)
-
-def running_before(before: Canonical.State, operation: Nat) -> Bool:
-  match before:
-    case Canonical.State{_,_,_,_,_,_,Dispatch.State{_,running,_,_,_},_,_}:
-      running_operation(running,operation)
-
-def refused_job(remove: Bool, state: T.State, operation: Nat) -> T.State:
-  match remove:
-    case True{}: drop_job(state,operation)
-    case False{}: state
-
-def refusal_command(command: Canonical.Command, event: Canonical.CanonicalEvent,
-    before: Canonical.State, state: T.State) -> T.State:
-  match command event:
-    case Canonical.PreparationRefused{} Canonical.BeginObservedPreparation{_,_,_,operation,_}:
-      drop_job(state,operation)
-    case Canonical.JevRequestUnavailable{} Canonical.JevRequestReady{_,_,_,+operation,_,_,_,_,_,_}:
-      refused_job(running_before(before,operation),state,operation)
-    case _ _: state
-
-def refusal_jobs(commands: List<&2,Canonical.Command>, +event: Canonical.CanonicalEvent,
-    +before: Canonical.State, state: T.State) -> T.State:
-  match commands:
-    case Nil{}: state
-    case command <> tail: refusal_jobs(tail,event,before,refusal_command(command,event,before,state))
-
-def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonical.State) -> T.State:
-  match event:
-    case Canonical.PreparationCompleted{p,l,r,+operation,_}:
-      drop_parent(drop_job(state,operation),preparation_parent(Canonical.find_work(p,l,r,operation,Driver.work_list(before))))
-    case Canonical.JevRequestSettled{_,_,_,operation,_,_,_}: settled_job(state,operation)
-    case Canonical.ReviewObserved{_,_,_,operation,_,_}: settled_job(state,operation)
-    case Canonical.ReviewCompleted{_,_,_,operation,_}: settled_job(state,operation)
-    case Canonical.RetireReview{_,_,_,operation}: settled_job(state,operation)
-    case _: state
-
-def command_selected(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command,
-    source: Maybe<&2,T.EmissionContext>, scope: Maybe<&2,Nat>, source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
-  prepared_command(remember_command(state,command,job),action,job,command,Engine.prepare_command_context(core(state),command,
-    source_job,outcome_environment(state),command_partition(command_context(state,action,job,source),scope)))
 
 def ordinary_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command,
     source: Maybe<&2,T.EmissionContext>, +scope: Maybe<&2,Nat>, source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
@@ -1445,15 +1447,16 @@ def lifecycle_finish_items(items: List<&2,T.Item>, +partition: Nat, +attempt: Na
 
 # Public lifecycle departure removes queued Stop payloads; the original physical
 # callback registry and its scheduler facts remain under their existing owner.
-def lifecycle_finish(+state: T.State, partition: Nat, finish: Maybe<&2,StopScenario.Finish>) -> T.State:
-  match finish:
-    case Some{value}: lifecycle_finish_removed(state,partition,finish_attempt(value))
-    case None{}: state
-
 def lifecycle_finish_removed(state: T.State, +partition: Nat, attempt: Nat) -> T.State:
   match state:
     case T.State{+core,items,next,count,seed,environment,latest,valid,prepared,jobs}:
       T.State{[Engine.stop_close(core_value(core),partition)],lifecycle_finish_items(items,partition,attempt),next,count,seed,environment,latest,valid,prepared,jobs}
+
+
+def lifecycle_finish(+state: T.State, partition: Nat, finish: Maybe<&2,StopScenario.Finish>) -> T.State:
+  match finish:
+    case Some{value}: lifecycle_finish_removed(state,partition,finish_attempt(value))
+    case None{}: state
 
 def lifecycle_current(+state: T.State, +partition: Nat, entry: Maybe<&2,AdviceeLifecycle.Entry>) -> T.State:
   match entry:
