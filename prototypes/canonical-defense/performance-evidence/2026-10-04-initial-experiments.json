@@ -1,0 +1,106 @@
+{
+  "purpose": "Terminal bounded performance experiment evidence; no product acceptance claim",
+  "authority": "Implementation and measurement evidence",
+  "source_branch": "task/monkey-bool-pick-experiment",
+  "source_commit": "fd302b22b898b179dfd3464abf8aef4d064738d2",
+  "E1": {
+    "c_sha256": "2ba171a706e39c72fe4a3064a9a50eba503a465e7eea87d508dd9680cdb68eb8",
+    "original_binary_sha256": "e9d1ca07ceab5049e0aefa5d69743c03250f879d1c055361d9c5cde3c4c2dbc2",
+    "clang_sha256": "9b6a91b70b9a7a144c636e4bcfb31f279bac1c186d5db2d38780a5053bb4325f",
+    "compile_limit_s": 120,
+    "execution_limit_s": 10,
+    "compilation": {
+      "elapsed_s": 120.184,
+      "exit_code": -9,
+      "timed_out": true,
+      "stderr_tail": ""
+    },
+    "decision": "inconclusive: O1 preparation failed; no runtime comparison"
+  },
+  "E2_post_simulation_profile": {
+    "limit_s": 8,
+    "elapsed_s": 8.022,
+    "samples": 210,
+    "first_output_s": 2.184112533926964,
+    "sample_window_s": 5.838,
+    "threads": 1,
+    "stdout_bytes": 3383296,
+    "complete_batches": 17,
+    "top_functions": [
+      [
+        "external-library",
+        41
+      ],
+      [
+        "WL_FID_STRING_APPEND",
+        35
+      ],
+      [
+        "WL_FID_STRING_APPEND_K6065",
+        26
+      ],
+      [
+        "WL_FID_NAT_SHOW",
+        17
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX",
+        14
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_NUMBER_FOLD",
+        12
+      ],
+      [
+        "WL_FID_NAT_SHOW_FIN",
+        11
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX_K6043",
+        7
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX_K6042",
+        5
+      ],
+      [
+        "heap_free",
+        4
+      ],
+      [
+        "term_tag",
+        3
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_NUMBER_FOLD_K6063",
+        3
+      ],
+      [
+        "WL_FID_LIST_LENGTH_K6038",
+        3
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_LIST_NAT_K5529",
+        2
+      ],
+      [
+        "term_rfc",
+        2
+      ]
+    ],
+    "sample_categories": {
+      "numeric trace encoding": 25,
+      "text formatting": 138,
+      "output/IO": 46,
+      "engine/game simulation": 1
+    },
+    "unattributed_top": [],
+    "errors": [],
+    "purpose": "Sampling begins only after first stdout data, hence after full simulation; short post-simulation diagnostic, not full validation"
+  },
+  "limits": [
+    "E1 did not produce an O1 executable; no comparative runtime measurement",
+    "E2 samples start after first output and cover only a short post-simulation window",
+    "Sample shares include shared runtime helpers attributed to callers; they are not full-run phase wall times"
+  ]
+}

@@ -29,18 +29,18 @@
 
 ### E1 Optimize the saved executable
 
-- [ ] Compile the unchanged retained game C with clang `-O1`, at most **120 seconds**; preserve `-O0`.
+- [x] Attempt compilation of the unchanged retained game C with clang `-O1`, at most **120 seconds**; preserve `-O0`.
 - [ ] Run each executable once for at most **10 seconds**, with identical draining and output accounting.
 - [ ] Compare first-output time, complete batches, bytes and peak RSS; compare every common complete batch byte-for-byte.
-- [ ] Record a decision: improvement, no improvement, incorrect output, or inconclusive preparation failure.
+- [x] Record a decision: **inconclusive preparation failure**. Clang exhausted 120 seconds (observed 120.184s including termination); no O1 executable or runtime comparison. Remaining execution/comparison steps were not run.
 
 Hypothesis: `-O0` amplifies runtime overhead. No Bend source or transport changes are required. A faster prefix does not establish full correctness. If preparation times out, record that result and proceed to E2; do not silently raise the limit.
 
 ### E2 Attribute and reduce trace serialization cost
 
-- [ ] Profile a post-simulation window of the existing executable under the 10-second cap.
+- [x] Profile a post-simulation window: 8.022s execution; sampling began after first output at 2.184s. Among 210 samples, text formatting 138 (65.7%), IO 46 (21.9%), numeric encoding 25 (11.9%), and one shared engine-labelled helper (0.5%).
 - [ ] Quantify repeated envelope data (`config`, `original`, `final_world`) separately from tick/frame data using available output.
-- [ ] Choose one measured hotspot: numeric encoding, decimal conversion, string allocation, or redundant transport data.
+- [x] Choose the text formatting/string allocation path for a bounded chunked-output experiment. Preserve exact numeric text and line boundaries; do not assume quadratic complexity.
 - [ ] Test one narrow improvement with exact common-output equality, or lossless reconstruction if transport changes are explicitly adopted.
 - [ ] Record a decision and the preserved semantic checks.
 
@@ -73,4 +73,7 @@ Append one row per terminal experiment; include failed preparation. Store detail
 
 | Experiment | Source/artifact identity | Allowance | Observed result | Correctness evidence | Decision |
 | --- | --- | --- | --- | --- | --- |
-| E1 | Pending | Compile 120s; execution 10s each | Pending | Common complete batches must match | Pending |
+| E1 | Saved C SHA256 `2ba171a706e39c72fe4a3064a9a50eba503a465e7eea87d508dd9680cdb68eb8` | Compile 120s | Timed out after 120.184s; no O1 executable | Runtime comparison not performed | Inconclusive; proceed to E2 |
+| E2 profiling | Same saved O0 executable | Execution cap 10s; actual 8.022s | 210 post-output samples; 65.7% attributed to text formatting | Diagnostic only; no full output comparison | Test bounded chunked text output next |
+
+Detailed terminal evidence: [initial experiment receipts](performance-evidence/2026-10-04-initial-experiments.json).
