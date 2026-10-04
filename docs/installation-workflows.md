@@ -34,6 +34,10 @@ hapsland setup codex
 hapsland setup pi
 ```
 
+Setup rechecks credentials on every run: a nonempty `TYPESAFE_API_KEY` takes precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; setup does not validate the key against Jev. Package installation alone does not ask for a key.
+
+Use `hapsland setup codex --new-key` (also supported for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and an accessible native store. It does not override environment credential precedence: unset the environment key to use saved login. With an explicit `credentialEnvVar`, set that variable instead. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
+
 Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. It makes no Jev request. All three clients accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex|pi` invokes the same guided flow (bare `--pilot` opens the same client selector).
 
 The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
@@ -99,7 +103,7 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 The current `dev-install` command installs a **fixed packaged snapshot**. It is
 useful for testing an installation candidate; it does not run hooks from the
-changing checkout. Each code update requires a new build, archive and activation.
+changing checkout. Code changes require a new build, archive and activation; unchanged inputs reuse the previous development archive and verified installed snapshot.
 Do not present this command as a workflow that immediately picks up source edits.
 
 Builds require exact Bun 1.3.14. With mise installed, select it explicitly:
@@ -116,12 +120,22 @@ when it is absent from PATH. `HAPSLAND_BUILD_BUN=/absolute/path/to/bun` selects
 an executable explicitly; its version must still be exactly 1.3.14. Installed
 standalone packages embed Bun and do not require users to install it separately.
 
-`dev-install` builds, verifies native assets, packs a local archive, installs it into a fresh candidate prefix, records Git commit/dirty-tree/checksum identity, and launches that package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` is optional: it selects the dedicated update flow instead of guided setup, rather than making repeated installation possible. To choose that flow explicitly:
+`dev-install` caches the development archive under `$XDG_CACHE_HOME/hapsland/dev-install` (default `~/.cache/hapsland/dev-install`), separately for each checkout. It compares build owners, shipped files, dependency lockfiles, installed dependency metadata (including linked packages), and the selected toolchain/profile. On a miss it builds the current platform, verifies native assets, packs a local archive and stages a verified candidate. On a hit it skips build and pack and reuses the verified installed candidate; a missing candidate is reinstalled from the cached archive. Missing or corrupt archives rebuild. Cache reuse does not depend on `dist` remaining in the checkout. Setup still runs every time, including `--new-key`. Unshipped documentation, tests, project configuration and Quint files do not invalidate it. Simultaneous dev-installs in one checkout are serialized by an exclusive build lock; changed inputs during assembly abort instead of caching mixed sources. Development archives contain standalone commands for the current platform; ordinary `npm run build` still builds Linux and macOS. The script records Git commit/dirty-tree/checksum identity and launches the package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` is optional: it selects the dedicated update flow instead of guided setup, rather than making repeated installation possible. To choose that flow explicitly:
 
 ```sh
 mise exec bun@1.3.14 -- npm run dev-install -- --host=claude --update
 mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --update
 ```
+
+To request a replacement key during development installation:
+
+```sh
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
+```
+
+`dev-install` additionally reads `.env` from the checkout working directory, using Node's dotenv parser without shell execution. Explicit process environment variables take precedence, including empty values; `.env` fills only missing variables. An absent `.env` is allowed. Values are not printed, and `.env` is excluded from build caching and packaging. This supplies the key to setup and its child processes; it does not export it into the parent terminal. Codex started separately still needs the key in its own environment or native storage.
+
+`--new-key` cannot be combined with `--update`, which does not run guided credential entry. If native storage is unavailable, set `TYPESAFE_API_KEY` securely in the terminal before normal setup, then start the agent from that same environment. Hapsland does not save this environment key.
 
 Before submitting a code change, run the contributor checks separately:
 

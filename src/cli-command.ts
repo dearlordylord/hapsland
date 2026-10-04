@@ -74,6 +74,7 @@ const operationFlags = {
 };
 const automationFlags = {
   ...operationFlags,
+  "new-key": switchFlag("new-key", [], false).pipe(Flag.withDescription("Request a new saved Jev key instead of checking the existing key")),
   human: switchFlag("human", ["status-human"], false),
   json: switchFlag("json", [], false),
   "credential-stdin": switchFlag("credential-stdin"),
@@ -117,6 +118,7 @@ const clientArguments = (values: {
     throw new Error("Positional client and --host disagree.");
   const flags = new Map<string, string>();
   for (const [name, value] of Object.entries(values)) if (typeof value === "string") flags.set(`--${name}`, value);
+  if (values["new-key"] === true) flags.set("--new-key", "true");
   return { host: positional ?? values.host, flags };
 };
 
@@ -129,7 +131,7 @@ const parentOptions = {
 type ParentOptions = Command.Command.Config.Infer<typeof parentOptions>;
 const activeOption = (value: unknown): boolean => value !== false && value !== undefined;
 const automationOptionNames = new Set(Object.keys(automationFlags));
-const forbiddenPilotOption = (name: string): boolean => automationOptionNames.has(name) && name !== "pilot";
+const forbiddenPilotOption = (name: string): boolean => automationOptionNames.has(name) && name !== "pilot" && name !== "new-key";
 const pilotConflicts = (values: ParentOptions): boolean =>
   Object.entries(values).some(([name, value]) => forbiddenPilotOption(name) && activeOption(value));
 const validateHookChannels = (
@@ -143,7 +145,8 @@ const validateHookChannels = (
 };
 const validateAutomationMode = (values: ParentOptions, operations: ReadonlyArray<string>): void => {
   if (values.pilot && pilotConflicts(values))
-    throw new Error("--pilot accepts only client profile and --target options.");
+    throw new Error("--pilot accepts only client profile, --target and --new-key options.");
+  if (values["new-key"] && !values.pilot) throw new Error("--new-key requires the setup command or --pilot.");
   if (values["credential-stdin"] && !values.login) throw new Error("--credential-stdin requires --login.");
   if (operations.length > 1) throw new Error("Operation options cannot be combined.");
 };
@@ -196,6 +199,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
           command,
           {
             ...profiles,
+            ...(command === "setup" ? { "new-key": automationFlags["new-key"] } : {}),
             client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional),
             ...(command === "update" || command === "setup" || command === "repair" || command === "reinstall"
               ? { target: valueFlag("target") }

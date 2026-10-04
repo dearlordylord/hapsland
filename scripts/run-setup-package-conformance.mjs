@@ -407,7 +407,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
   ]);
   expect(declinedPilot.includes(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}`),
     "guided login did not confirm credential storage");
-  expect(declinedPilot.includes("No paid verification or review was sent"), "guided login overstated verification");
+  expect(declinedPilot.includes("No real verification or review was sent"), "guided login overstated verification");
   expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output");
   expect(await readFile(pilotVault, "utf8") === pilotMarker, "guided credential was not saved");
   const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, []);

@@ -10,6 +10,7 @@ type SetupResult = Effect.Success<ReturnType<typeof runSetup>>;
 type SetupStage = SetupResult["stages"][number];
 export interface PilotOptions {
   readonly terminal: boolean;
+  readonly newKey?: boolean;
   readonly host: SetupClient;
   readonly fields: ReturnType<typeof profileFields>;
   readonly cwd: string;
@@ -73,7 +74,7 @@ const setupCredentialComplete = (result: SetupResult): boolean =>
 const reportSetupCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): boolean => {
   if (entered && stageStatus(result, "credential") === "complete")
     frame.ports.write(`Jev key saved in ${frame.options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
-  frame.ports.write(`Credential: ${stageSummary(result, "credential")}. No paid verification or review was sent.\n`);
+  frame.ports.write(`Credential: ${stageSummary(result, "credential")}. No real verification or review was sent.\n`);
   if (setupCredentialComplete(result)) return true;
   writeSetupActions(result, frame.ports);
   frame.ports.exitCode(result.status === "partial" ? 5 : 6);
@@ -152,6 +153,7 @@ export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOpt
     ...options.fields,
     scope: { cwd: options.cwd, review: "enabled" },
     credential: "saved",
+    ...(options.newKey ? { newKey: true } : {}),
   };
   let credentialEntered = false;
   const entered = () => {

@@ -299,7 +299,30 @@ describe("public resumable setup operation", () => {
     expect(output.actions.length).toBeLessThanOrEqual(4);
   });
 
-  it.skipIf(process.platform !== "linux")("uses the masked terminal path during interactive resume", async () => {
+  it("distinguishes inaccessible storage from an absent key", () => {
+    const test = fixture();
+    const helper = join(test.root, "unavailable-helper");
+    writeFileSync(helper, `#!/bin/sh\nprintf '{"status":"unavailable"}\\n'\n`, { mode: 0o700 });
+    const environment = { ...test.environment, TYPESAFE_API_KEY: "", REVIEW_CREDENTIAL_HELPER: helper };
+    const result = invoke(test, { credential: "saved" }, environment);
+    expect(result.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "credential", summary: expect.stringContaining("could not check") }),
+    ]));
+    expect(result.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "credential", action: expect.stringContaining("TYPESAFE_API_KEY") }),
+    ]));
+  });
+
+  it("does not inspect an existing key during forced-entry preview", () => {
+    const test = fixture();
+    const result = invoke(test, { credential: "saved", newKey: true });
+    expect(result.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "credential", status: "pending", summary: expect.stringContaining("new Jev key") }),
+    ]));
+    expect(result.providerCalls).toBe(0);
+  });
+
+  it.skipIf(process.platform !== "linux").each([false, true])("uses masked terminal entry with forced replacement=%s", async (newKey) => {
     const test = fixture();
     const preview = invoke(test, {});
     const approvals = authorization(preview);
@@ -307,9 +330,11 @@ describe("public resumable setup operation", () => {
 
     const helper = join(test.root, "secret-helper.mjs");
     const vault = join(test.root, "vault");
+    if (newKey) writeFileSync(vault, "old-saved-secret");
     writeFileSync(helper, `#!/usr/bin/env node
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
+appendFileSync(vault + ".operations", operation + "\\n");
 if (operation === "get") process.stdout.write(existsSync(vault) ? '{"status":"present"}\\n' + readFileSync(vault) : '{"status":"missing"}\\n');
 else if (operation === "set") { const chunks=[]; for await (const chunk of process.stdin) chunks.push(chunk); writeFileSync(vault, Buffer.concat(chunks), {mode:0o600}); console.log('{"status":"stored"}'); }
 else if (operation === "probe") console.log('{"status":"available"}');
@@ -325,6 +350,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
       codexHome: test.codexHome,
       codexExecutable: test.codexExecutable,
       interactive: true,
+      newKey,
     }));
     const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
     const entrypoint = setupEntrypoint();
@@ -363,6 +389,8 @@ else if (operation === "probe") console.log('{"status":"available"}');
     expect(supplied).toBe(true);
     expect(output).not.toContain(marker);
     expect(readFileSync(vault, "utf8")).toBe(marker);
+    const operations = readFileSync(vault + ".operations", "utf8").trim().split("\n");
+    if (newKey) expect(operations).toEqual(["set", "get"]);
     const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'));
     if (encoded === undefined) throw new Error(`setup JSON was not emitted: ${output}`);
     const result = JSON.parse(encoded) as SetupOutput;
