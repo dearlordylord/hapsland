@@ -53,6 +53,21 @@ const prepareResident = (env: NodeJS.ProcessEnv) => {
   expect(result.stdout, "fixture phase=resident readiness").toBe("ready");
 };
 
+// Source-free fixture evidence distinguishes a quiet CLI refusal from admitted
+// work without printing source-bearing hook output or controlled request bodies.
+const controlledFixtureEvidence = (root: string) => {
+  const records = (name: string): Record<string, unknown>[] => {
+    const path = join(root, name);
+    return existsSync(path) ? readFileSync(path, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line)) : [];
+  };
+  return { requests: records("request-summary.jsonl").length,
+    outcomes: records("controlled-outcomes.jsonl").map(record => record.outcome) };
+};
+const cliExitEvidence = (result: { status: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string; error?: Error }) => ({
+  status: result.status, signal: result.signal, errorCode: (result.error as NodeJS.ErrnoException | undefined)?.code,
+  stdoutBytes: Buffer.byteLength(result.stdout), emptyObject: result.stdout.trim() === "{}", stderrBytes: Buffer.byteLength(result.stderr),
+});
+
 const CLAUDE_EDIT_FLAGS = ["src/cli.ts", "--claude-hook", "--controlled-reviewer",
   "--controlled-writer", "--composed-edit-hook"] as const;
 
@@ -509,7 +524,8 @@ describe("Claude synchronous hook CLI", () => {
     const env = { ...process.env, REVIEW_STATE_PATH: statePath,
       REVIEW_RESIDENT_DIR: join(root, "runtime"),
       REVIEW_RESIDENT_BACKEND_GATE_PATH: backendGate,
-      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+      REVIEW_CONTROL_JSON: JSON.stringify({ requestSummaryPath: join(root, "request-summary.jsonl"),
+        outcomePath: join(root, "controlled-outcomes.jsonl"), answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
@@ -518,7 +534,7 @@ describe("Claude synchronous hook CLI", () => {
     const edit = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
     });
-    expect(edit.status).toBe(0);
+    expect(edit.status, JSON.stringify(cliExitEvidence(edit))).toBe(0);
     expect(JSON.parse(edit.stdout)).toEqual({});
     writeFileSync(backendGate, "release\n");
     const paths = residentPaths(join(root, "runtime"));
@@ -532,7 +548,7 @@ describe("Claude synchronous hook CLI", () => {
       ready = stats.status === "stats" && stats.pendingAdvice === 6 && stats.queued === 0 && stats.running === 0;
       if (!ready) await new Promise<void>((resolve) => setTimeout(resolve, 20));
     }
-    expect(ready, JSON.stringify(lastStats)).toBe(true);
+    expect(ready, JSON.stringify({ stats: lastStats, edit: cliExitEvidence(edit), ...controlledFixtureEvidence(root) })).toBe(true);
     const background = spawnSync(process.execPath,
       ["src/cli.ts", "--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], {
         cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
@@ -768,10 +784,12 @@ describe("Claude synchronous hook CLI", () => {
     const env = { ...process.env, REVIEW_STATE_PATH: statePath,
       REVIEW_RESIDENT_DIR: join(root, "runtime"), REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: acceptedPath,
       REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 1_200,
+        requestSummaryPath: join(root, "request-summary.jsonl"), outcomePath: join(root, "controlled-outcomes.jsonl"),
         answers: Object.fromEntries(configuredRules.map((rule) => [
           rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
         ])) }),
     };
+    prepareResident(env);
     expect(preClaudeEdit(edit, env).status).toBe(0);
     const run = (flags: ReadonlyArray<string>, input: unknown, timeoutMs: number) =>
       new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
@@ -787,7 +805,13 @@ describe("Claude synchronous hook CLI", () => {
         child.stdin.end(JSON.stringify(input));
       });
     const editResult = run(CLAUDE_EDIT_FLAGS.slice(1), edit, 7_000);
-    await waitForFile(acceptedPath);
+    try { await waitForFile(acceptedPath); }
+    catch (cause) {
+      const early = await editResult;
+      throw new Error(`fixture admission absent; ${JSON.stringify({ code: early.code,
+        stdoutBytes: Buffer.byteLength(early.stdout), emptyObject: early.stdout.trim() === "{}",
+        stderrBytes: Buffer.byteLength(early.stderr), ...controlledFixtureEvidence(root) })}`, { cause });
+    }
     const backgroundResult = run(["--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], edit, 23_000);
     const stopResult = run(["--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"], {
       hook_event_name: "Stop", cwd: root, session_id: edit.session_id, stop_hook_active: false,
