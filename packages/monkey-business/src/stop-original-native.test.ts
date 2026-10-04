@@ -105,3 +105,29 @@ it("compares all eleven original Stop full native/emitted/public/replay scenario
   expect(independentlyEmitted).toEqual(emitted);
   for (const result of [native,emitted,independentlyEmitted]) compareOriginalStopFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
 },120000);
+
+// Frozen independent caller declarations for the twelve existing output cases.
+export function originalNativeStopOutputFamilyInputs() {
+  const some=(value:unknown)=>({$:"Some",value}),none={$:"None"};
+  const initial=[{$:"stop_original_inputs.Edit",at:0,agent:none,bytes:10,units:bendList([5]),outcome:none},{$:"stop_original_inputs.Finish",at:1,agent:none,recurring:false}];
+  const advance=(endpoint:number,budget=500)=>({$:"stop_original_inputs.Advance",endpoint,budget});
+  const outcome=(name:"Certain"|"Uncertain"|"Failed")=>({$:"OutputScenario."+name});
+  const config=(seed:number,retention:number,prep:number,backend:number,name:"Certain"|"Uncertain"|"Failed",delay:number,lease:number,bytes:number)=>({
+    ...originalNativeInput().configuration,seed,retention,
+    advicees:bendList([{$:"stop_original_inputs.Advicee",agent:"agent-1",identity:1,agent_seed:seed,workload:none}]),
+    tree:{$:"TreeFacts.Profile",min_files:3,max_files:8,max_imports:3,max_depth:3,denied_percent:15,missing_percent:0,unreadable_percent:0,repeated_percent:0,cyclic_percent:0,unsupported_percent:0,deadline_step:0,local_work:0,min_source:512,max_source:4096,min_tree:256,max_tree:2048},
+    preparation_delay:prep,jev_delay:backend,outcomes:{...originalNativeInput().configuration.outcomes,outcome:some({$:"Canonical.RequestFinding"})},
+    finish_wait:50,output:outcome(name),output_delay:delay,output_lease:lease,candidate_bytes:some(bytes),
+  });
+  const scenario=(configuration:ReturnType<typeof config>,boundaries:unknown[],inputs:unknown[]=initial)=>({$:"stop_original_inputs.Scenario",configuration,inputs:bendList(inputs),boundaries:bendList(boundaries)});
+  return [
+    ...[10239,10240,10241].map(bytes=>scenario(config(7,1000,2,5,"Uncertain",5,20,bytes),[advance(7,300),advance(20,300)])),
+    scenario(config(7,1000,2,5,"Failed",5,20,10240),[advance(7,300),advance(12,300)]),
+    scenario(config(7,1000,2,5,"Uncertain",5,20,10240),[advance(7,300),{$:"stop_original_inputs.MismatchedTerminal",at:8,agent:none},advance(8,300),advance(12,300)]),
+    ...([
+      [7,2,5,"Uncertain",5,30],[91001,3,7,"Failed",6,30],[4294967313,1,9,"Uncertain",4,30],
+      [11,2,5,"Certain",4,5],[12,2,5,"Certain",5,5],[13,2,5,"Certain",6,5],
+    ] as const).map(([seed,prep,backend,name,delay,lease])=>{const ready=prep+backend,terminal=ready+(name==="Failed"?delay:Math.min(delay,lease));return scenario(config(seed,10000,prep,backend,name,delay,lease,10240),[advance(ready),{$:"stop_original_inputs.OutputProfile",outcome:outcome("Certain"),delay:1,lease:1},advance(terminal-1),advance(terminal)]);}),
+    scenario(config(91001,10000,2,5,"Uncertain",5,30,10240),[7,12,47,52,87,92,127,132,161,167,172].map(at=>advance(at)),Array.from({length:5},(_,i)=>[{$:"stop_original_inputs.Edit",at:i*40,agent:none,bytes:10,units:bendList([5]),outcome:none},{$:"stop_original_inputs.Finish",at:i*40+1,agent:none,recurring:false}]).flat()),
+  ];
+}

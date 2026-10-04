@@ -5,7 +5,7 @@ import { readBendList, readRecord, readNat, readBool } from "../../../src/canoni
 import { decodePrefixCanonicalEvent, decodePrefixGraphEvent } from "./callback-native-codec.ts";
 import { decodeStopFound } from "./stop-codec.ts";
 import { decodeDriver, decodePreparedDriverContext, encodeDriverOutcome } from "./driver-codec.ts";
-import type { originalWaitingStopPublic, originalStopPublicCases } from "./stop-original-public.fixture.ts";
+import type { originalWaitingStopPublic, originalStopPublicCases, originalStopOutputPublicCases } from "./stop-original-public.fixture.ts";
 import type { RunRuntimeSnapshot, RunStructuralFrame, RunConfig } from "./index.ts";
 
 const list = (value: unknown) => readBendList(value, value => value, 2048);
@@ -225,7 +225,7 @@ export function compareOriginalWaitingStopTrace(value: unknown,
   for (const frame of frames) if (!["stop_observed_wire.Observed", "stop_observed_wire.Boundary"].includes(String(frame.$)))
     throw new TypeError("uncompared Stop transport frame");
   compareStopObservedOwners(frames, expected.frames, expected);
-  const boundaries = frames.filter(frame => frame.$ === "stop_observed_wire.Boundary");
+  const boundaries = frames.filter(frame => frame.$ === "stop_observed_wire.Boundary" || frame.$ === "stop_observed_wire.Control");
   same(boundaries.length, expected.boundaries.length, "original Stop boundary count");
   for (const [index, frame] of boundaries.entries()) {
     const input = readRecord(frame.input), original = expected.boundaries[index];
@@ -253,23 +253,37 @@ export function compareOriginalStopCaseTrace(value: unknown, original: ReturnTyp
     if (!original || trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError(`invalid full original Stop trace at case ${caseIndex}`);
     same(trace.input,frozenInput,`case ${caseIndex} complete original input`);
     const frames = list(trace.frames).map(readRecord);
-    for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.Boundary"].includes(String(frame.$))) throw new TypeError("uncompared original Stop frame");
+    for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.Boundary","stop_observed_wire.Control"].includes(String(frame.$))) throw new TypeError("uncompared original Stop frame");
     compareStopObservedOwners(frames,original.frames,original);
-    const boundaries = frames.filter(frame => frame.$ === "stop_observed_wire.Boundary");
+    const boundaries = frames.filter(frame => frame.$ === "stop_observed_wire.Boundary" || frame.$ === "stop_observed_wire.Control");
     same(boundaries.length,original.boundaries.length,`case ${caseIndex} boundary count`);
     for (const [index, frame] of boundaries.entries()) {
       const boundary = original.boundaries[index], input = readRecord(frame.input);
       if (!boundary) throw new TypeError("missing independent original boundary");
-      if ("input" in boundary.input) {
+      if ("outputProfile" in boundary.input) {
+        if (frame.$ !== "stop_observed_wire.Control" || input.$ !== "stop_original_inputs.OutputProfile") throw new TypeError("original output profile lost genuine control frame");
+        const profile=boundary.input.outputProfile;
+        const outcome={$:`OutputScenario.${profile.outcome[0]!.toUpperCase()}${profile.outcome.slice(1)}`};
+        same(input,{ $:"stop_original_inputs.OutputProfile",outcome,delay:profile.delayMs,lease:profile.leaseMs },`case ${caseIndex} complete future output control`);
+        const config=readRecord(readRecord(frozenInput).configuration);
+        const environment=(snapshot:typeof boundary.runtime)=>({$:"advicee_lifecycle_driver.Environment",seed:config.seed,tree:config.tree,graph:config.graph,preparation_delay:config.preparation_delay,output_delay:snapshot.outputProfile.delayMs,output_lease:snapshot.outputProfile.leaseMs,stop_profile:{$:"Some",value:{$:"advicee_lifecycle_driver.StopProfile",outcome:{$:`OutputScenario.${snapshot.outputProfile.outcome[0]!.toUpperCase()}${snapshot.outputProfile.outcome.slice(1)}`},bytes:config.candidate_bytes}},outcomes:config.outcomes});
+        same(frame.before_environment,environment(boundary.before),`case ${caseIndex} complete original environment before control`);
+        same(frame.after_environment,environment(boundary.runtime),`case ${caseIndex} complete original environment after control`);
+        compareRuntime(frame.before,boundary.before,`case ${caseIndex} genuine control runtime before`,original);
+        compareRuntime(frame.after,boundary.runtime,`case ${caseIndex} genuine control runtime after`,original);
+        same(boundary.consumed,0,`case ${caseIndex} control consumes no observation`);
+        continue;
+      } else if ("input" in boundary.input) {
         if (input.$ !== "stop_original_inputs.Schedule") throw new TypeError("original Schedule changed boundary kind");
         const scheduled = boundary.input.input;
         if (scheduled.kind !== "canonical") throw new TypeError("original scheduled boundary must be canonical");
         same(input.input,{ $: "stop_original_inputs.CanonicalInput", at: scheduled.at, event: encodeCanonicalEvent(scheduled.event) },`case ${caseIndex} scheduled full input`);
         same(frame.consumed,0,`case ${caseIndex} scheduling consumes no observation`);
-      } else {
+      } else if ("endpoint" in boundary.input) {
         if (input.$ !== "stop_original_inputs.Advance") throw new TypeError("original Advance changed boundary kind");
         same([input.endpoint,input.budget,frame.consumed],[boundary.input.endpoint,boundary.input.budget,boundary.consumed],`case ${caseIndex} boundary ${index} exact budget/count`);
       }
+      else throw new TypeError("unresolved original boundary declaration");
       compareRuntime(frame.runtime,boundary.runtime,`case ${caseIndex} boundary ${index} complete runtime`,original);
     }
     compareRuntime(trace.endpoint,original.endpoint,`case ${caseIndex} complete endpoint`,original);
@@ -277,4 +291,14 @@ export function compareOriginalStopCaseTrace(value: unknown, original: ReturnTyp
   } catch (error) {
     throw new Error(`original Stop case ${caseIndex}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
+}
+
+export function compareOriginalStopOutputFamilyTrace(value: unknown, expected: ReturnType<typeof originalStopOutputPublicCases>, frozenInputs: readonly unknown[]): void {
+  const envelope=single(value);
+  same(envelope.$,"stop_observed_wire.Envelope","original output family envelope");
+  const traces=list(envelope.traces);
+  same(traces.length,12,"all original output scenario count");
+  same(expected.length,12,"independent original output scenario count");
+  same(frozenInputs.length,12,"independent frozen output declaration count");
+  for(const [index,trace] of traces.entries()) compareOriginalStopCaseTrace(trace,expected[index],frozenInputs[index],index);
 }
