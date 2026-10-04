@@ -144,10 +144,10 @@ def routed_queue(next: List<&2,Engine.SharingNext>, runtime: List<&2,Edge.Runtim
       [Edge.actions(Engine.sharing_actions(events),queue,now,job)]
     case _ _: []
 
-def routed_scopes(next: List<&2,Engine.SharingNext>) -> List<&2,Maybe<&2,Nat>>:
+def routed_scopes(next: List<&2,Engine.SharingNext>, provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
   match next:
     case Engine.SharingNext{_,Some{Engine.SharingFrame{before,after,event,result}},_} <> Nil{}:
-      Edge.frame_scope_states([before],[after],Edge.actual_commands(result),event,None{})
+      Edge.frame_scope_states([before],[after],Edge.actual_commands(result),event,provided)
     case _: []
 
 def routed_following(queue: List<&2,Edge.Queue>, next: List<&2,Engine.SharingNext>,
@@ -159,21 +159,21 @@ def routed_following(queue: List<&2,Edge.Queue>, next: List<&2,Engine.SharingNex
 
 def routed_frame(-F: Data, +following: List<&2,Edge.Runtime>, next: List<&2,Engine.SharingNext>,
     runtime: List<&2,Edge.Runtime>, now: Nat, order: Nat, scopes: List<&2,Maybe<&2,Nat>>,
-    hook: Edge.CommandHook<F>) -> Stepped<F>:
+    provided: Maybe<&2,Nat>, hook: Edge.CommandHook<F>) -> Stepped<F>:
   match following next:
     case _ <> Nil{} Engine.SharingNext{_,Some{Engine.SharingFrame{before,after,event,result}},_} <> Nil{}:
       Stepped{Edge.Observed{following,
-        Some{Edge.CanonicalFrame{[before],[after],now,order,event,[result],runtime,following,None{},scopes,None{},[]}},hook},None{}}
+        Some{Edge.CanonicalFrame{[before],[after],now,order,event,[result],runtime,following,provided,scopes,None{},[]}},hook},None{}}
     case _ _: Stepped{Edge.Observed{runtime,Some{Edge.UnexpectedInput{}},hook},None{}}
 
 def routed_scoped(-F: Data, scopes: List<&2,Maybe<&2,Nat>>, queue: List<&2,Edge.Queue>,
     +next: List<&2,Engine.SharingNext>, +runtime: List<&2,Edge.Runtime>, now: Nat, order: Nat,
-    hook: Edge.CommandHook<F>) -> Stepped<F>:
-  routed_frame(F,routed_following(queue,next,runtime),next,runtime,now,order,scopes,hook)
+    provided: Maybe<&2,Nat>, hook: Edge.CommandHook<F>) -> Stepped<F>:
+  routed_frame(F,routed_following(queue,next,runtime),next,runtime,now,order,scopes,provided,hook)
 
 def routed_ready(-F: Data, queue: List<&2,Edge.Queue>, +next: List<&2,Engine.SharingNext>,
-    runtime: List<&2,Edge.Runtime>, now: Nat, order: Nat, hook: Edge.CommandHook<F>) -> Stepped<F>:
-  routed_scoped(F,routed_scopes(next),queue,next,runtime,now,order,hook)
+    runtime: List<&2,Edge.Runtime>, now: Nat, order: Nat, +provided: Maybe<&2,Nat>, hook: Edge.CommandHook<F>) -> Stepped<F>:
+  routed_scoped(F,routed_scopes(next,provided),queue,next,runtime,now,order,provided,hook)
 
 def routed_mode(next: List<&2,Engine.SharingNext>) -> Nat:
   match next:
@@ -202,7 +202,9 @@ def route_queue(pending: PendingRoute) -> List<&2,Edge.Queue>:
 def route_ready(-F: Data, queue: List<&2,Edge.Queue>, pending: PendingRoute,
     hook: Edge.CommandHook<F>) -> Stepped<F>:
   match pending:
-    case PendingRoute{next,runtime,_,now,order,_,_}: routed_ready(F,queue,next,runtime,now,order,hook)
+    case PendingRoute{next,runtime,_,now,order,job <> Nil{},_}:
+      routed_ready(F,queue,next,runtime,now,order,Some{Edge.job_partition(job)},hook)
+    case pending: Stepped{Edge.Observed{route_runtime(pending),Some{Edge.UnexpectedInput{}},hook},None{}}
 
 def route_selected(-F: Data, pending: PendingRoute,
     factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
