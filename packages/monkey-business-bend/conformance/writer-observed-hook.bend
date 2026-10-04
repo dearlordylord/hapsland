@@ -42,9 +42,7 @@ def issued(value: Output.Issued, runtime: List<&2,Edge.Runtime>, bindings: List<
     case _ runtime: Captured{runtime,bindings,False{}}
 
 def job_partition(job: Edge.Job) -> Nat:
-  match job:
-    case Edge.Job{partition,_,_,_,_}: partition
-    case Edge.NoJob{partition,_}: partition
+  Edge.job_partition(job)
 
 def payload_of(+state: Types.State, +action: Driver.Action, available: Bool,
     job: Edge.Job) -> Context.Payload:

@@ -28,6 +28,7 @@ import ./minimal-scenario.bend as Minimal
 type Job is Data:
   Job{partition: Nat, lifetime: Nat, bytes: Nat, units: List<&2,Nat>, outcome: Maybe<&2,Canonical.RequestOutcome>}
   NoJob{partition: Nat, lifetime: Nat}
+  Unbound{source: Driver.SourceJob}
 type Stored is Data:
   Stored{operation: Nat, job: Job}
 type EmissionContext is Data:
@@ -71,6 +72,7 @@ def job_partition(job: Job) -> Nat:
   match job:
     case Job{partition, _, _, _, _}: partition
     case NoJob{partition,_}: partition
+    case Unbound{Driver.SourceJob{partition,_,_,_,_}}: partition
 
 def maybe_owner(owner: Maybe<&2, Nat>) -> Nat:
   match owner:
@@ -251,11 +253,16 @@ def lookup_job(jobs: List<&2, Stored>, +operation: Nat, +fallback: Job) -> Job:
     case Stored{id, job} <> tail:
       found_job(Nat.is_eq(id, operation), job, lookup_job(tail, operation, fallback))
 
+def action_job(binding: Bool, job: Job) -> Job:
+  match binding job:
+    case False{} Job{p,l,bytes,units,outcome}: Unbound{Driver.SourceJob{p,l,bytes,units,outcome}}
+    case _ job: job
+
 def action_append(action: Driver.Action, queue: Queue,
     now: Nat, job: Job, source: Maybe<&2,EmissionContext>, ih: Queue -> Queue) -> Queue:
   match action:
-    case Driver.Action{event, +delay, candidate, binding, expiry}:
-      ih(append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, binding, expiry},job,source}))
+    case Driver.Action{event, +delay, candidate, +binding, expiry}:
+      ih(append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, binding, expiry},action_job(binding,job),source}))
 
 def round(state: Canonical.State, partition: Nat) -> Nat:
   match state:
@@ -396,10 +403,17 @@ def context_with(environment: Environment, +state: Types.State, job: Job, delay:
         Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),
         True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
 
+    case Environment{_,_,_,_,+output_delay,+output_lease,+profile,_} Unbound{Driver.SourceJob{+partition,+lifetime,_,_,_}}:
+      Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),0n,False{},delay,
+        None{},True{},True{},True{},True{},600000n,candidate,
+        Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),
+        True{},profile_automatic(profile,output_delay,output_lease),profile_certain(profile),output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
+
 def source_job(job: Job) -> Maybe<&2,Driver.SourceJob>:
   match job:
     case Job{p,l,bytes,units,outcome}: Some{Driver.SourceJob{p,l,bytes,units,outcome}}
     case NoJob{_,_}: None{}
+    case Unbound{source}: Some{source}
 
 def environment_outcomes(environment: Environment) -> Driver.OutcomeEnvironment:
   match environment:
@@ -718,6 +732,7 @@ def job_lifetime(job: Job) -> Nat:
   match job:
     case Job{_, lifetime, _, _, _}: lifetime
     case NoJob{_,lifetime}: lifetime
+    case Unbound{Driver.SourceJob{_,lifetime,_,_,_}}: lifetime
 
 def edit_valid(valid: Bool, +state: Types.State, queue: Queue, jobs: List<&2, Stored>,
     +job: Job, now: Nat, delay: Nat, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
