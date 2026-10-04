@@ -23,7 +23,7 @@ const primitives = new Set(["nat", "u32", "string", "bool"]);
 
 function descriptorReferences(descriptor: Descriptor): readonly string[] {
   if (descriptor.kind === "list" || descriptor.kind === "maybe") return [descriptor.element];
-  const groups = descriptor.kind === "record" ? [descriptor.fields] : descriptor.constructors.map(value => value.fields);
+  const groups = "constructors" in descriptor ? descriptor.constructors.map(value => value.fields) : "fields" in descriptor ? [descriptor.fields] : [];
   const references: string[] = [];
   for (const fields of groups) {
     const names = new Set<string>();
