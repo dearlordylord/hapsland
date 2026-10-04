@@ -2,7 +2,7 @@ import { wakeStopFacts, type StopCapture } from "./stop-codec.ts";
 import type { WriterControl, WriterReport } from "./writer-controls.ts";
 export * from "./writer-controls.ts";
 import type { SharedWriterPending, SharedWriterRelease } from "../../../src/canonical/simulation-adapter.ts";
-import { encodeExpiryProfile, validateExpiryProfile, type ExpiryProfile } from "./expiry-controls.ts";
+import { encodeExpiryProfile, validateInitialExpiryProfile, type ExpiryProfile } from "./expiry-controls.ts";
 import { type CollectionResponseControl, type CollectionResponseIdentity, type CollectionResponseReport } from "./collection-scenario.ts";
 import { initialOutputActions, decodeOutputCapture, validateOutputCapture, type OutputCapture, type OutputAttemptReport, type OutputAttemptObservation } from "./output-controls.ts";
 export * from "./output-controls.ts";
@@ -476,7 +476,7 @@ export class Run {
     this.graphLimits = validateGraphLimits(config.graphLimits ?? GRAPH_LIMIT_CEILINGS);
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
-    this.expiryProfile = validateExpiryProfile(config.expiryProfile ?? { pendingMs: config.adviceLifetime ?? 600000, leaseMs: config.outputProfile?.leaseMs ?? 30000, cooldownMs: config.resourceScenarios?.cooldownMs ?? 60000 });
+    this.expiryProfile = validateInitialExpiryProfile(config.expiryProfile ?? { pendingMs: config.adviceLifetime ?? 600000, leaseMs: config.outputProfile?.leaseMs ?? 30000, cooldownMs: config.resourceScenarios?.cooldownMs ?? 60000 });
     this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });

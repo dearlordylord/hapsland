@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { encodeNoticeExpiryClock, validateExpiryControl, validateExpiryProfile, decodeExpiryEvents } from "./expiry-controls.ts";
+import { encodeNoticeExpiryClock, validateExpiryControl, validateExpiryProfile, validateInitialExpiryProfile, encodeExpiryProfile, decodeExpiryEvents } from "./expiry-controls.ts";
 
 it("captures exact immutable expiry facts without making a host boundary decision", () => {
   const profile = validateExpiryProfile({ pendingMs: 10, leaseMs: 2, cooldownMs: 20 });
@@ -21,4 +21,21 @@ it("decodes bounded actual Canonical cleanup facts and rejects cyclic lists", ()
   const cyclic: { $: string; head: unknown; tail?: unknown } = { $: "Con", head: { $: "Canonical.ReleaseCapacity", reservation: 2 } };
   cyclic.tail = cyclic;
   expect(() => decodeExpiryEvents(cyclic)).toThrow();
+});
+
+it("keeps initial clock durations in u48 while live expiry controls remain bounded", async () => {
+  const { createRun, restoreReplay } = await import("./index.ts");
+  const maximum = 2 ** 48 - 1;
+  const profile = { pendingMs: maximum, leaseMs: maximum, cooldownMs: maximum };
+  expect(validateInitialExpiryProfile(profile)).toEqual(profile);
+  expect(encodeExpiryProfile(profile)).toMatchObject({ pending_duration: maximum, lease_duration: maximum, cooldown_duration: maximum });
+  for (const adviceLifetime of [1_000_000_001, maximum]) {
+    const run = createRun({ adviceLifetime });
+    expect([run.now, run.eventCount]).toEqual([0, 0]);
+    expect(restoreReplay(run.exportReplay()).runtimeSnapshot()).toEqual(run.runtimeSnapshot());
+  }
+  expect(() => createRun({ adviceLifetime: maximum + 1 })).toThrow();
+  expect(() => validateInitialExpiryProfile({ ...profile, pendingMs: maximum + 1 })).toThrow();
+  expect(() => validateExpiryControl({ kind: "expiryProfile", profile: { pendingMs: 1_000_000_001, leaseMs: 2, cooldownMs: 20 } })).toThrow();
+  expect(() => validateExpiryControl({ kind: "expiryProfile", profile: { pendingMs: 10, leaseMs: 2, cooldownMs: 1_000_001 } })).toThrow();
 });

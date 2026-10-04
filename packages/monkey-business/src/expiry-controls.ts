@@ -6,11 +6,15 @@ import { decodeDriverEvent } from "./driver-codec.ts";
 /** Source-free supplied clock durations; production owns the boundary rule. */
 const Duration = PositiveNat.check(Schema.isLessThanOrEqualTo(1_000_000_000));
 export const ExpiryProfileSchema = Schema.Struct({ pendingMs: Duration, leaseMs: Duration, cooldownMs: PositiveNat.check(Schema.isLessThanOrEqualTo(1_000_000)) });
+const InitialExpiryProfileSchema = Schema.Struct({ pendingMs: PositiveNat, leaseMs: PositiveNat, cooldownMs: PositiveNat });
 export const ExpiryControlSchema = Schema.Struct({ kind: Schema.Literal("expiryProfile"), profile: ExpiryProfileSchema });
 export type ExpiryProfile = typeof ExpiryProfileSchema.Type;
 export type ExpiryControl = typeof ExpiryControlSchema.Type;
 const readProfile = decoder(ExpiryProfileSchema);
 const readControl = decoder(ExpiryControlSchema);
+const readInitialProfile = decoder(InitialExpiryProfileSchema);
+/** Initial configuration accepts the full clock domain; live controls keep their smaller bounds. */
+export const validateInitialExpiryProfile = (value: unknown): ExpiryProfile => Object.freeze(readInitialProfile(value));
 export const validateExpiryProfile = (value: unknown): ExpiryProfile => Object.freeze(readProfile(value));
 export const validateExpiryControl = (value: unknown): ExpiryControl => {
   const control = readControl(value);
@@ -31,7 +35,7 @@ export const encodeNoticeExpiryClock = (value: unknown) => {
 export const decodeExpiryEvents = (value: unknown) => Object.freeze(readBendList(value, value => decodeDriverEvent(decodeSharedValue(value)), 3));
 
 export const encodeExpiryProfile = (value: unknown) => {
-  const profile = readProfile(value);
+  const profile = readInitialProfile(value);
   return Object.freeze({ $: "ExpiryScenario.Profile", pending_duration: profile.pendingMs,
     lease_duration: profile.leaseMs, cooldown_duration: profile.cooldownMs });
 };
