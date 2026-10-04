@@ -36,7 +36,7 @@ try {
   run.advance({untilTime:2,maxEvents:100});assert.equal(run.projection.collection.claims.length,2);assert.equal(run.projection.collection.leases.length,0);assert.equal(run.projection.delivery.slots.length,0);
   await load(run);await check(run.projection,run.capacityMetadata);
   await ensemble.screenshot({path:`${directory}/after-occupied-3d.png`});
-  await click('Focus selected agent');await check(run.projection,run.capacityMetadata);
+  await click('Focus selected advicee');await check(run.projection,run.capacityMetadata);
   await ensemble.screenshot({path:`${directory}/after-occupied-focus.png`});
   await node().screenshot({path:`${directory}/after-occupied-detail.png`});
   await node().click();await settle();

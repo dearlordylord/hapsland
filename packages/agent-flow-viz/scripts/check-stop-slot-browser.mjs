@@ -30,7 +30,7 @@ try{
   await node().focus();await page.keyboard.press('Enter');await settle();await select(1);await check(run.projection,1);
   await ensemble.screenshot({path:`${directory}/after-held-focus.png`});await node().screenshot({path:`${directory}/after-held-detail.png`});
   await select(2);await check(run.projection,2);await node().screenshot({path:`${directory}/after-free-detail.png`});
-  await select(1);await click('3D layers');await ensemble.screenshot({path:`${directory}/after-held-3d.png`});await click('Focus selected agent');
+  await select(1);await click('3D layers');await ensemble.screenshot({path:`${directory}/after-held-3d.png`});await click('Focus selected advicee');
   await page.setViewportSize({width:390,height:844});await settle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   const viewport=ensemble.locator('.ensemble-viewport');await viewport.evaluate(element=>{const box=element.querySelector('.topology-node[aria-label="Inspect Host output"]').getBoundingClientRect(),view=element.getBoundingClientRect();element.scrollLeft+=box.left-view.left-(element.clientWidth-box.width)/2;});await settle();await viewport.screenshot({path:`${directory}/after-held-narrow.png`});
     await page.setViewportSize({width:1512,height:1300});run.advance({untilTime:35,maxEvents:1000});assert.equal(run.projection.delivery.slots.length,2);await load(run);await select(1);await check(run.projection,1);await select(2);await check(run.projection,2);
