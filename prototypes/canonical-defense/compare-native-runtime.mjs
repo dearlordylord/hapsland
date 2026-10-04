@@ -132,7 +132,15 @@ export function compareNativeFrames(values, publicFrames, field) {
     const physical = publicFrames.filter(value => value.kind === "callbackDelivery" && value.scheduled.order === actual.scheduled.order);
     assert.ok(physical.length <= 1,`${field} duplicate original delivery`);
     assert.deepEqual(option(details.receipt),physical[0]?.fact,`${field} exact original selected receipt`);
-    assert.equal(list(details.physical).length,physical.length,`${field} attached physical count`);
+    const attached = list(details.physical).map(readRecord);
+    assert.equal(attached.length,physical.length,`${field} attached physical count`);
+    for (const [deliveryIndex,delivery] of attached.entries()) {
+      assert.equal(delivery.$,"NativeRunTypes.PhysicalDelivery");
+      const original = physical[deliveryIndex];
+      compareNativeRuntime(delivery.before,original.before,`${field} frame ${index} physical ${deliveryIndex} before`);
+      compareNativeRuntime(delivery.after,original.after,`${field} frame ${index} physical ${deliveryIndex} after`);
+      assert.deepEqual(delivery.action,original.delivery,`${field} frame ${index} physical ${deliveryIndex} entire original action`);
+    }
     if (frame.$ === "NativeRunTypes.ProductFrame") {
       assert.equal(actual.kind,"canonical",`${field} original product observation family`);
       assert.deepEqual(one(frame.before),actual.before.engine.canonical,`${field} raw canonical before`);

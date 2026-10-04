@@ -126,8 +126,8 @@ for (const envelope of envelopes) {
         for (const [deliveryIndex, delivery] of deliveries.entries()) {
           assert.equal(delivery.$, "NativeRunTypes.PhysicalDelivery");
           const actual = publicPhysical[deliveryIndex];
-          assert.deepEqual(one(readRecord(delivery.before).core), actual.before.engine, "full physical owner before delivery");
-          assert.deepEqual(one(readRecord(delivery.after).core), actual.after.engine, "full physical owner after delivery");
+          compareNativeRuntime(delivery.before,actual.before,`campaign ${seed} tick ${ticks} physical ${deliveryIndex} before`);
+          compareNativeRuntime(delivery.after,actual.after,`campaign ${seed} tick ${ticks} physical ${deliveryIndex} after`);
           assert.deepEqual(delivery.action, actual.delivery, "actual original physical action");
         }
         compareNativeRuntime(after,run.runtimeSnapshot(),`campaign ${seed} tick ${ticks} endpoint`);
