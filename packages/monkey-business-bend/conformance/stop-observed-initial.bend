@@ -18,12 +18,15 @@ def selected(equal: Bool, head: Agent, rest: Maybe<&2,Agent>) -> Maybe<&2,Agent>
     case True{}: Some{head}
     case False{}: rest
 
-def find(agents: List<&2,Agent>, +name: String) -> Maybe<&2,Agent>:
+def name(value: Agent) -> String:
+  match value:
+    case Agent{name,_}: name
+
+def find(agents: List<&2,Agent>, +requested: String) -> Maybe<&2,Agent>:
   match agents:
     case Nil{}: None{}
     case +head <> tail:
-      match head:
-        case Agent{other,_}: selected(String.eq(other,name),head,find(tail,name))
+      selected(String.eq(name(head),requested),head,find(tail,requested))
 
 def agent(agents: List<&2,Agent>, name: Maybe<&2,String>) -> Maybe<&2,Agent>:
   match name agents:
@@ -97,24 +100,27 @@ def append(input: Inputs.Input, runtime: Edge.Runtime, +agents: List<&2,Agent>, 
     ih: Edge.Runtime -> Initialized) -> Initialized:
   match input runtime:
     case Inputs.CanonicalInput{at,+event} Edge.Runtime{+state,queue,jobs,delay}:
-      ih(Edge.Runtime{state,Edge.append(queue,at,Edge.Event{Driver.immediate(event,False{}),Edge.NoJob{input_owner(Engine.scope_event(state,state,event,Some{1n})),1n},None{}}),jobs,delay})
-    case +input runtime:
-      match input:
-        case Inputs.Edit{_,name,_,_,_}: append_selected(agent(agents,name),input,runtime,agents,wait,ih)
-        case Inputs.Finish{_,name,_}: append_selected(agent(agents,name),input,runtime,agents,wait,ih)
-        case _: Initialized{[runtime],agents,False{}}
+      ih(Edge.Runtime{state,Edge.append(queue,at,Edge.Event{Driver.immediate(event,False{}),
+        Edge.NoJob{input_owner(Engine.scope_event(state,state,event,Some{1n})),1n},None{}}),jobs,delay})
+    case Inputs.Edit{at,+requested,bytes,units,outcome} runtime:
+      append_selected(agent(agents,requested),Inputs.Edit{at,requested,bytes,units,outcome},runtime,agents,wait,ih)
+    case Inputs.Finish{at,+requested,recurring} runtime:
+      append_selected(agent(agents,requested),Inputs.Finish{at,requested,recurring},runtime,agents,wait,ih)
 
 def inputs(list: List<&2,Inputs.Input>, runtime: Edge.Runtime, +agents: List<&2,Agent>, +wait: Nat) -> Initialized:
   match list:
     case Nil{}: Initialized{[runtime],agents,True{}}
     case input <> tail: append(input,runtime,agents,wait,next => inputs(tail,next,agents,wait))
 
+def initialized_start(result: Initialized, list: List<&2,Inputs.Input>, wait: Nat) -> Initialized:
+  match result:
+    case Initialized{runtime <> Nil{},agents,True{}}: inputs(list,runtime,agents,wait)
+    case result: result
+
 def initialize(result: Initialized, list: List<&2,Inputs.Input>, delay: Nat, wait: Nat) -> Initialized:
   match result:
     case Initialized{Edge.Runtime{state,queue,jobs,_} <> Nil{},+agents,True{}}:
-      match startup(agents,Edge.Runtime{state,queue,jobs,delay},agents):
-        case Initialized{runtime <> Nil{},agents,True{}}: inputs(list,runtime,agents,wait)
-        case result: result
+      initialized_start(startup(agents,Edge.Runtime{state,queue,jobs,delay},agents),list,wait)
     case result: result
 
 def scenario(input: Inputs.Scenario) -> Initialized:

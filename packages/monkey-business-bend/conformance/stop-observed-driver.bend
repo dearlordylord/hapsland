@@ -129,16 +129,20 @@ def scheduled(result: Initial.Initialized, running: Running) -> Running:
     case Initial.Initialized{runtime,_,accepted} Running{input,_,issued,frames,valid,observations}:
       Running{input,runtime,issued,frames,valid && accepted,observations}
 
+def scheduled_boundary(+value: Inputs.Input, +input: Inputs.Scenario, +runtime: List<&2,Edge.Runtime>,
+    issued: Nat, frames: List<&2,Wire.Frame>, valid: Bool, +observations: Nat) -> Running:
+  match input:
+    case Inputs.Scenario{configuration,_,_}:
+      boundary_record(Inputs.Schedule{value},observations,
+        scheduled(Initial.scheduled(value,configuration,runtime),Running{input,runtime,issued,frames,valid,observations}))
+
 def boundary(value: Inputs.Boundary, running: Running, environment: Edge.Environment) -> Running:
   match value running:
     case Inputs.Advance{+endpoint,+budget} Running{input,runtime,issued,frames,valid,+observations}:
       boundary_record(Inputs.Advance{endpoint,budget},observations,
         advance(1000n,budget,Running{input,runtime,issued,frames,valid,observations},environment,endpoint))
-    case Inputs.Schedule{+value} Running{+input,+runtime,issued,frames,valid,+observations}:
-      match input:
-        case Inputs.Scenario{configuration,_,_}:
-          boundary_record(Inputs.Schedule{value},observations,
-            scheduled(Initial.scheduled(value,configuration,runtime),Running{input,runtime,issued,frames,valid,observations}))
+    case Inputs.Schedule{value} Running{input,runtime,issued,frames,valid,observations}:
+      scheduled_boundary(value,input,runtime,issued,frames,valid,observations)
 
 def boundaries(list: List<&2,Inputs.Boundary>, running: Running, +environment: Edge.Environment) -> Running:
   match list running:
