@@ -245,7 +245,7 @@ def context(state: Types.State, job: Job, delay: Nat, candidate: Maybe<&2, Drive
   match job:
     case Job{+partition, bytes, _, outcome}:
       Driver.Context{partition, 1n, round(Engine.canonical(state), partition), bytes, True{}, delay,
-        outcome, True{}, True{}, True{}, True{}, 600000n, candidate, True{}, True{}, True{}, True{},
+        Some{outcome}, True{}, True{}, True{}, True{}, 600000n, candidate, True{}, True{}, True{}, True{},
         0n, 30n, True{}, True{}}
 
 def canonical_row(+before: Types.State, +after: Types.State, +event: Canonical.CanonicalEvent,

@@ -19,8 +19,8 @@ type Stepped<-F: Data> is Type:
 
 def action(input: Edge.Input) -> Maybe<&2,Driver.Action>:
   match input:
-    case Edge.Event{action,_}: Some{action}
-    case Edge.FitEvent{action,_,_}: Some{action}
+    case Edge.Event{action,_,_}: Some{action}
+    case Edge.FitEvent{action,_,_,_}: Some{action}
     case _: None{}
 
 # Original Finish completion facts come from the same registry populated by
@@ -145,12 +145,12 @@ def preprocess_next(runtime: List<&2,Edge.Runtime>, event: C.CanonicalEvent,
 def preprocess(-F: Data, input: Edge.Input, +runtime: List<&2,Edge.Runtime>, now: Nat, +order: Nat,
     endpoint: Nat, environment: Edge.Environment, factory: List<&2,C.Command> -> Edge.TransitionHook<F>) -> Stepped<F>:
   match input:
-    case Edge.Event{Driver.Action{+event,delay,candidate,binding,expiry},+job}:
+    case Edge.Event{Driver.Action{+event,delay,candidate,binding,expiry},+job,source}:
       routed(F,preprocess_next(runtime,event,order,endpoint),runtime,
-        Edge.Event{Driver.Action{event,delay,candidate,binding,expiry},job},now,order,job,environment,factory)
-    case Edge.FitEvent{Driver.Action{+event,delay,candidate,binding,expiry},+job,attempt}:
+        Edge.Event{Driver.Action{event,delay,candidate,binding,expiry},job,source},now,order,job,environment,factory)
+    case Edge.FitEvent{Driver.Action{+event,delay,candidate,binding,expiry},+job,attempt,source}:
       routed(F,preprocess_next(runtime,event,order,endpoint),runtime,
-        Edge.FitEvent{Driver.Action{event,delay,candidate,binding,expiry},job,attempt},now,order,job,environment,factory)
+        Edge.FitEvent{Driver.Action{event,delay,candidate,binding,expiry},job,attempt,source},now,order,job,environment,factory)
     case input: take_selected(F,runtime,input,order,environment,factory)
 
 def within(-F: Data, allowed: Bool, input: Edge.Input, runtime: List<&2,Edge.Runtime>, at: Nat, order: Nat,

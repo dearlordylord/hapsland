@@ -2,6 +2,7 @@ import Base
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Driver.bend as Driver
+import ../Numeric.bend as Numeric
 import ../StopScenario.bend as StopScenario
 import ../OutputScenario.bend as OutputScenario
 import ../Advicees.bend as Advicees
@@ -25,15 +26,18 @@ import ./minimal-scenario.bend as Minimal
 # One source-free input stream, resident, queue and clock. Job facts are payload
 # storage only; actual Driver actions and Canonical commands own the lifecycle.
 type Job is Data:
-  Job{partition: Nat, lifetime: Nat, bytes: Nat, units: List<&2, Nat>, outcome: Canonical.RequestOutcome}
+  Job{partition: Nat, lifetime: Nat, bytes: Nat, units: List<&2,Nat>, outcome: Maybe<&2,Canonical.RequestOutcome>}
+  NoJob{partition: Nat, lifetime: Nat}
 type Stored is Data:
   Stored{operation: Nat, job: Job}
+type EmissionContext is Data:
+  EmissionContext{context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
 type Input is Data:
   Edit{job: Job}
   Finish{input: StopScenario.Input}
   FinishIntent{partition: Nat, started: Nat, cutoff: Nat, recurring: Bool}
-  Event{action: Driver.Action, job: Job}
-  FitEvent{action: Driver.Action, job: Job, attempt: Nat}
+  Event{action: Driver.Action, job: Job, context: Maybe<&2,EmissionContext>}
+  FitEvent{action: Driver.Action, job: Job, attempt: Nat, context: Maybe<&2,EmissionContext>}
   Fact{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, position: Nat, event: Graph.GraphEvent}
   Arrival{event: Workload.Emission, lifetime: Nat}
   Cache{fact: CacheRuntime.Fact, job: Job}
@@ -65,6 +69,7 @@ type Initialized is Data:
 def job_partition(job: Job) -> Nat:
   match job:
     case Job{partition, _, _, _, _}: partition
+    case NoJob{partition,_}: partition
 
 def maybe_owner(owner: Maybe<&2, Nat>) -> Nat:
   match owner:
@@ -192,10 +197,10 @@ def lookup_job(jobs: List<&2, Stored>, +operation: Nat, +fallback: Job) -> Job:
       found_job(Nat.is_eq(id, operation), job, lookup_job(tail, operation, fallback))
 
 def action_append(action: Driver.Action, queue: Queue,
-    now: Nat, job: Job, ih: Queue -> Queue) -> Queue:
+    now: Nat, job: Job, source: Maybe<&2,EmissionContext>, ih: Queue -> Queue) -> Queue:
   match action:
     case Driver.Action{event, +delay, candidate, binding, expiry}:
-      ih(append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, binding, expiry}, job}))
+      ih(append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, binding, expiry},job,source}))
 
 def round(state: Canonical.State, partition: Nat) -> Nat:
   match state:
@@ -268,7 +273,14 @@ def command_job(command: Canonical.Command, jobs: List<&2, Stored>, fallback: Jo
 def actions(list: List<&2, Driver.Action>, queue: Queue, +now: Nat, +job: Job) -> Queue:
   match list:
     case Nil{}: queue
-    case action <> tail: action_append(action, queue, now, job, q => actions(tail, q, now, job))
+    case action <> tail: action_append(action, queue, now, job, None{}, q => actions(tail, q, now, job))
+
+def actions_prepared(list: List<&2,Driver.Action>, queue: Queue, +now: Nat, +job: Job,
+    +source: Maybe<&2,EmissionContext>) -> Queue:
+  match list:
+    case Nil{}: queue
+    case action <> tail: action_append(action,queue,now,job,source,
+      q => actions_prepared(tail,q,now,job,source))
 
 # Captured environment facts for the same interpreter. These are transport,
 # timing and tree inputs, never review/admission/routing eligibility decisions.
@@ -277,22 +289,44 @@ type StopProfile is Data:
   FitProfile{outcome: OutputScenario.Outcome, bytes: Maybe<&2,Nat>, attempt: Nat}
 type Environment is Data:
   Environment{seed: Nat, tree: TreeFacts.Profile, graph: Graph.Limits,
-    preparation_delay: Nat, output_delay: Nat, output_lease: Nat, stop_profile: Maybe<&2,StopProfile>}
+    preparation_delay: Nat, output_delay: Nat, output_lease: Nat, stop_profile: Maybe<&2,StopProfile>, outcomes: Driver.OutcomeEnvironment}
+
+def outcome_weights() -> List<&2,Numeric.Words>:
+  [Numeric.Words{0n,0n},Numeric.Words{1078525952n,0n},Numeric.Words{1078525952n,0n},
+    Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n}]
+
+def outcome_environment(outcome: Maybe<&2,Canonical.RequestOutcome>) -> Driver.OutcomeEnvironment:
+  Driver.OutcomeEnvironment{outcome,outcome_weights()}
 
 def default_environment() -> Environment:
-  Environment{7n,tree_profile(),graph_limits(),2n,0n,30n,None{}}
+  Environment{7n,tree_profile(),graph_limits(),2n,0n,30n,None{},outcome_environment(None{})}
 
 def environment_graph(environment: Environment) -> Graph.Limits:
   match environment:
-    case Environment{_,_,graph,_,_,_,_}: graph
+    case Environment{_,_,graph,_,_,_,_,_}: graph
 
 def context_with(environment: Environment, +state: Types.State, job: Job, delay: Nat,
     candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
   match environment job:
-    case Environment{_,_,_,_,output_delay,output_lease,_} Job{+partition,+lifetime,bytes,_,outcome}:
+    case Environment{_,_,_,_,output_delay,output_lease,_,_} Job{+partition,+lifetime,bytes,_,outcome}:
       Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),bytes,True{},delay,
-        outcome,True{},True{},True{},True{},600000n,candidate,Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),True{},True{},True{},
+        None{},True{},True{},True{},True{},600000n,candidate,Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),True{},True{},True{},
         output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
+    case Environment{_,_,_,_,output_delay,output_lease,_,_} NoJob{+partition,+lifetime}:
+      Driver.Context{partition,lifetime,round(Engine.canonical(state),partition),0n,False{},delay,
+        None{},True{},True{},True{},True{},600000n,candidate,
+        Bool.not(Engine.collector_configured(state)) && Bool.not(Engine.stop_active(state,partition)),
+        True{},True{},True{},output_delay,output_lease,Engine.workload_configured(state,partition),True{}}
+
+def source_job(job: Job) -> Maybe<&2,Driver.SourceJob>:
+  match job:
+    case Job{p,l,bytes,units,outcome}: Some{Driver.SourceJob{p,l,bytes,units,outcome}}
+    case NoJob{_,_}: None{}
+
+def environment_outcomes(environment: Environment) -> Driver.OutcomeEnvironment:
+  match environment:
+    case Environment{_,_,_,_,_,_,_,outcomes}: outcomes
+
 
 def context(state: Types.State, job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>) -> Driver.Context:
   context_with(default_environment(),state,job,delay,candidate)
@@ -342,13 +376,19 @@ def edit_plan(attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2, Stored>,
 # Invoke the supplied owner once before factual transport. Prepare's generated
 # tree remains the existing environmental fallback only for an unhandled command.
 def interpreted_with(result: Driver.Handled, environment: Environment, value: Canonical.Command,
-    +state: Types.State, queue: Queue, jobs: List<&2,Stored>, +now: Nat, +job: Job, delay: Nat) -> Runtime:
+    +state: Types.State, queue: Queue, jobs: List<&2,Stored>, +now: Nat, +job: Job, delay: Nat,
+    source: Maybe<&2,EmissionContext>) -> Runtime:
   match result environment value:
-    case Driver.Handled{False{},Nil{}} Environment{seed,tree,graph,preparation_delay,_,_,_} Canonical.Prepare{+operation,_}:
+    case Driver.Handled{False{},Nil{}} Environment{seed,tree,graph,preparation_delay,_,_,_,_} Canonical.Prepare{+operation,_}:
       Runtime{state,generated_with(Engine.generate_tree(seed,operation,0n,tree,graph),queue,
         now,operation,round(Engine.canonical(state),job_partition(job)),job,preparation_delay),jobs,delay}
     case result _ _:
-      handled(result,state,queue,jobs,now,job,delay)
+      match Engine.issue_actions(state,handled_actions(result)):
+        case Engine.IssuedActions{state,actions}: Runtime{state,actions_prepared(actions,queue,now,job,source),jobs,delay}
+
+def handled_actions(value: Driver.Handled) -> List<&2,Driver.Action>:
+  match value:
+    case Driver.Handled{_,actions}: actions
 
 def collector_combined(first: Driver.Handled, second: Driver.Handled) -> Driver.Handled:
   match first second:
@@ -361,7 +401,7 @@ def stop_item_input(item: Item) -> Input:
 
 def stop_poll_owned(input: Input, finish: StopScenario.Finish) -> Bool:
   match input finish:
-    case Event{Driver.Action{Canonical.StopPolled{p,l,r,_},_,_,_,_},_}
+    case Event{Driver.Action{Canonical.StopPolled{p,l,r,_},_,_,_,_},_,_}
       StopScenario.Finish{owner,generation,round,_,_,_,_,_,_,_,_,_,_}:
       Nat.is_eq(p,owner) && Nat.is_eq(l,generation) && Nat.is_eq(r,round)
     case _ _: False{}
@@ -399,18 +439,19 @@ def stop_ended_runtime(ended: Maybe<&2,StopScenario.Ended>, state: Types.State, 
 
 def stop_hook_runtime(runtime: Runtime, first: Driver.Handled, following: Driver.Handled, +environment: Environment, +value: Canonical.Command,
     +event: Canonical.CanonicalEvent, now: Nat, +job: Job, +candidate: Maybe<&2,Driver.Candidate>,
+    +context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Runtime:
   match runtime:
     case Runtime{+state,queue,jobs,+delay}:
-      interpreted_with(collector_combined(first,collector_combined(handler(state,event,value,context_with(environment,state,job,delay,candidate)),following)),
-        environment,value,state,queue,jobs,now,job,delay)
+      interpreted_with(collector_combined(first,collector_combined(handler(state,event,value,context),following)),
+        environment,value,state,queue,jobs,now,job,delay,Some{EmissionContext{context,receipt}})
 
 # The owner supplies an original fit attempt only for the newly issued action.
 # Existing queue entries retain their input, order, time and environmental facts.
 def stop_fit_input(input: Input, attempt: Nat) -> Input:
   match input:
-    case Event{Driver.Action{Canonical.CollectionFitCheck{items,bytes},delay,candidate,binding,expiry},job}:
-      FitEvent{Driver.Action{Canonical.CollectionFitCheck{items,bytes},delay,candidate,binding,expiry},job,attempt}
+    case Event{Driver.Action{Canonical.CollectionFitCheck{items,bytes},delay,candidate,binding,expiry},job,source}:
+      FitEvent{Driver.Action{Canonical.CollectionFitCheck{items,bytes},delay,candidate,binding,expiry},job,attempt,source}
     case input: input
 
 def stop_fit_item(fresh: Bool, item: Item, attempt: Nat) -> Item:
@@ -487,11 +528,12 @@ def interpreted_original(result: Interpreted, original: Runtime) -> Runtime:
 def interpret_stopped(stopped: Engine.StopHandled, first: Driver.Handled,
     environment: Environment, value: Canonical.Command, event: Canonical.CanonicalEvent,
     +queue: Queue, jobs: List<&2,Stored>, now: Nat, job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>,
+    context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
   match stopped:
     case Engine.StopHandled{state,following,+ended,attempt,_}:
       stop_finished_runtime([stop_fit_runtime(stop_hook_runtime(stop_ended_runtime(ended,state,queue,jobs,delay),first,following,
-        environment,value,event,now,job,candidate,handler),queue,attempt)],ended)
+        environment,value,event,now,job,candidate,context,receipt,handler),queue,attempt)],ended)
 
 def stop_profile_facts(profile: Maybe<&2,StopProfile>, now: Nat, delay: Nat, lease: Nat) -> StopScenario.CommandFacts:
   match profile:
@@ -501,23 +543,32 @@ def stop_profile_facts(profile: Maybe<&2,StopProfile>, now: Nat, delay: Nat, lea
 
 def stop_command_facts(environment: Environment, now: Nat) -> StopScenario.CommandFacts:
   match environment:
-    case Environment{_,_,_,_,delay,lease,profile}: stop_profile_facts(profile,now,delay,lease)
+    case Environment{_,_,_,_,delay,lease,profile,_}: stop_profile_facts(profile,now,delay,lease)
 
 def interpret_collected(changed: Engine.CollectorHandled, +environment: Environment, +value: Canonical.Command,
     +event: Canonical.CanonicalEvent, +queue: Queue, +jobs: List<&2,Stored>, +now: Nat,
-    +job: Job, +delay: Nat, +candidate: Maybe<&2,Driver.Candidate>,
+    +job: Job, +delay: Nat, +candidate: Maybe<&2,Driver.Candidate>, +context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
   match changed:
     case Engine.CollectorHandled{+state,first}:
-      interpret_stopped(Engine.stop_command(state,event,value,context_with(environment,state,job,delay,candidate),stop_command_facts(environment,now)),
-        first,environment,value,event,queue,jobs,now,job,delay,candidate,handler)
+      interpret_stopped(Engine.stop_command(state,event,value,context,stop_command_facts(environment,now)),
+        first,environment,value,event,queue,jobs,now,job,delay,candidate,context,receipt,handler)
+
+def interpret_prepared(prepared: Engine.PreparedCommandContext, +environment: Environment, +value: Canonical.Command,
+    +event: Canonical.CanonicalEvent, queue: Queue, jobs: List<&2,Stored>, now: Nat,
+    job: Job, delay: Nat, candidate: Maybe<&2,Driver.Candidate>,
+    handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
+  match prepared:
+    case Engine.PreparedCommandContext{+state,+context,receipt}:
+      interpret_collected(Engine.collector_command(state,event,value,context),
+        environment,value,event,queue,jobs,now,job,delay,candidate,context,receipt,handler)
 
 def interpret_with_handler(+environment: Environment, +value: Canonical.Command, +state: Types.State,
     +event: Canonical.CanonicalEvent, +queue: Queue, +jobs: List<&2,Stored>, +now: Nat,
     +job: Job, +delay: Nat, +candidate: Maybe<&2,Driver.Candidate>,
     handler: Types.State -> Canonical.CanonicalEvent -> Canonical.Command -> Driver.Context -> Driver.Handled) -> Interpreted:
-  interpret_collected(Engine.collector_command(state,event,value,context_with(environment,state,job,delay,candidate)),
-    environment,value,event,queue,jobs,now,job,delay,candidate,handler)
+  interpret_prepared(Engine.prepare_command_context(state,value,source_job(job),environment_outcomes(environment),
+    context_with(environment,state,job,delay,candidate)),environment,value,event,queue,jobs,now,job,delay,candidate,handler)
 
 def default_handler(state: Types.State, event: Canonical.CanonicalEvent,
     command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
@@ -578,6 +629,7 @@ def transitioned(transition: Engine.Transition, +before: Types.State, +event: Ca
 def job_lifetime(job: Job) -> Nat:
   match job:
     case Job{_, lifetime, _, _, _}: lifetime
+    case NoJob{_,lifetime}: lifetime
 
 def edit_valid(valid: Bool, +state: Types.State, queue: Queue, jobs: List<&2, Stored>,
     +job: Job, now: Nat, delay: Nat, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
@@ -607,7 +659,7 @@ def arrival_valid(valid: Bool, event: Workload.Emission, +lifetime: Nat, +state:
     case True{} Workload.Emission{_, owner, _, 0, _, _, _, _, _, _}:
       workload_changed(Engine.workload_action(state, owner, Workload.Next{}), queue, jobs, delay, ih)
     case True{} Workload.Emission{at, +owner, _, 1, _, _, bytes, units, _, _}:
-      edit_plan(Engine.edit_attempt(state, owner, lifetime), queue, jobs, Job{owner, lifetime, bytes, units, Canonical.RequestFinding{}}, at, delay, ih)
+      edit_plan(Engine.edit_attempt(state, owner, lifetime), queue, jobs, Job{owner,lifetime,bytes,units,None{}}, at, delay, ih)
     case True{} _: ih(Runtime{state, queue, jobs, delay})
 
 def arrival_checked(event: Workload.Emission, +lifetime: Nat, +state: Types.State, queue: Queue,
@@ -625,7 +677,7 @@ def input(input: Input, +state: Types.State, queue: Queue, jobs: List<&2, Stored
     +now: Nat, +delay: Nat, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match input:
     case Edit{+job}: edit_valid(Engine.activity_valid(state, job_partition(job), job_lifetime(job)), state, queue, jobs, job, now, delay, ih)
-    case Event{Driver.Action{+event, _, +candidate, _, _}, +job}:
+    case Event{Driver.Action{+event, _, +candidate, _, _},+job,_}:
       +fenced = Engine.fence(state, event, True{}, context(state, job, delay, candidate))
       transitioned(Engine.step(state, fenced), state, fenced, queue, jobs, job, now, delay, candidate, ih)
     case Fact{+partition, +lifetime, +round, +operation, position, event}:
@@ -634,7 +686,7 @@ def input(input: Input, +state: Types.State, queue: Queue, jobs: List<&2, Stored
     case Cache{_,_}: [[97n]]
     case Finish{_}: [[97n]]
     case FinishIntent{_,_,_,_}: [[97n]]
-    case FitEvent{_,_,_}: [[97n]]
+    case FitEvent{_,_,_,_}: [[97n]]
     case Missing{}: [[97n]]
 
 def taken(taken: Engine.Taken, +items: List<&2, Item>, +sequence: Nat,
@@ -685,7 +737,7 @@ def lifecycle(result: Engine.LifecycleTransition, queue: Queue, jobs: List<&2, S
         Some{Lifecycle.Entry{_, new, status}}, True{}}, Cleanup.CleanupPlan{list, _, _}, events}:
       [80n, Engine.clock(state), p, old, new, state_code(status)] <>
         ih(Runtime{state, emissions(events, actions(list, queue, Engine.clock(state),
-          Job{p, old, 10n, [5n], Canonical.RequestFinding{}}), state), jobs, delay})
+          Job{p,old,10n,[5n],Some{Canonical.RequestFinding{}}}), state), jobs, delay})
     case _: [[97n]]
 
 def stage_bound(stage: Stage, boundary: Nat) -> Nat:
@@ -696,7 +748,7 @@ def stage_bound(stage: Stage, boundary: Nat) -> Nat:
 def fresh(runtime: Runtime, at: Nat) -> Runtime:
   match runtime:
     case Runtime{state, queue, jobs, delay}:
-      Runtime{state, append(queue, at, Edit{Job{1n, 2n, 10n, [5n], Canonical.RequestFinding{}}}), jobs, delay}
+      Runtime{state, append(queue, at, Edit{Job{1n,2n,10n,[5n],Some{Canonical.RequestFinding{}}}}), jobs, delay}
 
 def ending_state(states: List<&2, Types.State>, stage: Stage, queue: Queue,
     jobs: List<&2, Stored>, delay: Nat, action: Lifecycle.Action, new_at: Nat,
@@ -753,9 +805,9 @@ def original_inputs(initial: Initialized, action: Lifecycle.Action, boundary: Na
   match initial:
     case Initialized{state, queue}:
       loop(120n, Runtime{state,
-        append(append(append(queue, 0n, Edit{Job{1n, 1n, 10n, [5n], Canonical.RequestFinding{}}}),
-          0n, Edit{Job{2n, 1n, 20n, [7n], Canonical.RequestFinding{}}}),
-          4n, Edit{Job{1n, 1n, 90n, [90n], Canonical.RequestFinding{}}}), [], 20n}, Started{}, action, boundary, new_at)
+        append(append(append(queue, 0n, Edit{Job{1n,1n,10n,[5n],Some{Canonical.RequestFinding{}}}}),
+          0n, Edit{Job{2n,1n,20n,[7n],Some{Canonical.RequestFinding{}}}}),
+          4n, Edit{Job{1n,1n,90n,[90n],Some{Canonical.RequestFinding{}}}}), [], 20n}, Started{}, action, boundary, new_at)
 
 def run(action: Lifecycle.Action, boundary: Nat, new_at: Nat) -> List<&2, List<&2, Nat>>:
   original_inputs(initial(), action, boundary, new_at)
@@ -909,7 +961,7 @@ def stop_wake_append(found: Bool, queue: Queue, finish: StopScenario.Finish, +no
   match found finish:
     case False{} StopScenario.Finish{+p,+l,r,a,t,cutoff,recurring,selected,waiting,count,started,fit,output}:
       append(queue,now,Event{Driver.immediate(StopScenario.poll(
-        StopScenario.Capture{p,l,r,a,t,started,cutoff},now),False{}),Job{p,l,0n,[],Canonical.NeverSent{}}})
+        StopScenario.Capture{p,l,r,a,t,started,cutoff},now),False{}),NoJob{p,l},None{}})
     case True{} _: queue
 
 def stop_wake_finish(+queue: Queue, +finish: StopScenario.Finish, +now: Nat) -> Queue:
@@ -1226,7 +1278,7 @@ def observed_arrival_valid(-F: Data, valid: Bool, event: Workload.Emission, +lif
     case True{} Workload.Emission{_,owner,_,0,_,_,_,_,_,_}:
       observed_workload(F,Engine.workload_action(state,owner,Workload.Next{}),queue,jobs,delay,hook)
     case True{} Workload.Emission{at,+owner,_,1,_,_,bytes,units,_,_}:
-      observed_edit(F,Engine.edit_attempt(state,owner,lifetime),queue,jobs,Job{owner,lifetime,bytes,units,Canonical.RequestFinding{}},at,delay,hook)
+      observed_edit(F,Engine.edit_attempt(state,owner,lifetime),queue,jobs,Job{owner,lifetime,bytes,units,None{}},at,delay,hook)
     case True{} _: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
 
 def observed_arrival(-F: Data, event: Workload.Emission, +lifetime: Nat, +state: Types.State,
@@ -1287,13 +1339,13 @@ def observed_input_ready(-F: Data, valid: Bool, value: Input, runtime: List<&2,R
 
 def stop_input_job(input: StopScenario.Input) -> Job:
   match input:
-    case StopScenario.Input{p,l,_,_,_,_}: Job{p,l,0n,[],Canonical.NeverSent{}}
+    case StopScenario.Input{p,l,_,_,_,_}: NoJob{p,l}
 
 def stop_fact_queue(facts: List<&2,StopScenario.Fact>, queue: Queue, +job: Job) -> Queue:
   match facts:
     case Nil{}: queue
     case StopScenario.Fact{at,event} <> tail:
-      stop_fact_queue(tail,append(queue,at,Event{Driver.immediate(event,False{}),job}),job)
+      stop_fact_queue(tail,append(queue,at,Event{Driver.immediate(event,False{}),job,None{}}),job)
 
 def stop_registration_queue(created: Bool, found: Maybe<&2,StopScenario.Finish>, queue: Queue, job: Job) -> Queue:
   match created found:
@@ -1345,16 +1397,16 @@ def stop_fit_profile(profile: Maybe<&2,StopProfile>, attempt: Nat) -> Maybe<&2,S
 
 def stop_fit_environment(environment: Environment, attempt: Nat) -> Environment:
   match environment:
-    case Environment{seed,tree,graph,prep,delay,lease,profile}:
-      Environment{seed,tree,graph,prep,delay,lease,stop_fit_profile(profile,attempt)}
+    case Environment{seed,tree,graph,prep,delay,lease,profile,outcomes}:
+      Environment{seed,tree,graph,prep,delay,lease,stop_fit_profile(profile,attempt),outcomes}
 
 def observed_input(-F: Data, value: Input, runtime: List<&2,Runtime>,
     now: Nat, order: Nat, environment: Environment,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match value:
-    case Event{Driver.Action{event,_,candidate,_,_},job}:
+    case Event{Driver.Action{event,_,candidate,_,_},job,_}:
       observed_event(F,runtime,event,job,now,order,candidate,environment,factory)
-    case FitEvent{Driver.Action{event,_,candidate,_,_},job,attempt}:
+    case FitEvent{Driver.Action{event,_,candidate,_,_},job,attempt,_}:
       observed_event(F,runtime,event,job,now,order,candidate,stop_fit_environment(environment,attempt),factory)
     case Cache{fact,job}: observed_cache_input(F,runtime,fact,job,now,order,environment,factory)
     case Finish{input}: observed_finish(F,runtime,input,now,order,transition_commands(F,factory([])))
@@ -1398,14 +1450,14 @@ def observed_receipted(-F: Data, observed: Observed<F>, receipt: Maybe<&2,Callba
 
 def delivered_input(action: Maybe<&2,Driver.Action>, input: Input) -> Input:
   match action input:
-    case Some{action} Event{_,job}: Event{action,job}
-    case Some{action} FitEvent{_,job,attempt}: FitEvent{action,job,attempt}
+    case Some{action} Event{_,job,source}: Event{action,job,source}
+    case Some{action} FitEvent{_,job,attempt,source}: FitEvent{action,job,attempt,source}
     case _ input: input
 
 def delivered_state(input: Input, state: Types.State, order: Nat) -> Types.State:
   match input:
-    case Event{_,_}: Engine.callback_delivered(state,order)
-    case FitEvent{_,_,_}: Engine.callback_delivered(state,order)
+    case Event{_,_,_}: Engine.callback_delivered(state,order)
+    case FitEvent{_,_,_,_}: Engine.callback_delivered(state,order)
     case _: state
 
 def delivered_runtime(input: Input, runtime: List<&2,Runtime>, order: Nat) -> List<&2,Runtime>:

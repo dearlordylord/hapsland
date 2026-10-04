@@ -226,7 +226,7 @@ def leave_original(found: Maybe<&2,Originals.Original>, +scope: Freshness.Scope,
     case Some{Originals.Original{_,Inputs.Edit{_,_,bytes,units,_,_,_}}} Freshness.Scope{p,l,_,_}
         Edge.Runtime{+state,queue,jobs,delay}:
       departure(Engine.sharing_leave(state,scope),state,queue,jobs,delay,
-        Edge.Job{p,l,bytes,units,C.RequestFinding{}},input,Some{scope},previous)
+        Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}},input,Some{scope},previous)
     case _ _ _: fail(previous)
 
 def leave_scope(scope: Maybe<&2,Freshness.Scope>, runtime: Edge.Runtime,
@@ -246,7 +246,7 @@ def all_original(found: Maybe<&2,Originals.Original>, +runtime: Edge.Runtime,
   match found runtime:
     case Some{Originals.Original{_,Inputs.Edit{_,_,bytes,units,_,_,_}}} Edge.Runtime{+state,queue,jobs,delay}:
       departure(Engine.sharing_leave_all(state,p,l),state,queue,jobs,delay,
-        Edge.Job{p,l,bytes,units,C.RequestFinding{}},input,None{},previous)
+        Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}},input,None{},previous)
     case _ _: fail(previous)
 
 def all_scope(scope: Maybe<&2,Freshness.Scope>, runtime: Edge.Runtime,

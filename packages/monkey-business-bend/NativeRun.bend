@@ -200,7 +200,7 @@ def context_environment(job: T.Job, supplied: Bool, action: Driver.Action, outco
   match job action environment:
     case T.Job{p, l, r, bytes, _, _, _, _} Driver.Action{_, _, candidate, _, _}
       T.Environment{delay, _, _, _, _, _, output, lease, current, credential, _, readable, lifetime}:
-      Driver.Context{p, l, r, bytes, supplied, delay, outcome, current, credential, True{}, readable,
+      Driver.Context{p, l, r, bytes, supplied, delay, Some{outcome}, current, credential, True{}, readable,
         lifetime, candidate, collection, True{}, True{}, True{}, output, lease, True{}, True{}}
 
 def job_context(job: Maybe<&2, T.Job>, action: Driver.Action, outcome: Canonical.RequestOutcome, environment: T.Environment, collection: Bool) -> Driver.Context:

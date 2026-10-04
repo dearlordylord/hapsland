@@ -64,8 +64,8 @@ def fault(value: Trace) -> Trace:
 
 def replace_selected(equal: Bool, item: Edge.Item, event: C.CanonicalEvent) -> Edge.Item:
   match equal item:
-    case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload}}:
-      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload}}
+    case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload,_}}:
+      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,None{}}}
     case _ item: item
 
 def replace(items: List<&2,Edge.Item>, +order: Nat, +event: C.CanonicalEvent) -> List<&2,Edge.Item>:
@@ -92,9 +92,9 @@ def guarded_event(found: Maybe<&2,C.CanonicalEvent>, +runtime: List<&2,Edge.Runt
 def guard_input(input: Edge.Input, states: List<&2,Types.State>, runtime: List<&2,Edge.Runtime>,
     original: Maybe<&2,Originals.Capsule>, now: Nat, order: Nat) -> Guarded:
   match input states:
-    case Edge.Event{Driver.Action{+event,+d,+c,+j,+e},+payload} state <> Nil{}:
+    case Edge.Event{Driver.Action{+event,+d,+c,+j,+e},+payload,_} state <> Nil{}:
       guarded_event(Originals.event(original,state,event,now),runtime,
-        Edge.Event{Driver.Action{event,d,c,j,e},payload},order)
+        Edge.Event{Driver.Action{event,d,c,j,e},payload,None{}},order)
     case _ _ <> Nil{}: Guarded{runtime,True{},True{}}
     case _ _: Guarded{runtime,False{},False{}}
 
@@ -243,7 +243,7 @@ def observed(value: Transport.Stepped<Hook.Facts>, job: Maybe<&2,Edge.Job>, cuto
 
 def input_job(input: Edge.Input) -> Maybe<&2,Edge.Job>:
   match input:
-    case Edge.Event{_,job}: Some{job}
+    case Edge.Event{_,job,_}: Some{job}
     case Edge.Edit{job}: Some{job}
     case Edge.Cache{_,job}: Some{job}
     case _: None{}
@@ -254,7 +254,7 @@ def input_job(input: Edge.Input) -> Maybe<&2,Edge.Job>:
 def expired(value: Engine.ResponseTransition, runtime: List<&2,Edge.Runtime>, bindings: List<&2,Originals.Binding>) -> Hook.Captured:
   match value:
     case Engine.ResponseTransition{state,_,actions}:
-      emitted(actions,state_with(state,runtime),bindings,None{},Edge.Job{0n,0n,0n,[],C.RequestFinding{}})
+      emitted(actions,state_with(state,runtime),bindings,None{},Edge.NoJob{0n,0n})
 
 def expiration_states(states: List<&2,Types.State>, +runtime: List<&2,Edge.Runtime>, bindings: List<&2,Originals.Binding>, now: Nat) -> Hook.Captured:
   match states:
@@ -368,7 +368,7 @@ def boundary(trace: Trace, endpoint: Nat, budget: Nat, before: Nat) -> Trace:
 
 def quiet_refused(original: Maybe<&2,Originals.Capsule>, input: Edge.Input, state: Types.State, now: Nat) -> Bool:
   match original input:
-    case Some{Originals.Response{target}} Edge.Event{Driver.Action{event,_,_,_,_},_}:
+    case Some{Originals.Response{target}} Edge.Event{Driver.Action{event,_,_,_,_},_,_}:
       Bool.not(Engine.collection_response_delivery_valid(state,target,now,event))
     case _ _: False{}
 
@@ -459,7 +459,7 @@ def control_edit(edit: Maybe<&2,Inputs.Edit>, +input: Writer.Control, trace: Tra
   match edit trace:
     case Some{Inputs.Edit{_,_,bytes,units}}
         Trace{writer,agents,queued,labels,originals,issued}:
-      Trace{Writer.apply(input,writer,Edge.Job{input_partition(input),input_lifetime(input),bytes,units,C.RequestFinding{}}),agents,queued,labels,originals,issued}
+      Trace{Writer.apply(input,writer,Edge.Job{input_partition(input),input_lifetime(input),bytes,units,Some{C.RequestFinding{}}}),agents,queued,labels,originals,issued}
     case _ trace: fault(trace)
 
 def control(+input: Writer.Control, +trace: Trace) -> Trace:
@@ -475,7 +475,7 @@ def lifecycle_cleanup(+cleanup: Cleanup.CleanupPlan, +state: Types.State, +befor
   match cleanup:
     case Cleanup.CleanupPlan{actions,_,_}:
       Trace{Writer.Runtime{[Edge.Runtime{state,Edge.emissions(events,
-        Edge.actions(actions,queue,Engine.clock(before),Edge.Job{partition,Edge.life_value(Engine.lifecycle_entry(before,partition)),bytes,units,C.RequestFinding{}}),state),jobs,delay}],
+        Edge.actions(actions,queue,Engine.clock(before),Edge.Job{partition,Edge.life_value(Engine.lifecycle_entry(before,partition)),bytes,units,Some{C.RequestFinding{}}}),state),jobs,delay}],
         bindings,List.append(&2,Writer.Frame,frames,[Writer.LifecycleFrame{[before],[state],Engine.clock(before),agent,partition,action,changed,cleanup,events}]),consumed,valid},
         agents,queued,labels,originals,issued}
 
@@ -526,7 +526,7 @@ def intersection_agent(input: IntersectionInputs.Control) -> Maybe<&2,String>:
 def intersection_edit(edit: Maybe<&2,Inputs.Edit>, scope: Maybe<&2,Initial.Agent>, input: IntersectionInputs.Control, trace: Trace) -> Trace:
   match edit scope trace:
     case Some{Inputs.Edit{_,_,bytes,units}} Some{Initial.Agent{_,p,l}} Trace{writer,agents,queued,labels,+originals,issued}:
-      Trace{Intersection.apply(input,writer,Edge.Job{p,l,bytes,units,C.RequestFinding{}},originals),agents,queued,labels,originals,issued}
+      Trace{Intersection.apply(input,writer,Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}},originals),agents,queued,labels,originals,issued}
     case _ _ trace: fault(trace)
 
 
@@ -535,7 +535,7 @@ def intersection_selected(found: Maybe<&2,String>, input: IntersectionInputs.Con
     case Some{+agent} Trace{_,+agents,+queued,_,_,_}:
       intersection_edit(original_edit(edits(queued),agent),Initial.agent(agents,agent),input,trace)
     case None{} Trace{writer,agents,queued,labels,+originals,issued}:
-      Trace{Intersection.apply(input,writer,Edge.Job{0n,0n,0n,[],C.RequestFinding{}},originals),agents,queued,labels,originals,issued}
+      Trace{Intersection.apply(input,writer,Edge.NoJob{0n,0n},originals),agents,queued,labels,originals,issued}
 
 def intersection(+input: IntersectionInputs.Control, trace: Trace) -> Trace:
   intersection_selected(intersection_agent(input),input,trace)
@@ -549,8 +549,8 @@ def apply(input: Inputs.Boundary, trace: Trace, environment: Edge.Environment) -
 
 def next_environment(input: Inputs.Boundary, environment: Edge.Environment) -> Edge.Environment:
   match input environment:
-    case Inputs.IntersectionControl{IntersectionInputs.OutputProfile{delay,lease}} Edge.Environment{seed,tree,graph,preparation,_,_,stop_profile}:
-      Edge.Environment{seed,tree,graph,preparation,delay,lease,stop_profile}
+    case Inputs.IntersectionControl{IntersectionInputs.OutputProfile{delay,lease}} Edge.Environment{seed,tree,graph,preparation,_,_,stop_profile,outcomes}:
+      Edge.Environment{seed,tree,graph,preparation,delay,lease,stop_profile,outcomes}
     case _ environment: environment
 
 

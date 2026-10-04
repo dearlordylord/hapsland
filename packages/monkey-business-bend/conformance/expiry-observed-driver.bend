@@ -72,7 +72,7 @@ def without_order(capsules: List<&2,Capsule>, +order: Nat) -> List<&2,Capsule>:
         Capsule{identity,scope,diagnostic} <> without_order(tail,order))
 
 def source_job(state: Types.State, partition: Nat) -> Edge.Job:
-  Edge.Job{partition,Edge.life_value(Engine.lifecycle_entry(state,partition)),0n,[],C.NeverSent{}}
+  Edge.NoJob{partition,Edge.life_value(Engine.lifecycle_entry(state,partition))}
 
 def queue_events(events: List<&2,C.CanonicalEvent>, runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>,
     +at: Nat, +partition: Nat, +scope: Maybe<&2,Notice.Scope>, +diagnostic: Maybe<&2,String>) -> List<&2,Edge.Runtime> & List<&2,Capsule>:
@@ -80,7 +80,7 @@ def queue_events(events: List<&2,C.CanonicalEvent>, runtime: List<&2,Edge.Runtim
     case Nil{} runtime: (runtime,capsules)
     case event <> tail Edge.Runtime{+state,Edge.Queue{items,+sequence,synced},jobs,delay} <> Nil{}:
       queue_events(tail,[Edge.Runtime{state,Edge.append(Edge.Queue{items,sequence,synced},at,
-        Edge.Event{Driver.immediate(event,False{}),source_job(state,partition)}),jobs,delay}],
+        Edge.Event{Driver.immediate(event,False{}),source_job(state,partition),None{}}),jobs,delay}],
         List.append(&2,Capsule,capsules,[Capsule{sequence,scope,diagnostic}]),at,partition,scope,diagnostic)
     case _ runtime: (runtime,capsules)
 

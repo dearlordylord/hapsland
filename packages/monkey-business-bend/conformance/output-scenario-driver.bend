@@ -83,7 +83,7 @@ def issue_captured(capture: Maybe<&2,Output.Capture>, +state: Types.State, order
 def replaced_item(matches: Bool, original: Edge.Item, at: Nat, order: Nat,
     action: Driver.Action, input: Edge.Input) -> Edge.Item:
   match matches input:
-    case True{} Edge.Event{_,job}: Edge.Item{at,order,Edge.Event{action,job}}
+    case True{} Edge.Event{_,job,source}: Edge.Item{at,order,Edge.Event{action,job,source}}
     case _ _: original
 
 def replace_item(item: Edge.Item, +order: Nat, at: Nat, action: Driver.Action) -> Edge.Item:
@@ -168,7 +168,7 @@ def fresh_action(fresh: Bool, +action: Driver.Action, +state: Types.State, order
 def fresh_item(item: Edge.Item, +runtime: List<&2,Edge.Runtime>, +issued_count: Nat, frames: List<&2,Frame>,
     outcome: Output.Outcome, output_delay: Nat, lease: Nat, allowed: Bool) -> Runtime:
   match item runtime:
-    case Edge.Item{at,+order,Edge.Event{+action,_}} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
+    case Edge.Item{at,+order,Edge.Event{+action,_,_}} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
       fresh_action(Nat.is_le(issued_count,order),action,state,order,at,queue,jobs,delay,issued_count,frames,outcome,output_delay,lease,allowed)
     case _ _ <> Nil{}: Runtime{runtime,issued_count,frames,True{}}
     case _ runtime: Runtime{runtime,issued_count,frames,False{}}
@@ -325,7 +325,7 @@ def initial_emitted(result: Engine.WorkloadTransition) -> Runtime:
   match result:
     case Engine.WorkloadTransition{+state,events,True{}}:
       Runtime{[Edge.Runtime{state,Edge.append(Edge.emissions(events,Edge.Queue{[],0n,0n},state),0n,
-        Edge.Edit{Edge.Job{1n,1n,10n,[5n],C.RequestFinding{}}}),[],5n}],0n,[],True{}}
+        Edge.Edit{Edge.Job{1n,1n,10n,[5n],Some{C.RequestFinding{}}}}),[],5n}],0n,[],True{}}
     case Engine.WorkloadTransition{state,_,_}: Runtime{[Edge.Runtime{state,Edge.Queue{[],0n,0n},[],5n}],0n,[InvalidTransport{}],False{}}
 
 def initial() -> Runtime:
@@ -334,4 +334,4 @@ def initial() -> Runtime:
     Workload.Profile{Session.Settings{1000000,0,1000,500,0,300},7,[97,103,101,110,116,45,49],100n,[100n],None{}}),1n,Workload.Next{}))
 
 def run(outcome: Output.Outcome, +delay: Nat, +lease: Nat) -> Trace:
-  advance(150n,initial(),Edge.Environment{7n,TreeFacts.Profile{1n,1n,0n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n},Edge.graph_limits(),2n,delay,lease,None{}},outcome,delay,lease)
+  advance(150n,initial(),Edge.Environment{7n,TreeFacts.Profile{1n,1n,0n,3n,15n,0n,0n,0n,0n,0n,0n,0n,100n,100n,20n,20n},Edge.graph_limits(),2n,delay,lease,None{},Edge.outcome_environment(None{})},outcome,delay,lease)

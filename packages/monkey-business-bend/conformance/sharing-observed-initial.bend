@@ -73,7 +73,7 @@ def edit_selected(selected: Maybe<&2,Agent>, +edit: Inputs.Edit,
     case Some{Agent{_,p,l}} Inputs.Edit{name,+at,+bytes,+units,subject,input,namespace}
         Edge.Runtime{state,Edge.Queue{items,+sequence,synced},jobs,delay}:
       ih(Edge.Runtime{state,Edge.append(Edge.Queue{items,sequence,synced},at,
-        Edge.Edit{Edge.Job{p,l,bytes,units,C.RequestFinding{}}}),jobs,delay},
+        Edge.Edit{Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}}}),jobs,delay},
         List.append(&2,QueuedOriginal,originals,[QueuedOriginal{sequence,Inputs.Edit{name,at,bytes,units,subject,input,namespace}}]))
     case _ _ runtime: Initialized{[runtime],agents,originals,False{}}
 
@@ -108,4 +108,4 @@ def initialize(scenario: Inputs.Scenario) -> Initialized:
 def environment(configuration: Inputs.Configuration) -> Edge.Environment:
   match configuration:
     case Inputs.Configuration{seed,_,_,_,tree,graph,preparation_delay,output_delay,output_lease,_,_}:
-      Edge.Environment{seed,tree,graph,preparation_delay,output_delay,output_lease,None{}}
+      Edge.Environment{seed,tree,graph,preparation_delay,output_delay,output_lease,None{},Edge.outcome_environment(None{})}

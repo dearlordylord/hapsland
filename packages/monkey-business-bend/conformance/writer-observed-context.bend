@@ -85,7 +85,7 @@ def input_states(action: Driver.Action, partition: Nat, states: List<&2,Types.St
 
 def original_input(input: Edge.Input, states: List<&2,Types.State>) -> Maybe<&2,Payload>:
   match input:
-    case Edge.Event{action,Edge.Job{partition,_,_,_,_}}: input_states(action,partition,states)
+    case Edge.Event{action,Edge.Job{partition,_,_,_,_},_}: input_states(action,partition,states)
     case _: None{}
 
 def preparation(found: Maybe<&2,Payload>, input: Edge.Input, states: List<&2,Types.State>) -> Maybe<&2,Payload>:
@@ -122,9 +122,10 @@ def observed_owner(frame: Edge.ObservedFrame, found: Maybe<&2,Payload>,
 def queued(payload: Payload, job: Edge.Job) -> Edge.Job:
   match payload job:
     case Payload{Scope{partition,lifetime,_},False{},fallback} _:
-      Edge.Job{partition,lifetime,0n,[],fallback}
+      Edge.NoJob{partition,lifetime}
     case Payload{Scope{partition,lifetime,_},True{},_} Edge.Job{_,_,bytes,units,outcome}:
       Edge.Job{partition,lifetime,bytes,units,outcome}
+    case Payload{Scope{partition,lifetime,_},True{},_} Edge.NoJob{_,_}: Edge.NoJob{partition,lifetime}
 
 # These commands obtain their actual operation job through common Edge's
 # command_job before this hook. A response capsule does not create such a job.
@@ -149,10 +150,10 @@ def applied(+payload: Payload, +state: Types.State, event: C.CanonicalEvent, com
 def absent_context(payload: Payload, fallback: C.RequestOutcome, state: Types.State,
     event: C.CanonicalEvent, command: C.Command, context: Driver.Context) -> Driver.Context:
   match context:
-    case Driver.Context{p,l,r,_,_,delay,_,work,credential,generation,readable,
+    case Driver.Context{p,l,r,_,_,delay,outcome,work,credential,generation,readable,
         advice_lifetime,candidate,collection,review,output,certain,output_delay,
         output_lease,background,dispatch}:
-      applied(payload,state,event,command,Driver.Context{p,l,r,0n,False{},delay,fallback,
+      applied(payload,state,event,command,Driver.Context{p,l,r,0n,False{},delay,outcome,
         work,credential,generation,readable,advice_lifetime,candidate,collection,
         review,output,certain,output_delay,output_lease,background,dispatch})
 
