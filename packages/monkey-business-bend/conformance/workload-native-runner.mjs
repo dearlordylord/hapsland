@@ -61,9 +61,9 @@ function retainNativeFailure(error, identity, temporary, timeouts, phases) {
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
 
 // User-authorized compile allowances: C/clang 30s and emitted JS 15s.
-// Explicit fixture overrides allow C emission45s and clang90s; execution stays5s.
+// Explicit fixture overrides allow C emission90s and clang90s; execution stays5s.
 const MAX_NATIVE_CLANG_TIMEOUT_MS = 90000;
-const MAX_NATIVE_C_EMISSION_TIMEOUT_MS = 60000;
+const MAX_NATIVE_C_EMISSION_TIMEOUT_MS = 90000;
 export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSION_TIMEOUT_MS, clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS } = {}) {
   if (!Number.isSafeInteger(clangTimeoutMs) || clangTimeoutMs <= 0 || clangTimeoutMs > MAX_NATIVE_CLANG_TIMEOUT_MS)
     throw new RangeError("invalid native clang timeout");

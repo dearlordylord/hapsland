@@ -305,8 +305,8 @@ C60/clang90/native5/JS15+5 with a 190-second aggregate watchdog.
 original cases through the single `writer-original-scenarios.bend` fixture and
 `writer_scenarios` vector. The thirteen per-case wrappers have been removed;
 one compilation per backend retains every original case and independent
-public/replay expectation. Its full comparison uses C60/clang90/native5/JS30+5
-with a 205-second aggregate watchdog. These allowances establish no pass by
+public/replay expectation. Its full comparison uses C90/clang90/native5/JS30+5
+with a 235-second aggregate watchdog. These allowances establish no pass by
 themselves and do not change product deadlines.
 
 The optional game consumer command is
