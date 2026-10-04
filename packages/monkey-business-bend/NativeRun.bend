@@ -551,7 +551,7 @@ def graph_frame(+state: T.State, +key: EngineTypes.GraphKey, position: Nat, fact
       recorded(state,T.GraphFrame{count,Engine.clock(core_value(core)),key,position,fact,[before],[after],command,
         scope_details(frame_details(runtime_before,state,None{},[core_value(core)]),[],Some{graph_partition(key)})})
 
-def graph_transition(state: T.State, key: EngineTypes.GraphKey, position: Nat,
+def graph_transition(+state: T.State, key: EngineTypes.GraphKey, position: Nat,
     fact: ImportGraph.GraphEvent, result: EngineTypes.GraphTransition) -> T.Step:
   match result:
     case EngineTypes.GraphTransition{core, before, ImportGraph.BoundedStep{after, command}}:
@@ -949,7 +949,7 @@ def advanced_product(+state: T.State, +event: Canonical.CanonicalEvent, +action:
   product_frame(event_jobs(refusal_jobs(commands,event,before,product_feedback(issue_context(ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job),post,job,source),event,commands,job,source)),event,before), event, before, after, commands, None{},runtime_before,source,transition_after,provided_input(job,source_job))
 
 def product_result(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action,
-    +job: Maybe<&2, T.Job>, before: Canonical.State, result: Canonical.Step, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
+    +job: Maybe<&2, T.Job>, +before: Canonical.State, result: Canonical.Step, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
   match result:
     case Canonical.Advanced{after, commands}: advanced_product(state, event, action, job, before, after, commands, post,runtime_before,source,transition_after,source_job)
     case Canonical.Rejected{after, reason}: product_frame(event_jobs(wake_event(issue_context(state,post,job,source),event),event,before), event, before, after, [], Some{reason},runtime_before,source,transition_after,provided_input(job,source_job))
@@ -1075,7 +1075,7 @@ def finish_live(state: T.State, job: T.Job, attempt: Nat) -> Bool:
     case T.Job{p, _, _, _, _, _, _, _, _}:
       finish_live_found(StopScenario.find(finish_scopes(state), p), attempt)
 
-def finish_product(live: Bool, state: T.State, action: Driver.Action, job: T.Job, source: Maybe<&2,T.EmissionContext>) -> T.Step:
+def finish_product(live: Bool, state: T.State, action: Driver.Action, +job: T.Job, source: Maybe<&2,T.EmissionContext>) -> T.Step:
   match live:
     case True{}: product(state,action,Some{job},source,original_source(Some{job}))
     case False{}: T.Step{state, None{},[]}
@@ -1240,7 +1240,7 @@ def sharing_frame(state: T.State, frame: Engine.SharingFrame, original: T.State)
     case Engine.SharingFrame{before,after,event,Canonical.Rejected{canonical,reason}}:
       product_frame(state,event,Engine.canonical(before),canonical,[],Some{reason},runtime_snapshot(original),None{},[after],None{})
 
-def sharing_selected(state: T.State, next: Engine.SharingNext,
+def sharing_selected(+state: T.State, next: Engine.SharingNext,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match next:
     case Engine.SharingNext{updated,Some{frame},events}:
