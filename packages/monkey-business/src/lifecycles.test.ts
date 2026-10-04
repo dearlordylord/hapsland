@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { createRun, restoreReplay, type RunConfig } from "./index.ts";
 // These bounded synchronous runs replay thousands of events under coverage;
 // their assertions establish lifecycle behavior, not a wall-clock performance budget.
-const replayTestTimeoutMs = 30_000;
+const replayTestTimeoutMs = 60_000;
 const complete = (config: RunConfig) => { const run = createRun({ retention: 10000, inputs: [], ...config }); expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle"); return run; };
 const edits = [0, 0, 4].map(at => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5] }));
 it("permits refuse shared saturation and recover after consumption with exact replay", () => {
