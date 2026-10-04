@@ -64,8 +64,8 @@ def fault(value: Trace) -> Trace:
 
 def replace_selected(equal: Bool, item: Edge.Item, event: C.CanonicalEvent) -> Edge.Item:
   match equal item:
-    case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload,_}}:
-      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,None{}}}
+    case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload,source}}:
+      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,source}}}
     case _ item: item
 
 def replace(items: List<&2,Edge.Item>, +order: Nat, +event: C.CanonicalEvent) -> List<&2,Edge.Item>:
@@ -92,9 +92,9 @@ def guarded_event(found: Maybe<&2,C.CanonicalEvent>, +runtime: List<&2,Edge.Runt
 def guard_input(input: Edge.Input, states: List<&2,Types.State>, runtime: List<&2,Edge.Runtime>,
     original: Maybe<&2,Originals.Capsule>, now: Nat, order: Nat) -> Guarded:
   match input states:
-    case Edge.Event{Driver.Action{+event,+d,+c,+j,+e},+payload,_} state <> Nil{}:
+    case Edge.Event{Driver.Action{+event,+d,+c,+j,+e},+payload,source} state <> Nil{}:
       guarded_event(Originals.event(original,state,event,now),runtime,
-        Edge.Event{Driver.Action{event,d,c,j,e},payload,None{}},order)
+        Edge.Event{Driver.Action{event,d,c,j,e},payload,source},order)
     case _ _ <> Nil{}: Guarded{runtime,True{},True{}}
     case _ _: Guarded{runtime,False{},False{}}
 
