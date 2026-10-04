@@ -8,7 +8,7 @@ import ../../packages/monkey-business-bend/Numeric.bend as Numeric
 # Game-owned original inputs. Controls execute the actual Host, and every tick
 # retains its entire private engine state and every actual returned frame.
 type Input is Data:
-  Key{code: U32}
+  GameKey{code: U32}
   Ticks{count: Nat}
   JevProfile{delay: Nat, weights: List<&2,Numeric.Words>}
 type TickSnapshot is Data:
@@ -42,7 +42,7 @@ def tick_loop(fuel: Nat, worlds: List<&2,M.World>, ticks: List<&2,TickSnapshot>)
 
 def control_world(world: M.World, input: Input) -> TickTrace:
   match input:
-    case Key{code}: TickTrace{[H.key(world,code)],Nil{}}
+    case GameKey{code}: TickTrace{[H.key(world,code)],Nil{}}
     case Ticks{count}: tick_loop(count,[world],Nil{})
     case JevProfile{delay,weights}: TickTrace{[H.action(world,T.JevProfile{delay,weights})],Nil{}}
 
@@ -70,20 +70,20 @@ def inputs_applied(inputs: List<&2,Input>, trace: Trace) -> Trace:
 def faster_keys(fuel: Nat) -> List<&2,Input>:
   match fuel:
     case 0n: Nil{}
-    case 1n+k: Key{91} <> faster_keys(k)
+    case 1n+k: GameKey{91} <> faster_keys(k)
 
 def burst_keys(fuel: Nat) -> List<&2,Input>:
   match fuel:
     case 0n: Nil{}
-    case 1n+k: Key{110} <> burst_keys(k)
+    case 1n+k: GameKey{110} <> burst_keys(k)
 
 def original(+campaign: Nat) -> List<&2,Input>:
   List.append(&2,Input,burst_keys(Nat.add(1n,Nat.mod(campaign,4n))),
-    List.append(&2,Input,[Ticks{100n},Key{97},Ticks{Nat.add(10n,Nat.mod(campaign,5n))},Key{97}],
+    List.append(&2,Input,[Ticks{100n},GameKey{97},Ticks{Nat.add(10n,Nat.mod(campaign,5n))},GameKey{97}],
       List.append(&2,Input,faster_keys(12n),
         [Ticks{10n},JevProfile{3200n,[Numeric.Words{0n,0n},Numeric.Words{1071644672n,0n},
           Numeric.Words{1072693248n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n}]},
-         Ticks{480n},Key{32},Ticks{4n},Key{32},Ticks{200n}])))
+         Ticks{480n},GameKey{32},Ticks{4n},GameKey{32},Ticks{200n}])))
 
 def scenario(+campaign: Nat) -> Envelope:
   +inputs = original(campaign)

@@ -45,16 +45,16 @@ const config = {
 
 function originalInputs(seed) {
   return [
-    ...Array.from({ length: 1 + seed % 4 }, () => ({ $: "DefenseConsumerObserved.Key", code: 110 })),
-    { $: "DefenseConsumerObserved.Ticks", count: 100 }, { $: "DefenseConsumerObserved.Key", code: 97 },
-    { $: "DefenseConsumerObserved.Ticks", count: 10 + seed % 5 }, { $: "DefenseConsumerObserved.Key", code: 97 },
-    ...Array.from({ length: 12 }, () => ({ $: "DefenseConsumerObserved.Key", code: 91 })),
+    ...Array.from({ length: 1 + seed % 4 }, () => ({ $: "DefenseConsumerObserved.GameKey", code: 110 })),
+    { $: "DefenseConsumerObserved.Ticks", count: 100 }, { $: "DefenseConsumerObserved.GameKey", code: 97 },
+    { $: "DefenseConsumerObserved.Ticks", count: 10 + seed % 5 }, { $: "DefenseConsumerObserved.GameKey", code: 97 },
+    ...Array.from({ length: 12 }, () => ({ $: "DefenseConsumerObserved.GameKey", code: 91 })),
     { $: "DefenseConsumerObserved.Ticks", count: 10 },
     { $: "DefenseConsumerObserved.JevProfile", delay: 3200, weights: linked([
       words(0, 0), words(1071644672, 0), words(1072693248, 0), words(0, 0), words(0, 0), words(0, 0),
     ]) },
-    { $: "DefenseConsumerObserved.Ticks", count: 480 }, { $: "DefenseConsumerObserved.Key", code: 32 },
-    { $: "DefenseConsumerObserved.Ticks", count: 4 }, { $: "DefenseConsumerObserved.Key", code: 32 },
+    { $: "DefenseConsumerObserved.Ticks", count: 480 }, { $: "DefenseConsumerObserved.GameKey", code: 32 },
+    { $: "DefenseConsumerObserved.Ticks", count: 4 }, { $: "DefenseConsumerObserved.GameKey", code: 32 },
     { $: "DefenseConsumerObserved.Ticks", count: 200 },
   ];
 }
@@ -86,7 +86,7 @@ for (const envelope of envelopes) {
     compareNativeRuntime(one(beforeWorld.engine),run.runtimeSnapshot(),`campaign ${seed} checkpoint ${index} before`);
     const beforeEndpoint = endpoint(beforeWorld);
     assert.deepEqual(beforeEndpoint, callbackPublicBoundary(run.observe(), [], []).endpoint);
-    if (input.$ === "DefenseConsumerObserved.Key") {
+    if (input.$ === "DefenseConsumerObserved.GameKey") {
       if (input.code === 110) run.applyControl({ kind: "burst", agent: "agent-1", count: 1 });
       if (input.code === 97) { suspended = !suspended; run.applyControl({ kind: "suspendArrivals", agent: "agent-1", suspended }); }
       if (input.code === 91) { pace = Math.max(20, pace - 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
