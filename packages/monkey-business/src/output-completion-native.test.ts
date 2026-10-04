@@ -14,8 +14,10 @@ it("pins original output completion identity, exact expiry and atomic batch payl
   [0],
   [0],
   [5,1,7,9,1],
+  // Started at10 with lease10: exact deadline20 reports elapsed10;
+  // the later check21 reports elapsed11, without clamping to the lease.
   [5,2,7,9,10,10],
-  [5,2,7,9,10,10],
+  [5,2,7,9,11,10],
   [5,3,1,3,5,9,7,11],
   [0],
   [0],
