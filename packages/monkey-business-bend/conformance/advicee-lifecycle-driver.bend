@@ -132,7 +132,7 @@ def put_job_selected(equal: Bool, existing: Stored, tail: List<&2,Stored>, opera
 def put_job(jobs: List<&2,Stored>, +operation: Nat, +job: Job) -> List<&2,Stored>:
   match jobs:
     case Nil{}: [Stored{operation,job}]
-    case Stored{+id,existing} <> tail:
+    case Stored{+id,existing} <> +tail:
       put_job_selected(Nat.is_eq(id,operation),Stored{id,existing},tail,operation,job,
         put_job(tail,operation,job))
 
