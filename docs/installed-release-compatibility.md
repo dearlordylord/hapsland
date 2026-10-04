@@ -1,5 +1,43 @@
 # Installed release compatibility
 
+The current distribution contains Bun 1.3.14 standalone commands for CLI, parser,
+resident, and package doctor. The declared Linux/macOS arm64 build artifacts are
+separate from actual installed execution evidence. The historical Node records below
+do not validate the Bun distribution. Current validation runs and the installed
+hook-startup comparison are selected through the [testing matrix](testing-matrix.md).
+
+The [first standalone comparison](../evidence/package/hook-startup-comparison-01-linux-arm64.json)
+retains failed registrations caused by Bun's process-relative `hrtime` coordinate.
+The [corrected comparison](../evidence/package/hook-startup-comparison-02-linux-arm64.json)
+uses an explicit OS-monotonic clock adapter and retains all 54 successful registrations.
+On Linux arm64, fifteen round-robin registrations per client against one ready
+Bun resident observed median wall times of 506 ms for the original Node package,
+446 ms for the lighter Node package, and 521 ms for Bun. These samples establish
+no Bun startup improvement. Each variant also registered on all three separately
+started cold residents. This small uninstrumented sample has uncontrolled scheduling
+and OS file cache; it is not a user latency guarantee or an installed edit/advice gate.
+The lighter Node archive precedes further Effect CLI subpath cuts and the clock
+adapter in the Bun candidate; differences cannot be attributed solely to the engine.
+
+The [final import-cut comparison](../evidence/package/hook-startup-comparison-03-linux-arm64.json)
+uses the same [production TypeScript snapshot](../evidence/package/hook-startup-production-source-snapshot.json)
+for the optimized Node comparator and Bun candidate. The Node comparator exists
+only as an experimental archive assembled with the baseline Node packaging;
+there is no parallel installed Node distribution in the current product branch.
+All fifteen ready-resident registrations and all three cold-resident
+registrations per variant succeeded. Observed ready-resident medians were
+1044 ms (baseline Node), 627 ms (optimized Node), and 309 ms (Bun).
+The earlier and final runs have different uncontrolled scheduling/cache conditions;
+compare variants within a run, not absolute times across runs. These samples
+show an improvement for the measured Bun candidate, before subsequent IPC and
+installation fixes. They do not measure the final package bytes or establish
+100 ms startup, a population percentile, or installed review/advice compatibility.
+
+The standalone candidate currently packs both platform groups and four commands
+per platform: approximately 268 MB compressed and 737 MB unpacked. Each command
+includes Bun. These are candidate archive sizes, not reviewed release pins.
+
+
 Codex background and bounded finish delivery, and Claude synchronous edit delivery
 with bounded Stop fallback, are **not part of the pinned release support declaration below**. The
 [Advicing target contract](advicing-target-contract.md) states accepted behavior;

@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
-import { Effect, Option, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Schema from "effect/Schema";
 import type { SecretServiceResult } from "./secret-service.ts";
 
 export type SecretServiceOperation = "probe" | "get" | "set" | "delete";

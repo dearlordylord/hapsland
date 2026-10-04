@@ -1,14 +1,25 @@
+import type { CodexDirectEventOutput } from "../direct-event/output.ts";
+import { packageCommand } from "../runtime/package-runtime.ts";
 import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn, type ChildProcess } from "node:child_process";
 import * as Effect from "effect/Effect";
-import { Cause, Clock, Config, Context, Duration, Layer, Option, Redacted, Ref, Schedule, Schema } from "effect";
-import { connect } from "node:net";
+import * as Cause from "effect/Cause";
+import * as Clock from "effect/Clock";
+import * as Config from "effect/Config";
+import * as Context from "effect/Context";
+import * as Duration from "effect/Duration";
+import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
+import * as Ref from "effect/Ref";
+import * as Schedule from "effect/Schedule";
+import * as Schema from "effect/Schema";
+import { Socket } from "node:net";
 import { resolve } from "node:path";
-import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
-import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
+
 import { loadReviewSettings, type ReviewConfigError } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
 import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts";
@@ -49,7 +60,7 @@ const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* 
   }
   return yield* Effect.acquireUseRelease(
     Effect.try({
-      try: () => connect(paths.socket),
+      try: () => new Socket(),
       catch: () => new ResidentIpcError({ message: "resident IPC unavailable" }),
     }),
     (socket) =>
@@ -85,6 +96,14 @@ const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* 
         socket.once("close", () =>
           finish(Effect.fail(new ResidentIpcError({ message: "resident response closed before acknowledgement" }))),
         );
+        // Connect only after the callback owns every event. The acquisition
+        // can yield before this callback, so an already-connecting socket can
+        // emit its one-shot connect event before our frame writer is attached.
+        try {
+          socket.connect(paths.socket);
+        } catch {
+          finish(Effect.fail(new ResidentIpcError({ message: "resident IPC unavailable" })));
+        }
         return Effect.sync(() => {
           settled = true;
         });
@@ -152,9 +171,7 @@ const residentLauncherLayer = Layer.sync(ResidentLauncher, () => {
     now: monotonicMillis,
     spawn: Effect.fn("ResidentLauncher.spawn")(function* (paths: ResidentPaths) {
       if (children.has(paths.lock)) return;
-      const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
-      const source = fileURLToPath(new URL("./main.ts", import.meta.url));
-      const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
+      const command = packageCommand("resident");
       const diagnostic = `${paths.lock}.startup-error`;
       return yield* Effect.acquireUseRelease(
         Effect.try({
@@ -165,7 +182,7 @@ const residentLauncherLayer = Layer.sync(ResidentLauncher, () => {
           Effect.callback<void, ResidentIpcError>((resume) => {
             let child: ReturnType<typeof spawn>;
             try {
-              child = spawn(process.execPath, [main, paths.directory], {
+              child = spawn(command.executable, [...command.args, paths.directory], {
                 detached: true,
                 stdio: ["ignore", "ignore", descriptor],
                 env: process.env,

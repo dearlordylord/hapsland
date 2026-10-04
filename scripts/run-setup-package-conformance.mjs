@@ -1,9 +1,15 @@
+import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs";
+import { preparePackageInstall } from "./test-harness/package-install.mjs";
 import { spawn } from "node:child_process";
-import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const archiveArgumentIndex = process.argv.indexOf("--archive");
+const suppliedArchive = process.argv.find(argument => argument.startsWith("--archive="))?.slice("--archive=".length)
+  ?? (archiveArgumentIndex < 0 ? undefined : process.argv[archiveArgumentIndex + 1]);
+if (archiveArgumentIndex >= 0 && (!suppliedArchive || suppliedArchive.startsWith("--"))) throw new Error("--archive requires a local archive path");
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const run = (command, args, options = {}) => new Promise((resolveRun, rejectRun) => {
   const child = spawn(command, args, {
@@ -169,11 +175,16 @@ try {
   await mkdir(stateRoot, { recursive: true });
   await mkdir(publicHome, { recursive: true });
 
-  let result = await run("npm", ["pack", "--pack-destination", artifacts], {
+  let result;
+  if (suppliedArchive !== undefined) {
+    await copyFile(resolve(suppliedArchive), join(artifacts, "reviewed-local.tgz"));
+  } else {
+  result = await run("npm", ["pack", "--pack-destination", artifacts], {
     cwd: projectRoot,
     timeoutMs: 120_000,
   });
   expect(result.code === 0, `npm pack failed: ${result.stderr || result.stdout}`);
+  }
   const artifact = (await readdir(artifacts)).find((entry) => entry.endsWith(".tgz"));
   expect(artifact !== undefined, "npm pack did not produce a tarball");
   const archiveContents = await run("tar", ["-tzf", join(artifacts, artifact)], { cwd: temporary });
@@ -182,10 +193,16 @@ try {
     "packed archive contains a build-machine native helper");
   expect(archiveContents.stdout.includes(`package/native/prebuilt/${process.platform}-${process.arch}/credential-secret-service`),
     "packed archive lacks the selected platform's credential helper");
+  for (const profile of ["linux-arm64", "darwin-arm64"]) {
+    for (const role of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"]) {
+      expect(archiveContents.stdout.includes(`package/dist/bin/${profile}/${role}\n`), `packed archive lacks standalone ${profile}/${role}`);
+    }
+  }
   const packedManifest = await run("tar", ["-xOf", join(artifacts, artifact), "package/package.json"], { cwd: temporary });
   expect(packedManifest.code === 0 && !Object.hasOwn(JSON.parse(packedManifest.stdout).scripts ?? {}, "postinstall"),
     "packed archive still depends on a postinstall script");
-  result = await run("npm", ["install", "--ignore-scripts=true", "--prefer-offline", "--omit=dev", "--prefix", installation, join(artifacts, artifact)], {
+  const installer = await preparePackageInstall(installation, join(artifacts, artifact));
+  result = await run(installer.executable, installer.args, {
     cwd: temporary,
     timeoutMs: 120_000,
   });
@@ -207,7 +224,7 @@ try {
     codexExecutable,
   };
   const baseEnvironment = {
-    ...process.env,
+    ...standaloneEnvironment(join(temporary, "standalone-path")),
     HOME: publicHome,
     REVIEW_STATE_PATH: join(stateRoot, "consent"),
     REVIEW_USER_CONFIG_PATH: join(stateRoot, "user.jsonc"),
@@ -235,7 +252,7 @@ try {
   expect(Array.isArray(installationProposal?.changes) && installationProposal.changes.every((change) =>
     typeof change.file === "string" && typeof change.beforeDigest === "string" && typeof change.afterDigest === "string"),
   "setup omitted exact installation paths or before/after digests");
-  expect(typeof installationProposal?.ownedChanges?.runtime?.entrypoint === "string" &&
+  expect(Array.isArray(installationProposal?.ownedChanges?.runtime?.args) && installationProposal.ownedChanges.runtime.args.length === 0 &&
     typeof installationProposal?.ownedChanges?.runtime?.executable === "string" &&
     typeof installationProposal?.ownedChanges?.hook?.matcher === "string" &&
     typeof installationProposal?.ownedChanges?.hook?.handlers?.[0]?.command === "string" &&
@@ -341,7 +358,7 @@ try {
 
   const helper = join(temporary, "secret-helper.mjs");
   const vault = join(stateRoot, "vault");
-  await writeFile(helper, `#!/usr/bin/env node
+  await writeFile(helper, `#!${process.execPath}
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 const operation = process.argv[2]; const vault = process.env.TEST_SECRET_VAULT;
 if (operation === "get") process.stdout.write(existsSync(vault) ? '{"status":"present"}\\n' + readFileSync(vault) : '{"status":"missing"}\\n');
@@ -406,12 +423,14 @@ else if (operation === "probe") console.log('{"status":"available"}');
 
   await assertNoProviderCall(capturePath);
   const fixtureActive = JSON.parse(await readFile(join(publicHome, ".local", "share", "hapsland", "active.json"), "utf8"));
-  expect(fixtureActive.entrypoint.startsWith(installation + "/"), "guided setup activated a package outside the fixture HOME");
+  expect(fixtureActive.executable.startsWith(installation + "/"), "guided setup activated a package outside the fixture HOME");
+  expect(Array.isArray(fixtureActive.args) && fixtureActive.args.length === 0, "guided setup retained an interpreter entrypoint");
   expect(await readOptional(outsideActivePath) === outsideActiveBefore, "setup-package changed the caller's active-package record");
   process.stdout.write(`${JSON.stringify({
     version: 1,
     operation: "setup-package-conformance",
     status: "passed",
+    packageManager: installer.manager,
     providerCalls: 0,
     journeys: ["noninteractive-handoff", "interruption-resume", "idempotent-repeat", "offline-first-review-demo", "disabled-completion", "interactive-masked-terminal", "guided-pilot"],
   })}\n`);

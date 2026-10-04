@@ -1,7 +1,8 @@
+import type { profileFields } from "./client-command.ts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import { formatFailure, formatProposal, type invokeLifecycle, type profileFields } from "./client-lifecycle.ts";
+import { formatFailure, formatProposal, type invokeLifecycle } from "./client-lifecycle.ts";
 import type { SetupClient } from "./client-selection.ts";
 
 export type MaintenanceCommand = "repair" | "reinstall" | "uninstall";

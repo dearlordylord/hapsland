@@ -1,4 +1,5 @@
-import type { CodexDirectEventOutput } from "./pipeline.ts";
+import type { CodexDirectEventOutput } from "./output.ts";
+
 
 export const encodedCodexHostOutputBytes = (output: CodexDirectEventOutput): number =>
   Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8");

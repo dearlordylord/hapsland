@@ -1,5 +1,10 @@
 import { lstat, mkdir } from "node:fs/promises";
-import { Config, ConfigProvider, Context, Effect, Option, Schema } from "effect";
+import * as Config from "effect/Config";
+import * as ConfigProvider from "effect/ConfigProvider";
+import * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Schema from "effect/Schema";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 

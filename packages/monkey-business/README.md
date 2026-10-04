@@ -142,9 +142,9 @@ supply `liveAdvice:false`; joining an already-live advice record through
 late owner and reused-member outcomes. Checked cache evictions release the
 stored-result reservation through the common ledger. A fulfilled native result
 remains available to pending/claimed joiners until checked ownership release;
-unavailable owner results terminate joined work as well. Bounded two-agent timing
-tests cover suspension draining work/dispatch/requests/reuse claims and exact
-replay, including the default 1,000-frame retention. Explicit identity facts
+unavailable owner results terminate joined work as well. The two-agent late-join
+regression covers suspension draining work/dispatch/requests/reuse claims,
+resource accounting, and exact replay with the default 1,000-frame retention. Explicit identity facts
 are assumed native observations, not a validation of real source equivalence.
 
 `quietWindowMs` enables inactivity ticks and checked round retirement after work

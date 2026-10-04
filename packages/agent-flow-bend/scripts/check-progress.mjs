@@ -72,8 +72,10 @@ ${selected.map(({ claim, hypotheses }, index) =>
   ${typeof hypothesis === "string" ? "{==}" : hypothesis.witness}
 `).join("\n")}\ndef instance_${index}() -> ${claim}:\n  {==}\n`).join("\n")}`;
 const check = (file, verdict = false) => {
-  const result = spawnSync("bend", [file, verdict ? "--verdict" : "--check-only"], { encoding: "utf8", timeout: 5000 });
-  assert.notEqual(result.error?.code, "ETIMEDOUT", `Bend checker exceeded 5 seconds: ${file}`);
+  // Kernel checking can approach five seconds on a busy shared runner. This is
+  // a runaway-process guard, independent of product deadlines and proof validity.
+  const result = spawnSync("bend", [file, verdict ? "--verdict" : "--check-only"], { encoding: "utf8", timeout: 15_000 });
+  assert.notEqual(result.error?.code, "ETIMEDOUT", `Bend checker exceeded 15 seconds: ${file}`);
   return { ok: result.status === 0 && result.stdout.includes("ALL PROOFS CHECK"), output: result.stdout + result.stderr };
 };
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-progress-"));

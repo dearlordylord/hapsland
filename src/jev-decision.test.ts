@@ -6,7 +6,8 @@ import * as DecisionModel from "effect/ai/DecisionModel";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe";
-import { decide, probability } from "./jev-decision.ts";
+import { decide } from "./jev-decision.ts";
+import { probability } from "./probability.ts";
 
 describe("Jev Decision adapter", () => {
   it.effect("renders structured Noul wording and batches typed answers", () =>

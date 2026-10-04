@@ -32,7 +32,7 @@ const seedOwnedPlugin = (home: string) => {
   writeFileSync(join(home, ".realtime-review-tool", "opencode-installation-v1.json"), JSON.stringify({
     version: 1, adapter: "opencode", home,
     pluginDigest: createHash("sha256").update(plugin).digest("hex"),
-    runtime: process.execPath, entrypoint: process.env.REVIEW_INSTALL_ENTRYPOINT,
+    executable: process.execPath, args: [process.env.REVIEW_INSTALL_ENTRYPOINT],
   }));
 };
 

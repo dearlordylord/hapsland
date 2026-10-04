@@ -3,7 +3,7 @@
  * rationale and fixture runs are retained in the private Hapsland research archive.
  * Changes here affect the bundled production Noul pack and need semantic evaluation.
  */
-import { probability } from "./jev-decision.ts";
+import { probability } from "./probability.ts";
 
 export type ClassifierState = {
   artifact: {

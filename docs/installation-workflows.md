@@ -20,9 +20,8 @@ hapsland setup
 ```
 
 The short command uses npm's configured global prefix and assumes its `bin`
-directory is on PATH. npm selects the stable `latest` tag and includes optional
-dependencies by default. Keep those dependencies enabled: they supply Hapsland's
-exact Node runtime. `--ignore-scripts` skips dependency installation scripts;
+directory is on PATH. npm selects the stable `latest` tag. Hapsland includes
+Bun 1.3.14 in its standalone executables. `--ignore-scripts` skips dependency installation scripts;
 the package carries the required prebuilt assets.
 
 Run setup from the Git repository you want reviewed. Select Claude Code, Codex CLI, and/or Pi with arrows and Space, then press Enter. Existing valid registrations are labeled `installed` and checked by default; unchecking a client leaves its hooks intact. Each selected client has its own change preview and confirmation. Escape cancels without writing registrations.
@@ -48,7 +47,7 @@ hapsland doctor claude       # One client
 
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) , [Codex guide](codex-installation.md), and [Pi guide](pi-installation.md) for automation, ownership, credentials, and host-specific limits. Saved login uses the native credential store; hooks do not prompt.
 
-Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Current Claude/Codex adapter profiles are Claude 2.1.218 and Codex 0.155.1/0.156.0, with Node 24.20.0 on Linux/macOS arm64. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
+Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Current Claude/Codex adapter versions are Claude 2.1.218 and Codex 0.155.1/0.156.0. Hapsland commands now contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
 
 ### User-owned prefix alternative
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { Clock, Effect } from "effect";
+import * as Clock from "effect/Clock";
+import * as Effect from "effect/Effect";
 import { adaptPiDirectEvent, adaptPiHookIdentity } from "../direct-event/pi-adapter.ts";
 import { hookProcessStartedAt } from "../resident/hook-clock.ts";
 import { resolveResidentPaths, type ResidentPaths } from "../resident/paths.ts";

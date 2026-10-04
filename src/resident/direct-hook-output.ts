@@ -1,4 +1,8 @@
-import { Config, Context, Effect, Layer, Option } from "effect";
+import * as Config from "effect/Config";
+import * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import { recordActivity } from "../activity/status.ts";
 import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 import {

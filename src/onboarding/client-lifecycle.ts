@@ -1,3 +1,4 @@
+import { currentCommand, type RuntimeCommand } from "../runtime/package-runtime.ts";
 import * as Effect from "effect/Effect";
 import { execFileClosedStdin, spawnInherited } from "./host-process.ts";
 import * as Schema from "effect/Schema";
@@ -10,31 +11,8 @@ import { hasClaudeRegistration } from "./claude-installation.ts";
 import { hasCodexRegistration } from "./codex-installation.ts";
 import { hasPiRegistration } from "./pi-installation.ts";
 import type { SetupClient } from "./client-selection.ts";
+import { clients, profileFields, type ClientCommand } from "./client-command.ts";
 
-export const clientCommands = ["setup", "update", "doctor", "repair", "reinstall", "uninstall"] as const;
-export type ClientCommand = (typeof clientCommands)[number];
-export const clients: ReadonlyArray<SetupClient> = ["claude", "codex", "pi"];
-const piProfile = (home: string | undefined, executable: string | undefined) => ({
-  host: "pi" as const,
-  ...(home === undefined ? {} : { piHome: home }),
-  ...(executable === undefined ? {} : { piExecutable: executable }),
-});
-export const profileFields = (host: SetupClient, flags: ReadonlyMap<string, string>) => {
-  const home = flags.get(`--${host}-home`);
-  const executable = flags.get(`--${host}-executable`);
-  if (host === "pi") return piProfile(home, executable);
-  return host === "claude"
-    ? {
-        host,
-        ...(home === undefined ? {} : { claudeHome: home }),
-        ...(executable === undefined ? {} : { claudeExecutable: executable }),
-      }
-    : {
-        host,
-        ...(home === undefined ? {} : { codexHome: home }),
-        ...(executable === undefined ? {} : { codexExecutable: executable }),
-      };
-};
 const hasRegistration = (fields: ReturnType<typeof profileFields>): boolean => {
   switch (fields.host) {
     case "pi": return hasPiRegistration(fields);
@@ -60,13 +38,12 @@ export const registeredClients = (
 const ActivePackage = Schema.Struct({
   version: Schema.Literal(1),
   executable: Schema.NonEmptyString,
-  runtime: Schema.NonEmptyString,
-  entrypoint: Schema.NonEmptyString,
+  args: Schema.Array(Schema.String),
 });
 const PackageIdentity = Schema.Struct({
   name: Schema.Literal("@hapsland/hapsland"),
-  runtime: Schema.NonEmptyString,
-  entrypoint: Schema.NonEmptyString,
+  executable: Schema.NonEmptyString,
+  args: Schema.Array(Schema.String),
 });
 const activePath = () => join(homedir(), ".local", "share", "hapsland", "active.json");
 class PackageLifecycleError extends Schema.TaggedError<PackageLifecycleError>()("PackageLifecycleError", {
@@ -75,11 +52,11 @@ class PackageLifecycleError extends Schema.TaggedError<PackageLifecycleError>()(
 const nativePackageObservation = Effect.fn("PackageLifecycle.observe")(<A>(message: string, read: () => A) =>
   Effect.try({ try: read, catch: () => new PackageLifecycleError({ message }) }),
 );
-export const activateCurrentPackage = Effect.fn("PackageLifecycle.activateCurrent")((entrypoint: string) =>
+export const activateCurrentPackage = Effect.fn("PackageLifecycle.activateCurrent")((command: RuntimeCommand) =>
   nativePackageObservation("Activating the current public CLI failed. Keep the package and retry setup.", () =>
     atomicInstallationFile(
       activePath(),
-      JSON.stringify({ version: 1, executable: entrypoint, runtime: process.execPath, entrypoint }) + "\n",
+      JSON.stringify({ version: 1, ...command }) + "\n",
     ),
   ),
 );
@@ -101,7 +78,7 @@ export const activatePackage = Effect.fn("PackageLifecycle.activate")(function* 
     Effect.flatMap(Schema.decodeUnknownEffect(PackageIdentity)),
     Effect.mapError(() => new PackageLifecycleError({ message })),
   );
-  if (!isAbsolute(identity.runtime) || !isAbsolute(identity.entrypoint)) {
+  if (!isAbsolute(identity.executable)) {
     return yield* Effect.fail(
       new PackageLifecycleError({ message: "Target package identity paths must be absolute." }),
     );
@@ -111,9 +88,8 @@ export const activatePackage = Effect.fn("PackageLifecycle.activate")(function* 
       activePath(),
       JSON.stringify({
         version: 1,
-        executable: absolute,
-        runtime: identity.runtime,
-        entrypoint: identity.entrypoint,
+        executable: identity.executable,
+        args: identity.args,
       }) + "\n",
     ),
   );
@@ -146,10 +122,11 @@ export const dispatchSelectedPackage = Effect.fn("PackageLifecycle.dispatchSelec
 const MissingPackageFile = Schema.Struct({ code: Schema.Literal("ENOENT") });
 const missingPackageFile = (cause: unknown): boolean =>
   Schema.decodeUnknownOption(MissingPackageFile)(cause)._tag === "Some";
-const processEntrypoint = (): string => process.argv[1] ?? "";
-const activePackageMatchesProcess = (active: typeof ActivePackage.Type): boolean =>
-  realpathSync(processEntrypoint()) === realpathSync(active.entrypoint) &&
-  realpathSync(process.execPath) === realpathSync(active.runtime);
+const activePackageMatchesProcess = (active: typeof ActivePackage.Type): boolean => {
+  const command = currentCommand();
+  return realpathSync(command.executable) === realpathSync(active.executable) &&
+    JSON.stringify(command.args) === JSON.stringify(active.args);
+};
 const unavailableActivePackage = (args: ReadonlyArray<string>): undefined => {
   if (args[0] === "reinstall") {
     process.stderr.write("Active package is unavailable; reinstalling from the package in PATH.\n");
@@ -167,7 +144,7 @@ const observeActivePackage = (active: typeof ActivePackage.Type, args: ReadonlyA
 const readActivePackage = (args: ReadonlyArray<string>): typeof ActivePackage.Type | undefined => {
   try {
     const active = Schema.decodeUnknownSync(ActivePackage)(JSON.parse(readFileSync(activePath(), "utf8")));
-    if (![active.executable, active.runtime, active.entrypoint].every(isAbsolute))
+    if (!isAbsolute(active.executable))
       throw new Error("active package paths must be absolute");
     return active;
   } catch (cause) {
@@ -200,11 +177,11 @@ export const dispatchActivePackage = Effect.fn("PackageLifecycle.dispatchActive"
   });
   if (active === undefined) return undefined;
   const current = yield* nativePackageObservation(
-    `Active package is unavailable: ${active.entrypoint}. Run hapsland reinstall to restore hooks from the package in PATH.`,
+    `Active package is unavailable: ${active.executable}. Run hapsland reinstall to restore hooks from the package in PATH.`,
     () => observeActivePackage(active, args),
   );
   if (current !== false) return undefined;
-  const result = yield* spawnInherited(active.runtime, [active.entrypoint, ...args], dispatchEnvironment());
+  const result = yield* spawnInherited(active.executable, [...active.args, ...args], dispatchEnvironment());
   if (!result.started)
     return yield* Effect.fail(
       new PackageLifecycleError({

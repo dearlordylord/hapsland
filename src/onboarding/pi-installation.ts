@@ -1,3 +1,4 @@
+import { currentCommand, commandEntrypoint, commandTokens, packageRootFromEntrypoint, versionProbeArguments, observedRuntimeVersion, expectedRuntimeVersion, commandFromEntrypoint } from "../runtime/package-runtime.ts";
 import { Config, Effect, Schema } from "effect";
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
@@ -16,7 +17,7 @@ export interface PiInstallationRequest {
 }
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const Owned = Schema.Struct({ version: Schema.Literal(1), adapter: Schema.Literal("pi"), home: Schema.String,
-  extensionDigest: Schema.String, runtime: Schema.String, entrypoint: Schema.String });
+  extensionDigest: Schema.String, executable: Schema.String, args: Schema.Array(Schema.String) });
 const read = (path: string): string | undefined => {
   try {
     if (!lstatSync(path).isFile()) throw new Error(`Not a regular owned file: ${path}`);
@@ -31,27 +32,27 @@ const failure = (operation: string, cause: unknown) => ({ version: 1 as const, o
   status: "conflict" as const, error: { message: errorMessage(cause) } });
 const runtimeVersion = (result: { succeeded: boolean; stdout: string }): string =>
   result.succeeded ? result.stdout.trim() : "unavailable";
-const compatibilityFor = (host: string, runtime: string, extension: string) => {
+const compatibilityFor = (host: string, runtime: string, extension: string, entrypoint: string) => {
   const platform = `${process.platform}-${process.arch}`;
   const ready = existsSync(extension);
   return {
-    supported: [platform === "linux-arm64", host === "1.0.0", runtime === "v24.20.0", ready].every(Boolean),
+    supported: [platform === "linux-arm64", host === "1.0.0", runtime === expectedRuntimeVersion(entrypoint), ready].every(Boolean),
     platform: { observed: platform, required: "linux-arm64" },
     host: { observed: host, required: "1.0.0" },
-    runtime: { observed: runtime, required: "v24.20.0" },
+    runtime: { observed: runtime, required: expectedRuntimeVersion(entrypoint) },
     extension: { path: extension, ready },
   };
 };
 const configured = Effect.fn("PiInstallation.configured")(function* (request: PiInstallationRequest) {
   const home = resolve(request.piHome ?? (yield* Config.NonEmptyString("PI_CODING_AGENT_DIR").pipe(
     Config.withDefault(join(homedir(), ".pi", "agent")))));
-  const runtime = resolve(yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(process.execPath)));
-  const entrypoint = resolve(yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(Config.withDefault(process.argv[1] ?? "dist/cli.js")));
-  const extension = join(dirname(entrypoint), "pi", "extension.js");
+  const runtime = resolve(yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(currentCommand().executable)));
+  const entrypoint = resolve(yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(Config.withDefault(commandEntrypoint(currentCommand()))));
+  const extension = commandFromEntrypoint(runtime, entrypoint).args.length > 0 ? join(dirname(entrypoint), "pi", "extension.js") : join(packageRootFromEntrypoint(entrypoint), "dist", "pi", "extension.js");
   const options = { timeout: 2_000, maxBuffer: 1_048_576, env: { ...process.env, PI_CODING_AGENT_DIR: home } };
   const host = yield* execFileClosedStdin(request.piExecutable ?? "pi", ["--version"], options);
-  const node = yield* execFileClosedStdin(runtime, ["-e", "process.stdout.write(process.version)"], options);
-  const compatibility = compatibilityFor(runtimeVersion(host), runtimeVersion(node), extension);
+  const runtimeRun = yield* execFileClosedStdin(runtime, versionProbeArguments(runtime, entrypoint), options);
+  const compatibility = compatibilityFor(runtimeVersion(host), observedRuntimeVersion(runtimeVersion(runtimeRun)), extension, entrypoint);
   return { home, runtime, entrypoint, extension, compatibility,
     paths: { extension: join(home, "extensions", "hapsland.ts"), ownership: join(home, ".realtime-review-tool", "pi-installation-v1.json"), journal: join(home, ".realtime-review-tool", "pi-installation-journal-v1.json") } };
 });
@@ -85,10 +86,10 @@ const checkOwner = (owner: typeof Owned.Type | undefined, before: string | undef
   throw new Error("Pi extension path is occupied or locally modified; preserve it before retrying");
 };
 const ownedContent = (input: Input, operation: Operation): string | undefined => operation === "uninstall" ? undefined :
-  `// Hapsland-owned Pi extension. Restart Pi after lifecycle changes.\nimport { createPiExtension } from ${JSON.stringify(pathToFileURL(input.extension).href)};\nexport default createPiExtension({ command: ${JSON.stringify([input.runtime, input.entrypoint])} });\n`;
+  `// Hapsland-owned Pi extension. Restart Pi after lifecycle changes.\nimport { createPiExtension } from ${JSON.stringify(pathToFileURL(input.extension).href)};\nexport default createPiExtension({ command: ${JSON.stringify(commandTokens(input.runtime, input.entrypoint))} });\n`;
 const ownedRecord = (input: Input, content: string | undefined): string | undefined => content === undefined ? undefined :
   JSON.stringify({ version: 1, adapter: "pi", home: input.home,
-    extensionDigest: hash(content), runtime: input.runtime, entrypoint: input.entrypoint }) + "\n";
+    extensionDigest: hash(content), ...commandFromEntrypoint(input.runtime, input.entrypoint) }) + "\n";
 const plan = (input: Input, operation: Operation) => {
   const journalContent = read(input.paths.journal);
   const journal = decodeFile(Journal, journalContent);
@@ -109,7 +110,7 @@ const plan = (input: Input, operation: Operation) => {
 const preview = (input: Input, operation: "install" | "update" | "uninstall") => {
   if (operation !== "uninstall" && !input.compatibility.supported) return { version: 1 as const, operation,
     status: "unsupported" as const, host: { adapter: "pi", home: input.home, compatibility: input.compatibility },
-    error: { message: "Select Pi 1.0.0 and the packaged Node 24.20.0 runtime with its Pi extension." } };
+    error: { message: "Select Pi 1.0.0 and the packaged Bun 1.3.14 executable with its Pi extension." } };
   const next = plan(input, operation);
   return { version: 1 as const, operation, status: "preview" as const,
     installed: next.before !== undefined && next.beforeRecord !== undefined, alreadyCurrent: next.changes.length === 0,

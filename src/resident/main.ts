@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { machineClockLayer } from "../runtime/machine-clock.ts";
 import * as Config from "effect/Config";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
@@ -58,6 +59,7 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
 
 await Effect.runPromise(Effect.scoped(run().pipe(Effect.provide(ownershipControlsLayer), Effect.raceFirst(stopped))).pipe(
   Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
+  Effect.provide(machineClockLayer),
   Effect.catch((error) => Effect.sync(() => {
     // Launcher diagnostics contain operation labels, never captured source,
     // provider responses or credentials from an infrastructure error.

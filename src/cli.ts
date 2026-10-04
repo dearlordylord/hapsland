@@ -1,15 +1,20 @@
 #!/usr/bin/env node
+import { profileFields } from "./onboarding/client-command.ts";
+import type { DoctorCheck } from "./onboarding/doctor.ts";
+import type { ClientChoice, SetupClient } from "./onboarding/client-selection.ts";
+import type { ReleaseSelection } from "./onboarding/distribution.ts";
+import type { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
+import type { formatActivityHuman } from "./activity/status.ts";
+import type { inspectPiInstallation } from "./onboarding/pi-installation.ts";
+import type { inspectClaudeInstallation } from "./onboarding/claude-installation.ts";
+import type { inspectCodexInstallation } from "./onboarding/codex-installation.ts";
 import { runPiHook } from "./pi/transport.ts";
-import { previewPiInstallation, installPiIntegration, previewPiUpdate, updatePiIntegration, uninstallPiIntegration, diagnosePiIntegration, inspectPiInstallation, hasPiRegistration } from "./onboarding/pi-installation.ts";
 import { formatReviewFeedback } from "./feedback/message.ts";
-import { credentialDiagnostic } from "./onboarding/credential-diagnostics.ts";
-import { maintainClients } from "./onboarding/maintenance.ts";
-import { isHookInvocation, parseInvocation, type ClientArguments } from "./cli-command.ts";
+import { parseInvocation, type ClientArguments } from "./cli-command.ts";
+import { isHookInvocation } from "./runtime/hook-invocation.ts";
 import { hookMonotonicMillis, monotonicNow } from "./resident/hook-clock.ts";
-import { readMaskedCredential } from "./credentials/masked-input.ts";
 import * as Schedule from "effect/Schedule";
 import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
-import { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
 import * as Config from "effect/Config";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
@@ -21,14 +26,12 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { execFileClosedStdin } from "./onboarding/host-process.ts";
-import { askConfirmation } from "./onboarding/confirmation.ts";
-import { fileURLToPath } from "node:url";
+import { currentCommand, runtimeVersion } from "./runtime/package-runtime.ts";
+import { machineClockLayer } from "./runtime/machine-clock.ts";
 import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts";
 import { selectFile } from "./configuration/decision.ts";
 import { DEFAULT_CREDENTIAL_ENV_VAR, loadReviewSettings, type ReviewSettings } from "./runtime/review-config.ts";
-import { explainPath, formatPathExplanation } from "./explanation/index.ts";
 import type { ControlledDecisionModelOptions } from "./test-support/controlled-decision-model.ts";
-import { runEvaluationCommand } from "./evaluation/command.ts";
 import {
   adaptCodexDirectEvent,
   adaptCodexReply,
@@ -57,58 +60,12 @@ import {
   type ComposedHookHost,
 } from "./resident/composed-hook.ts";
 import {
-  installCodexIntegration,
-  inspectCodexInstallation,
-  hasCodexRegistration,
-  previewCodexInstallation,
-  previewCodexUpdate,
-  uninstallCodexIntegration,
-  updateCodexIntegration,
-} from "./onboarding/codex-installation.ts";
-import {
-  previewClaudeInstallation,
-  inspectClaudeInstallation,
-  hasClaudeRegistration,
-  installClaudeIntegration,
-  previewClaudeUpdate,
-  updateClaudeIntegration,
-  uninstallClaudeIntegration,
-  diagnoseClaudeIntegration,
-} from "./onboarding/claude-installation.ts";
-import {
-  previewOpenCodeInstallation,
-  installOpenCodeIntegration,
-  previewOpenCodeUpdate,
-  updateOpenCodeIntegration,
-  uninstallOpenCodeIntegration,
-  diagnoseOpenCodeIntegration,
-} from "./onboarding/opencode-installation.ts";
-import {
   logoutCredential,
-  readCredentialState,
   resolveCredential,
   runSecretService,
   saveCredential,
 } from "./credentials/secret-service.ts";
-import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
-import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
-import { selectSetupClients, type ClientChoice, type SetupClient } from "./onboarding/client-selection.ts";
-import { stageRelease, type ReleaseSelection } from "./onboarding/distribution.ts";
-import {
-  activateCurrentPackage,
-  activatePackage,
-  dispatchActivePackage,
-  dispatchSelectedPackage,
-  formatCompatibility,
-  formatDoctor,
-  formatFailure,
-  formatProposal,
-  invokeLifecycle,
-  profileFields,
-  registeredClients,
-} from "./onboarding/client-lifecycle.ts";
-import { runSetup } from "./onboarding/setup.ts";
-import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
+import { readActivity, recordActivity } from "./activity/status.ts";
 import { recordDemoTrace } from "./onboarding/demo-trace.ts";
 
 const statusExitCodes = new Map<string, number>([
@@ -625,8 +582,9 @@ const statusConfiguration = Effect.fn("Cli.statusConfiguration")(function* (
   );
   return configuration._tag === "Success" ? configuration.success : undefined;
 });
-const humanStatusReceipt = (operation: StatusOperation, output: ReturnType<typeof statusOutput>) =>
-  `readiness: ${output.readiness.status} (configuration=${output.readiness.configuration}, files=${output.readiness.fileSelection}, credentials=${output.readiness.credentials.present ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", output.activity)}\n${formatAnalyticsHuman(output.analytics)}`;
+const humanStatusReceipt = (operation: StatusOperation, output: ReturnType<typeof statusOutput>,
+  formatActivity: typeof formatActivityHuman, formatAnalytics: typeof formatAnalyticsHuman) =>
+  `readiness: ${output.readiness.status} (configuration=${output.readiness.configuration}, files=${output.readiness.fileSelection}, credentials=${output.readiness.credentials.present ? "present" : "absent"})\n${formatActivity(operation.sessionId ?? "<session id required>", output.activity)}\n${formatAnalytics(output.analytics)}`;
 const statusOutput = (
   operation: StatusOperation,
   root: string,
@@ -650,6 +608,8 @@ const runStatusOperation = Effect.fn("Cli.runStatusOperation")(function* (
   userConfigPath: string | undefined,
 ) {
   const settings = yield* statusConfiguration(root, userConfigPath);
+  const { readAnalytics, formatAnalyticsHuman } = yield* Effect.promise(() => import("./activity/analytics.ts"));
+  const { formatActivityHuman } = yield* Effect.promise(() => import("./activity/status.ts"));
   const credential = yield* statusCredential(settings);
   const readiness = statusReadiness(settings, credential);
   const resident = yield* inspectResidentEffect();
@@ -666,7 +626,7 @@ const runStatusOperation = Effect.fn("Cli.runStatusOperation")(function* (
     sessionId: operation.sessionId ?? "",
   });
   const output = statusOutput(operation, root, readiness, residentActivity, analytics);
-  return operation.format === "human" ? humanStatusReceipt(operation, output) : output;
+  return operation.format === "human" ? humanStatusReceipt(operation, output, formatActivityHuman, formatAnalyticsHuman) : output;
 });
 
 const runOperation = Effect.fn("Cli.runOperation")(function* (
@@ -703,6 +663,7 @@ const runOperation = Effect.fn("Cli.runOperation")(function* (
       };
     }
     case "explain": {
+      const { explainPath, formatPathExplanation } = yield* Effect.promise(() => import("./explanation/index.ts"));
       const relativePath = rootRelativePath(root, cwd, operation.path);
       const policy = settings.configuration.policy;
       const explanation = explainPath(policy, relativePath ?? operation.path);
@@ -731,6 +692,7 @@ const doctorRepositoryChecks = Effect.fn("Cli.doctorRepositoryChecks")(function*
   userConfigPath: string | undefined,
 ) {
   const rootResult = yield* discoverWorkingTreeRoot(cwd).pipe(Effect.result);
+  const { credentialDiagnostic } = yield* Effect.promise(() => import("./onboarding/credential-diagnostics.ts"));
   if (rootResult._tag === "Failure") {
     return {
       repository: {
@@ -814,17 +776,26 @@ const claudeInstallationRequest = (operation: Extract<InstallationOperation, { h
   };
 };
 
-const claudeInstallationHandlers = {
-  doctor: diagnoseClaudeIntegration,
-  "install-preview": previewClaudeInstallation,
-  install: installClaudeIntegration,
-  "update-preview": previewClaudeUpdate,
-  update: updateClaudeIntegration,
-  uninstall: uninstallClaudeIntegration,
-};
 const dispatchClaudeInstallation = Effect.fn("Cli.dispatchClaudeInstallation")(function* (
   operation: Extract<InstallationOperation, { host: "claude" }>,
 ) {
+  const {
+    diagnoseClaudeIntegration,
+    previewClaudeInstallation,
+    installClaudeIntegration,
+    previewClaudeUpdate,
+    updateClaudeIntegration,
+    uninstallClaudeIntegration,
+  } = yield* Effect.promise(() => import("./onboarding/claude-installation.ts"));
+  const claudeInstallationHandlers = {
+    doctor: diagnoseClaudeIntegration,
+    "install-preview": previewClaudeInstallation,
+    install: installClaudeIntegration,
+    "update-preview": previewClaudeUpdate,
+    update: updateClaudeIntegration,
+    uninstall: uninstallClaudeIntegration,
+  };
+
   return yield* claudeInstallationHandlers[operation.operation](claudeInstallationRequest(operation));
 });
 
@@ -838,19 +809,28 @@ const opencodeInstallationRequest = (operation: Extract<InstallationOperation, {
   };
 };
 
-const opencodeInstallationHandlers = {
-  doctor: diagnoseOpenCodeIntegration,
-  "install-preview": (request: ReturnType<typeof opencodeInstallationRequest>) =>
-    Effect.succeed(previewOpenCodeInstallation(request)),
-  install: installOpenCodeIntegration,
-  "update-preview": (request: ReturnType<typeof opencodeInstallationRequest>) =>
-    Effect.succeed(previewOpenCodeUpdate(request)),
-  update: updateOpenCodeIntegration,
-  uninstall: uninstallOpenCodeIntegration,
-};
 const dispatchOpencodeInstallation = Effect.fn("Cli.dispatchOpencodeInstallation")(function* (
   operation: Extract<InstallationOperation, { host: "opencode" }>,
 ) {
+  const {
+    diagnoseOpenCodeIntegration,
+    previewOpenCodeInstallation,
+    installOpenCodeIntegration,
+    previewOpenCodeUpdate,
+    updateOpenCodeIntegration,
+    uninstallOpenCodeIntegration,
+  } = yield* Effect.promise(() => import("./onboarding/opencode-installation.ts"));
+  const opencodeInstallationHandlers = {
+    doctor: diagnoseOpenCodeIntegration,
+    "install-preview": (request: ReturnType<typeof opencodeInstallationRequest>) =>
+      Effect.succeed(previewOpenCodeInstallation(request)),
+    install: installOpenCodeIntegration,
+    "update-preview": (request: ReturnType<typeof opencodeInstallationRequest>) =>
+      Effect.succeed(previewOpenCodeUpdate(request)),
+    update: updateOpenCodeIntegration,
+    uninstall: uninstallOpenCodeIntegration,
+  };
+
   return yield* opencodeInstallationHandlers[operation.operation](opencodeInstallationRequest(operation));
 });
 
@@ -871,8 +851,16 @@ const dispatchCodexInstallation = Effect.fn("Cli.dispatchCodexInstallation")(fun
   userConfigPath: string | undefined,
 ) {
   const request = codexInstallationRequest(operation);
+  const {
+    previewCodexInstallation,
+    installCodexIntegration,
+    previewCodexUpdate,
+    updateCodexIntegration,
+    uninstallCodexIntegration,
+  } = yield* Effect.promise(() => import("./onboarding/codex-installation.ts"));
   switch (operation.operation) {
     case "doctor": {
+      const { diagnoseInstalledIntegration } = yield* Effect.promise(() => import("./onboarding/doctor.ts"));
       const repositoryResult = yield* doctorRepositoryChecks(operation.cwd, userConfigPath);
       return yield* diagnoseInstalledIntegration({
         installation: request,
@@ -896,15 +884,29 @@ const dispatchCodexInstallation = Effect.fn("Cli.dispatchCodexInstallation")(fun
 const piInstallationDoctor = Effect.fn("Cli.piInstallationDoctor")(function* (
   request: Extract<InstallationOperation, { host: "pi" }>, cwd: string, userConfigPath: string | undefined,
 ) {
+  const { diagnosePiIntegration } = yield* Effect.promise(() => import("./onboarding/pi-installation.ts"));
   const diagnosis = yield* diagnosePiIntegration(request);
   const repository = yield* doctorRepositoryChecks(cwd, userConfigPath);
   return { ...diagnosis, checks: [...diagnosis.checks.filter(check => check.stage !== "credential"), repository.repository, repository.credential] };
 });
-const piInstallationHandlers = { "install-preview": previewPiInstallation, install: installPiIntegration,
-  "update-preview": previewPiUpdate, update: updatePiIntegration, uninstall: uninstallPiIntegration };
 const dispatchPiInstallation = Effect.fn("Cli.dispatchPiInstallation")(function* (
   operation: Extract<InstallationOperation, { host: "pi" }>, userConfigPath: string | undefined,
 ) {
+  const {
+    previewPiInstallation,
+    installPiIntegration,
+    previewPiUpdate,
+    updatePiIntegration,
+    uninstallPiIntegration,
+  } = yield* Effect.promise(() => import("./onboarding/pi-installation.ts"));
+  const piInstallationHandlers = {
+    "install-preview": previewPiInstallation,
+    install: installPiIntegration,
+    "update-preview": previewPiUpdate,
+    update: updatePiIntegration,
+    uninstall: uninstallPiIntegration,
+  };
+
   const request = { ...operation, ...installationDigest(operation), ...installationReinstall(operation) };
   if (operation.operation === "doctor") return yield* piInstallationDoctor(request, operation.cwd, userConfigPath);
   return yield* piInstallationHandlers[operation.operation](request);
@@ -953,6 +955,7 @@ const runComposedInput = Effect.fn("Cli.runComposedInput")(function* (
 });
 
 const runJsonEvaluation = Effect.fn("Cli.runJsonEvaluation")(function* (input: string) {
+  const { runEvaluationCommand } = yield* Effect.promise(() => import("./evaluation/command.ts"));
   const evaluationInput = yield* decodeJson(input);
   if (!evaluationFlagMatches(evaluationInput)) {
     return {
@@ -978,6 +981,8 @@ const runJsonSetup = Effect.fn("Cli.runJsonSetup")(function* (
   userConfigPath: string | undefined,
 ) {
   const operation: SetupOperation = yield* decodeSetupOperation(input);
+  const { runSetup } = yield* Effect.promise(() => import("./onboarding/setup.ts"));
+  const { readMaskedCredential } = yield* Effect.promise(() => import("./credentials/masked-input.ts"));
   return yield* runSetup(operation, {
     statePath,
     ...(userConfigPath === undefined ? {} : { userConfigPath }),
@@ -986,6 +991,7 @@ const runJsonSetup = Effect.fn("Cli.runJsonSetup")(function* (
 });
 
 const runJsonDemo = Effect.fn("Cli.runJsonDemo")(function* (input: string) {
+  const { runFirstReviewDemo } = yield* Effect.promise(() => import("./onboarding/first-review-demo.ts"));
   const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
   const demoStatePath = yield* Config.NonEmptyString("REVIEW_DEMO_STATE_PATH").pipe(
     Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "demos")),
@@ -1156,6 +1162,7 @@ const loginProbeAction = (status: string): string => {
       : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry";
 };
 const loginCredential = Effect.fn("Cli.loginCredential")(function* () {
+  const { readMaskedCredential } = yield* Effect.promise(() => import("./credentials/masked-input.ts"));
   const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
   if (probe.status !== "available") {
     return {
@@ -1268,11 +1275,16 @@ const pilotConfiguration = Effect.fn("InteractiveSetup.configuration")(function*
   return { statePath, ...(userConfigPath === undefined ? {} : { userConfigPath }) };
 });
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
+  const { runSetup } = yield* Effect.promise(() => import("./onboarding/setup.ts"));
+  const { readMaskedCredential } = yield* Effect.promise(() => import("./credentials/masked-input.ts"));
+  const { activateCurrentPackage } = yield* Effect.promise(() => import("./onboarding/client-lifecycle.ts"));
+  const { askConfirmation } = yield* Effect.promise(() => import("./onboarding/confirmation.ts"));
   const { runPilotSetup } = yield* Effect.promise(() => import("./onboarding/pilot.ts"));
   const terminal = Boolean(process.stdin.isTTY && process.stderr.isTTY);
   // Configuration is read only for an actual terminal setup, as in the direct CLI path.
   const configuration = terminal ? yield* pilotConfiguration() : undefined;
   const cwd = process.cwd();
+  const command = currentCommand();
   return yield* runPilotSetup(
     { terminal, host, fields: hostFields(host), cwd, platform: process.platform },
     {
@@ -1283,8 +1295,8 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
           readCredential: () => readMaskedCredential().pipe(Effect.tap(() => Effect.sync(entered))),
         });
       },
-      activate: activateCurrentPackage(fileURLToPath(import.meta.url)),
-      doctor: execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+      activate: activateCurrentPackage(currentCommand()),
+      doctor: execFileClosedStdin(command.executable, [...command.args, "--doctor"], {
         cwd,
         env: process.env,
         maxBuffer: 1024 * 1024,
@@ -1318,6 +1330,7 @@ const codexClientStatus = Effect.fn("InteractiveSetup.codexStatus")(function* (
   status: ClientChoice["status"],
 ) {
   if (status !== "not installed") return status;
+  const { previewCodexUpdate } = yield* Effect.promise(() => import("./onboarding/codex-installation.ts"));
   const target = yield* previewCodexUpdate(fields);
   // An owned registration may point to a different retained package.
   if (target.status === "preview") return "installed" as const;
@@ -1328,19 +1341,37 @@ const claudeClientStatus = Effect.fn("InteractiveSetup.claudeStatus")(function* 
   status: ClientChoice["status"],
 ) {
   if (status !== "not installed") return status;
+  const { previewClaudeInstallation } = yield* Effect.promise(() => import("./onboarding/claude-installation.ts"));
   return (yield* previewClaudeInstallation(fields)).status === "unsupported" ? ("unavailable" as const) : status;
 });
-const clientInstallations = {
-  pi: { installed: hasPiRegistration, inspect: inspectPiInstallation },
-  claude: { installed: hasClaudeRegistration, inspect: inspectClaudeInstallation },
-  codex: { installed: hasCodexRegistration, inspect: inspectCodexInstallation },
-};
-const clientInstalled = (fields: ReturnType<typeof hostFields>) => clientInstallations[fields.host].installed(fields);
-const inspectClient = (fields: ReturnType<typeof hostFields>) => clientInstallations[fields.host].inspect(fields);
+const clientInstallationPorts = Effect.fn("InteractiveSetup.installationPorts")(function* () {
+  const {
+    hasPiRegistration,
+    inspectPiInstallation,
+  } = yield* Effect.promise(() => import("./onboarding/pi-installation.ts"));
+  const {
+    hasClaudeRegistration,
+    inspectClaudeInstallation,
+  } = yield* Effect.promise(() => import("./onboarding/claude-installation.ts"));
+  const {
+    hasCodexRegistration,
+    inspectCodexInstallation,
+  } = yield* Effect.promise(() => import("./onboarding/codex-installation.ts"));
+  const clientInstallations = {
+    pi: { installed: hasPiRegistration, inspect: inspectPiInstallation },
+    claude: { installed: hasClaudeRegistration, inspect: inspectClaudeInstallation },
+    codex: { installed: hasCodexRegistration, inspect: inspectCodexInstallation },
+  };
+  return {
+    installed: (fields: ReturnType<typeof hostFields>) => clientInstallations[fields.host].installed(fields),
+    inspect: (fields: ReturnType<typeof hostFields>) => clientInstallations[fields.host].inspect(fields),
+  };
+});
 const piClientStatus = Effect.fn("InteractiveSetup.piStatus")(function* (
   fields: ClientInstallationFields,
   initial: ClientChoice["status"],
 ) {
+  const { previewPiInstallation } = yield* Effect.promise(() => import("./onboarding/pi-installation.ts"));
   return (yield* previewPiInstallation(fields)).status === "unsupported" ? "unavailable" as const : initial;
 });
 const clientStatuses = { pi: piClientStatus, claude: claudeClientStatus, codex: codexClientStatus };
@@ -1349,7 +1380,8 @@ const currentClientStatus = (fields: ReturnType<typeof hostFields>, initial: Cli
 const clientNames = { pi: "Pi", claude: "Claude Code", codex: "Codex CLI" } as const;
 const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (host: SetupClient) {
   const fields = hostFields(host);
-  const inspection = yield* inspectClient(fields);
+  const { inspect } = yield* clientInstallationPorts();
+  const inspection = yield* inspect(fields);
   const decoded = Schema.decodeUnknownSync(
     Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }),
   )(inspection);
@@ -1357,6 +1389,7 @@ const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (
   return { host, name: clientNames[host], status };
 });
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
+  const { selectSetupClients } = yield* Effect.promise(() => import("./onboarding/client-selection.ts"));
   if (!process.stdin.isTTY || !process.stderr.isTTY)
     throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
   const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex", "pi"] as const, setupClientChoice);
@@ -1394,6 +1427,7 @@ const selectedRelease = (): ReleaseSelection => {
 const releaseSelectionLabel = (selection: ReleaseSelection): string =>
   selection.kind === "archive" ? selection.path : `@hapsland/hapsland@${selection.version ?? selection.channel}`;
 const updateExecutable = Effect.fn("InteractiveUpdate.target")(function* () {
+  const { stageRelease } = yield* Effect.promise(() => import("./onboarding/distribution.ts"));
   const target = flagValue("--target");
   if (target !== undefined) {
     if (["--tarball", "--version", "--channel"].some((flag) => flagValue(flag) !== undefined))
@@ -1415,6 +1449,12 @@ const reportUpdateFailure = (host: SetupClient, cause: unknown): void => {
   process.exitCode = 6;
 };
 const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
+  const {
+    registeredClients,
+    invokeLifecycle,
+    activatePackage,
+  } = yield* Effect.promise(() => import("./onboarding/client-lifecycle.ts"));
+  const { askConfirmation } = yield* Effect.promise(() => import("./onboarding/confirmation.ts"));
   const { updateClients } = yield* Effect.promise(() => import("./onboarding/update.ts"));
   return yield* updateClients(
     {
@@ -1445,8 +1485,17 @@ const reportClientFailure = (host: SetupClient, cause: unknown) => {
 };
 
 const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(
-  (command: "repair" | "reinstall" | "uninstall") =>
-    maintainClients(
+  function* (command: "repair" | "reinstall" | "uninstall") {
+    const { maintainClients } = yield* Effect.promise(() => import("./onboarding/maintenance.ts"));
+    const {
+      registeredClients,
+      invokeLifecycle,
+      activateCurrentPackage,
+    } = yield* Effect.promise(() => import("./onboarding/client-lifecycle.ts"));
+    const { askConfirmation } = yield* Effect.promise(() => import("./onboarding/confirmation.ts"));
+    const { installed, inspect } = yield* clientInstallationPorts();
+    const ownCommand = currentCommand();
+    return yield* maintainClients(
       command,
       {
         terminal: Boolean(process.stdin.isTTY && process.stderr.isTTY),
@@ -1456,22 +1505,24 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(
       },
       {
         fields: hostFields,
-        installed: clientInstalled,
-        inspect: inspectClient,
+        installed,
+        inspect,
         invoke: (host, request) =>
-          invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request),
-        activate: activateCurrentPackage(fileURLToPath(import.meta.url)),
+          invokeLifecycle(ownCommand.executable, [...ownCommand.args, `--${request.operation}`], host, request),
+        activate: activateCurrentPackage(currentCommand()),
         confirm: askConfirmation,
         write: (text) => {
           process.stderr.write(text);
         },
         reportFailure: reportClientFailure,
       },
-    ),
+    );
+  },
 );
 
 const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* (host: SetupClient) {
-  const result = yield* execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+  const command = currentCommand();
+  const result = yield* execFileClosedStdin(command.executable, [...command.args, "--doctor"], {
     input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(host) }),
     env: process.env,
     timeout: 10_000,
@@ -1488,24 +1539,31 @@ if (cliSwitch("feedback-preview")) {
     path: "example.ts", declaration: "ExampleState",
     message: "This is a sample finding. Actual messages come from the configured rule.",
   }]) + "\n");
+} else if (cliSwitch("runtime-identity")) {
+  process.stdout.write(JSON.stringify({ version: runtimeVersion(), platform: process.platform, architecture: process.arch }) + "\n");
 } else if (cliSwitch("package-identity")) {
   process.stdout.write(
     JSON.stringify({
       name: "@hapsland/hapsland",
-      runtime: process.execPath,
-      entrypoint: fileURLToPath(import.meta.url),
+      ...currentCommand(),
     }) + "\n",
   );
 } else if (cliSwitch("pilot") || invocation.kind === "lifecycle") {
   try {
     const command = invocation.kind === "lifecycle" ? invocation.command : "setup";
+    const {
+      dispatchSelectedPackage,
+      dispatchActivePackage,
+      registeredClients,
+      formatDoctor,
+    } = await import("./onboarding/client-lifecycle.ts");
     clientArguments = invocation.client;
     const selectedPackage = clientArguments.flags.get("--target");
     const dispatched =
       selectedPackage !== undefined && command !== "update"
         ? await Effect.runPromise(
             dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags).pipe(
-              Effect.provide(processConfigurationLayer),
+              Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer),
             ),
           )
         : await Effect.runPromise(
@@ -1515,7 +1573,7 @@ if (cliSwitch("feedback-preview")) {
               ...[...clientArguments.flags]
                 .filter(([name]) => name !== "--host")
                 .flatMap(([name, value]) => [name, value]),
-            ]).pipe(Effect.provide(processConfigurationLayer)),
+            ]).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)),
           );
     if (dispatched !== undefined) process.exitCode = dispatched;
     else if (command === "doctor") {
@@ -1527,7 +1585,7 @@ if (cliSwitch("feedback-preview")) {
       for (const host of hosts) {
         try {
           const result = await Effect.runPromise(
-            diagnoseClientProcess(host).pipe(Effect.provide(processConfigurationLayer)),
+            diagnoseClientProcess(host).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)),
           );
           process.stdout.write(formatDoctor(result.diagnosis, host).join("\n") + "\n");
           if (result.exitCode !== 0 || result.status === "not-ready") process.exitCode = result.exitCode || 6;
@@ -1536,12 +1594,12 @@ if (cliSwitch("feedback-preview")) {
         }
       }
     } else if (command === "update")
-      await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
+      await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)));
     else if (command === "repair" || command === "reinstall" || command === "uninstall")
-      await Effect.runPromise(maintenanceInteractive(command).pipe(Effect.provide(processConfigurationLayer)));
+      await Effect.runPromise(maintenanceInteractive(command).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)));
     else if (clientArguments.host === undefined)
-      await Effect.runPromise(chooseSetupClients().pipe(Effect.provide(processConfigurationLayer)));
-    else await Effect.runPromise(pilotSetup(selectedHost()).pipe(Effect.provide(processConfigurationLayer)));
+      await Effect.runPromise(chooseSetupClients().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)));
+    else await Effect.runPromise(pilotSetup(selectedHost()).pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)));
   } catch (cause) {
     process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`);
     process.exitCode = 6;
@@ -1627,7 +1685,7 @@ if (cliSwitch("feedback-preview")) {
     process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
   };
   const output = isCredentialCommand
-    ? await Effect.runPromise(runCredentialCommand().pipe(Effect.provide(processConfigurationLayer)))
+    ? await Effect.runPromise(runCredentialCommand().pipe(Effect.provide(processConfigurationLayer), Effect.provide(machineClockLayer)))
     : await Effect.runPromise(
         runReviewProgram().pipe(
           Effect.provide(processConfigurationLayer),
@@ -1635,6 +1693,7 @@ if (cliSwitch("feedback-preview")) {
           Effect.provide(composedHookRuntimeLayer),
           Effect.provide(hookOutputLayer),
           Effect.provide(residentStartupLayer),
+          Effect.provide(machineClockLayer),
         ),
       );
   assignResultExitCode(output);

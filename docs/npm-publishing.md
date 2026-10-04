@@ -53,7 +53,9 @@ mise exec node@24.20.0 -- npm run local-release
 as in Huly MCP's local release flow. Use it even if a different Node version is active.
 Node 25 is fine for ordinary work; release
 assembly is pinned to Node 24.20.0 so npm builds the reviewed archive under the
-same toolchain used to calculate its checksum. It requires Linux arm64 or macOS
+same toolchain used to calculate its checksum. Hapsland itself is packaged as
+Bun 1.3.14 standalone executables; this Node pin belongs to release assembly.
+The build requires the exact Bun compiler and physical native release assets. It requires Linux arm64 or macOS
 arm64, mise with Node 24.20.0 available, clean `master` equal to `origin/master`
 and containing the pinned release commit, the expected GitHub origin, and an
 active npm login. It builds and audits the local archive,

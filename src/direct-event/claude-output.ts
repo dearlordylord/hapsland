@@ -1,4 +1,5 @@
-import type { CodexDirectEventOutput } from "./pipeline.ts";
+import type { CodexDirectEventOutput } from "./output.ts";
+
 
 export type ClaudeBlockOutput = {
   readonly decision: "block";

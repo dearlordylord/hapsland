@@ -99,3 +99,20 @@ it.effect("changes the native idle deadline on execution and removes its timeout
   expect(accepted.closed).toBe(true);
   expect(accepted.listenerCount("timeout")).toBe(0);
 }));
+
+it.effect("acknowledges peer closure after replying to a paused first-frame request", () => Effect.gen(function* () {
+  const { client, accepted, port } = yield* fixture;
+  const reading = yield* Effect.forkChild(port.read, { startImmediately: true });
+  client.write("request\nignored-second-frame\n");
+  expect(yield* Fiber.join(reading)).toEqual({ _tag: "Frame", encoded: "request" });
+  expect(accepted.isPaused()).toBe(true);
+  expect(accepted.listenerCount("data")).toBe(0);
+  const response = yield* Effect.forkChild(Effect.callback<string>(resume => {
+    client.once("data", chunk => { client.destroy(); resume(Effect.succeed(chunk.toString("utf8"))); });
+  }), { startImmediately: true });
+  expect(yield* port.write("reply")).toBe(true);
+  expect(yield* Fiber.join(response)).toBe("reply\n");
+  yield* port.closed;
+  expect(accepted.closed).toBe(true);
+  expect(accepted.listenerCount("data")).toBe(0);
+}));

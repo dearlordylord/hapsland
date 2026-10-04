@@ -1,3 +1,4 @@
+import { currentCommand, commandEntrypoint, commandTokens, packageRootFromEntrypoint, expectedRuntimeVersion, commandFromEntrypoint, runtimeProbeArguments } from "../runtime/package-runtime.ts";
 import { Config, Effect, Schema } from "effect";
 import { execFileClosedStdin } from "./host-process.ts";
 import { createHash, randomUUID } from "node:crypto";
@@ -77,7 +78,7 @@ interface OwnershipRecord {
   readonly packageVersion: string;
   readonly residentProtocol: number;
   readonly executable: string;
-  readonly entrypoint: string;
+  readonly args: ReadonlyArray<string>;
   readonly marker: typeof OWNED_MARKER;
   readonly hookFingerprint: string;
   readonly hookGroups?: Record<string, unknown>;
@@ -150,7 +151,7 @@ const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1",
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   return {
     type: "command",
-    command: `${quoteShell(runtime)} ${quoteShell(entrypoint)} --codex-hook${controlled} --controlled-writer --composed-edit-hook ${OWNED_MARKER}${version}`,
+    command: `${commandTokens(runtime, entrypoint).map(quoteShell).join(" ")} --codex-hook${controlled} --controlled-writer --composed-edit-hook ${OWNED_MARKER}${version}`,
     timeout: 10,
   };
 };
@@ -165,7 +166,7 @@ const composedCommand = (
   const controlled = controlledReviewer ? " --controlled-reviewer" : "";
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   const exec = kind === "before-edit" ? "exec " : "";
-  return `${exec}${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
+  return `${exec}${commandTokens(runtime, entrypoint).map(quoteShell).join(" ")} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
 };
 
 const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => ({
@@ -517,7 +518,7 @@ const OwnershipRecordShape = Schema.Struct({
   packageVersion: Schema.String,
   residentProtocol: Schema.Literal(1),
   executable: Schema.String,
-  entrypoint: Schema.String,
+  args: Schema.Array(Schema.String),
   marker: Schema.Literal(OWNED_MARKER),
   hookFingerprint: Schema.String,
   hookGroups: Schema.optional(Schema.Unknown),
@@ -565,7 +566,7 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
     packageVersion: value.packageVersion,
     residentProtocol: 1,
     executable: value.executable,
-    entrypoint: value.entrypoint,
+    args: value.args,
     marker: OWNED_MARKER,
     hookFingerprint: value.hookFingerprint,
     ...(isObject(value.hookGroups) ? { hookGroups: value.hookGroups } : {}),
@@ -702,16 +703,13 @@ const probeRuntime = Effect.fn("CodexInstallation.probeRuntime")(function* (exec
   if (!readiness.ready) return { ready: false, observed: readiness.observed } satisfies RuntimeProbe;
   const probe = yield* execFileClosedStdin(
     executable,
-    [
-      "-e",
-      "process.stdout.write(JSON.stringify({version:process.version,platform:process.platform,architecture:process.arch}))",
-    ],
+    runtimeProbeArguments(executable),
     { env: process.env, timeout: 2_000, maxBuffer: 16_384 },
   );
   if (!probe.succeeded)
     return {
       ready: false,
-      observed: probe.timedOut ? "timed-out" : "not-a-supported-node-runtime",
+      observed: probe.timedOut ? "timed-out" : "not-a-supported-runtime",
     } satisfies RuntimeProbe;
   const observed = yield* Effect.try({
     try: (): unknown => JSON.parse(probe.stdout),
@@ -719,12 +717,12 @@ const probeRuntime = Effect.fn("CodexInstallation.probeRuntime")(function* (exec
   }).pipe(Effect.flatMap(Schema.decodeUnknownEffect(RuntimeObservation)), Effect.result);
   return observed._tag === "Success"
     ? ({ ready: true, observed: observed.success } satisfies RuntimeProbe)
-    : ({ ready: false, observed: "not-a-supported-node-runtime" } satisfies RuntimeProbe);
+    : ({ ready: false, observed: "not-a-supported-runtime" } satisfies RuntimeProbe);
 });
 
 const runtimeIdentityChecks = (inputs: ReturnType<typeof buildInputs>, runtimeProbe: RuntimeProbe) => {
   const observedRuntime = isObject(runtimeProbe.observed) ? runtimeProbe.observed : undefined;
-  const requiredVersion = `v${inputs.runtimeVersion}`;
+  const requiredVersion = expectedRuntimeVersion(inputs.entrypoint);
   const declaredPlatforms = [...new Set(inputs.runtimeProfiles.map(({ operatingSystem }) => operatingSystem))];
   const declaredArchitectures = [...new Set(inputs.runtimeProfiles.map(({ architecture }) => architecture))];
   const declaredProfile = inputs.runtimeProfiles.some(
@@ -732,7 +730,7 @@ const runtimeIdentityChecks = (inputs: ReturnType<typeof buildInputs>, runtimePr
       operatingSystem === observedRuntime?.platform && architecture === observedRuntime?.architecture,
   );
   return {
-    node: {
+    engine: {
       ready: runtimeProbe.ready && observedRuntime?.version === requiredVersion,
       observed: observedRuntime?.version ?? runtimeProbe.observed,
       required: requiredVersion,
@@ -792,7 +790,7 @@ const unsupportedResult = (
 const PackageManifest = Schema.Struct({ version: Schema.NonEmptyString });
 const PackageRuntimeDeclaration = Schema.Struct({
   schemaVersion: Schema.Literal(1),
-  runtime: Schema.Struct({ name: Schema.Literal("node"), version: Schema.String }),
+  runtime: Schema.Struct({ name: Schema.Literals(["bun", "node"]), version: Schema.String }),
   profiles: Schema.NonEmptyArray(Schema.Unknown),
   residentProtocol: Schema.Literal(1),
   codex: Schema.optional(Schema.Unknown),
@@ -814,7 +812,7 @@ const packageRuntimeAt = (root: string) => {
   try {
     return Schema.decodeUnknownSync(PackageRuntimeDeclaration)(declaration);
   } catch {
-    throw new Error("package-runtime.json must declare Node runtime, nonempty profiles, and residentProtocol 1");
+    throw new Error("package-runtime.json must declare the embedded runtime, nonempty profiles, and residentProtocol 1");
   }
 };
 
@@ -896,7 +894,7 @@ const buildInputs = (
   const home = resolve(configured.home);
   const executable = resolve(configured.executable);
   const entrypoint = resolvedEntrypoint(configured.entrypoint);
-  const { codexVersions, ...metadata } = readPackageMetadata(resolve(dirname(entrypoint), ".."));
+  const { codexVersions, ...metadata } = readPackageMetadata(packageRootFromEntrypoint(entrypoint));
   return {
     home,
     executable,
@@ -917,10 +915,10 @@ const resolveInputs = Effect.fn("CodexInstallation.inputs")(
       request.codexHome ??
       (yield* Config.NonEmptyString("CODEX_HOME").pipe(Config.withDefault(join(homedir(), ".codex"))));
     const executable = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(
-      Config.withDefault(process.execPath),
+      Config.withDefault(currentCommand().executable),
     );
     const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(
-      Config.withDefault(process.argv[1] ?? "dist/cli.js"),
+      Config.withDefault(commandEntrypoint(currentCommand())),
     );
     const controlled = yield* Config.NonEmptyString("REVIEW_INSTALL_CONTROLLED").pipe(Config.withDefault("0"));
     const failAfterWrites = yield* Config.Int("REVIEW_INSTALL_FAIL_AFTER_WRITES").pipe(Config.withDefault(-1));
@@ -963,11 +961,10 @@ const makeOwnershipRecord = (
   version: OWNERSHIP_VERSION,
   adapter: "codex",
   codexHome: inputs.home,
-  runtimeVersion: process.version,
+  runtimeVersion: expectedRuntimeVersion(inputs.entrypoint),
   packageVersion: inputs.packageVersion,
   residentProtocol: inputs.residentProtocol,
-  executable: inputs.executable,
-  entrypoint: inputs.entrypoint,
+  ...commandFromEntrypoint(inputs.executable, inputs.entrypoint),
   marker: OWNED_MARKER,
   hookFingerprint: fingerprint,
   hookGroups: {
@@ -1710,8 +1707,8 @@ const requireRecoveryRuntimeIdentity = (decoded: unknown, inputs: ReturnType<typ
     !isObject(decoded) ||
     decoded.version !== 1 ||
     decoded.adapter !== "codex" ||
-    decoded.executable !== inputs.executable ||
-    decoded.entrypoint !== inputs.entrypoint
+    decoded.executable !== commandFromEntrypoint(inputs.executable, inputs.entrypoint).executable ||
+    JSON.stringify(decoded.args) !== JSON.stringify(commandFromEntrypoint(inputs.executable, inputs.entrypoint).args)
   ) {
     throw new Error("recovery journal ownership does not match the current packaged runtime");
   }
@@ -1814,13 +1811,10 @@ const previewChanges = (mutations: ReadonlyArray<Mutation>) =>
 
 const ownedChanges = (inputs: ReturnType<typeof buildInputs>) => ({
   runtime: {
-    executable: inputs.executable,
-    entrypoint: inputs.entrypoint,
-    parserEntrypoint: packagedRuntimeEntrypoints(inputs.entrypoint).parser,
-    residentEntrypoint: packagedRuntimeEntrypoints(inputs.entrypoint).resident,
-    nodeVersion: process.version,
-    platform: process.platform,
-    architecture: process.arch,
+    ...commandFromEntrypoint(inputs.executable, inputs.entrypoint),
+    parser: commandFromEntrypoint(inputs.executable, packagedRuntimeEntrypoints(inputs.entrypoint).parser),
+    resident: commandFromEntrypoint(inputs.executable, packagedRuntimeEntrypoints(inputs.entrypoint).resident),
+    observed: inputs.runtimeProbe.observed,
   },
   feature: {
     file: inputs.paths.config,
@@ -1996,9 +1990,9 @@ export const inspectCodexInstallation = Effect.fn("CodexInstallation.inspect")(f
       validateInspectedOwnership(ownership, inputs);
       const pinnedInputs = { ...inputs };
       pinnedInputs.executable = ownership.executable;
-      pinnedInputs.entrypoint = ownership.entrypoint;
+      pinnedInputs.entrypoint = commandEntrypoint(ownership);
       pinnedInputs.runtimeProbe = yield* probeRuntime(ownership.executable);
-      installed = compatibility(pinnedInputs).supported && ownership.runtimeVersion === `v${inputs.runtimeVersion}`;
+      installed = compatibility(pinnedInputs).supported && ownership.runtimeVersion === expectedRuntimeVersion(pinnedInputs.entrypoint);
     }
     return {
       version: RESULT_VERSION,
@@ -2039,14 +2033,13 @@ const updatePreviewResult = (
         packageVersion: plan.record.packageVersion,
         runtimeVersion: plan.record.runtimeVersion,
         executable: plan.record.executable,
-        entrypoint: plan.record.entrypoint,
+        args: plan.record.args,
         residentProtocol: plan.record.residentProtocol,
       },
       target: {
         packageVersion: inputs.packageVersion,
-        runtimeVersion: process.version,
-        executable: inputs.executable,
-        entrypoint: inputs.entrypoint,
+        runtimeVersion: expectedRuntimeVersion(inputs.entrypoint),
+        ...commandFromEntrypoint(inputs.executable, inputs.entrypoint),
         residentProtocol: inputs.residentProtocol,
         hook: ownedChanges(inputs).hook,
       },

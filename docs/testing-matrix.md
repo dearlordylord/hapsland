@@ -15,7 +15,10 @@
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Process harness contention | `npm run test:contention`; `npm run test:harness:inventory` | Full deterministic gate under bounded Linux CPU pressure; transitive process/scenario inventory; hung-child cleanup probes | Declared scheduling profile and finite harness failure; no product deadline, latency, or arbitrary-starvation claim |
 | TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
-| Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
+| Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, native helpers, standalone Bun commands and agent extension assets | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
+| Hook review-engine import invariant | `npx vitest run --maxWorkers=1 src/runtime/review-engine-boundary.test.ts scripts/cli-import-boundary.test.mts` | Five engine/parser/provider module boundaries under every hook flag; permitted manual imports; static eager import closure | Runtime import violations emit a fixed diagnostic and throw, including dynamic imports; static dependencies can initialize before their module assertion |
+| Runtime clock compatibility | `HAPSLAND_BUILD_BUN=/absolute/path/to/bun node scripts/check-runtime-clock.mjs --source-only`; pass a comparison declaration for the Linux installed witness | Separate Node/Bun OS-clock readings, pre-import delay, and installed admission/stale rejection | Shared monotonic coordinates and unchanged admission window; exact platform execution required |
+| Installed hook startup comparison | `node scripts/measure-hook-startup.mjs DECLARATION.json` | Three installed variants, 15 round-robin registrations per variant with a ready resident, and three separate cold-resident calls per variant | Observed registration outcomes and wall times without coverage; uncontrolled OS file cache, no population latency guarantee |
 | Review provider adapters | `npx vitest run --maxWorkers=1 src/review-providers` | Jev/Cloudflare selection, Clef/Clef-flash HTTP fixtures, native input limits, model identity and revalidation | Offline controlled transport behavior; no live provider quality or token-limit enforcement |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
@@ -129,7 +132,7 @@ The [child helper](../scripts/test-harness/process.mjs) supplies a finite
 ordinary short child watchdogs use this shared allowance. Longer explicit
 bounds remain finite; deliberate hang probes retain their strict one-second
 child deadlines. Its timeout signal must be SIGKILL; weaker signals are rejected before spawning.
-Four Claude selection/batching fixtures confirm resident readiness in their complete
+Claude selection/batching fixtures confirm resident readiness in their complete
 fixture environment before invoking hooks, with a 20-second preparation bound.
 Their assertions concern findings handoff, rather than cold startup latency;
 the hooks still use their original product deadlines.
@@ -140,6 +143,33 @@ Asynchronous `spawn` fixtures retain their explicit lifecycle and cleanup contro
 These scheduling allowances are harness limits, not product latency requirements;
 product runtime deadlines, retries, and supported profiles are unchanged.
 
+Keep process tests for boundaries that require actual executable, socket, or host
+behavior. Test domain variants once at their owning layer rather than repeating
+the full matrix through every installed adapter. Pi keeps the complete source
+matrix and a smaller installed set covering transport, lifecycle, authority,
+finish, freshness, and recovery. Claude CLI tests retain stdout, hook selection,
+handoff, Stop, and failure boundaries; collection tests own outcome combinations
+and encoded-size limits. The two-agent simulation keeps its original late-join
+regression with resource cleanup and replay assertions instead of a repeated
+timing stress matrix. Review these choices when runtime boundaries change or a
+new regression requires another process-level case.
+
+Pi and Claude hook fixtures share archive preparation and execute the
+physical packaged Bun commands with a PATH excluding Node and Bun. Fixture observers may
+use the explicit host Node executable to read IPC; they do not start a source
+resident. By default each package suite builds and packs current sources, then
+extracts the archive and creates its declared command links. These runtime
+fixtures do not repeat package-manager installation: clean-package and setup
+conformance install the archive with Bun by default; lifecycle conformance owns
+update validation. Set `HAPSLAND_BUILD_BUN` to the pinned Bun executable when it
+is outside PATH. `HAPSLAND_PACKAGE_INSTALLER=npm` selects actual npm installation
+instead. Evidence names the manager used; a Bun pass does not establish an npm
+installation pass. Each install destination has its own private manifest so a
+package manager cannot adopt an unrelated ancestor project.
+`HAPSLAND_TEST_PACKAGE_ARCHIVE` may supply one immutable archive built from those
+same production sources for a verification run. Record its checksum; this
+option does not remove test cases or replace source coverage evidence.
+
 `npm run test:contention` runs canonical `npm test` on Linux with `taskset`:
 the runner, suite, and two busy workers share the first four allowed CPUs
 (or fewer when unavailable). Worker readiness is acknowledged through IPC.
@@ -149,7 +179,9 @@ check, not a throughput benchmark or proof for arbitrary host starvation.
 No sleep is used to establish correctness or concurrency ordering.
 
 Subprocess coverage is enabled so CLI and resident tests contribute evidence
-from their spawned Node processes. The [coverage adapter](../scripts/coverage-provider.mjs)
+from their spawned Node processes. Installed Bun binaries do not emit V8 source
+coverage; source fixtures and component tests retain that evidence under the
+unchanged strict quality policy. The [coverage adapter](../scripts/coverage-provider.mjs)
 uses the pinned V8 provider while keeping Vite and native Node offsets separate
 until source remapping, then combines counters for the same original function
 body. It also normalizes uniquely identified multiline callback signatures
@@ -161,6 +193,16 @@ checks separation of execution contexts and combination of source-map aliases
 without a nested test runner. The full quality gate validates the emitted
 Istanbul counters through strict crap4ts analysis.
 Review this adapter against upstream behavior whenever Vitest is updated.
+During implementation, run the focused checks for the changed owners. Reserve the
+full quality gate for a review-ready implementation or a confirmed fix to a gate
+failure; do not restart it after each small edit. Vitest reports failure messages,
+stacks, and assertion values as each failing case finishes, then retains the final
+aggregate summary. Once a full run has reported a failure, diagnose it with focused
+checks before another full run. Keep essential behavioral coverage; remove slow
+repeated installed scenarios when their source owners already cover the semantics.
+The installed Claude Stop smoke uses one ready finding; collection size boundaries
+and concurrent delivery ownership remain in their focused owner suites.
+
 `npm run quality:check` regenerates coverage through
 `npm run test:coverage`, which includes the existing boundary checks and tests.
 The tool removes the previous JSON artifact before running that command and

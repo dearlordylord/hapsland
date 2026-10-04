@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { Nat, decoder } from "./boundary-schema.ts";
 
 // Lists and nested constructors are decoded separately, so linked tails stay stack safe.
