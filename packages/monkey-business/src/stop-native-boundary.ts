@@ -240,7 +240,7 @@ export function compareOriginalStopFamilyTrace(value: unknown, expected: ReturnT
   same(frozenInputs.length,11,"independent frozen original declaration count");
   for (const [caseIndex, value] of traces.entries()) {
     const trace = readRecord(value), original = expected[caseIndex];
-    if (!original || trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError("invalid full original Stop trace");
+    if (!original || trace.$ !== "stop_observed_wire.Trace" || !readBool(trace.valid)) throw new TypeError(`invalid full original Stop trace at case ${caseIndex}`);
     same(trace.input,frozenInputs[caseIndex],`case ${caseIndex} complete original input`);
     const frames = list(trace.frames).map(readRecord);
     for (const frame of frames) if (!["stop_observed_wire.Observed","stop_observed_wire.Boundary"].includes(String(frame.$))) throw new TypeError("uncompared original Stop frame");
