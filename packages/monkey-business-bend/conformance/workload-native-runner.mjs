@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import {
   NATIVE_C_EMISSION_TIMEOUT_MS,
   NATIVE_CLANG_TIMEOUT_MS,
@@ -51,20 +51,25 @@ export function runWorkloadNative(fixture, { clangTimeoutMs = NATIVE_CLANG_TIMEO
 }
 
 // Fresh emitted-JS execution is an independent diagnostic/validation axis. It
-// never reuses a native result or substitutes for the native gate above.
+// never reuses a native result or substitutes for the native gate above, and
+// it uses the same pinned Bend/source identity before running the output.
 export function runWorkloadEmitted(fixture, { emissionTimeoutMs = 15000 } = {}) {
   if (!Number.isSafeInteger(emissionTimeoutMs) || emissionTimeoutMs <= 0) throw new RangeError("invalid JS emission timeout");
+  const identity = captureNativeFixtureIdentity(fixture);
   const directory = mkdtempSync(join(tmpdir(), "hapsland-workload-js-"));
   try {
     const source = join(directory, "scenario.mjs");
-    checked("bend", [fileURLToPath(fixture), "-o", source], emissionTimeoutMs);
+    checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs);
+    assertNativeFixtureIdentity(identity, fixture);
     const program = join(directory, "execute.mjs");
     writeFileSync(program, `import Fixture from ${JSON.stringify(pathToFileURL(source).href)};
 const value = Fixture.json();
 if (typeof value !== "string") throw new TypeError("compiler JSON String ABI changed");
 process.stdout.write(value);
 `);
-    return JSON.parse(checked(process.execPath, [program], 5000));
+    const output = checked(process.execPath, [program], 5000);
+    assertNativeFixtureIdentity(identity, fixture);
+    return JSON.parse(output);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

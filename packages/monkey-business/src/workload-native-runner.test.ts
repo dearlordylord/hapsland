@@ -57,12 +57,41 @@ it("rejects an identity drift before executing the fresh binary", () => {
   expect(existsSync(source.slice(0, source.lastIndexOf("/")))).toBe(false);
 });
 
-it("disables the compiler's update check for fresh emitted JavaScript", () => {
+it("pins the compiler and bounds fresh emitted JavaScript", () => {
   spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
   expect(runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend"))).toEqual([0]);
   expect(spawn.mock.calls).toHaveLength(2);
+  expect(spawn.mock.calls[0]?.[0]).toBe("/mock/bend");
   expect(spawn.mock.calls[0]?.[2].env.BEND_NO_TELEMETRY).toBe("1");
   expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([15000, 5000]);
+  expect(preflight.capture).toHaveBeenCalledTimes(1);
+  expect(preflight.assert).toHaveBeenCalledTimes(2);
+});
+
+it("rejects emitted identity drift before executing generated JavaScript", () => {
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  preflight.assert.mockImplementationOnce(() => {
+    throw new Error("Native workload rejected: source inputs changed during the direct native workload; refusing mixed-source artifact");
+  });
+  expect(() => runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend")))
+    .toThrow("refusing mixed-source artifact");
+  expect(spawn.mock.calls).toHaveLength(1);
+  const source = spawn.mock.calls[0]?.[1]?.[2];
+  if (typeof source !== "string") throw new Error("emitted source path unavailable");
+  expect(existsSync(source.slice(0, source.lastIndexOf("/")))).toBe(false);
+});
+
+it("rejects emitted identity drift after executing generated JavaScript", () => {
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  preflight.assert.mockImplementationOnce(() => undefined).mockImplementationOnce(() => {
+    throw new Error("Native workload rejected: source inputs changed during the direct native workload; refusing mixed-source artifact");
+  });
+  expect(() => runWorkloadEmitted(new URL("file:///tmp/owned-output-bound-fixture.bend")))
+    .toThrow("refusing mixed-source artifact");
+  expect(spawn.mock.calls).toHaveLength(2);
+  const program = spawn.mock.calls[1]?.[1]?.[0];
+  if (typeof program !== "string") throw new Error("emitted program path unavailable");
+  expect(existsSync(program.slice(0, program.lastIndexOf("/")))).toBe(false);
 });
 it("reports a bounded-output failure and cleans the fresh directory", () => {
   spawn.mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
