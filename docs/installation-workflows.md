@@ -103,7 +103,7 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 
 The current `dev-install` command installs a **fixed packaged snapshot**. It is
 useful for testing an installation candidate; it does not run hooks from the
-changing checkout. Each code update requires a new build, archive and activation.
+changing checkout. Code changes require a new build, archive and activation; unchanged inputs reuse the previous development archive and verified installed snapshot.
 Do not present this command as a workflow that immediately picks up source edits.
 
 Builds require exact Bun 1.3.14. With mise installed, select it explicitly:
@@ -120,7 +120,7 @@ when it is absent from PATH. `HAPSLAND_BUILD_BUN=/absolute/path/to/bun` selects
 an executable explicitly; its version must still be exactly 1.3.14. Installed
 standalone packages embed Bun and do not require users to install it separately.
 
-`dev-install` builds, verifies native assets, packs a local archive, installs it into a fresh candidate prefix, records Git commit/dirty-tree/checksum identity, and launches that package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` is optional: it selects the dedicated update flow instead of guided setup, rather than making repeated installation possible. To choose that flow explicitly:
+`dev-install` caches the development archive under `$XDG_CACHE_HOME/hapsland/dev-install` (default `~/.cache/hapsland/dev-install`), separately for each checkout. It compares build owners, shipped files, dependency lockfiles, installed dependency metadata (including linked packages), and the selected toolchain/profile. On a miss it builds the current platform, verifies native assets, packs a local archive and stages a verified candidate. On a hit it skips build and pack and reuses the verified installed candidate; a missing candidate is reinstalled from the cached archive. Missing or corrupt archives rebuild. Cache reuse does not depend on `dist` remaining in the checkout. Setup still runs every time, including `--new-key`. Unshipped documentation, tests, project configuration and Quint files do not invalidate it. Simultaneous dev-installs in one checkout are serialized by an exclusive build lock; changed inputs during assembly abort instead of caching mixed sources. Development archives contain standalone commands for the current platform; ordinary `npm run build` still builds Linux and macOS. The script records Git commit/dirty-tree/checksum identity and launches the package's guided setup. It does not publish. Use the same command for first installation and subsequent source updates: guided setup previews and replaces healthy owned hooks with the newly built target, preserving unrelated hooks. `--update` is optional: it selects the dedicated update flow instead of guided setup, rather than making repeated installation possible. To choose that flow explicitly:
 
 ```sh
 mise exec bun@1.3.14 -- npm run dev-install -- --host=claude --update
