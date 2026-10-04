@@ -127,6 +127,21 @@ function compareFinishRegistration(frame, source, field) {
     `${field} native registered Stop`);
 }
 
+function compareFinishInputJob(value, publicItem, core, field, order, attempt) {
+  const job = readRecord(value);
+  assert.equal(job.$,"NativeRunTypes.Job",`${field} native Stop-owned active job ${order}`);
+  const finish = nativeStopFinish(core,job.partition);
+  assert.ok(finish,`${field} native Stop-owned active finish ${order}`);
+  assert.equal(publicItem.partition,finish.partition,`${field} public Stop-owned active partition ${order}`);
+  assert.equal(attempt,finish.attempt,`${field} public Stop-owned active attempt ${order}`);
+  if (publicItem.finishAttempt !== undefined)
+    assert.equal(publicItem.finishAttempt,finish.attempt,`${field} public Stop-owned finish attempt ${order}`);
+  assert.equal(publicItem.job,undefined,`${field} unexpected public active job ${order}`);
+  assert.deepEqual([job.partition,job.lifetime,job.round,job.bytes,list(job.units),job.revision,job.repair,option(job.duration),option(job.source_job)],
+    [finish.partition,finish.lifetime,finish.round,0,[],0,false,undefined,undefined],
+    `${field} native Stop-owned active job ${order}`);
+}
+
 function comparePayload(value, publicItem, field, order, core) {
     const input = readRecord(value);
     const supported = new Set(["input","at","order","driverAction","driverContext","driverOutcomeReceipt","driverSourceJob","stopFact","stopCapture","callbackReceipt","job","finishAttempt","expiryAdvice","generated","partition","candidate","activityScope","workloadSource"]);
@@ -154,11 +169,14 @@ function comparePayload(value, publicItem, field, order, core) {
       assert.equal(publicItem.partition,owner,`${field} original payload owner`);
       const active = input.$ === "NativeRunTypes.FinishInput" ? input.job : option(input.job);
       if (active === undefined) assert.equal(publicItem.job,undefined,`${field} no active binding ${order}`);
+      else if (input.$ === "NativeRunTypes.FinishInput" && publicItem.job === undefined)
+        compareFinishInputJob(active,publicItem,core,field,order,input.attempt);
       else compareJob(active,publicItem.job,`${field} active binding ${order}`);
       const source = input.$ === "NativeRunTypes.Event" ? option(input.source_job) : undefined;
       assert.deepEqual(source === undefined ? undefined : sourceJob(source),publicItem.driverSourceJob,`${field} source binding ${order}`);
       compareContext(input.context,publicItem,`${field} item ${order}`);
-      assert.equal(input.$ === "NativeRunTypes.FinishInput" ? input.attempt : undefined,publicItem.finishAttempt,`${field} Finish attempt ${order}`);
+      if (input.$ === "NativeRunTypes.FinishInput" && publicItem.finishAttempt !== undefined)
+        assert.equal(input.attempt,publicItem.finishAttempt,`${field} Finish attempt ${order}`);
     } else if (input.$ === "NativeRunTypes.Arrival") {
       assert.ok(publicItem.workloadSource,`${field} actual Workload emission ${order}`);
       const emission = readRecord(input.emission);
