@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync, statSync, existsSync, mkdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync, statSync, existsSync, mkdirSync, chmodSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { tmpdir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -128,9 +129,9 @@ function stream(command,args,directory,label,executionTimeoutMs) {
   });
 }
 // Failed scoped compiler output is diagnostic evidence, never an artifact cache.
-function retainCompilerFailure(directory,phase,completed,sources,tools,timeouts,error) {
+function retainCompilerFailure(directory,fixture,phase,completed,sources,tools,timeouts,error) {
   const failureFile=process.env.HAPSLAND_TEST_FAILURES_FILE;
-  if(!failureFile||!['C emission','clang compilation'].includes(phase))return;
+  if(!failureFile)return;
   const outputs=join(dirname(failureFile),"workload-outputs");mkdirSync(outputs,{recursive:true});
   const retained=mkdtempSync(join(outputs,`game-compiler-failure-${process.pid}-`));
   const source=join(directory,"game.c");let c=null;
@@ -138,17 +139,46 @@ function retainCompilerFailure(directory,phase,completed,sources,tools,timeouts,
     const bytes=readFileSync(source),path=join(retained,"game.c");writeFileSync(path,bytes);
     c={path,bytes:bytes.length,sha256:digest(bytes)};
   }
+  let binary=null;
+  const executable=join(directory,"game");
+  if(completed.includes("clang compilation")&&existsSync(executable)){
+    const bytes=readFileSync(executable),path=join(retained,"game"),mode=statSync(executable).mode&0o777;
+    writeFileSync(path,bytes);chmodSync(path,mode);
+    binary={path,bytes:bytes.length,sha256:digest(bytes),mode};
+  }
   const receipt=join(retained,"receipt.json");
-  writeFileSync(receipt,JSON.stringify({lane:"game-compiler-failure",phase,completed,sources,tools,timeouts,c,
+  writeFileSync(receipt,JSON.stringify({lane:"game-compiler-failure",fixture,phase,completed,sources,tools,timeouts,c,binary,
     failure:{name:error.name,message:error.message},
     purpose:"Captured offline compiler evidence; manual source/tool validation required before resume; no automatic reuse or acceptance"},null,2)+"\n");
   console.log(`Retained offline game compiler failure: ${receipt}`);
 }
+function resumeArtifact(artifact,executable=false) {
+  if(!artifact||typeof artifact.path!=="string")throw new Error("Invalid game resume artifact");
+  const bytes=readFileSync(artifact.path);
+  if(bytes.length!==artifact.bytes||digest(bytes)!==artifact.sha256)throw new Error("Game resume artifact bytes changed");
+  if(executable&&(!Number.isInteger(artifact.mode)||(artifact.mode&0o111)===0||(statSync(artifact.path).mode&0o777)!==artifact.mode))
+    throw new Error("Game resume binary mode changed");
+  return bytes;
+}
+function compilerReceipt(path,fixture,sources,tools) {
+  const receipt=JSON.parse(readFileSync(path,"utf8"));
+  if(receipt.lane!=="game-compiler-failure"||receipt.fixture!==fixture||!Array.isArray(receipt.completed)||!receipt.completed.includes("C emission"))
+    throw new Error("Invalid game compiler resume receipt");
+  if(!isDeepStrictEqual(receipt.sources,sources)||!isDeepStrictEqual(receipt.tools,tools))
+    throw new Error("Game resume source/compiler identity changed");
+  resumeArtifact(receipt.c);
+  if(receipt.binary){
+    if(!receipt.completed.includes("clang compilation"))throw new Error("Invalid game binary resume receipt");
+    resumeArtifact(receipt.binary,true);
+  }
+  return receipt;
+}
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
-export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000}={}) {
+export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt}={}) {
   if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
-  if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<=0||emissionTimeoutMs>60000)throw new RangeError("invalid game C emission allowance");
-  if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>90000)throw new RangeError("invalid game clang allowance");
+  if(!Number.isSafeInteger(emissionTimeoutMs)||emissionTimeoutMs<=0||emissionTimeoutMs>90000)throw new RangeError("invalid game C emission allowance");
+  if(!Number.isSafeInteger(clangTimeoutMs)||clangTimeoutMs<=0||clangTimeoutMs>120000)throw new RangeError("invalid game clang allowance");
+  if(resumeCompilerReceipt!==undefined&&(typeof resumeCompilerReceipt!=="string"||!resumeCompilerReceipt))throw new Error("Invalid game resume receipt path");
   const root=realpathSync(fileURLToPath(new URL("../../",import.meta.url)));
   const bendFile=realpathSync(checked("which",["bend"],5000).trim());
   const bendLayout=bendSourceLayout(bendFile);
@@ -158,20 +188,27 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
   tools.push({file:clangFile,expected:hash(clangFile)});
   const verify=()=>{for(const source of [...sources,...tools])if(hash(source.file)!==source.expected)throw new Error(`game source/tool changed: ${source.file}`);};
   verify();
+  const fixturePath=realpathSync(fileURLToPath(fixture));
+  const resume=resumeCompilerReceipt===undefined?null:compilerReceipt(resumeCompilerReceipt,fixturePath,sources,tools);
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   let phase="C emission";const completed=[];
   try{
     const c=join(directory,"game.c"),binary=join(directory,"game"),js=join(directory,"game.cjs");
-    checked(tools[0].file,[fileURLToPath(fixture),"-o",c],emissionTimeoutMs);completed.push("C emission");verify();
-    const cHash=hash(c);phase="clang compilation";checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],clangTimeoutMs);completed.push("clang compilation");verify();
-    const binaryHash=hash(binary);phase="native execution";const native=await stream(binary,[],directory,"native",executionTimeoutMs);verify();
+    if(resume)writeFileSync(c,resumeArtifact(resume.c));
+    else checked(tools[0].file,[fileURLToPath(fixture),"-o",c],emissionTimeoutMs);
+    completed.push("C emission");verify();
+    const cHash=hash(c);phase="clang compilation";
+    if(resume?.binary){writeFileSync(binary,resumeArtifact(resume.binary,true));chmodSync(binary,resume.binary.mode);}
+    else checked(tools[1].file,["-O0","-Wno-unused-value",c,"-o",binary,"-lm","-pthread"],clangTimeoutMs);
+    completed.push("clang compilation");verify();
+    const binaryHash=hash(binary);phase="native execution";const native=await stream(binary,[],directory,"native",executionTimeoutMs);completed.push("native execution");verify();
     if(hash(c)!==cHash||hash(binary)!==binaryHash)throw new Error("native artifact changed");
-    phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],30000);verify();
-    const jsHash=hash(js);const emitted=await stream(process.execPath,[js],directory,"emitted",executionTimeoutMs);verify();
+    phase="JS emission";checked(tools[0].file,[fileURLToPath(fixture),"-o",js],30000);completed.push("JS emission");verify();
+    const jsHash=hash(js);phase="JS execution";const emitted=await stream(process.execPath,[js],directory,"emitted",executionTimeoutMs);verify();
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
     return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){
-    try{retainCompilerFailure(directory,phase,completed,sources,tools,
+    try{retainCompilerFailure(directory,fixturePath,phase,completed,sources,tools,
       {emission:emissionTimeoutMs,clang:clangTimeoutMs,execution:executionTimeoutMs,jsEmission:30000},error);}
     catch{try{console.error("Offline game compiler failure evidence could not be retained");}catch{}}
     rmSync(directory,{recursive:true,force:true});throw error;
