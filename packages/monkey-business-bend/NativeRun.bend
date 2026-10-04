@@ -913,28 +913,23 @@ def finish_attempt(finish: StopScenario.Finish) -> Nat:
 def finish_scopes(state: T.State) -> List<&2, StopScenario.Finish>:
   Engine.stop_entries(core(state))
 
-def finish_source_job(job: T.Job, source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.Job:
-  match job:
-    case T.Job{p,l,r,bytes,units,revision,repair,duration,_}:
-      T.Job{p,l,r,bytes,units,revision,repair,duration,source_job_one(source_jobs)}
-
-def finish_input(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action, +finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
+def finish_input(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action, +finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>) -> T.State:
   match valid:
-    case True{}: callback_register(enqueue(state,time,T.FinishInput{action,finish_source_job(finish_job(finish),source_jobs),finish_attempt(finish),source}),next_order(state),time,action,None{})
+    case True{}: callback_register(enqueue(state,time,T.FinishInput{action,finish_job(finish),finish_attempt(finish),source}),next_order(state),time,action,None{})
     case False{}: invalid(state)
 
-def finish_action(+state: T.State, +action: Driver.Action, finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
+def finish_action(+state: T.State, +action: Driver.Action, finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>) -> T.State:
   +now = clock(state)
   +delay = action_delay(action)
-  finish_input(Nat.is_le(delay, Nat.sub(maximum(), now)), state, Nat.add(now, delay), action, finish,source,source_jobs)
+  finish_input(Nat.is_le(delay, Nat.sub(maximum(), now)), state, Nat.add(now, delay), action, finish,source)
 
-def finish_actions_context(actions: List<&2, Driver.Action>, state: T.State, +finish: StopScenario.Finish, +source: Maybe<&2,T.EmissionContext>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
+def finish_actions_context(actions: List<&2, Driver.Action>, state: T.State, +finish: StopScenario.Finish, +source: Maybe<&2,T.EmissionContext>) -> T.State:
   match actions:
     case Nil{}: state
-    case action <> tail: finish_actions_context(tail, finish_action(state, action, finish,source,source_jobs), finish,source,source_jobs)
+    case action <> tail: finish_actions_context(tail, finish_action(state, action, finish,source), finish,source)
 
 def finish_actions(actions: List<&2,Driver.Action>, state: T.State, finish: StopScenario.Finish) -> T.State:
-  finish_actions_context(actions,state,finish,None{},[None{}])
+  finish_actions_context(actions,state,finish,None{})
 
 def finish_found(state: T.State, job: Maybe<&2,T.Job>) -> Maybe<&2,StopScenario.Finish>:
   match job:
@@ -1031,7 +1026,7 @@ def native_stop_issue(ended: Maybe<&2,StopScenario.Ended>, original: Maybe<&2,St
   match ended original output:
     case Some{StopScenario.Ended{+finish,continuation}} _ _:
       finish_feedback(context_actions(actions,cancel_finish(state,finish_attempt(finish)),Some{finish_job(finish)},Some{capsule},source_jobs,None{}),finish,continuation)
-    case None{} Some{finish} None{}: finish_actions_context(actions,state,finish,Some{capsule},source_jobs)
+    case None{} Some{finish} None{}: finish_actions_context(actions,state,finish,Some{capsule})
     case None{} Some{finish} Some{capture}: context_actions(actions,state,Some{finish_job(finish)},Some{capsule},source_jobs,Some{capture})
     case None{} None{} _: context_actions(actions,state,job,Some{capsule},source_jobs,None{})
 
@@ -1215,7 +1210,7 @@ def wake_finish(+state: T.State, finish: StopScenario.Finish) -> T.State:
   match finish:
     case StopScenario.Finish{p, l, r, +attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output}:
       +finish = {StopScenario.Finish{p, l, r, attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output} : StopScenario.Finish}
-      pick_state(has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish,None{},[None{}]))
+      pick_state(has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish,None{}))
     case _: state
 
 def wake_finishes(finishes: List<&2, StopScenario.Finish>, state: T.State) -> T.State:
