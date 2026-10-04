@@ -51,7 +51,8 @@ function compareObservation(value: unknown, source: RunStructuralFrame, field: s
   compareStopBusiness(observation.after,source.after,`${field} after`);
   // Graph carries its complete source scope in key, not a supplied Canonical scope.
   same(optional(observation.provided),source.kind !== "callbackDelivery" && source.kind !== "finishRegistration" && source.observation.preparation
-    ? undefined : source.scheduled.partition,`${field} original provided scope`);
+    ? undefined : source.kind === "finishRegistration" ? source.registration.finish?.partition
+      : source.scheduled.partition,`${field} original provided scope`);
   if (source.kind === "callbackDelivery") throw new Error(`${field} physical delivery became product observation`);
   if (source.kind === "finishRegistration") {
     tagged(observation,"Finish");
