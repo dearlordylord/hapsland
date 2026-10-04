@@ -631,6 +631,265 @@ function $$$$047agent$045flow$045bend$047Dispatch$request_update$(_state_0, _par
   return $$$$047agent$045flow$045bend$047Dispatch$request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
 }
 
+function $Numeric$high$(_value_0) {
+  const _high_0 = _value_0["high"];
+  return _high_0;
+}
+
+function $Numeric$low$(_value_0) {
+  const _low_0 = _value_0["low"];
+  return _low_0;
+}
+
+function $Numeric$zero$(_value_0) {
+  return $Bool$and$(($Nat$is_eq$(($Numeric$high$(_value_0)), 0)), ($Nat$is_eq$(($Numeric$low$(_value_0)), 0)));
+}
+
+function $Numeric$greater$(_a_0, _b_0) {
+  const _x_0 = ($Nat$is_gt$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0))));
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0)))), ($Nat$is_gt$(($Numeric$low$(_a_0)), ($Numeric$low$(_b_0))))));
+  return (_x_0 || _x_1);
+}
+
+function $Numeric$ge$(_a_0, _b_0) {
+  return $Bool$not$(($Numeric$greater$(_b_0, _a_0)));
+}
+
+function $Numeric$add_parts$(_ah_0, _bh_0, _lo_0) {
+  const _x_0 = nat_chk(_ah_0 + _bh_0);
+  const _x_1 = ($Nat$div$(_lo_0, 268435456));
+  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(_lo_0, 268435456))};
+}
+
+function $Numeric$add$(_a_0, _b_0) {
+  const _ah_0 = _a_0["high"];
+  const _al_0 = _a_0["low"];
+  const _bh_0 = _b_0["high"];
+  const _bl_0 = _b_0["low"];
+  return $Numeric$add_parts$(_ah_0, _bh_0, nat_chk(_al_0 + _bl_0));
+}
+
+function $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0) {
+  const _x_0 = (_ah_0 < _bh_0 ? 0 : _ah_0 - _bh_0);
+  const _x_1 = ($Bool$pick$((_al_0 < _bl_0), 1, 0));
+  const _x_2 = nat_chk(_al_0 + 268435456);
+  return {$: "Numeric.Limb", "high": (_x_0 < _x_1 ? 0 : _x_0 - _x_1), "low": ($Nat$mod$((_x_2 < _bl_0 ? 0 : _x_2 - _bl_0), 268435456))};
+}
+
+function $Numeric$sub$(_a_0, _b_0) {
+  const _ah_0 = _a_0["high"];
+  const _al_0 = _a_0["low"];
+  const _bh_0 = _b_0["high"];
+  const _bl_0 = _b_0["low"];
+  return $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0);
+}
+
+function $Numeric$shl$(_value_0) {
+  const _high_0 = _value_0["high"];
+  const _low_0 = _value_0["low"];
+  const _x_0 = nat_chk(_high_0 * 2);
+  const _x_1 = ($Nat$div$(_low_0, 134217728));
+  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(nat_chk(_low_0 * 2), 268435456))};
+}
+
+function $Numeric$shr$(_value_0) {
+  const _high_0 = _value_0["high"];
+  const _low_0 = _value_0["low"];
+  const _x_0 = ($Nat$mod$(_high_0, 2));
+  const _x_1 = ($Nat$div$(_low_0, 2));
+  const _x_2 = nat_chk(_x_0 * 134217728);
+  return {$: "Numeric.Limb", "high": ($Nat$div$(_high_0, 2)), "low": nat_chk(_x_1 + _x_2)};
+}
+
+function $Numeric$sticky$(_value_0, _bit_0) {
+  const _high_0 = _value_0["high"];
+  const _low_0 = _value_0["low"];
+  const _x_0 = ($Bool$pick$(($Bool$and$(_bit_0, ($Nat$is_eq$(($Nat$mod$(_low_0, 2)), 0)))), 1, 0));
+  return {$: "Numeric.Limb", "high": _high_0, "low": nat_chk(_low_0 + _x_0)};
+}
+
+function $Numeric$shr_sticky$(_value_0) {
+  return $Numeric$sticky$(($Numeric$shr$(_value_0)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 2)), 1)));
+}
+
+function $Numeric$shift_right$($0, $1) {
+  for (;;) {
+    {
+      const _count_0 = $0;
+      const _value_0 = $1;
+      if (_count_0 === 0) {
+        return _value_0;
+      } else {
+        const _rest_0 = (_count_0 - 1);
+        $0 = _rest_0;
+        $1 = ($Numeric$shr_sticky$(_value_0));
+        continue;
+      }
+    }
+  }
+}
+
+function $Numeric$bounded_shift$(_count_0, _value_0) {
+  return $Numeric$shift_right$(($Bool$pick$(($Nat$is_gt$(_count_0, 56)), 56, _count_0)), _value_0);
+}
+
+function $Numeric$normalize_step$(_done_0, _value_0, _exponent_0, _rest_0) {
+  if (_done_0) {
+    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
+  } else {
+    return run_tail(_rest_0(($Numeric$shl$(_value_0))), (_exponent_0 < 1 ? 0 : _exponent_0 - 1));
+  }
+}
+
+function $Numeric$normalize$(_fuel_0, _value_0, _exponent_0) {
+  if (_fuel_0 === 0) {
+    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    const _x_0 = ($Numeric$zero$(_value_0));
+    const _x_1 = ($Nat$is_ge$(($Numeric$high$(_value_0)), 16777216));
+    return $Numeric$normalize_step$((_x_0 || _x_1), _value_0, _exponent_0, run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return $Numeric$normalize$(_rest_0, _x_2, _x_3);
+});
+}));
+  }
+}
+
+function $Numeric$decoded$(_high_0, _low_0) {
+  const _x_0 = ($Nat$mod$(_high_0, 1048576));
+  const _x_1 = nat_chk(_x_0 * 16);
+  const _x_2 = ($Nat$div$(_low_0, 268435456));
+  const _x_3 = nat_chk(_x_1 + _x_2);
+  const _x_4 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 0, 16777216));
+  const _x_5 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 1, ($Nat$div$(_high_0, 1048576))));
+  return $Numeric$normalize$(52, {$: "Numeric.Limb", "high": nat_chk(_x_3 + _x_4), "low": ($Nat$mod$(_low_0, 268435456))}, nat_chk(2048 + _x_5));
+}
+
+function $Numeric$decode$(_words_0) {
+  const _high_0 = _words_0["high"];
+  const _low_0 = _words_0["low"];
+  return $Numeric$decoded$(_high_0, _low_0);
+}
+
+function $Numeric$encoded$(_mantissa_0, _exponent_0) {
+  const _x_0 = ($Numeric$high$(_mantissa_0));
+  const _x_1 = ($Numeric$zero$(_mantissa_0));
+  const _x_2 = (_x_0 < 16777216);
+  const _x_3 = ($Bool$pick$((_x_1 || _x_2), 0, (_exponent_0 < 2048 ? 0 : _exponent_0 - 2048)));
+  const _x_4 = nat_chk(_x_3 * 1048576);
+  const _x_5 = ($Nat$mod$(($Nat$div$(($Numeric$high$(_mantissa_0)), 16)), 1048576));
+  const _x_6 = ($Nat$mod$(($Numeric$high$(_mantissa_0)), 16));
+  const _x_7 = nat_chk(_x_6 * 268435456);
+  const _x_8 = ($Numeric$low$(_mantissa_0));
+  return {$: "Numeric.Words", "high": nat_chk(_x_4 + _x_5), "low": nat_chk(_x_7 + _x_8)};
+}
+
+function $Numeric$increment$(_value_0) {
+  return $Numeric$add$(_value_0, {$: "Numeric.Limb", "high": 0, "low": 1});
+}
+
+function $Numeric$rounded_parts$(_mantissa_0, _exponent_0) {
+  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), 1, 0));
+  return $Numeric$encoded$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), ($Numeric$shr$(_mantissa_0)), _mantissa_0)), nat_chk(_exponent_0 + _x_0));
+}
+
+function $Numeric$rounded$(_value_0, _exponent_0) {
+  const _base_0 = ($Numeric$shr$(($Numeric$shr$(($Numeric$shr$(_value_0))))));
+  const _x_0 = ($Nat$is_gt$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4));
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_base_0)), 2)), 1))));
+  return $Numeric$rounded_parts$(($Bool$pick$((_x_0 || _x_1), ($Numeric$increment$(_base_0)), _base_0)), _exponent_0);
+}
+
+function $Numeric$round_finite$(_value_0, _exponent_0) {
+  return $Numeric$rounded$(($Bool$pick$((_exponent_0 < 2049), ($Numeric$bounded_shift$((2049 < _exponent_0 ? 0 : 2049 - _exponent_0), _value_0)), _value_0)), ($Bool$pick$((_exponent_0 < 2049), 2049, _exponent_0)));
+}
+
+function $Numeric$add_aligned$(_sum_0, _exponent_0) {
+  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), 1, 0));
+  return $Numeric$round_finite$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), ($Numeric$shr_sticky$(_sum_0)), _sum_0)), nat_chk(_exponent_0 + _x_0));
+}
+
+function $Numeric$add_ordered$(_a_0, _ae_0, _b_0, _be_0) {
+  return $Numeric$add_aligned$(($Numeric$add$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_a_0)))))), ($Numeric$bounded_shift$((_ae_0 < _be_0 ? 0 : _ae_0 - _be_0), ($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_b_0)))))))))), _ae_0);
+}
+
+function $Numeric$add_values$(_a_0, _b_0) {
+  const _am_0 = _a_0["mantissa"];
+  const _ae_0 = _a_0["exponent"];
+  const _bm_0 = _b_0["mantissa"];
+  const _be_0 = _b_0["exponent"];
+  return $Bool$pick$(($Numeric$zero$(_am_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_bm_0)))))), _be_0)), ($Bool$pick$(($Numeric$zero$(_bm_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_am_0)))))), _ae_0)), ($Bool$pick$(($Nat$is_ge$(_ae_0, _be_0)), ($Numeric$add_ordered$(_am_0, _ae_0, _bm_0, _be_0)), ($Numeric$add_ordered$(_bm_0, _be_0, _am_0, _ae_0)))))));
+}
+
+function $Numeric$plus$(_a_0, _b_0) {
+  return $Numeric$add_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
+}
+
+function $Numeric$divide_choose$(_take_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0, _rest_0) {
+  if (_take_0) {
+    return run_tail(_rest_0(($Numeric$sub$(_remainder_0, _denominator_0)))(_denominator_0)(($Numeric$add$(($Numeric$shl$(_quotient_0)), {$: "Numeric.Limb", "high": 0, "low": 1}))), _exponent_0);
+  } else {
+    return run_tail(_rest_0(_remainder_0)(_denominator_0)(($Numeric$shl$(_quotient_0))), _exponent_0);
+  }
+}
+
+function $Numeric$divide_loop$(_fuel_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0) {
+  if (_fuel_0 === 0) {
+    return $Numeric$round_finite$(($Numeric$sticky$(_quotient_0, ($Bool$not$(($Numeric$zero$(_remainder_0)))))), _exponent_0);
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    return $Numeric$divide_choose$(($Numeric$ge$(($Numeric$shl$(_remainder_0)), _denominator_0)), ($Numeric$shl$(_remainder_0)), _denominator_0, _quotient_0, _exponent_0, run_clo((_x_0) => {
+  return run_clo((_x_1) => {
+  return run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return $Numeric$divide_loop$(_rest_0, _x_0, _x_1, _x_2, _x_3);
+});
+});
+});
+}));
+  }
+}
+
+function $Numeric$divide_start$(_numerator_0, _denominator_0, _exponent_0) {
+  return $Numeric$divide_loop$(55, ($Numeric$sub$(_numerator_0, _denominator_0)), _denominator_0, {$: "Numeric.Limb", "high": 0, "low": 1}, _exponent_0);
+}
+
+function $Numeric$divide_values$(_a_0, _b_0) {
+  const _am_0 = _a_0["mantissa"];
+  const _ae_0 = _a_0["exponent"];
+  const _bm_0 = _b_0["mantissa"];
+  const _be_0 = _b_0["exponent"];
+  const _x_0 = nat_chk(_ae_0 + 3071);
+  const _x_1 = (_x_0 < _be_0 ? 0 : _x_0 - _be_0);
+  const _x_2 = ($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), 1, 0));
+  return $Bool$pick$(($Numeric$zero$(_am_0)), {$: "Numeric.Words", "high": 0, "low": 0}, run_loop($Numeric$divide_start$(($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), ($Numeric$shl$(_am_0)), _am_0)), _bm_0, (_x_1 < _x_2 ? 0 : _x_1 - _x_2))));
+}
+
+function $Numeric$divide$(_a_0, _b_0) {
+  return $Numeric$divide_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
+}
+
+function $Numeric$ordered$(_left_0, _right_0) {
+  const _lh_0 = _left_0["high"];
+  const _ll_0 = _left_0["low"];
+  const _rh_0 = _right_0["high"];
+  const _rl_0 = _right_0["low"];
+  const _x_0 = (_lh_0 < _rh_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_lh_0, _rh_0)), (_ll_0 < _rl_0)));
+  return (_x_0 || _x_1);
+}
+
+function $Numeric$integer_words$(_value_0) {
+  const _mantissa_0 = _value_0["mantissa"];
+  const _exponent_0 = _value_0["exponent"];
+  return $Numeric$encoded$(_mantissa_0, (_exponent_0 < 32 ? 0 : _exponent_0 - 32));
+}
+
+function $Numeric$draw$(_word_0) {
+  return $Numeric$integer_words$(run_loop($Numeric$normalize$(52, {$: "Numeric.Limb", "high": ($Nat$div$(_word_0, 268435456)), "low": ($Nat$mod$(_word_0, 268435456))}, 3123)));
+}
+
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
   if (_purpose_0.$ === "Ledger.ObservationDispatch") {
     return _limits_0;
@@ -12336,6 +12595,201 @@ function $OutputScenario$captured_failure_is_release$(_advice_0, _token_0, _star
   return null;
 }
 
+function $Driver$context_scope$(_event_0, _provided_0) {
+  if (_event_0.$ === "Canonical.QuietRoundTick") {
+    const _partition_0 = _event_0["partition"];
+    const _lifetime_0 = _event_0["lifetime"];
+    const _round_0 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0};
+  } else if (_event_0.$ === "Canonical.QuietRoundReset") {
+    const _partition_1 = _event_0["partition"];
+    const _lifetime_1 = _event_0["lifetime"];
+    const _round_1 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_1, "lifetime": _lifetime_1, "round": _round_1};
+  } else if (_event_0.$ === "Canonical.ClosePermitRound") {
+    const _partition_2 = _event_0["partition"];
+    const _lifetime_2 = _event_0["lifetime"];
+    const _round_2 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_2, "lifetime": _lifetime_2, "round": _round_2};
+  } else if (_event_0.$ === "Canonical.AdmitObservation") {
+    const _partition_3 = _event_0["partition"];
+    const _lifetime_3 = _event_0["lifetime"];
+    const _round_3 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_3, "lifetime": _lifetime_3, "round": _round_3};
+  } else if (_event_0.$ === "Canonical.StartObservation") {
+    const _partition_4 = _event_0["partition"];
+    const _lifetime_4 = _event_0["lifetime"];
+    const _round_4 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_4, "lifetime": _lifetime_4, "round": _round_4};
+  } else if (_event_0.$ === "Canonical.CompleteObservation") {
+    const _partition_5 = _event_0["partition"];
+    const _lifetime_5 = _event_0["lifetime"];
+    const _round_5 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_5, "lifetime": _lifetime_5, "round": _round_5};
+  } else if (_event_0.$ === "Canonical.InterruptObservation") {
+    const _partition_6 = _event_0["partition"];
+    const _lifetime_6 = _event_0["lifetime"];
+    const _round_6 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_6, "lifetime": _lifetime_6, "round": _round_6};
+  } else if (_event_0.$ === "Canonical.BeginPreparation") {
+    const _partition_7 = _event_0["partition"];
+    const _lifetime_7 = _event_0["lifetime"];
+    const _round_7 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_7, "lifetime": _lifetime_7, "round": _round_7};
+  } else if (_event_0.$ === "Canonical.BeginObservedPreparation") {
+    const _partition_8 = _event_0["partition"];
+    const _lifetime_8 = _event_0["lifetime"];
+    const _round_8 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_8, "lifetime": _lifetime_8, "round": _round_8};
+  } else if (_event_0.$ === "Canonical.InterruptPreparation") {
+    const _partition_9 = _event_0["partition"];
+    const _lifetime_9 = _event_0["lifetime"];
+    const _round_9 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_9, "lifetime": _lifetime_9, "round": _round_9};
+  } else if (_event_0.$ === "Canonical.PreparationCompleted") {
+    const _partition_10 = _event_0["partition"];
+    const _lifetime_10 = _event_0["lifetime"];
+    const _round_10 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_10, "lifetime": _lifetime_10, "round": _round_10};
+  } else if (_event_0.$ === "Canonical.StartReview") {
+    const _partition_11 = _event_0["partition"];
+    const _lifetime_11 = _event_0["lifetime"];
+    const _round_11 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_11, "lifetime": _lifetime_11, "round": _round_11};
+  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _partition_12 = _event_0["partition"];
+    const _lifetime_12 = _event_0["lifetime"];
+    const _round_12 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_12, "lifetime": _lifetime_12, "round": _round_12};
+  } else if (_event_0.$ === "Canonical.JevRequestStarted") {
+    const _partition_13 = _event_0["partition"];
+    const _lifetime_13 = _event_0["lifetime"];
+    const _round_13 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_13, "lifetime": _lifetime_13, "round": _round_13};
+  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _partition_14 = _event_0["partition"];
+    const _lifetime_14 = _event_0["lifetime"];
+    const _round_14 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_14, "lifetime": _lifetime_14, "round": _round_14};
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _partition_15 = _event_0["partition"];
+    const _lifetime_15 = _event_0["lifetime"];
+    const _round_15 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_15, "lifetime": _lifetime_15, "round": _round_15};
+  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
+    const _partition_16 = _event_0["partition"];
+    const _lifetime_16 = _event_0["lifetime"];
+    const _round_16 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_16, "lifetime": _lifetime_16, "round": _round_16};
+  } else if (_event_0.$ === "Canonical.RetireReview") {
+    const _partition_17 = _event_0["partition"];
+    const _lifetime_17 = _event_0["lifetime"];
+    const _round_17 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_17, "lifetime": _lifetime_17, "round": _round_17};
+  } else if (_event_0.$ === "Canonical.CancelReview") {
+    const _partition_18 = _event_0["partition"];
+    const _lifetime_18 = _event_0["lifetime"];
+    const _round_18 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_18, "lifetime": _lifetime_18, "round": _round_18};
+  } else if (_event_0.$ === "Canonical.ReviewObserved") {
+    const _partition_19 = _event_0["partition"];
+    const _lifetime_19 = _event_0["lifetime"];
+    const _round_19 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_19, "lifetime": _lifetime_19, "round": _round_19};
+  } else if (_event_0.$ === "Canonical.FindingCountUpdated") {
+    const _partition_20 = _event_0["partition"];
+    const _lifetime_20 = _event_0["lifetime"];
+    const _round_20 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_20, "lifetime": _lifetime_20, "round": _round_20};
+  } else if (_event_0.$ === "Canonical.QueueDispatch") {
+    const _partition_21 = _event_0["partition"];
+    const _lifetime_21 = _event_0["lifetime"];
+    const _round_21 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_21, "lifetime": _lifetime_21, "round": _round_21};
+  } else if (_event_0.$ === "Canonical.DispatchSettled") {
+    const _partition_22 = _event_0["partition"];
+    const _lifetime_22 = _event_0["lifetime"];
+    const _round_22 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_22, "lifetime": _lifetime_22, "round": _round_22};
+  } else if (_event_0.$ === "Canonical.StopPolled") {
+    const _partition_23 = _event_0["partition"];
+    const _lifetime_23 = _event_0["lifetime"];
+    const _round_23 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_23, "lifetime": _lifetime_23, "round": _round_23};
+  } else if (_event_0.$ === "Canonical.CollectionReady") {
+    const _partition_24 = _event_0["partition"];
+    const _lifetime_24 = _event_0["lifetime"];
+    const _round_24 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_24, "lifetime": _lifetime_24, "round": _round_24};
+  } else if (_event_0.$ === "Canonical.OutputStarted") {
+    const _partition_25 = _event_0["partition"];
+    const _lifetime_25 = _event_0["lifetime"];
+    const _round_25 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_25, "lifetime": _lifetime_25, "round": _round_25};
+  } else if (_event_0.$ === "Canonical.OutputTerminal") {
+    const _partition_26 = _event_0["partition"];
+    const _lifetime_26 = _event_0["lifetime"];
+    const _round_26 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_26, "lifetime": _lifetime_26, "round": _round_26};
+  } else if (_event_0.$ === "Canonical.RetirePartition") {
+    const _partition_27 = _event_0["partition"];
+    const _lifetime_27 = _event_0["lifetime"];
+    const _round_27 = _event_0["round"];
+    return {$: "Driver.ContextScope", "partition": _partition_27, "lifetime": _lifetime_27, "round": _round_27};
+  } else {
+    return {$: "Driver.ContextScope", "partition": _provided_0, "lifetime": 1, "round": 0};
+  }
+}
+
+function $Driver$with_scope$(_context_0, _scope_0) {
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const _collection_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _lease_0 = _context_0["output_lease"];
+  const _background_0 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  const _p_0 = _scope_0["partition"];
+  const _l_0 = _scope_0["lifetime"];
+  const _r_0 = _scope_0["round"];
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _candidate_0, "automatic_collection": _collection_0, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+}
+
+function $Driver$with_outcome$(_context_0, _selected_0) {
+  const _p_0 = _context_0["partition"];
+  const _l_0 = _context_0["lifetime"];
+  const _r_0 = _context_0["round"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const _collection_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _output_lease_0 = _context_0["output_lease"];
+  const _background_0 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _selected_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _candidate_0, "automatic_collection": _collection_0, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _output_lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+}
+
 function $Driver$immediate$(_event_0, _job_0) {
   return {$: "Driver.Action", "event": _event_0, "delay": 0, "candidate": {$: "None"}, "job": _job_0, "expiry_advice": {$: "None"}};
 }
@@ -12662,10 +13116,15 @@ function $Driver$handle$(_state_0, _event_0, _command_0, _context_0) {
     const _o_0 = _command_0["operation"];
     const _request_0 = _command_0["request"];
     const _delay_0 = _context_0["jev_delay"];
-    const _outcome_0 = _context_0["outcome"];
-    const _t_3 = _context_0["automatic_review"];
-    if (_t_3) {
-      return $Driver$issued_outcome$(_outcome_0, _p_3, _l_3, _r_3, _o_0, _request_0, _delay_0);
+    const _t_3 = _context_0["outcome"];
+    if (_t_3.$ === "Some") {
+      const _outcome_0 = _t_3["value"];
+      const _t_4 = _context_0["automatic_review"];
+      if (_t_4) {
+        return $Driver$issued_outcome$(_outcome_0, _p_3, _l_3, _r_3, _o_0, _request_0, _delay_0);
+      } else {
+        return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+      }
     } else {
       return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
     }
@@ -12677,8 +13136,8 @@ function $Driver$handle$(_state_0, _event_0, _command_0, _context_0) {
     const _credential_0 = _context_0["credential_ready"];
     const _generation_0 = _context_0["credential_generation"];
     const _readable_0 = _context_0["source_readable"];
-    const _t_4 = _context_0["automatic_collection"];
-    if (_t_4) {
+    const _t_5 = _context_0["automatic_collection"];
+    if (_t_5) {
       const _background_0 = _context_0["background"];
       return $Driver$eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$collection_surface$(_background_0)));
     } else {
@@ -12695,16 +13154,16 @@ function $Driver$handle$(_state_0, _event_0, _command_0, _context_0) {
     return $Driver$suppress$(_candidate_2);
   } else if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
     const _candidate_3 = _context_0["candidate"];
-    const _t_5 = _context_0["automatic_output"];
-    if (_t_5) {
+    const _t_6 = _context_0["automatic_output"];
+    if (_t_6) {
       return $Driver$reserve$(_candidate_3);
     } else {
       return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
     }
   } else if (_command_0.$ === "Canonical.SubmissionAuthorized") {
     const _p_4 = _context_0["partition"];
-    const _t_6 = _context_0["automatic_output"];
-    if (_t_6) {
+    const _t_7 = _context_0["automatic_output"];
+    if (_t_7) {
       const _certain_0 = _context_0["output_certain"];
       const _delay_1 = _context_0["output_delay"];
       const _lease_0 = _context_0["output_lease"];
@@ -12714,8 +13173,8 @@ function $Driver$handle$(_state_0, _event_0, _command_0, _context_0) {
     }
   } else if (_command_0.$ === "Canonical.SubmissionBegun") {
     const _p_5 = _context_0["partition"];
-    const _t_7 = _context_0["automatic_output"];
-    if (_t_7) {
+    const _t_8 = _context_0["automatic_output"];
+    if (_t_8) {
       const _certain_2 = _context_0["output_certain"];
       const _delay_3 = _context_0["output_delay"];
       const _lease_2 = _context_0["output_lease"];
@@ -24025,265 +24484,6 @@ function $AdviceeScope$command$(_before_0, _after_0, _value_0, _provided_0) {
   return $AdviceeScope$resolve$(_before_0, _after_0, ($AdviceeScope$command_reference$(_value_0)), _provided_0);
 }
 
-function $Numeric$high$(_value_0) {
-  const _high_0 = _value_0["high"];
-  return _high_0;
-}
-
-function $Numeric$low$(_value_0) {
-  const _low_0 = _value_0["low"];
-  return _low_0;
-}
-
-function $Numeric$zero$(_value_0) {
-  return $Bool$and$(($Nat$is_eq$(($Numeric$high$(_value_0)), 0)), ($Nat$is_eq$(($Numeric$low$(_value_0)), 0)));
-}
-
-function $Numeric$greater$(_a_0, _b_0) {
-  const _x_0 = ($Nat$is_gt$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0))));
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0)))), ($Nat$is_gt$(($Numeric$low$(_a_0)), ($Numeric$low$(_b_0))))));
-  return (_x_0 || _x_1);
-}
-
-function $Numeric$ge$(_a_0, _b_0) {
-  return $Bool$not$(($Numeric$greater$(_b_0, _a_0)));
-}
-
-function $Numeric$add_parts$(_ah_0, _bh_0, _lo_0) {
-  const _x_0 = nat_chk(_ah_0 + _bh_0);
-  const _x_1 = ($Nat$div$(_lo_0, 268435456));
-  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(_lo_0, 268435456))};
-}
-
-function $Numeric$add$(_a_0, _b_0) {
-  const _ah_0 = _a_0["high"];
-  const _al_0 = _a_0["low"];
-  const _bh_0 = _b_0["high"];
-  const _bl_0 = _b_0["low"];
-  return $Numeric$add_parts$(_ah_0, _bh_0, nat_chk(_al_0 + _bl_0));
-}
-
-function $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0) {
-  const _x_0 = (_ah_0 < _bh_0 ? 0 : _ah_0 - _bh_0);
-  const _x_1 = ($Bool$pick$((_al_0 < _bl_0), 1, 0));
-  const _x_2 = nat_chk(_al_0 + 268435456);
-  return {$: "Numeric.Limb", "high": (_x_0 < _x_1 ? 0 : _x_0 - _x_1), "low": ($Nat$mod$((_x_2 < _bl_0 ? 0 : _x_2 - _bl_0), 268435456))};
-}
-
-function $Numeric$sub$(_a_0, _b_0) {
-  const _ah_0 = _a_0["high"];
-  const _al_0 = _a_0["low"];
-  const _bh_0 = _b_0["high"];
-  const _bl_0 = _b_0["low"];
-  return $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0);
-}
-
-function $Numeric$shl$(_value_0) {
-  const _high_0 = _value_0["high"];
-  const _low_0 = _value_0["low"];
-  const _x_0 = nat_chk(_high_0 * 2);
-  const _x_1 = ($Nat$div$(_low_0, 134217728));
-  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(nat_chk(_low_0 * 2), 268435456))};
-}
-
-function $Numeric$shr$(_value_0) {
-  const _high_0 = _value_0["high"];
-  const _low_0 = _value_0["low"];
-  const _x_0 = ($Nat$mod$(_high_0, 2));
-  const _x_1 = ($Nat$div$(_low_0, 2));
-  const _x_2 = nat_chk(_x_0 * 134217728);
-  return {$: "Numeric.Limb", "high": ($Nat$div$(_high_0, 2)), "low": nat_chk(_x_1 + _x_2)};
-}
-
-function $Numeric$sticky$(_value_0, _bit_0) {
-  const _high_0 = _value_0["high"];
-  const _low_0 = _value_0["low"];
-  const _x_0 = ($Bool$pick$(($Bool$and$(_bit_0, ($Nat$is_eq$(($Nat$mod$(_low_0, 2)), 0)))), 1, 0));
-  return {$: "Numeric.Limb", "high": _high_0, "low": nat_chk(_low_0 + _x_0)};
-}
-
-function $Numeric$shr_sticky$(_value_0) {
-  return $Numeric$sticky$(($Numeric$shr$(_value_0)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 2)), 1)));
-}
-
-function $Numeric$shift_right$($0, $1) {
-  for (;;) {
-    {
-      const _count_0 = $0;
-      const _value_0 = $1;
-      if (_count_0 === 0) {
-        return _value_0;
-      } else {
-        const _rest_0 = (_count_0 - 1);
-        $0 = _rest_0;
-        $1 = ($Numeric$shr_sticky$(_value_0));
-        continue;
-      }
-    }
-  }
-}
-
-function $Numeric$bounded_shift$(_count_0, _value_0) {
-  return $Numeric$shift_right$(($Bool$pick$(($Nat$is_gt$(_count_0, 56)), 56, _count_0)), _value_0);
-}
-
-function $Numeric$normalize_step$(_done_0, _value_0, _exponent_0, _rest_0) {
-  if (_done_0) {
-    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
-  } else {
-    return run_tail(_rest_0(($Numeric$shl$(_value_0))), (_exponent_0 < 1 ? 0 : _exponent_0 - 1));
-  }
-}
-
-function $Numeric$normalize$(_fuel_0, _value_0, _exponent_0) {
-  if (_fuel_0 === 0) {
-    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
-  } else {
-    const _rest_0 = (_fuel_0 - 1);
-    const _x_0 = ($Numeric$zero$(_value_0));
-    const _x_1 = ($Nat$is_ge$(($Numeric$high$(_value_0)), 16777216));
-    return $Numeric$normalize_step$((_x_0 || _x_1), _value_0, _exponent_0, run_clo((_x_2) => {
-  return run_clo((_x_3) => {
-  return $Numeric$normalize$(_rest_0, _x_2, _x_3);
-});
-}));
-  }
-}
-
-function $Numeric$decoded$(_high_0, _low_0) {
-  const _x_0 = ($Nat$mod$(_high_0, 1048576));
-  const _x_1 = nat_chk(_x_0 * 16);
-  const _x_2 = ($Nat$div$(_low_0, 268435456));
-  const _x_3 = nat_chk(_x_1 + _x_2);
-  const _x_4 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 0, 16777216));
-  const _x_5 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 1, ($Nat$div$(_high_0, 1048576))));
-  return $Numeric$normalize$(52, {$: "Numeric.Limb", "high": nat_chk(_x_3 + _x_4), "low": ($Nat$mod$(_low_0, 268435456))}, nat_chk(2048 + _x_5));
-}
-
-function $Numeric$decode$(_words_0) {
-  const _high_0 = _words_0["high"];
-  const _low_0 = _words_0["low"];
-  return $Numeric$decoded$(_high_0, _low_0);
-}
-
-function $Numeric$encoded$(_mantissa_0, _exponent_0) {
-  const _x_0 = ($Numeric$high$(_mantissa_0));
-  const _x_1 = ($Numeric$zero$(_mantissa_0));
-  const _x_2 = (_x_0 < 16777216);
-  const _x_3 = ($Bool$pick$((_x_1 || _x_2), 0, (_exponent_0 < 2048 ? 0 : _exponent_0 - 2048)));
-  const _x_4 = nat_chk(_x_3 * 1048576);
-  const _x_5 = ($Nat$mod$(($Nat$div$(($Numeric$high$(_mantissa_0)), 16)), 1048576));
-  const _x_6 = ($Nat$mod$(($Numeric$high$(_mantissa_0)), 16));
-  const _x_7 = nat_chk(_x_6 * 268435456);
-  const _x_8 = ($Numeric$low$(_mantissa_0));
-  return {$: "Numeric.Words", "high": nat_chk(_x_4 + _x_5), "low": nat_chk(_x_7 + _x_8)};
-}
-
-function $Numeric$increment$(_value_0) {
-  return $Numeric$add$(_value_0, {$: "Numeric.Limb", "high": 0, "low": 1});
-}
-
-function $Numeric$rounded_parts$(_mantissa_0, _exponent_0) {
-  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), 1, 0));
-  return $Numeric$encoded$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), ($Numeric$shr$(_mantissa_0)), _mantissa_0)), nat_chk(_exponent_0 + _x_0));
-}
-
-function $Numeric$rounded$(_value_0, _exponent_0) {
-  const _base_0 = ($Numeric$shr$(($Numeric$shr$(($Numeric$shr$(_value_0))))));
-  const _x_0 = ($Nat$is_gt$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4));
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_base_0)), 2)), 1))));
-  return $Numeric$rounded_parts$(($Bool$pick$((_x_0 || _x_1), ($Numeric$increment$(_base_0)), _base_0)), _exponent_0);
-}
-
-function $Numeric$round_finite$(_value_0, _exponent_0) {
-  return $Numeric$rounded$(($Bool$pick$((_exponent_0 < 2049), ($Numeric$bounded_shift$((2049 < _exponent_0 ? 0 : 2049 - _exponent_0), _value_0)), _value_0)), ($Bool$pick$((_exponent_0 < 2049), 2049, _exponent_0)));
-}
-
-function $Numeric$add_aligned$(_sum_0, _exponent_0) {
-  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), 1, 0));
-  return $Numeric$round_finite$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), ($Numeric$shr_sticky$(_sum_0)), _sum_0)), nat_chk(_exponent_0 + _x_0));
-}
-
-function $Numeric$add_ordered$(_a_0, _ae_0, _b_0, _be_0) {
-  return $Numeric$add_aligned$(($Numeric$add$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_a_0)))))), ($Numeric$bounded_shift$((_ae_0 < _be_0 ? 0 : _ae_0 - _be_0), ($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_b_0)))))))))), _ae_0);
-}
-
-function $Numeric$add_values$(_a_0, _b_0) {
-  const _am_0 = _a_0["mantissa"];
-  const _ae_0 = _a_0["exponent"];
-  const _bm_0 = _b_0["mantissa"];
-  const _be_0 = _b_0["exponent"];
-  return $Bool$pick$(($Numeric$zero$(_am_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_bm_0)))))), _be_0)), ($Bool$pick$(($Numeric$zero$(_bm_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_am_0)))))), _ae_0)), ($Bool$pick$(($Nat$is_ge$(_ae_0, _be_0)), ($Numeric$add_ordered$(_am_0, _ae_0, _bm_0, _be_0)), ($Numeric$add_ordered$(_bm_0, _be_0, _am_0, _ae_0)))))));
-}
-
-function $Numeric$plus$(_a_0, _b_0) {
-  return $Numeric$add_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
-}
-
-function $Numeric$divide_choose$(_take_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0, _rest_0) {
-  if (_take_0) {
-    return run_tail(_rest_0(($Numeric$sub$(_remainder_0, _denominator_0)))(_denominator_0)(($Numeric$add$(($Numeric$shl$(_quotient_0)), {$: "Numeric.Limb", "high": 0, "low": 1}))), _exponent_0);
-  } else {
-    return run_tail(_rest_0(_remainder_0)(_denominator_0)(($Numeric$shl$(_quotient_0))), _exponent_0);
-  }
-}
-
-function $Numeric$divide_loop$(_fuel_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0) {
-  if (_fuel_0 === 0) {
-    return $Numeric$round_finite$(($Numeric$sticky$(_quotient_0, ($Bool$not$(($Numeric$zero$(_remainder_0)))))), _exponent_0);
-  } else {
-    const _rest_0 = (_fuel_0 - 1);
-    return $Numeric$divide_choose$(($Numeric$ge$(($Numeric$shl$(_remainder_0)), _denominator_0)), ($Numeric$shl$(_remainder_0)), _denominator_0, _quotient_0, _exponent_0, run_clo((_x_0) => {
-  return run_clo((_x_1) => {
-  return run_clo((_x_2) => {
-  return run_clo((_x_3) => {
-  return $Numeric$divide_loop$(_rest_0, _x_0, _x_1, _x_2, _x_3);
-});
-});
-});
-}));
-  }
-}
-
-function $Numeric$divide_start$(_numerator_0, _denominator_0, _exponent_0) {
-  return $Numeric$divide_loop$(55, ($Numeric$sub$(_numerator_0, _denominator_0)), _denominator_0, {$: "Numeric.Limb", "high": 0, "low": 1}, _exponent_0);
-}
-
-function $Numeric$divide_values$(_a_0, _b_0) {
-  const _am_0 = _a_0["mantissa"];
-  const _ae_0 = _a_0["exponent"];
-  const _bm_0 = _b_0["mantissa"];
-  const _be_0 = _b_0["exponent"];
-  const _x_0 = nat_chk(_ae_0 + 3071);
-  const _x_1 = (_x_0 < _be_0 ? 0 : _x_0 - _be_0);
-  const _x_2 = ($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), 1, 0));
-  return $Bool$pick$(($Numeric$zero$(_am_0)), {$: "Numeric.Words", "high": 0, "low": 0}, run_loop($Numeric$divide_start$(($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), ($Numeric$shl$(_am_0)), _am_0)), _bm_0, (_x_1 < _x_2 ? 0 : _x_1 - _x_2))));
-}
-
-function $Numeric$divide$(_a_0, _b_0) {
-  return $Numeric$divide_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
-}
-
-function $Numeric$ordered$(_left_0, _right_0) {
-  const _lh_0 = _left_0["high"];
-  const _ll_0 = _left_0["low"];
-  const _rh_0 = _right_0["high"];
-  const _rl_0 = _right_0["low"];
-  const _x_0 = (_lh_0 < _rh_0);
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(_lh_0, _rh_0)), (_ll_0 < _rl_0)));
-  return (_x_0 || _x_1);
-}
-
-function $Numeric$integer_words$(_value_0) {
-  const _mantissa_0 = _value_0["mantissa"];
-  const _exponent_0 = _value_0["exponent"];
-  return $Numeric$encoded$(_mantissa_0, (_exponent_0 < 32 ? 0 : _exponent_0 - 32));
-}
-
-function $Numeric$draw$(_word_0) {
-  return $Numeric$integer_words$(run_loop($Numeric$normalize$(52, {$: "Numeric.Limb", "high": ($Nat$div$(_word_0, 268435456)), "low": ($Nat$mod$(_word_0, 268435456))}, 3123)));
-}
-
 function $Session$state_random$(_s_0) {
   const _random_0 = _s_0["random"];
   return _random_0;
@@ -27019,6 +27219,96 @@ function $sample_outcome$(_state_0, _weights_0) {
   return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0, _lifecycles_0, _preparations_0, _activity_scopes_0, _scenarios_0);
 }
 
+function $outcome_stream$(_state_0) {
+  const _random_0 = _state_0["random"];
+  return $Random$outcomes$(_random_0);
+}
+
+function $outcome_variant$(_value_0) {
+  if (_value_0 === 0) {
+    return {$: "Some", "value": {$: "Canonical.NeverSent"}};
+  } else if (_value_0 === 1) {
+    return {$: "Some", "value": {$: "Canonical.RequestFinding"}};
+  } else if (_value_0 === 2) {
+    return {$: "Some", "value": {$: "Canonical.RequestClear"}};
+  } else if (_value_0 === 3) {
+    return {$: "Some", "value": {$: "Canonical.RequestBackendFailure"}};
+  } else if (_value_0 === 4) {
+    return {$: "Some", "value": {$: "Canonical.RequestTimeout"}};
+  } else if (_value_0 === 5) {
+    return {$: "Some", "value": {$: "Canonical.RequestInterrupted"}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $source_outcome$(_job_0) {
+  if (_job_0.$ === "Some") {
+    const _t_0 = _job_0["value"];
+    const _outcome_0 = _t_0["outcome"];
+    return _outcome_0;
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $prepared_outcome$(_state_0, _command_0, _job_0, _selected_0, _source_0, _before_0, _after_0, _context_0) {
+  if (_command_0.$ === "Canonical.JevRequestIssued") {
+    const _p_0 = _command_0["partition"];
+    const _l_0 = _command_0["lifetime"];
+    const _r_0 = _command_0["round"];
+    const _o_0 = _command_0["operation"];
+    const _request_0 = _command_0["request"];
+    if (_selected_0.$ === "Some") {
+      const _outcome_0 = _selected_0["value"];
+      return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$with_outcome$(_context_0, {$: "Some", "value": _outcome_0})), "receipt": {$: "Some", "value": {$: "Driver.OutcomeReceipt", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "source": _source_0, "job": _job_0, "stream_before": _before_0, "stream_after": _after_0}}};
+    } else {
+      return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$with_outcome$(_context_0, {$: "None"})), "receipt": {$: "None"}};
+    }
+  } else {
+    return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$with_outcome$(_context_0, {$: "None"})), "receipt": {$: "None"}};
+  }
+}
+
+function $prepared_sample$(_sample_0, _command_0, _job_0, _context_0, _before_0) {
+  const _state_0 = _sample_0["state"];
+  const _index_0 = _sample_0["outcome"];
+  return $prepared_outcome$(_state_0, _command_0, _job_0, ($outcome_variant$(_index_0)), {$: "Driver.Sampled"}, {$: "Some", "value": _before_0}, {$: "Some", "value": ($outcome_stream$(_state_0))}, _context_0);
+}
+
+function $prepared_environment$(_configured_0, _weights_0, _state_0, _command_0, _job_0, _context_0) {
+  if (_configured_0.$ === "Some") {
+    const _outcome_0 = _configured_0["value"];
+    return $prepared_outcome$(_state_0, _command_0, _job_0, {$: "Some", "value": _outcome_0}, {$: "Driver.RunForced"}, {$: "None"}, {$: "None"}, _context_0);
+  } else {
+    return $prepared_sample$(($sample_outcome$(_state_0, _weights_0)), _command_0, _job_0, _context_0, ($outcome_stream$(_state_0)));
+  }
+}
+
+function $prepared_source$(_override_0, _environment_0, _state_0, _command_0, _job_0, _context_0) {
+  if (_override_0.$ === "Some") {
+    const _outcome_0 = _override_0["value"];
+    return $prepared_outcome$(_state_0, _command_0, _job_0, {$: "Some", "value": _outcome_0}, {$: "Driver.EditForced"}, {$: "None"}, {$: "None"}, _context_0);
+  } else {
+    const _configured_0 = _environment_0["outcome"];
+    const _weights_0 = _environment_0["weights"];
+    return $prepared_environment$(_configured_0, _weights_0, _state_0, _command_0, _job_0, _context_0);
+  }
+}
+
+function $prepare_command_context$(_state_0, _command_0, _source_job_0, _environment_0, _context_0) {
+  if (_command_0.$ === "Canonical.JevRequestIssued") {
+    const __0 = _command_0["partition"];
+    const __1 = _command_0["lifetime"];
+    const __2 = _command_0["round"];
+    const __3 = _command_0["operation"];
+    const __4 = _command_0["request"];
+    return $prepared_source$(($source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "Canonical.JevRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "request": __4}, _source_job_0, _context_0);
+  } else {
+    return {$: "PreparedCommandContext", "state": _state_0, "context": _context_0, "receipt": {$: "None"}};
+  }
+}
+
 function $numeric_add$(_a_0, _b_0) {
   return $Numeric$plus$(_a_0, _b_0);
 }
@@ -27644,6 +27934,10 @@ function $lifecycle_action$(_state_0, _partition_0, _action_0) {
 
 function $permit_issue$(_capture_0, _now_0) {
   return $PermitScenario$issue$(_capture_0, _now_0);
+}
+
+function $permit_issue_action$(_capture_0, _started_0, _now_0) {
+  return {$: "Driver.Action", "event": ($PermitScenario$issue$(_capture_0, _started_0)), "delay": (_started_0 < _now_0 ? 0 : _started_0 - _now_0), "candidate": {$: "None"}, "job": true, "expiry_advice": {$: "None"}};
 }
 
 function $permit_issued$(_capture_0, _token_0) {
@@ -28895,12 +29189,20 @@ function $Nat$is_gt$(_a_0, _b_0) {
   return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
 }
 
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+function $Nat$div$(_a_0, _b_0) {
+  return $Pair$fst$(nat_divmod(_a_0, _b_0));
+}
+
+function $Nat$mod$(_a_0, _b_0) {
+  return $Pair$snd$(nat_divmod(_a_0, _b_0));
 }
 
 function $Nat$is_ge$(_a_0, _b_0) {
   return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
+}
+
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
 function $List$is_empty$(_xs_0) {
@@ -28923,14 +29225,6 @@ function $Maybe$is_some$(_m_0) {
   }
 }
 
-function $Nat$div$(_a_0, _b_0) {
-  return $Pair$fst$(nat_divmod(_a_0, _b_0));
-}
-
-function $Nat$mod$(_a_0, _b_0) {
-  return $Pair$snd$(nat_divmod(_a_0, _b_0));
-}
-
 function $List$reverse$(_xs_0) {
   return $List$reverse$go$(_xs_0, {$: "Nil"});
 }
@@ -28951,12 +29245,14 @@ function $Cmp$is_gt$(_c_0) {
   }
 }
 
-function $Cmp$is_le$(_c_0) {
-  if (_c_0.$ === "GT") {
-    return false;
-  } else {
-    return true;
-  }
+function $Pair$fst$(_p_0) {
+  const _a_0 = _p_0["fst"];
+  return _a_0;
+}
+
+function $Pair$snd$(_p_0) {
+  const _b_0 = _p_0["snd"];
+  return _b_0;
 }
 
 function $Cmp$is_ge$(_c_0) {
@@ -28967,14 +29263,12 @@ function $Cmp$is_ge$(_c_0) {
   }
 }
 
-function $Pair$fst$(_p_0) {
-  const _a_0 = _p_0["fst"];
-  return _a_0;
-}
-
-function $Pair$snd$(_p_0) {
-  const _b_0 = _p_0["snd"];
-  return _b_0;
+function $Cmp$is_le$(_c_0) {
+  if (_c_0.$ === "GT") {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 function $List$reverse$go$($0, $1) {
@@ -29046,7 +29340,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4c4af362bd4c57e958bab629128b8f1bdd175d799e5b66eb9f5a4c626d363d7d";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:aba0cb19baf07307c847daca5c4f98ce385cb8b771d4e5c11773219c78553937";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
@@ -29146,7 +29440,7 @@ export default {
  activity_valid: (state, partition, incarnation) => run_loop($activity_valid$(state, facts(partition), facts(incarnation))),
  activity_lifetime: (state, partition) => run_loop($activity_lifetime$(state, facts(partition))),
  activity_edit: (state, partition, incarnation) => run_loop($activity_edit$(state, facts(partition), facts(incarnation))),
- permit_issue: (capture, now) => run_loop($permit_issue$(facts(capture), facts(now))),
+ permit_issue_action: (capture,started,now) => run_loop($permit_issue_action$(facts(capture),facts(started),facts(now))),
  permit_issued: (capture, token) => run_loop($permit_issued$(facts(capture), facts(token))),
  permit_consumed: (state, command, partition, lifetime) => run_loop($permit_consumed$(state, facts(command), facts(partition), facts(lifetime))),
  preparation_active: (state, partition, lifetime, round, operation) => run_loop($preparation_active$(state, facts(partition), facts(lifetime), facts(round), facts(operation))),
@@ -29172,6 +29466,7 @@ export default {
  step: (state, event) => run_loop($step$(state, facts(event))),
  canonical: state => run_loop($canonical$(state)),
  graph_step: (state, key, position, limits, event) => run_loop($graph_step$(state, facts(key), facts(position), facts(limits), facts(event))),
+ prepare_command_context: (state,command,source_job,environment,context) => run_loop($prepare_command_context$(state,command,facts(source_job),facts(environment),facts(context))),
  handle: (state, event, command, context) => run_loop($handle$(state, facts(event), command, facts(context))),
  edit: (state, partition, lifetime) => run_loop($edit$(state, facts(partition), facts(lifetime))),
  preparation_completed: (partition, lifetime, round, operation, units, delay) => run_loop($preparation_completed$(facts(partition), facts(lifetime), facts(round), facts(operation), facts(units), facts(delay))),
@@ -29190,7 +29485,6 @@ export default {
  workload_valid: (state, partition, generation, recurring) => run_loop($workload_valid$(state, facts(partition), facts(generation), recurring)),
  workload_duration: (state, partition, fallback) => run_loop($workload_duration$(state, facts(partition), facts(fallback))),
  pre_timing: (state, partition, provided, fallback, lifetime) => run_loop($pre_timing$(state, facts(partition), facts(provided), facts(fallback), facts(lifetime))),
- sample_outcome: (state, weights) => run_loop($sample_outcome$(state, facts(weights))),
  numeric_add: (a, b) => run_loop($numeric_add$(facts(a), facts(b))),
  numeric_divide: (a, b) => run_loop($numeric_divide$(facts(a), facts(b))),
  random_initial: seed => run_loop($random_initial$(facts(seed))),
