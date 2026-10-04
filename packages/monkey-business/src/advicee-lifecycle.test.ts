@@ -249,7 +249,7 @@ const lifecycleEventCodes: Record<string, number> = { openRound: 1, admitObserva
   dispatchSettled: 8, startReview: 9, jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12,
   collectionReady: 13, finalCandidateCheck: 14, submissionSuppressCheck: 15, collectionReserveLease: 16,
   submissionBegin: 17, submissionTerminal: 18, collectionLeaseCheck: 19, collectionReleaseLease: 20,
-  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25, stopPolled: 26, retirePartition: 27, discardDispatch: 28, closePermitRound: 29, forgetAdmission: 30, stopGroupEnded: 31 };
+  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25, stopPolled: 26, retirePartition: 27, discardDispatch: 28, closePermitRound: 29, forgetAdmission: 30, cacheDiscardPartition: 31 };
 const lifecycleCommandCodes: Record<string, number> = { roundStarted: 1, observationAdmitted: 2,
   dispatchStarted: 3, prepare: 4, unitAdmitted: 5, jevRequestIssued: 6, retainFinding: 7,
   collectionEligible: 8, retainCandidate: 9, submissionUnsuppressed: 10, collectionLeaseReserved: 11,
@@ -257,7 +257,7 @@ const lifecycleCommandCodes: Record<string, number> = { roundStarted: 1, observa
   observationCompleted: 16, reviewStarted: 17, jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19,
   reservationReleased: 20, collectionLeaseKept: 21, collectionLeaseReleased: 22, settleClear: 23,
   reviewRecorded: 24, retireCandidate: 25, releaseCandidate: 26, collectionAdviceRetired: 27,
-  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30, jevObservationIgnored: 31, finishReady: 32, cancelWork: 33, partitionRetired: 34, dispatchDiscarded: 35, permitRoundClosed: 36, permitReleased: 37, admissionForgotten: 38, stopEnded: 39 };
+  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30, jevObservationIgnored: 31, finishReady: 32, cancelWork: 33, partitionRetired: 34, dispatchDiscarded: 35, permitRoundClosed: 36, permitReleased: 37, admissionForgotten: 38, cacheDiscarded: 39 };
 const lifecycleGraphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
 function lifecycleRow(frame: Observation): number[] {
   const p = frame.after;
@@ -288,7 +288,8 @@ function lifecycleRow(frame: Observation): number[] {
       : ["dispatchStarted", "prepare", "unitAdmitted", "cancelWork", "dispatchDiscarded"].includes(command.kind) ? value.operation
         : command.kind === "jevRequestIssued" ? value.request : ["permitRoundClosed", "partitionRetired"].includes(command.kind) ? value.round : 0;
     if (lifecycleCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`);
-    return [lifecycleCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, Number(id ?? 0)];
+    const commandId = command.kind === "cacheDiscarded" ? ((value.ids as number[])[0] ?? 0) : Number(id ?? 0);
+    return [lifecycleCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, commandId];
   });
   return [lifecycleEventCodes[frame.event.kind] ?? 99, frame.time, frame.partition ?? 0, ...identity, ...facts, ...counts,
     Number(!!frame.rejection), ...commands];

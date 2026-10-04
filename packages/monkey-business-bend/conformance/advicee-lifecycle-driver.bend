@@ -214,6 +214,7 @@ def command_code(command: Canonical.Command) -> Nat:
 
 def command_id(command: Canonical.Command) -> Nat:
   match command:
+    case Canonical.CacheDiscarded{ids}: Minimal.first(ids)
     case Canonical.PartitionRetired{id}: id
     case Canonical.DispatchDiscarded{id, _}: id
     case Canonical.PermitRoundClosed{id}: id
