@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const LIMIT = 16 * 1024 * 1024;
 const hash = file => createHash("sha256").update(readFileSync(file)).digest("hex");
 function checked(command, args, timeout) {
-  const result = spawnSync(command,args,{encoding:"utf8",timeout,maxBuffer:LIMIT,
+  const result = spawnSync(command,args,{encoding:"utf8",timeout,killSignal:"SIGKILL",maxBuffer:LIMIT,
     env:{...process.env,BEND_NO_TELEMETRY:"1"}});
   if(result.error || result.status !== 0) throw new Error(`${command}: ${result.error?.code ?? result.status}: ${result.stderr}`);
   return result.stdout;
