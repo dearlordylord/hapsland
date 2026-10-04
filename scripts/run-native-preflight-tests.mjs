@@ -1,3 +1,5 @@
+// Explicit native acceptance phase: freshly compile the full registry before
+// running its comparisons. Ordinary Vitest and quality coverage bypass this phase.
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";

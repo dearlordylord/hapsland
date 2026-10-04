@@ -70,6 +70,25 @@ These source-checkout diagnostics do not amend the original comparison cell or
 establish a general delivery guarantee. The investigation made four physical Jev
 requests across its two live runs.
 
+## Native compilation phase
+
+Ordinary `npm test` and `npm run quality:check` invoke Vitest directly after the
+maintained configuration, artifact, authority, boundary and progress checks,
+including the shared Engine `build.mjs --check`. They do not compile the entire
+native fixture registry before an unrelated test can start. Native tests still
+compile their actual fixture freshly when they run without a preflight session;
+a source, emitted-JavaScript or coverage pass does not establish native agreement.
+
+At a declared native acceptance phase, run `npm run test:native:preflight`.
+The [native phase runner](../scripts/run-native-preflight-tests.mjs) freshly
+compiles the registered fixtures serially, passes the authenticated manifest to
+Vitest and removes its owned artifacts after the suite. Arguments after `--`
+are forwarded to Vitest, for example a native test file. The preflight manifest
+validates current sources, compiler identities, flags, deadlines and artifacts;
+it does not permit stale binaries or replace a test's comparison assertions.
+The [Run conformance runner](../scripts/run-native-run-conformance.mjs) retains
+its separate fresh compilation phase for its seven original Run fixtures.
+
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
