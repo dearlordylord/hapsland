@@ -875,30 +875,39 @@ def output_command_capture(state: T.State, event: Canonical.CanonicalEvent, comm
     case Canonical.SubmissionAuthorized{}: authorized_event_capture(state,event)
     case _: None{}
 
-def output_unhandled(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>, actions: List<&2,Driver.Action>) -> T.State:
-  match capture:
-    case Some{+capture}: issue_prepared_output(state,Driver.output_actions(OutputScenario.issued(capture)),job,capsule,Some{capture})
-    case None{}: issue_prepared(state,actions,job,capsule)
+def source_output_issued(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionContext,
+    source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>, capture: Maybe<&2,OutputScenario.Capture>, issued: Engine.IssuedActions) -> T.State:
+  match issued:
+    case Engine.IssuedActions{updated,actions}: context_actions(actions,replace_core(state,updated),job,Some{capsule},source_jobs,capture)
 
-def ordinary_handled(state: T.State, job: Maybe<&2,T.Job>, result: Driver.Handled, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+def issue_source_prepared_output(+state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>,
+    capsule: T.EmissionContext, source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+  source_output_issued(state,job,capsule,source_jobs,capture,Engine.issue_actions(core(state),actions))
+
+def output_unhandled(state: T.State, job: Maybe<&2,T.Job>, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>, actions: List<&2,Driver.Action>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
+  match capture:
+    case Some{+capture}: issue_source_prepared_output(state,Driver.output_actions(OutputScenario.issued(capture)),job,capsule,source_jobs,Some{capture})
+    case None{}: issue_source_prepared_output(state,actions,job,capsule,source_jobs,None{})
+
+def ordinary_handled(state: T.State, job: Maybe<&2,T.Job>, result: Driver.Handled, capsule: T.EmissionContext, capture: Maybe<&2,OutputScenario.Capture>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match result:
-    case Driver.Handled{True{},actions}: issue_prepared_output(state,actions,job,capsule,capture)
-    case Driver.Handled{False{},actions}: output_unhandled(state,job,capsule,capture,actions)
+    case Driver.Handled{True{},actions}: issue_source_prepared_output(state,actions,job,capsule,source_jobs,capture)
+    case Driver.Handled{False{},actions}: output_unhandled(state,job,capsule,capture,actions,source_jobs)
 
 def collector_handled(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
-    +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, changed: Engine.CollectorHandled) -> T.State:
+    +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, changed: Engine.CollectorHandled, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match changed:
     case Engine.CollectorHandled{updated,Driver.Handled{True{},actions}}:
-      append_prepared(replace_core(state,updated),actions,job,T.EmissionContext{prepared,receipt})
+      context_actions(actions,replace_core(state,updated),job,Some{T.EmissionContext{prepared,receipt}},source_jobs,None{})
     case Engine.CollectorHandled{updated,_}:
       +replaced = replace_core(state,updated)
       ordinary_handled(replaced,job,Engine.handle(core(replaced),action_event(action),command,prepared),T.EmissionContext{prepared,receipt},
-        output_command_capture(replaced,action_event(action),command))
+        output_command_capture(replaced,action_event(action),command),source_jobs)
 
 def handle_prepared(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
-    +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>) -> T.State:
+    +command: Canonical.Command, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   collector_handled(state,action,job,command,prepared,receipt,
-    Engine.collector_command(core(state),action_event(action),command,prepared))
+    Engine.collector_command(core(state),action_event(action),command,prepared),source_jobs)
 
 def prepare_job(state: T.State, job: Maybe<&2, T.Job>, operation: Nat) -> T.State:
   match job:
@@ -916,23 +925,28 @@ def finish_attempt(finish: StopScenario.Finish) -> Nat:
 def finish_scopes(state: T.State) -> List<&2, StopScenario.Finish>:
   Engine.stop_entries(core(state))
 
-def finish_input(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action, +finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>) -> T.State:
+def finish_source_job(job: T.Job, source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.Job:
+  match job:
+    case T.Job{p,l,r,bytes,units,revision,repair,duration,_}:
+      T.Job{p,l,r,bytes,units,revision,repair,duration,source_job_one(source_jobs)}
+
+def finish_input(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action, +finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match valid:
-    case True{}: callback_register(enqueue(state,time,T.FinishInput{action,finish_job(finish),finish_attempt(finish),source}),next_order(state),time,action,None{})
+    case True{}: callback_register(enqueue(state,time,T.FinishInput{action,finish_source_job(finish_job(finish),source_jobs),finish_attempt(finish),source}),next_order(state),time,action,None{})
     case False{}: invalid(state)
 
-def finish_action(+state: T.State, +action: Driver.Action, finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>) -> T.State:
+def finish_action(+state: T.State, +action: Driver.Action, finish: StopScenario.Finish, source: Maybe<&2,T.EmissionContext>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   +now = clock(state)
   +delay = action_delay(action)
-  finish_input(Nat.is_le(delay, Nat.sub(maximum(), now)), state, Nat.add(now, delay), action, finish,source)
+  finish_input(Nat.is_le(delay, Nat.sub(maximum(), now)), state, Nat.add(now, delay), action, finish,source,source_jobs)
 
-def finish_actions_context(actions: List<&2, Driver.Action>, state: T.State, +finish: StopScenario.Finish, +source: Maybe<&2,T.EmissionContext>) -> T.State:
+def finish_actions_context(actions: List<&2, Driver.Action>, state: T.State, +finish: StopScenario.Finish, +source: Maybe<&2,T.EmissionContext>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match actions:
     case Nil{}: state
-    case action <> tail: finish_actions_context(tail, finish_action(state, action, finish,source), finish,source)
+    case action <> tail: finish_actions_context(tail, finish_action(state, action, finish,source,source_jobs), finish,source,source_jobs)
 
 def finish_actions(actions: List<&2,Driver.Action>, state: T.State, finish: StopScenario.Finish) -> T.State:
-  finish_actions_context(actions,state,finish,None{})
+  finish_actions_context(actions,state,finish,None{},[None{}])
 
 def finish_found(state: T.State, job: Maybe<&2,T.Job>) -> Maybe<&2,StopScenario.Finish>:
   match job:
@@ -1006,14 +1020,14 @@ def retired_candidate(state: T.State, action: Driver.Action) -> T.State:
     case Driver.Action{_,_,Some{Driver.Candidate{_,advice,_,_,_,_}},_,_}: cancel_expiry(state,advice)
     case _: state
 
-def ordinary_fallback(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T.Job>, command: Canonical.Command, prepared: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>) -> T.State:
+def ordinary_fallback(+state: T.State, +action: Driver.Action, +job: Maybe<&2, T.Job>, command: Canonical.Command, prepared: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match command:
     case Canonical.CollectionAdviceRetired{}: cancel_retired(state, action)
     case Canonical.CollectionExpired{}: expired_action(state, action, job)
-    case Canonical.SubmissionUnsuppressed{}: handle_prepared(state,action,job,Canonical.SubmissionUnsuppressed{},prepared,receipt)
-    case Canonical.RetireCandidate{}: retired_candidate(handle_prepared(state,action,job,Canonical.RetireCandidate{},prepared,receipt),action)
+    case Canonical.SubmissionUnsuppressed{}: handle_prepared(state,action,job,Canonical.SubmissionUnsuppressed{},prepared,receipt,source_jobs)
+    case Canonical.RetireCandidate{}: retired_candidate(handle_prepared(state,action,job,Canonical.RetireCandidate{},prepared,receipt,source_jobs),action)
     case Canonical.Prepare{operation, _}: prepare_job(state, job, operation)
-    case command: handle_prepared(state, action, job, command, prepared,receipt)
+    case command: handle_prepared(state, action, job, command, prepared,receipt,source_jobs)
 
 def native_output_facts(now: Nat, delay: Nat, lease: Nat, profile: T.OutputProfile) -> StopScenario.CommandFacts:
   match profile:
@@ -1025,41 +1039,41 @@ def native_stop_facts(state: T.State) -> StopScenario.CommandFacts:
       native_output_facts(Engine.clock(core_value(core)),delay,lease,output_profile)
 
 def native_stop_issue(ended: Maybe<&2,StopScenario.Ended>, original: Maybe<&2,StopScenario.Finish>,
-    state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, output: Maybe<&2,OutputScenario.Capture>, +capsule: T.EmissionContext) -> T.State:
+    state: T.State, actions: List<&2,Driver.Action>, job: Maybe<&2,T.Job>, output: Maybe<&2,OutputScenario.Capture>, +capsule: T.EmissionContext, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match ended original output:
     case Some{StopScenario.Ended{+finish,continuation}} _ _:
-      finish_feedback(append_prepared(cancel_finish(state,finish_attempt(finish)),actions,Some{finish_job(finish)},capsule),finish,continuation)
-    case None{} Some{finish} None{}: finish_actions_context(actions,state,finish,Some{capsule})
-    case None{} Some{finish} Some{capture}: append_prepared_output(state,actions,Some{finish_job(finish)},capsule,Some{capture})
-    case None{} None{} _: append_prepared(state,actions,job,capsule)
+      finish_feedback(context_actions(actions,cancel_finish(state,finish_attempt(finish)),Some{finish_job(finish)},Some{capsule},source_jobs,None{}),finish,continuation)
+    case None{} Some{finish} None{}: finish_actions_context(actions,state,finish,Some{capsule},source_jobs)
+    case None{} Some{finish} Some{capture}: context_actions(actions,state,Some{finish_job(finish)},Some{capsule},source_jobs,Some{capture})
+    case None{} None{} _: context_actions(actions,state,job,Some{capsule},source_jobs,None{})
 
 def native_stop_handled(state: T.State, changed: Engine.StopHandled, +action: Driver.Action, +job: Maybe<&2,T.Job>,
-    command: Canonical.Command, original: Maybe<&2,StopScenario.Finish>, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>) -> T.State:
+    command: Canonical.Command, original: Maybe<&2,StopScenario.Finish>, +prepared: Driver.Context, +receipt: Maybe<&2,Driver.OutcomeReceipt>, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match changed:
     case Engine.StopHandled{updated,Driver.Handled{True{},actions},ended,_,output}:
-      native_stop_issue(ended,original,ordinary_fallback(replace_core(state,updated),action,job,command,prepared,receipt),actions,job,output,T.EmissionContext{prepared,receipt})
-    case Engine.StopHandled{updated,_,_,_,_}: ordinary_fallback(replace_core(state,updated),action,job,command,prepared,receipt)
+      native_stop_issue(ended,original,ordinary_fallback(replace_core(state,updated),action,job,command,prepared,receipt,source_jobs),actions,job,output,T.EmissionContext{prepared,receipt},source_jobs)
+    case Engine.StopHandled{updated,_,_,_,_}: ordinary_fallback(replace_core(state,updated),action,job,command,prepared,receipt,source_jobs)
 
 # Private singleton carriers retain genuine facts without flattening them into
 # every compiler continuation. They never enter the public observation wire.
 type PreparedCarry is Data:
-  PreparedCarry{state: T.State, action: Driver.Action, job: Maybe<&2,T.Job>, command: Canonical.Command, selected: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
+  PreparedCarry{state: T.State, action: Driver.Action, job: Maybe<&2,T.Job>, command: Canonical.Command, selected: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>, source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>}
 
 def prepared_stop(values: List<&2,PreparedCarry>) -> List<&2,Engine.StopHandled>:
   match values:
-    case PreparedCarry{+state,action,_,command,selected,_} <> Nil{}:
+    case PreparedCarry{+state,action,_,command,selected,_,_} <> Nil{}:
       [Engine.stop_command(core(state),action_event(action),command,selected,native_stop_facts(state))]
     case _: []
 
 def prepared_finish(values: List<&2,PreparedCarry>) -> Maybe<&2,StopScenario.Finish>:
   match values:
-    case PreparedCarry{state,_,job,_,_,_} <> Nil{}: finish_found(state,job)
+    case PreparedCarry{state,_,job,_,_,_,_} <> Nil{}: finish_found(state,job)
     case _: None{}
 
 def prepared_stopped(values: List<&2,PreparedCarry>, handled: List<&2,Engine.StopHandled>, finish: Maybe<&2,StopScenario.Finish>) -> List<&2,T.State>:
   match values handled:
-    case PreparedCarry{state,action,job,command,selected,receipt} <> Nil{} changed <> Nil{}:
-      [native_stop_handled(state,changed,action,job,command,finish,selected,receipt)]
+    case PreparedCarry{state,action,job,command,selected,receipt,source_jobs} <> Nil{} changed <> Nil{}:
+      [native_stop_handled(state,changed,action,job,command,finish,selected,receipt,source_jobs)]
     case _ _: []
 
 def prepared_apply(+values: List<&2,PreparedCarry>) -> List<&2,T.State>:
@@ -1071,11 +1085,11 @@ def prepared_value(fallback: T.State, values: List<&2,T.State>) -> T.State:
     case _: invalid(fallback)
 
 def prepared_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
-    +command: Canonical.Command, prepared: Engine.PreparedCommandContext) -> T.State:
+    +command: Canonical.Command, prepared: Engine.PreparedCommandContext, +source_jobs: List<&2,Maybe<&2,Driver.SourceJob>>) -> T.State:
   match prepared:
     case Engine.PreparedCommandContext{updated,+selected,+receipt}:
       +installed = prepared_record(replace_core(state,updated),T.EmissionContext{selected,receipt})
-      prepared_value(installed,prepared_apply([PreparedCarry{installed,action,job,command,selected,receipt}]))
+      prepared_value(installed,prepared_apply([PreparedCarry{installed,action,job,command,selected,receipt,source_jobs}]))
 
 # An incoming capsule is immutable emission provenance. Current command facts
 # are rebuilt from the actual job and environment before the shared selector.
@@ -1111,9 +1125,9 @@ def issued_command(state: T.State, command: Canonical.Command) -> T.State:
     case _: state
 
 def command_selected(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command,
-    source: Maybe<&2,T.EmissionContext>, scope: Maybe<&2,Nat>, source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
+    source: Maybe<&2,T.EmissionContext>, scope: Maybe<&2,Nat>, +source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
   prepared_command(issued_command(remember_command(state,command,job),command),action,job,command,Engine.prepare_command_context(core(state),command,
-    source_job,outcome_environment(state),command_partition(command_context(state,action,job,source),scope)))
+    source_job,outcome_environment(state),command_partition(command_context(state,action,job,source),scope)),[source_job])
 
 def command_bound(state: T.State, action: Driver.Action, command: Canonical.Command,
     source: Maybe<&2,T.EmissionContext>, +scope: Maybe<&2,Nat>, fallback: Maybe<&2,T.Job>,
@@ -1213,7 +1227,7 @@ def wake_finish(+state: T.State, finish: StopScenario.Finish) -> T.State:
   match finish:
     case StopScenario.Finish{p, l, r, +attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output}:
       +finish = {StopScenario.Finish{p, l, r, attempt, token, deadline, recurring, selected, True{}, validating, started, fit_pending, output} : StopScenario.Finish}
-      pick_state(has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish,None{}))
+      pick_state(has_poll(state, attempt), state, finish_action(state, NativeFinish.poll(finish, clock(state), 0n), finish,None{},[None{}]))
     case _: state
 
 def wake_finishes(finishes: List<&2, StopScenario.Finish>, state: T.State) -> T.State:
