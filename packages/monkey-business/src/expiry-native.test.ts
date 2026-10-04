@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts";
 import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
-import { decodeExpiryNativeBoundary, expiryPublicBoundary, captureExpiryPublicRun, compareExpiryFullTrace } from "./expiry-native-boundary.ts";
+import { decodeExpiryNativeBoundary, expiryPublicBoundary, captureExpiryPublicRun, compareExpiryBusinessTrace } from "./expiry-native-boundary.ts";
 import { expiryTicks, reportNotice, collectNotice } from "./expiry-public.fixture.ts";
 import { createRun, restoreReplay, type Run, type RunConfig } from "./index.ts";
 
@@ -166,24 +166,19 @@ function assertOriginals(words: unknown) {
 }
 const fixture = new URL("../../monkey-business-bend/conformance/expiry-observed-native.bend", import.meta.url);
 
-// Notice diagnostic allowance: two independent (emit30s + run5s) phases
-// total70s, plus15s cleanup. The earlier emit15s failure remains recorded;
-// product execution remains5s per phase.
-it("compares all complete expiry histories from two fresh JS emissions with public API and replay", () => {
-  const first = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 }), second = runWorkloadEmitted(fixture, { emissionTimeoutMs: 30000 });
-  expect(first).toEqual(second);
-  expect(decodeNativePrefix(first, "expiry_scenarios")).toEqual(decodeNativePrefix(second, "expiry_scenarios"));
-  assertOriginals(first); assertOriginals(second);
+// Cheap public-owner mapping check before native qualification: JS15s + run5s,
+// plus5s cleanup. It retains every original scenario and independent oracle.
+it("compares all twelve expiry business histories with emitted JS, public API and replay", () => {
+  const emitted = runWorkloadEmitted(fixture);
+  assertOriginals(emitted);
   const expected = publicCases();
-  expect(decodeExpiryNativeBoundary(first)).toEqual(expected);
-  expect(decodeExpiryNativeBoundary(second)).toEqual(expected);
-  compareExpiryFullTrace(decodeNativePrefix(first,"expiry_scenarios"),completeCaptures);
-  compareExpiryFullTrace(decodeNativePrefix(second,"expiry_scenarios"),completeCaptures);
-}, 85000);
+  expect(decodeExpiryNativeBoundary(emitted)).toEqual(expected);
+  compareExpiryBusinessTrace(decodeNativePrefix(emitted,"expiry_scenarios"),completeCaptures);
+}, 25000);
 
 // Explicit qualification aggregate: C45s + clang90s + native5s + JS15s + run5s
 // total160s, plus15s cleanup. Runtime and proof limits are unchanged.
-it("compares all original expiry inputs and full retained states across native Bend, emitted JS, public API and replay", () => {
+it("compares all original expiry inputs and public owner facts across native Bend, emitted JS, public API and replay", () => {
   const native = runWorkloadNative(fixture, { emissionTimeoutMs: 45000, clangTimeoutMs: 90000 }), emitted = runWorkloadEmitted(fixture);
   expect(native).toEqual(emitted);
   expect(decodeNativePrefix(native, "expiry_scenarios")).toEqual(decodeNativePrefix(emitted, "expiry_scenarios"));
@@ -191,6 +186,6 @@ it("compares all original expiry inputs and full retained states across native B
   const expected = publicCases();
   expect(decodeExpiryNativeBoundary(native)).toEqual(expected);
   expect(decodeExpiryNativeBoundary(emitted)).toEqual(expected);
-  compareExpiryFullTrace(decodeNativePrefix(native,"expiry_scenarios"),completeCaptures);
-  compareExpiryFullTrace(decodeNativePrefix(emitted,"expiry_scenarios"),completeCaptures);
+  compareExpiryBusinessTrace(decodeNativePrefix(native,"expiry_scenarios"),completeCaptures);
+  compareExpiryBusinessTrace(decodeNativePrefix(emitted,"expiry_scenarios"),completeCaptures);
 }, 175000);

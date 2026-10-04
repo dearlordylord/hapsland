@@ -1,4 +1,5 @@
 import Base
+import ./expiry-observed-wire.bend as Wire
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Advicees.bend as Advicees
@@ -34,16 +35,18 @@ type ControlEvents is Data:
 type Facts is Data:
   Facts{capsules: List<&2,Capsule>, scope: Maybe<&2,Notice.Scope>, diagnostic: Maybe<&2,String>, profile: Expiry.Profile, provided: Maybe<&2,Nat>}
 type Frame is Data:
-  Observed{frame: Edge.ObservedFrame, receipt: Maybe<&2,Callbacks.Target>, scopes: Maybe<&2,List<&2,Maybe<&2,Nat>>>, diagnostic: Maybe<&2,String>, before_capsules: List<&2,Capsule>, after_capsules: List<&2,Capsule>}
-  Control{input: Original, before: List<&2,Edge.Runtime>, after: List<&2,Edge.Runtime>, before_profile: Expiry.Profile, after_profile: Expiry.Profile, before_capsules: List<&2,Capsule>, after_capsules: List<&2,Capsule>}
-  Boundary{endpoint: Nat, budget: Nat, consumed: Nat, runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>}
+  Observed{frame: Wire.Observation, receipt: Maybe<&2,Callbacks.Target>, scopes: Maybe<&2,List<&2,Maybe<&2,Nat>>>, diagnostic: Maybe<&2,String>, before_capsules: List<&2,Capsule>, after_capsules: List<&2,Capsule>}
+  Control{input: Original, before: List<&2,Wire.Snapshot>, after: List<&2,Wire.Snapshot>, before_profile: Expiry.Profile, after_profile: Expiry.Profile, before_capsules: List<&2,Capsule>, after_capsules: List<&2,Capsule>}
+  Boundary{endpoint: Nat, budget: Nat, consumed: Nat, runtime: List<&2,Wire.Snapshot>, capsules: List<&2,Capsule>}
   InvalidTransport{}
 type Startup is Data:
-  Startup{constructed: List<&2,Edge.Runtime>, suspended: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>}
+  Startup{constructed: List<&2,Wire.Snapshot>, suspended: List<&2,Wire.Snapshot>, capsules: List<&2,Capsule>}
 type Trace is Data:
   Trace{runtime: List<&2,Edge.Runtime>, capsules: List<&2,Capsule>, issued: Nat, consumed: Nat, frames: List<&2,Frame>, profile: Expiry.Profile, valid: Bool}
+type PublicTrace is Data:
+  PublicTrace{runtime: List<&2,Wire.Snapshot>, capsules: List<&2,Capsule>, issued: Nat, consumed: Nat, frames: List<&2,Frame>, profile: Expiry.Profile, valid: Bool}
 type Envelope is Data:
-  Envelope{original: List<&2,Original>, profile: Expiry.Profile, startup: Startup, trace: Trace}
+  Envelope{original: List<&2,Original>, profile: Expiry.Profile, startup: Startup, trace: PublicTrace}
 
 # Accepted maximum, computed without an out-of-range intermediate Nat.
 def maximum() -> Nat:
@@ -175,7 +178,7 @@ def observed_frames(frame: Maybe<&2,Edge.ObservedFrame>, receipt: Maybe<&2,Callb
   match frame:
     case Some{frame}:
       +actual=resolved_frame(frame)
-      List.append(&2,Frame,frames,[Observed{actual,receipt,frame_scopes(actual),diagnostic,before_capsules(actual,before),after}])
+      List.append(&2,Frame,frames,[Observed{Wire.observation(actual),receipt,frame_scopes(actual),diagnostic,before_capsules(actual,before),after}])
     case None{}: frames
 
 def counted(frame: Maybe<&2,Edge.ObservedFrame>, consumed: Nat) -> Nat:
@@ -268,7 +271,7 @@ def boundary_completed(value: Trace, before: Nat, +endpoint: Nat, budget: Nat) -
   match value:
     case Trace{+runtime,+capsules,+issued,+consumed,frames,+profile,+valid}:
       Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,
-        [Boundary{endpoint,budget,Nat.sub(consumed,before),runtime,capsules}]),profile,valid && Bool.not(pending(Trace{runtime,capsules,issued,consumed,[],profile,valid},endpoint))}
+        [Boundary{endpoint,budget,Nat.sub(consumed,before),Wire.snapshots(runtime),capsules}]),profile,valid && Bool.not(pending(Trace{runtime,capsules,issued,consumed,[],profile,valid},endpoint))}
 
 def boundary(+trace: Trace, +endpoint: Nat, +budget: Nat) -> Trace:
   match trace:
@@ -306,9 +309,9 @@ def controlled_input(+runtime: List<&2,Edge.Runtime>, +capsules: List<&2,Capsule
     previous: Trace, +input: Original) -> Trace:
   match previous input:
     case Trace{_,before_capsules,issued,consumed,frames,+profile,valid} Original{_,Profile{+next}}:
-      Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,[Control{input,before,runtime,profile,next,before_capsules,capsules}]),next,valid}
+      Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,[Control{input,Wire.snapshots(before),Wire.snapshots(runtime),profile,next,before_capsules,capsules}]),next,valid}
     case Trace{_,before_capsules,issued,consumed,frames,+profile,valid} input:
-      Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,[Control{input,before,runtime,profile,profile,before_capsules,capsules}]),profile,valid}
+      Trace{runtime,capsules,issued,consumed,List.append(&2,Frame,frames,[Control{input,Wire.snapshots(before),Wire.snapshots(runtime),profile,profile,before_capsules,capsules}]),profile,valid}
 
 def controlled(value: List<&2,Edge.Runtime> & List<&2,Capsule>, before: List<&2,Edge.Runtime>, previous: Trace, input: Original) -> Trace:
   match value:
@@ -405,11 +408,16 @@ def initial() -> List<&2,Edge.Runtime>:
 # Public queuePush publishes each constructor enqueue into Engine.scheduler.
 # Publish the same actual inputs before capturing construction/suspension; this
 # is an owner transition, not a comparison-time normalization.
+def public_trace(trace: Trace) -> PublicTrace:
+  match trace:
+    case Trace{runtime,capsules,issued,consumed,frames,profile,valid}:
+      PublicTrace{Wire.snapshots(runtime),capsules,issued,consumed,frames,profile,valid}
+
 def started_synced(+constructed: List<&2,Edge.Runtime>, +capsules: List<&2,Capsule>,
     +inputs: List<&2,Original>, +profile: Expiry.Profile) -> Envelope:
   +suspended=suspend([1n,2n],constructed)
-  Envelope{inputs,profile,Startup{constructed,suspended,capsules},
-    originals(inputs,boundary(Trace{suspended,capsules,0n,0n,[],profile,Edge.runtime_valid(suspended)},0n,100n))}
+  Envelope{inputs,profile,Startup{Wire.snapshots(constructed),Wire.snapshots(suspended),capsules},
+    public_trace(originals(inputs,boundary(Trace{suspended,capsules,0n,0n,[],profile,Edge.runtime_valid(suspended)},0n,100n)))}
 
 def started(value: List<&2,Edge.Runtime> & List<&2,Capsule>, inputs: List<&2,Original>, profile: Expiry.Profile) -> Envelope:
   match value:
