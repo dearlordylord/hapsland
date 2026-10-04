@@ -239,6 +239,20 @@ physical boundary; ordinary value-policy matrices belong in component/source
 checks. Keep distinct crash, socket, installation and ownership checks when those
 are the only evidence for that boundary. Replace correctness sleeps with observed
 ordering; retain real elapsed waits when timeout or idle expiration is the subject.
+Slow process checks are canaries: use the smallest independent actors that can
+exercise the physical boundary, explicit readiness and barriers, and an isolated
+fixture. Value, parsing and lifecycle policy matrices call their production
+services directly; representative CLI, TTY and installed executable cases retain
+transport and packaging assurance. Singleton convergence now uses six requests
+across three client processes; the historical 100-request/eight-process record
+is prior stress evidence, not an assertion made by the current routine suite.
+Pi no longer repeats stale-result scheduling through cold CLI calls with a
+650 ms reviewer delay. Deterministic resident tests own stale handoff and
+supersession during final revalidation; installed Pi cases retain attribution,
+transport, cancellation and lifetime checks.
+Installed resident idle expiry, live connection retention and accepted-work
+retention remain real elapsed-time canaries. Their product grace periods are
+not shortened for tests.
 Claude socket delivery fixtures prepare genuine review results before their
 response deadline; a separate no-work collector exercises delivery and final
 handoff without measuring parser or reviewer cold-start latency. Pipeline and

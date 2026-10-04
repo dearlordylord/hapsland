@@ -10,43 +10,49 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
   afterAll(cleanupInstalledPi);
   afterEach(cleanupPiFixtures);
   // Exhaustive multi-review waiting and continuation limits belong to composed-delivery.test.ts.
-  it.each(mode === "source" ? ["clear", "unavailable"] : ["unavailable"])("does not continue when review is %s", async (outcome) => {
-    const control = outcome === "clear"
-      ? { answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) }
-      : { failure: "offline reviewer unavailable" };
-    const { root, call } = fixture(false, control);
-    await call("tool_call", before);
-    writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
-    const native = await call("tool_result", result);
-    const settled = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
-    expect(native?.content?.slice(result.content.length) ?? []).toEqual([]);
-    expect(settled?.continue ?? false).toBe(false);
-  });
+  // Value/evidence alternatives are owned by the source composition and adapter tests.
+  if (mode === "source") {
+    it.each(["clear", "unavailable"])("does not continue when review is %s", async (outcome) => {
+      const control = outcome === "clear"
+        ? { answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) }
+        : { failure: "offline reviewer unavailable" };
+      const { root, call } = fixture(false, control);
+      await call("tool_call", before);
+      writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
+      const native = await call("tool_result", result);
+      const settled = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
+      expect(native?.content?.slice(result.content.length) ?? []).toEqual([]);
+      expect(settled?.continue ?? false).toBe(false);
+    });
+  }
 
-  it("cuts off delayed work at finish and withholds its late finding from a fresh edit", async () => {
-    const { root, call } = fixture(true);
-    await call("tool_call", before);
-    writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
-    expect(await call("tool_result", result)).toBeUndefined();
-    const other = { ...before, toolCallId: "second-unfinished", input: { path: "other.ts", edits: [{ oldText: "type Before = string", newText: "type OtherCount = number" }] } };
-    await call("tool_call", other);
-    writeFileSync(join(root, "other.ts"), "type OtherCount = number\n");
-    expect(await call("tool_result", { ...result, ...other, details: { patch: "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Before = string\n+type OtherCount = number\n" } })).toBeUndefined();
-    const cutoff = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
-    expect(cutoff).toBeUndefined();
-    await call("agent_settled", {});
-    writeFileSync(join(root, "backend.gate"), "release\n");
-    const newText = "type FreshCount = number";
-    const fresh = { ...before, toolCallId: "after-cutoff", input: { path: "type.ts", edits: [{ oldText: "type OrderCount = number", newText }] } };
-    await call("tool_call", fresh);
-    writeFileSync(join(root, "type.ts"), `${newText}\n`);
-    const output = await call("tool_result", { ...result, ...fresh, details: { patch: "--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-type OrderCount = number\n+type FreshCount = number\n" } });
-    const settled = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
-    const offered = JSON.stringify(output ?? settled);
-    expect(offered).toContain("FreshCount");
-    expect(offered).not.toContain("OrderCount");
-    expect(offered).not.toContain("OtherCount");
-  });
+  // Finish-deadline expiration is owned by source; the compiled canary owns awaited delivery.
+  if (mode === "source") {
+    it("cuts off delayed work at finish and withholds its late finding from a fresh edit", async () => {
+      const { root, call } = fixture(true);
+      await call("tool_call", before);
+      writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
+      expect(await call("tool_result", result)).toBeUndefined();
+      const other = { ...before, toolCallId: "second-unfinished", input: { path: "other.ts", edits: [{ oldText: "type Before = string", newText: "type OtherCount = number" }] } };
+      await call("tool_call", other);
+      writeFileSync(join(root, "other.ts"), "type OtherCount = number\n");
+      expect(await call("tool_result", { ...result, ...other, details: { patch: "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Before = string\n+type OtherCount = number\n" } })).toBeUndefined();
+      const cutoff = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
+      expect(cutoff).toBeUndefined();
+      await call("agent_settled", {});
+      writeFileSync(join(root, "backend.gate"), "release\n");
+      const newText = "type FreshCount = number";
+      const fresh = { ...before, toolCallId: "after-cutoff", input: { path: "type.ts", edits: [{ oldText: "type OrderCount = number", newText }] } };
+      await call("tool_call", fresh);
+      writeFileSync(join(root, "type.ts"), `${newText}\n`);
+      const output = await call("tool_result", { ...result, ...fresh, details: { patch: "--- type.ts\n+++ type.ts\n@@ -1 +1 @@\n-type OrderCount = number\n+type FreshCount = number\n" } });
+      const settled = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
+      const offered = JSON.stringify(output ?? settled);
+      expect(offered).toContain("FreshCount");
+      expect(offered).not.toContain("OrderCount");
+      expect(offered).not.toContain("OtherCount");
+    });
+  }
 
   // Installed admitted session/root changes are exercised by the fault suite.
   if (mode === "source") {
@@ -97,20 +103,23 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
     });
   }
 
-  it("reviews a whole declaration replacement spanning omitted context between native hunks", async () => {
-    const { root, capturePath, call, prepareResident } = fixture();
-    await prepareResident();
-    const oldText = "export type OrderCount = {\n  options: {\n    timeoutMs: 1000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: \"en\",\n    region: \"eu\",\n    mode: \"safe\",\n    format: \"json\",\n    compress: true,\n    secure: true,\n    retries: 3,\n  };\n};\n";
-    const newText = "export type OrderCount = {\n  options: {\n    timeoutMs: 2000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: \"en\",\n    region: \"eu\",\n    mode: \"safe\",\n    format: \"json\",\n    compress: true,\n    secure: true,\n    retries: 5,\n  };\n};\n";
-    const patch = "--- type.ts\n+++ type.ts\n@@ -1,7 +1,7 @@\n export type OrderCount = {\n   options: {\n-    timeoutMs: 1000,\n+    timeoutMs: 2000,\n     cache: true,\n     strict: true,\n     trace: false,\n     debug: false,\n@@ -10,7 +10,7 @@\n     mode: \"safe\",\n     format: \"json\",\n     compress: true,\n     secure: true,\n-    retries: 3,\n+    retries: 5,\n   };\n };\n";
-    const edit = { ...before, input: { path: "type.ts", edits: [{ oldText, newText }] } };
-    await call("tool_call", edit);
-    writeFileSync(join(root, "type.ts"), newText);
-    const native = await call("tool_result", { ...result, ...edit, details: { patch } });
-    const finish = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
-    expect(existsSync(capturePath)).toBe(true);
-    expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
-  });
+  // Value/evidence alternatives are owned by the source composition and adapter tests.
+  if (mode === "source") {
+    it("reviews a whole declaration replacement spanning omitted context between native hunks", async () => {
+      const { root, capturePath, call, prepareResident } = fixture();
+      await prepareResident();
+      const oldText = "export type OrderCount = {\n  options: {\n    timeoutMs: 1000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: \"en\",\n    region: \"eu\",\n    mode: \"safe\",\n    format: \"json\",\n    compress: true,\n    secure: true,\n    retries: 3,\n  };\n};\n";
+      const newText = "export type OrderCount = {\n  options: {\n    timeoutMs: 2000,\n    cache: true,\n    strict: true,\n    trace: false,\n    debug: false,\n    locale: \"en\",\n    region: \"eu\",\n    mode: \"safe\",\n    format: \"json\",\n    compress: true,\n    secure: true,\n    retries: 5,\n  };\n};\n";
+      const patch = "--- type.ts\n+++ type.ts\n@@ -1,7 +1,7 @@\n export type OrderCount = {\n   options: {\n-    timeoutMs: 1000,\n+    timeoutMs: 2000,\n     cache: true,\n     strict: true,\n     trace: false,\n     debug: false,\n@@ -10,7 +10,7 @@\n     mode: \"safe\",\n     format: \"json\",\n     compress: true,\n     secure: true,\n-    retries: 3,\n+    retries: 5,\n   };\n };\n";
+      const edit = { ...before, input: { path: "type.ts", edits: [{ oldText, newText }] } };
+      await call("tool_call", edit);
+      writeFileSync(join(root, "type.ts"), newText);
+      const native = await call("tool_result", { ...result, ...edit, details: { patch } });
+      const finish = await call("agent_before_settle", { entries: [], continue: false, context: { canContinue: true }, outcome: "completed" });
+      expect(existsSync(capturePath)).toBe(true);
+      expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
+    });
+  }
   it.each(mode === "source" ? [true, false] : [false])("awaits a delayed review at finish with canContinue=%s", async (canContinue) => {
     const { root, capturePath, call, prepareResident, waitForWork } = fixture(true);
     await prepareResident();
@@ -148,43 +157,52 @@ describe.each(["source", "installed"] as const)("Pi %s extension through the pro
     expect(await call("tool_result", result)).toBeUndefined();
     expect(readFileSync(capturePath, "utf8")).toBe(requests);
   });
-  it.each(mode === "source" ? ["write", "bash"] : ["write"])("does not infer edit evidence for unsupported %s", async (toolName) => {
-    const { root, capturePath, call } = fixture();
-    const event = { ...before, toolName };
-    await call("tool_call", event);
-    writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
-    expect(await call("tool_result", { ...result, ...event })).toBeUndefined();
-    expect(existsSync(capturePath)).toBe(false);
-  });
-
-  it("refuses a successful result without a before-tool permit", async () => {
-    const { root, capturePath, call } = fixture();
-    writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
-    expect(await call("tool_result", result)).toBeUndefined();
-    expect(existsSync(capturePath)).toBe(false);
-    const child = spawnSync(installedCommand[0]!, [...installedCommand.slice(1), "--pi-hook", "--controlled-reviewer"], {
-      encoding: "utf8",
-      env: { ...process.env, REVIEW_STATE_PATH: join(root, "state"), REVIEW_RESIDENT_DIR: join(root, "runtime"), REVIEW_CONTROL_JSON: JSON.stringify({ capturePath, answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0.9 }])) }) },
-      input: JSON.stringify({ host_version: "1.0.0", operation: "edit", cwd: root, session_id: "pi-boundary-session", tool_use_id: before.toolCallId, tool_name: "edit", input, details: result.details, isError: false }),
+  // Value/evidence alternatives are owned by the source composition and adapter tests.
+  if (mode === "source") {
+    it.each(["write", "bash"])("does not infer edit evidence for unsupported %s", async (toolName) => {
+      const { root, capturePath, call } = fixture();
+      const event = { ...before, toolName };
+      await call("tool_call", event);
+      writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
+      expect(await call("tool_result", { ...result, ...event })).toBeUndefined();
+      expect(existsSync(capturePath)).toBe(false);
     });
-    expect(child.status).toBe(0);
-    expect(existsSync(capturePath)).toBe(false);
-  });
+  }
 
-  it.each(mode === "source" ? ["identity", "arguments", "source", "failed", "unicode"] : ["unicode"])("does not review %s mismatches", async (variant) => {
-    const { root, capturePath, call } = fixture();
-    await call("tool_call", before);
-    writeFileSync(join(root, "type.ts"), variant === "source" ? "type Other = boolean\n" : "type OrderCount = number\n");
-    const event = {
-      ...result,
-      ...(variant === "identity" ? { toolCallId: "another-edit" } : {}),
-      ...(variant === "arguments" ? { input: { ...input, path: "another.ts" } } : {}),
-      ...(variant === "failed" ? { isError: true } : {}),
-      ...(variant === "unicode" ? { details: { patch: result.details.patch.replace("OrderCount", "OrdérCount") } } : {}),
-    };
-    expect(await call("tool_result", event)).toBeUndefined();
-    expect(existsSync(capturePath)).toBe(false);
-  });
+  // Value/evidence alternatives are owned by the source composition and adapter tests.
+  if (mode === "source") {
+    it("refuses a successful result without a before-tool permit", async () => {
+      const { root, capturePath, call } = fixture();
+      writeFileSync(join(root, "type.ts"), "type OrderCount = number\n");
+      expect(await call("tool_result", result)).toBeUndefined();
+      expect(existsSync(capturePath)).toBe(false);
+      const child = spawnSync(installedCommand[0]!, [...installedCommand.slice(1), "--pi-hook", "--controlled-reviewer"], {
+        encoding: "utf8",
+        env: { ...process.env, REVIEW_STATE_PATH: join(root, "state"), REVIEW_RESIDENT_DIR: join(root, "runtime"), REVIEW_CONTROL_JSON: JSON.stringify({ capturePath, answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0.9 }])) }) },
+        input: JSON.stringify({ host_version: "1.0.0", operation: "edit", cwd: root, session_id: "pi-boundary-session", tool_use_id: before.toolCallId, tool_name: "edit", input, details: result.details, isError: false }),
+      });
+      expect(child.status).toBe(0);
+      expect(existsSync(capturePath)).toBe(false);
+    });
+  }
+
+  // Value/evidence alternatives are owned by the source composition and adapter tests.
+  if (mode === "source") {
+    it.each(["identity", "arguments", "source", "failed", "unicode"])("does not review %s mismatches", async (variant) => {
+      const { root, capturePath, call } = fixture();
+      await call("tool_call", before);
+      writeFileSync(join(root, "type.ts"), variant === "source" ? "type Other = boolean\n" : "type OrderCount = number\n");
+      const event = {
+        ...result,
+        ...(variant === "identity" ? { toolCallId: "another-edit" } : {}),
+        ...(variant === "arguments" ? { input: { ...input, path: "another.ts" } } : {}),
+        ...(variant === "failed" ? { isError: true } : {}),
+        ...(variant === "unicode" ? { details: { patch: result.details.patch.replace("OrderCount", "OrdérCount") } } : {}),
+      };
+      expect(await call("tool_result", event)).toBeUndefined();
+      expect(existsSync(capturePath)).toBe(false);
+    });
+  }
 
   // Installed admitted epoch changes and composition cleanup cover lifecycle retirement.
   if (mode === "source") {

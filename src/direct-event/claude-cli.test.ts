@@ -2,10 +2,10 @@ import { prepareTestPackage, type TestPackage } from "../test-support/test-packa
 import { cleanupOwnedResident } from "../../scripts/test-harness/cleanup-owned-resident.mjs";
 import { runClient } from "../test-support/client-runtime.ts";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { execFile, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { spawnSync } from "../../scripts/test-harness/process.mjs";
 import { DEFAULT_CHILD_TIMEOUT_MS, FIXTURE_READY_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
-import { createConnection, createServer } from "node:net";
+import { createServer } from "node:net";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readActivity } from "../activity/status.ts";
@@ -13,7 +13,6 @@ import { configuredRules } from "../policy/rules.ts";
 import { makeGitFixture, put } from "./test-fixtures.ts";
 import { residentRequestEffect as residentRequest } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
-import { encodeCurrentResidentRequest } from "../resident/protocol.ts";
 import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts";
 
 let installed: TestPackage;
@@ -42,14 +41,6 @@ const preClaudeEdit = (event: Readonly<Record<string, unknown>>, env: NodeJS.Pro
   spawnSync(installed.cli.executable, cliArgs(["--composed-before-edit-hook", "--composed-host=claude-code"]), {
     cwd: process.cwd(), input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
     encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env,
-  });
-
-const preClaudeEditAsync = (event: Readonly<Record<string, unknown>>, env: NodeJS.ProcessEnv) =>
-  new Promise<void>((resolve, reject) => {
-    const child = execFile(installed.cli.executable, cliArgs(["--composed-before-edit-hook", "--composed-host=claude-code"]), {
-      cwd: process.cwd(), timeout: DEFAULT_CHILD_TIMEOUT_MS, killSignal: "SIGKILL", env,
-    }, error => error === null ? resolve() : reject(error));
-    child.stdin!.end(JSON.stringify({ ...event, hook_event_name: "PreToolUse" }));
   });
 
 // Start the physical installed resident with the complete gate environment.
@@ -178,85 +169,15 @@ describe("Claude synchronous hook CLI", () => {
     }
   });
 
-  it("batches ready findings from two installed edits in the later edit response", async () => {
-    const root = await makeGitFixture();
-    roots.push(root);
-    const statePath = join(root, "consent");
-    const event = (path: string, name: string, toolUseId: string) => ({
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "batch-session", tool_use_id: toolUseId,
-      tool_input: { file_path: path, content: `type ${name} = number\n` },
-      tool_response: { filePath: path, content: `type ${name} = number\n`, originalFile: null, userModified: false },
-    });
-    const acceptedPath = join(root, "admission-accepted");
-    const baseEnv = { ...installed.environment, REVIEW_STATE_PATH: statePath,
-      REVIEW_RESIDENT_DIR: join(root, "runtime"),
-      REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH: acceptedPath,
-      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) }),
-    };
-    const delayedEnv = { ...baseEnv, REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 7_000,
-      answers: JSON.parse(baseEnv.REVIEW_CONTROL_JSON).answers }) };
-    await prepareResident(delayedEnv);
-    const first = event(await put(root, "first.ts", "type FirstCount = number\n"), "FirstCount", "batch-first");
-    const second = event(await put(root, "second.ts", "type SecondCount = number\n"), "SecondCount", "batch-second");
-    const runDelayed = (input: typeof first) => new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
-      const child = spawn(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), { cwd: process.cwd(), env: delayedEnv,
-        stdio: ["pipe", "pipe", "pipe"] });
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
-      child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
-      const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("Claude edit hook exceeded its deadline")); }, DEFAULT_CHILD_TIMEOUT_MS);
-      child.once("error", (error) => { clearTimeout(timer); reject(error); });
-      child.once("close", (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
-      child.stdin.end(JSON.stringify(input));
-    });
-    await prepareResident(delayedEnv);
-    expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
-    const firstPending = runDelayed(first);
-    await waitForFile(acceptedPath);
-    await preClaudeEditAsync(second, delayedEnv);
-    const secondPending = runDelayed(second);
-    const [firstResult, secondResult] = await Promise.all([firstPending, secondPending]);
-    expect(firstResult.code, firstResult.stderr).toBe(0);
-    expect(secondResult.code, secondResult.stderr).toBe(0);
-    expect(JSON.parse(firstResult.stdout)).toEqual({});
-    expect(JSON.parse(secondResult.stdout)).toEqual({});
-    const paths = residentPaths(join(root, "runtime"));
-    const owner = await observeResident(paths);
-    const deadline = Date.now() + 15_000;
-    let pendingAdvice = 0;
-    let lastStats: unknown;
-    while (Date.now() < deadline && pendingAdvice < 2) {
-      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
-      lastStats = stats;
-      pendingAdvice = stats.status === "stats" ? stats.pendingAdvice : 0;
-      if (pendingAdvice < 2) await new Promise<void>((resolve) => setTimeout(resolve, 20));
-    }
-    expect(pendingAdvice, JSON.stringify(lastStats)).toBeGreaterThanOrEqual(2);
-    const third = event(await put(root, "third.ts", "type ThirdCount = number\n"), "ThirdCount", "batch-third");
-    await prepareResident(baseEnv);
-    expect(preClaudeEdit(third, baseEnv).status).toBe(0);
-    const thirdResult = spawnSync(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
-      cwd: process.cwd(), input: JSON.stringify(third), encoding: "utf8", timeout: DEFAULT_CHILD_TIMEOUT_MS, env: baseEnv,
-    });
-    expect(thirdResult.status).toBe(0);
-    const output = JSON.parse(thirdResult.stdout) as { hookSpecificOutput?: { additionalContext: string } };
-    expect(output.hookSpecificOutput?.additionalContext).toContain("FirstCount");
-    expect(output.hookSpecificOutput?.additionalContext).toContain("SecondCount");
-  });
-
   it("submits one ready finding through the installed Stop command", async () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
-    const source = Array.from({ length: 1 }, (_, index) => `type Count${index} = number`).join("\n") + "\n";
+    const source = "type Count = number\n";
     const path = await put(root, "type.ts", source);
     const event = {
       hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "six-findings-session", tool_use_id: "six-findings-tool",
+      session_id: "stop-session", tool_use_id: "stop-tool",
       tool_input: { file_path: path, content: source },
       tool_response: { filePath: path, content: source, originalFile: null, userModified: false },
     };
@@ -302,7 +223,7 @@ describe("Claude synchronous hook CLI", () => {
     expect(output.decision, JSON.stringify(output)).toBe("block");
     const context = output.reason ?? "";
     expect([...context.matchAll(/A domain value appears to use an overly broad primitive type\./g)]).toHaveLength(1);
-    for (let index = 0; index < 1; index++) expect(context).toContain(`Count${index}`);
+    expect(context).toContain("Count");
     expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
   });
@@ -324,8 +245,7 @@ describe("Claude synchronous hook CLI", () => {
       ])) }),
     };
     const first = event(await put(root, "first.ts", "type LostCount = number\n"), "LostCount", "lost-tool");
-    const delayedEnv = { ...baseEnv, REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 10_000,
-      answers: JSON.parse(baseEnv.REVIEW_CONTROL_JSON).answers }) };
+    const delayedEnv = { ...baseEnv, REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, "held-backend") };
     await prepareResident(delayedEnv);
     expect(preClaudeEdit(first, delayedEnv).status).toBe(0);
     const firstResult = spawnSync(installed.cli.executable, cliArgs(CLAUDE_EDIT_FLAGS), {
@@ -351,40 +271,6 @@ describe("Claude synchronous hook CLI", () => {
       additionalContext: expect.stringContaining("FreshCount"),
     } });
     expect(secondResult.stdout).not.toContain("LostCount");
-  });
-
-  it("accepts only the current IPC frame at the installed resident socket", async () => {
-    const root = await makeGitFixture();
-    roots.push(root);
-    const statePath = join(root, "consent");
-    const path = await put(root, "type.ts", "type ProtocolCount = number\n");
-    const event = {
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "protocol-session", tool_use_id: "protocol-tool",
-      tool_input: { file_path: path, content: "type ProtocolCount = number\n" },
-      tool_response: { filePath: path, content: "type ProtocolCount = number\n", originalFile: null, userModified: false },
-    };
-    const env = { ...installed.environment, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime") };
-    await prepareResident(env);
-    expect(preClaudeEdit(event, env).status).toBe(0);
-    const paths = residentPaths(join(root, "runtime"));
-    const owner = await observeResident(paths);
-    const raw = (frame: string) => new Promise<unknown>((resolve, reject) => {
-      const socket = createConnection(paths.socket);
-      let response = "";
-      socket.once("error", reject);
-      socket.on("data", (chunk: Buffer) => { response += chunk.toString("utf8"); });
-      socket.once("end", () => {
-        try { resolve(JSON.parse(response.trim())); } catch (error) { reject(error); }
-      });
-      socket.once("connect", () => socket.write(`${frame}\n`));
-    });
-    expect(await raw(encodeCurrentResidentRequest({ requestRoute: "shared", operation: "hello" })))
-      .toMatchObject({ version: 1, status: "ready", lifetime: owner.lifetime });
-    for (const frame of ['{"version":1,', JSON.stringify({ operation: "hello" }),
-      JSON.stringify({ version: 1, requestRoute: "shared", operation: "hello" })]) {
-      expect(await raw(frame)).toEqual({ version: 1, status: "unsupported" });
-    }
   });
 
   it.each([
@@ -478,7 +364,8 @@ describe("Claude synchronous hook CLI", () => {
       tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
     };
     const env = { ...installed.environment, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime"),
-      REVIEW_CONTROL_JSON: JSON.stringify({ delayMs: 10_000, answers: Object.fromEntries(configuredRules.map((rule) => [
+      REVIEW_RESIDENT_BACKEND_GATE_PATH: join(root, "held-backend"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: 0.9 },
       ])) }),
     };

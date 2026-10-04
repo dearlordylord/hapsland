@@ -1,3 +1,6 @@
+import { ConfigProvider, Effect } from "effect";
+import { previewClaudeInstallation, installClaudeIntegration } from "./claude-installation.ts";
+import { previewCodexInstallation, installCodexIntegration } from "./codex-installation.ts";
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../../scripts/test-harness/policy.mjs";
 import { createInstallationPackageFixture } from "../test-support/installation-package.ts";
 import { spawn } from "node:child_process";
@@ -88,7 +91,7 @@ const bothClients = (test: ReturnType<typeof fixture>) => {
   writeFileSync(claudeExecutable, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
   writeFileSync(codexExecutable, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   const piExecutable = join(test.root, "pi"); writeFileSync(piExecutable, "#!/bin/sh\nprintf 'unsupported-fixture\\n'\n", { mode: 0o700 });
-  return { claudeHome, codexHome, flags: [`--pi-executable=${piExecutable}`, `--pi-home=${join(test.root, "pi-home")}`, `--claude-home=${claudeHome}`, `--claude-executable=${claudeExecutable}`, `--codex-home=${codexHome}`, `--codex-executable=${codexExecutable}`] };
+  return { claudeHome, codexHome, claudeExecutable, codexExecutable, flags: [`--pi-executable=${piExecutable}`, `--pi-home=${join(test.root, "pi-home")}`, `--claude-home=${claudeHome}`, `--claude-executable=${claudeExecutable}`, `--codex-home=${codexHome}`, `--codex-executable=${codexExecutable}`] };
 };
 it.skipIf(process.platform !== "linux")("bare setup selects and installs both clients with independent confirmation", async () => {
   const test = fixture(); const clients = bothClients(test);
@@ -102,8 +105,7 @@ it.skipIf(process.platform !== "linux")("bare setup selects and installs both cl
 });
 it.skipIf(process.platform !== "linux")("existing clients are checked and deselecting them preserves their registrations", async () => {
   const test = fixture(); const clients = bothClients(test);
-  const initial = await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r");
-  expect(initial.code).toBe(0);
+  await installBothClients(test, clients);
   const claude = readFileSync(join(clients.claudeHome, "settings.json"), "utf8");
   const codex = readFileSync(join(clients.codexHome, "hooks.json"), "utf8");
   const resumed = await terminal(test, ["setup", ...clients.flags], "y", "\r");
@@ -127,10 +129,26 @@ it.skipIf(process.platform !== "linux")("cancelling client selection writes no r
   expect(existsSync(join(clients.claudeHome, "settings.json"))).toBe(false);
   expect(existsSync(join(clients.codexHome, "hooks.json"))).toBe(false);
 });
+// Update's TTY boundary starts with installed clients; setup has its own TTY canaries.
+const installBothClients = async (test: ReturnType<typeof fixture>, clients: ReturnType<typeof bothClients>) => {
+  const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
+    Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown(test.environment, { preserveEmptyStrings: true }))),
+  ));
+  const claudeRequest = { claudeHome: clients.claudeHome, claudeExecutable: clients.claudeExecutable };
+  const claudePreview = await run(previewClaudeInstallation(claudeRequest));
+  expect(claudePreview.status).toBe("preview");
+  if (!("proposal" in claudePreview)) throw new Error("Claude preview has no proposal");
+  expect((await run(installClaudeIntegration({ ...claudeRequest, proposalDigest: claudePreview.proposal.digest }))).status).toBe("complete");
+  const codexRequest = { codexHome: clients.codexHome, codexExecutable: clients.codexExecutable };
+  const codexPreview = await run(previewCodexInstallation(codexRequest));
+  expect(codexPreview.status).toBe("preview");
+  if (!("proposal" in codexPreview)) throw new Error("Codex preview has no proposal");
+  expect((await run(installCodexIntegration({ ...codexRequest, proposalDigest: codexPreview.proposal.digest }))).status).toBe("installed");
+};
 const recordedRequests = (path: string) => readFileSync(path, "utf8").trim().split("\n").map(line => JSON.parse(line));
 it.skipIf(process.platform !== "linux")("bare update previews both installed clients, then applies both exact digests after one confirmation", async () => {
   const test = fixture(); const clients = bothClients(test);
-  expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
+  await installBothClients(test, clients);
   const target = updaterFixture(test);
   const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y");
   expect(result.code).toBe(0);
@@ -145,7 +163,7 @@ it.skipIf(process.platform !== "linux")("bare update previews both installed cli
 });
 it.skipIf(process.platform !== "linux")("a failed client update reports failure and still updates the other installed client", async () => {
   const test = fixture(); const clients = bothClients(test);
-  expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
+  await installBothClients(test, clients);
   const target = updaterFixture(test, { failHost: "claude", failOperation: "update" });
   const result = await terminal(test, ["update", ...clients.flags, `--target=${target.target}`], "y");
   expect(result.code).toBe(6);
@@ -154,7 +172,7 @@ it.skipIf(process.platform !== "linux")("a failed client update reports failure 
 });
 it.skipIf(process.platform !== "linux")("bare update acquires one target for both installed clients", async () => {
   const test = fixture(); const clients = bothClients(test);
-  expect((await terminal(test, ["setup", ...clients.flags], "y", " \x1b[B \r")).code).toBe(0);
+  await installBothClients(test, clients);
   const target = updaterFixture(test); const npm = join(test.root, "npm"); const npmCalls = join(test.root, "npm-calls.jsonl");
   writeFileSync(npm, `#!/usr/bin/env node
 const fs=require('node:fs'),path=require('node:path');const args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(npmCalls)},JSON.stringify(args)+'\\n');
