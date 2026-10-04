@@ -23,7 +23,7 @@ delete env.REVIEW_INSTALL_ENTRYPOINT; delete env.REVIEW_INSTALL_RUNTIME; delete 
 const repository = join(root, 'repository'); mkdirSync(repository); execFileSync('git', ['init', '--quiet', repository]);
 const claudeHome = join(root, '.claude'); const codexHome = join(root, '.codex');
 writeFileSync(join(root, 'claude'), "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
-writeFileSync(join(root, 'codex'), "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+writeFileSync(join(root, 'codex'), "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
 writeFileSync(join(root, 'npm'), `#!${process.execPath}
 const fs=require('node:fs'); const path=require('node:path');
 const args=process.argv.slice(2);

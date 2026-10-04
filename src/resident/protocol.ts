@@ -1,6 +1,6 @@
 import type { CodexDirectEventOutput } from "../direct-event/output.ts";
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts";
-import { CODEX_HOST_VERSIONS, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
+import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
 
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -174,7 +174,7 @@ const ClaudeAdvicee = Schema.Struct({ ...adviceeFields,
 const Advicee = Schema.Union([ClaudeAdvicee, Schema.Struct({ ...adviceeFields,
   host: Schema.Literal("pi"), hostVersion: Schema.Literal("1.0.0"), turnId: Schema.Null, subagentId: Schema.Null,
 }), Schema.Struct({ ...adviceeFields,
-  host: Schema.Literal("codex-cli"), hostVersion: Schema.Literals(CODEX_HOST_VERSIONS), turnId: BoundedString,
+  host: Schema.Literal("codex-cli"), hostVersion: BoundedString.check(Schema.makeFilter(isCodexHostVersion)), turnId: BoundedString,
 })]);
 const ControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),

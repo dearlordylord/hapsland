@@ -69,7 +69,7 @@ describe("Claude installation lifecycle", () => {
         failure: { reason: "Claude installation configuration is invalid" },
       });
       expect(existsSync(join(home, "settings.json"))).toBe(false);
-      expect(existsSync(join(home, ".realtime-review-tool"))).toBe(false);
+      expect(existsSync(join(home, ".hapsland"))).toBe(false);
     },
   );
 
@@ -160,7 +160,7 @@ describe("Claude installation lifecycle", () => {
     const previous = settings(home);
     delete (previous.hooks as Record<string, unknown>).SubagentStop;
     writeFileSync(join(home, "settings.json"), JSON.stringify(previous));
-    const recordPath = join(home, ".realtime-review-tool", "claude-installation-v1.json");
+    const recordPath = join(home, ".hapsland", "claude-installation-v1.json");
     const record = JSON.parse(readFileSync(recordPath, "utf8")) as { composed: { subagentStopDigest?: string } };
     delete record.composed.subagentStopDigest;
     writeFileSync(recordPath, JSON.stringify(record));
@@ -191,7 +191,7 @@ describe("Claude installation lifecycle", () => {
       async: true,
     });
     writeFileSync(join(home, "settings.json"), JSON.stringify(previous));
-    const recordPath = join(home, ".realtime-review-tool", "claude-installation-v1.json");
+    const recordPath = join(home, ".hapsland", "claude-installation-v1.json");
     const record = JSON.parse(readFileSync(recordPath, "utf8"));
     record.hookGroups.PostToolUse = group;
     record.hookDigest = createHash("sha256").update(canonicalJson(group)).digest("hex");
@@ -349,7 +349,7 @@ it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
   async () => {
     const { home, claudeExecutable } = fixture();
     const settingsPath = join(home, "settings.json");
-    const ownershipDirectory = join(home, ".realtime-review-tool");
+    const ownershipDirectory = join(home, ".hapsland");
     mkdirSync(ownershipDirectory, { mode: 0o700 });
     const original = JSON.stringify({ userSetting: "retained" });
     writeFileSync(settingsPath, original);

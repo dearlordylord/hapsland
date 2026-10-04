@@ -47,7 +47,7 @@ hapsland doctor claude       # One client
 
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) , [Codex guide](codex-installation.md), and [Pi guide](pi-installation.md) for automation, ownership, credentials, and host-specific limits. Saved login uses the native credential store; hooks do not prompt.
 
-Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Current Claude/Codex adapter versions are Claude 2.1.218 and Codex 0.155.1/0.156.0. Hapsland commands now contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
+Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Pi installation targets exact 1.0.0 on Linux arm64; its installed native evidence and limitations are tracked separately in the [Pi guide](pi-installation.md). Claude targets 2.1.218. Codex installation checks lifecycle-hook capability rather than a fixed version allowlist; 0.155.1/0.156.0 are historical tested profiles. Hapsland commands now contain Bun 1.3.14; agent runtimes remain separate. The standalone build targets Linux/macOS arm64, with execution validation recorded separately. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
 
 ### User-owned prefix alternative
 
@@ -180,3 +180,12 @@ Uninstall previews removal of Hapsland-owned hooks and its owned feature entry. 
 Set user `excludes` to `["**/*"]` to stop future review dispatch without uninstalling. Requests already sent cannot be recalled. `hapsland --logout` separately removes the saved key.
 
 Remaining work outside this implementation: authenticated candidate-to-stable trials on each advertised client/platform, host upgrade cadence, project-level installation scope, coexistence trials with other hook tools, release account ownership, and how deprecation notices reach installed users. Ordinary tests remain offline; installation itself performs no paid review.
+
+Pre-release path rename: review configuration/state now use the XDG `hapsland`
+directories, and host ownership files use `.hapsland` inside the selected agent
+home. Old paths are not fallback configuration sources. If an older pre-release
+is already registered, uninstall it using its retained executable before installing
+the new build; this avoids leaving hooks whose old ownership record is outside the
+new namespace. Move any desired user configuration explicitly. Native credential
+store service/account identity remains unchanged, so the directory rename does
+not rename the stored secret itself.

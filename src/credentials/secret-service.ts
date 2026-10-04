@@ -1,8 +1,9 @@
+import { HAPSLAND_STATE_DIRECTORY } from "../runtime/user-paths.ts";
 import { packageAssetPath } from "../runtime/package-runtime.ts";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { homedir, hostname } from "node:os";
+import { hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
@@ -14,13 +15,7 @@ import * as Schema from "effect/Schema";
 import { runSecretServiceProcess, type SecretServiceOperation } from "./secret-service-process.ts";
 
 export const CREDENTIAL_LOOKUP_DEADLINE_MS = 750;
-export const DEFAULT_CREDENTIAL_STATE_PATH = join(
-  homedir(),
-  ".local",
-  "state",
-  "realtime-review-tool",
-  "credential-state.json",
-);
+export const DEFAULT_CREDENTIAL_STATE_PATH = join(HAPSLAND_STATE_DIRECTORY, "credential-state.json");
 
 export type SecretServiceStatus =
   | "available"

@@ -79,7 +79,7 @@ it.skipIf(process.platform !== "linux")("declining update performs only a read-o
 });
 it.skipIf(process.platform !== "linux")("guided Codex setup installs through the named client command", async () => {
   const test = fixture(); const home = join(test.root, "codex-home");
-  const host = join(test.root, "codex"); writeFileSync(host, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  const host = join(test.root, "codex"); writeFileSync(host, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   const result = await terminal(test, ["setup", "codex", `--codex-home=${home}`, `--codex-executable=${host}`], "y");
   expect(result.code).toBe(0); expect(result.answered).toBe(true);
   expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli");
@@ -89,7 +89,7 @@ const bothClients = (test: ReturnType<typeof fixture>) => {
   const claudeHome = join(test.root, "claude-home"); const codexHome = join(test.root, "codex-home");
   const claudeExecutable = join(test.root, "claude"); const codexExecutable = join(test.root, "codex");
   writeFileSync(claudeExecutable, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
-  writeFileSync(codexExecutable, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  writeFileSync(codexExecutable, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   const piExecutable = join(test.root, "pi"); writeFileSync(piExecutable, "#!/bin/sh\nprintf 'unsupported-fixture\\n'\n", { mode: 0o700 });
   return { claudeHome, codexHome, claudeExecutable, codexExecutable, flags: [`--pi-executable=${piExecutable}`, `--pi-home=${join(test.root, "pi-home")}`, `--claude-home=${claudeHome}`, `--claude-executable=${claudeExecutable}`, `--codex-home=${codexHome}`, `--codex-executable=${codexExecutable}`] };
 };

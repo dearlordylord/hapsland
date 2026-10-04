@@ -212,7 +212,7 @@ try {
   result = await run("git", ["init", "--quiet", repository], { cwd: temporary });
   expect(result.code === 0, `fixture repository initialization failed: ${result.stderr}`);
   const codexExecutable = join(temporary, "codex");
-  await writeFile(codexExecutable, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  await writeFile(codexExecutable, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   await chmod(codexExecutable, 0o700);
   const baseRequest = {
     version: 1,

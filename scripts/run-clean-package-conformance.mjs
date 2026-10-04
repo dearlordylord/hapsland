@@ -682,7 +682,7 @@ else if (operation === "get") {
   }
   await mkdir(codexHome, { recursive: true, mode: 0o700 });
   const fakeCodex = join(temporary, "codex-cli-fixture");
-  await writeFile(fakeCodex, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  await writeFile(fakeCodex, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   await chmod(fakeCodex, 0o700);
   const independentHook = join(temporary, "independent-hook.mjs");
   await writeFile(independentHook, `import { appendFileSync, readFileSync, realpathSync } from "node:fs";

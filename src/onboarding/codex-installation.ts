@@ -41,7 +41,7 @@ const RESULT_VERSION = 1 as const;
 const OWNED_MARKER = "--review-tool-owned=codex-v1";
 const COMPOSED_MARKER = "--review-tool-composed-owned=codex-v1";
 const OWNED_MATCHER = "^(apply_patch|Edit|Write|Bash)$";
-const PRODUCT_DIRECTORY = ".realtime-review-tool";
+const PRODUCT_DIRECTORY = ".hapsland";
 
 type JsonObject = { [key: string]: unknown };
 
@@ -652,13 +652,16 @@ const installationDigest = (
     }),
   );
 
-const codexCompatibility = (observed: string, versions: ReadonlyArray<string>) => {
+const codexCompatibility = (observed: string, versions: ReadonlyArray<string>, hooksAvailable: boolean) => {
   const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(observed)?.[1] ?? "unavailable";
   return {
-    supported: versions.includes(version),
+    supported: isCodexHostVersion(version) && hooksAvailable,
+    hooksAvailable,
+    tested: versions.includes(version),
     observed,
     version,
-    required: versions.map((item) => `codex-cli ${item}`).join(" or "),
+    required: "Codex CLI with lifecycle hooks and a stable semantic version",
+    testedVersions: versions,
   };
 };
 
@@ -796,7 +799,7 @@ const PackageRuntimeDeclaration = Schema.Struct({
   codex: Schema.optional(Schema.Unknown),
 });
 const RuntimeProfile = Schema.Struct({ operatingSystem: Schema.String, architecture: Schema.String });
-const DeclaredCodex = Schema.Struct({ compatibleVersions: Schema.NonEmptyArray(Schema.String) });
+const DeclaredCodex = Schema.Struct({ testedVersions: Schema.NonEmptyArray(Schema.String) });
 
 const packageVersionAt = (root: string) => {
   const manifest: unknown = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -827,9 +830,9 @@ const decodeRuntimeProfile = (profile: unknown) => {
 const declaredCodexVersions = (codex: unknown): ReadonlyArray<string> => {
   if (codex === undefined) return ["0.155.1"];
   try {
-    const { compatibleVersions } = Schema.decodeUnknownSync(DeclaredCodex)(codex);
-    if (!compatibleVersions.every(isCodexHostVersion)) throw new Error("unsupported");
-    return compatibleVersions;
+    const { testedVersions } = Schema.decodeUnknownSync(DeclaredCodex)(codex);
+    if (!testedVersions.every(isCodexHostVersion)) throw new Error("unsupported");
+    return testedVersions;
   } catch {
     throw new Error("package-runtime.json declares unsupported Codex versions");
   }
@@ -888,6 +891,7 @@ const buildInputs = (
     readonly controlledReviewer: boolean;
     readonly failAfterWrites: number;
     readonly hostObserved: string;
+    readonly hooksAvailable: boolean;
     readonly runtimeProbe: RuntimeProbe;
   },
 ) => {
@@ -902,7 +906,7 @@ const buildInputs = (
     codexExecutable: request.codexExecutable ?? "codex",
     controlledReviewer: configured.controlledReviewer,
     failAfterWrites: configured.failAfterWrites,
-    codex: codexCompatibility(configured.hostObserved, codexVersions),
+    codex: codexCompatibility(configured.hostObserved, codexVersions, configured.hooksAvailable),
     runtimeProbe: configured.runtimeProbe,
     ...metadata,
     paths: pathsFor(home),
@@ -927,6 +931,9 @@ const resolveInputs = Effect.fn("CodexInstallation.inputs")(
       timeout: 2_000,
       maxBuffer: 1_048_576,
     });
+    const features = yield* execFileClosedStdin(request.codexExecutable ?? "codex", ["features", "list"], {
+      env: process.env, timeout: 2_000, maxBuffer: 1_048_576,
+    });
     const runtimeProbe = yield* probeRuntime(resolve(executable));
     return yield* Effect.try({
       try: () =>
@@ -937,6 +944,7 @@ const resolveInputs = Effect.fn("CodexInstallation.inputs")(
           controlledReviewer: controlled === "1",
           failAfterWrites,
           hostObserved: host.succeeded ? host.stdout.trim() : "unavailable",
+          hooksAvailable: features.succeeded && /^hooks\s+\S+\s+(?:true|false)\s*$/m.test(features.stdout),
           runtimeProbe,
         }),
       catch: () => new CodexInstallationError({ reason: "Codex installation inputs unavailable" }),

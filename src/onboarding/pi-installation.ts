@@ -54,7 +54,7 @@ const configured = Effect.fn("PiInstallation.configured")(function* (request: Pi
   const runtimeRun = yield* execFileClosedStdin(runtime, versionProbeArguments(runtime, entrypoint), options);
   const compatibility = compatibilityFor(runtimeVersion(host), observedRuntimeVersion(runtimeVersion(runtimeRun)), extension, entrypoint);
   return { home, runtime, entrypoint, extension, compatibility,
-    paths: { extension: join(home, "extensions", "hapsland.ts"), ownership: join(home, ".realtime-review-tool", "pi-installation-v1.json"), journal: join(home, ".realtime-review-tool", "pi-installation-journal-v1.json") } };
+    paths: { extension: join(home, "extensions", "hapsland.ts"), ownership: join(home, ".hapsland", "pi-installation-v1.json"), journal: join(home, ".hapsland", "pi-installation-journal-v1.json") } };
 });
 type Input = Effect.Success<ReturnType<typeof configured>>;
 type Operation = "install" | "update" | "uninstall";
@@ -125,7 +125,7 @@ const run = Effect.fn("PiInstallation.run")(function* (request: PiInstallationRe
   const input = yield* configured(request);
   const observed = yield* Effect.try({ try: () => preview(input, operation), catch: errorMessage });
   if (!apply || request.proposalDigest === undefined || observed.status !== "preview") return observed;
-  return yield* withInstallationLock(join(input.home, ".realtime-review-tool", "pi-installation.lock"),
+  return yield* withInstallationLock(join(input.home, ".hapsland", "pi-installation.lock"),
     Effect.try({ try: () => {
       const next = plan(input, operation);
       if (next.digest !== request.proposalDigest) return { version: 1 as const, operation,
@@ -151,7 +151,7 @@ export const previewPiUpdate = (request: PiInstallationRequest) => run(request, 
 export const updatePiIntegration = (request: PiInstallationRequest) => run(request, "update", true);
 export const uninstallPiIntegration = (request: PiInstallationRequest) => run(request, "uninstall", true);
 export const hasPiRegistration = (request: PiInstallationRequest): boolean =>
-  existsSync(join(resolve(request.piHome ?? process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent")), ".realtime-review-tool", "pi-installation-v1.json"));
+  existsSync(join(resolve(request.piHome ?? process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent")), ".hapsland", "pi-installation-v1.json"));
 export const inspectPiInstallation = Effect.fn("PiInstallation.inspect")(function* (request: PiInstallationRequest) {
   const input = yield* configured(request);
   return yield* Effect.try({ try: () => {

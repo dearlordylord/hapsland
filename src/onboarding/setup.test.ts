@@ -32,7 +32,7 @@ const fixture = () => {
   mkdirSync(repository);
   mkdirSync(codexHome);
   execFileSync("git", ["init", "--quiet", repository]);
-  writeFileSync(codexExecutable, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  writeFileSync(codexExecutable, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   chmodSync(codexExecutable, 0o700);
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
@@ -196,7 +196,7 @@ describe("public resumable setup operation", () => {
             matcher: "^(apply_patch|Edit|Write|Bash)$",
             handlers: [expect.objectContaining({ command: expect.any(String), timeout: 10 }), expect.objectContaining({ command: expect.any(String), timeout: 25, async: true })],
           },
-          ownership: { file: join(test.codexHome, ".realtime-review-tool", "installation-v1.json") },
+          ownership: { file: join(test.codexHome, ".hapsland", "installation-v1.json") },
         },
       },
     });
@@ -236,7 +236,7 @@ describe("public resumable setup operation", () => {
         authorization: { installProposalDigest: approvals.installProposalDigest },
       }),
     ]));
-    expect(existsSync(join(test.codexHome, ".realtime-review-tool", "journal-v1.json"))).toBe(true);
+    expect(existsSync(join(test.codexHome, ".hapsland", "journal-v1.json"))).toBe(true);
 
     const pending = invoke(test, {});
     expect(pending.stages).toEqual(expect.arrayContaining([
@@ -251,7 +251,7 @@ describe("public resumable setup operation", () => {
       expect.objectContaining({ stage: "installation", status: "complete" }),
       expect.objectContaining({ stage: "repository", status: "complete" }),
     ]));
-    expect(existsSync(join(test.codexHome, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+    expect(existsSync(join(test.codexHome, ".hapsland", "journal-v1.json"))).toBe(false);
   });
 
   it("asks for user exclude-all when review disabled is requested", () => {

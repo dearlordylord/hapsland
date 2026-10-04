@@ -27,9 +27,9 @@ afterEach(() => {
 const seedOwnedPlugin = (home: string) => {
   const plugin = "export const HapslandPlugin = async () => ({});\n";
   mkdirSync(join(home, "plugins"), { recursive: true });
-  mkdirSync(join(home, ".realtime-review-tool"), { recursive: true });
+  mkdirSync(join(home, ".hapsland"), { recursive: true });
   writeFileSync(join(home, "plugins", "hapsland.mjs"), plugin);
-  writeFileSync(join(home, ".realtime-review-tool", "opencode-installation-v1.json"), JSON.stringify({
+  writeFileSync(join(home, ".hapsland", "opencode-installation-v1.json"), JSON.stringify({
     version: 1, adapter: "opencode", home,
     pluginDigest: createHash("sha256").update(plugin).digest("hex"),
     executable: process.execPath, args: [process.env.REVIEW_INSTALL_ENTRYPOINT],
@@ -86,7 +86,7 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     seedOwnedPlugin(home);
     const preview = await Effect.runPromise(uninstallOpenCodeIntegration(request));
     if (preview.status !== "preview") throw new Error("removal preview unavailable");
-    const lock = join(home, ".realtime-review-tool", "opencode-installation.lock");
+    const lock = join(home, ".hapsland", "opencode-installation.lock");
     mkdirSync(lock);
     writeFileSync(join(lock, "owner"), "other owner");
     const approved = { ...request, proposalDigest: preview.proposal.digest };

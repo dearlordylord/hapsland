@@ -17,7 +17,7 @@ const fixture = () => {
   writeFileSync(runtime, "#!/bin/sh\necho v24.20.0\n", { mode: 0o700 });
   const configuration = ConfigProvider.layer(ConfigProvider.fromUnknown({ REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: entrypoint }));
   const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(Effect.provide(configuration)));
-  return { root, home, host, runtime, entrypoint, run, request: { piHome: home, piExecutable: host }, extension: join(home, "extensions", "hapsland.ts"), ownership: join(home, ".realtime-review-tool", "pi-installation-v1.json") };
+  return { root, home, host, runtime, entrypoint, run, request: { piHome: home, piExecutable: host }, extension: join(home, "extensions", "hapsland.ts"), ownership: join(home, ".hapsland", "pi-installation-v1.json") };
 };
 afterEach(() => { for (const root of directories.splice(0)) rmSync(root, { recursive: true, force: true }); });
 const digest = (value: unknown): string => {
@@ -66,7 +66,7 @@ it("rejects stale approvals, unsupported runtime profiles, local modifications a
 });
 it("reports a missing profile read-only and refuses malformed ownership", async () => {
   const t = fixture(); expect(await t.run(diagnosePiIntegration(t.request))).toMatchObject({ status: "not-ready" });
-  expect(existsSync(t.home)).toBe(false); mkdirSync(join(t.home, ".realtime-review-tool"), { recursive: true });
+  expect(existsSync(t.home)).toBe(false); mkdirSync(join(t.home, ".hapsland"), { recursive: true });
   writeFileSync(t.ownership, "{broken"); expect((await t.run(inspectPiInstallation(t.request))).status).toBe("conflict");
   expect((await t.run(previewPiInstallation(t.request))).status).toBe("conflict");
 });
@@ -76,7 +76,7 @@ it("resumes an interrupted owned write and preserves unexpected files during rec
   const approved = digest(install);
   expect((await t.run(installPiIntegration({ ...t.request, proposalDigest: approved }))).status).toBe("complete");
   const content = readFileSync(t.extension, "utf8"); const ownership = readFileSync(t.ownership, "utf8");
-  const journal = join(t.home, ".realtime-review-tool", "pi-installation-journal-v1.json");
+  const journal = join(t.home, ".hapsland", "pi-installation-journal-v1.json");
   writeFileSync(journal, JSON.stringify({ version: 1, operation: "update", home: t.home, content, ownership }));
   expect(await t.run(inspectPiInstallation(t.request))).toMatchObject({ recovery: { operation: "update" } });
   const recovered = await t.run(previewPiUpdate(t.request));

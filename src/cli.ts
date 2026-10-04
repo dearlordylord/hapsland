@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { HAPSLAND_CONFIG_DIRECTORY, HAPSLAND_STATE_DIRECTORY } from "./runtime/user-paths.ts";
 import { profileFields } from "./onboarding/client-command.ts";
 import type { DoctorCheck } from "./onboarding/doctor.ts";
 import type { ClientChoice, SetupClient } from "./onboarding/client-selection.ts";
@@ -297,14 +298,14 @@ const statePathConfig = Config.option(Config.NonEmptyString("REVIEW_STATE_PATH")
       onSome: Config.succeed,
       onNone: () =>
         Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
-          Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+          Config.withDefault(join(HAPSLAND_CONFIG_DIRECTORY, "consent")),
         ),
     }),
   ),
 );
 
 const activityPathConfig = Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
-  Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
+  Config.withDefault(join(HAPSLAND_STATE_DIRECTORY, "activity")),
 );
 
 const userConfigPathConfig = Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH"));
@@ -994,7 +995,7 @@ const runJsonDemo = Effect.fn("Cli.runJsonDemo")(function* (input: string) {
   const { runFirstReviewDemo } = yield* Effect.promise(() => import("./onboarding/first-review-demo.ts"));
   const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
   const demoStatePath = yield* Config.NonEmptyString("REVIEW_DEMO_STATE_PATH").pipe(
-    Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "demos")),
+    Config.withDefault(join(HAPSLAND_STATE_DIRECTORY, "demos")),
   );
   return yield* runFirstReviewDemo(operation, { statePath: demoStatePath });
 });
@@ -1269,7 +1270,7 @@ const pilotConfiguration = Effect.fn("InteractiveSetup.configuration")(function*
   const statePath =
     configuredStatePath ??
     (yield* Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
-      Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+      Config.withDefault(join(HAPSLAND_CONFIG_DIRECTORY, "consent")),
     ));
   const userConfigPath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")));
   return { statePath, ...(userConfigPath === undefined ? {} : { userConfigPath }) };

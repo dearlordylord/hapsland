@@ -43,6 +43,16 @@ const setup = async (enabled = true) => {
 
 
 describe("resident session analytics", () => {
+  it("propagates project analytics overrides through native dispatch", async () => {
+    for (const projectEnabled of [true, false]) {
+      const f = await setup(!projectEnabled);
+      await put(f.root, ".review.jsonc", JSON.stringify({ version: 1, sessionAnalytics: projectEnabled }));
+      const context = await runClient(makeResidentDispatchContext(f.root, f.dispatch.statePath,
+        f.dispatch.activityPath ?? "", f.dispatch.userConfigPath ?? undefined, {}));
+      expect(context.sessionAnalytics).toBe(projectEnabled);
+    }
+  });
+
   it("propagates user opt-in through the native dispatch context", async () => {
     const f = await setup();
     const context = await runClient(makeResidentDispatchContext(f.root, f.dispatch.statePath,

@@ -47,7 +47,7 @@ const fixture = () => {
   const home = join(root, "custom codex home 'one'");
   const bin = join(root, "fake codex");
   mkdirSync(home, { recursive: true });
-  writeFileSync(bin, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
+  writeFileSync(bin, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
   chmodSync(bin, 0o700);
   return { root, home, bin };
 };
@@ -64,7 +64,7 @@ const localPackage = (root: string, version: string, residentProtocol = 1) => {
   writeFileSync(join(packageRoot, "package-runtime.json"), `${JSON.stringify({
     schemaVersion: 1,
     runtime: { name: "node", version: process.version.slice(1) },
-    codex: { compatibleVersions: ["0.155.1", "0.156.0"] },
+    codex: { testedVersions: ["0.155.1", "0.156.0"] },
     profiles: [{ operatingSystem: process.platform, architecture: process.arch }],
     residentProtocol,
   }, null, 2)}\n`);
@@ -260,17 +260,27 @@ describe("public Codex installation operations", async () => {
       else process.env.REVIEW_INSTALL_ENTRYPOINT = previousEntrypoint;
     }
   });
-  it("accepts Codex 0.156.0 and binds its version into the owned hook", async () => {
+  it.each(["0.156.0", "0.160.0", "0.161.0"])("accepts Codex %s and binds its version into the owned hook", async (hostVersion) => {
     const { root, home, bin } = fixture();
-    writeFileSync(bin, "#!/bin/sh\nprintf 'codex-cli 0.156.0\\n'\n", { mode: 0o700 });
+    writeFileSync(bin, `#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli ${hostVersion}\\n'\n`, { mode: 0o700 });
     const entrypoint = localPackage(root, "0.0.0");
     const environment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
     const preview = (await invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }, environment));
     expect(preview.status).toBe("preview");
     const proposal = preview.proposal as { digest: string; ownedChanges: { hook: { handlers: Array<{ command: string }> } } };
-    expect(proposal.ownedChanges.hook.handlers[0]?.command).toContain("--codex-version=0.156.0");
+    expect(proposal.ownedChanges.hook.handlers[0]?.command).toContain(`--codex-version=${hostVersion}`);
     expect((await invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: proposal.digest }, environment)).status).toBe("installed");
-    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("--codex-version=0.156.0");
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(`--codex-version=${hostVersion}`);
+  });
+  it("refuses a version-only executable without the lifecycle hooks capability", async () => {
+    const { root, home, bin } = fixture();
+    writeFileSync(bin, "#!/bin/sh\nprintf 'codex-cli 0.160.0\\n'\n", { mode: 0o700 });
+    const entrypoint = localPackage(root, "0.0.0");
+    const preview = await invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin },
+      { ...process.env, REVIEW_INSTALL_ENTRYPOINT: entrypoint });
+    expect(preview.status).toBe("unsupported");
+    expect(preview.host).toMatchObject({ compatibility: { codex: { hooksAvailable: false } } });
+    expect(existsSync(join(home, "hooks.json"))).toBe(false);
   });
   it.each(["Stop", "SubagentStop"] as const)("rejects a locally modified owned %s hook", async (event) => {
     const { home, bin } = fixture();
@@ -289,7 +299,7 @@ describe("public Codex installation operations", async () => {
     const previous = JSON.parse(readFileSync(hooksPath, "utf8")) as { hooks: Record<string, unknown> };
     delete previous.hooks.SubagentStop;
     writeFileSync(hooksPath, JSON.stringify(previous));
-    const recordPath = join(home, ".realtime-review-tool", "installation-v1.json");
+    const recordPath = join(home, ".hapsland", "installation-v1.json");
     const record = JSON.parse(readFileSync(recordPath, "utf8")) as { composedFingerprints: { subagentStop?: string } };
     delete record.composedFingerprints.subagentStop;
     writeFileSync(recordPath, JSON.stringify(record));
@@ -344,7 +354,7 @@ describe("public Codex installation operations", async () => {
           matcher: "^(apply_patch|Edit|Write|Bash)$",
           handlers: [{ type: "command", timeout: 10 }, { type: "command", timeout: 25, async: true }],
         },
-        ownership: { file: join(home, ".realtime-review-tool", "installation-v1.json"), version: 1, adapter: "codex" },
+        ownership: { file: join(home, ".hapsland", "installation-v1.json"), version: 1, adapter: "codex" },
       },
     });
     const previewCommand = ((preview.proposal as {
@@ -355,7 +365,7 @@ describe("public Codex installation operations", async () => {
     );
     expect(JSON.stringify((preview.proposal as { ownedChanges: unknown }).ownedChanges)).not.toContain("keep me");
     expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true");
-    expect(existsSync(join(home, ".realtime-review-tool", "installation-v1.json"))).toBe(false);
+    expect(existsSync(join(home, ".hapsland", "installation-v1.json"))).toBe(false);
 
     const digest = (preview.proposal as { digest: string }).digest;
     const installed = (await invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest }, installEnvironment));
@@ -421,7 +431,7 @@ responses_websockets_v2 = true`);
 
   it("rejects unsupported hosts and malformed, duplicate, or modified owned configuration", async () => {
     const unsupported = fixture();
-    writeFileSync(unsupported.bin, "#!/bin/sh\nprintf 'codex-cli 9.9.9\\n'\n", { mode: 0o700 });
+    writeFileSync(unsupported.bin, "#!/bin/sh\nif [ \"$1\" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli invalid\\n'\n", { mode: 0o700 });
     const unsupportedPreview = (await invoke({ operation: "install-preview", codexHome: unsupported.home, codexExecutable: unsupported.bin }));
     expect(unsupportedPreview.status).toBe("unsupported");
     const unsupportedInstall = (await invoke({
@@ -479,11 +489,11 @@ responses_websockets_v2 = true`);
       { ...process.env, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
     ));
     expect(partial).toMatchObject({ status: "partial", recovery: { proposalDigest: digest, completedFiles: 1 } });
-    expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(true);
+    expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(true);
 
     const resumed = (await invoke({ operation: "install", codexHome: home, codexExecutable: bin, proposalDigest: digest }));
     expect(resumed).toMatchObject({ status: "installed", resumed: true });
-    expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+    expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(false);
 
     const concurrent = fixture();
     const concurrentPreview = (await invoke({ operation: "install-preview", codexHome: concurrent.home, codexExecutable: concurrent.bin }));
@@ -535,7 +545,7 @@ responses_websockets_v2 = true`);
       status: "unsupported",
       host: { compatibility: { runtime: { checks: { runtime: { ready: false, observed: "missing" } } } } },
     });
-    expect(existsSync(join(missingRuntime.home, ".realtime-review-tool"))).toBe(false);
+    expect(existsSync(join(missingRuntime.home, ".hapsland"))).toBe(false);
 
     const nonRuntime = fixture();
     const trueResult = (await invoke(
@@ -549,7 +559,7 @@ responses_websockets_v2 = true`);
         engine: { ready: false, observed: "not-a-supported-runtime" },
       } } } },
     });
-    expect(existsSync(join(nonRuntime.home, ".realtime-review-tool"))).toBe(false);
+    expect(existsSync(join(nonRuntime.home, ".hapsland"))).toBe(false);
 
     const missingEntrypoint = fixture();
     const entrypointEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: join(missingEntrypoint.root, "missing-cli.js") };
@@ -566,7 +576,7 @@ responses_websockets_v2 = true`);
       entrypointEnvironment,
     ));
     expect(install.status).toBe("unsupported");
-    expect(existsSync(join(missingEntrypoint.home, ".realtime-review-tool"))).toBe(false);
+    expect(existsSync(join(missingEntrypoint.home, ".hapsland"))).toBe(false);
     expect(existsSync(join(missingEntrypoint.home, "hooks.json"))).toBe(false);
 
     const missingCompanions = fixture();
@@ -607,7 +617,7 @@ responses_websockets_v2 = true`);
     expect(readFileSync(join(home, "config.toml"), "utf8")).toBe(config);
     expect(JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"))).toEqual({ hooks: { PostToolUse: [independent] } });
     expect(readFileSync(join(home, "grant.json"), "utf8")).toBe("repository-grant\n");
-    expect(existsSync(join(home, ".realtime-review-tool", "installation-v1.json"))).toBe(false);
+    expect(existsSync(join(home, ".hapsland", "installation-v1.json"))).toBe(false);
   });
 
   it("conflicts and preserves a locally modified owned feature value", async () => {
@@ -653,7 +663,7 @@ responses_websockets_v2 = true`);
       pending: [expect.stringContaining("preserve the current files")],
     });
     expect(readFileSync(configPath, "utf8")).toBe(modified);
-    expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(true);
+    expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(true);
   });
 
   it("previews and applies an explicit local-package update while preserving reusable state", async () => {
@@ -687,7 +697,7 @@ responses_websockets_v2 = true`);
         current: { packageVersion: "1.0.0", args: [firstEntrypoint], residentProtocol: 1 },
         target: { packageVersion: "1.1.0", args: [secondEntrypoint], residentProtocol: 1 },
         changes: [
-          { file: join(home, ".realtime-review-tool", "installation-v1.json"), description: "record the target packaged runtime" },
+          { file: join(home, ".hapsland", "installation-v1.json"), description: "record the target packaged runtime" },
           { file: join(home, "hooks.json"), description: "replace only the owned PostToolUse adapter hook" },
         ],
       },
@@ -832,7 +842,7 @@ responses_websockets_v2 = true`);
       }
       if (corruption === "missing-version") writeFileSync(join(packageRoot, "package.json"), '{"type":"module"}\n');
       const beforeHooks = readFileSync(join(home, "hooks.json"), "utf8");
-      const beforeOwnership = readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8");
+      const beforeOwnership = readFileSync(join(home, ".hapsland", "installation-v1.json"), "utf8");
       const targetEnvironment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: targetEntrypoint };
 
       for (const operation of ["update-preview", "update"] as const) {
@@ -850,8 +860,8 @@ responses_websockets_v2 = true`);
         });
       }
       expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(beforeHooks);
-      expect(readFileSync(join(home, ".realtime-review-tool", "installation-v1.json"), "utf8")).toBe(beforeOwnership);
-      expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+      expect(readFileSync(join(home, ".hapsland", "installation-v1.json"), "utf8")).toBe(beforeOwnership);
+      expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(false);
     },
   );
 
@@ -871,7 +881,7 @@ responses_websockets_v2 = true`);
     )).status).toBe("partial");
     const hooksPath = join(home, "hooks.json");
     const beforeHooks = readFileSync(hooksPath, "utf8");
-    const journalPath = join(home, ".realtime-review-tool", "journal-v1.json");
+    const journalPath = join(home, ".hapsland", "journal-v1.json");
     const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Record<string, unknown>;
     const mutations = journal.mutations as Array<Record<string, unknown>>;
     const hooksMutation = mutations.find((change) => change.path === hooksPath);
@@ -937,7 +947,7 @@ responses_websockets_v2 = true`);
       { ...targetEnvironment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
     )).status).toBe("partial");
     const operation = { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest };
-    const lockPath = join(home, ".realtime-review-tool", "installation.lock");
+    const lockPath = join(home, ".hapsland", "installation.lock");
     const baseline = currentLockGeneration(lockPath)?.number ?? 0n;
     const owner = spawnOperation(operation, { ...targetEnvironment, REVIEW_INSTALL_TEST_HOLD_LOCK_MS: "10000" });
     const deadGeneration = await waitFor(() => {
@@ -979,13 +989,13 @@ responses_websockets_v2 = true`);
     const resumed = (await invoke(operation, targetEnvironment));
     expect(resumed).toMatchObject({ status: "updated", resumed: true });
     expect(existsSync(lockPath)).toBe(true);
-    expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
+    expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(false);
   });
 
   it("bounds lock acquisition and reports no mutation", async () => {
     const { home, bin } = fixture();
     const preview = (await invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }));
-    const lockPath = join(home, ".realtime-review-tool", "installation.lock");
+    const lockPath = join(home, ".hapsland", "installation.lock");
     const owner = randomUUID();
     const ownerDirectory = join(lockPath, "owners", owner);
     mkdirSync(ownerDirectory, { recursive: true });
@@ -1010,7 +1020,7 @@ responses_websockets_v2 = true`);
   it("compacts high generation history and stale orphans while retaining a live contender", async () => {
     const { home, bin } = fixture();
     const preview = (await invoke({ operation: "install-preview", codexHome: home, codexExecutable: bin }));
-    const lockPath = join(home, ".realtime-review-tool", "installation.lock");
+    const lockPath = join(home, ".hapsland", "installation.lock");
     const ownersPath = join(lockPath, "owners");
     const generationsPath = join(lockPath, "generations");
     mkdirSync(ownersPath, { recursive: true });
@@ -1086,7 +1096,7 @@ describe("Codex update and explicit reinstall journeys", async () => {
     const request = { codexHome: home, codexExecutable: bin };
     const preview = (await invoke({ ...request, operation: "install-preview" }, environment));
     (await invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment));
-    const journalDirectory = join(home, ".realtime-review-tool");
+    const journalDirectory = join(home, ".hapsland");
     const journal = join(journalDirectory, "journal-v1.json");
     writeFileSync(journal, "damaged interrupted journal");
     const hooksPath = join(home, "hooks.json");
@@ -1137,7 +1147,7 @@ it.each([
   { name: "completed index", patch: { completed: [0] } },
 ])("rejects a malformed recovery journal $name without changing configuration", async ({ patch }) => {
   const { home, bin } = fixture();
-  const directory = join(home, ".realtime-review-tool");
+  const directory = join(home, ".hapsland");
   mkdirSync(directory);
   const journalPath = join(directory, "journal-v1.json");
   const journal = JSON.stringify({ version: 1, operation: "install", proposalDigest: "digest", mutations: [], completed: [], ...patch });
@@ -1153,7 +1163,7 @@ it.each([
 
 it.each(["install", "update"])("reports invalid ownership during %s without starting a journal", async (operation) => {
   const { home, bin } = fixture();
-  const directory = join(home, ".realtime-review-tool");
+  const directory = join(home, ".hapsland");
   mkdirSync(directory);
   const ownership = JSON.stringify({ version: 2 });
   writeFileSync(join(directory, "installation-v1.json"), ownership);
@@ -1190,8 +1200,8 @@ it("resumes an interrupted uninstall using only its original approved digest", a
     status: "conflict", error: { message: "another journaled operation requires recovery before uninstall" },
   });
   expect(await run(uninstallCodexIntegration({ ...request, proposalDigest: digest }))).toMatchObject({ status: "uninstalled", resumed: true });
-  expect(existsSync(join(home, ".realtime-review-tool", "journal-v1.json"))).toBe(false);
-  expect(existsSync(join(home, ".realtime-review-tool", "installation-v1.json"))).toBe(false);
+  expect(existsSync(join(home, ".hapsland", "journal-v1.json"))).toBe(false);
+  expect(existsSync(join(home, ".hapsland", "installation-v1.json"))).toBe(false);
   expect(readFileSync(join(home, "config.toml"), "utf8")).toContain(config);
   expect(readFileSync(join(home, "config.toml"), "utf8")).not.toContain("hooks = true");
 });

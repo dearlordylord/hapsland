@@ -156,7 +156,7 @@ export const ConfigurationDocument = Schema.Struct({
   reviewBackend: Schema.optionalKey(ReviewBackendSettings),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   sessionAnalytics: Schema.optionalKey(Schema.Boolean.annotate({
-    description: "User-owned opt-in session analytics. Disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
+    description: "Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
     default: false,
   })),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),

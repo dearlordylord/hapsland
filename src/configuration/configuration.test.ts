@@ -24,17 +24,40 @@ const builtIn = (): ConfigurationLayer => ({
 });
 
 describe("configuration v1 decoding", () => {
-  it("requires user opt-in for session analytics", () => {
+  it("resolves session analytics with project precedence, including explicit false", () => {
     expect(effectiveSessionAnalytics(resolveConfiguration([], "/repo"))).toBe(false);
+    const explanation = explainPath(resolveConfiguration([
+      source("user", '{"version":1,"sessionAnalytics":true}'),
+      source("project", '{"version":1,"sessionAnalytics":false}'),
+    ], "/repo"), "src/example.ts");
+    expect(explanation.configuration.layers).toEqual([
+      { name: "built-in", source: "built-in" },
+      { name: "user", source: "user.jsonc" },
+      { name: "project", source: "project.jsonc" },
+    ]);
+    expect(explanation.configuration.sessionAnalytics).toEqual({ value: false,
+      origin: { layer: "project", source: "project.jsonc", field: "sessionAnalytics" } });
     expect(effectiveSessionAnalytics(resolveConfiguration([
       source("user", '{"version":1,"sessionAnalytics":true}'),
     ], "/repo"))).toBe(true);
     expect(effectiveSessionAnalytics(resolveConfiguration([
       source("user", '{"version":1,"sessionAnalytics":false}'),
     ], "/repo"))).toBe(false);
-    expect(() => resolveConfiguration([
+    expect(effectiveSessionAnalytics(resolveConfiguration([
       source("project", '{"version":1,"sessionAnalytics":true}'),
-    ], "/repo")).toThrowError(expect.objectContaining({ field: "sessionAnalytics" }));
+    ], "/repo"))).toBe(true);
+    expect(effectiveSessionAnalytics(resolveConfiguration([
+      source("user", '{"version":1,"sessionAnalytics":true}'),
+      source("project", '{"version":1,"sessionAnalytics":false}'),
+    ], "/repo"))).toBe(false);
+    expect(effectiveSessionAnalytics(resolveConfiguration([
+      source("user", '{"version":1,"sessionAnalytics":false}'),
+      source("project", '{"version":1,"sessionAnalytics":true}'),
+    ], "/repo"))).toBe(true);
+    expect(effectiveSessionAnalytics(resolveConfiguration([
+      source("user", '{"version":1,"sessionAnalytics":true}'),
+      source("project", '{"version":1}'),
+    ], "/repo"))).toBe(true);
     expect(() => source("user", '{"version":1,"sessionAnalytics":"true"}'))
       .toThrowError(expect.objectContaining({ field: "sessionAnalytics" }));
   });

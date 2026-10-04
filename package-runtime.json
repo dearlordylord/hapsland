@@ -6,7 +6,7 @@
     "distribution": "standalone-executables"
   },
   "codex": {
-    "compatibleVersions": [
+    "testedVersions": [
       "0.155.1",
       "0.156.0"
     ]

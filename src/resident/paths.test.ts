@@ -39,8 +39,8 @@ it.effect("preserves metadata errors other than an absent endpoint", () => Effec
 
 for (const [configuration, expected] of [
   [{ REVIEW_RESIDENT_DIR: "/explicit", XDG_RUNTIME_DIR: "/runtime" }, "/explicit"],
-  [{ XDG_RUNTIME_DIR: "/runtime" }, join("/runtime", "realtime-review-tool")],
-  [{}, join(tmpdir(), `realtime-review-tool-${typeof process.getuid === "function" ? process.getuid() : process.pid}`)],
+  [{ XDG_RUNTIME_DIR: "/runtime" }, join("/runtime", "hapsland")],
+  [{}, join(tmpdir(), `hapsland-${typeof process.getuid === "function" ? process.getuid() : process.pid}`)],
 ] as const) {
   it.effect(`resolves the resident directory to ${expected}`, () => Effect.gen(function* () {
     const paths = yield* resolveResidentPaths().pipe(

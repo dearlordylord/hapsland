@@ -17,7 +17,8 @@ delete environment.REVIEW_INSTALL_RUNTIME;
 delete environment.REVIEW_INSTALL_ENTRYPOINT;
 const run = (command, commandArgs, stdio = "inherit") => {
   const result = spawnSync(command, commandArgs, { stdio, encoding: "utf8", timeout: 300_000, env: environment });
-  if (result.error || result.status !== 0) throw new Error(`${command} ${commandArgs[0]} failed: ${result.error?.message ?? result.stderr ?? result.status}`);
+  if (result.error) throw new Error(`${command} ${commandArgs[0]} failed: ${result.error.message}`);
+  if (result.status !== 0) process.exit(result.status ?? 1);
   return result.stdout;
 };
 run("npm", ["run", "build"]);

@@ -13,7 +13,8 @@ Project configuration is read once from the Git working-tree root. The supported
 project names are `.review.jsonc` and `.realtime-review.jsonc`; finding both is an
 error. User defaults are read from
 `$REVIEW_USER_CONFIG_PATH`, or (when that variable is absent)
-`~/.config/realtime-review-tool/config.jsonc`. There is no nested directory
+`$XDG_CONFIG_HOME/hapsland/config.jsonc`, defaulting to
+`~/.config/hapsland/config.jsonc` when the XDG base is absent, empty or relative. There is no nested directory
 inheritance and no automatic `.gitignore` loading.
 An explicitly empty `$REVIEW_USER_CONFIG_PATH` is a configuration error; only an
 absent variable selects the default path.
@@ -26,6 +27,34 @@ This phase does not publish a hosted schema URL: copy that file into an
 editor-accessible installation/configuration directory and point `$schema` at the
 copy. The schema assists editors with structural JSON; the runtime also parses
 JSONC and applies semantic glob, rule-pack, and repository-policy checks.
+
+## Configuration locations and precedence
+
+| Layer | Location | Behavior |
+| --- | --- | --- |
+| Built-in | Bundled defaults and Noul rule pack | Supplies defaults when neither user nor project sets a value. |
+| User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Supplies personal defaults and controls shared resident resources and review destination. |
+| Project | `.review.jsonc` or `.realtime-review.jsonc` at the canonical Git root | Overrides ordinary settings for this repository; both files together are an error. There are no nested config layers. |
+| Rule packs | Explicit `packs` paths in either document | Rule definitions, not another global config layer. Relative paths resolve from the declaring config. |
+
+Project overrides user for `sessionAnalytics` (including `false`) and include
+lists. Exclusions accumulate and always win. User graph limits are ceilings:
+projects may lower them. Credentials, review destination, shared resident limits
+and stronger Claude blocking have their documented user-owned restrictions;
+project precedence does not mean every field can override personal authority.
+
+The existing `explain` operation reports loaded layers with exact source paths,
+selection origins and effective `sessionAnalytics` with its winning origin:
+
+```sh
+printf '%s\n' '{"version":1,"operation":"explain","cwd":"/absolute/project","path":"src/example.ts"}' | hapsland --explain
+```
+
+`configuration.layers` is ordered from built-in through user to project. Missing
+optional files are not reported as loaded. An explicit user-file override is
+shown by its actual path. No review backend is called. Native agent settings
+(such as Codex `config.toml`/`hooks.json`) configure hooks and trust separately;
+they are not Hapsland review-policy layers.
 
 <!-- configuration-guide:start -->
 
@@ -57,7 +86,7 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `reviewBackend.model` | "clef" or "clef-flash" | Required (provider = "cloudflare") | — | Cloudflare model selector. |
 | `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
-| `sessionAnalytics` | boolean | Optional | false | User-owned opt-in session analytics. Disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
+| `sessionAnalytics` | boolean | Optional | false | Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
 | `claudeFeedbackMode` | "advisory" or "block-current-findings" | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
 | `editPermitLimits` | object | Optional | — | User-owned shared resident admission limits. Omitted values use built-in defaults. |
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
@@ -124,9 +153,10 @@ Credential selection has a user-owned exception to this precedence: a
 A project value takes effect when user configuration omits the field. If both omit
 it, the built-in `TYPESAFE_API_KEY` reference applies.
 
-Session analytics are disabled by default. Set `"sessionAnalytics": true` in the user
-configuration to record source-free Jev outcome totals and a bounded rule-ID history.
-Projects cannot set this field. See [session analytics](status.md#optional-session-analytics)
+Session analytics are disabled by default. Set `"sessionAnalytics": true` in the
+root project configuration to record source-free Jev outcome totals and a bounded
+rule-ID history for that repository. A user value supplies a default; a project
+value overrides it in either direction, including explicit `false`. See [session analytics](status.md#optional-session-analytics)
 for count semantics and the shared 30-day / 20 MiB retention limits.
 
 Claude Code feedback defaults to `advisory`. In the candidate installed flow,
