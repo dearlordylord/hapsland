@@ -5,6 +5,10 @@ import { join, dirname, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 const root = dirname(fileURLToPath(import.meta.url));
+const compilationTimeoutMs = Number(process.env.BEND_COMPILATION_TIMEOUT_MS ?? 15000);
+if (!Number.isSafeInteger(compilationTimeoutMs) || compilationTimeoutMs <= 0) {
+  throw new RangeError("BEND_COMPILATION_TIMEOUT_MS must be a positive finite integer");
+}
 const hash = value => createHash("sha256").update(value).digest("hex");
 const consumed = new Map();
 const collect = path => {
@@ -27,7 +31,7 @@ if (process.argv.includes("--check")) {
 } else {
   const temp = mkdtempSync(join(tmpdir(), "hapsland-monkey-business-"));
   try {
-    const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], { encoding: "utf8", timeout: 15000 });
+    const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], { encoding: "utf8", timeout: compilationTimeoutMs });
     if (run.error || run.status !== 0) throw run.error ?? new Error(run.stdout + run.stderr);
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";
