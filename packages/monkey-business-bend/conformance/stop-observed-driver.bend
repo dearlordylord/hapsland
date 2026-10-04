@@ -64,17 +64,17 @@ def graph_result(result: List<&2,Types.GraphTransition>) -> List<&2,Wire.GraphRe
       Wire.GraphAdvanced{before,after,command} <> graph_result(rest)
     case Types.GraphRejected{_} <> rest: Wire.GraphRejected{} <> graph_result(rest)
 
-def observation(frame: Edge.ObservedFrame) -> Maybe<&2,Wire.Observation>:
+def observation(frame: Edge.ObservedFrame) -> List<&2,Wire.Observation>:
   match frame:
     case Edge.CanonicalFrame{before,after,time,order,event,result,_,_,provided,scopes,_,_}:
-      Some{Wire.Canonical{time,order,business_states(before),business_states(after),event,outcome(result),provided,scopes}}
+      [Wire.Canonical{time,order,business_states(before),business_states(after),event,outcome(result),provided,scopes}]
     case Edge.CacheFrame{before,after,time,order,fact,event,result,_,_,provided,scopes,_,_}:
-      Some{Wire.Cache{time,order,business_states(before),business_states(after),fact,event,outcome(result),provided,scopes}}
+      [Wire.Cache{time,order,business_states(before),business_states(after),fact,event,outcome(result),provided,scopes}]
     case Edge.GraphFrame{before,after,time,order,key,position,event,result,_,_,provided,scopes,_,_}:
-      Some{Wire.Graph{time,order,business_states(before),business_states(after),key,position,event,graph_result(result),provided,scopes}}
+      [Wire.Graph{time,order,business_states(before),business_states(after),key,position,event,graph_result(result),provided,scopes}]
     case Edge.FinishFrame{before,after,time,order,input,finish,created,_,_,provided,scopes,_,_}:
-      Some{Wire.Finish{time,order,business_states(before),business_states(after),input,finish,created,provided,scopes}}
-    case Edge.UnexpectedInput{}: None{}
+      [Wire.Finish{time,order,business_states(before),business_states(after),input,finish,created,provided,scopes}]
+    case Edge.UnexpectedInput{}: []
 
 def context_receipt(context: Maybe<&2,Edge.EmissionContext>) -> Maybe<&2,Driver.OutcomeReceipt>:
   match context:
@@ -99,6 +99,16 @@ def input_issuance(input: Edge.Input) -> Maybe<&2,Wire.IssuedFacts>:
   match input:
     case Edge.Event{_,job,context,issuance}: Some{issued(job,context,issuance)}
     case Edge.FitEvent{_,job,_,context,issuance}: Some{issued(job,context,issuance)}
+    case _: None{}
+
+def boxed_issuance(value: Maybe<&2,Wire.IssuedFacts>) -> List<&2,Wire.IssuedFacts>:
+  match value:
+    case Some{value}: [value]
+    case None{}: []
+
+def optional_issuance(values: List<&2,Wire.IssuedFacts>) -> Maybe<&2,Wire.IssuedFacts>:
+  match values:
+    case value <> Nil{}: Some{value}
     case _: None{}
 
 def emission(item: Edge.Item) -> Wire.Emission:
@@ -177,61 +187,67 @@ def consumed(frame: Edge.ObservedFrame) -> Nat:
     case Edge.UnexpectedInput{}: 0n
     case _: 1n
 
-def frame_observation(value: Maybe<&2,Wire.Observation>, +frame: Edge.ObservedFrame, selected_input: Edge.Input) -> Maybe<&2,Wire.Frame>:
+def frame_observation(value: List<&2,Wire.Observation>, +frame: Edge.ObservedFrame, selected_issuance: List<&2,Wire.IssuedFacts>) -> List<&2,Wire.Frame>:
   match value frame:
-    case Some{value} Edge.CanonicalFrame{_,_,time,order,_,_,before,after,_,_,receipt,deliveries}:
-      Some{Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),input_issuance(selected_input),emissions(before,after)}}
-    case Some{value} Edge.CacheFrame{_,_,time,order,_,_,_,before,after,_,_,receipt,deliveries}:
-      Some{Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),input_issuance(selected_input),emissions(before,after)}}
-    case Some{value} Edge.GraphFrame{_,_,time,order,_,_,_,_,before,after,_,_,receipt,deliveries}:
-      Some{Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),input_issuance(selected_input),emissions(before,after)}}
-    case Some{value} Edge.FinishFrame{_,_,time,order,_,_,_,before,after,_,_,receipt,deliveries}:
-      Some{Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),input_issuance(selected_input),emissions(before,after)}}
-    case _ _: None{}
+    case value <> Nil{} Edge.CanonicalFrame{_,_,time,order,_,_,before,after,_,_,receipt,deliveries}:
+      [Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),optional_issuance(selected_issuance),emissions(before,after)}]
+    case value <> Nil{} Edge.CacheFrame{_,_,time,order,_,_,_,before,after,_,_,receipt,deliveries}:
+      [Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),optional_issuance(selected_issuance),emissions(before,after)}]
+    case value <> Nil{} Edge.GraphFrame{_,_,time,order,_,_,_,_,before,after,_,_,receipt,deliveries}:
+      [Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),optional_issuance(selected_issuance),emissions(before,after)}]
+    case value <> Nil{} Edge.FinishFrame{_,_,time,order,_,_,_,before,after,_,_,receipt,deliveries}:
+      [Wire.Observed{value,frame_finish(frame),receipt,physical(deliveries,time,order),optional_issuance(selected_issuance),emissions(before,after)}]
+    case _ _: []
 
-def wire_frame(+frame: Edge.ObservedFrame, selected_input: Edge.Input) -> Maybe<&2,Wire.Frame>:
-  frame_observation(observation(frame),frame,selected_input)
+def wire_frame(+frame: Edge.ObservedFrame, selected_issuance: List<&2,Wire.IssuedFacts>) -> List<&2,Wire.Frame>:
+  frame_observation(observation(frame),frame,selected_issuance)
 
-def recorded_wire(value: Maybe<&2,Wire.Frame>, +used: Nat, runtime: List<&2,Edge.Runtime>, issued: Nat,
+def recorded_wire(value: List<&2,Wire.Frame>, +used: Nat, runtime: List<&2,Edge.Runtime>, issued: Nat,
     input: Inputs.Scenario, frames: List<&2,Wire.Frame>, observations: Nat,
     ih: Nat -> Running -> Running) -> Running:
   match value:
-    case Some{value}: ih(used,Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,[value]),True{},Nat.add(observations,used)})
-    case None{}: Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,[Wire.InvalidTransport{}]),False{},observations}
+    case value <> Nil{}: ih(used,Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,[value]),True{},Nat.add(observations,used)})
+    case _: Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,[Wire.InvalidTransport{}]),False{},observations}
 
-def recorded(+frame: Edge.ObservedFrame, selected_input: Edge.Input, runtime: List<&2,Edge.Runtime>, issued: Nat,
+def recorded(+frame: Edge.ObservedFrame, selected_issuance: List<&2,Wire.IssuedFacts>, runtime: List<&2,Edge.Runtime>, issued: Nat,
     input: Inputs.Scenario, frames: List<&2,Wire.Frame>, observations: Nat,
     ih: Nat -> Running -> Running) -> Running:
-  recorded_wire(wire_frame(frame,selected_input),consumed(frame),runtime,issued,input,frames,observations,ih)
+  recorded_wire(wire_frame(frame,selected_issuance),consumed(frame),runtime,issued,input,frames,observations,ih)
 
 def silent_delivery(target: Maybe<&2,Callbacks.Target>, receipt: Maybe<&2,Callbacks.Fact>, +before: List<&2,Edge.Runtime>,
-    +after: List<&2,Edge.Runtime>, +time: Nat, order: Nat, selected_input: Edge.Input, frames: List<&2,Wire.Frame>) -> List<&2,Wire.Frame>:
+    +after: List<&2,Edge.Runtime>, +time: Nat, order: Nat, selected_issuance: List<&2,Wire.IssuedFacts>, frames: List<&2,Wire.Frame>) -> List<&2,Wire.Frame>:
   match target receipt:
     case Some{_} Some{+receipt}:
       List.append(&2,Wire.Frame,frames,[Wire.PhysicalOnly{
         Wire.Physical{time,order,runtime_business(before),runtime_business(after),Engine.output_deliver(receipt,time)},
-        receipt,input_issuance(selected_input),emissions(before,after)}])
+        receipt,optional_issuance(selected_issuance),emissions(before,after)}])
     case _ _: frames
 
-def observed(value: Transport.Stepped<Facts>, +before: List<&2,Edge.Runtime>, time: Nat, order: Nat, receipt: Maybe<&2,Callbacks.Fact>, selected_input: Edge.Input, input: Inputs.Scenario, frames: List<&2,Wire.Frame>,
+def observed(value: Transport.Stepped<Facts>, +before: List<&2,Edge.Runtime>, time: Nat, order: Nat, receipt: Maybe<&2,Callbacks.Fact>, selected_issuance: List<&2,Wire.IssuedFacts>, input: Inputs.Scenario, frames: List<&2,Wire.Frame>,
     observations: Nat, ih: Nat -> Running -> Running) -> Running:
   match value:
     case Transport.Stepped{Edge.Observed{+runtime,Some{Edge.UnexpectedInput{}},_},_}:
       Running{input,runtime,0n,List.append(&2,Wire.Frame,frames,[Wire.InvalidTransport{}]),False{},observations}
     case Transport.Stepped{Edge.Observed{runtime,Some{frame},Edge.HookEnd{Facts{issued}}},_}:
-      recorded(frame,selected_input,runtime,issued,input,frames,observations,ih)
+      recorded(frame,selected_issuance,runtime,issued,input,frames,observations,ih)
     case Transport.Stepped{Edge.Observed{+runtime,None{},Edge.HookEnd{Facts{issued}}},target}:
-      ih(0n,Running{input,runtime,issued,silent_delivery(target,receipt,before,runtime,time,order,selected_input,frames),True{},observations})
+      ih(0n,Running{input,runtime,issued,silent_delivery(target,receipt,before,runtime,time,order,selected_issuance,frames),True{},observations})
     case Transport.Stepped{Edge.Observed{+runtime,_,_},_}:
       Running{input,runtime,0n,List.append(&2,Wire.Frame,frames,[Wire.InvalidTransport{}]),False{},observations}
+
+def selected_with_issuance(selected_issuance: List<&2,Wire.IssuedFacts>, +runtime: List<&2,Edge.Runtime>, issued: Nat,
+    +time: Nat, +order: Nat, input: Inputs.Scenario, frames: List<&2,Wire.Frame>, observations: Nat,
+    environment: Edge.Environment, endpoint: Nat, ih: Nat -> Running -> Running) -> Running:
+  observed(Transport.step(Facts,runtime,endpoint,environment,commands => Edge.transition_hook(Facts,hook(commands,Facts{issued}))),
+    runtime,time,order,Edge.frame_receipt(runtime,order),selected_issuance,input,frames,observations,ih)
 
 def selected_entry(entries: List<&2,Scheduler.Entry>, +runtime: List<&2,Edge.Runtime>, issued: Nat, input: Inputs.Scenario,
     frames: List<&2,Wire.Frame>, observations: Nat, environment: Edge.Environment, endpoint: Nat,
     ih: Nat -> Running -> Running) -> Running:
   match entries:
     case Scheduler.Entry{+time,+order} <> _:
-      observed(Transport.step(Facts,runtime,endpoint,environment,commands => Edge.transition_hook(Facts,hook(commands,Facts{issued}))),
-        runtime,time,order,Edge.frame_receipt(runtime,order),Edge.lookup(Edge.runtime_items(runtime),order),input,frames,observations,ih)
+      selected_with_issuance(boxed_issuance(input_issuance(Edge.lookup(Edge.runtime_items(runtime),order))),
+        runtime,issued,time,order,input,frames,observations,environment,endpoint,ih)
     case Nil{}: Running{input,runtime,issued,frames,True{},observations}
 
 def selected(+runtime: List<&2,Edge.Runtime>, issued: Nat, input: Inputs.Scenario,
