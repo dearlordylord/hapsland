@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
-type ResidentFixture = { root: string; child?: ChildProcess; spawnedPid?: number };
+type ResidentFixture = { root: string; child?: ChildProcess; spawnedPid: number | undefined };
 const fixtures: Array<ResidentFixture> = [];
 const RESIDENT_EXIT_TIMEOUT_MS = 3_000;
 
@@ -76,18 +76,21 @@ const waitFor = (predicate: () => boolean, timeoutMs = 5_000) => {
 
 describe("production resident activity subprocess", () => {
   it("does not treat failed signal delivery or an error event as resident exit", async () => {
-    const child = new EventEmitter() as unknown as ChildProcess;
-    child.exitCode = null;
-    child.signalCode = null;
-    child.pid = 1234;
     const signals: Array<NodeJS.Signals | number | undefined> = [];
+    const emitter = new EventEmitter();
+    const fake = Object.assign(emitter, {
+      exitCode: null as number | null,
+      signalCode: null as NodeJS.Signals | null,
+      pid: 1234,
+      kill: (signal?: NodeJS.Signals | number) => {
+        signals.push(signal);
+        queueMicrotask(() => emitter.emit("error", new Error("signal was not delivered")));
+        return false;
+      },
+    });
+    const child = fake as unknown as ChildProcess;
     child.on("error", () => undefined);
-    child.kill = (signal?: NodeJS.Signals | number) => {
-      signals.push(signal);
-      queueMicrotask(() => child.emit("error", new Error("signal was not delivered")));
-      return false;
-    };
-    await expect(terminate({ root: "", child, spawnedPid: child.pid }, 1)).rejects.toThrow(
+    await expect(terminate({ root: "", child, spawnedPid: fake.pid }, 1)).rejects.toThrow(
       "resident subprocess 1234 did not exit after bounded cleanup",
     );
     expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
@@ -95,7 +98,7 @@ describe("production resident activity subprocess", () => {
 
   it("reports a controlled native event as pending, then restarted/lost after resident death", () => {
     const root = mkdtempSync(join(tmpdir(), "resident-activity-subprocess-"));
-    const fixture: ResidentFixture = { root };
+    const fixture: ResidentFixture = { root, spawnedPid: undefined };
     fixtures.push(fixture);
     const repository = join(root, "repository");
     const state = join(root, "consent");
