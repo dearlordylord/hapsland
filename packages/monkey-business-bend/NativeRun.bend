@@ -576,11 +576,10 @@ def prepared_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.J
       native_stop_handled(installed,Engine.stop_command(core(installed),action_event(action),command,
         selected,native_stop_facts(installed)),action,job,command,finish_found(installed,job),selected,receipt)
 
-def command_context(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>) -> Driver.Context:
-  match source:
-    case Some{T.EmissionContext{selected,_}}:
-      Driver.with_scope(selected,Driver.context_scope(action_event(action),job_partition(job)))
-    case None{}: context(state,action,job,None{})
+# An incoming capsule is immutable emission provenance. Current command facts
+# are rebuilt from the actual job and environment before the shared selector.
+def command_context(state: T.State, action: Driver.Action, job: Maybe<&2,T.Job>, _source: Maybe<&2,T.EmissionContext>) -> Driver.Context:
+  context(state,action,job,None{})
 
 def ordinary_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>, +command: Canonical.Command, source: Maybe<&2,T.EmissionContext>) -> T.State:
   prepared_command(state,action,job,command,Engine.prepare_command_context(core(state),command,
