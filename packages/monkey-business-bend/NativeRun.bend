@@ -652,11 +652,36 @@ def scope_snapshot_commands(before: T.RuntimeSnapshot, after: List<&2,EngineType
   match before:
     case T.RuntimeSnapshot{states,_,_,_,_,_,_,_,host}: scope_commands(commands,core_value(states),core_value(after),provided)
 
-def scope_details(details: T.FrameDetails, commands: List<&2,Canonical.Command>, +provided: Maybe<&2,Nat>) -> T.FrameDetails:
+def scoped_details(details: T.FrameDetails, provided: Maybe<&2,Nat>, scopes: List<&2,Maybe<&2,Nat>>) -> T.FrameDetails:
   match details:
-    case T.FrameDetails{+before,after,prepared,source,+transition_after,receipt,physical,_,_,consumed}:
-      T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,provided,
-        scope_snapshot_commands(before,transition_after,commands,provided),consumed}
+    case T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,_,_,consumed}:
+      T.FrameDetails{before,after,prepared,source,transition_after,receipt,physical,provided,scopes,consumed}
+
+def detail_scopes(details: T.FrameDetails, commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
+  match details:
+    case T.FrameDetails{before,_,_,_,transition_after,_,_,_,_,_}:
+      scope_snapshot_commands(before,transition_after,commands,provided)
+
+def detail_scopes_box(details: List<&2,T.FrameDetails>, commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> List<&2,Maybe<&2,Nat>>:
+  match details:
+    case detail <> Nil{}: detail_scopes(detail,commands,provided)
+    case _: []
+
+def scoped_details_box(details: List<&2,T.FrameDetails>, provided: Maybe<&2,Nat>, scopes: List<&2,Maybe<&2,Nat>>) -> List<&2,T.FrameDetails>:
+  match details:
+    case detail <> Nil{}: [scoped_details(detail,provided,scopes)]
+    case _: []
+
+def scope_details_box(+details: List<&2,T.FrameDetails>, commands: List<&2,Canonical.Command>, +provided: Maybe<&2,Nat>) -> List<&2,T.FrameDetails>:
+  scoped_details_box(details,provided,detail_scopes_box(details,commands,provided))
+
+def scope_details(+details: T.FrameDetails, commands: List<&2,Canonical.Command>, provided: Maybe<&2,Nat>) -> T.FrameDetails:
+  scoped_details_value(details,scope_details_box([details],commands,provided))
+
+def scoped_details_value(fallback: T.FrameDetails, values: List<&2,T.FrameDetails>) -> T.FrameDetails:
+  match values:
+    case value <> _: value
+    case Nil{}: fallback
 
 def frame_details(before: T.RuntimeSnapshot, +state: T.State, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>) -> T.FrameDetails:
   match state:
@@ -989,13 +1014,42 @@ def native_stop_handled(state: T.State, changed: Engine.StopHandled, +action: Dr
       native_stop_issue(ended,original,ordinary_fallback(replace_core(state,updated),action,job,command,prepared,receipt),actions,job,output,T.EmissionContext{prepared,receipt})
     case Engine.StopHandled{updated,_,_,_,_}: ordinary_fallback(replace_core(state,updated),action,job,command,prepared,receipt)
 
+# Private singleton carriers retain genuine facts without flattening them into
+# every compiler continuation. They never enter the public observation wire.
+type PreparedCarry is Data:
+  PreparedCarry{state: T.State, action: Driver.Action, job: Maybe<&2,T.Job>, command: Canonical.Command, selected: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
+
+def prepared_stop(values: List<&2,PreparedCarry>) -> List<&2,Engine.StopHandled>:
+  match values:
+    case PreparedCarry{+state,action,_,command,selected,_} <> Nil{}:
+      [Engine.stop_command(core(state),action_event(action),command,selected,native_stop_facts(state))]
+    case _: []
+
+def prepared_finish(values: List<&2,PreparedCarry>) -> Maybe<&2,StopScenario.Finish>:
+  match values:
+    case PreparedCarry{state,_,job,_,_,_} <> Nil{}: finish_found(state,job)
+    case _: None{}
+
+def prepared_stopped(values: List<&2,PreparedCarry>, handled: List<&2,Engine.StopHandled>, finish: Maybe<&2,StopScenario.Finish>) -> List<&2,T.State>:
+  match values handled:
+    case PreparedCarry{state,action,job,command,selected,receipt} <> Nil{} changed <> Nil{}:
+      [native_stop_handled(state,changed,action,job,command,finish,selected,receipt)]
+    case _ _: []
+
+def prepared_apply(+values: List<&2,PreparedCarry>) -> List<&2,T.State>:
+  prepared_stopped(values,prepared_stop(values),prepared_finish(values))
+
+def prepared_value(fallback: T.State, values: List<&2,T.State>) -> T.State:
+  match values:
+    case value <> Nil{}: value
+    case _: invalid(fallback)
+
 def prepared_command(+state: T.State, +action: Driver.Action, +job: Maybe<&2,T.Job>,
     +command: Canonical.Command, prepared: Engine.PreparedCommandContext) -> T.State:
   match prepared:
     case Engine.PreparedCommandContext{updated,+selected,+receipt}:
       +installed = prepared_record(replace_core(state,updated),T.EmissionContext{selected,receipt})
-      native_stop_handled(installed,Engine.stop_command(core(installed),action_event(action),command,
-        selected,native_stop_facts(installed)),action,job,command,finish_found(installed,job),selected,receipt)
+      prepared_value(installed,prepared_apply([PreparedCarry{installed,action,job,command,selected,receipt}]))
 
 # An incoming capsule is immutable emission provenance. Current command facts
 # are rebuilt from the actual job and environment before the shared selector.
@@ -1058,13 +1112,31 @@ def provided_input(job: Maybe<&2,T.Job>, source_job: Maybe<&2,Driver.SourceJob>,
     case None{} Some{Driver.SourceJob{partition,_,_,_,_}}: Some{partition}
     case None{} None{}: provided_source(source)
 
-def ordinary_commands(commands: List<&2, Canonical.Command>, state: T.State,
-    +action: Driver.Action, +job: Maybe<&2, T.Job>, +source: Maybe<&2,T.EmissionContext>,
-    +before: EngineTypes.State, +after: EngineTypes.State,+source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
+type OrdinaryCarry is Data:
+  OrdinaryCarry{action: Driver.Action, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, before: EngineTypes.State, after: EngineTypes.State, source_job: Maybe<&2,Driver.SourceJob>}
+
+def ordinary_scope(values: List<&2,OrdinaryCarry>, command: Canonical.Command) -> Maybe<&2,Nat>:
+  match values:
+    case OrdinaryCarry{_,+job,+source,before,after,+source_job} <> Nil{}:
+      Engine.scope_command(before,after,command,provided_input(job,source_job,source))
+    case _: None{}
+
+def ordinary_apply(state: T.State, values: List<&2,OrdinaryCarry>, command: Canonical.Command, scope: Maybe<&2,Nat>) -> T.State:
+  match values:
+    case OrdinaryCarry{action,job,source,_,_,source_job} <> Nil{}:
+      ordinary_command(state,action,job,command,source,scope,source_job)
+    case _: invalid(state)
+
+def ordinary_box(commands: List<&2,Canonical.Command>, state: T.State, +values: List<&2,OrdinaryCarry>) -> T.State:
   match commands:
     case Nil{}: state
-    case +command <> tail: ordinary_commands(tail,ordinary_command(state,action,job,command,source,
-      Engine.scope_command(before,after,command,provided_input(job,source_job,source)),source_job),action,job,source,before,after,source_job)
+    case +command <> tail:
+      ordinary_box(tail,ordinary_apply(state,values,command,ordinary_scope(values,command)),values)
+
+def ordinary_commands(commands: List<&2,Canonical.Command>, state: T.State,
+    action: Driver.Action, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>,
+    before: EngineTypes.State, after: EngineTypes.State,source_job: Maybe<&2,Driver.SourceJob>) -> T.State:
+  ordinary_box(commands,state,[OrdinaryCarry{action,job,source,before,after,source_job}])
 
 def scoped_round(job: T.Job, found: Maybe<&2, Canonical.Round>) -> T.Job:
   match job found:
@@ -1173,15 +1245,68 @@ def product_feedback(+state: T.State, +event: Canonical.CanonicalEvent, commands
   advice_feedback(advice_recorded(event,commands),
     wake_event(collector_completed(state,job,Engine.collector_after(core(state),event),source),event),event,job)
 
-def advanced_product(+state: T.State, +event: Canonical.CanonicalEvent, +action: Driver.Action,
-    +job: Maybe<&2, T.Job>, +before: Canonical.State, +after: Canonical.State, +commands: List<&2, Canonical.Command>, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
-  product_frame(event_jobs(refusal_jobs(commands,event,before,product_feedback(issue_context(ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job),post,job,source),event,commands,job,source)),event,before), event, before, after, commands, None{},runtime_before,source,transition_after,provided_input(job,source_job,source))
+def delivery_value(fallback: T.State, steps: List<&2,T.Step>) -> T.Step:
+  match steps:
+    case step <> Nil{}: step
+    case _: T.Step{invalid(fallback),None{},[]}
 
-def product_result(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action,
-    +job: Maybe<&2, T.Job>, +before: Canonical.State, result: Canonical.Step, post: List<&2, Driver.Action>, +runtime_before: T.RuntimeSnapshot, +source: Maybe<&2,T.EmissionContext>, +transition_after: List<&2,EngineTypes.State>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
+type ProductCarry is Data:
+  ProductCarry{event: Canonical.CanonicalEvent, action: Driver.Action, job: Maybe<&2,T.Job>, before: Canonical.State, after: Canonical.State, commands: List<&2,Canonical.Command>, reason: Maybe<&2,Canonical.Reason>, post: List<&2,Driver.Action>, runtime_before: T.RuntimeSnapshot, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>, source_job: Maybe<&2,Driver.SourceJob>}
+
+def product_ordinary(state: T.State, values: List<&2,ProductCarry>) -> List<&2,T.State>:
+  match values:
+    case ProductCarry{_,action,job,_,_,commands,_,_,runtime_before,source,transition_after,source_job} <> Nil{}:
+      [ordinary_commands(commands,state,action,job,source,snapshot_core(runtime_before),core_value(transition_after),source_job)]
+    case _: [invalid(state)]
+
+def product_post(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
+  match states values:
+    case state <> Nil{} ProductCarry{_,_,job,_,_,_,_,post,_,source,_,_} <> Nil{}:
+      [issue_context(state,post,job,source)]
+    case _ _: []
+
+def product_feedback_box(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
+  match states values:
+    case state <> Nil{} ProductCarry{event,_,job,_,_,commands,_,_,_,source,_,_} <> Nil{}:
+      [product_feedback(state,event,commands,job,source)]
+    case _ _: []
+
+def product_refusal_box(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
+  match states values:
+    case state <> Nil{} ProductCarry{event,_,_,before,_,commands,_,_,_,_,_,_} <> Nil{}:
+      [refusal_jobs(commands,event,before,state)]
+    case _ _: []
+
+def product_jobs_box(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
+  match states values:
+    case state <> Nil{} ProductCarry{event,_,_,before,_,_,_,_,_,_,_,_} <> Nil{}:
+      [event_jobs(state,event,before)]
+    case _ _: []
+
+def product_frame_box(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.Step>:
+  match states values:
+    case state <> Nil{} ProductCarry{event,_,+job,before,after,commands,reason,_,runtime_before,+source,transition_after,+source_job} <> Nil{}:
+      [product_frame(state,event,before,after,commands,reason,runtime_before,source,transition_after,provided_input(job,source_job,source))]
+    case _ _: []
+
+def advanced_box(state: T.State, +values: List<&2,ProductCarry>) -> List<&2,T.Step>:
+  product_frame_box(product_jobs_box(product_refusal_box(product_feedback_box(product_post(product_ordinary(state,values),values),values),values),values),values)
+
+def rejected_wake(states: List<&2,T.State>, values: List<&2,ProductCarry>) -> List<&2,T.State>:
+  match states values:
+    case state <> Nil{} ProductCarry{event,_,_,_,_,_,_,_,_,_,_,_} <> Nil{}: [wake_event(state,event)]
+    case _ _: []
+
+def rejected_box(state: T.State, +values: List<&2,ProductCarry>) -> List<&2,T.Step>:
+  product_frame_box(product_jobs_box(rejected_wake(product_post([state],values),values),values),values)
+
+def product_result(+state: T.State, event: Canonical.CanonicalEvent, action: Driver.Action,
+    job: Maybe<&2,T.Job>, before: Canonical.State, result: Canonical.Step, post: List<&2,Driver.Action>, runtime_before: T.RuntimeSnapshot, source: Maybe<&2,T.EmissionContext>, transition_after: List<&2,EngineTypes.State>,source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
   match result:
-    case Canonical.Advanced{after, commands}: advanced_product(state, event, action, job, before, after, commands, post,runtime_before,source,transition_after,source_job)
-    case Canonical.Rejected{after, reason}: product_frame(event_jobs(wake_event(issue_context(state,post,job,source),event),event,before), event, before, after, [], Some{reason},runtime_before,source,transition_after,provided_input(job,source_job,source))
+    case Canonical.Advanced{after,commands}:
+      delivery_value(state,advanced_box(state,[ProductCarry{event,action,job,before,after,commands,None{},post,runtime_before,source,transition_after,source_job}]))
+    case Canonical.Rejected{after,reason}:
+      delivery_value(state,rejected_box(state,[ProductCarry{event,action,job,before,after,[],Some{reason},post,runtime_before,source,transition_after,source_job}]))
 
 def transition_commands(result: Canonical.Step) -> List<&2,Canonical.Command>:
   match result:
@@ -1203,24 +1328,89 @@ def cache_published_native(state: T.State, published: Engine.CachePublished, rel
     case Engine.CachePublished{updated,facts,extra}:
       cache_events(List.append(&2,Canonical.CanonicalEvent,releases,extra),cache_facts(facts,replace_core(state,updated)))
 
-def product_transition(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action,
-    +job: Maybe<&2, T.Job>, transition: Engine.Transition, source: Maybe<&2,T.EmissionContext>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
+type TransitionCarry is Data:
+  TransitionCarry{state: T.State, event: Canonical.CanonicalEvent, action: Driver.Action, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, source_job: Maybe<&2,Driver.SourceJob>, updated: EngineTypes.State, result: Canonical.Step}
+
+def transition_begin(values: List<&2,TransitionCarry>) -> List<&2,Engine.CachePublished>:
+  match values:
+    case TransitionCarry{state,event,_,_,_,_,updated,result} <> Nil{}:
+      [Engine.cache_begin(core(state),updated,event,transition_commands(result))]
+    case _: []
+
+def transition_removed(values: List<&2,TransitionCarry>) -> List<&2,Canonical.CanonicalEvent>:
+  match values:
+    case TransitionCarry{state,_,_,_,_,_,_,result} <> Nil{}:
+      Engine.cache_removed(core(state),transition_commands(result))
+    case _: []
+
+def transition_settled(values: List<&2,TransitionCarry>, published: List<&2,Engine.CachePublished>, releases: List<&2,Canonical.CanonicalEvent>) -> List<&2,T.State>:
+  match values published:
+    case TransitionCarry{state,_,_,_,_,_,updated,_} <> Nil{} publication <> Nil{}:
+      [cache_published_native(replace_core(state,updated),publication,releases)]
+    case _ _: []
+
+def transition_post(values: List<&2,TransitionCarry>) -> List<&2,Driver.Action>:
+  match values:
+    case TransitionCarry{state,event,_,_,_,_,updated,_} <> Nil{}: Engine.after(core(state),updated,event)
+    case _: []
+
+def transition_scoped(states: List<&2,T.State>, values: List<&2,TransitionCarry>) -> List<&2,Maybe<&2,T.Job>>:
+  match states values:
+    case state <> Nil{} TransitionCarry{_,_,_,job,_,_,_,_} <> Nil{}: [scoped_job(state,job)]
+    case _ _: []
+
+def transition_frame(values: List<&2,TransitionCarry>, states: List<&2,T.State>, jobs: List<&2,Maybe<&2,T.Job>>, post: List<&2,Driver.Action>) -> List<&2,T.Step>:
+  match values states jobs:
+    case TransitionCarry{+original,event,action,_,source,source_job,updated,result} <> Nil{} state <> Nil{} job <> Nil{}:
+      [product_result(state,event,action,job,Engine.canonical(core(original)),result,post,runtime_snapshot(original),source,[updated],source_job)]
+    case _ _ _: []
+
+def transition_finish(+values: List<&2,TransitionCarry>, +states: List<&2,T.State>) -> List<&2,T.Step>:
+  transition_frame(values,states,transition_scoped(states,values),transition_post(values))
+
+def transition_box(+values: List<&2,TransitionCarry>) -> List<&2,T.Step>:
+  transition_finish(values,transition_settled(values,transition_begin(values),transition_removed(values)))
+
+def product_transition(+state: T.State, event: Canonical.CanonicalEvent, action: Driver.Action,
+    job: Maybe<&2,T.Job>, transition: Engine.Transition, source: Maybe<&2,T.EmissionContext>,source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
   match transition:
-    case Engine.Transition{+updated, +result}:
-      +settled = cache_published_native(replace_core(state, updated),Engine.cache_begin(core(state),updated,event,transition_commands(result)),Engine.cache_removed(core(state),transition_commands(result)))
-      product_result(settled, event, action,
-        scoped_job(settled, job), Engine.canonical(core(state)), result, Engine.after(core(state), updated, event),runtime_snapshot(state),source,[updated],source_job)
+    case Engine.Transition{updated,result}:
+      delivery_value(state,transition_box([TransitionCarry{state,event,action,job,source,source_job,updated,result}]))
 
-def fenced_product(+state: T.State, +event: Canonical.CanonicalEvent, action: Driver.Action, +job: Maybe<&2, T.Job>, source: Maybe<&2,T.EmissionContext>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
-  match action:
-    case Driver.Action{_, delay, candidate, supplied, expiry}:
-      product_transition(state, event, Driver.Action{event, delay, candidate, supplied, expiry}, job, Engine.step(core(state), event),source,source_job)
+type ProductRequest is Data:
+  ProductRequest{state: T.State, event: Canonical.CanonicalEvent, action: Driver.Action, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, source_job: Maybe<&2,Driver.SourceJob>}
 
-def product(+state: T.State, action: Driver.Action, +job: Maybe<&2, T.Job>, +source: Maybe<&2,T.EmissionContext>,+source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
-  match action:
-    case Driver.Action{+event, +delay, +candidate, +supplied, +expiry}:
-      +action = {Driver.Action{event, delay, candidate, supplied, expiry} : Driver.Action}
-      fenced_product(state, Engine.fence(core(state), event, True{}, command_context(state,action,job,source)), action, job,source,source_job)
+def product_step_box(values: List<&2,ProductRequest>) -> List<&2,Engine.Transition>:
+  match values:
+    case ProductRequest{state,event,_,_,_,_} <> Nil{}: [Engine.step(core(state),event)]
+    case _: []
+
+def product_stepped(values: List<&2,ProductRequest>, transitions: List<&2,Engine.Transition>) -> List<&2,T.Step>:
+  match values transitions:
+    case ProductRequest{state,event,action,job,source,source_job} <> Nil{} transition <> Nil{}:
+      [product_transition(state,event,action,job,transition,source,source_job)]
+    case _ _: []
+
+def product_fenced(values: List<&2,ProductRequest>, events: List<&2,Canonical.CanonicalEvent>) -> List<&2,ProductRequest>:
+  match values events:
+    case ProductRequest{state,_,Driver.Action{_,delay,candidate,supplied,expiry},job,source,source_job} <> Nil{} event <> Nil{}:
+      [ProductRequest{state,event,Driver.Action{event,delay,candidate,supplied,expiry},job,source,source_job}]
+    case _ _: []
+
+def product_fence(values: List<&2,ProductRequest>) -> List<&2,Canonical.CanonicalEvent>:
+  match values:
+    case ProductRequest{+state,event,+action,+job,+source,_} <> Nil{}:
+      [Engine.fence(core(state),event,True{},command_context(state,action,job,source))]
+    case _: []
+
+def fenced_box(+values: List<&2,ProductRequest>) -> List<&2,T.Step>:
+  product_stepped(values,product_step_box(values))
+
+def product_box(+values: List<&2,ProductRequest>) -> List<&2,T.Step>:
+  fenced_box(product_fenced(values,product_fence(values)))
+
+def product(+state: T.State, +action: Driver.Action, job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>,source_job: Maybe<&2,Driver.SourceJob>) -> T.Step:
+  delivery_value(state,product_box([ProductRequest{state,action_event(action),action,job,source,source_job}]))
 
 def retry_edit(retry: Bool, +state: T.State, job: T.Job) -> T.State:
   match retry:
@@ -1309,10 +1499,44 @@ def finish_product(live: Bool, state: T.State, action: Driver.Action, +job: T.Jo
     case True{}: product(state,action,Some{job},source,original_source(Some{job}))
     case False{}: T.Step{state, None{},[]}
 
-def cache_product_applied(+state: T.State, +before: EngineTypes.State, applied: Engine.CacheApplied) -> T.Step:
+type CacheCarry is Data:
+  CacheCarry{state: T.State, before: EngineTypes.State, updated: EngineTypes.State, event: Canonical.CanonicalEvent, result: Canonical.Step, facts: List<&2,CacheRuntime.Fact>, releases: List<&2,Canonical.CanonicalEvent>}
+
+def cache_apply_facts(values: List<&2,CacheCarry>) -> List<&2,T.State>:
+  match values:
+    case CacheCarry{state,_,updated,_,_,facts,_} <> Nil{}:
+      [cache_facts(facts,replace_core(state,updated))]
+    case _: []
+
+def cache_apply_releases(values: List<&2,CacheCarry>) -> List<&2,Canonical.CanonicalEvent>:
+  match values:
+    case CacheCarry{_,before,_,_,result,_,releases} <> Nil{}:
+      List.append(&2,Canonical.CanonicalEvent,releases,Engine.cache_removed(before,transition_commands(result)))
+    case _: []
+
+def cache_apply_events(states: List<&2,T.State>, events: List<&2,Canonical.CanonicalEvent>) -> List<&2,T.State>:
+  match states:
+    case state <> Nil{}: [cache_events(events,state)]
+    case _: []
+
+def cache_apply_post(values: List<&2,CacheCarry>) -> List<&2,Driver.Action>:
+  match values:
+    case CacheCarry{_,before,updated,event,_,_,_} <> Nil{}: Engine.after(before,updated,event)
+    case _: []
+
+def cache_apply_result(values: List<&2,CacheCarry>, states: List<&2,T.State>, post: List<&2,Driver.Action>) -> List<&2,T.Step>:
+  match values states:
+    case CacheCarry{original,before,updated,+event,result,_,_} <> Nil{} state <> Nil{}:
+      [product_result(state,event,Driver.immediate(event,False{}),None{},Engine.canonical(before),result,post,runtime_snapshot(original),None{},[updated],None{})]
+    case _ _: []
+
+def cache_apply_box(+values: List<&2,CacheCarry>) -> List<&2,T.Step>:
+  cache_apply_result(values,cache_apply_events(cache_apply_facts(values),cache_apply_releases(values)),cache_apply_post(values))
+
+def cache_product_applied(+state: T.State, before: EngineTypes.State, applied: Engine.CacheApplied) -> T.Step:
   match applied:
-    case Engine.CacheApplied{+updated,+event,+result,facts,releases,True{}}:
-      product_result(cache_events(List.append(&2,Canonical.CanonicalEvent,releases,Engine.cache_removed(before,transition_commands(result))),cache_facts(facts,replace_core(state,updated))),event,Driver.immediate(event,False{}),None{},Engine.canonical(before),result,Engine.after(before,updated,event),runtime_snapshot(state),None{},[updated],None{})
+    case Engine.CacheApplied{updated,event,result,facts,releases,True{}}:
+      delivery_value(state,cache_apply_box([CacheCarry{state,before,updated,event,result,facts,releases}]))
     case _: T.Step{invalid(state),None{},[]}
 
 def cache_product(+state: T.State, fact: CacheRuntime.Fact) -> T.Step:
@@ -1375,13 +1599,52 @@ def physical_step(step: T.Step, receipt: Maybe<&2,Callbacks.Fact>, +physical: Li
     case T.Step{state,Some{frame},prior}: physical_record_with(state,physical_frame(frame,receipt,physical),List.append(&2,T.PhysicalDelivery,prior,physical))
     case T.Step{state,None{},prior}: T.Step{state,None{},List.append(&2,T.PhysicalDelivery,prior,physical)}
 
-def delivered_run(+before: T.State, +after: T.State, +receipt: Maybe<&2,Callbacks.Fact>,
-    +action: Maybe<&2,Driver.Action>, order: Nat, +value: T.Input) -> T.Step:
-  consumed_step(physical_step(input(after,delivered_input(action,value)),receipt,
-    physical_delivery(receipt,runtime_snapshot(before),runtime_snapshot(after),action)),order,value)
+# Keep immutable delivery facts boxed across the actual input transition.
+def delivered_payload(values: List<&2,T.Input>, actions: List<&2,Maybe<&2,Driver.Action>>) -> List<&2,T.Input>:
+  match values actions:
+    case value <> Nil{} action <> Nil{}: [delivered_input(action,value)]
+    case _ _: []
 
-def original_delivery(+state: T.State, +value: T.Input, +order: Nat, +receipt: Maybe<&2,Callbacks.Fact>) -> T.Step:
-  delivered_run(state,delivered_state(state,value,order),receipt,physical_action(receipt,clock(state)),order,value)
+def delivered_execute(states: List<&2,T.State>, values: List<&2,T.Input>) -> List<&2,T.Step>:
+  match states values:
+    case state <> Nil{} value <> Nil{}: [input(state,value)]
+    case _ _: []
+
+def delivered_physical(befores: List<&2,T.State>, afters: List<&2,T.State>, receipts: List<&2,Maybe<&2,Callbacks.Fact>>, actions: List<&2,Maybe<&2,Driver.Action>>) -> List<&2,T.PhysicalDelivery>:
+  match befores afters receipts actions:
+    case before <> Nil{} after <> Nil{} receipt <> Nil{} action <> Nil{}:
+      physical_delivery(receipt,runtime_snapshot(before),runtime_snapshot(after),action)
+    case _ _ _ _: []
+
+def delivered_complete(steps: List<&2,T.Step>, receipts: List<&2,Maybe<&2,Callbacks.Fact>>, physical: List<&2,T.PhysicalDelivery>, order: Nat, values: List<&2,T.Input>) -> List<&2,T.Step>:
+  match steps receipts values:
+    case step <> Nil{} receipt <> Nil{} value <> Nil{}:
+      [consumed_step(physical_step(step,receipt,physical),order,value)]
+    case _ _ _: []
+
+def delivered_box(+befores: List<&2,T.State>, +afters: List<&2,T.State>, +receipts: List<&2,Maybe<&2,Callbacks.Fact>>, +actions: List<&2,Maybe<&2,Driver.Action>>, order: Nat, +values: List<&2,T.Input>) -> List<&2,T.Step>:
+  delivered_complete(delivered_execute(afters,delivered_payload(values,actions)),receipts,
+    delivered_physical(befores,afters,receipts,actions),order,values)
+
+def delivered_run(+before: T.State, after: T.State, receipt: Maybe<&2,Callbacks.Fact>,
+    action: Maybe<&2,Driver.Action>, order: Nat, value: T.Input) -> T.Step:
+  delivery_value(before,delivered_box([before],[after],[receipt],[action],order,[value]))
+
+def delivery_after(states: List<&2,T.State>, values: List<&2,T.Input>, order: Nat) -> List<&2,T.State>:
+  match states values:
+    case state <> Nil{} value <> Nil{}: [delivered_state(state,value,order)]
+    case _ _: []
+
+def delivery_action(states: List<&2,T.State>, receipts: List<&2,Maybe<&2,Callbacks.Fact>>) -> List<&2,Maybe<&2,Driver.Action>>:
+  match states receipts:
+    case state <> Nil{} receipt <> Nil{}: [physical_action(receipt,clock(state))]
+    case _ _: []
+
+def original_delivery_box(+states: List<&2,T.State>, +values: List<&2,T.Input>, order: Nat, +receipts: List<&2,Maybe<&2,Callbacks.Fact>>) -> List<&2,T.Step>:
+  delivered_box(states,delivery_after(states,values,order),receipts,delivery_action(states,receipts),order,values)
+
+def original_delivery(+state: T.State, value: T.Input, order: Nat, receipt: Maybe<&2,Callbacks.Fact>) -> T.Step:
+  delivery_value(state,original_delivery_box([state],[value],order,[receipt]))
 
 def located_run(+state: T.State, located: T.Located, +order: Nat) -> T.Step:
   match located:
@@ -1469,11 +1732,24 @@ def sharing_frame(state: T.State, frame: Engine.SharingFrame, original: T.State)
     case Engine.SharingFrame{before,after,event,Canonical.Rejected{canonical,reason}}:
       product_frame(state,event,Engine.canonical(before),canonical,[],Some{reason},runtime_snapshot(original),None{},[after],None{})
 
+def sharing_finished(states: List<&2,T.State>, frames: List<&2,Engine.SharingFrame>, originals: List<&2,T.State>) -> List<&2,T.Step>:
+  match states frames originals:
+    case state <> Nil{} frame <> Nil{} original <> Nil{}: [sharing_frame(state,frame,original)]
+    case _ _ _: []
+
+def sharing_followups_box(events: List<&2,Canonical.CanonicalEvent>, states: List<&2,T.State>) -> List<&2,T.State>:
+  match states:
+    case state <> Nil{}: [sharing_followups(events,state)]
+    case _: []
+
+def sharing_observed(originals: List<&2,T.State>, frames: List<&2,Engine.SharingFrame>, events: List<&2,Canonical.CanonicalEvent>, states: List<&2,T.State>) -> List<&2,T.Step>:
+  sharing_finished(sharing_followups_box(events,states),frames,originals)
+
 def sharing_selected(+state: T.State, next: Engine.SharingNext,
     rest: Carrier -> List<&2, T.Step>) -> List<&2, T.Step>:
   match next:
     case Engine.SharingNext{updated,Some{frame},events}:
-      [sharing_frame(sharing_followups(events,replace_core(state,updated)),frame,state)]
+      sharing_observed([state],[frame],events,[replace_core(state,updated)])
     case Engine.SharingNext{_,None{},_}: take_carrier([state],rest)
 
 def sharing_action(+state: T.State, action: Driver.Action, order: Nat, endpoint: Nat,
