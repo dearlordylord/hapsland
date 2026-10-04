@@ -37,7 +37,7 @@ function stream(command,args,directory,label,executionTimeoutMs) {
 }
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000}={}) {
-  if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000)throw new Error("unsupported game diagnostic execution allowance");
+  if(executionTimeoutMs!==5000 && executionTimeoutMs!==15000 && executionTimeoutMs!==30000)throw new Error("unsupported game diagnostic execution allowance");
   const directory=mkdtempSync(join(tmpdir(),"hapsland-game-stream-"));
   const root=fileURLToPath(new URL("../../",import.meta.url));
   const sources=[...ownerSources.map(owner=>({file:resolve(root,owner.path),expected:owner.sha256})),
