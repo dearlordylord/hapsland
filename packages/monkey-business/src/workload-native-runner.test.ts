@@ -120,6 +120,19 @@ it("allows an explicit clang90 allowance without changing emission or execution 
   expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([30000, 90000, 5000]);
 });
 
+it("allows execution15 while leaving default execution5 unchanged", () => {
+  spawn.mockReturnValue({ status: 0, stdout: "[0]", stderr: "" });
+  const fixture = new URL("file:///tmp/owned-output-bound-fixture.bend");
+  expect(runWorkloadNative(fixture, { executionTimeoutMs: 15000 })).toEqual([0]);
+  expect(runWorkloadNative(fixture)).toEqual([0]);
+  expect(spawn.mock.calls.map(call => call[2].timeout)).toEqual([30000,30000,15000,30000,30000,5000]);
+});
+it.each([0,-1,15001,1.5,Number.NaN,Number.POSITIVE_INFINITY])("rejects invalid execution allowance %s before identity or spawn", executionTimeoutMs => {
+  expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { executionTimeoutMs })).toThrow("invalid native execution timeout");
+  expect(preflight.capture).not.toHaveBeenCalled();
+  expect(spawn).not.toHaveBeenCalled();
+});
+
 it("rejects a clang allowance over90 before identity capture or spawn", () => {
   expect(() => runWorkloadNative(new URL("file:///tmp/owned-output-bound-fixture.bend"), { clangTimeoutMs: 90001 })).toThrow("invalid native clang timeout");
   expect(spawn).not.toHaveBeenCalled();
@@ -239,6 +252,7 @@ it.each([
   let call = 0;
   spawn.mockImplementation((_command, args) => {
     if (call === 0) writeFileSync(args[2], c);
+    if (call === 1 && failedCall === 2) writeFileSync(args[4], "offline binary bytes");
     const failed = call++ === failedCall;
     return failed ? { status: null, stdout: "", stderr: "phase timeout", error: { code: "ETIMEDOUT" }, signal: "SIGTERM" }
       : { status: 0, stdout: "[0]", stderr: "" };
@@ -257,6 +271,10 @@ it.each([
     expect(readFileSync(receipt.c.path, "utf8")).toBe(c);
     expect(receipt.c.bytes).toBe(Buffer.byteLength(c));
     expect(receipt.c.sha256).toBe(createHash("sha256").update(c).digest("hex"));
+    if (failedCall === 2) {
+      expect(readFileSync(receipt.binary.path, "utf8")).toBe("offline binary bytes");
+      expect(receipt.binary.sha256).toBe(createHash("sha256").update("offline binary bytes").digest("hex"));
+    } else expect(receipt.binary).toBeNull();
     expect(existsSync(spawn.mock.calls[0]?.[1][2])).toBe(false);
     expect(spawn).toHaveBeenCalledTimes(failedCall + 1);
   } finally { vi.unstubAllEnvs(); rmSync(directory, { recursive: true, force: true }); }

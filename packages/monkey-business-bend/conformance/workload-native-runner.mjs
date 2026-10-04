@@ -49,8 +49,16 @@ function retainNativeFailure(error, identity, temporary, timeouts, phases) {
     copyFileSync(source, path);
     c = { path, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
   }
+  let binary = null;
+  const executable = join(temporary, "scenario");
+  if (phases.some(phase => phase.phase === "clang compilation" && phase.completed) && existsSync(executable)) {
+    const bytes = readFileSync(executable);
+    const path = join(directory, "scenario");
+    copyFileSync(executable, path);
+    binary = { path, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+  }
   const receiptPath = join(directory, "receipt.json");
-  writeFileSync(receiptPath, `${JSON.stringify({ lane: "fresh-native-failure", identity, timeouts, phases, c,
+  writeFileSync(receiptPath, `${JSON.stringify({ lane: "fresh-native-failure", identity, timeouts, phases, c, binary,
     failure: { name: error.name, message: error.message },
     purpose: "Failed offline native phase evidence; captured identity requires manual validation before any resume; no automatic reuse or acceptance verdict",
   }, null, 2)}\n`);
@@ -61,14 +69,17 @@ function retainNativeFailure(error, identity, temporary, timeouts, phases) {
 export const WORKLOAD_CONFORMANCE_TIMEOUT_MS = 100000;
 
 // User-authorized compile allowances: C/clang 30s and emitted JS 15s.
-// Explicit fixture overrides allow C emission90s and clang90s; execution stays5s.
+// Explicit fixture overrides allow C emission90s and clang90s; execution defaults5s with an explicit maximum15s.
+const MAX_NATIVE_EXECUTION_TIMEOUT_MS = 15000;
 const MAX_NATIVE_CLANG_TIMEOUT_MS = 90000;
 const MAX_NATIVE_C_EMISSION_TIMEOUT_MS = 90000;
-export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSION_TIMEOUT_MS, clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS } = {}) {
+export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSION_TIMEOUT_MS, clangTimeoutMs = NATIVE_CLANG_TIMEOUT_MS, executionTimeoutMs = 5000 } = {}) {
   if (!Number.isSafeInteger(clangTimeoutMs) || clangTimeoutMs <= 0 || clangTimeoutMs > MAX_NATIVE_CLANG_TIMEOUT_MS)
     throw new RangeError("invalid native clang timeout");
   if (!Number.isSafeInteger(emissionTimeoutMs) || emissionTimeoutMs <= 0 || emissionTimeoutMs > MAX_NATIVE_C_EMISSION_TIMEOUT_MS)
     throw new RangeError("invalid native C emission timeout");
+  if (!Number.isSafeInteger(executionTimeoutMs) || executionTimeoutMs <= 0 || executionTimeoutMs > MAX_NATIVE_EXECUTION_TIMEOUT_MS)
+    throw new RangeError("invalid native execution timeout");
   const manifestPath = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST;
   const sessionId = process.env.HAPSLAND_NATIVE_PREFLIGHT_SESSION;
   const manifestHash = process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256;
@@ -81,8 +92,8 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     if (emissionTimeoutMs !== NATIVE_C_EMISSION_TIMEOUT_MS)
       throw new RangeError("native preflight session fixes the C emission timeout");
     const { binaryPath } = validateNativeFixture({ manifestPath, sessionId, manifestHash, fixture });
-    const output = checked(binaryPath, [], 5000, "native execution");
-    retainOutput(output, { fixture: fixture.href, validatedPreflight: { manifestPath, manifestHash, sessionId } }, "preflight-native", { execution: 5000 });
+    const output = checked(binaryPath, [], executionTimeoutMs, "native execution");
+    retainOutput(output, { fixture: fixture.href, validatedPreflight: { manifestPath, manifestHash, sessionId } }, "preflight-native", { execution: executionTimeoutMs });
     return JSON.parse(output);
   }
   const identity = captureNativeFixtureIdentity(fixture);
@@ -95,13 +106,13 @@ export function runWorkloadNative(fixture, { emissionTimeoutMs = NATIVE_C_EMISSI
     checked(identity.inputs.tools.bend.path, [identity.root, "-o", source], emissionTimeoutMs, "C emission", recordPhase);
     checked(identity.inputs.tools.clang.path, ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], clangTimeoutMs, "clang compilation", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);
-    const output = checked(binary, [], 5000, "native execution", recordPhase);
+    const output = checked(binary, [], executionTimeoutMs, "native execution", recordPhase);
     assertNativeFixtureIdentity(identity, fixture);
-    retainOutput(output, identity, "fresh-native", { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 });
+    retainOutput(output, identity, "fresh-native", { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: executionTimeoutMs });
     return JSON.parse(output);
   } catch (error) {
     try {
-      retainNativeFailure(error, identity, directory, { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: 5000 }, phases);
+      retainNativeFailure(error, identity, directory, { emission: emissionTimeoutMs, clang: clangTimeoutMs, execution: executionTimeoutMs }, phases);
     } catch {
       // Evidence retention must never replace the actual phase failure.
       try { console.error("Offline workload failure evidence could not be retained"); } catch {}
