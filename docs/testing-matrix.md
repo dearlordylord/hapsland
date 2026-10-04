@@ -282,11 +282,10 @@ production Engine ABI or the status of candidate Stop laws. It also does not
 establish a native compilation improvement; report one only after fresh
 validation of the changed source and full retained comparison scopes.
 
-The maintained waiting and original-eleven native comparisons allow C emission
-30 seconds, clang 90 seconds, native execution 5 seconds and independent
-JavaScript emission 15/execution 5 seconds, with a 160-second aggregate watchdog.
-The output-twelve comparison allows C emission 45 seconds with the same
-remaining phase bounds and a 175-second aggregate watchdog. These are explicit
+The maintained waiting, original-eleven and output-twelve native comparisons
+allow C emission 45 seconds, clang 90 seconds, native execution 5 seconds and
+independent JavaScript emission 15/execution 5 seconds, with a 175-second
+aggregate watchdog. These are explicit
 fixture allowances; default C/clang bounds remain 30 seconds and product
 cutoffs/event budgets remain unchanged. Consult the scoped run receipt and
 retained vectors for actual execution evidence; the allowance is not a pass.
