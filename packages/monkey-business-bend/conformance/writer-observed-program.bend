@@ -237,16 +237,22 @@ def completed_boxed(value: Finished, frames: List<&2,Maybe<&2,Edge.ObservedFrame
     case frame <> Nil{} facts <> Nil{}: completed(value,frame,receipt,facts,job,cutoff,previous)
     case _ _: fault(previous)
 
-def observed_facts(runtime: List<&2,Edge.Runtime>, +frame: Maybe<&2,Edge.ObservedFrame>,
-    +facts: Hook.Facts, receipt: Maybe<&2,Callbacks.Target>, +job: Maybe<&2,Edge.Job>, cutoff: Nat, previous: Trace) -> Trace:
-  match facts:
-    case Hook.Facts{_,bindings,+original,_,_,_}:
-      completed_boxed(finish(original,runtime,frame,bindings,job),[frame],[facts],receipt,job,cutoff,previous)
+def finish_boxed(runtime: List<&2,Edge.Runtime>, frames: List<&2,Maybe<&2,Edge.ObservedFrame>>,
+    facts: List<&2,Hook.Facts>, job: Maybe<&2,Edge.Job>) -> Finished:
+  match frames facts:
+    case frame <> Nil{} Hook.Facts{_,bindings,original,_,_,_} <> Nil{}:
+      finish(original,runtime,frame,bindings,job)
+    case _ _: Finished{runtime,[],None{},False{}}
+
+def observed_facts(runtime: List<&2,Edge.Runtime>, +frames: List<&2,Maybe<&2,Edge.ObservedFrame>>,
+    +facts: List<&2,Hook.Facts>, receipt: Maybe<&2,Callbacks.Target>,
+    +job: Maybe<&2,Edge.Job>, cutoff: Nat, previous: Trace) -> Trace:
+  completed_boxed(finish_boxed(runtime,frames,facts,job),frames,facts,receipt,job,cutoff,previous)
 
 def observed(value: Transport.Stepped<Hook.Facts>, job: Maybe<&2,Edge.Job>, cutoff: Nat, previous: Trace) -> Trace:
   match value:
     case Transport.Stepped{Edge.Observed{runtime,frame,Edge.HookEnd{facts}},receipt}:
-      observed_facts(runtime,frame,facts,receipt,job,cutoff,previous)
+      observed_facts(runtime,[frame],[facts],receipt,job,cutoff,previous)
     case _: fault(previous)
 
 def input_job(input: Edge.Input) -> Maybe<&2,Edge.Job>:
