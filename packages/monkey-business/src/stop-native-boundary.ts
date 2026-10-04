@@ -89,8 +89,11 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
         if (job.$ === "advicee_lifecycle_driver.NoJob") {
           same(publicItem.driverSourceJob,undefined,`${field} item ${order} absent original source job`);
           const event=publicItem.driverAction.event;
-          if (!("partition" in event) || !("lifetime" in event)) throw new TypeError("NoJob original scope is absent from genuine action");
-          same([job.partition,job.lifetime],[event.partition,event.lifetime],`${field} item ${order} original no-job scope`);
+          const context=publicItem.driverContext === undefined ? undefined : readRecord(publicItem.driverContext);
+          if (context) same([job.partition,job.lifetime],[readNat(context.partition),readNat(context.lifetime)],`${field} item ${order} captured no-job command scope`);
+          else if ("partition" in event && "lifetime" in event)
+            same([job.partition,job.lifetime],[event.partition,event.lifetime],`${field} item ${order} original no-job scope`);
+          else throw new TypeError("NoJob original scope lacks genuine action or captured command context");
         } else compareJob(input.job, publicItem.driverSourceJob, `${field} item ${order} source job`);
       }
       compareEmission(input.context,publicItem,`${field} item ${order}`);
@@ -139,6 +142,7 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
   }
   const jobs = list(runtime.jobs).map(readRecord);
   same(jobs.length, source.jobs.length, `${field} retained source job count`);
+  same(jobs.map(job => readNat(job.operation)),source.jobs.map(([operation]) => operation),`${field} retained source job insertion order`);
   for (const retained of jobs) {
     const operation = readNat(retained.operation);
     const original = source.jobs.find(([id]) => id === operation)?.[1];
