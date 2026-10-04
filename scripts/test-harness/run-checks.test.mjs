@@ -1,17 +1,24 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRun, stageResults, focusedSelection, main } from "./run-checks.mjs";
+import { createRun, stageResults, focusedSelection } from "./run-checks.mjs";
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), "hapsland-checks-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   return root;
 }
+// Temporary fixture runs are independent of the harness running this test.
+// Tests of nesting explicitly supply their own authenticated context instead.
+const fixtureEnvironment = () => {
+  const env = { ...process.env };
+  for (const key of ["HAPSLAND_CHECK_CONTEXT", "HAPSLAND_FOCUSED_TEST_SELECTION", "HAPSLAND_TEST_FAILURES_FILE"]) delete env[key];
+  return env;
+};
 const command = (name, code) => ({ name, command: process.execPath, args: ["-e", code] });
 
 test("ordinary failure preserves its log and does not suppress independent checks", async t => {
@@ -29,12 +36,13 @@ test("ordinary failure preserves its log and does not suppress independent check
 
 test("source identity failures retain a terminal run record", async t => {
   const root = await fixture(t);
-  assert.equal(await main(["test", "--timeout-ms=30000"], root), 1);
+  const outcome = spawnSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(["test", "--timeout-ms=30000"], ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 10000, env: fixtureEnvironment() });
+  assert.equal(outcome.status, 1, outcome.stderr);
   const latest = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8"));
   const runDirectory = join(root, ".test-runs", latest.id);
   const manifest = JSON.parse(await readFile(join(runDirectory, "manifest.json"), "utf8"));
   const results = JSON.parse(await readFile(join(runDirectory, "results.json"), "utf8"));
-  const inputs = JSON.parse(await readFile(join(runDirectory, `inputs-${process.pid}.json`), "utf8"));
+  const inputs = JSON.parse(await readFile(join(runDirectory, `inputs-${manifest.pid}.json`), "utf8"));
   assert.equal(results.state, "failed");
   assert.deepEqual(results.failedStages, ["source-identity"]);
   assert.equal(results.stages.length, 1);
@@ -172,7 +180,7 @@ test("CLI records focused scope without forwarding it and reports different comm
 require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWorkers=1', 'one.test.ts']);
 `);
   await chmod(tool, 0o755);
-  const cli = args => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(${JSON.stringify(args)}, ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 10000 });
+  const cli = args => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(${JSON.stringify(args)}, ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 10000, env: fixtureEnvironment() });
   cli(["focused", "--scope=original-output", "one.test.ts", "--timeout-ms=5000"]);
   const { id } = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8"));
   const manifest = JSON.parse(await readFile(join(root, ".test-runs", id, "manifest.json"), "utf8"));
@@ -226,7 +234,7 @@ test("actual focused CLI rejects an all-skipped selector and permits selected ex
   await writeFile(join(root, "one.test.ts"), 'import { it } from "vitest"; it("actual selected case", () => {});');
   const reporter = fileURLToPath(new URL("./immediate-errors.mjs", import.meta.url));
   await writeFile(join(root, "vitest.config.mjs"), `const selected = JSON.parse(process.env.HAPSLAND_FOCUSED_TEST_SELECTION); if (selected.files.length !== 1 || selected.files[0] !== "one.test.ts") throw new Error("focused selection did not reach config"); export default { test: { reporters: ["default", ${JSON.stringify(reporter)}] } };`);
-  const cli = pattern => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(["focused", "one.test.ts", ${JSON.stringify('--testNamePattern=' + pattern)}, "--timeout-ms=10000"], ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 15000 });
+  const cli = pattern => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(["focused", "one.test.ts", ${JSON.stringify('--testNamePattern=' + pattern)}, "--timeout-ms=10000"], ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 15000, env: fixtureEnvironment() });
   assert.throws(() => cli("absent selector"));
   const failedId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id;
   const failed = JSON.parse(await readFile(join(root, ".test-runs", failedId, "status.json"), "utf8"));
