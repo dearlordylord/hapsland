@@ -620,7 +620,9 @@ def recorded(+state: T.State, +frame: T.Frame) -> T.Step:
   T.Step{recorded_latest(recorded_runtime(state),frame),Some{frame},[]}
 
 def after_snapshot(state: T.State) -> T.RuntimeSnapshot:
-  runtime_snapshot(state)
+  match state:
+    case T.State{core,items,next,count,seed,environment,_,valid,_,jobs,host}:
+      T.RuntimeSnapshot{core,items,next,Nat.add(count,1n),seed,environment,valid,jobs,host}
 
 def provided_job(job: Maybe<&2,T.Job>) -> Maybe<&2,Nat>:
   match job:
