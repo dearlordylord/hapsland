@@ -130,15 +130,15 @@ def product_row(time: Nat, +event: Canonical.CanonicalEvent, before: List<&2, Ca
 
 def frame_row(frame: T.Frame, canonical: Canonical.State) -> List<&2, Nat>:
   match frame:
-    case T.ProductFrame{_, time, event, before, after, commands, reason}:
+    case T.ProductFrame{_, time, event, before, after, commands, reason, _}:
       product_row(time, event, before, after, commands, reason)
-    case T.GraphFrame{_, time, _, _, _, before, after, command}:
+    case T.GraphFrame{_, time, _, _, _, before, after, command, _}:
       List.append(&2, Nat, graph_row(after, command, time),
         List.append(&2, Nat, Projection.canonical_counts(canonical), 100n <> graph_before(before)))
 
 def observed_canonical(observation: T.Observation) -> Canonical.State:
   match observation:
-    case T.Observation{_, _, canonical, _, _, _}: canonical
+    case T.Observation{_, _, canonical, _, _, _, _}: canonical
 
 def advanced(transition: T.Advanced, rows: List<&2, List<&2, Nat>>,
     rest: T.State -> List<&2, List<&2, Nat>> -> Trace) -> Trace:

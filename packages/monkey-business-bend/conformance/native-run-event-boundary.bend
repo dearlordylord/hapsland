@@ -7,7 +7,7 @@ import ./native-run-scenario.bend as Trace
 # only observes frames; it never generates policy facts or canonical events.
 def event_reached(frame: T.Frame, wanted: Nat) -> Bool:
   match frame:
-    case T.ProductFrame{_, _, event, _, _, _, _}: Nat.is_eq(Trace.event_code(event), wanted)
+    case T.ProductFrame{_, _, event, _, _, _, _, _}: Nat.is_eq(Trace.event_code(event), wanted)
     case _: False{}
 
 def recorded_hit(hit: Bool, state: T.State, recorded: List<&2, List<&2, Nat>>,

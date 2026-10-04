@@ -22,28 +22,38 @@ type Config is Data:
   Config{limits: Ledger.Limits, advicees: List<&2, Advicee>, environment: Environment, collectors: Maybe<&2,CollectorScenario.Profile>}
 type Job is Data:
   Job{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat, units: List<&2, Nat>,
-    revision: Nat, repair: Bool, duration: Maybe<&2, Nat>}
+    revision: Nat, repair: Bool, duration: Maybe<&2, Nat>, source_job: Maybe<&2,Driver.SourceJob>}
+type EmissionContext is Data:
+  EmissionContext{context: Driver.Context, receipt: Maybe<&2,Driver.OutcomeReceipt>}
 type Input is Data:
-  Arrival{emission: Workload.Emission}
+  Arrival{emission: Workload.Emission, activity: Nat}
   Edit{job: Job}
-  Event{action: Driver.Action, job: Maybe<&2, Job>}
+  Event{action: Driver.Action, job: Maybe<&2, Job>, context: Maybe<&2,EmissionContext>}
   CacheFact{fact: CacheRuntime.Fact}
-  FinishInput{action: Driver.Action, job: Job, attempt: Nat}
+  FinishInput{action: Driver.Action, job: Job, attempt: Nat, context: Maybe<&2,EmissionContext>}
   GraphFact{key: EngineTypes.GraphKey, position: Nat, fact: ImportGraph.GraphEvent, limits: ImportGraph.Limits}
 type Item is Data:
   Item{order: Nat, input: Input}
 type Located is Data:
   Located{input: Maybe<&2, Input>, remaining: List<&2, Item>}
+# Resident runtime excludes the observer history itself; frames retain that history.
+# This prevents recursive snapshots of previous frame snapshots.
+type RuntimeSnapshot is Data:
+  RuntimeSnapshot{core: List<&2,EngineTypes.State>, items: List<&2,Item>, next: Nat, count: Nat,
+    seed: Nat, environment: Environment, valid: Bool}
+type FrameDetails is Data:
+  FrameDetails{before: RuntimeSnapshot, after: RuntimeSnapshot,
+    prepared: List<&2,EmissionContext>, source: Maybe<&2,EmissionContext>, transition_after: List<&2,EngineTypes.State>}
 type Frame is Data:
   ProductFrame{sequence: Nat, time: Nat, event: Canonical.CanonicalEvent,
-    before: List<&2, Canonical.State>, after: List<&2, Canonical.State>, commands: List<&2, Canonical.Command>, rejection: Maybe<&2, Canonical.Reason>}
+    before: List<&2, Canonical.State>, after: List<&2, Canonical.State>, commands: List<&2, Canonical.Command>, rejection: Maybe<&2, Canonical.Reason>, details: FrameDetails}
   GraphFrame{sequence: Nat, time: Nat, key: EngineTypes.GraphKey, position: Nat,
-    fact: ImportGraph.GraphEvent, before: List<&2, ImportGraph.Bounded>, after: List<&2, ImportGraph.Bounded>, command: ImportGraph.Command}
+    fact: ImportGraph.GraphEvent, before: List<&2, ImportGraph.Bounded>, after: List<&2, ImportGraph.Bounded>, command: ImportGraph.Command, details: FrameDetails}
 type State is Data:
   State{core: List<&2, EngineTypes.State>, items: List<&2, Item>, next: Nat, count: Nat,
-    seed: Nat, environment: Environment, latest: List<&2, Frame>, valid: Bool}
+    seed: Nat, environment: Environment, latest: List<&2, Frame>, valid: Bool, prepared: List<&2,EmissionContext>}
 type Observation is Data:
-  Observation{time: Nat, event_count: Nat, canonical: Canonical.State, latest: Maybe<&2, Frame>, queued: Nat, valid: Bool}
+  Observation{time: Nat, event_count: Nat, canonical: Canonical.State, latest: Maybe<&2, Frame>, queued: Nat, valid: Bool, runtime: RuntimeSnapshot}
 type Step is Data:
   Step{state: State, frame: Maybe<&2, Frame>}
 type Advanced is Data:
