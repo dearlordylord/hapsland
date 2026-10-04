@@ -750,7 +750,7 @@ def failed_submission_output(active: Bool, facts: StopScenario.CommandFacts,
     case _ _ _ _: Driver.Handled{False{},[]}
 
 def stop_failed_submission(stopped: Engine.StopHandled, facts: StopScenario.CommandFacts,
-    event: Canonical.CanonicalEvent, command: Canonical.Command) -> Engine.StopHandled:
+    +event: Canonical.CanonicalEvent, command: Canonical.Command) -> Engine.StopHandled:
   match stopped event:
     case Engine.StopHandled{+state,following,ended,fit_attempt,output}
       Canonical.SubmissionBegin{_,+group,_,_,_,_,_,_}:
@@ -758,8 +758,8 @@ def stop_failed_submission(stopped: Engine.StopHandled, facts: StopScenario.Comm
         failed_submission_output(Engine.stop_active(state,group),facts,event,command)),ended,fit_attempt,output}
     case _ _: stopped
 
-def stop_command_with_failed_output(state: Types.State, event: Canonical.CanonicalEvent,
-    command: Canonical.Command, context: Driver.Context, environment: Environment, now: Nat) -> Engine.StopHandled:
+def stop_command_with_failed_output(state: Types.State, +event: Canonical.CanonicalEvent,
+    +command: Canonical.Command, context: Driver.Context, environment: Environment, now: Nat) -> Engine.StopHandled:
   +facts = stop_command_facts(environment,now)
   stop_failed_submission(Engine.stop_command(state,event,command,context,facts),facts,event,command)
 
