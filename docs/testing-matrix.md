@@ -111,8 +111,11 @@ Vitest and removes its owned artifacts after the suite. Arguments after `--`
 are forwarded to Vitest, for example a native test file. The preflight manifest
 validates current sources, compiler identities, flags, deadlines and artifacts;
 it does not permit stale binaries or replace a test's comparison assertions.
-The [Run conformance runner](../scripts/run-native-run-conformance.mjs) retains
-its separate fresh compilation phase for its seven original Run fixtures.
+The [Run conformance runner](../scripts/run-native-run-conformance.mjs) runs
+one aggregate of all seven original Run cases through the focused harness.
+One compilation per backend retains each original trace, independent public
+assertions and replay checks. Its setup bound is 275 seconds, with 285 seconds
+for the supervised check.
 
 ## Pull request checks
 
@@ -310,10 +313,12 @@ with a 275-second aggregate watchdog. These allowances establish no pass by
 themselves and do not change product deadlines.
 
 The optional game consumer command is
-`node --experimental-strip-types prototypes/canonical-defense/verify-consumer.mjs`.
-Declare a 270-second outer deadline: its explicit C60/clang90/JS30 bounds,
-native/JavaScript execution5 bounds and tool-location checks allow 200 seconds;
-70 seconds remain for source hashes, all public/replay comparisons and cleanup.
+`node scripts/run-game-consumer.mjs`.
+The maintained supervisor enforces one 380-second deadline and process-group
+cleanup. C compilation consumes the remaining check budget; clang120/JS30 and
+native/JavaScript execution15 bounds are also capped by that remaining time.
+There is no separate early C-phase cutoff. The inner verifier requires the
+supervised deadline for this mode.
 Keep all four campaigns, 145 batches and 3,222 ticks. The five geometry/drawing
 roots and candidate game proofs are separate from this shared consumer scope.
 

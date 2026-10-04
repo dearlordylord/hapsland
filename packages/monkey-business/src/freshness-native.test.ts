@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
 import { runFreshnessNative, runFreshnessEmitted } from "../../monkey-business-bend/conformance/freshness-runner.mjs";
+import { readRetainedWorkloadOutput } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 // Original edits use Engine.edit_attempt and Engine.freshness_admitted at
 // actual admission, then the shared freshness fence. Native input never comes from JS.
@@ -26,7 +27,11 @@ function publicMilestones(frames: readonly Observation[]): number[][] {
 
 it.each([false, true])("compares original %s changed source with independent stale-delivery milestones", changed => {
   const fixture = new URL(`../../monkey-business-bend/conformance/freshness-${changed ? "changed" : "same"}.bend`, import.meta.url);
-  const native = runFreshnessNative(fixture);
+  const receipt = changed ? process.env.HAPSLAND_FRESHNESS_CHANGED_NATIVE_OUTPUT_RECEIPT
+    : process.env.HAPSLAND_FRESHNESS_SAME_NATIVE_OUTPUT_RECEIPT;
+  const retained = receipt ? readRetainedWorkloadOutput(fixture, receipt, "fresh-native") : undefined;
+  if (receipt && !Array.isArray(retained)) throw new TypeError("freshness retained output must be the original row list");
+  const native = receipt ? retained as number[][] : runFreshnessNative(fixture);
   expect(runFreshnessEmitted(fixture)).toEqual(native);
   expect(native.some(row => row[0] === 98)).toBe(false);
   expect(nativeMilestones(native)).toEqual(expected(changed));
@@ -46,9 +51,13 @@ it.each([false, true])("compares original %s changed source with independent sta
   expect([...publicMilestones(run.observations), snapshot]).toEqual(expected(changed));
   const old = run.observations.find(frame => frame.event.kind === "jevRequestSettled"
     && frame.event.operation === 3)!;
-  if (changed) expect(old.commands).toEqual([{ kind: "jevObservationIgnored" }]);
+  if (changed) {
+    // The captured request remains known, but its obsolete finding is retired.
+    expect(old.commands).toContainEqual({ kind: "retireStaleFinding" });
+    expect(old.commands).not.toContainEqual({ kind: "retainFinding" });
+  }
   else expect(old.commands).toContainEqual({ kind: "retainFinding" });
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
-  // Full immutable Frame.before/after export and callback receipt trace parity
-  // remain a named central adapter ABI gap; compact milestones do not claim it.
+  // These original source-selection milestones complement the physical custody
+  // assertions in freshness-captured-callback.test.ts.
 }, 30000);
