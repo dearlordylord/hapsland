@@ -1776,16 +1776,17 @@ type ObserveRequest is Data:
   ObserveRequest{runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
 
 type ObserveSelection is Data:
-  ObserveSelection{taken: List<&2,Engine.Taken>, request: ObserveRequest}
+  ObserveSelection{taken: List<&2,Engine.Taken>, runtime: List<&2,Runtime>, receipt: Maybe<&2,Callbacks.Fact>, environment: Environment}
 
-def observe_selection(request: ObserveRequest) -> ObserveSelection:
+def observe_selection(+request: ObserveRequest) -> ObserveSelection:
   match request:
-    case ObserveRequest{runtime,_,_}: ObserveSelection{observed_take(runtime),request}
+    case ObserveRequest{+runtime,receipt,environment}:
+      ObserveSelection{observed_take(runtime),runtime,receipt,environment}
 
 def observe_selection_ready(-F: Data, +selection: ObserveSelection,
     factory: List<&2,Canonical.Command> -> TransitionHook<F>) -> Observed<F>:
   match selection:
-    case ObserveSelection{taken,ObserveRequest{runtime,receipt,environment}}:
+    case ObserveSelection{taken,runtime,receipt,environment}:
       observed_taken(F,taken,runtime,receipt,environment,factory)
 
 def observe_request_ready(-F: Data, +request: ObserveRequest,
