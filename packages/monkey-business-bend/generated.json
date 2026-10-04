@@ -1,9 +1,17 @@
 {
   "sourceHash": "336bdeb087cfa06b980e72ec685a52c72f4286a6cfacdd4eaa00a7093d6131ad",
-  "hostHash": "d31931ee7e092496cb22b8c6b940cef205eb2cd647ea9ec780d79b655f0cf5b7",
-  "identityHash": "ec49d4dada30243f51c8b0144990606c5cd2bac9249df4e17758497a4fcc70a7",
+  "hostHash": "3a15995d3cd0443910a865ae962d293305703cf16d70093964fc26f3b3acc02e",
+  "identityHash": "7b46846e997d6a7da42d08a0eb4728bc113415d62524f5931fa99c62c2ca2cf1",
   "preparationHash": "4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb",
   "buildHash": "42381349ab00abc30db7f4a22cffeb1e424fbfed238f21d9026641eceb465ec0",
   "declarationHash": "d228a7389c6948f6d9d70b243750503ce96474503df909d2c558b513a8724bef",
-  "moduleHash": "8f09aed0a56595082600fa41c48fcc0f3545e2d9144130c5ab06e757460b680a"
+  "moduleHash": "57dee575ddda3814e3728587de56ef27f87e8db28fc4ac6b5e79fd41f1179d9e",
+  "reuse": {
+    "kind": "verifiedCompiledPolicyReuse",
+    "previousBuildHash": "42381349ab00abc30db7f4a22cffeb1e424fbfed238f21d9026641eceb465ec0",
+    "previousModuleHash": "8f09aed0a56595082600fa41c48fcc0f3545e2d9144130c5ab06e757460b680a",
+    "compiledPolicyHash": "9ea23ece72ac717734d423a944a540d923781247969bf5eb99467a715d7f30be",
+    "compiledPolicyBytes": 1561931,
+    "provenance": "verified existing module; no fresh compiler invocation"
+  }
 }
