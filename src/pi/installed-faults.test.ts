@@ -172,4 +172,110 @@ describe.each(["source", "installed"] as const)("%s Pi lifecycle and concurrent 
     });
   }
 
+  // The source host owns this semantic branch; compiled canaries retain real worker/lifetime failures.
+  if (mode === "source") {
+    it("native abort settlement closes admitted work without a pre-settle callback", async () => {
+      const f = fixture(true);
+      await f.prepareResident();
+      await f.call("agent_start", {});
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      await f.waitForWork(1);
+      await f.call("agent_settled", { outcome: "aborted" });
+      writeFileSync(join(f.root, "backend.gate"), "release");
+      expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+    });
+  }
+
+  // The source host owns this semantic branch; compiled canaries retain real worker/lifetime failures.
+  if (mode === "source") {
+    it("reload preserves the closed old partition without replay", async () => {
+      const f = fixture();
+      await f.prepareResident();
+      await f.call("tool_call", before);
+      await f.call("session_shutdown", {});
+      f.reload();
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+    });
+  }
+
+  // Competing handlers can mutate these API objects after Pi produces a valid
+  // native edit shape. These values are refusal cases, not supported profiles.
+  const invalidSerializable = (variant: string, base: object = {}): unknown => {
+    if (variant === "undefined") return undefined;
+    if (variant === "bigint") return { ...base, nativeMutation: 1n };
+    const cyclic: Record<string, unknown> = { ...base };
+    cyclic.nativeMutation = cyclic;
+    return cyclic;
+  };
+  // Serialization alternatives are source-command branches, not installed process boundaries.
+  if (mode === "source") {
+    it.each(["undefined", "cyclic", "bigint"])("mutated %s before input stays quiet without registering a permit", async variant => {
+      const f = fixture(false, {}, { commandFactory: extensionEnvelope });
+      expect(await f.call("tool_call", { ...before, input: invalidSerializable(variant, before.input) })).toBeUndefined();
+      expect(existsSync(join(f.root, "runtime/owner.json"))).toBe(false);
+      expect(existsSync(join(f.root, "envelope-operations"))).toBe(false);
+      writeFileSync(join(f.root, "type.ts"), source);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+    });
+  }
+
+  // Source command cases own value-level refusals; installed cases above own process lifetime.
+  if (mode === "source") {
+    it.each([
+      ["input", "undefined"], ["input", "cyclic"], ["input", "bigint"],
+      ["details", "cyclic"], ["details", "bigint"],
+      ["content", "undefined"], ["content", "object"],
+      ["content", "null-item"], ["content", "missing-text"], ["content", "bad-image"],
+    ])("mutated result %s/%s retires admission without review or invented output", async (field, variant) => {
+      const f = fixture(false, {}, { commandFactory: extensionEnvelope });
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      const values: Record<string, unknown> = { object: { competingExtension: true }, "null-item": [null], "missing-text": [{ type: "text" }], "bad-image": [{ type: "image", data: 42, mimeType: "image/png" }] };
+      const value = Object.hasOwn(values, variant) ? values[variant] : invalidSerializable(variant, field === "input" ? result.input : result.details);
+      expect(await f.call("tool_result", { ...result, [field]: value })).toBeUndefined();
+      expect(await f.call("tool_result", result)).toBeUndefined();
+      expect(await f.call("agent_before_settle", settle)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+      expect(readFileSync(join(f.root, "envelope-operations"), "utf8").trim().split("\n")).toEqual(["before", "retire", "finish"]);
+    });
+
+    it("valid competing image content preserves native output while admitting review", async () => {
+      const f = fixture(false, {}, { commandFactory: extensionEnvelope });
+      const image = { type: "image", data: "aW1hZ2U=", mimeType: "image/png" };
+      const content = [...result.content, image];
+      await f.call("tool_call", before);
+      writeFileSync(join(f.root, "type.ts"), source);
+      const native = await f.call("tool_result", { ...result, content });
+      const finish = await f.call("agent_before_settle", settle);
+      expect(existsSync(f.capturePath)).toBe(true);
+      expect(JSON.stringify(native ?? finish)).toContain("type.ts :: OrderCount");
+      expect(content).toEqual([...result.content, image]);
+      const commandEdit = JSON.parse(readFileSync(f.capturePath, "utf8"));
+      expect(commandEdit).toMatchObject({ operation: "edit", input: result.input, details: result.details });
+      expect(readFileSync(join(f.root, "envelope-operations"), "utf8").trim().split("\n")).toEqual(["before", "edit", "ack", "finish"]);
+      if (native !== undefined) expect(native.content.slice(0, content.length)).toEqual(content);
+    });
+
+    it.each(["arguments", "patch"])("later %s mutation cannot redirect an admitted edit", async variant => {
+      const f = fixture();
+      await f.prepareResident();
+      const native = structuredClone(before);
+      await f.call("tool_call", native);
+      writeFileSync(join(f.root, "type.ts"), source);
+      writeFileSync(join(f.root, "other.ts"), "type Other = number\n");
+      const changed = structuredClone(result);
+      if (variant === "arguments") changed.input.path = "other.ts";
+      else changed.details.patch = "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Other = string\n+type Other = number\n";
+      expect(await f.call("tool_result", changed)).toBeUndefined();
+      expect(existsSync(f.capturePath)).toBe(false);
+      expect(await f.call("tool_result", result)).toBeUndefined();
+    });
+  }
+
+  // Stale in-flight findings are owned by deterministic resident handoff/revalidation tests.
 });
