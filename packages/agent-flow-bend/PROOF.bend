@@ -130,14 +130,65 @@ def Laws.import_graph_exclusion_has_no_read_command():
 def Laws.import_graph_exclusion_keeps_remaining_edges():
   graph_exclusion_keeps_remaining_edges(Laws.graph_limits())
 
-def Laws.import_graph_excluded_finishes_incomplete():
+# These paths preserve limits without consulting any limit field.
+def graph_excluded_finishes_incomplete(+limits: ImportGraph.Limits) ->
+    {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n,
+      1n, False{}, True{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.Excluded{}},
+        Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, True{}, False{}, limits},
+        ImportGraph.UnitIncomplete{ImportGraph.Excluded{}}} : ImportGraph.Step}:
   {==}
+
+def graph_tree_limit_precedes_exclusion(+limits: ImportGraph.Limits) ->
+    {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 20480n,
+      1n, True{}, True{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.TreeLimit{}},
+        Nil{}, 2n <> 1n <> Nil{}, 1n, 100n, 20480n, 1n, True{}, True{}, False{}, limits},
+        ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}:
+  {==}
+
+def graph_cycle_does_not_request_source(+limits: ImportGraph.Limits) ->
+    {ImportGraph.resolved(limits, ImportGraph.Edge{2n, 1n}, 1n, ImportGraph.Found{},
+      Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{}, Nil{},
+        1n <> Nil{}, 1n, 100n, 100n, 1n, False{}, False{}, False{}, limits}, ImportGraph.NoCommand{}} : ImportGraph.Step}:
+  {==}
+
+def graph_skipped_tree_finishes_incomplete(+limits: ImportGraph.Limits) ->
+    {ImportGraph.next(limits, Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n,
+      1n, True{}, False{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.TreeLimit{}},
+        Nil{}, 2n <> 1n <> Nil{}, 2n, 200n, 20000n, 1n, True{}, False{}, False{}, limits},
+        ImportGraph.UnitIncomplete{ImportGraph.TreeLimit{}}} : ImportGraph.Step}:
+  {==}
+
+def graph_missing_import_keeps_later_edges(+limits: ImportGraph.Limits) ->
+    {ImportGraph.resolved(limits, ImportGraph.Edge{2n, 1n}, 2n,
+      ImportGraph.NotFound{}, ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{},
+      1n, 100n, 100n, 1n, False{}, False{}, False{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
+        ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{},
+        1n, 100n, 100n, 1n, False{}, False{}, True{}, limits},
+        ImportGraph.SkipImport{2n, ImportGraph.Missing{}}} : ImportGraph.Step}:
+  {==}
+
+def graph_omitted_import_finishes_incomplete(+limits: ImportGraph.Limits) ->
+    {ImportGraph.next(limits, Nil{}, 1n <> Nil{},
+      1n, 100n, 100n, 1n, False{}, False{}, True{}) ==
+      ImportGraph.Step{ImportGraph.Graph{ImportGraph.Incomplete{ImportGraph.Omitted{}},
+        Nil{}, 1n <> Nil{}, 1n, 100n, 100n, 1n,
+        False{}, False{}, True{}, limits},
+        ImportGraph.UnitIncomplete{ImportGraph.Omitted{}}} : ImportGraph.Step}:
+  {==}
+
+def Laws.import_graph_excluded_finishes_incomplete():
+  graph_excluded_finishes_incomplete(Laws.graph_limits())
 
 def Laws.import_graph_tree_limit_precedes_exclusion():
-  {==}
+  graph_tree_limit_precedes_exclusion(Laws.graph_limits())
 
 def Laws.import_graph_cycle_does_not_request_source():
-  {==}
+  graph_cycle_does_not_request_source(Laws.graph_limits())
 
 def Laws.import_graph_full_tree_can_inspect_remaining_edges():
   {==}
@@ -146,13 +197,13 @@ def Laws.import_graph_no_fit_support_skips_and_keeps_pending():
   {==}
 
 def Laws.import_graph_skipped_tree_finishes_incomplete():
-  {==}
+  graph_skipped_tree_finishes_incomplete(Laws.graph_limits())
 
 def Laws.import_graph_missing_import_keeps_later_edges():
-  {==}
+  graph_missing_import_keeps_later_edges(Laws.graph_limits())
 
 def Laws.import_graph_omitted_import_finishes_incomplete():
-  {==}
+  graph_omitted_import_finishes_incomplete(Laws.graph_limits())
 
 def Laws.rotated_in_scope_advice_is_retired():
   {==}
