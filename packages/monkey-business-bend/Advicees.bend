@@ -3,7 +3,7 @@ import Base
 # Opaque interned identities. Runtime names and parent/child relationships stay
 # at the edge; all scopes share the containing Engine resident and scheduler.
 type Scope is Data:
-  Scope{identity: Nat, partition: Nat, seed: U32}
+  Scope{identity: Nat, partition: Nat, seed: Nat}
 type Registry is Data:
   Registry{next: Nat, scopes: List<&2, Scope>}
 type Declared is Data:
@@ -56,14 +56,14 @@ def absent(scope: Maybe<&2, Scope>) -> Bool:
     case None{}: True{}
     case Some{_}: False{}
 
-def declaration(valid: Bool, +registry: Registry, identity: Nat, seed: U32) -> Declared:
+def declaration(valid: Bool, +registry: Registry, identity: Nat, seed: Nat) -> Declared:
   match valid registry:
     case True{} Registry{+next, scopes}:
       +scope = {Scope{identity, next, seed} : Scope}
       Declared{Registry{Nat.add(next, 1n), List.append(&2, Scope, scopes, [scope])}, Some{scope}, True{}}
     case False{} registry: Declared{registry, None{}, False{}}
 
-def declare(+registry: Registry, +identity: Nat, seed: U32) -> Declared:
+def declare(+registry: Registry, +identity: Nat, seed: Nat) -> Declared:
   match registry:
     case Registry{+next, +scopes}:
       declaration(bounded(identity) && bounded(next) && absent(find_identity(scopes, identity)),

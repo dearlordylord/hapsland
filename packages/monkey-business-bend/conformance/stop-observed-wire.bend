@@ -6,6 +6,7 @@ import ../StopScenario.bend as Stop
 # Structural evidence only. Each state/queue below is a snapshot from the
 # actual common observer, never a projection reconstructed from an endpoint.
 type Frame is Data:
+  Control{input: Inputs.Boundary, before_environment: Edge.Environment, after_environment: Edge.Environment, before: List<&2,Edge.Runtime>, after: List<&2,Edge.Runtime>}
   Observed{frame: Edge.ObservedFrame, original_finish: Maybe<&2,Stop.Finish>}
   Boundary{input: Inputs.Boundary, consumed: Nat, runtime: List<&2,Edge.Runtime>}
   InvalidTransport{runtime: List<&2,Edge.Runtime>}

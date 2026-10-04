@@ -1,10 +1,12 @@
 import Base
 import ./stop-original-inputs.bend as Inputs
+import ./stop-output-original-inputs.bend as OutputInputs
 import ./stop-observed-wire.bend as Wire
 import ./stop-observed-initial.bend as Initial
 import ./advicee-lifecycle-driver.bend as Edge
 import ./sharing-observed-transport.bend as Transport
 import ../Engine.bend as Engine
+import ../Types.bend as Types
 import ../OutputScenario.bend as Output
 import ../Scheduler.bend as Scheduler
 import ../StopScenario.bend as Stop
@@ -136,8 +138,81 @@ def scheduled_boundary(+value: Inputs.Input, +input: Inputs.Scenario, +runtime: 
       boundary_record(Inputs.Schedule{value},observations,
         scheduled(Initial.scheduled(value,configuration,runtime),Running{input,runtime,issued,frames,valid,observations}))
 
-def boundary(value: Inputs.Boundary, running: Running, environment: Edge.Environment) -> Running:
+# Live controls alter only future environmental facts. Original caller input,
+# already-issued capsules and physical receipts remain immutable.
+def changed_output_profile(profile: Maybe<&2,Edge.StopProfile>, outcome: Output.Outcome) -> Maybe<&2,Edge.StopProfile>:
+  match profile:
+    case None{}: Some{Edge.StopProfile{outcome,None{}}}
+    case Some{Edge.StopProfile{_,bytes}}: Some{Edge.StopProfile{outcome,bytes}}
+    case Some{Edge.FitProfile{_,bytes,attempt}}: Some{Edge.FitProfile{outcome,bytes,attempt}}
+
+def changed_output_environment(environment: Edge.Environment, outcome: Output.Outcome, delay: Nat, lease: Nat) -> Edge.Environment:
+  match environment:
+    case Edge.Environment{seed,tree,graph,prep,_,_,profile,outcomes}:
+      Edge.Environment{seed,tree,graph,prep,delay,lease,changed_output_profile(profile,outcome),outcomes}
+
+def boundary_environment(value: Inputs.Boundary, environment: Edge.Environment) -> Edge.Environment:
+  match value:
+    case Inputs.OutputProfile{outcome,delay,lease}: changed_output_environment(environment,outcome,delay,lease)
+    case _: environment
+
+def profile_boundary(value: Inputs.Boundary, running: Running, before: Edge.Environment, after: Edge.Environment) -> Running:
+  match running:
+    case Running{input,+runtime,issued,frames,valid,observations}:
+      Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,[Wire.Control{value,before,after,runtime,runtime}]),valid,observations}
+
+def missing_terminal(running: Running) -> Running:
+  match running:
+    case Running{input,+runtime,issued,frames,_,observations}:
+      Running{input,runtime,issued,List.append(&2,Wire.Frame,frames,[Wire.InvalidTransport{runtime}]),False{},observations}
+
+def terminal_scheduled(+value: Inputs.Input, running: Running) -> Running:
+  match running:
+    case Running{+input,+runtime,issued,frames,valid,+observations}:
+      scheduled_boundary(value,input,runtime,issued,frames,valid,observations)
+
+def terminal_captured(finish: Maybe<&2,Stop.Finish>, at: Nat, +running: Running) -> Running:
+  match finish:
+    case Some{Stop.Finish{p,_,r,attempt,token,_,_,_,_,_,_,_,_}}:
+      terminal_scheduled(Inputs.CanonicalInput{at,C.FinishTerminal{p,r,attempt,token,[],C.Unknown{}}},running)
+    case None{}: missing_terminal(running)
+
+def terminal_runtime(runtime: Edge.Runtime, partition: Nat, at: Nat, running: Running) -> Running:
+  match runtime:
+    case Edge.Runtime{state,_,_,_}: terminal_captured(Engine.stop_find(state,partition),at,running)
+
+def terminal_agent(agent: Maybe<&2,Initial.Agent>, +state: Edge.Runtime, at: Nat, running: Running) -> Running:
+  match agent:
+    case Some{Initial.Agent{_,partition}}: terminal_runtime(state,partition,at,running)
+    case None{}: missing_terminal(running)
+
+def terminal_state(runtime: Edge.Runtime) -> Types.State:
+  match runtime:
+    case Edge.Runtime{state,_,_,_}: state
+
+def terminal_configuration(configuration: Inputs.Configuration, +runtime: Edge.Runtime, at: Nat, agent: Maybe<&2,String>, running: Running) -> Running:
+  match configuration:
+    case Inputs.Configuration{_,declarations,_,_,_,_,_,_,_,_,_,_,_,_,_}:
+      terminal_agent(Initial.agent(Initial.resolve(declarations,terminal_state(runtime)),agent),runtime,at,running)
+
+def terminal_scenario(input: Inputs.Scenario, runtime: Edge.Runtime, at: Nat, agent: Maybe<&2,String>, running: Running) -> Running:
+  match input:
+    case Inputs.Scenario{configuration,_,_}: terminal_configuration(configuration,runtime,at,agent,running)
+
+def terminal_input(input: Inputs.Scenario, runtime: List<&2,Edge.Runtime>, at: Nat, agent: Maybe<&2,String>, running: Running) -> Running:
+  match runtime:
+    case value <> Nil{}: terminal_scenario(input,value,at,agent,running)
+    case _: missing_terminal(running)
+
+def mismatched_boundary(at: Nat, agent: Maybe<&2,String>, running: Running) -> Running:
+  match running:
+    case Running{+input,+runtime,issued,frames,valid,observations}:
+      terminal_input(input,runtime,at,agent,Running{input,runtime,issued,frames,valid,observations})
+
+def boundary(value: Inputs.Boundary, running: Running, +environment: Edge.Environment) -> Running:
   match value running:
+    case Inputs.OutputProfile{+outcome,+delay,+lease} running: profile_boundary(Inputs.OutputProfile{outcome,delay,lease},running,environment,changed_output_environment(environment,outcome,delay,lease))
+    case Inputs.MismatchedTerminal{at,agent} running: mismatched_boundary(at,agent,running)
     case Inputs.Advance{+endpoint,+budget} Running{input,runtime,issued,frames,valid,+observations}:
       boundary_record(Inputs.Advance{endpoint,budget},observations,
         advance(1000n,budget,Running{input,runtime,issued,frames,valid,observations},environment,endpoint))
@@ -149,7 +224,7 @@ def boundaries(list: List<&2,Inputs.Boundary>, running: Running, +environment: E
     case Nil{} running: running
     case _ Running{input,runtime,issued,frames,False{},observations}:
       Running{input,runtime,issued,frames,False{},observations}
-    case value <> rest running: boundaries(rest,boundary(value,running,environment),environment)
+    case +value <> rest running: boundaries(rest,boundary(value,running,environment),boundary_environment(value,environment))
 
 def trace(running: Running) -> Wire.Trace:
   match running:
@@ -171,3 +246,12 @@ def original_scenarios() -> List<&2,Wire.Trace>:
    scenario(Inputs.late_preparation()),scenario(Inputs.no_round()),scenario(Inputs.repeated_finish()),
    scenario(Inputs.background(Output.Certain{})),scenario(Inputs.background(Output.Uncertain{})),
    scenario(Inputs.configured_no_round()),scenario(Inputs.group_output()),scenario(Inputs.other_advicee_output())]
+
+# All original #195 caller inputs execute through the same maintained owner.
+def output_traces(inputs: List<&2,Inputs.Scenario>) -> List<&2,Wire.Trace>:
+  match inputs:
+    case Nil{}: []
+    case input <> tail: scenario(input) <> output_traces(tail)
+
+def output_scenarios() -> List<&2,Wire.Trace>:
+  output_traces(OutputInputs.cases())
