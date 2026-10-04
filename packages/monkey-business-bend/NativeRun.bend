@@ -1174,7 +1174,7 @@ def located_run(+state: T.State, located: T.Located, +order: Nat) -> T.Step:
       original_delivery(replaced_items(state,remaining),value,order,callback_receipt(Engine.callback_originals(core(state)),order))
     case T.Located{None{},_}: T.Step{invalid(state),None{},[]}
 
-def take_payload(state: T.State, order: Nat) -> T.Step:
+def take_payload(state: T.State, +order: Nat) -> T.Step:
   match state:
     case T.State{core, +items, next, count, seed, environment, latest, valid, prepared,jobs}:
       located_run(T.State{core, items, next, count, seed, environment, latest, valid, prepared,jobs}, locate(items, order),order)
