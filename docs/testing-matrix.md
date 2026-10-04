@@ -261,6 +261,15 @@ change alone does not require another compilation. Use the maintained runners;
 temporary diagnostics must preserve their assertions, deadlines and provenance
 checks. Freeze the checked sources until the process is terminal.
 
+The optional game consumer uses `node scripts/run-game-consumer.mjs`: a finite
+380-second overall budget, clang capped at 120 seconds, JS emission at 30
+seconds, and full native/JS execution at 180 seconds each within that budget.
+Diagnostic performance probes remain at most 10 seconds. Explicit
+`HAPSLAND_GAME_NATIVE_RESUME_RECEIPT` or `HAPSLAND_GAME_OUTPUT_RESUME_RECEIPT`
+reuse validates the exact source/tool/artifact identity and retains actual
+preparation origin; defaults do not silently reuse artifacts. See the
+[completed investigation](../prototypes/canonical-defense/README.md#completed-performance-investigation).
+
 Native Bend and emitted JavaScript must agree on their complete encoded output.
 At the public API boundary, compare independently expected contract facts rather
 than requiring identical private bookkeeping. A native wrapper has no implied
