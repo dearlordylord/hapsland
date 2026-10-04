@@ -223,10 +223,10 @@ def departure(result: Engine.SharingDeparture, +before: Types.State, queue: Edge
 def leave_original(found: Maybe<&2,Originals.Original>, +scope: Freshness.Scope,
     +runtime: Edge.Runtime, input: Inputs.Boundary, previous: Trace) -> Trace:
   match found scope runtime:
-    case Some{Originals.Original{_,Inputs.Edit{_,_,bytes,units,_,_,_}}} Freshness.Scope{p,l,_,_}
+    case Some{Originals.Original{_,Inputs.Edit{_,_,bytes,units,_,_,_,+outcome}}} Freshness.Scope{p,l,_,_}
         Edge.Runtime{+state,queue,jobs,delay}:
       departure(Engine.sharing_leave(state,scope),state,queue,jobs,delay,
-        Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}},input,Some{scope},previous)
+        Edge.Job{p,l,bytes,units,outcome},input,Some{scope},previous)
     case _ _ _: fail(previous)
 
 def leave_scope(scope: Maybe<&2,Freshness.Scope>, runtime: Edge.Runtime,
@@ -244,9 +244,9 @@ def leave_agent(agent: Maybe<&2,Initial.Agent>, index: Nat, +trace: Trace, input
 def all_original(found: Maybe<&2,Originals.Original>, +runtime: Edge.Runtime,
     +p: Nat, +l: Nat, input: Inputs.Boundary, previous: Trace) -> Trace:
   match found runtime:
-    case Some{Originals.Original{_,Inputs.Edit{_,_,bytes,units,_,_,_}}} Edge.Runtime{+state,queue,jobs,delay}:
+    case Some{Originals.Original{_,Inputs.Edit{_,_,bytes,units,_,_,_,+outcome}}} Edge.Runtime{+state,queue,jobs,delay}:
       departure(Engine.sharing_leave_all(state,p,l),state,queue,jobs,delay,
-        Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}},input,None{},previous)
+        Edge.Job{p,l,bytes,units,outcome},input,None{},previous)
     case _ _: fail(previous)
 
 def all_scope(scope: Maybe<&2,Freshness.Scope>, runtime: Edge.Runtime,

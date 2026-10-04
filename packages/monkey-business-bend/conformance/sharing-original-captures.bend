@@ -77,11 +77,11 @@ def source_subject(subject: Interned, input: String) -> SourceCapture:
 
 def source(labels: Labels, edit: Inputs.Edit) -> SourceCapture:
   match edit:
-    case Inputs.Edit{_,_,_,_,subject,input,_}: source_subject(intern(labels,Subject{subject}),input)
+    case Inputs.Edit{_,_,_,_,subject,input,_,_}: source_subject(intern(labels,Subject{subject}),input)
 
 def prepared(labels: Labels, edit: Inputs.Edit) -> Interned:
   match edit:
-    case Inputs.Edit{_,_,_,_,_,_,namespace}: intern(labels,Prepared{namespace})
+    case Inputs.Edit{_,_,_,_,_,_,namespace,_}: intern(labels,Prepared{namespace})
 
 def original_found(equal: Bool, original: Original, rest: Maybe<&2,Original>) -> Maybe<&2,Original>:
   match equal:

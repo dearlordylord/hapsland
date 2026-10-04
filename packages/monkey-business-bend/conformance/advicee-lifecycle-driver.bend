@@ -665,7 +665,7 @@ def arrival_valid(valid: Bool, event: Workload.Emission, +lifetime: Nat, +state:
     case True{} Workload.Emission{_, owner, _, 0, _, _, _, _, _, _}:
       workload_changed(Engine.workload_action(state, owner, Workload.Next{}), queue, jobs, delay, ih)
     case True{} Workload.Emission{at, +owner, _, 1, _, _, bytes, units, _, _}:
-      edit_plan(Engine.edit_attempt(state, owner, lifetime), queue, jobs, Job{owner,lifetime,bytes,units,None{}}, at, delay, ih)
+      edit_plan(Engine.activity_edit(state, owner, lifetime), queue, jobs, Job{owner,Engine.activity_lifetime(state,owner),bytes,units,None{}}, at, delay, ih)
     case True{} _: ih(Runtime{state, queue, jobs, delay})
 
 def arrival_checked(event: Workload.Emission, +lifetime: Nat, +state: Types.State, queue: Queue,
@@ -1287,7 +1287,7 @@ def observed_arrival_valid(-F: Data, valid: Bool, event: Workload.Emission, +lif
     case True{} Workload.Emission{_,owner,_,0,_,_,_,_,_,_}:
       observed_workload(F,Engine.workload_action(state,owner,Workload.Next{}),queue,jobs,delay,hook)
     case True{} Workload.Emission{at,+owner,_,1,_,_,bytes,units,_,_}:
-      observed_edit(F,Engine.edit_attempt(state,owner,lifetime),queue,jobs,Job{owner,lifetime,bytes,units,None{}},at,delay,hook)
+      observed_edit(F,Engine.activity_edit(state,owner,lifetime),queue,jobs,Job{owner,Engine.activity_lifetime(state,owner),bytes,units,None{}},at,delay,hook)
     case True{} _: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
 
 def observed_arrival(-F: Data, event: Workload.Emission, +lifetime: Nat, +state: Types.State,

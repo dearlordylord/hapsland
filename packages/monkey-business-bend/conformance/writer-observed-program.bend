@@ -448,18 +448,18 @@ def edit_selected(equal: Bool, edit: Inputs.Edit, rest: Maybe<&2,Inputs.Edit>) -
 def original_edit(list: List<&2,Inputs.Edit>, +agent: String) -> Maybe<&2,Inputs.Edit>:
   match list:
     case Nil{}: None{}
-    case Inputs.SharedEdit{SharedInputs.Edit{+name,+at,+bytes,+units,_,_,_}} <> tail:
-      edit_selected(String.eq(name,agent),Inputs.Edit{name,at,bytes,units},original_edit(tail,agent))
-    case Inputs.Edit{+name,+at,+bytes,+units} <> tail:
-      edit_selected(String.eq(name,agent),Inputs.Edit{name,at,bytes,units},original_edit(tail,agent))
+    case Inputs.SharedEdit{SharedInputs.Edit{+name,+at,+bytes,+units,_,_,_,+outcome}} <> tail:
+      edit_selected(String.eq(name,agent),Inputs.Edit{name,at,bytes,units,outcome},original_edit(tail,agent))
+    case Inputs.Edit{+name,+at,+bytes,+units,+outcome} <> tail:
+      edit_selected(String.eq(name,agent),Inputs.Edit{name,at,bytes,units,outcome},original_edit(tail,agent))
 
 # Control job bytes/units come from the immutable original scripted edit, not
 # from a latest live owner lookup. It grants no writer/response authority.
 def control_edit(edit: Maybe<&2,Inputs.Edit>, +input: Writer.Control, trace: Trace) -> Trace:
   match edit trace:
-    case Some{Inputs.Edit{_,_,bytes,units}}
+    case Some{Inputs.Edit{_,_,bytes,units,+outcome}}
         Trace{writer,agents,queued,labels,originals,issued}:
-      Trace{Writer.apply(input,writer,Edge.Job{input_partition(input),input_lifetime(input),bytes,units,Some{C.RequestFinding{}}}),agents,queued,labels,originals,issued}
+      Trace{Writer.apply(input,writer,Edge.Job{input_partition(input),input_lifetime(input),bytes,units,outcome}),agents,queued,labels,originals,issued}
     case _ trace: fault(trace)
 
 def control(+input: Writer.Control, +trace: Trace) -> Trace:
@@ -471,11 +471,11 @@ def lifecycle_cleanup(+cleanup: Cleanup.CleanupPlan, +state: Types.State, +befor
     consumed: Nat, valid: Bool, agents: List<&2,Initial.Agent>, queued: OriginalInputs,
     labels: Captures.Labels, originals: List<&2,Captures.Original>, issued: Nat,
     agent: String, +partition: Nat, action: Lifecycle.Action, changed: Lifecycle.Changed,
-    +events: List<&2,Workload.Emission>, bytes: Nat, units: List<&2,Nat>) -> Trace:
+    +events: List<&2,Workload.Emission>, bytes: Nat, units: List<&2,Nat>, outcome: Maybe<&2,C.RequestOutcome>) -> Trace:
   match cleanup:
     case Cleanup.CleanupPlan{actions,_,_}:
       Trace{Writer.Runtime{[Edge.Runtime{state,Edge.emissions(events,
-        Edge.actions(actions,queue,Engine.clock(before),Edge.Job{partition,Edge.life_value(Engine.lifecycle_entry(before,partition)),bytes,units,Some{C.RequestFinding{}}}),state),jobs,delay}],
+        Edge.actions(actions,queue,Engine.clock(before),Edge.Job{partition,Edge.life_value(Engine.lifecycle_entry(before,partition)),bytes,units,outcome}),state),jobs,delay}],
         bindings,List.append(&2,Writer.Frame,frames,[Writer.LifecycleFrame{[before],[state],Engine.clock(before),agent,partition,action,changed,cleanup,events}]),consumed,valid},
         agents,queued,labels,originals,issued}
 
@@ -483,18 +483,18 @@ def lifecycle_published(value: Engine.LifecycleTransition, +before: Types.State,
     jobs: List<&2,Edge.Stored>, delay: Nat, bindings: List<&2,Originals.Binding>, frames: List<&2,Writer.Frame>,
     consumed: Nat, valid: Bool, agents: List<&2,Initial.Agent>, queued: OriginalInputs,
     labels: Captures.Labels, originals: List<&2,Captures.Original>, issued: Nat,
-    agent: String, +partition: Nat, action: Lifecycle.Action, bytes: Nat, units: List<&2,Nat>) -> Trace:
+    agent: String, +partition: Nat, action: Lifecycle.Action, bytes: Nat, units: List<&2,Nat>, outcome: Maybe<&2,C.RequestOutcome>) -> Trace:
   match value:
     case Engine.LifecycleTransition{+state,+changed,+cleanup,+events}:
       lifecycle_cleanup(cleanup,state,before,queue,jobs,delay,bindings,frames,consumed,valid,
-        agents,queued,labels,originals,issued,agent,partition,action,changed,events,bytes,units)
+        agents,queued,labels,originals,issued,agent,partition,action,changed,events,bytes,units,outcome)
 
 def lifecycle_edit(edit: Maybe<&2,Inputs.Edit>, agent: String, +partition: Nat, +action: Lifecycle.Action, trace: Trace) -> Trace:
   match edit trace:
-    case Some{Inputs.Edit{_,_,bytes,units}}
+    case Some{Inputs.Edit{_,_,bytes,units,+outcome}}
         Trace{Writer.Runtime{Edge.Runtime{+state,queue,jobs,delay} <> Nil{},bindings,frames,consumed,valid},agents,queued,labels,originals,issued}:
       lifecycle_published(Engine.lifecycle_action(state,partition,action),state,queue,jobs,delay,bindings,frames,
-        consumed,valid,agents,queued,labels,originals,issued,agent,partition,action,bytes,units)
+        consumed,valid,agents,queued,labels,originals,issued,agent,partition,action,bytes,units,outcome)
     case _ trace: fault(trace)
 
 def departure_partition(valid: Bool, edit: Maybe<&2,Inputs.Edit>, agent: String,
@@ -525,8 +525,8 @@ def intersection_agent(input: IntersectionInputs.Control) -> Maybe<&2,String>:
 
 def intersection_edit(edit: Maybe<&2,Inputs.Edit>, scope: Maybe<&2,Initial.Agent>, input: IntersectionInputs.Control, trace: Trace) -> Trace:
   match edit scope trace:
-    case Some{Inputs.Edit{_,_,bytes,units}} Some{Initial.Agent{_,p,l}} Trace{writer,agents,queued,labels,+originals,issued}:
-      Trace{Intersection.apply(input,writer,Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}},originals),agents,queued,labels,originals,issued}
+    case Some{Inputs.Edit{_,_,bytes,units,+outcome}} Some{Initial.Agent{_,p,l}} Trace{writer,agents,queued,labels,+originals,issued}:
+      Trace{Intersection.apply(input,writer,Edge.Job{p,l,bytes,units,outcome},originals),agents,queued,labels,originals,issued}
     case _ _ trace: fault(trace)
 
 

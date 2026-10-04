@@ -53,5 +53,5 @@ def prepared_identity(identity: Captures.Interned, runtime: List<&2,Edge.Runtime
 def prepared(labels: Captures.Labels, runtime: List<&2,Edge.Runtime>,
     originals: List<&2,Captures.Original>, scope: Freshness.Scope, +edit: Inputs.Edit) -> Captured:
   match edit:
-    case Inputs.Edit{_,_,_,sizes,_,_,_}:
+    case Inputs.Edit{_,_,_,sizes,_,_,_,_}:
       prepared_identity(Captures.prepared(labels,edit),runtime,originals,scope,sizes)

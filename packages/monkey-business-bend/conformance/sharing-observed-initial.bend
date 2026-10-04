@@ -70,19 +70,19 @@ def edit_selected(selected: Maybe<&2,Agent>, +edit: Inputs.Edit,
     runtime: Edge.Runtime, +agents: List<&2,Agent>,
     originals: List<&2,QueuedOriginal>, ih: Edge.Runtime -> List<&2,QueuedOriginal> -> Initialized) -> Initialized:
   match selected edit runtime:
-    case Some{Agent{_,p,l}} Inputs.Edit{name,+at,+bytes,+units,subject,input,namespace}
+    case Some{Agent{_,p,l}} Inputs.Edit{name,+at,+bytes,+units,subject,input,namespace,+outcome}
         Edge.Runtime{state,Edge.Queue{items,+sequence,synced},jobs,delay}:
       ih(Edge.Runtime{state,Edge.append(Edge.Queue{items,sequence,synced},at,
-        Edge.Edit{Edge.Job{p,l,bytes,units,Some{C.RequestFinding{}}}}),jobs,delay},
-        List.append(&2,QueuedOriginal,originals,[QueuedOriginal{sequence,Inputs.Edit{name,at,bytes,units,subject,input,namespace}}]))
+        Edge.Edit{Edge.Job{p,l,bytes,units,outcome}}),jobs,delay},
+        List.append(&2,QueuedOriginal,originals,[QueuedOriginal{sequence,Inputs.Edit{name,at,bytes,units,subject,input,namespace,outcome}}]))
     case _ _ runtime: Initialized{[runtime],agents,originals,False{}}
 
 def edits(list: List<&2,Inputs.Edit>, runtime: Edge.Runtime,
     +agents: List<&2,Agent>, originals: List<&2,QueuedOriginal>) -> Initialized:
   match list:
     case []: Initialized{[runtime],agents,originals,True{}}
-    case Inputs.Edit{+name,at,bytes,units,subject,input,namespace} <> tail:
-      edit_selected(agent(agents,name),Inputs.Edit{name,at,bytes,units,subject,input,namespace},runtime,agents,originals,next => captured => edits(tail,next,agents,captured))
+    case Inputs.Edit{+name,at,bytes,units,subject,input,namespace,+outcome} <> tail:
+      edit_selected(agent(agents,name),Inputs.Edit{name,at,bytes,units,subject,input,namespace,outcome},runtime,agents,originals,next => captured => edits(tail,next,agents,captured))
 
 def scripted(initial: Initialized, list: List<&2,Inputs.Edit>, delay: Nat) -> Initialized:
   match initial:
@@ -95,7 +95,7 @@ def sessions_configured(list: List<&2,Inputs.SessionInput>, state: Types.State) 
 
 def configured(configuration: Inputs.Configuration) -> Initialized:
   match configuration:
-    case Inputs.Configuration{seed,limits,_,sessions,_,_,_,_,_,entries,bytes}:
+    case Inputs.Configuration{seed,limits,_,sessions,_,_,_,_,_,entries,bytes,_}:
       start(sessions_configured(sessions,Engine.configure_cache(
         Engine.configure_credentials(Engine.configure_seed(Engine.initial(limits),seed),True{},1n),
         True{},entries,bytes)))
@@ -107,5 +107,5 @@ def initialize(scenario: Inputs.Scenario) -> Initialized:
 
 def environment(configuration: Inputs.Configuration) -> Edge.Environment:
   match configuration:
-    case Inputs.Configuration{seed,_,_,_,tree,graph,preparation_delay,output_delay,output_lease,_,_}:
-      Edge.Environment{seed,tree,graph,preparation_delay,output_delay,output_lease,None{},Edge.outcome_environment(None{})}
+    case Inputs.Configuration{seed,_,_,_,tree,graph,preparation_delay,output_delay,output_lease,_,_,outcomes}:
+      Edge.Environment{seed,tree,graph,preparation_delay,output_delay,output_lease,None{},outcomes}
