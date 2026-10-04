@@ -894,6 +894,11 @@ export class Run {
       automatic_collection: automaticCollection, automatic_review: automaticReview, automatic_output: automaticOutput,
       output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: this.generators.has(partition), automatic_dispatch: true };
   }
+  private retainSourceJob(operation: number, item: Scheduled) {
+    if (!item.job) throw new Error("operation source job is absent");
+    this.jobs.set(operation, freezeCanonicalData({ ...item.job,
+      ...(item.driverSourceJob === undefined ? {} : { driverSourceJob: item.driverSourceJob }) }));
+  }
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
     const partition = this.core.commandScope(index, this.inputPartition(item));
     const job = ("operation" in command ? this.jobs.get(command.operation) : undefined)
@@ -1252,7 +1257,7 @@ export class Run {
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
-          this.jobs.set(command.id, { ...item.job, ...(item.driverSourceJob === undefined ? {} : { driverSourceJob: item.driverSourceJob }) });
+          this.retainSourceJob(command.id, item);
           if (this.config.lifecycles?.quietWindowMs)
             for (const action of this.core.quietCommand(event,commandIndex,partition,this.clock)) emit(action.event,action.delay);
           if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
@@ -1286,7 +1291,7 @@ export class Run {
             throw new Error(
               "unhandled required command: prepare lacks synthetic job",
             );
-          this.jobs.set(command.operation, { ...item.job, ...(item.driverSourceJob === undefined ? {} : { driverSourceJob: item.driverSourceJob }) });
+          this.retainSourceJob(command.operation, item);
           effects.push({
             kind: "preparation",
             phase: "started",
@@ -1330,7 +1335,7 @@ export class Run {
             throw new Error(
               "unhandled required command: unitAdmitted lacks job",
             );
-          this.jobs.set(command.operation, { ...item.job, ...(item.driverSourceJob === undefined ? {} : { driverSourceJob: item.driverSourceJob }) });
+          this.retainSourceJob(command.operation, item);
           if (!driven) throw new Error("unhandled shared review unit dispatch");
           break;
         }
