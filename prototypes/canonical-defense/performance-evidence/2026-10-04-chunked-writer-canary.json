@@ -1,0 +1,16 @@
+{
+  "equal": true,
+  "lines": 4,
+  "bytes": 561,
+  "sha256": "e7a033f94b80b0665266dbff4afda28abdcf9eb57f75ad72c1581673c7a31ac0",
+  "chunkWords": 256,
+  "cases": [
+    "empty",
+    "zero",
+    "multiple/u48max",
+    "258 words crossing chunk boundary"
+  ],
+  "source_commit": "d8dce5d3",
+  "scope": "Small emitted-JS writer canary only; full game and native performance not measured",
+  "next_action": "Replace growing-left accumulation, then rerun focused canary before full candidate compilation"
+}

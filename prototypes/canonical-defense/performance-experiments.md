@@ -41,7 +41,10 @@ Hypothesis: `-O0` amplifies runtime overhead. No Bend source or transport change
 - [x] Profile a post-simulation window: 8.022s execution; sampling began after first output at 2.184s. Among 210 samples, text formatting 138 (65.7%), IO 46 (21.9%), numeric encoding 25 (11.9%), and one shared engine-labelled helper (0.5%).
 - [ ] Quantify repeated envelope data (`config`, `original`, `final_world`) separately from tick/frame data using available output.
 - [x] Choose the text formatting/string allocation path for a bounded chunked-output experiment. Preserve exact numeric text and line boundaries; do not assume quadratic complexity.
-- [ ] Test one narrow improvement with exact common-output equality, or lossless reconstruction if transport changes are explicitly adopted.
+- [x] Prepare the isolated chunked writer and verify a small executable canary: exact equality for empty, zero, u48 maximum and 258 words crossing a chunk boundary (561 bytes total). Initial candidate `d8dce5d3`; this establishes small-case grammar only.
+- [ ] Remove growing-left string accumulation inside each chunk before the expensive compilation; repeat the focused canary.
+- [ ] Compile the frozen candidate with separately bounded preparation: C emission **240s**, clang **120s**.
+- [ ] Run saved baseline and candidate separately for at most **10s each**, without concurrent compilation; compare every common complete batch byte-for-byte, first output, batch/byte throughput and peak RSS.
 - [ ] Record a decision and the preserved semantic checks.
 
 Hypotheses: formatting/allocation and repeated envelope serialization increase trace cost. Source inspection confirms repetition, not its measured contribution. The visual renderer is outside this fixture. Do not delete required ticks, public facts, frames or replay checks to produce a speedup.
@@ -74,6 +77,9 @@ Append one row per terminal experiment; include failed preparation. Store detail
 | Experiment | Source/artifact identity | Allowance | Observed result | Correctness evidence | Decision |
 | --- | --- | --- | --- | --- | --- |
 | E1 | Saved C SHA256 `2ba171a706e39c72fe4a3064a9a50eba503a465e7eea87d508dd9680cdb68eb8` | Compile 120s | Timed out after 120.184s; no O1 executable | Runtime comparison not performed | Inconclusive; proceed to E2 |
+| E2 writer canary | Candidate `d8dce5d3` | Frontend 5s; JS emission/execution 10s each | Four lines, 561 bytes; exact literal equality | Empty, zero, u48 maximum, 258-word boundary; full game not run | Improve chunk construction before full preparation |
 | E2 profiling | Same saved O0 executable | Execution cap 10s; actual 8.022s | 210 post-output samples; 65.7% attributed to text formatting | Diagnostic only; no full output comparison | Test bounded chunked text output next |
 
 Detailed terminal evidence: [initial experiment receipts](performance-evidence/2026-10-04-initial-experiments.json).
+
+Focused writer evidence: [chunked writer canary](performance-evidence/2026-10-04-chunked-writer-canary.json). Canary success does not close the full-game comparison checkbox.
