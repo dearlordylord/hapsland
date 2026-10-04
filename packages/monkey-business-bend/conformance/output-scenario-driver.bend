@@ -258,10 +258,33 @@ def hook_command(command: C.Command, +runtime: List<&2,Edge.Runtime>, +facts: Fa
     case Facts{cutoff,frames,outcome,delay,lease}:
       hook_runtime(capture_items(Edge.runtime_items(runtime),runtime,cutoff,frames,outcome,delay,lease,authorized(command)),facts,ih)
 
+# Public manual output handling remains active when automatic output is off
+# (including delay equal to or beyond the lease). Reuse the same Driver owners;
+# the intervention below still replaces the genuinely issued healthy capture.
+def manual_output(command: C.Command, event: C.CanonicalEvent, context: Driver.Context) -> Driver.Handled:
+  match command context:
+    case C.SubmissionUnsuppressed{} Driver.Context{_,_,_,_,_,_,_,_,_,_,_,_,candidate,_,_,_,_,_,_,_,_}:
+      Driver.reserve(candidate)
+    case C.SubmissionAuthorized{} Driver.Context{p,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,certain,delay,lease,_,_}:
+      Driver.submitted(event,p,certain,delay,lease)
+    case C.SubmissionBegun{} Driver.Context{p,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,certain,delay,lease,_,_}:
+      Driver.submitted(event,p,certain,delay,lease)
+    case _ _: Driver.Handled{False{},[]}
+
+def handled_output(result: Driver.Handled, command: C.Command, event: C.CanonicalEvent,
+    context: Driver.Context) -> Driver.Handled:
+  match result:
+    case Driver.Handled{True{},actions}: Driver.Handled{True{},actions}
+    case Driver.Handled{False{},_}: manual_output(command,event,context)
+
+def output_handler(state: Types.State, +event: C.CanonicalEvent, +command: C.Command,
+    +context: Driver.Context) -> Driver.Handled:
+  handled_output(Edge.default_handler(state,event,command,context),command,event,context)
+
 def hook(commands: List<&2,C.Command>, facts: Facts) -> Edge.CommandHook<Facts>:
   match commands:
     case Nil{}: Edge.HookEnd{facts}
-    case _ <> rest: Edge.HookNext{facts,state => event => command => context => Edge.default_handler(state,event,command,context),current => actual => runtime =>
+    case _ <> rest: Edge.HookNext{facts,state => event => command => context => output_handler(state,event,command,context),current => actual => runtime =>
       hook_command(actual,runtime,current,next => hook(rest,next))}
 
 def observed(value: Transport.Stepped<Facts>, previous: Runtime, receipt: Maybe<&2,Callbacks.Fact>) -> Runtime:
