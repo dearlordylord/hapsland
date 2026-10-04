@@ -137,3 +137,7 @@ Fullproducer evidence: [all145byte-equal batches](performance-evidence/2026-10-0
 - [x] Issue #200: current dashboard build passed with the optional game directory physically absent (9.260 seconds at `a495fd90`); the directory was restored afterward. [Evidence](performance-evidence/2026-10-04-no-game-build.json).
 
 SourceJob diagnosis: `product_post` drops the separate source tuple when emitting `Engine.after` actions. Preserve it through queue emission before callback registration; the original failing comparison remains required.
+
+- [x] Fix original SourceJob retention before callback capture and remove inherited prepared context from post actions (`bcfd6fbe`). Bend frontend passed; generated codec unchanged. Standards review: no concrete findings. Fresh full acceptance run `20261004232335065-1943007-2eb050` started afterward; its result remains pending. [Diagnosis](performance-evidence/2026-10-04-sourcejob-diagnosis.json).
+
+Fresh `bcfd6fbe` full run terminated after 112.02 seconds: native/JS each completed 145 batches with all compressed/decoded hashes verified and every pair byte-equal. The earlier campaign 0 tick 200 discrepancy passed. Public comparison reached campaign 3 tick 94 frame 6, then found another missing SourceJob on queue item 173; diagnosis continues from retained outputs. [Evidence](performance-evidence/2026-10-04-sourcejob-fix-game.json).
