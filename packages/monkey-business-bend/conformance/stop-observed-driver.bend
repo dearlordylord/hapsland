@@ -192,7 +192,7 @@ def frame_observation(value: Maybe<&2,Wire.Observation>, +frame: Edge.ObservedFr
 def wire_frame(+frame: Edge.ObservedFrame, selected_input: Edge.Input) -> Maybe<&2,Wire.Frame>:
   frame_observation(observation(frame),frame,selected_input)
 
-def recorded_wire(value: Maybe<&2,Wire.Frame>, used: Nat, runtime: List<&2,Edge.Runtime>, issued: Nat,
+def recorded_wire(value: Maybe<&2,Wire.Frame>, +used: Nat, runtime: List<&2,Edge.Runtime>, issued: Nat,
     input: Inputs.Scenario, frames: List<&2,Wire.Frame>, observations: Nat,
     ih: Nat -> Running -> Running) -> Running:
   match value:
