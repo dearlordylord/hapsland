@@ -48,11 +48,11 @@ def run_selected(prepared: Engine.PreparedCommandContext, before: U32) -> Bool:
       stream_equal(Engine.outcome_stream(state),before)
     case _: False{}
 
-def sampled(prepared: Engine.PreparedCommandContext, before: U32) -> Bool:
+def sampled(prepared: Engine.PreparedCommandContext, +before: U32) -> Bool:
   match prepared:
     case Engine.PreparedCommandContext{state,
         Driver.Context{_,_,_,_,_,_,Some{C.RequestFinding{}},_,_,_,_,_,_,_,_,_,_,_,_,_,_},
-        Some{Driver.OutcomeReceipt{1n,2n,3n,4n,5n,C.RequestFinding{},Driver.Sampled{},None{},Some{captured},Some{after}}}}:
+        Some{Driver.OutcomeReceipt{1n,2n,3n,4n,5n,C.RequestFinding{},Driver.Sampled{},None{},Some{captured},Some{+after}}}}:
       stream_equal(captured,before) && stream_equal(after,Session.random_step(before)) &&
         stream_equal(Engine.outcome_stream(state),after)
     case _: False{}
