@@ -3,21 +3,13 @@ import ./writer-original-cases.bend as Inputs
 import ./writer-observed-wire.bend as Writer
 import ./callback-native-codec.bend as Codec
 
+# Accumulate complete envelopes without retaining flattened earlier heads.
+def scenarios(modes: List<&2,Nat>, accumulated: List<&2,Writer.Envelope>) -> List<&2,Writer.Envelope>:
+  match modes:
+    case Nil{}: List.reverse(&2,Writer.Envelope,accumulated)
+    case mode <> tail: scenarios(tail,Writer.observed(Inputs.original(mode)) <> accumulated)
+
 def json() -> String:
-  Codec.render(Codec.writer_scenarios([
-    Writer.observed(Inputs.original(0n)),
-    Writer.observed(Inputs.original(1n)),
-    Writer.observed(Inputs.original(2n)),
-    Writer.observed(Inputs.original(3n)),
-    Writer.observed(Inputs.original(4n)),
-    Writer.observed(Inputs.original(5n)),
-    Writer.observed(Inputs.original(6n)),
-    Writer.observed(Inputs.original(7n)),
-    Writer.observed(Inputs.original(8n)),
-    Writer.observed(Inputs.original(9n)),
-    Writer.observed(Inputs.original(10n)),
-    Writer.observed(Inputs.original(11n)),
-    Writer.observed(Inputs.original(12n))
-  ],[]))
+  Codec.render(Codec.writer_scenarios(scenarios([0n,1n,2n,3n,4n,5n,6n,7n,8n,9n,10n,11n,12n],[]),[]))
 def main() -> IO(Unit):
   IO.print(json())

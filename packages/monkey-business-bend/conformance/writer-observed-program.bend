@@ -229,11 +229,19 @@ def completed(value: Finished, +frame: Maybe<&2,Edge.ObservedFrame>, receipt: Ma
         agents,propagated(queued,runtime,cutoff,current),labels,originals,issued}
     case _ _ previous: fault(previous)
 
+# The complete frame and hook facts stay boxed across Finish publication.
+def completed_boxed(value: Finished, frames: List<&2,Maybe<&2,Edge.ObservedFrame>>,
+    facts: List<&2,Hook.Facts>, receipt: Maybe<&2,Callbacks.Target>,
+    job: Maybe<&2,Edge.Job>, cutoff: Nat, previous: Trace) -> Trace:
+  match frames facts:
+    case frame <> Nil{} facts <> Nil{}: completed(value,frame,receipt,facts,job,cutoff,previous)
+    case _ _: fault(previous)
+
 def observed_facts(runtime: List<&2,Edge.Runtime>, +frame: Maybe<&2,Edge.ObservedFrame>,
     +facts: Hook.Facts, receipt: Maybe<&2,Callbacks.Target>, +job: Maybe<&2,Edge.Job>, cutoff: Nat, previous: Trace) -> Trace:
   match facts:
     case Hook.Facts{_,bindings,+original,_,_,_}:
-      completed(finish(original,runtime,frame,bindings,job),frame,receipt,facts,job,cutoff,previous)
+      completed_boxed(finish(original,runtime,frame,bindings,job),[frame],[facts],receipt,job,cutoff,previous)
 
 def observed(value: Transport.Stepped<Hook.Facts>, job: Maybe<&2,Edge.Job>, cutoff: Nat, previous: Trace) -> Trace:
   match value:

@@ -71,15 +71,25 @@ def contextual_queue(queue: Edge.Queue, order: Nat, payload: Context.Payload) ->
 # Reuse the existing exact physical issuer, without an intervention/control.
 # The factual authorized-command marker is the same output hook's predicate;
 # callbacks retain the original emitted action and scheduler sequence.
+# Keep the full runtime closed while the physical issuer executes.
+def fresh_issue(+runtime: List<&2,Edge.Runtime>, +action: Driver.Action, at: Nat,
+    order: Nat, bindings: List<&2,Originals.Binding>, allowed: Bool,
+    environment: Edge.Environment) -> Captured:
+  match runtime action:
+    case Edge.Runtime{+state,_,_,_} <> Nil{} Driver.Action{+event,d,c,j,e}:
+      issued(Output.issue_captured(physical_capture(allowed,event,Engine.clock(state),environment),state,order,at,
+        Driver.Action{event,d,c,j,e}),runtime,bindings)
+    case runtime _: Captured{runtime,bindings,False{}}
+
 def fresh_action(fresh: Bool, +action: Driver.Action, +runtime: List<&2,Edge.Runtime>,
     at: Nat, +order: Nat, +job: Edge.Job, +bindings: List<&2,Originals.Binding>,
     original: Maybe<&2,Originals.Capsule>, allowed: Bool, available: Bool, environment: Edge.Environment) -> Captured:
   match fresh action runtime:
     case True{} Driver.Action{+event,+d,+c,+j,+e} Edge.Runtime{+state,queue,jobs,delay} <> Nil{}:
       +payload=payload_of(state,Driver.Action{event,d,c,j,e},available,job)
-      issued(Output.issue_captured(physical_capture(allowed,event,Engine.clock(state),environment),state,order,at,
-        Driver.Action{event,d,c,j,e}),[Edge.Runtime{state,contextual_queue(queue,order,payload),jobs,delay}],
-        Originals.bind_context(bind(original,Driver.Action{event,d,c,j,e},order,bindings),order,payload))
+      fresh_issue([Edge.Runtime{state,contextual_queue(queue,order,payload),jobs,delay}],
+        Driver.Action{event,d,c,j,e},at,order,
+        Originals.bind_context(bind(original,Driver.Action{event,d,c,j,e},order,bindings),order,payload),allowed,environment)
     case _ _ runtime: Captured{runtime,bindings,True{}}
 
 def fresh(item: Edge.Item, runtime: List<&2,Edge.Runtime>, +cutoff: Nat,
