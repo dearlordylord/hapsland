@@ -146,8 +146,8 @@ def routed_queue(next: List<&2,Engine.SharingNext>, runtime: List<&2,Edge.Runtim
 
 def routed_scopes(next: List<&2,Engine.SharingNext>) -> List<&2,Maybe<&2,Nat>>:
   match next:
-    case Engine.SharingNext{_,Some{Engine.SharingFrame{before,after,_,result}},_} <> Nil{}:
-      Edge.frame_scope_states([before],[after],Edge.actual_commands(result),None{})
+    case Engine.SharingNext{_,Some{Engine.SharingFrame{before,after,event,result}},_} <> Nil{}:
+      Edge.frame_scope_states([before],[after],Edge.actual_commands(result),event,None{})
     case _: []
 
 def routed_following(queue: List<&2,Edge.Queue>, next: List<&2,Engine.SharingNext>,
