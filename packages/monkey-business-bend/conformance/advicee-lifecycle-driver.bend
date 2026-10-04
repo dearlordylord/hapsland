@@ -1446,20 +1446,26 @@ def observed_finish(-F: Data, +runtime: List<&2,Runtime>, +input: StopScenario.I
       observed_finish_registered(F,Engine.stop_register(state,input),[Runtime{state,queue,jobs,delay}],queue,jobs,delay,input,now,order,hook)
     case runtime: Observed{runtime,Some{UnexpectedInput{}},hook}
 
+def observed_finish_absent(-F: Data, advance: Bool, state: Types.State, queue: Queue,
+    jobs: List<&2,Stored>, delay: Nat, partition: Nat, hook: CommandHook<F>) -> Observed<F>:
+  match advance:
+    case True{}: observed_workload(F,Engine.workload_action(state,partition,Workload.Next{}),queue,jobs,delay,hook)
+    case False{}: Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
+
 def observed_finish_started(-F: Data, registered: Engine.StopRegistered, +before: List<&2,Runtime>,
-    queue: Queue, jobs: List<&2,Stored>, delay: Nat, now: Nat, order: Nat, hook: CommandHook<F>) -> Observed<F>:
+    queue: Queue, jobs: List<&2,Stored>, delay: Nat, now: Nat, order: Nat, +partition: Nat, recurring: Bool, hook: CommandHook<F>) -> Observed<F>:
   match registered:
     case Engine.StopRegistered{+state,Some{+finish},created}:
       observed_finish_registered(F,Engine.StopRegistered{state,Some{finish},created},before,queue,jobs,delay,
         StopScenario.input_capture(finish),now,order,hook)
-    case Engine.StopRegistered{state,None{},_}:
-      Observed{[Runtime{state,queue,jobs,delay}],Some{UnexpectedInput{}},hook}
+    case Engine.StopRegistered{+state,None{},_}:
+      observed_finish_absent(F,recurring && Engine.workload_configured(state,partition),state,queue,jobs,delay,partition,hook)
 
 def observed_finish_intent(-F: Data, runtime: List<&2,Runtime>, p: Nat, started: Nat, cutoff: Nat,
     recurring: Bool, now: Nat, order: Nat, hook: CommandHook<F>) -> Observed<F>:
   match runtime:
     case Runtime{+state,+queue,+jobs,+delay} <> Nil{}:
-      observed_finish_started(F,Engine.stop_start(state,p,started,cutoff,recurring),[Runtime{state,queue,jobs,delay}],queue,jobs,delay,now,order,hook)
+      observed_finish_started(F,Engine.stop_start(state,p,started,cutoff,recurring),[Runtime{state,queue,jobs,delay}],queue,jobs,delay,now,order,p,recurring,hook)
     case runtime: Observed{runtime,Some{UnexpectedInput{}},hook}
 
 def observed_input_state(-F: Data, +value: Input, +runtime: List<&2,Runtime>,
