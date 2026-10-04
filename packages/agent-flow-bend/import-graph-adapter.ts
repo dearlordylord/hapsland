@@ -1,1 +1,1 @@
-export * from "../../src/canonical/graph-adapter.ts";
+export * from "../../src/canonical/graph-adapter.ts"

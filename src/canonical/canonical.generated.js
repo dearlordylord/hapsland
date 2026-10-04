@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:c75c63f1c243f7df350237464e217d89518a9b0366e468b2a18ba782a9d4c061
+// hapsland-bend-source-sha256:37b89d141bc822bde9cb1754dd223c8c477b5bb52656a49b6c98eab3db50c200
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {

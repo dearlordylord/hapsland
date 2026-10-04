@@ -1,178 +1,367 @@
-import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
-import { createServer } from 'vite';
-import { createRun, restoreReplay } from '../../monkey-business/src/index.ts';
-const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false } });
-let browser;
+import assert from "node:assert/strict"
+import { chromium } from "playwright"
+import { createServer } from "vite"
+import { createRun, restoreReplay } from "../../monkey-business/src/index.ts"
+const server = await createServer({ server: { host: "127.0.0.1", port: 0, hmr: false } })
+let browser
 try {
-  await server.listen();
-  browser = await chromium.launch({headless:true});
-  const page = await browser.newPage({viewport:{width:1512,height:1300}});
-  const errors=[]; page.on('pageerror', e => errors.push(e.message));
-  await page.goto(server.resolvedUrls.local[0]);
-  const settle=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
-  const click=async name=>{await page.getByRole('button',{name,exact:true}).click();await settle();};
-  await page.getByLabel('Agent count',{exact:true}).fill('3');
-  await click('Start resident');
-  const resident=page.locator('.shared-resident');
-  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '0 / 32');
-  assert.match(await page.locator('.stage-preparation-total').first().textContent(),/0 \/ 8/);
-  assert.equal(await page.locator('.admission-permit-global').first().getAttribute('aria-label'), 'Edit permits, all agents: 0 of 64');
-  await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
-  await click('Focus selected agent');
-  await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-current-flat-1512.png'});
-  await click('Step resident');
-  await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Admission & capacity',exact:true}).click();await settle();
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Items\s+0 \/ 16/);
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+0 \/ 16/);
-  assert.equal(await page.locator('.admission-permit-global').first().getAttribute('aria-label'), 'Edit permits, all agents: 1 of 64');
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-admission-1512.png'});
-  await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Host output',exact:true}).click();await settle();
+  await server.listen()
+  browser = await chromium.launch({ headless: true })
+  const page = await browser.newPage({ viewport: { width: 1512, height: 1300 } })
+  const errors = []
+  page.on("pageerror", (e) => errors.push(e.message))
+  await page.goto(server.resolvedUrls.local[0])
+  const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))))
+  const click = async (name) => {
+    await page.getByRole("button", { name, exact: true }).click()
+    await settle()
+  }
+  await page.getByLabel("Agent count", { exact: true }).fill("3")
+  await click("Start resident")
+  const resident = page.locator(".shared-resident")
+  assert.equal(await page.locator(".resident-capacity-items .resident-capacity-total").first().textContent(), "0 / 32")
+  assert.match(await page.locator(".stage-preparation-total").first().textContent(), /0 \/ 8/)
+  assert.equal(
+    await page.locator(".admission-permit-global").first().getAttribute("aria-label"),
+    "Edit permits, all agents: 0 of 64"
+  )
+  await page.locator("#agent-ensemble").screenshot({ path: "/tmp/hapsland-capacity-initial-1512.png" })
+  await click("Focus selected agent")
+  await page.locator("#agent-ensemble").screenshot({ path: "/tmp/hapsland-capacity-current-flat-1512.png" })
+  await click("Step resident")
+  await page
+    .locator("#agent-ensemble")
+    .getByRole("button", { name: "Inspect Admission & capacity", exact: true })
+    .click()
+  await settle()
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Items\s+0 \/ 16/)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Edit permits\s+0 \/ 16/)
+  assert.equal(
+    await page.locator(".admission-permit-global").first().getAttribute("aria-label"),
+    "Edit permits, all agents: 1 of 64"
+  )
+  await page.locator(".simulation-stage-inspector").screenshot({ path: "/tmp/hapsland-capacity-admission-1512.png" })
+  await page.locator("#agent-ensemble").getByRole("button", { name: "Inspect Host output", exact: true }).click()
+  await settle()
   // Initial state has no event; take one checked step to expose event inspector.
-  assert.match(await page.locator('.stage-resource-details').innerText(),/No candidate · encoded bytes not supplied/);
-  await page.getByLabel('Resource delivery group',{exact:true}).selectOption('2');await settle();
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Group 2 · Free/);
-  await page.setViewportSize({width:390,height:844});await settle();
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-  await resident.screenshot({path:'/tmp/hapsland-capacity-resources-390.png'});
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-inspector-390.png'});
-  await page.getByLabel('Optional resource exercise · applies on Start resident',{exact:true}).selectOption('notices');
-  await click('Start resident'); await click('Step resident');
-  await click('Export replay');
-  const configured=JSON.parse(await page.getByLabel('Replay JSON',{exact:true}).inputValue());
-  assert.equal(configured.config.resourceScenarios.notices,true);
-  assert.equal(configured.config.lifecycles.permits.adviceeLimit,16);
-  assert.equal(configured.config.lifecycles.permits.residentLimit,64);
-  assert.equal(configured.config.lifecycles.reuse.entryLimit,6);
-  assert.equal(configured.config.lifecycles.reuse.byteLimit,49152);
-  await resident.screenshot({path:'/tmp/hapsland-demo-limits-390.png'});
-  await page.getByLabel('Diagram stage',{exact:true}).selectOption('round');
-  await click('Inspect selected stage');
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Select a current round and delivery group/);
+  assert.match(await page.locator(".stage-resource-details").innerText(), /No candidate · encoded bytes not supplied/)
+  await page.getByLabel("Resource delivery group", { exact: true }).selectOption("2")
+  await settle()
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Group 2 · Free/)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await settle()
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  await resident.screenshot({ path: "/tmp/hapsland-capacity-resources-390.png" })
+  await page.locator(".simulation-stage-inspector").screenshot({ path: "/tmp/hapsland-capacity-inspector-390.png" })
+  await page
+    .getByLabel("Optional resource exercise · applies on Start resident", { exact: true })
+    .selectOption("notices")
+  await click("Start resident")
+  await click("Step resident")
+  await click("Export replay")
+  const configured = JSON.parse(await page.getByLabel("Replay JSON", { exact: true }).inputValue())
+  assert.equal(configured.config.resourceScenarios.notices, true)
+  assert.equal(configured.config.lifecycles.permits.adviceeLimit, 16)
+  assert.equal(configured.config.lifecycles.permits.residentLimit, 64)
+  assert.equal(configured.config.lifecycles.reuse.entryLimit, 6)
+  assert.equal(configured.config.lifecycles.reuse.byteLimit, 49152)
+  await resident.screenshot({ path: "/tmp/hapsland-demo-limits-390.png" })
+  await page.getByLabel("Diagram stage", { exact: true }).selectOption("round")
+  await click("Inspect selected stage")
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Select a current round and delivery group/)
 
-  await page.setViewportSize({width:1512,height:1300});
-  const load = async run => {
-    await page.getByLabel('Replay JSON',{exact:true}).fill(JSON.stringify(run.exportReplay()));
-    await click('Load replay');
-    await page.waitForFunction(()=>document.querySelector('.ensemble-feedback').textContent.startsWith('Replay reconstructed'));
-    await settle();
-  };
-  let focused = 'round';
-  const focus = async stage => { await page.getByLabel('Diagram stage',{exact:true}).selectOption(stage); if(focused!==stage) await click('Inspect selected stage'); focused=stage; };
-  const retained = createRun({ inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['cached-example']}], outcome:'clear', lifecycles:{reuse:{entryLimit:2,byteLimit:100}}, resourceScenarios:{notices:true,noticeMaximumKeys:1,startAt:10} });
-  retained.advance({untilTime:13,maxEvents:1000});
-  assert.equal(retained.projection.reuse.cache.length,1);
-  assert.equal(retained.projection.notices.length,1);
-  await load(retained);
-  const retainedText = await resident.innerText();
-  assert.doesNotMatch(retainedText,/Cached evaluations|Retained tickets|Resident resource details|Demo limits/);
-  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), `${retained.projection.global.items} / ${retained.projection.limits.globalItems}`);
-  assert.equal(await page.locator('.resident-capacity-bytes .resident-capacity-total').first().textContent(), `${retained.projection.global.bytes} / ${retained.projection.limits.globalBytes}`);
-  assert.deepEqual(restoreReplay(retained.exportReplay()).projection,retained.projection);
-  assert.doesNotMatch(retainedText,/Operational notice keys|Notice key|Notice ledger storage|Inspect notice collection/);
-  assert.ok(retained.projection.global.bytes >= 128); // Actual diagnostic storage remains in the shared ledger.
-  await resident.screenshot({path:'/tmp/hapsland-capacity-retention-1512.png'});
+  await page.setViewportSize({ width: 1512, height: 1300 })
+  const load = async (run) => {
+    await page.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(run.exportReplay()))
+    await click("Load replay")
+    await page.waitForFunction(() =>
+      document.querySelector(".ensemble-feedback").textContent.startsWith("Replay reconstructed")
+    )
+    await settle()
+  }
+  let focused = "round"
+  const focus = async (stage) => {
+    await page.getByLabel("Diagram stage", { exact: true }).selectOption(stage)
+    if (focused !== stage) await click("Inspect selected stage")
+    focused = stage
+  }
+  const retained = createRun({
+    inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: ["cached-example"] }],
+    outcome: "clear",
+    lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } },
+    resourceScenarios: { notices: true, noticeMaximumKeys: 1, startAt: 10 }
+  })
+  retained.advance({ untilTime: 13, maxEvents: 1000 })
+  assert.equal(retained.projection.reuse.cache.length, 1)
+  assert.equal(retained.projection.notices.length, 1)
+  await load(retained)
+  const retainedText = await resident.innerText()
+  assert.doesNotMatch(retainedText, /Cached evaluations|Retained tickets|Resident resource details|Demo limits/)
+  assert.equal(
+    await page.locator(".resident-capacity-items .resident-capacity-total").first().textContent(),
+    `${retained.projection.global.items} / ${retained.projection.limits.globalItems}`
+  )
+  assert.equal(
+    await page.locator(".resident-capacity-bytes .resident-capacity-total").first().textContent(),
+    `${retained.projection.global.bytes} / ${retained.projection.limits.globalBytes}`
+  )
+  assert.deepEqual(restoreReplay(retained.exportReplay()).projection, retained.projection)
+  assert.doesNotMatch(
+    retainedText,
+    /Operational notice keys|Notice key|Notice ledger storage|Inspect notice collection/
+  )
+  assert.ok(retained.projection.global.bytes >= 128) // Actual diagnostic storage remains in the shared ledger.
+  await resident.screenshot({ path: "/tmp/hapsland-capacity-retention-1512.png" })
 
-  await click(`Select agent ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('outcomes');
-  assert.doesNotMatch(await page.locator('.simulation-stage-inspector').innerText(),/Cached evaluations|Retained tickets|Notice key|Resident resource details|ticket units|Ticket unit/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-outcomes-no-retention-1512.png'});
-  await focus('preparation');
-  assert.equal(await page.locator('.simulation-stage-inspector .import-budget-meters [role="img"]').count(),4);
-  assert.match(await page.locator('.simulation-stage-inspector .import-budget-meters').innerText(),/Latest supplied source bytes/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-import-budgets-1512.png'});
-  const ownership = createRun({ inputs:[{at:0,kind:'canonical',event:{kind:'collectionClaimBackground',group:1,token:500,active:true,capacity:64}},{at:1,kind:'edit',bytes:10,unitBytes:[5]},{at:20,kind:'finish'}],outcome:'finding',outputProfile:{outcome:'certain',delayMs:10000,leaseMs:30000},lifecycles:{collectors:{capacity:64},encodedOutputBytes:512} });
-  ownership.advance({untilTime:25,maxEvents:1000});
-  ownership.schedule({at:25,kind:'canonical',event:{kind:'openRound',partition:2,lifetime:1}});
-  ownership.schedule({at:25,kind:'canonical',event:{kind:'reserveCapacity',partition:2,bytes:5,purpose:'observationDispatch'}});
-  ownership.schedule({at:25,kind:'canonical',event:{kind:'continuationConsume',group:1,round:1}});
-  ownership.schedule({at:25,kind:'canonical',event:{kind:'continuationConsume',group:2,round:2}});
-  ownership.advance({untilTime:25,maxEvents:1000});
-  assert.equal(ownership.projection.delivery.slots.length,1);
-  await load(ownership);
-  const partitions = ownership.projection.partitions.map(p=>p.partition).sort((a,b)=>a-b);
-  const selectPartition = async partition => { await click(`Select agent ${partitions.indexOf(partition)+1}`); };
-  await selectPartition(1);await focus('delivery');
-  await page.getByLabel('Resource delivery group',{exact:true}).selectOption('1');await settle();
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Group 1 · Occupied · round 1 · authorized/);
-  assert.match(await page.locator('.stage-resource-details').innerText(),/512 \/ 10240 · Fits/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-slot-held-1512.png'});
-  await page.getByLabel('Resource delivery group',{exact:true}).selectOption('2');await settle();
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Group 2 · Free/);
-  await selectPartition(1);await focus('round');
-  await page.getByLabel('Resource delivery group',{exact:true}).selectOption('1');
-  await page.getByLabel('Resource current round',{exact:true}).selectOption('1');await settle();
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Group 1 · round 1 · continuations 2 \/ 4/);
-  assert.equal(await page.locator('.stage-resource-details .continuation-marks .used').count(),2);
-  await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-selected-budget-1512.png'});
-  await selectPartition(2);await focus('round');
-  await page.getByLabel('Resource delivery group',{exact:true}).selectOption('2');
-  await page.getByLabel('Resource current round',{exact:true}).selectOption('2');await settle();
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Group 2 · round 2 · continuations 1 \/ 4/);
-  assert.equal(await page.locator('.stage-resource-details .continuation-marks .used').count(),1);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-budget-1of4-1512.png'});
-  await selectPartition(1);await focus('collection');
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Advice 3 · leased/);
-  assert.doesNotMatch(await page.locator('.stage-resource-details').innerText(),/Operational notice|Notice key|Notice ledger/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-advice-leased-1512.png'});
-  const freeAdvice=restoreReplay(ownership.exportReplay());
-  freeAdvice.schedule({at:25,kind:'canonical',event:{kind:'collectionReleaseLease',advice:3,token:100000}});freeAdvice.advance({untilTime:25,maxEvents:1000});
-  assert.equal(freeAdvice.projection.collection.leases.length,0);
-  await load(freeAdvice);await selectPartition(1);
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Advice 3 · free/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-advice-free-1512.png'});
-  const oversized=createRun({inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5]},{at:20,kind:'finish'}],outcome:'finding',resourceScenarios:{outputFit:true,outputBytes:10241}});oversized.advance({untilTime:25,maxEvents:1000});
-  assert.equal(oversized.projection.delivery.slots.length,0);
-  await load(oversized);await focus('delivery');
-  assert.match(await page.locator('.stage-resource-details').innerText(),/10241 \/ 10240 · Does not fit/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-output-oversized-1512.png'});
-  for(const at of [14,15]) retained.schedule({at,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:[`cache-replacement-${at}`]});
-  retained.advance({untilTime:30,maxEvents:1000});
-  assert.equal(retained.projection.reuse.cache.length,2);
-  assert.ok(retained.observations.some(f=>f.commands.some(c=>c.kind==='cachePrepared'&&c.evicted.length>0)));
-  await load(retained);
-  await resident.screenshot({path:'/tmp/hapsland-capacity-cache-eviction-1512.png'});
-  retained.advance({untilTime:180020,maxEvents:1000});
-  retained.schedule({at:180021,kind:'canonical',event:{kind:'cacheClear'}});retained.advance({untilTime:180021,maxEvents:1000});
-  assert.equal(retained.projection.notices.length,0);assert.equal(retained.projection.reuse.cache.length,0);assert.equal(retained.projection.global.bytes,0);
-  await load(retained);
-  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), `0 / ${retained.projection.limits.globalItems}`);
-  assert.equal(await page.locator('.resident-capacity-bytes .resident-capacity-total').first().textContent(), `0 / ${retained.projection.limits.globalBytes}`);
-  assert.doesNotMatch(await resident.innerText(),/Operational notice keys|Notice key|Notice ledger storage/);
-  await resident.screenshot({path:'/tmp/hapsland-capacity-retention-released-1512.png'});
+  await click(`Select agent ${retained.projection.partitions.findIndex((p) => p.partition === 1) + 1}`)
+  await focus("outcomes")
+  assert.doesNotMatch(
+    await page.locator(".simulation-stage-inspector").innerText(),
+    /Cached evaluations|Retained tickets|Notice key|Resident resource details|ticket units|Ticket unit/
+  )
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-outcomes-no-retention-1512.png" })
+  await focus("preparation")
+  assert.equal(await page.locator('.simulation-stage-inspector .import-budget-meters [role="img"]').count(), 4)
+  assert.match(
+    await page.locator(".simulation-stage-inspector .import-budget-meters").innerText(),
+    /Latest supplied source bytes/
+  )
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-import-budgets-1512.png" })
+  const ownership = createRun({
+    inputs: [
+      {
+        at: 0,
+        kind: "canonical",
+        event: { kind: "collectionClaimBackground", group: 1, token: 500, active: true, capacity: 64 }
+      },
+      { at: 1, kind: "edit", bytes: 10, unitBytes: [5] },
+      { at: 20, kind: "finish" }
+    ],
+    outcome: "finding",
+    outputProfile: { outcome: "certain", delayMs: 10000, leaseMs: 30000 },
+    lifecycles: { collectors: { capacity: 64 }, encodedOutputBytes: 512 }
+  })
+  ownership.advance({ untilTime: 25, maxEvents: 1000 })
+  ownership.schedule({ at: 25, kind: "canonical", event: { kind: "openRound", partition: 2, lifetime: 1 } })
+  ownership.schedule({
+    at: 25,
+    kind: "canonical",
+    event: { kind: "reserveCapacity", partition: 2, bytes: 5, purpose: "observationDispatch" }
+  })
+  ownership.schedule({ at: 25, kind: "canonical", event: { kind: "continuationConsume", group: 1, round: 1 } })
+  ownership.schedule({ at: 25, kind: "canonical", event: { kind: "continuationConsume", group: 2, round: 2 } })
+  ownership.advance({ untilTime: 25, maxEvents: 1000 })
+  assert.equal(ownership.projection.delivery.slots.length, 1)
+  await load(ownership)
+  const partitions = ownership.projection.partitions.map((p) => p.partition).sort((a, b) => a - b)
+  const selectPartition = async (partition) => {
+    await click(`Select agent ${partitions.indexOf(partition) + 1}`)
+  }
+  await selectPartition(1)
+  await focus("delivery")
+  await page.getByLabel("Resource delivery group", { exact: true }).selectOption("1")
+  await settle()
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Group 1 · Occupied · round 1 · authorized/)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /512 \/ 10240 · Fits/)
+  await page.locator(".simulation-stage-inspector").screenshot({ path: "/tmp/hapsland-capacity-slot-held-1512.png" })
+  await page.getByLabel("Resource delivery group", { exact: true }).selectOption("2")
+  await settle()
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Group 2 · Free/)
+  await selectPartition(1)
+  await focus("round")
+  await page.getByLabel("Resource delivery group", { exact: true }).selectOption("1")
+  await page.getByLabel("Resource current round", { exact: true }).selectOption("1")
+  await settle()
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Group 1 · round 1 · continuations 2 \/ 4/)
+  assert.equal(await page.locator(".stage-resource-details .continuation-marks .used").count(), 2)
+  await page.locator("#agent-ensemble").screenshot({ path: "/tmp/hapsland-capacity-selected-budget-1512.png" })
+  await selectPartition(2)
+  await focus("round")
+  await page.getByLabel("Resource delivery group", { exact: true }).selectOption("2")
+  await page.getByLabel("Resource current round", { exact: true }).selectOption("2")
+  await settle()
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Group 2 · round 2 · continuations 1 \/ 4/)
+  assert.equal(await page.locator(".stage-resource-details .continuation-marks .used").count(), 1)
+  await page.locator(".simulation-stage-inspector").screenshot({ path: "/tmp/hapsland-capacity-budget-1of4-1512.png" })
+  await selectPartition(1)
+  await focus("collection")
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Advice 3 · leased/)
+  assert.doesNotMatch(
+    await page.locator(".stage-resource-details").innerText(),
+    /Operational notice|Notice key|Notice ledger/
+  )
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-advice-leased-1512.png" })
+  const freeAdvice = restoreReplay(ownership.exportReplay())
+  freeAdvice.schedule({
+    at: 25,
+    kind: "canonical",
+    event: { kind: "collectionReleaseLease", advice: 3, token: 100000 }
+  })
+  freeAdvice.advance({ untilTime: 25, maxEvents: 1000 })
+  assert.equal(freeAdvice.projection.collection.leases.length, 0)
+  await load(freeAdvice)
+  await selectPartition(1)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Advice 3 · free/)
+  await page.locator(".simulation-stage-inspector").screenshot({ path: "/tmp/hapsland-capacity-advice-free-1512.png" })
+  const oversized = createRun({
+    inputs: [
+      { at: 0, kind: "edit", bytes: 10, unitBytes: [5] },
+      { at: 20, kind: "finish" }
+    ],
+    outcome: "finding",
+    resourceScenarios: { outputFit: true, outputBytes: 10241 }
+  })
+  oversized.advance({ untilTime: 25, maxEvents: 1000 })
+  assert.equal(oversized.projection.delivery.slots.length, 0)
+  await load(oversized)
+  await focus("delivery")
+  assert.match(await page.locator(".stage-resource-details").innerText(), /10241 \/ 10240 · Does not fit/)
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-output-oversized-1512.png" })
+  for (const at of [14, 15])
+    retained.schedule({ at, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: [`cache-replacement-${at}`] })
+  retained.advance({ untilTime: 30, maxEvents: 1000 })
+  assert.equal(retained.projection.reuse.cache.length, 2)
+  assert.ok(
+    retained.observations.some((f) => f.commands.some((c) => c.kind === "cachePrepared" && c.evicted.length > 0))
+  )
+  await load(retained)
+  await resident.screenshot({ path: "/tmp/hapsland-capacity-cache-eviction-1512.png" })
+  retained.advance({ untilTime: 180020, maxEvents: 1000 })
+  retained.schedule({ at: 180021, kind: "canonical", event: { kind: "cacheClear" } })
+  retained.advance({ untilTime: 180021, maxEvents: 1000 })
+  assert.equal(retained.projection.notices.length, 0)
+  assert.equal(retained.projection.reuse.cache.length, 0)
+  assert.equal(retained.projection.global.bytes, 0)
+  await load(retained)
+  assert.equal(
+    await page.locator(".resident-capacity-items .resident-capacity-total").first().textContent(),
+    `0 / ${retained.projection.limits.globalItems}`
+  )
+  assert.equal(
+    await page.locator(".resident-capacity-bytes .resident-capacity-total").first().textContent(),
+    `0 / ${retained.projection.limits.globalBytes}`
+  )
+  assert.doesNotMatch(await resident.innerText(), /Operational notice keys|Notice key|Notice ledger storage/)
+  await resident.screenshot({ path: "/tmp/hapsland-capacity-retention-released-1512.png" })
 
+  const caps = createRun({
+    inputs: [0, 1, 2].map((at) => ({
+      at,
+      kind: "canonical",
+      event: { kind: "reserveCapacity", partition: 1, bytes: 5, purpose: "reviewUnit" }
+    })),
+    limits: { globalItems: 4, globalBytes: 100, partitionItems: 2, partitionBytes: 50 }
+  })
+  caps.advance({ untilTime: 2, maxEvents: 100 })
+  assert.ok(
+    caps.observations.some((f) => f.commands.some((c) => c.kind === "capacityRefused" && c.reason === "partitionItems"))
+  )
+  await load(caps)
+  await focus("admission")
+  assert.equal(await page.locator(".resident-capacity-items .resident-capacity-total").first().textContent(), "2 / 4")
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Items\s+2 \/ 2/)
+  await page.locator("#agent-ensemble").screenshot({ path: "/tmp/hapsland-capacity-partition-full-1512.png" })
+  for (const at of [3, 4])
+    caps.schedule({
+      at,
+      kind: "canonical",
+      event: { kind: "reserveCapacity", partition: 2, bytes: 5, purpose: "reviewUnit" }
+    })
+  caps.schedule({
+    at: 5,
+    kind: "canonical",
+    event: { kind: "reserveCapacity", partition: 3, bytes: 5, purpose: "reviewUnit" }
+  })
+  caps.advance({ untilTime: 5, maxEvents: 100 })
+  assert.ok(
+    caps.observations.some((f) => f.commands.some((c) => c.kind === "capacityRefused" && c.reason === "globalItems"))
+  )
+  await load(caps)
+  assert.equal(await page.locator(".resident-capacity-items .resident-capacity-total").first().textContent(), "4 / 4")
+  await page.locator("#agent-ensemble").screenshot({ path: "/tmp/hapsland-capacity-global-full-1512.png" })
 
-  const caps=createRun({inputs:[0,1,2].map(at=>({at,kind:'canonical',event:{kind:'reserveCapacity',partition:1,bytes:5,purpose:'reviewUnit'}})),limits:{globalItems:4,globalBytes:100,partitionItems:2,partitionBytes:50}});caps.advance({untilTime:2,maxEvents:100});
-  assert.ok(caps.observations.some(f=>f.commands.some(c=>c.kind==='capacityRefused'&&c.reason==='partitionItems')));
-  await load(caps);await focus('admission');
-  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '2 / 4');
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Items\s+2 \/ 2/);
-  await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-partition-full-1512.png'});
-  for(const at of [3,4]) caps.schedule({at,kind:'canonical',event:{kind:'reserveCapacity',partition:2,bytes:5,purpose:'reviewUnit'}});
-  caps.schedule({at:5,kind:'canonical',event:{kind:'reserveCapacity',partition:3,bytes:5,purpose:'reviewUnit'}});caps.advance({untilTime:5,maxEvents:100});
-  assert.ok(caps.observations.some(f=>f.commands.some(c=>c.kind==='capacityRefused'&&c.reason==='globalItems')));
-  await load(caps);
-  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '4 / 4');
-  await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-global-full-1512.png'});
-
-  const issue = (partition, at, limit) => ({at,kind:'canonical',event:{kind:'issuePermit',partition,lifetime:1,tool:partition*100,started:at,deadline:at+30,now:at,minimumStarted:0,facts:{clockValid:true,hookWindow:30,startedUpper:at,nowLower:at,adviceePermitLimit:limit,residentPermitLimit:8}}});
-  const scopedPermits=createRun({inputs:[{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:1,bytes:5,purpose:'observationDispatch'}},{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:2,bytes:5,purpose:'observationDispatch'}},issue(1,1,2),issue(2,2,3)]});scopedPermits.advance({untilTime:2,maxEvents:100});
-  await load(scopedPermits);await focus('admission');
-  const permitPartitions=scopedPermits.projection.partitions.map(p=>p.partition).sort((a,b)=>a-b);
-  await click(`Select agent ${permitPartitions.indexOf(1)+1}`);
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
-  assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Permits · agent 1\/2/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-partition1-1512.png'});
-  await click(`Select agent ${permitPartitions.indexOf(2)+1}`);
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 3/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-partition2-1512.png'});
-  await click('Previous event');
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+0 used · limit not recorded/);
-  assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Permits · agent 0 · max unknown/);
-  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-before-partition2-1512.png'});
-  await click(`Select agent ${permitPartitions.indexOf(1)+1}`);
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
-  await click('Return to latest');
-  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
-  assert.deepEqual(errors,[]);
-  console.log('Capacity browser checks passed: retained-family omission with actual ledger and replay preservation, known/absent maxima, local Admission, candidate absence and checked fit, group slot exclusivity, distinct round budgets, optional controls, keyboard inspection, narrow viewport.');
-} finally {await browser?.close();await server.close();}
+  const issue = (partition, at, limit) => ({
+    at,
+    kind: "canonical",
+    event: {
+      kind: "issuePermit",
+      partition,
+      lifetime: 1,
+      tool: partition * 100,
+      started: at,
+      deadline: at + 30,
+      now: at,
+      minimumStarted: 0,
+      facts: {
+        clockValid: true,
+        hookWindow: 30,
+        startedUpper: at,
+        nowLower: at,
+        adviceePermitLimit: limit,
+        residentPermitLimit: 8
+      }
+    }
+  })
+  const scopedPermits = createRun({
+    inputs: [
+      {
+        at: 0,
+        kind: "canonical",
+        event: { kind: "reserveCapacity", partition: 1, bytes: 5, purpose: "observationDispatch" }
+      },
+      {
+        at: 0,
+        kind: "canonical",
+        event: { kind: "reserveCapacity", partition: 2, bytes: 5, purpose: "observationDispatch" }
+      },
+      issue(1, 1, 2),
+      issue(2, 2, 3)
+    ]
+  })
+  scopedPermits.advance({ untilTime: 2, maxEvents: 100 })
+  await load(scopedPermits)
+  await focus("admission")
+  const permitPartitions = scopedPermits.projection.partitions.map((p) => p.partition).sort((a, b) => a - b)
+  await click(`Select agent ${permitPartitions.indexOf(1) + 1}`)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Edit permits\s+1 \/ 2/)
+  assert.match(
+    await page.locator("#agent-ensemble .topology-node").filter({ hasText: "Admission & capacity" }).textContent(),
+    /Permits · agent 1\/2/
+  )
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-permits-partition1-1512.png" })
+  await click(`Select agent ${permitPartitions.indexOf(2) + 1}`)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Edit permits\s+1 \/ 3/)
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-permits-partition2-1512.png" })
+  await click("Previous event")
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Edit permits\s+0 used · limit not recorded/)
+  assert.match(
+    await page.locator("#agent-ensemble .topology-node").filter({ hasText: "Admission & capacity" }).textContent(),
+    /Permits · agent 0 · max unknown/
+  )
+  await page
+    .locator(".simulation-stage-inspector")
+    .screenshot({ path: "/tmp/hapsland-capacity-permits-before-partition2-1512.png" })
+  await click(`Select agent ${permitPartitions.indexOf(1) + 1}`)
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Edit permits\s+1 \/ 2/)
+  await click("Return to latest")
+  assert.match(await page.locator(".stage-resource-details").innerText(), /Edit permits\s+1 \/ 2/)
+  assert.deepEqual(errors, [])
+  console.log(
+    "Capacity browser checks passed: retained-family omission with actual ledger and replay preservation, known/absent maxima, local Admission, candidate absence and checked fit, group slot exclusivity, distinct round budgets, optional controls, keyboard inspection, narrow viewport."
+  )
+} finally {
+  await browser?.close()
+  await server.close()
+}

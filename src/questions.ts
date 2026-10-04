@@ -3,16 +3,16 @@
  * rationale and fixture runs are retained in the private Hapsland research archive.
  * Changes here affect the bundled production Noul pack and need semantic evaluation.
  */
-import { probability } from "./probability.ts";
+import { probability } from "./probability.ts"
 
 export type ClassifierState = {
   artifact: {
     /** The file the text comes from. All a linter knows about what it is holding. */
-    domain: string;
+    domain: string
     /** The text, exactly as it stands. */
-    source: string;
-  };
-};
+    source: string
+  }
+}
 
 /**
  * What the text can show, read off the characters alone. Three rungs, each showing
@@ -26,26 +26,21 @@ export type ClassifierState = {
  * Native code computes the rung from source text; the source-free rung number is
  * sent to Bend for the rule applicability comparison.
  */
-export type Level = 1 | 2 | 3;
+export type Level = 1 | 2 | 3
 
-export const LEVEL_NAME: Record<Level, string> = {
-  1: "raw",
-  2: "typed",
-  3: "schema",
-};
+export const LEVEL_NAME: Record<Level, string> = { 1: "raw", 2: "typed", 3: "schema" }
 
 const DECLARES_A_SCHEMA =
-  /\bSchema\.(Struct|Union|Literal|Array|optional)\b|\bz\.(object|union|discriminatedUnion|array)\b/;
+  /\bSchema\.(Struct|Union|Literal|Array|optional)\b|\bz\.(object|union|discriminatedUnion|array)\b/
 
 export const levelOf = (source: string): Level => {
   try {
-    JSON.parse(source);
-    return 1;
+    JSON.parse(source)
+    return 1
   } catch {
-    return DECLARES_A_SCHEMA.test(source) ? 3 : 2;
+    return DECLARES_A_SCHEMA.test(source) ? 3 : 2
   }
-};
-
+}
 
 export const E0 = {
   // Rule 1 asked as a fault rather than as its premise. Its Question line is out of
@@ -61,7 +56,7 @@ export const E0 = {
       question:
         "Can `artifact` express values that mean different operations of the domain in `artifact.domain`, with no field of the shape naming which one a value is?",
       focus:
-        "A shape with exactly one meaning has no cases to tell apart, and its optional fields are independent attributes of that one meaning. The finding is a shape whose instances mean different things with nothing naming which.",
+        "A shape with exactly one meaning has no cases to tell apart, and its optional fields are independent attributes of that one meaning. The finding is a shape whose instances mean different things with nothing naming which."
     },
     {
       true: {
@@ -71,18 +66,18 @@ export const E0 = {
           "a payment holding both `cardLast4` and `bankAccount`, with the caller told to fill one",
           "an event that is a signup when `referrer` is there and a login when it is not",
           "a union of `string | { x: number; y: number }` distinguished only by which type arrived",
-          "a report request where `month` alone means one month, `from` with `to` means a custom range, and nothing states which was intended",
-        ],
+          "a report request where `month` alone means one month, `from` with `to` means a custom range, and nothing states which was intended"
+        ]
       },
       false: {
         what: "One field names the case and each case's own fields sit with it, or the shape has a single meaning whose fields are independent attributes of it",
         examples: [
           '`{ tag: "ok", value } | { tag: "error", message }`, read by looking at `tag`',
           "each member of the union opens with a literal naming it, and carries only its own fields",
-          "a customer record whose optional `nickname` and `phone` are attributes of one meaning rather than alternative modes",
-        ],
-      },
-    },
+          "a customer record whose optional `nickname` and `phone` are attributes of one meaning rather than alternative modes"
+        ]
+      }
+    }
   ),
 
   r2_meaningless_combinations: probability(
@@ -90,7 +85,7 @@ export const E0 = {
       question:
         "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?",
       focus:
-        "A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+        "A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere."
     },
     {
       // Examples are drawn from domains the fixture does not touch, and each names a
@@ -103,18 +98,18 @@ export const E0 = {
           "a status of `pending` carried alongside a `deliveredAt` timestamp",
           "`authenticated: false` beside a populated `userId`",
           'a `selections` list beside a `kind` that has a `"single"` value, so two selections can sit next to `"single"`',
-          "a discount typed `free_shipping` that also carries `percentOff: 30`",
-        ],
+          "a discount typed `free_shipping` that also carries `percentOff: 30`"
+        ]
       },
       false: {
         what: "No field can be set where it means nothing",
         examples: [
           "the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one",
           "`cancelledAt` exists only on the `cancelled` case of the status union",
-          "a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
-        ],
-      },
-    },
+          "a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither"
+        ]
+      }
+    }
   ),
 
   // Rule 3 bounded the way r2 was. Asked loosely — does the shape spread facts that are
@@ -128,7 +123,7 @@ export const E0 = {
       question:
         "Does `artifact` let one part of a fact be set without the parts it is only correct with, because the shape keeps them in separate fields instead of one value?",
       focus:
-        "Fields that are independent attributes of one thing are not the finding. The finding is a group that must move together to stay correct — a quantity and its unit, the two ends of a range, the coordinates of a point — which the shape lets be supplied or changed one at a time. A part that is already meaningful on its own is not half of a fact, however closely it goes with its neighbours.",
+        "Fields that are independent attributes of one thing are not the finding. The finding is a group that must move together to stay correct — a quantity and its unit, the two ends of a range, the coordinates of a point — which the shape lets be supplied or changed one at a time. A part that is already meaningful on its own is not half of a fact, however closely it goes with its neighbours."
     },
     {
       true: {
@@ -137,8 +132,8 @@ export const E0 = {
           "an `amount` beside a `currency`, so a number can arrive in no currency at all",
           "`latitude` and `longitude` as separate optional fields, so half a position is representable",
           "`startedAt` and `endedAt` side by side, either settable without the other",
-          "a `value` beside a `unit` and a `scale`, each reachable on its own",
-        ],
+          "a `value` beside a `unit` and a `scale`, each reachable on its own"
+        ]
       },
       false: {
         what: "Parts that are only correct together arrive as one value, or each field carries something that means what it says on its own",
@@ -146,10 +141,10 @@ export const E0 = {
           "money is one `{ amount, currency }` value, constructed together and passed whole",
           "a period is one `{ from, to }` value, so an end never exists without its start",
           "a position is a `Point`, not two loose numbers",
-          "a `widthMm` and a `heightMm` on one label, each a measurement that means what it says without the other",
-        ],
-      },
-    },
+          "a `widthMm` and a `heightMm` on one label, each a measurement that means what it says without the other"
+        ]
+      }
+    }
   ),
 
   // Rule 4, bounded the way r2 and r3 were: the finding is not that two fields
@@ -161,7 +156,7 @@ export const E0 = {
       question:
         "Can a value of `artifact` carry one fact twice over and have the two copies disagree, because the shape stores it in more than one place?",
       focus:
-        "Fields that happen to correlate are not the finding. The finding is a fact the shape lets be written down twice, so nothing stops one copy from saying something the other contradicts.",
+        "Fields that happen to correlate are not the finding. The finding is a fact the shape lets be written down twice, so nothing stops one copy from saying something the other contradicts."
     },
     {
       true: {
@@ -170,18 +165,18 @@ export const E0 = {
           "a `birthDate` beside an `age`, either settable, so a value can claim an age its date denies",
           "a `lines` list beside a `lineCount`, which nothing keeps in step",
           "`priceCents` beside a `priceLabel` string that spells the same price out",
-          "a `path` beside a `directory` and a `fileName` that repeat its parts",
-        ],
+          "a `path` beside a `directory` and a `fileName` that repeat its parts"
+        ]
       },
       false: {
         what: "Each fact is written down once, and anything else that depends on it is derived rather than stored",
         examples: [
           "a `birthDate` alone, with age computed where it is needed",
           "a `lines` list alone, its length read from the list",
-          "one `price: Money` value, formatted at the edge that displays it",
-        ],
-      },
-    },
+          "one `price: Money` value, formatted at the edge that displays it"
+        ]
+      }
+    }
   ),
 
   // Rule 6 asks what a primitive claims. Bounded twice: not "does the shape use
@@ -198,7 +193,7 @@ export const E0 = {
       question:
         "Does `artifact` carry something the domain of `artifact.domain` treats as its own kind of thing as a bare primitive, in a shape where the domain's own distinctions are made — not a shape whose subject is how a value is written down or carried — so that any value of that primitive would fit where the thing belongs?",
       focus:
-        "A field typed `string` or `number` is not the finding; most fields bottom out in primitives and most of them should. The finding is a value with a meaning of its own in the domain — an identity, a locator, a revision, a quantity whose unit matters, a member of a fixed set — represented so that nothing distinguishes it from any other value of the same primitive, in a shape that speaks the domain's own vocabulary. A shape whose subject is how values are stored or transmitted — a table or column definition, a row type mirroring one, a wire message, a memory layout — makes no domain distinctions: its primitives state an encoding, so the finding has nothing to be about. A shape that runs the domain's logic speaks the domain's vocabulary whatever its file is named.",
+        "A field typed `string` or `number` is not the finding; most fields bottom out in primitives and most of them should. The finding is a value with a meaning of its own in the domain — an identity, a locator, a revision, a quantity whose unit matters, a member of a fixed set — represented so that nothing distinguishes it from any other value of the same primitive, in a shape that speaks the domain's own vocabulary. A shape whose subject is how values are stored or transmitted — a table or column definition, a row type mirroring one, a wire message, a memory layout — makes no domain distinctions: its primitives state an encoding, so the finding has nothing to be about. A shape that runs the domain's logic speaks the domain's vocabulary whatever its file is named."
     },
     {
       true: {
@@ -208,8 +203,8 @@ export const E0 = {
           "a pair of bare strings returned together, told apart only by their position",
           "a duration carried as a bare number, with nothing saying whether it counts seconds or milliseconds",
           "a display name standing in for the identity of the thing it names, both being strings",
-          "a fixed set of roles carried as `string`, so any spelling at all is admissible",
-        ],
+          "a fixed set of roles carried as `string`, so any spelling at all is admissible"
+        ]
       },
       false: {
         what: "Each thing the domain names has a type of its own, or the bare primitives sit in a shape that only states how values are written down or carried, or the primitive is free text the domain genuinely accepts",
@@ -219,10 +214,10 @@ export const E0 = {
           "a fixed set of values is a literal union derived from one declared list",
           "free text such as a title or a note is typed `string`, because the domain really does accept any text there",
           "a table definition whose TEXT and INTEGER columns state how rows are stored",
-          "a wire message whose string fields state how the values are carried between systems",
-        ],
-      },
-    },
+          "a wire message whose string fields state how the values are carried between systems"
+        ]
+      }
+    }
   ),
 
   // Rule 7 is rule 6's other half. r6 asks whether a thing of the domain is carried as a
@@ -256,7 +251,7 @@ export const E0 = {
       question:
         "Does `artifact` declare a field, a parameter, or a type whose own name states what it holds, while its declared type or definition still admits values that name rules out?",
       focus:
-        "Breadth is not the finding. A type is right to be broad where the domain really accepts anything: free text, a note, a comment. The finding is a name that makes a claim — a count, a price, a duration, a URL, a file extension, a code, a percentage — carried by a definition that admits values contradicting the claim: the empty string where a code is meant, a negative or fractional value where a count is meant, any text at all where one of a few spellings is meant. A named type is judged the same way as a field: the name makes the claim and the definition either holds it or does not. The notation in use must be able to say it: a refinement, a constraint, a narrower type, a union of the values actually allowed.",
+        "Breadth is not the finding. A type is right to be broad where the domain really accepts anything: free text, a note, a comment. The finding is a name that makes a claim — a count, a price, a duration, a URL, a file extension, a code, a percentage — carried by a definition that admits values contradicting the claim: the empty string where a code is meant, a negative or fractional value where a count is meant, any text at all where one of a few spellings is meant. A named type is judged the same way as a field: the name makes the claim and the definition either holds it or does not. The notation in use must be able to say it: a refinement, a constraint, a narrower type, a union of the values actually allowed."
     },
     {
       true: {
@@ -268,8 +263,8 @@ export const E0 = {
           "a field named for one of a few known values typed as text, so any spelling is admissible",
           "a monetary amount typed as a floating-point number, so fractions of the smallest unit are admissible",
           "a type named for an identifier defined as plain text, so the empty string inhabits it",
-          "a type named for a count defined as a plain number, so negatives inhabit it",
-        ],
+          "a type named for a count defined as a plain number, so negatives inhabit it"
+        ]
       },
       false: {
         what: "Each name's declared type or definition admits only what its name claims, or the name claims nothing more than the type already says, or the claim is delegated: the declared type is itself a name stating the same claim the field's name makes, so this question applies to that type's declaration rather than here",
@@ -279,10 +274,10 @@ export const E0 = {
           "a set of known values is a union of exactly those values",
           "a column carries a constraint stating the values it accepts",
           "free text such as a title or a body is typed as text, because any text is genuinely allowed",
-          "a duration named `term` typed `Days`, a rate named `rate` typed `FeePerDay` — the type's own name carries the claim, and whether it is refined is settled where that type is declared",
-        ],
-      },
-    },
+          "a duration named `term` typed `Days`, a rate named `rate` typed `FeePerDay` — the type's own name carries the claim, and whether it is refined is settled where that type is declared"
+        ]
+      }
+    }
   ),
 
   // Rules 8 and 9 both ask whether a callable says what it touches, and they do not
@@ -300,7 +295,7 @@ export const E0 = {
       question:
         "Does `artifact` declare a callable whose own name claims a read or a write of a resource — saving, fetching, finding, sending, deleting, renewing — that its parameters and return type do not mention?",
       focus:
-        "A name that states only a computation claims nothing: computing, checking, formatting. The finding is a name that reaches past its arguments — a store it saves to, a source it finds in, a channel it sends over — while the declaration names no store, client, or channel among its parameters, and no requirements or error channel stating one in its return type.",
+        "A name that states only a computation claims nothing: computing, checking, formatting. The finding is a name that reaches past its arguments — a store it saves to, a source it finds in, a channel it sends over — while the declaration names no store, client, or channel among its parameters, and no requirements or error channel stating one in its return type."
     },
     {
       true: {
@@ -308,18 +303,18 @@ export const E0 = {
         examples: [
           "`save(x): Promise<void>` — a write with no store in sight",
           "`findById(id): Promise<T | null>` — a read from an unnamed source",
-          "`send(msg): void` — a transmission with no channel",
-        ],
+          "`send(msg): void` — a transmission with no channel"
+        ]
       },
       false: {
         what: "Each callable's declaration accounts for what its name claims, or no name claims a resource",
         examples: [
           "the store, client, or clock the name implies appears as a parameter",
           "the return type's requirements or error channel names the resource, as `Effect<T, E, Database>`",
-          "the name claims only a computation over the arguments given",
-        ],
-      },
-    },
+          "the name claims only a computation over the arguments given"
+        ]
+      }
+    }
   ),
 
   r9_body_reaches_undeclared: probability(
@@ -327,7 +322,7 @@ export const E0 = {
       question:
         "Does `artifact` declare a callable whose body reaches for a resource or a change of state that its own parameters and return type do not mention?",
       focus:
-        "Doing work is not the finding, and neither is a shape that declares no callable at all — a record of fields has nothing to reach for. The finding is a declaration that reads as a function of its arguments while the body reads a clock, a filesystem, a network, a device, a global or an enclosing object, or writes to one. A callable that takes what it touches as an argument, or states the effect in its return type, is not a finding, however much work it does. Judge only dependencies visible in the supplied root body and included supporting declarations. Omitted references are unknown: do not infer their behavior or treat missing evidence alone as a hidden-resource finding. An omission does not erase a resource use that is already visible in included source.",
+        "Doing work is not the finding, and neither is a shape that declares no callable at all — a record of fields has nothing to reach for. The finding is a declaration that reads as a function of its arguments while the body reads a clock, a filesystem, a network, a device, a global or an enclosing object, or writes to one. A callable that takes what it touches as an argument, or states the effect in its return type, is not a finding, however much work it does. Judge only dependencies visible in the supplied root body and included supporting declarations. Omitted references are unknown: do not infer their behavior or treat missing evidence alone as a hidden-resource finding. An omission does not erase a resource use that is already visible in included source."
     },
     {
       true: {
@@ -337,8 +332,8 @@ export const E0 = {
           "a function whose result depends on the current time, with no time among its parameters",
           "a method that reads or mutates the object it hangs off while its parameters mention none of it",
           "a function that selects a device or an accelerator its declaration never names",
-          "a procedure that leaves the object it was called on in a different state, returning nothing that says so",
-        ],
+          "a procedure that leaves the object it was called on in a different state, returning nothing that says so"
+        ]
       },
       false: {
         what: "Everything a callable reaches for appears in its declaration, or the artifact declares no callable",
@@ -346,18 +341,17 @@ export const E0 = {
           "a function receives the client, the clock or the writer it uses as a parameter",
           "a function's return type states the effect it performs and the resources it needs",
           "a pure function of its arguments, returning a value computed from them alone",
-          "a record or a table of fields, which calls nothing",
-        ],
-      },
-    },
+          "a record or a table of fields, which calls nothing"
+        ]
+      }
+    }
   ),
 
   r5_absence_confusion: probability(
     {
       question:
         "Does `artifact` offer two encodings of one state, or collapse two states that the domain distinguishes, around missing values?",
-      focus:
-        '"Not supplied", "known to be nothing", and "known to be empty" are three different facts.',
+      focus: '"Not supplied", "known to be nothing", and "known to be empty" are three different facts.'
     },
     {
       // Same discipline as r2's: situations rather than field names, from domains the
@@ -370,26 +364,26 @@ export const E0 = {
           "an optional `tags` list where absent and `[]` are both reachable and denote the same nothing",
           'a `middleName` where missing, `null` and `""` are all reachable',
           "an optional `permissions` list whose absence carries a meaning the shape never names",
-          "an `items` list that must not be empty, with emptiness still representable",
-        ],
+          "an `items` list that must not be empty, with emptiness still representable"
+        ]
       },
       false: {
         what: "Collections are required and emptiness carries the nothing meaning, or absence has its own named meaning",
         examples: [
           "a required `tags` list where empty is how a caller says there are none",
           'permissions are `{ kind: "inherited" } | { kind: "own", granted: Permission[] }`, so inheritance is a named state rather than a missing field',
-          "an attachment list typed non-empty, so the invariant holds at construction",
-        ],
-      },
-    },
-  ),
+          "an attachment list typed non-empty, so the invariant holds at construction"
+        ]
+      }
+    }
+  )
 
   // shape_risk is not asked. Its four levels are four different rules on one ordered
   // axis — level 3 is rule 1, level 2 is rule 2, level 1 is rule 3 or 5 seen locally —
   // so climbing it switches which rule is under discussion. That carries a severity
   // ordering and a mutual exclusivity nothing has measured: a shape whose only fault is
   // rule 5 cannot score above 1. Rules are what this set reports.
-};
+}
 
 // ── Run ────────────────────────────────────────────────────────────────────
 
@@ -402,8 +396,8 @@ export const NOUL_KEYS = [
   "r6_bare_domain_value",
   "r7_name_wider_than_type",
   "r8_name_claims_resource",
-  "r9_body_reaches_undeclared",
-] as const;
+  "r9_body_reaches_undeclared"
+] as const
 
 /**
  * The rung a rule starts working at. Every rule is asked of every text; the rung
@@ -439,8 +433,8 @@ export const APPLIES_FROM: Record<string, Level> = {
   r6_bare_domain_value: 2,
   r7_name_wider_than_type: 2,
   r8_name_claims_resource: 2,
-  r9_body_reaches_undeclared: 2,
-};
+  r9_body_reaches_undeclared: 2
+}
 
 /** Self-consistency cookbook bands. Nothing is calibrated; the middle goes to a person (§4). */
-export const band = (p: number) => (p > 0.7 ? "violation" : p < 0.3 ? "clear" : "unclear");
+export const band = (p: number) => (p > 0.7 ? "violation" : p < 0.3 ? "clear" : "unclear")

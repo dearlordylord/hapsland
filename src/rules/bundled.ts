@@ -1,15 +1,10 @@
-import { E0, NOUL_KEYS } from "../questions.ts";
-import {
-  DEFAULT_RULE_THRESHOLD,
-  decodeRulePackDocument,
-  type DecodedRulePack,
-  type RuleDefinition,
-} from "./schema.ts";
-import { FUNCTION_INPUT_CONTRACT, TYPE_CAPABILITIES, TYPE_INPUT_CONTRACT } from "./targets.ts";
+import { E0, NOUL_KEYS } from "../questions.ts"
+import { DEFAULT_RULE_THRESHOLD, decodeRulePackDocument, type DecodedRulePack, type RuleDefinition } from "./schema.ts"
+import { FUNCTION_INPUT_CONTRACT, TYPE_CAPABILITIES, TYPE_INPUT_CONTRACT } from "./targets.ts"
 
 /** Stable content identity for the bundled Noul baseline. */
-export const NOUL_PACK_ID = "noul" as const;
-export const NOUL_PACK_VERSION = "1.0.0" as const;
+export const NOUL_PACK_ID = "noul" as const
+export const NOUL_PACK_VERSION = "1.0.0" as const
 
 const messages: Readonly<Record<string, string>> = {
   r1_inferred_case: "The type appears to encode distinct cases without naming the case.",
@@ -20,11 +15,11 @@ const messages: Readonly<Record<string, string>> = {
   r6_bare_domain_value: "A domain value appears to use an overly broad primitive type.",
   r7_name_wider_than_type: "A field name promises constraints that its type does not enforce.",
   r8_name_claims_resource: "A declaration appears to hide a resource named by the operation.",
-  r9_body_reaches_undeclared: "A callable appears to reach state or resources absent from its declaration.",
-};
+  r9_body_reaches_undeclared: "A callable appears to reach state or resources absent from its declaration."
+}
 
 const rules: ReadonlyArray<RuleDefinition> = NOUL_KEYS.map((id) => {
-  const decision = E0[id];
+  const decision = E0[id]
   return {
     id,
     question: decision.instructions,
@@ -33,22 +28,24 @@ const rules: ReadonlyArray<RuleDefinition> = NOUL_KEYS.map((id) => {
     message: messages[id] ?? `Review rule ${id} may apply.`,
     reviewTargets: [
       { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: TYPE_CAPABILITIES },
-      ...(id === "r9_body_reaches_undeclared" ? [{ artifactKind: "function" as const,
-        inputContract: FUNCTION_INPUT_CONTRACT, capabilities: ["signature", "body"] as const }] : []),
-    ],
-  };
-});
+      ...(id === "r9_body_reaches_undeclared"
+        ? [
+            {
+              artifactKind: "function" as const,
+              inputContract: FUNCTION_INPUT_CONTRACT,
+              capabilities: ["signature", "body"] as const
+            }
+          ]
+        : [])
+    ]
+  }
+})
 
 /** The bundled pack is decoded by the same boundary used for local packs. */
 export const BUNDLED_NOUL_PACK: DecodedRulePack = decodeRulePackDocument(
-  {
-    schemaVersion: 1,
-    id: NOUL_PACK_ID,
-    contentVersion: NOUL_PACK_VERSION,
-    rules,
-  },
+  { schemaVersion: 1, id: NOUL_PACK_ID, contentVersion: NOUL_PACK_VERSION, rules },
   "built-in:noul",
-  { layer: "built-in", source: "built-in:noul", field: "bundled.noul" },
-);
+  { layer: "built-in", source: "built-in:noul", field: "bundled.noul" }
+)
 
-export { messages as NOUL_MESSAGES };
+export { messages as NOUL_MESSAGES }

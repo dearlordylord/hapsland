@@ -1,1 +1,1 @@
-export * from "./secret-service.ts";
+export * from "./secret-service.ts"

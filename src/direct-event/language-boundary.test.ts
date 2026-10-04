@@ -1,19 +1,25 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs"
+import { describe, expect, it } from "vitest"
 
-const sharedModules = ["analyzer.ts", "function-analyzer.ts", "graph-resolver.ts", "pipeline.ts"];
-const publicLanguageModules = new Set(["./languages/registry.ts", "./languages/contracts.ts", "./languages/function-facts.ts"]);
+const sharedModules = ["analyzer.ts", "function-analyzer.ts", "graph-resolver.ts", "pipeline.ts"]
+const publicLanguageModules = new Set([
+  "./languages/registry.ts",
+  "./languages/contracts.ts",
+  "./languages/function-facts.ts"
+])
 
 describe("source-language architecture boundary", () => {
   it.each(sharedModules)("keeps %s independent of language implementations and grammar bindings", (module) => {
-    const source = readFileSync(new URL(module, import.meta.url), "utf8");
-    const imports = [...source.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)["']([^"']+)["']/gu)].map((match) => match[1]!);
+    const source = readFileSync(new URL(module, import.meta.url), "utf8")
+    const imports = [...source.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)["']([^"']+)["']/gu)].map((match) => match[1]!)
     for (const imported of imports) {
-      expect(imported.startsWith("tree-sitter"), `${module} imports a grammar directly`).toBe(false);
+      expect(imported.startsWith("tree-sitter"), `${module} imports a grammar directly`).toBe(false)
       if (imported.includes("/languages/")) {
-        expect(publicLanguageModules.has(imported), `${module} imports a language implementation: ${imported}`).toBe(true);
+        expect(publicLanguageModules.has(imported), `${module} imports a language implementation: ${imported}`).toBe(
+          true
+        )
       }
     }
-    expect(source).not.toMatch(/rustCrateRoot|rustExternalModule|rustCrateModules|GraphInspectionOptions/u);
-  });
-});
+    expect(source).not.toMatch(/rustCrateRoot|rustExternalModule|rustCrateModules|GraphInspectionOptions/u)
+  })
+})

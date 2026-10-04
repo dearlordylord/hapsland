@@ -8,8 +8,8 @@ export const hookFlags = Object.freeze([
   "--composed-before-edit-hook",
   "--composed-background-hook",
   "--composed-stop-hook",
-  "--composed-prompt-hook",
-] as const);
-const hookFlagSet = new Set<string>(hookFlags);
+  "--composed-prompt-hook"
+] as const)
+const hookFlagSet = new Set<string>(hookFlags)
 export const isHookInvocation = (args: ReadonlyArray<string>) =>
-  args.some((argument) => hookFlagSet.has(argument.split("=")[0] ?? argument));
+  args.some((argument) => hookFlagSet.has(argument.split("=")[0] ?? argument))

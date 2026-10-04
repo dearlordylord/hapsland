@@ -1,22 +1,27 @@
-import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process"
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join, resolve } from "node:path"
 
-const root = resolve(import.meta.dirname, "..");
-const temporary = mkdtempSync(join(tmpdir(), "hapsland-import-graph-bend-"));
+const root = resolve(import.meta.dirname, "..")
+const temporary = mkdtempSync(join(tmpdir(), "hapsland-import-graph-bend-"))
 try {
-  const compiled = join(temporary, "import-graph.js");
-  execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe" });
-  let source = readFileSync(compiled, "utf8");
-  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
-  if (!footer.test(source) || !source.includes("function $ImportGraph$bounded_step$(") ||
-      !source.includes("function $ImportGraph$bounded_initial$(")) {
-    throw new Error("Bend import graph JavaScript layout changed; inspect generated runtime");
+  const compiled = join(temporary, "import-graph.js")
+  execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe" })
+  let source = readFileSync(compiled, "utf8")
+  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
+  if (
+    !footer.test(source) ||
+    !source.includes("function $ImportGraph$bounded_step$(") ||
+    !source.includes("function $ImportGraph$bounded_initial$(")
+  ) {
+    throw new Error("Bend import graph JavaScript layout changed; inspect generated runtime")
   }
-  const namespacedTags = source.includes('"ImportGraph.Root"');
-  const bigintNat = source.includes("262144n");
-  source = source.replace(footer, `
+  const namespacedTags = source.includes('"ImportGraph.Root"')
+  const bigintNat = source.includes("262144n")
+  source = source.replace(
+    footer,
+    `
 const MAX_NAT = (1n << 48n) - 1n;
 const NAMESPACED_TAGS = ${namespacedTags};
 const BIGINT_NAT = ${bigintNat};
@@ -44,8 +49,9 @@ export const bendImportGraphStep = (state, event) =>
   run_loop($ImportGraph$bounded_step$(state, normalize(event)));
 export const bendImportGraphLocalBudget = (limits, localWork, localDepth, distinctTargets, graphWork) =>
   run_loop($ImportGraph$local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
-`);
-  writeFileSync(join(root, "import-graph.generated.js"), source);
+`
+  )
+  writeFileSync(join(root, "import-graph.generated.js"), source)
 } finally {
-  rmSync(temporary, { recursive: true, force: true });
+  rmSync(temporary, { recursive: true, force: true })
 }

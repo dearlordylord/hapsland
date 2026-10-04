@@ -1,7 +1,7 @@
-import { brandReady } from "./review-loop-renderer";
-import { Runtime, Subscription } from "foldkit";
-import { Message, Model, init, update, view } from "./site";
-import "./site.css";
+import { brandReady } from "./review-loop-renderer"
+import { Runtime, Subscription } from "foldkit"
+import { Message, Model, init, update, view } from "./site"
+import "./site.css"
 
 const subscriptions = Subscription.make<Model, Message>()((entry) => ({
   heroPlayback: Subscription.animationFrame<Model, Message>({
@@ -9,7 +9,7 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
       model.lifecycle === "expanding" ||
       model.lifecycle === "collapsing" ||
       (model.lifecycle === "running" && model.playing),
-    toMessage: (deltaMs) => Message.Tick({ deltaMs }),
+    toMessage: (deltaMs) => Message.Tick({ deltaMs })
   }),
   viewport: entry(
     {},
@@ -19,12 +19,9 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
         Subscription.fromEvent({
           target: () => window,
           type: "resize",
-          mapEvent: () =>
-            Message.ViewportChanged({
-              compact: window.matchMedia("(max-width: 760px)").matches,
-            }),
-        }),
-    },
+          mapEvent: () => Message.ViewportChanged({ compact: window.matchMedia("(max-width: 760px)").matches })
+        })
+    }
   ),
   motionPreference: entry(
     {},
@@ -34,20 +31,12 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
         Subscription.fromEvent({
           target: () => window.matchMedia("(prefers-reduced-motion: reduce)"),
           type: "change",
-          mapEvent: (event) =>
-            Message.MotionChanged({ reduced: event.matches }),
-        }),
-    },
-  ),
-}));
-await brandReady;
+          mapEvent: (event) => Message.MotionChanged({ reduced: event.matches })
+        })
+    }
+  )
+}))
+await brandReady
 Runtime.run(
-  Runtime.makeApplication({
-    Model,
-    init,
-    update,
-    view,
-    subscriptions,
-    container: document.getElementById("root"),
-  }),
-);
+  Runtime.makeApplication({ Model, init, update, view, subscriptions, container: document.getElementById("root") })
+)

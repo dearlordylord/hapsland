@@ -1,5 +1,5 @@
-import { expect, it } from "vitest";
-import { credentialDiagnostic } from "./credential-diagnostics.ts";
+import { expect, it } from "vitest"
+import { credentialDiagnostic } from "./credential-diagnostics.ts"
 
 it.each([
   {
@@ -7,94 +7,94 @@ it.each([
     source: "saved" as const,
     expected: "ready",
     action: undefined,
-    accessibility: "available-via-noninteractive-native-lookup",
+    accessibility: "available-via-noninteractive-native-lookup"
   },
   {
     status: "present" as const,
     source: "environment" as const,
     expected: "ready",
     action: undefined,
-    accessibility: "requires-host-environment-verification",
+    accessibility: "requires-host-environment-verification"
   },
   {
     status: "missing" as const,
     source: "saved" as const,
     expected: "missing",
     action: "store a credential",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "invalid" as const,
     source: "saved" as const,
     expected: "conflict",
     action: "store a credential",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "locked" as const,
     source: "saved" as const,
     expected: "missing",
     action: "unlock or approve",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "interaction-required" as const,
     source: "saved" as const,
     expected: "missing",
     action: "unlock or approve",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "timed-out" as const,
     source: "saved" as const,
     expected: "missing",
     action: "750 ms deadline",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "suspended" as const,
     source: "saved" as const,
     expected: "conflict",
     action: "reconcile the suspended credential",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "unavailable" as const,
     source: "saved" as const,
     expected: "missing",
     action: "native helper",
-    accessibility: "unavailable",
+    accessibility: "unavailable"
   },
   {
     status: "missing" as const,
     source: "environment" as const,
     expected: "missing",
     action: "make CUSTOM_KEY available",
-    accessibility: "unavailable",
-  },
+    accessibility: "unavailable"
+  }
 ])(
   "reports $source credential $status without claiming host accessibility",
   ({ status, source, expected, action, accessibility }) => {
-    const credential = { status, source, value: "synthetic-private-value", generation: 7 };
-    const result = credentialDiagnostic(credential, "CUSTOM_KEY", false);
-    expect(result.status).toBe(expected);
-    if (action === undefined) expect(result.action).toBeUndefined();
-    else expect(result.action).toContain(action);
+    const credential = { status, source, value: "synthetic-private-value", generation: 7 }
+    const result = credentialDiagnostic(credential, "CUSTOM_KEY", false)
+    expect(result.status).toBe(expected)
+    if (action === undefined) expect(result.action).toBeUndefined()
+    else expect(result.action).toContain(action)
     expect(result.observed).toMatchObject({
       actualHookAccessibility: accessibility,
       doctorProcessEnvironment: "absent",
-      selectedSource: source,
-    });
-    expect(JSON.stringify(result)).not.toContain("synthetic-private-value");
-    expect(JSON.stringify(result)).not.toContain("generation");
-  },
-);
+      selectedSource: source
+    })
+    expect(JSON.stringify(result)).not.toContain("synthetic-private-value")
+    expect(JSON.stringify(result)).not.toContain("generation")
+  }
+)
 
 it("keeps doctor environment observation separate from selected saved storage", () => {
-  const result = credentialDiagnostic({ source: "saved", status: "locked" }, "CUSTOM_KEY", true);
+  const result = credentialDiagnostic({ source: "saved", status: "locked" }, "CUSTOM_KEY", true)
   expect(result.observed).toMatchObject({
     doctorProcessEnvironment: "present",
     actualHookAccessibility: "unavailable",
-    savedCredentialAccessibility: "locked",
-  });
-});
+    savedCredentialAccessibility: "locked"
+  })
+})

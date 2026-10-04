@@ -1,146 +1,137 @@
-import type { ProviderIdentity } from "../review-providers/catalog.ts";
-import { createHash } from "node:crypto";
-import type { CompiledRule } from "../rules/compiler.ts";
-import type { ReviewTarget } from "../rules/targets.ts";
-import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts";
-import type { GraphLimits } from "../configuration/graph-limits.ts";
+import type { ProviderIdentity } from "../review-providers/catalog.ts"
+import { createHash } from "node:crypto"
+import type { CompiledRule } from "../rules/compiler.ts"
+import type { ReviewTarget } from "../rules/targets.ts"
+import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
+import type { GraphLimits } from "../configuration/graph-limits.ts"
 
-export type CodexHostVersion = string;
+export type CodexHostVersion = string
 export const isCodexHostVersion = (value: unknown): value is CodexHostVersion =>
-  typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
+  typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value)
 
-export type DirectAdvicee = {
-  readonly host: "codex-cli";
-  readonly hostVersion: CodexHostVersion;
-  readonly sessionId: string;
-  readonly turnId: string;
-  readonly toolUseId: string;
-  readonly subagentId: string | null;
-} | {
-  readonly host: "claude-code";
-  readonly hostVersion: "2.1.218";
-  readonly sessionId: string;
-  /** Claude 2.1.218 PostToolUse does not provide a turn identifier. */
-  readonly turnId: null;
-  readonly toolUseId: string;
-  /** Preserve a supplied subagent identity; main-thread hooks may omit it. */
-  readonly subagentId: string | null;
-} | {
-  readonly host: "pi";
-  readonly hostVersion: "1.0.0";
-  readonly sessionId: string;
-  readonly turnId: null;
-  readonly toolUseId: string;
-  readonly subagentId: null;
-} | {
-  readonly host: "opencode";
-  readonly hostVersion: "1.14.44";
-  readonly sessionId: string;
-  readonly turnId: null;
-  readonly toolUseId: string;
-  readonly subagentId: null;
-};
+export type DirectAdvicee =
+  | {
+      readonly host: "codex-cli"
+      readonly hostVersion: CodexHostVersion
+      readonly sessionId: string
+      readonly turnId: string
+      readonly toolUseId: string
+      readonly subagentId: string | null
+    }
+  | {
+      readonly host: "claude-code"
+      readonly hostVersion: "2.1.218"
+      readonly sessionId: string
+      /** Claude 2.1.218 PostToolUse does not provide a turn identifier. */
+      readonly turnId: null
+      readonly toolUseId: string
+      /** Preserve a supplied subagent identity; main-thread hooks may omit it. */
+      readonly subagentId: string | null
+    }
+  | {
+      readonly host: "pi"
+      readonly hostVersion: "1.0.0"
+      readonly sessionId: string
+      readonly turnId: null
+      readonly toolUseId: string
+      readonly subagentId: null
+    }
+  | {
+      readonly host: "opencode"
+      readonly hostVersion: "1.14.44"
+      readonly sessionId: string
+      readonly turnId: null
+      readonly toolUseId: string
+      readonly subagentId: null
+    }
 
 export type AddCandidate = {
-  readonly operation: "add";
-  readonly path: string;
+  readonly operation: "add"
+  readonly path: string
   /** Native patch additions, without the patch marker. */
-  readonly addedLines?: ReadonlyArray<string>;
-};
+  readonly addedLines?: ReadonlyArray<string>
+}
 
 export type DirectCandidate =
   | AddCandidate
   | { readonly operation: "update"; readonly path: string; readonly addedLines: ReadonlyArray<string> }
-  | { readonly operation: "delete" | "move"; readonly path: string; readonly addedLines: readonly [] };
+  | { readonly operation: "delete" | "move"; readonly path: string; readonly addedLines: readonly [] }
 
 export type PhysicalRootIdentity = {
-  readonly rootDevice: string;
-  readonly rootInode: string;
-  readonly gitDirectory: string;
-  readonly gitDevice: string;
-  readonly gitInode: string;
-};
+  readonly rootDevice: string
+  readonly rootInode: string
+  readonly gitDirectory: string
+  readonly gitDevice: string
+  readonly gitInode: string
+}
 
 export type DirectObservation = {
-  readonly root: string;
+  readonly root: string
   /** Physical working-tree and Git-administration identity captured at adaptation. */
-  readonly rootIdentity: PhysicalRootIdentity;
-  readonly advicee: DirectAdvicee;
-  readonly candidates: ReadonlyArray<DirectCandidate>;
+  readonly rootIdentity: PhysicalRootIdentity
+  readonly advicee: DirectAdvicee
+  readonly candidates: ReadonlyArray<DirectCandidate>
   /** Bounded Codex patch retained only to verify Update coordinates after capture. */
-  readonly nativePatchCommand?: string;
+  readonly nativePatchCommand?: string
   /** Claude's exact pre/post image establishes these ranges for one captured snapshot. */
   readonly verifiedPostEditHunks?: {
-    readonly path: string;
-    readonly contentHash: string;
-    readonly hunks: ReadonlyArray<VerifiedPatchHunk>;
-  };
-};
+    readonly path: string
+    readonly contentHash: string
+    readonly hunks: ReadonlyArray<VerifiedPatchHunk>
+  }
+}
 
 export type TypeDeclaration = {
-  readonly path?: string;
-  readonly id: string;
-  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype";
-  readonly name: string;
-  readonly source: string;
-  readonly sourceHash: string;
-};
+  readonly path?: string
+  readonly id: string
+  readonly kind: "interface" | "type-alias" | "struct" | "enum" | "datatype"
+  readonly name: string
+  readonly source: string
+  readonly sourceHash: string
+}
 
-export type ReviewArtifact = TypeDeclaration | (Omit<TypeDeclaration, "kind"> & { readonly kind: "function" });
+export type ReviewArtifact = TypeDeclaration | (Omit<TypeDeclaration, "kind"> & { readonly kind: "function" })
 
-export type ReferenceSite = {
-  readonly symbol: string;
-};
+export type ReferenceSite = { readonly symbol: string }
 
 export type ArtifactReference =
+  | { readonly kind: "expanded"; readonly site: ReferenceSite; readonly node: ReviewNode }
+  | { readonly kind: "included"; readonly site: ReferenceSite; readonly target: string }
   | {
-      readonly kind: "expanded";
-      readonly site: ReferenceSite;
-      readonly node: ReviewNode;
-    }
-  | {
-      readonly kind: "included";
-      readonly site: ReferenceSite;
-      readonly target: string;
-    }
-  | {
-      readonly kind: "omitted";
-      readonly site: ReferenceSite;
+      readonly kind: "omitted"
+      readonly site: ReferenceSite
       readonly target:
         | { readonly kind: "known"; readonly artifactId: string }
-        | { readonly kind: "unresolved"; readonly symbol: string };
-      readonly reason: "unresolved" | "unsupported" | "reference-limit" | "unavailable";
-    };
+        | { readonly kind: "unresolved"; readonly symbol: string }
+      readonly reason: "unresolved" | "unsupported" | "reference-limit" | "unavailable"
+    }
 
-export type ReviewNode = {
-  readonly artifact: ReviewArtifact;
-  readonly references: ReadonlyArray<ArtifactReference>;
-};
+export type ReviewNode = { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<ArtifactReference> }
 
 export type ReviewUnit = {
   /** Captured files establishing import binding, also checked for freshness. */
-  readonly sourceDependencies?: ReadonlyArray<string>;
-  readonly root: ReviewNode;
-};
+  readonly sourceDependencies?: ReadonlyArray<string>
+  readonly root: ReviewNode
+}
 
 export type SourceSnapshot = {
-  readonly path: string;
-  readonly operation: "add" | "update";
-  readonly sourceHash: string;
-};
+  readonly path: string
+  readonly operation: "add" | "update"
+  readonly sourceHash: string
+}
 
 export type PathObservationOutcome =
   | {
-      readonly status: "observed";
-      readonly path: string;
-      readonly snapshot: SourceSnapshot;
-      readonly units: ReadonlyArray<ReviewUnit>;
+      readonly status: "observed"
+      readonly path: string
+      readonly snapshot: SourceSnapshot
+      readonly units: ReadonlyArray<ReviewUnit>
       readonly analysis:
         | { readonly status: "complete" }
         | {
-            readonly status: "incomplete";
+            readonly status: "incomplete"
             readonly failures: ReadonlyArray<{
-              readonly root: string | undefined;
+              readonly root: string | undefined
               readonly reason:
                 | "extension"
                 | "parse"
@@ -151,109 +142,107 @@ export type PathObservationOutcome =
                 | "missing-evidence"
                 | "unsupported-reference"
                 | "reference-limit"
-                | "ambiguous-update";
-            }>;
-          };
+                | "ambiguous-update"
+            }>
+          }
     }
   | {
-      readonly status: "incomplete";
-      readonly path: string;
-      readonly reason:
-        | "unsupported-operation"
-        | "metadata-only"
-        | "ineligible"
-        | "capture-unavailable";
-    };
+      readonly status: "incomplete"
+      readonly path: string
+      readonly reason: "unsupported-operation" | "metadata-only" | "ineligible" | "capture-unavailable"
+    }
 
 export type ChangeSet = {
-  readonly status: "complete";
-  readonly changes: ReadonlyArray<SourceSnapshot>;
-  readonly units: ReadonlyArray<ReviewUnit>;
-};
+  readonly status: "complete"
+  readonly changes: ReadonlyArray<SourceSnapshot>
+  readonly units: ReadonlyArray<ReviewUnit>
+}
 
 export type ObservationResult =
   | {
-      readonly status: "complete";
-      readonly changeSet: ChangeSet;
-      readonly outcomes: ReadonlyArray<PathObservationOutcome>;
+      readonly status: "complete"
+      readonly changeSet: ChangeSet
+      readonly outcomes: ReadonlyArray<PathObservationOutcome>
     }
   | {
-      readonly status: "incomplete";
-      readonly outcomes: ReadonlyArray<PathObservationOutcome>;
-      readonly units: ReadonlyArray<ReviewUnit>;
-    };
+      readonly status: "incomplete"
+      readonly outcomes: ReadonlyArray<PathObservationOutcome>
+      readonly units: ReadonlyArray<ReviewUnit>
+    }
 
 export type FrozenRule = {
-  readonly id: string;
-  readonly qualifiedId: string;
-  readonly packId: string;
-  readonly packVersion: string;
-  readonly packDigest: string;
-  readonly definitionDigest: string;
-  readonly threshold: number;
-  readonly message: string;
-  readonly rank: number;
-  readonly decision: CompiledRule["decision"];
-  readonly target?: ReviewTarget;
-};
+  readonly id: string
+  readonly qualifiedId: string
+  readonly packId: string
+  readonly packVersion: string
+  readonly packDigest: string
+  readonly definitionDigest: string
+  readonly threshold: number
+  readonly message: string
+  readonly rank: number
+  readonly decision: CompiledRule["decision"]
+  readonly target?: ReviewTarget
+}
 
 export type ReviewInput = {
-  readonly providerIdentity: ProviderIdentity;
-  readonly contract: string;
-  readonly graphLimits?: GraphLimits;
+  readonly providerIdentity: ProviderIdentity
+  readonly contract: string
+  readonly graphLimits?: GraphLimits
   /** Complete graph projection uses the type/function renderer. */
-  readonly candidateProjection?: boolean;
+  readonly candidateProjection?: boolean
   /** Parser-derived selected root range for attribution and freshness. */
-  readonly rootLocation?: PostEditLocation;
+  readonly rootLocation?: PostEditLocation
   readonly sourceFingerprints?: ReadonlyArray<{
-    readonly path: string; readonly contentHash: string; readonly byteLength: number;
-  }>;
+    readonly path: string
+    readonly contentHash: string
+    readonly byteLength: number
+  }>
   /** Missing evidence may be irrelevant to every selected rule. */
-  readonly completeness: "complete" | "incomplete-irrelevant";
-  readonly path: string;
-  readonly declaration: ReviewArtifact;
-  readonly unit: ReviewUnit;
-  readonly rules: ReadonlyArray<FrozenRule>;
-  readonly interpretation: "probability-strictly-greater-than-threshold";
-};
+  readonly completeness: "complete" | "incomplete-irrelevant"
+  readonly path: string
+  readonly declaration: ReviewArtifact
+  readonly unit: ReviewUnit
+  readonly rules: ReadonlyArray<FrozenRule>
+  readonly interpretation: "probability-strictly-greater-than-threshold"
+}
 
 export type PreparedUnit = {
-  readonly root: string;
-  readonly advicee: DirectAdvicee;
-  readonly input: ReviewInput;
-  readonly identity: string;
-};
+  readonly root: string
+  readonly advicee: DirectAdvicee
+  readonly input: ReviewInput
+  readonly identity: string
+}
 
 export const canonicalValue = (value: unknown): string => {
-  if (Array.isArray(value)) return `[${value.map(canonicalValue).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map(canonicalValue).join(",")}]`
   if (typeof value === "object" && value !== null) {
-    const record = value as Readonly<Record<string, unknown>>;
+    const record = value as Readonly<Record<string, unknown>>
     return `{${Object.keys(record)
       .sort()
       .map((key) => `${JSON.stringify(key)}:${canonicalValue(record[key])}`)
-      .join(",")}}`;
+      .join(",")}}`
   }
-  return JSON.stringify(value) ?? "null";
-};
+  return JSON.stringify(value) ?? "null"
+}
 
 export const semanticIdentity = (input: ReviewInput): string => {
-  const { sourceFingerprints: _capture, rootLocation: _location, ...reviewInput } = input;
-  return createHash("sha256").update(canonicalValue(reviewInput), "utf8").digest("hex");
-};
+  const { sourceFingerprints: _capture, rootLocation: _location, ...reviewInput } = input
+  return createHash("sha256").update(canonicalValue(reviewInput), "utf8").digest("hex")
+}
 
 const deepFreeze = <A>(value: A): A => {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
-    Object.freeze(value);
-    for (const item of Object.values(value)) deepFreeze(item);
+    Object.freeze(value)
+    for (const item of Object.values(value)) deepFreeze(item)
   }
-  return value;
-};
+  return value
+}
 
-export const freezeInput = (value: ReviewInput): ReviewInput => deepFreeze(value);
+export const freezeInput = (value: ReviewInput): ReviewInput => deepFreeze(value)
 
 export const freezeRules = (
   rules: ReadonlyArray<CompiledRule>,
-  target?: { readonly artifactKind: "typeShape" | "function"; readonly inputContract: string },
+  target?: { readonly artifactKind: "typeShape" | "function"; readonly inputContract: string }
 ): ReadonlyArray<FrozenRule> =>
   deepFreeze(
     rules.map((rule) => ({
@@ -266,14 +255,16 @@ export const freezeRules = (
       threshold: rule.threshold,
       message: rule.message,
       rank: rule.rank,
-      decision: {
-        ...rule.decision,
-        criteria: { ...rule.decision.criteria },
-      },
+      decision: { ...rule.decision, criteria: { ...rule.decision.criteria } },
       ...(() => {
-        const selected = target === undefined ? undefined : rule.reviewTargets?.find((candidate) =>
-          candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract);
-        return selected === undefined ? {} : { target: selected };
-      })(),
-    })),
-  );
+        const selected =
+          target === undefined
+            ? undefined
+            : rule.reviewTargets?.find(
+                (candidate) =>
+                  candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract
+              )
+        return selected === undefined ? {} : { target: selected }
+      })()
+    }))
+  )

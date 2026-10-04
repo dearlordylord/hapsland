@@ -3,6 +3,6 @@ export {
   ConfigurationDocument,
   GraphLimitsSettings,
   RulePackReference,
-  RuleOverride,
-} from "./types.ts";
-export { decodeConfigurationDocument, decodeConfigurationText } from "./decode.ts";
+  RuleOverride
+} from "./types.ts"
+export { decodeConfigurationDocument, decodeConfigurationText } from "./decode.ts"

@@ -340,6 +340,23 @@ evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
 [`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
 the review hook never run the maintainer evaluation suite against Jev.
 
+## Code style
+
+Run `npm run format` to apply Oxlint fixes and dprint/OXC formatting.
+`npm run lint:code` checks all authored code; `npm run lint:changed` checks staged,
+unstaged and untracked code against `HEAD`. For a branch comparison, use
+`npm run lint:changed -- --base=origin/master`. `check:fast` includes changed-file
+checks, and CI checks all authored code.
+
+`npm run prepare` installs the Husky Git hook (also run during dependency
+installation). Pre-commit runs lint-staged: it fixes and restages selected code,
+and rejects remaining lint errors. Generated, vendor, fixture and evidence files
+are excluded. [The formatter configuration](./dprint.json) and
+[lint rules](./.oxlintrc.json) own the exact settings. The imported Dalph setup uses
+two-space indentation and 120-column formatting. Hapsland keeps Effect generators
+without `yield` and inline import types; namespace type resolution is checked by
+TypeScript because Oxlint's import namespace check reports false positives for Effect.
+
 <!-- hapsland-hooks:start -->
 ## Agent hooks
 

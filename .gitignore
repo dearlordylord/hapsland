@@ -11,3 +11,5 @@ dist
 .tools/lean/
 
 .test-runs/
+
+.husky/_/

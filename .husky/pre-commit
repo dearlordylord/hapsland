@@ -1,0 +1,3 @@
+set -eu
+
+npm exec --no -- lint-staged

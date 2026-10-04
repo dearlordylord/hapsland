@@ -1,1 +1,1 @@
-export * from "./glob.ts";
+export * from "./glob.ts"
