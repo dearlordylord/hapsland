@@ -1455,6 +1455,8 @@ def observed_finish_absent(-F: Data, advance: Bool, state: Types.State, queue: Q
 def observed_finish_started(-F: Data, registered: Engine.StopRegistered, +before: List<&2,Runtime>,
     queue: Queue, jobs: List<&2,Stored>, delay: Nat, now: Nat, order: Nat, +partition: Nat, recurring: Bool, hook: CommandHook<F>) -> Observed<F>:
   match registered:
+    case Engine.StopRegistered{state,Some{_},False{}}:
+      Observed{[Runtime{state,queue,jobs,delay}],None{},hook}
     case Engine.StopRegistered{+state,Some{+finish},created}:
       observed_finish_registered(F,Engine.StopRegistered{state,Some{finish},created},before,queue,jobs,delay,
         StopScenario.input_capture(finish),now,order,hook)
