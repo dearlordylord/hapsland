@@ -65,7 +65,7 @@ def fault(value: Trace) -> Trace:
 def replace_selected(equal: Bool, item: Edge.Item, event: C.CanonicalEvent) -> Edge.Item:
   match equal item:
     case True{} Edge.Item{at,order,Edge.Event{Driver.Action{_,delay,candidate,job,expiry},payload,source}}:
-      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,source}}}
+      Edge.Item{at,order,Edge.Event{Driver.Action{event,delay,candidate,job,expiry},payload,source}}
     case _ item: item
 
 def replace(items: List<&2,Edge.Item>, +order: Nat, +event: C.CanonicalEvent) -> List<&2,Edge.Item>:
