@@ -6,6 +6,7 @@ import ../../packages/monkey-business-bend/Workload.bend as Workload
 import ../../packages/monkey-business-bend/Numeric.bend as Numeric
 import ../../packages/monkey-business-bend/TreeFacts.bend as Tree
 import ./DefenseConsumerObserved.bend as Observed
+import ./DefenseConsumerBatches.bend as Batches
 import ./DefenseConsumerCodec.bend as Codec
 import ../../packages/agent-flow-bend/Ledger.bend as Ledger
 import ../../packages/agent-flow-bend/ImportGraph.bend as Graph
@@ -30,8 +31,12 @@ def consumer_config() -> T.Config:
 
 # The sole generated owner codec needs the game_consumer family registration.
 # No local schema or lossy row projection substitutes for that integration seam.
-def json() -> String:
-  Codec.render(Codec.game_consumer(Observed.all(),Nil{}))
+def publish(batches: List<&2,Batches.Batch>) -> IO(Unit):
+  match batches:
+    case Nil{}: IO.pure(Unit,Unit{})
+    case head <> tail:
+      IO.bind(Unit,Unit,IO.print(Codec.render(Codec.game_consumer([head],Nil{}))),
+        _ => publish(tail))
 
 def main() -> IO(Unit):
-  IO.print(json())
+  publish(Batches.batches(Observed.all()))

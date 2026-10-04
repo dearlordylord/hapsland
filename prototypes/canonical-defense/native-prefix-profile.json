@@ -1,8 +1,8 @@
 {
   "roots": {
     "game_consumer": {
-      "module": "prototypes/canonical-defense/DefenseConsumerObserved.bend",
-      "type": "Envelope",
+      "module": "prototypes/canonical-defense/DefenseConsumerBatches.bend",
+      "type": "Batch",
       "vector": true
     }
   },

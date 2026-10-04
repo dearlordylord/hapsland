@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { compareNativeRuntime, compareNativeFrames } from "./compare-native-runtime.mjs";
-import { runWorkloadEmitted } from "../../packages/monkey-business-bend/conformance/workload-native-runner.mjs";
-import { runNative } from "../../packages/monkey-business-bend/conformance/native-run-runner.mjs";
-import { createNativePreflight, cleanupNativePreflight } from "../../packages/monkey-business-bend/conformance/native-preflight.mjs";
+import { readFileSync } from "node:fs";
+import { createGameStreams } from "./game-stream-runner.mjs";
 import { decodeNativePrefixWithDescriptors } from "../../packages/monkey-business/src/callback-native-prefix.ts";
-import { callbackNativeDescriptors as gameDescriptors } from "./defense-consumer-metadata.ts";
+import { callbackNativeDescriptors as gameDescriptors, callbackNativeOwnerSources as gameOwnerSources } from "./defense-consumer-metadata.ts";
 import { decodeObservedState, stateEndpoint } from "../../packages/monkey-business/src/sharing-native-boundary.ts";
 import { callbackPublicBoundary } from "../../packages/monkey-business/src/callback-native-codec.ts";
 import { readBendList, readNat, readRecord } from "../../src/canonical/boundary-schema.ts";
@@ -14,20 +13,23 @@ import { createRun, restoreReplay } from "../../packages/monkey-business/src/ind
 // the ONE game_consumer descriptor and actual NativeRun full observed sidecars.
 // Missing sidecars are an explicit failure: no tuple projection substitutes.
 const fixture = new URL("./DefenseConsumerConformance.bend", import.meta.url);
-const preflight = await createNativePreflight({ fixtures: [fixture] });
-const pinKeys = ["HAPSLAND_NATIVE_PREFLIGHT_MANIFEST", "HAPSLAND_NATIVE_PREFLIGHT_SESSION", "HAPSLAND_NATIVE_PREFLIGHT_MANIFEST_SHA256"];
-const previousPins = pinKeys.map(key => process.env[key]);
-[preflight.manifestPath, preflight.sessionId, preflight.manifestHash].forEach((pin, index) => { process.env[pinKeys[index]] = pin; });
+const streams = await createGameStreams(fixture,gameOwnerSources);
 try {
-const native = runNative(fixture);
-const emitted = runWorkloadEmitted(fixture);
-assert.deepEqual(native, emitted, "complete game/engine states, queues and frames");
-const nativeOwners = decodeNativePrefixWithDescriptors(native, "game_consumer", gameDescriptors);
-assert.deepEqual(nativeOwners, decodeNativePrefixWithDescriptors(emitted, "game_consumer", gameDescriptors));
+assert.equal(streams.native.length,145,"all derived original checkpoint batches");
+assert.equal(streams.native.length,streams.emitted.length,"all native/emitted batches");
+let batchIndex=0, retainedTicks=0;
 const list = value => readBendList(value, value => value, 2048);
 const one = value => { const values = list(value); assert.equal(values.length, 1); return readRecord(values[0]); };
-const envelopes = list(nativeOwners).map(readRecord);
-assert.deepEqual(envelopes.map(value => readNat(value.campaign_seed)), [0, 3, 17, 41]);
+function nextBatch() {
+  assert.ok(batchIndex<streams.native.length,"missing original batch");
+  const native=JSON.parse(readFileSync(streams.native[batchIndex],"utf8"));
+  const emitted=JSON.parse(readFileSync(streams.emitted[batchIndex],"utf8"));
+  assert.deepEqual(native,emitted,`entire batch ${batchIndex}`);batchIndex++;
+  const values=list(decodeNativePrefixWithDescriptors(native,"game_consumer",gameDescriptors));
+  assert.equal(values.length,1,"exactly one batch per line");
+  const batch=readRecord(values[0]);assert.equal(batch.$,"DefenseConsumerBatches.GameBatch");
+  assert.ok(list(batch.ticks).length<=64,"bounded actual tick chunk");return batch;
+}
 const config = {
   seed: 152, retention: 10000,
   limits: { globalItems: 32, globalBytes: 480, partitionItems: 16, partitionBytes: 480 },
@@ -66,21 +68,34 @@ function endpoint(world) {
   assert.equal(state.valid, true, "actual consumer remains valid");
   return stateEndpoint(decodeObservedState(state.core), []);
 }
-for (const envelope of envelopes) {
-  const seed = readNat(envelope.campaign_seed);
+for (const seed of [0,3,17,41]) {
+  const envelope=nextBatch();
+  assert.equal(envelope.campaign_seed,seed,"original campaign order");
   const inputs = originalInputs(seed);
   assert.deepEqual(list(envelope.original), inputs, "independently declared original keys and endpoints");
   assert.equal(readNat(envelope.creation_seed), 152);
   const run = createRun(config), untouchedDashboard = createRun(config);
   const dashboardBefore = untouchedDashboard.observe();
   let ticks = 0, paused = false, suspended = false, pace = 1200;
-  const checkpoints = list(readRecord(envelope.trace).checkpoints).map(readRecord);
-  assert.equal(checkpoints.length, inputs.length);
-  const receipts = [];
+  let pendingBatch=envelope;
   assert.equal(run.now, 0);
   assert.equal(run.observations.length, 0, "configuration queues arrivals without performing work");
   for (const [index, input] of inputs.entries()) {
-    const checkpoint = checkpoints[index];
+    const checkpoint=pendingBatch ?? nextBatch();pendingBatch=undefined;
+    assert.equal(checkpoint.checkpoint,index,"exact checkpoint order");
+    assert.equal(checkpoint.offset,0,"checkpoint begins at tick zero");
+    const checkChunk=chunk=>{
+      for(const field of ["config","creation_seed","campaign_seed","original","checkpoint","input","before","after"])
+        assert.deepEqual(chunk[field],checkpoint[field],`immutable batch metadata ${field}`);
+    };
+    function* checkpointTicks() {
+      let chunk=checkpoint,offset=0;
+      for(;;){checkChunk(chunk);assert.equal(chunk.offset,offset,"no dropped/duplicated/reordered ticks");
+        for(const tick of list(chunk.ticks)){offset++;retainedTicks++;yield readRecord(tick);}
+        if(chunk.checkpoint_end){assert.equal(offset,input.$==="DefenseConsumerObserved.Ticks"?input.count:0,"every original tick");return;}
+        assert.equal(list(chunk.ticks).length,64,"nonfinal chunk is full");chunk=nextBatch();
+      }
+    }
     assert.deepEqual(checkpoint.input, input);
     const beforeWorld = one(checkpoint.before), afterWorld = one(checkpoint.after);
     compareNativeRuntime(one(beforeWorld.engine),run.runtimeSnapshot(),`campaign ${seed} checkpoint ${index} before`);
@@ -91,7 +106,7 @@ for (const envelope of envelopes) {
       if (input.code === 97) { suspended = !suspended; run.applyControl({ kind: "suspendArrivals", agent: "agent-1", suspended }); }
       if (input.code === 91) { pace = Math.max(20, pace - 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
       if (input.code === 32) paused = !paused;
-      assert.equal(list(checkpoint.ticks).length, 0);
+      assert.deepEqual([...checkpointTicks()],[]);
       assert.equal(afterWorld.clock, ticks, "keys do not advance virtual time");
       assert.equal(afterWorld.paused, paused);
       if (input.code === 110 && ticks === 0) {
@@ -99,14 +114,14 @@ for (const envelope of envelopes) {
         assert.equal(endpoint(afterWorld).time, 0);
       }
     } else if (input.$ === "DefenseConsumerObserved.JevProfile") {
+      assert.deepEqual([...checkpointTicks()],[]);
       run.applyControl({ kind: "jevProfile", delayMs: 3200,
         outcomeWeights: { neverSent: 0, finding: .5, clear: 1, backendFailure: 0, timeout: 0, interrupted: 0 } });
     } else {
-      const history = list(checkpoint.ticks).map(readRecord);
-      assert.equal(history.length, input.count, "every actual Host tick retained");
-      for (const physical of history) {
+      for (const physical of checkpointTicks()) {
         const before = one(physical.before), after = one(physical.after);
         assert.equal(before.valid, true); assert.equal(after.valid, true);
+        compareNativeRuntime(before,run.runtimeSnapshot(),`campaign ${seed} tick ${ticks} before`);
         const publicPhysical = [], publicFrames = [];
         const unsubscribe = run.subscribeStructural(frame => {
           publicFrames.push(frame);
@@ -183,14 +198,10 @@ for (const envelope of envelopes) {
     assert.deepEqual(restored.observe(), run.observe(), "full ordinary replay at every game midpoint");
   }
 
-  assert.deepEqual(endpoint(one(readRecord(envelope.trace).world)), callbackPublicBoundary(run.observe(), [], []).endpoint);
+  // The final checkpoint after-world is the actual trace endpoint, checked above.
 }
-console.log("Full optional game consumer: native/emitted-JS/public histories and midpoint replay agree");
 
-} finally {
-  await cleanupNativePreflight(preflight);
-  pinKeys.forEach((key, index) => {
-    if (previousPins[index] === undefined) delete process.env[key];
-    else process.env[key] = previousPins[index];
-  });
-}
+assert.equal(batchIndex,streams.native.length,"no trailing or unknown campaign batches");
+assert.equal(retainedTicks,3222,"all original retained Host ticks");
+console.log("Full optional game consumer: native/emitted-JS/public histories and midpoint replay agree");
+} finally { streams.cleanup(); }
