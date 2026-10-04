@@ -907,8 +907,10 @@ export class Run {
   }
   private retainSourceJob(operation: number, item: Scheduled) {
     if (!item.job) throw new Error("operation source job is absent");
+    const sourceJob = item.driverSourceJob ?? this.jobs.get(operation)?.driverSourceJob;
     this.jobs.set(operation, freezeCanonicalData({ ...item.job,
-      ...(item.driverSourceJob === undefined ? {} : { driverSourceJob: item.driverSourceJob }) }));
+      ...(sourceJob === undefined ? {} : { driverSourceJob: sourceJob }) }));
+    return sourceJob;
   }
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
     const partition = this.core.commandScope(index, this.inputPartition(item));
@@ -1053,21 +1055,24 @@ export class Run {
     if (item.activityScope !== undefined && (item.input.kind === "canonical" ? item.generated && !this.core.activityEventValid(item.input.event, partition, item.activityScope) : item.input.kind !== "preparationGraph" && !this.core.activityValid(partition, item.activityScope))) {
       return this.step(untilTime);
     }
-    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture) => {
+    let emissionSourceJob = item.driverSourceJob;
+    let afterSourceJob = item.driverSourceJob;
+    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number, capture?: OutputCapture,
+      sourceJob = emissionSourceJob) => {
       this.event(partition, event, delay, job, expiryAdvice, "environment", capture);
       const queued = this.scheduled.get(this.order - 1);
       if (!queued) throw new Error("emission lost its original queued source");
-      if (item.driverSourceJob) queued.driverSourceJob = item.driverSourceJob;
+      if (sourceJob) queued.driverSourceJob = sourceJob;
       this.refreshCallbackPayload(queued);
     };
-    const emitDriver = (action: DriverAction, sourceJob?: Extract<RunInput, { kind: "edit" }>) => {
+    const emitDriver = (action: DriverAction, sourceJob?: Extract<RunInput, { kind: "edit" }>, driverSourceJob = emissionSourceJob) => {
       const context = undefined;
       this.event(partition, action.event, action.delay, action.job ? sourceJob : undefined,
         action.expiryAdvice, "environment", undefined, action, context);
-      if (item.driverSourceJob) {
+      if (driverSourceJob) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared Driver emission lost original source job");
-        scheduled.driverSourceJob = item.driverSourceJob;
+        scheduled.driverSourceJob = driverSourceJob;
         this.refreshCallbackPayload(scheduled);
       }
     };
@@ -1254,6 +1259,9 @@ export class Run {
         : undefined;
     for (const [commandIndex, command] of result.commands.entries()) {
       const driver = this.drive(event, command, commandIndex, item);
+      emissionSourceJob = driver.sourceJob;
+      if (afterSourceJob === undefined && driver.sourceJob !== undefined)
+        afterSourceJob = driver.sourceJob;
       const driven = driver.handled;
       const finish = this.core.stopFind(partition);
       switch (command.kind) {
@@ -1278,7 +1286,8 @@ export class Run {
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
-          this.retainSourceJob(command.id, item);
+          const sourceJob = this.retainSourceJob(command.id, item);
+          emissionSourceJob = sourceJob;
           if (this.config.lifecycles?.quietWindowMs)
             for (const action of this.core.quietCommand(event,commandIndex,partition,this.clock)) emit(action.event,action.delay);
           if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) {
@@ -1312,7 +1321,8 @@ export class Run {
             throw new Error(
               "unhandled required command: prepare lacks synthetic job",
             );
-          this.retainSourceJob(command.operation, item);
+          const sourceJob = this.retainSourceJob(command.operation, item);
+          emissionSourceJob = sourceJob;
           effects.push({
             kind: "preparation",
             phase: "started",
@@ -1549,8 +1559,9 @@ export class Run {
           break;
       }
     }
+    emissionSourceJob = afterSourceJob;
     for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      emitDriver(action, item.job);
+      emitDriver(action, item.job, afterSourceJob);
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find(w => w.operation === event.operation)?.parent;
       if (parent) this.jobs.delete(parent);
@@ -1588,8 +1599,13 @@ export class Run {
         request: event.request,
       });
     }
-    for (const action of this.core.collectorAfter())
+    for (const action of this.core.collectorAfter()) {
       this.event(partition,action.event,action.delay);
+      const queued = this.scheduled.get(this.order - 1);
+      if (!queued) throw new Error("collector-after emission lost its original source");
+      if (afterSourceJob) queued.driverSourceJob = afterSourceJob;
+      this.refreshCallbackPayload(queued);
+    }
     if (this.config.lifecycles?.quietWindowMs) {
       const actions=this.core.quietAfter(event,partition,this.clock,this.config.lifecycles.quietWindowMs,
         this.quietNativeIdle(partition),!this.hasFinish(partition));
