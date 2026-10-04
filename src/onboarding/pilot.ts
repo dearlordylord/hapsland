@@ -73,7 +73,7 @@ const setupCredentialComplete = (result: SetupResult): boolean =>
 const reportSetupCredential = (frame: PilotFrame, result: SetupResult, entered: boolean): boolean => {
   if (entered && stageStatus(result, "credential") === "complete")
     frame.ports.write(`Jev key saved in ${frame.options.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
-  frame.ports.write(`Credential: ${stageSummary(result, "credential")}. No paid verification or review was sent.\n`);
+  frame.ports.write(`Credential: ${stageSummary(result, "credential")}. No real verification or review was sent.\n`);
   if (setupCredentialComplete(result)) return true;
   writeSetupActions(result, frame.ports);
   frame.ports.exitCode(result.status === "partial" ? 5 : 6);
