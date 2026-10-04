@@ -2,8 +2,8 @@ import { expect, it } from "vitest";
 import { readBendList, readRecord } from "../../../src/canonical/boundary-schema.ts";
 import { runWorkloadNative, runWorkloadEmitted } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import { decodeNativePrefix } from "./callback-native-prefix.ts";
-import { compareOriginalWaitingStopTrace } from "./stop-native-boundary.ts";
-import { originalWaitingStopPublic } from "./stop-original-public.fixture.ts";
+import { compareOriginalWaitingStopTrace, compareOriginalStopFamilyTrace } from "./stop-native-boundary.ts";
+import { originalWaitingStopPublic, originalStopPublicCases } from "./stop-original-public.fixture.ts";
 
 const bendList = (values: readonly unknown[]): unknown => values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
 const none = { $: "None" };
@@ -52,3 +52,56 @@ it("compares original waiting Stop full native/emitted/public/replay boundaries"
     compareOriginalWaitingStopTrace(envelope, expected);
   }
 }, 120000);
+
+// Independently frozen native declarations for the original eleven cases.
+// None describes an omitted edit override, independently of configured result.
+function originalNativeFamilyInputs() {
+  const some = (value: unknown) => ({ $: "Some", value });
+  const edit = (at: number, agent: unknown = none, outcome: unknown = none) => ({ $: "stop_original_inputs.Edit", at, agent, bytes: 10, units: bendList([5]), outcome });
+  const finish = (at: number, agent: unknown = none, recurring = false) => ({ $: "stop_original_inputs.Finish", at, agent, recurring });
+  const advance = (endpoint: number, budget = 100) => ({ $: "stop_original_inputs.Advance", endpoint, budget });
+  const profile = (seed: number, codes: readonly number[]) => ({ $: "Workload.Profile", settings: {
+    $: "Session.Settings", interval: 1000000, variation: 0, edits: 1000, pause: 500, response: 0, repairDelay: 300 },
+    seed, codes: bendList(codes), bytes: 100, units: bendList([100]), duration: none });
+  const backgroundProfile = profile(7,[97,103,101,110,116,45,49]);
+  const base = originalNativeInput();
+  const finding = some({ $: "Canonical.RequestFinding" }), clear = some({ $: "Canonical.RequestClear" });
+  const configured = (changes: object) => ({ ...base.configuration, ...changes });
+  const scenario = (configuration: typeof base.configuration, inputs: readonly unknown[], boundaries: readonly unknown[]) => ({ $: "stop_original_inputs.Scenario", configuration, inputs: bendList(inputs), boundaries: bendList(boundaries) });
+  const backgroundConfiguration = (output: string, global: unknown = finding, finishWait = 10) => configured({
+    advicees: bendList([{ $: "stop_original_inputs.Advicee", agent: "agent-1", identity: 1, agent_seed: 7, workload: some(backgroundProfile) }]),
+    jev_delay: 5, finish_wait: finishWait, output: { $: output }, output_delay: 9, output_lease: 20,
+    outcomes: { ...base.configuration.outcomes, outcome: global },
+  });
+  const poll = (at: number, deadline: boolean) => ({ $: "stop_original_inputs.Schedule", input: {
+    $: "stop_original_inputs.CanonicalInput", at, event: { $: "Canonical.StopGroupPolled", group: 1, lifetime: 1, round: 1,
+      scopes: bendList([{ $: "Canonical.StopScope", partition: 1, round: 1 }]), deadline, extra_pending: false, continuations: 0 } } });
+  return [base,
+    scenario(configured({ jev_delay: 9 }),[edit(0),finish(3)],[advance(3),advance(11),advance(20)]),
+    scenario(configured({ jev_delay: 10 }),[edit(0),finish(3)],[advance(3),advance(11),advance(20)]),
+    scenario(configured({ jev_delay: 1, preparation_delay: 12, finish_wait: 2 }),[edit(0),finish(1)],[advance(1),advance(3),advance(20)]),
+    scenario(base.configuration,[finish(0),finish(1)],[advance(0,1),advance(1,1)]),
+    scenario(base.configuration,[edit(0),finish(3),finish(3)],[advance(3),advance(10),advance(20)]),
+    scenario(backgroundConfiguration("OutputScenario.Certain"),[edit(0),finish(8)],[advance(7),advance(8),advance(16),advance(40)]),
+    scenario(backgroundConfiguration("OutputScenario.Uncertain"),[edit(0),finish(8)],[advance(7),advance(8),advance(16),advance(40)]),
+    scenario(configured({ advicees: bendList([{ $: "stop_original_inputs.Advicee", agent: "agent-1", identity: 1, agent_seed: 7, workload: some(backgroundProfile) }]) }),[finish(0,none,true)],[advance(0,1),advance(1,1)]),
+    scenario(backgroundConfiguration("OutputScenario.Certain",none,200),[edit(0,none,finding)],[advance(7),poll(8,false),advance(8),poll(9,true),advance(9),advance(20)]),
+    scenario(configured({ advicees: bendList([
+      { $: "stop_original_inputs.Advicee", agent: "a", identity: 1, agent_seed: 7, workload: some(profile(7,[97])) },
+      { $: "stop_original_inputs.Advicee", agent: "b", identity: 2, agent_seed: 2654435768, workload: some(profile(2654435768,[98])) },
+    ]), jev_delay: 5, finish_wait: 10, output: { $: "OutputScenario.Certain" }, output_delay: 9, output_lease: 20,
+      outcomes: { ...base.configuration.outcomes, outcome: none } }),
+    [edit(0,some("a"),clear),edit(0,some("b"),finding),finish(8,some("a"))],[advance(7,200),advance(8,200),advance(20,200)]),
+  ];
+}
+
+// Same finite105s compiler/runtime phase sum plus15s cleanup as first waiting;
+// the scenario family increases assertions, not individual execution limits.
+it("compares all eleven original Stop full native/emitted/public/replay scenarios", () => {
+  const fixture = new URL("../../monkey-business-bend/conformance/stop-original-scenarios.bend",import.meta.url);
+  const expected = originalStopPublicCases(), frozen = originalNativeFamilyInputs();
+  const native = runWorkloadNative(fixture), emitted = runWorkloadEmitted(fixture), independentlyEmitted = runWorkloadEmitted(fixture);
+  expect(native).toEqual(emitted);
+  expect(independentlyEmitted).toEqual(emitted);
+  for (const result of [native,emitted,independentlyEmitted]) compareOriginalStopFamilyTrace(decodeNativePrefix(result,"stop_scenarios"),expected,frozen);
+},120000);
