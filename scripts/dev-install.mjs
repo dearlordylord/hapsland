@@ -23,6 +23,16 @@ const run = (command, commandArgs, stdio = "inherit") => {
   if (result.status !== 0) throw Object.assign(new Error(`${command} ${commandArgs[0]} failed`), { exitCode: result.status ?? 1 });
   return result.stdout;
 };
+const stage = async (label, work) => {
+  const started = Date.now();
+  process.stdout.write(`${label}...\n`);
+  const timer = setInterval(() => process.stdout.write(`${label}: still running (${Math.round((Date.now() - started) / 1000)}s)\n`), 10_000);
+  try { return await work(); }
+  finally {
+    clearInterval(timer);
+    process.stdout.write(`${label}: finished in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
+  }
+};
 const root = process.cwd();
 const cache = devCacheDirectory(root);
 const toolVersion = (command, args) => {
@@ -52,7 +62,7 @@ try {
       run("npm", ["run", "build"]);
       run("npm", ["run", "verify:release-native"]);
       const destination = mkdtempSync(join(cache, "pack-"));
-      const packed = JSON.parse(run("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", destination], "pipe"));
+      const packed = await stage("Packing local development archive", () => JSON.parse(run("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", destination], "pipe")));
       if (!Array.isArray(packed) || packed.length !== 1 || packed[0].name !== "@hapsland/hapsland") throw new Error("pack did not produce a Hapsland archive");
       archive = resolve(destination, packed[0].filename);
       let currentInputs;
@@ -62,7 +72,7 @@ try {
       }
       writeDevCandidate(cache, identity, archive);
     }
-    return await Effect.runPromise(stageRelease({ kind: "archive", path: archive }));
+    return await stage("Checking installed snapshot / installing local archive", () => Effect.runPromise(stageRelease({ kind: "archive", path: archive })));
   });
 } catch (error) {
   process.stderr.write(`${error.message}\n`);
@@ -72,5 +82,6 @@ const snapshotPath = join(candidate.prefix, "snapshot.json");
 const snapshot = JSON.parse(readFileSync(snapshotPath, "utf8"));
 writeFileSync(snapshotPath, JSON.stringify({ ...snapshot, commit: run("git", ["rev-parse", "HEAD"], "pipe").trim(), dirty: run("git", ["status", "--porcelain"], "pipe").trim() !== "" }, null, 2) + "\n", { mode: 0o600 });
 process.stdout.write(`Local candidate ${candidate.packageVersion}: ${candidate.executable}\nRetained archive: ${candidate.identity.archive}\n`);
+process.stdout.write("Starting Hapsland setup...\n");
 try { run(candidate.executable, update ? ["update", host, `--target=${candidate.executable}`, ...forwarded] : ["setup", host, ...(newKey ? ["--new-key"] : []), ...forwarded]); }
 catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = error.exitCode ?? 1; }
