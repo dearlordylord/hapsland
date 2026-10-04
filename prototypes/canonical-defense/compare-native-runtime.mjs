@@ -296,7 +296,7 @@ export function compareNativeFrames(values, publicFrames, field) {
   assert.equal(frames.length,comparable.length,`${field} all canonical/graph observations`);
   const nativeByPublic = new Map(comparable.map((frame,index) => [frame,frames[index]]));
   for (const [index,frame] of frames.entries()) {
-    const actual = comparable[index], details = readRecord(frame.details), transition = readRecord(actual.transition);
+    const actual = comparable[index], details = readRecord(frame.details), transition = readRecord(actual.transition), core = one(details.before.core);
     compareNativeRuntime(details.before,actual.before,`${field} frame ${index} before`);
     compareNativeRuntime(details.after,actual.after,`${field} frame ${index} after`);
     assert.equal(frame.time,actual.time,`${field} frame ${index} exact clock`);
