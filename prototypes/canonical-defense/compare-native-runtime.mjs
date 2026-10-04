@@ -175,7 +175,10 @@ function comparePayload(value, publicItem, field, order, core) {
       if (active === undefined) assert.equal(publicItem.job,undefined,`${field} no active binding ${order}`);
       else if (input.$ === "NativeRunTypes.FinishInput" && publicItem.job === undefined)
         compareFinishInputJob(active,publicItem,core,field,order,input.attempt);
-      else compareJob(active,publicItem.job,`${field} active binding ${order}`);
+      else compareJob(active,publicItem.job === undefined ? undefined : {
+        ...publicItem.job,
+        driverSourceJob: publicItem.job.driverSourceJob ?? publicItem.driverSourceJob,
+      },`${field} active binding ${order}`);
       const source = input.$ === "NativeRunTypes.Event" ? option(input.source_job) : undefined;
       assert.deepEqual(source === undefined ? undefined : sourceJob(source),publicItem.driverSourceJob,`${field} source binding ${order}`);
       compareContext(input.context,publicItem,`${field} item ${order}`);
