@@ -11,7 +11,7 @@ def environment(config: T.Config) -> T.Environment:
   match config:
     case T.Config{_,_,value,_}: value
 def state() -> T.State:
-  T.State{[Engine.initial(Ledger.Limits{2n,100n,2n,100n})],[],9n,7n,0n,environment(Consumer.config()),[],True{},[]}
+  T.State{[Engine.initial(Ledger.Limits{2n,100n,2n,100n})],[],9n,7n,0n,environment(Consumer.config()),[],True{},[],[]}
 def world() -> M.World:
   M.World{[state()],4,False{},0,0,160,100,[],[],True{},0,0,0,0,[M.initial_control()],0,0,0,0,0}
 law retained_damage: {M.engine(H.damage(world())) == state() : T.State}

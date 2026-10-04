@@ -182,7 +182,7 @@ def count_frames(frames: List<&2,T.Frame>, +kind: U32) -> U32:
     case frame <> rest: (observed_count(frame,kind) + count_frames(rest,kind) : U32)
 def consumed(+world: M.World, advanced: T.Advanced) -> M.World:
   match world advanced:
-    case M.World{_,+t,p,l,c,+g,h,ts,_,a,+o,r,+cl,+d,auto,x,y,selected,work,flash} T.Advanced{+state,+frames}:
+    case M.World{_,+t,p,l,c,+g,h,ts,_,a,+o,r,+cl,+d,auto,x,y,selected,work,flash} T.Advanced{+state,+frames,_}:
       +delivered = count_frames(frames,0)
       +next = M.with_engine(world,state)
       M.World{[state],(t + 1 : U32),p,l,c,(g + delivered * 5 : U32),h,ts,E.refresh(next,M.core(next),(o + count_frames(frames,1) : U32)),a,
@@ -198,22 +198,22 @@ def refined_weights() -> List<&2,Numeric.Words>:
 def refinement(+world: M.World) -> M.World:
   Bool.pick(M.World,refiner_fired(M.towers(world)),action(world,T.JevProfile{3200n,refined_weights()}),world)
 type TickObserved is Data:
-  TickObserved{world: M.World, frames: List<&2,T.Frame>}
+  TickObserved{world: M.World, frames: List<&2,T.Frame>, physical: List<&2,T.PhysicalDelivery>}
 def tick_applied(world: M.World, advanced: T.Advanced) -> TickObserved:
   match advanced:
-    case T.Advanced{state,+frames}:
-      TickObserved{damage(refinement(E.shoot_world(consumed(world,T.Advanced{state,frames})))),frames}
+    case T.Advanced{state,+frames,+physical}:
+      TickObserved{damage(refinement(E.shoot_world(consumed(world,T.Advanced{state,frames,physical})))),frames,physical}
 def ticking_observed(+world: M.World) -> TickObserved:
   tick_applied(world,Run.advance(M.engine(world),256n,(U32.to_nat(M.time(world)) * 20n + 20n : Nat)))
 def tick_when(active: Bool,world: M.World) -> TickObserved:
   match active:
     case True{}: ticking_observed(world)
-    case False{}: TickObserved{world,Nil{}}
+    case False{}: TickObserved{world,Nil{},Nil{}}
 def tick_observed(+world: M.World) -> TickObserved:
   tick_when(Bool.not(M.paused(world)),world)
 def tick_world(observed: TickObserved) -> M.World:
   match observed:
-    case TickObserved{world,_}: world
+    case TickObserved{world,_,_}: world
 def ticking(world: M.World) -> M.World:
   tick_world(ticking_observed(world))
 def tick(world: M.World) -> M.World:

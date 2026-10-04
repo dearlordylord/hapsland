@@ -12,7 +12,7 @@ type Input is Data:
   Ticks{count: Nat}
   JevProfile{delay: Nat, weights: List<&2,Numeric.Words>}
 type TickSnapshot is Data:
-  TickSnapshot{before: List<&2,T.State>, after: List<&2,T.State>, frames: List<&2,T.Frame>}
+  TickSnapshot{before: List<&2,T.State>, after: List<&2,T.State>, frames: List<&2,T.Frame>, physical: List<&2,T.PhysicalDelivery>}
 type Checkpoint is Data:
   Checkpoint{input: Input, before: List<&2,M.World>, after: List<&2,M.World>, ticks: List<&2,TickSnapshot>}
 type Trace is Data:
@@ -26,8 +26,8 @@ type TickTrace is Data:
 def tick_next(before: List<&2,T.State>, observed: H.TickObserved,
     ticks: List<&2,TickSnapshot>, rest: List<&2,M.World> -> List<&2,TickSnapshot> -> TickTrace) -> TickTrace:
   match observed:
-    case H.TickObserved{+world,frames}:
-      rest([world],TickSnapshot{before,M.engine_box(world),frames} <> ticks)
+    case H.TickObserved{+world,frames,physical}:
+      rest([world],TickSnapshot{before,M.engine_box(world),frames,physical} <> ticks)
 
 def tick_box(+worlds: List<&2,M.World>, ticks: List<&2,TickSnapshot>,
     rest: List<&2,M.World> -> List<&2,TickSnapshot> -> TickTrace) -> TickTrace:
