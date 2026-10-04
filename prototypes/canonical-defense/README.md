@@ -6,6 +6,10 @@
 **Expected use:** Build spatial towers and inspect continuous review activity in a separate engine instance.
 **Lifecycle:** At the owner's game-layout selection, consolidate accepted mechanics into the game owner, update inbound links, and delete rejected variants and obsolete evidence. Review this guide when shared engine controls or native rendering change.
 
+The [performance experiment journal](performance-experiments.md) records the
+bounded compiler and runtime investigation, completed experiments, and remaining
+measurements. Its results do not replace the full consumer comparison.
+
 Run `./prototypes/canonical-defense/run.sh` with Bend and native graphics prerequisites installed. **1–7** choose towers; click ground to build, click a tower to select, **U** upgrades. **Space/P** pauses virtual time, **N/Enter** submits a generic workload burst, **A** suspends or resumes future recurring arrivals, and **[/]** changes their pace. **R** resets this game instance; **Escape** closes the window. Tab changes an uninvested empty map.
 
 There are no authored waves or completion quota. The game stores a boxed `NativeRunTypes.State` and calls `NativeRun.create`, `advance`, `control`, and `observe`. The shared engine owns generated tasks, preparation/import graphs, Jev effects, Stop, collection and output. It continues the same resident across tasks. The game supplies a separate wall-clock endpoint every20ms; engine observation time remains the last actual transition. Dashboard and game instances do not share state or networking.
