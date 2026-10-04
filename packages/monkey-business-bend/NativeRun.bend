@@ -388,7 +388,7 @@ def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonica
     case _: state
 
 def queued_action(valid: Bool, +state: T.State, +time: Nat, +action: Driver.Action,
-    job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
+    +job: Maybe<&2,T.Job>, source: Maybe<&2,T.EmissionContext>, capture: Maybe<&2,OutputScenario.Capture>) -> T.State:
   match valid:
     case True{}: callback_register(enqueue(state,time,T.Event{action,active_job(action,job),source,original_source(job)}),next_order(state),time,action,capture)
     case False{}: invalid(state)
