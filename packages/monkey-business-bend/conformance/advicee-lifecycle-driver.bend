@@ -261,7 +261,7 @@ def sync(items: List<&2, Item>, state: Types.State, +synced: Nat) -> Types.State
 def configured() -> Types.State:
   Engine.configure_workload(Engine.configure_workload(declared(Engine.declare_advicee(
     declared(Engine.declare_advicee(Engine.configure_seed(Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), 7n),
-      Nat.add(U32.to_nat(4294967295), 18n), 11)), 99n, 12)),
+      Nat.add(U32.to_nat(4294967295), 18n), 11n)), 99n, 12n)),
     1n, profile(11, 10n, [5n])), 2n, profile(12, 20n, [7n]))
 
 

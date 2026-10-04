@@ -330,7 +330,7 @@ def initial_emitted(result: Engine.WorkloadTransition) -> Runtime:
 
 def initial() -> Runtime:
   initial_emitted(Engine.workload_action(Engine.configure_workload(
-    Edge.declared(Engine.declare_advicee(Engine.configure_seed(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),7n),1n,7)),1n,
+    Edge.declared(Engine.declare_advicee(Engine.configure_seed(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),7n),1n,7n)),1n,
     Workload.Profile{Session.Settings{1000000,0,1000,500,0,300},7,[97,103,101,110,116,45,49],100n,[100n],None{}}),1n,Workload.Next{}))
 
 def run(outcome: Output.Outcome, +delay: Nat, +lease: Nat) -> Trace:

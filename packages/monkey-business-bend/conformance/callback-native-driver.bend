@@ -38,7 +38,7 @@ def declared(result: Engine.AdviceeDeclared) -> Types.State:
     case Engine.AdviceeDeclared{state, _, _}: state
 
 def initial() -> Runtime:
-  Runtime{[declared(Engine.declare_advicee(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),7n,11))],
+  Runtime{[declared(Engine.declare_advicee(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),7n,11n))],
     Minimal.Queue{[Minimal.Item{0n,0n,Minimal.Edit{}}],1n,0n},0n,[]}
 
 # The late-PRE original includes a labelled quiet session. Shared Workload
@@ -60,7 +60,7 @@ def labeled_task(result: Engine.WorkloadTransition) -> Runtime:
 
 def initial_labeled() -> Runtime:
   labeled_task(Engine.workload_action(Engine.configure_workload(
-    declared(Engine.declare_advicee(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),1n,11)),1n,
+    declared(Engine.declare_advicee(Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),1n,11n)),1n,
     Workload.Profile{Session.Settings{1000000,0,1000,500,0,300},11,[112],10n,[5n],None{}}),1n,Workload.Next{}))
 
 def event_action(input: Minimal.Input) -> Maybe<&2, Driver.Action>:

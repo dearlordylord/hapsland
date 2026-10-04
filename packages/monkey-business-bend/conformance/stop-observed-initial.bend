@@ -28,11 +28,15 @@ def find(agents: List<&2,Agent>, +requested: String) -> Maybe<&2,Agent>:
     case +head <> tail:
       selected(String.eq(name(head),requested),head,find(tail,requested))
 
-def agent(agents: List<&2,Agent>, name: Maybe<&2,String>) -> Maybe<&2,Agent>:
-  match name agents:
-    case Some{name} agents: find(agents,name)
-    case None{} head <> _: Some{head}
-    case None{} Nil{}: None{}
+def first_agent(agents: List<&2,Agent>) -> Maybe<&2,Agent>:
+  match agents:
+    case head <> _: Some{head}
+    case Nil{}: None{}
+
+def agent(agents: List<&2,Agent>, requested: Maybe<&2,String>) -> Maybe<&2,Agent>:
+  match requested:
+    case Some{requested}: find(agents,requested)
+    case None{}: first_agent(agents)
 
 def configured(state: Types.State, p: Nat, profile: Maybe<&2,Workload.Profile>) -> Types.State:
   match profile:
