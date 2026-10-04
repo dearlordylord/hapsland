@@ -1118,14 +1118,19 @@ export class Run {
             this.enqueue(input);
         return this.step(untilTime);
       }
-      item.driverSourceJob = freezeCanonicalData({ partition, lifetime: this.core.activityLifetime(partition),
+      item.driverSourceJob ??= freezeCanonicalData({ partition, lifetime: this.core.activityLifetime(partition),
         bytes: item.input.bytes, units: [...item.input.unitBytes],
         outcome: item.input.outcome === undefined ? { $: "None" } : { $: "Some", value: encodeDriverOutcome(item.input.outcome) } });
       const permits = this.permitsEnabled;
       if (!round && !permits) {
         const plan = readRecord(this.core.activityEdit(partition, item.activityScope ?? 1));
         for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emitDriver(action, item.input);
-        if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input, undefined, item.activityScope);
+        if (readBool(plan.retry)) {
+          this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input, undefined, item.activityScope);
+          const retry = this.scheduled.get(this.order - 1);
+          if (!retry) throw new Error("original Edit retry lost its issued queue entry");
+          retry.driverSourceJob = item.driverSourceJob;
+        }
         return this.step(untilTime);
       }
       if (this.config.lifecycles?.reuse && "revision" in item.input && !("evaluationInputs" in item.input)) {

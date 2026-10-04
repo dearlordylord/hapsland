@@ -119,6 +119,9 @@ function compareRuntime(value: unknown, source: RunRuntimeSnapshot, field: strin
       const units = emission.units.reduceRight<unknown>((tail,head) => ({ $: "Con", head, tail }),{ $: "Nil" });
       same(input.event,{ ...emission, units },`${field} item ${order} complete original Workload emission`);
       same(input.lifetime,publicItem.activityScope ?? 1,`${field} item ${order} original Arrival activity fence`);
+    } else if (input.$ === "advicee_lifecycle_driver.Edit") {
+      if (publicItem.input.kind !== "edit") throw new TypeError("native Edit retry changed original public input kind");
+      compareJob(input.job,publicItem.driverSourceJob,`${field} item ${order} original retry job`);
     } else if (input.$ === "advicee_lifecycle_driver.SourceEdit") {
       if (publicItem.input.kind !== "edit") throw new Error("native original edit changed public input kind");
       const job = input;
