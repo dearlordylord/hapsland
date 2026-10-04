@@ -52,7 +52,7 @@ def appended_orders(items: List<&2,Edge.Item>, +cutoff: Nat) -> List<&2,Nat>:
 
 def provided(job: Maybe<&2,Edge.Job>) -> Maybe<&2,Nat>:
   match job:
-    case Some{Edge.Job{p,_,_,_,_}}: Some{p}
+    case Some{job}: Some{Edge.job_partition(job)}
     case None{}: None{}
 
 def frame_scopes(frame: Edge.ObservedFrame, context: Maybe<&2,Nat>) -> Maybe<&2,List<&2,Maybe<&2,Nat>>>:

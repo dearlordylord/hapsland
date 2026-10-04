@@ -13,11 +13,11 @@ def environment(config: T.Config) -> T.Environment:
 
 def state() -> T.State:
   T.State{[Engine.stop_with(Engine.initial(Ledger.Limits{2n, 100n, 2n, 100n}),StopScenario.State{[],1n})], [], 9n, 7n, 0n,
-    environment(Trace.original_config()), [], True{}, []}
+    environment(Trace.original_config()), [], True{}, [],[]}
 
 def proposed() -> T.State:
   T.State{[Engine.stop_with(Engine.initial(Ledger.Limits{2n, 100n, 2n, 100n}),StopScenario.State{[],1n})], [], 10n, 8n, 0n,
-    environment(Trace.original_config()), [], True{}, []}
+    environment(Trace.original_config()), [], True{}, [],[]}
 
 def weights() -> List<&2, Numeric.Words>:
   Trace.weights()
