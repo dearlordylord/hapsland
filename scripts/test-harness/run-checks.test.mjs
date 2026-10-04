@@ -1,6 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,11 +80,12 @@ test("deadline terminates a child, persists failure, and admits no later work", 
 
 test("exclusive full gate fails immediately; valid nested test shares records", async t => {
   const root = await fixture(t);
-  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, inherited: undefined, output() {} });
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, inherited: undefined, scope: "parent-scope", output() {} });
   await assert.rejects(createRun({ root, mode: "test", timeoutMs: 30_000, inherited: undefined, output() {} }), /already owns/);
-  const nested = await createRun({ root, mode: "test", timeoutMs: 30_000, inherited: JSON.stringify(run.context), output() {} });
+  const nested = await createRun({ root, mode: "test", timeoutMs: 30_000, inherited: JSON.stringify(run.context), scope: "child-scope", output() {} });
   await nested.runStage(command("nested", "process.exit(0)"));
   assert.equal(await nested.finish(), 0);
+  assert.equal(JSON.parse(await readFile(join(run.runDirectory, "manifest.json"), "utf8")).scope, "parent-scope");
   await assert.rejects(createRun({ root, mode: "test", timeoutMs: 30_000, inherited: JSON.stringify({ ...run.context, token: "wrong" }), output() {} }), /not active/);
   assert.equal(await run.finish(), 0);
   const after = await createRun({ root, mode: "test", timeoutMs: 30_000, inherited: undefined, output() {} });
@@ -140,8 +142,8 @@ test("failure events are surfaced during the run and retained in the final resul
 
 test("real quality parent remains running while nested test can finish successfully", async t => {
   const root = await fixture(t);
-  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} });
   const modulePath = fileURLToPath(new URL("./run-checks.mjs", import.meta.url));
+  const run = await createRun({ root, mode: "quality", timeoutMs: 30_000, output() {} });
   const childProgram = `
     const { createRun } = await import(${JSON.stringify(modulePath)});
     const context = JSON.parse(process.env.HAPSLAND_CHECK_CONTEXT);
@@ -155,4 +157,54 @@ test("real quality parent remains running while nested test can finish successfu
   assert.equal(await run.finish(), 0);
   const results = await stageResults(run.runDirectory);
   assert.deepEqual(results.map(result => result.state), ["passed", "passed"]);
+});
+
+
+test("CLI records focused scope without forwarding it and reports different commits informationally", async t => {
+  const root = await fixture(t);
+  execFileSync("git", ["init", "-q", root]);
+  execFileSync("git", ["-C", root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-qm", "first"]);
+  const first = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  await mkdir(join(root, "node_modules", ".bin"), { recursive: true });
+  await writeFile(join(root, "one.test.ts"), "");
+  const tool = join(root, "node_modules", ".bin", "vitest");
+  await writeFile(tool, `#!${process.execPath}
+require('node:assert/strict').deepEqual(process.argv.slice(2), ['run', '--maxWorkers=1', 'one.test.ts']);
+`);
+  await chmod(tool, 0o755);
+  const cli = args => execFileSync(process.execPath, ["--input-type=module", "-e", `import { main } from ${JSON.stringify(new URL("./run-checks.mjs", import.meta.url).href)}; process.exitCode = await main(${JSON.stringify(args)}, ${JSON.stringify(root)});`], { encoding: "utf8", timeout: 10000 });
+  cli(["focused", "--scope=original-output", "one.test.ts", "--timeout-ms=5000"]);
+  const { id } = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8"));
+  const manifest = JSON.parse(await readFile(join(root, ".test-runs", id, "manifest.json"), "utf8"));
+  assert.equal(manifest.scope, "original-output");
+  assert.equal(manifest.sourcePin, first);
+  assert.deepEqual(manifest.selectedTestFiles, ["one.test.ts"]);
+  execFileSync("git", ["-C", root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-qm", "identical tree, different commit"]);
+  const output = cli(["status", id]);
+  assert.match(output, /different commit \(informational; not a source failure or acceptance verdict\)/);
+  assert.match(output, /original-output/);
+  const status = JSON.parse(cli(["status", id, "--json"]));
+  assert.equal(status.state, "passed");
+  assert.equal(status.differentCommit, true);
+  assert.equal(status.sourcePin, first);
+  assert.equal(status.sourceDigest, null);
+  const qualityTool = join(root, "node_modules", ".bin", "crap4ts");
+  await writeFile(qualityTool, `#!${process.execPath}\nprocess.exit(0);\n`);
+  await chmod(qualityTool, 0o755);
+  cli(["quality", "--scope=quality-slice", "--timeout-ms=5000"]);
+  const qualityId = JSON.parse(await readFile(join(root, ".test-runs", "latest.json"), "utf8")).id;
+  const qualityManifest = JSON.parse(await readFile(join(root, ".test-runs", qualityId, "manifest.json"), "utf8"));
+  assert.match(qualityManifest.sourceDigest, /^[a-f0-9]{64}$/);
+  assert.equal(qualityManifest.scope, "quality-slice");
+  const records = await import("node:fs/promises").then(fs => fs.readdir(join(root, ".test-runs", qualityId)));
+  const inputs = JSON.parse(await readFile(join(root, ".test-runs", qualityId, records.find(name => name.startsWith("inputs-"))), "utf8"));
+  assert.equal(inputs.sourceDigest, qualityManifest.sourceDigest);
+  delete manifest.sourcePin;
+  delete manifest.scope;
+  delete manifest.selectedTestFiles;
+  await writeFile(join(root, ".test-runs", id, "manifest.json"), JSON.stringify(manifest));
+  const oldStatus = JSON.parse(cli(["status", id, "--json"]));
+  assert.equal(oldStatus.sourcePin, null);
+  assert.equal(oldStatus.scope, null);
+  assert.equal(oldStatus.state, "passed");
 });

@@ -1,10 +1,17 @@
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir, readFile, writeFile, rename, open, unlink, readdir, stat } from "node:fs/promises";
+import { promisify } from "node:util";
 import { randomBytes } from "node:crypto";
 import { resolve, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { precheckStages } from "./check-stages.mjs";
+
+const executeFile = promisify(execFile);
+async function gitHead(root) {
+  try { return (await executeFile("git", ["-C", root, "rev-parse", "HEAD"], { timeout: 5000 })).stdout.trim(); }
+  catch { return null; }
+}
 
 const defaultRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const contextVariable = "HAPSLAND_CHECK_CONTEXT";
@@ -38,10 +45,14 @@ export async function showStatus(root, id, json = false) {
   const status = await readJson(join(runDirectory, "status.json"));
   const stages = await stageResults(runDirectory);
   const testFailures = await failures(runDirectory);
-  if (json) console.log(JSON.stringify({ ...status, runDirectory, stages, failures: testFailures }, null, 2));
+  const manifest = await readJson(join(runDirectory, "manifest.json")).catch(error => { if (error.code === "ENOENT") return {}; throw error; });
+  const currentHead = await gitHead(root);
+  const identity = { scope: manifest.scope ?? null, sourcePin: manifest.sourcePin ?? null, sourceDigest: manifest.sourceDigest ?? null, selectedTestFiles: manifest.selectedTestFiles ?? [], currentHead, differentCommit: Boolean(manifest.sourcePin && currentHead && manifest.sourcePin !== currentHead) };
+  if (json) console.log(JSON.stringify({ ...status, ...identity, runDirectory, stages, failures: testFailures }, null, 2));
   else {
     const elapsed = status.state === "running" ? Date.now() - Date.parse(status.startedAt) : status.elapsedMs;
     console.log(`RUN ${runId} ${status.state}; ${(elapsed / 1000).toFixed(1)}s; records ${runDirectory}`);
+    console.log(`Scope: ${identity.scope ?? "unrecorded"}; source pin: ${identity.sourcePin ?? "unrecorded"}; current HEAD: ${currentHead ?? "unavailable"}${identity.differentCommit ? "; different commit (informational; not a source failure or acceptance verdict)" : ""}`);
     for (const stage of stages) {
       const milliseconds = stage.state === "running" ? Date.now() - Date.parse(stage.startedAt) : stage.elapsedMs;
       console.log(`${stage.state.toUpperCase()} ${stage.name} ${(milliseconds / 1000).toFixed(2)}s; exit ${stage.exitCode ?? "none"}; ${stage.logPath ?? stage.error ?? "no process launched"}`);
@@ -57,7 +68,7 @@ export async function showStatus(root, id, json = false) {
   return status;
 }
 
-export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited, output = console.log }) {
+export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited, scope, selectedTestFiles, output = console.log }) {
   const runsRoot = join(root, ".test-runs");
   await mkdir(runsRoot, { recursive: true });
   let context;
@@ -93,7 +104,7 @@ export async function createRun({ root = defaultRoot, mode, timeoutMs, inherited
     const plannedStages = mode === "test"
       ? ["source-identity", ...precheckStages.map(stage => stage[0]), "package-build", "package-pack", "vitest"]
       : mode === "quality" ? ["source-identity", "quality"] : [mode];
-    await atomicJson(join(runDirectory, "manifest.json"), { ...context, mode, startedAt, plannedStages, skippedStages: [] });
+    await atomicJson(join(runDirectory, "manifest.json"), { ...context, mode, startedAt, plannedStages, skippedStages: [], sourcePin: await gitHead(root), ...(scope === undefined ? {} : { scope }), ...(selectedTestFiles === undefined ? {} : { selectedTestFiles }) });
     await atomicJson(join(runsRoot, "latest.json"), { id: context.id });
     await atomicJson(join(runDirectory, "status.json"), { id: context.id, mode, state: "running", startedAt, deadline: context.deadline, pid: process.pid });
   }
@@ -283,16 +294,21 @@ export async function main(argv = process.argv.slice(2), root = defaultRoot) {
   const timeoutArg = raw.find(arg => arg.startsWith("--timeout-ms="));
   const timeoutMs = timeoutArg ? Number(timeoutArg.split("=")[1]) : mode === "focused" ? 300_000 : 1_500_000;
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 86_400_000) throw new Error("Timeout must be positive and at most one day");
-  const args = raw.filter(arg => arg !== "--" && arg !== timeoutArg);
+  const scopeArgs = raw.filter(arg => arg.startsWith("--scope="));
+  if (scopeArgs.length > 1 || scopeArgs.some(arg => !arg.slice(8).trim())) throw new Error("Scope must be one nonempty label");
+  const scope = scopeArgs[0]?.slice(8);
+  const args = raw.filter(arg => arg !== "--" && arg !== timeoutArg && !scopeArgs.includes(arg));
   if (mode === "test" && args.some(arg => arg !== "--coverage")) throw new Error("Full test accepts --coverage only; use focused for file selection.");
   if (mode === "quality" && args.length) throw new Error("Quality does not accept test-selection arguments");
   const selection = mode === "focused" ? await focusedSelection(root, args) : undefined;
   const { sourceIdentity, prepareArchive } = await import("./prepare-archive.mjs");
-  const run = await createRun({ root, mode, timeoutMs, inherited: process.env[contextVariable] });
+  const run = await createRun({ root, mode, timeoutMs, inherited: process.env[contextVariable], scope, selectedTestFiles: selection ? [...selection.nodeFiles, ...selection.vitestFiles] : undefined });
   let sourceDigest;
   try {
     sourceDigest = mode === "focused" ? undefined : await sourceIdentity(root);
-    await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), { sourceDigest });
+    const manifest = await readJson(join(run.runDirectory, "manifest.json"));
+    await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), { sourceDigest, sourcePin: await gitHead(root), ...(scope === undefined ? {} : { scope }), ...(selection ? { selectedTestFiles: [...selection.nodeFiles, ...selection.vitestFiles] } : {}) });
+    if (!process.env[contextVariable]) await atomicJson(join(run.runDirectory, "manifest.json"), { ...manifest, ...(sourceDigest === undefined ? {} : { sourceDigest }) });
   } catch (error) {
     await run.recordFailedStage({ name: "source-identity", error, reason: "source-identification-failed" });
     await atomicJson(join(run.runDirectory, `inputs-${process.pid}.json`), { sourceIdentityError: error instanceof Error ? error.message : String(error) });
