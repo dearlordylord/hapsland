@@ -94,19 +94,39 @@ const convertNumber = (value: number, encode: boolean, word: boolean): number | 
 }
 const wordTags = new Set(["RulePolicy.Words", prefix + "RulePolicy.Words", "Numeric.Words"])
 const wordFields = new Set(["high", "low"])
+const unchangedEncoded = new WeakSet<object>()
+const unchangedDecoded = new WeakSet<object>()
+const frozenDataRecord = (record: Record<string, unknown>): boolean =>
+  Object.isFrozen(record) &&
+  Reflect.ownKeys(record).every((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key)
+    return typeof key === "string" && descriptor?.enumerable === true && "value" in descriptor
+  })
 const convertRecord = (record: Record<string, unknown>, encode: boolean): unknown => {
+  const frozen = frozenDataRecord(record)
   if (record.$ === "Con" || record.$ === "Nil") {
     const items = readBendList(record, (item) => convert(item, encode), 2048)
+    if (frozen) {
+      let cursor = record
+      let unchanged = true
+      for (const item of items) {
+        if (!frozenDataRecord(cursor) || cursor.head !== item) unchanged = false
+        cursor = readRecord(cursor.tail)
+      }
+      if (unchanged && frozenDataRecord(cursor)) return record
+    }
     return items.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
   }
   const tag = convertTag(record.$, encode)
   const words = wordTags.has(tag)
-  return Object.fromEntries(
-    Object.entries(record).map(([key, field]) => [
-      key,
-      key === "$" ? tag : convert(field, encode, words && wordFields.has(key))
-    ])
-  )
+  let result: Record<string, unknown> | undefined = frozen ? undefined : {}
+  for (const [key, field] of Object.entries(record)) {
+    const converted = key === "$" ? tag : convert(field, encode, words && wordFields.has(key))
+    if (result === undefined && converted !== field) result = { ...record }
+    if (result !== undefined)
+      Object.defineProperty(result, key, { value: converted, enumerable: true, writable: true, configurable: true })
+  }
+  return result ?? record
 }
 /** The emitter ABI uses exact Nat values and U32 probability words. Linked lists
  * are traversed iteratively with the existing canonical boundary limit. */
@@ -114,7 +134,12 @@ const convert = (value: unknown, encode: boolean, word = false): unknown => {
   if (typeof value === "bigint") return convertBigNat(value, encode, word)
   if (typeof value === "number") return convertNumber(value, encode, word)
   if (value === null || typeof value !== "object") return value
-  return convertRecord(readRecord(value), encode)
+  const unchanged = encode ? unchangedEncoded : unchangedDecoded
+  if (unchanged.has(value)) return value
+  const result = convertRecord(readRecord(value), encode)
+  // Reuse only validated graphs whose conversion changes no frozen node.
+  if (result === value) unchanged.add(value)
+  return result
 }
 export const encodeSharedValue = (value: unknown): unknown => convert(value, true)
 export const decodeSharedValue = (value: unknown): unknown => convert(value, false)

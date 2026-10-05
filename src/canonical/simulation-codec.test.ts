@@ -88,3 +88,37 @@ describe("shared Bend value transport", () => {
     )
   })
 })
+
+it("reuses fully frozen native graphs while preserving mutable and accessor isolation", () => {
+  const child = Object.freeze({ $: "Tuple", value: 7 })
+  const input = Object.freeze({ $: "Some", value: child })
+  expect(decodeSharedValue(input)).toBe(input)
+  expect(decodeSharedValue(input)).toBe(input)
+  const mutable = { $: "Tuple", value: 7 }
+  const shallow = Object.freeze({ $: "Some", value: mutable })
+  const decoded = decodeSharedValue(shallow)
+  expect(decoded).not.toBe(shallow)
+  mutable.value = 8
+  expect(decoded).toEqual({ $: "Some", value: { $: "Tuple", value: 7 } })
+  expect(decodeSharedValue(shallow)).toEqual({ $: "Some", value: { $: "Tuple", value: 8 } })
+  let value = 1
+  const accessor = Object.freeze({
+    $: "Tuple",
+    get value() {
+      return value
+    }
+  })
+  expect(decodeSharedValue(accessor)).toEqual({ $: "Tuple", value: 1 })
+  value = 2
+  expect(decodeSharedValue(accessor)).toEqual({ $: "Tuple", value: 2 })
+})
+
+it("keeps list bounds and scalar checks when frozen nodes are reused", () => {
+  const nil = Object.freeze({ $: "Nil" })
+  const list = Object.freeze({ $: "Con", head: 1, tail: nil })
+  expect(decodeSharedValue(list)).toBe(list)
+  let oversized: unknown = list
+  for (let i = 0; i < 2048; i++) oversized = Object.freeze({ $: "Con", head: 1, tail: oversized })
+  expect(() => decodeSharedValue(oversized)).toThrow()
+  expect(() => decodeSharedValue(Object.freeze({ $: "Tuple", value: -1 }))).toThrow()
+})
