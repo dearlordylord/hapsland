@@ -1,3 +1,4 @@
+import { unattendedSetupTemplates } from "../src/cli-command.ts"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { readFile, mkdir, writeFile } from "node:fs/promises"
@@ -411,6 +412,23 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
   const guidePath = resolve(root, "docs/configuration.md")
   const [readme, guide] = await Promise.all([readMarkdown(readmePath), readMarkdown(guidePath)])
   const targets: Array<GeneratedTarget> = []
+  const installationPath = resolve(root, "docs/installation-workflows.md")
+  const installation = await readMarkdown(installationPath)
+  if (installation === undefined) targets.push({ path: installationPath, problem: "source document is missing" })
+  else {
+    try {
+      targets.push({
+        path: installationPath,
+        content: replaceMarkedSection(
+          installation,
+          ["<!-- unattended-setup-commands:start -->", "<!-- unattended-setup-commands:end -->"],
+          "```sh\n" + unattendedSetupTemplates().join("\n") + "\n```"
+        )
+      })
+    } catch {
+      targets.push({ path: installationPath, problem: "expected exactly one ordered unattended setup marker pair" })
+    }
+  }
 
   if (readme === undefined) {
     targets.push({ path: readmePath, problem: "source document is missing" })

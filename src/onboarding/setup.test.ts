@@ -52,7 +52,11 @@ type SetupOutput = {
   readonly actions: ReadonlyArray<{
     readonly code: string
     readonly action: string
-    readonly authorization?: { readonly installProposalDigest?: string; readonly consentProposalDigest?: string }
+    readonly authorization?: {
+      readonly installProposalDigest?: string
+      readonly rulesProposalDigest?: string
+      readonly consentProposalDigest?: string
+    }
   }>
 }
 
@@ -97,6 +101,8 @@ const invoke = (
 }
 
 const authorization = (output: SetupOutput) => ({
+  rulesProposalDigest: output.actions.find((action) => action.code === "approve-default-rules")?.authorization
+    ?.rulesProposalDigest,
   installProposalDigest: output.actions.find((action) => action.code === "approve-installation")?.authorization
     ?.installProposalDigest
 })
@@ -234,7 +240,7 @@ describe("public resumable setup operation", () => {
       ])
     )
 
-    const repeated = invoke(test, approvals)
+    const repeated = invoke(test, authorization(invoke(test, {})))
     expect(repeated.stages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ stage: "installation", summary: expect.stringContaining("already installed") }),
@@ -664,4 +670,77 @@ describe("Claude setup shares the resumable credential and repository workflow",
     expect(output.status).toBe("unsupported")
     expect(existsSync(join(claudeHome, "settings.json"))).toBe(false)
   })
+})
+
+it("binds editable defaults and configuration to setup authorization and preserves authored content", () => {
+  const test = fixture()
+  const path = join(test.root, "rules", "defaults", "hapsland.json")
+  const preview = invoke(test, {})
+  expect(existsSync(path)).toBe(false)
+  expect(existsSync(join(test.root, "user.jsonc"))).toBe(false)
+  const authorized = authorization(preview)
+  expect(authorized.rulesProposalDigest).toMatch(/^[a-f0-9]{64}$/)
+  invoke(test, authorized)
+  expect(JSON.parse(readFileSync(path, "utf8")).rules).toHaveLength(9)
+  expect(JSON.parse(readFileSync(join(test.root, "user.jsonc"), "utf8")).packs).toContain(path)
+  const edited = JSON.stringify({ schemaVersion: 1, id: "noul", contentVersion: "1", rules: [] })
+  writeFileSync(path, edited)
+  invoke(test, {})
+  expect(readFileSync(path, "utf8")).toBe(edited)
+  rmSync(path)
+  invoke(test, {})
+  expect(existsSync(path)).toBe(false)
+})
+
+it("unattended setup previews without writes, applies a saved plan and rejects stale authored bytes", () => {
+  const test = fixture()
+  const plan = join(test.root, "setup-plan.json")
+  const run = (...args: string[]) =>
+    spawnSync(process.execPath, [setupEntrypoint(), "setup", ...args], {
+      cwd: test.repository,
+      env: { ...test.environment, HAPSLAND_ACTIVE_DISPATCH: "1" },
+      encoding: "utf8",
+      timeout: DEFAULT_CHILD_TIMEOUT_MS
+    })
+  const choices = [
+    "codex",
+    "--no-input",
+    "--review",
+    "enabled",
+    "--credential",
+    "environment",
+    "--codex-home",
+    test.codexHome,
+    "--codex-executable",
+    test.codexExecutable,
+    "--json"
+  ]
+  const preview = run(...choices, "--save-plan", plan)
+  expect(preview.stderr).toBe("")
+  expect(existsSync(join(test.codexHome, "config.toml"))).toBe(false)
+  expect(existsSync(join(test.root, "user.jsonc"))).toBe(false)
+  expect(existsSync(join(test.root, "rules/defaults/hapsland.json"))).toBe(false)
+  expect(JSON.parse(preview.stdout)).toMatchObject({ providerCalls: 0, paidVerificationPerformed: false })
+  expect(existsSync(plan)).toBe(true)
+  const applied = run("--no-input", "--apply-plan", plan, "--json")
+  expect(applied.stderr).toBe("")
+  expect(JSON.parse(applied.stdout)).toMatchObject({
+    status: "needs-user-action",
+    stages: expect.arrayContaining([
+      expect.objectContaining({ stage: "installation", status: "complete" }),
+      expect.objectContaining({ stage: "rules", status: "complete" }),
+      expect.objectContaining({ stage: "host-trust", status: "unknown" })
+    ])
+  })
+  expect(existsSync(join(test.root, "rules/defaults/hapsland.json"))).toBe(true)
+  const next = join(test.root, "next-plan.json")
+  run(...choices, "--save-plan", next)
+  const path = join(test.root, "rules/defaults/hapsland.json")
+  const edited = readFileSync(path, "utf8") + " "
+  writeFileSync(path, edited)
+  const stale = run("--no-input", "--apply-plan", next, "--json")
+  expect(stale.status).toBe(4)
+  expect(JSON.parse(stale.stdout).status).toBe("proposal-mismatch")
+  expect(readFileSync(path, "utf8")).toBe(edited)
+  expect(run("--no-input").status).toBe(6)
 })

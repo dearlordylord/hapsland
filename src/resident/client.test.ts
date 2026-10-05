@@ -1,6 +1,6 @@
 import { writeFileSync, rmSync } from "node:fs"
 import { runClient } from "../test-support/client-runtime.ts"
-import { makeGitFixture } from "../direct-event/test-fixtures.ts"
+import { makeReviewGitFixture as makeGitFixture } from "../direct-event/test-fixtures.ts"
 import { it as effectIt } from "@effect/vitest"
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"

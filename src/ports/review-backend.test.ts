@@ -10,7 +10,7 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
 import * as TestClock from "effect/testing/TestClock"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { BackendError } from "../domain/errors.ts"
 import { REVIEW_RETRY_BACKOFF_MS, ReviewBackend } from "./review-backend.ts"
 

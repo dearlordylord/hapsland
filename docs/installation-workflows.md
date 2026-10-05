@@ -40,6 +40,46 @@ Use `hapsland setup codex --new-key` (also supported for Claude and Pi) to skip 
 
 Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. It makes no Jev request. All three clients accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex|pi` invokes the same guided flow (bare `--pilot` opens the same client selector).
 
+### Unattended setup
+
+`hapsland setup --help` generates the accepted options and values from the command
+definition. `--no-input` suppresses prompts and previews; `--apply` separately
+authorizes the validated changes. Without a terminal, explicit client, review and
+credential choices are required, and no selection, confirmation or credential
+prompt is attempted.
+
+<!-- unattended-setup-commands:start -->
+
+```sh
+hapsland setup codex --no-input --review enabled --credential environment --json
+hapsland setup codex --no-input --review enabled --credential environment --apply --json
+hapsland setup codex --no-input --review enabled --credential saved --save-plan setup-plan.json --json
+hapsland setup --no-input --apply-plan setup-plan.json --json
+```
+
+<!-- unattended-setup-commands:end -->
+
+Preview leaves hooks, rule packs and configuration unchanged. `--save-plan` writes
+only the explicitly requested plan file, preserving an existing plan. A saved plan
+binds client choices and current installation/default-rule digests; its application
+revalidates them and rejects stale plans before selected writes. This frontend uses
+the same version-one structured `--setup` engine. Its `rulesProposalDigest`
+authorizes materialization and connection of editable defaults separately from
+`installProposalDigest`; prompt suppression grants neither authorization.
+
+Environment and saved credential resolution use the existing sources. There is
+no API-key argument, replacement-key prompt or paid verification in unattended
+setup. Conflicts and partial installation remain explicit, and unrelated hooks
+are preserved. Results are JSON with version, status, stages, actions and
+zero provider calls. Exit codes are 0 for completed selected setup, 3 unsupported,
+4 conflict or stale plan, 5 partial, and 6 missing inputs or remaining user action.
+An installed integration still needs native trust and an ordinary observed review;
+unknown trust/readiness can therefore return 6 after installation succeeds.
+
+Setup shows the effective rule inventory once per guided invocation, including
+when several clients are selected. See [editable and custom rules](configuration.md#declarative-rule-packs)
+for their paths, eligibility and management commands.
+
 The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH`, `--codex-home=PATH`, or `--pi-home=PATH` and the corresponding `--claude-executable=PATH`, `--codex-executable=PATH`, or `--pi-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
 Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Make a supported edit and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:

@@ -31,7 +31,7 @@ The tree still contains selected code. Structure provides focused context; it do
 
 ## Built-in rules and rules you supply
 
-The bundled Noul pack supplies nine binary questions about code design. Each rule declares whether it can review a type, a function, or both, and what supporting evidence it needs. A rule runs only when those needs are met. An omitted reference can be irrelevant to one rule but necessary for another; an omission need not prevent every rule from running.
+The editable Hapsland default pack supplies nine probability questions about code design. Each rule declares whether it can review a type, a function, or both, and what supporting evidence it needs. A rule runs only when those needs are met. An omitted reference can be irrelevant to one rule but necessary for another; an omission need not prevent every rule from running.
 
 You can add local JSONC rule packs and configure their activation, file scope, probability thresholds, and feedback messages. Rule filters narrow file selection; they cannot authorize additional source. Rules ask about the supplied code, not the agent's conversation or task history. See [rule packs](configuration.md#declarative-rule-packs).
 
@@ -49,7 +49,7 @@ Before dispatch, captured files must still match. Before advice is delivered, Ha
 
 ## Runtime ownership
 
-Effect 4 services compose the resident, client, source preparation, backend evaluation, and host-output workflows. Each resident acquisition owns one shared state record: short synchronous commits publish the Bend state and matching native records together, while filesystem and network effects run outside those commits. Scoped fibers execute admitted work; process and host adapters enter the Effect runtime at their boundaries. Review integration uses provider-neutral `Decision` / `DecisionModel` with `@effect/ai-typesafe` for Jev, a Workers AI REST adapter for Cloudflare, and `Decision.probability` for the Noul rules.
+Effect 4 services compose the resident, client, source preparation, backend evaluation, and host-output workflows. Each resident acquisition owns one shared state record: short synchronous commits publish the Bend state and matching native records together, while filesystem and network effects run outside those commits. Scoped fibers execute admitted work; process and host adapters enter the Effect runtime at their boundaries. Review integration uses provider-neutral `Decision` / `DecisionModel` with `@effect/ai-typesafe` for Jev, a Workers AI REST adapter for Cloudflare, and `Decision.probability` for probability rules.
 
 Version-one resident requests and responses decode through Effect Schema. Requests use exact operation alternatives after bounded JSON framing, with recursive excess-field rejection and structural identity, credential, collection, and coordinate bounds. The decoder rejects retired ticket fields, unsupported runtime identities, internal route fields on the wire, and finish decisions outside composed turn-end collection. Optional collection mode remains absent when omitted; runtime lifetime, authorization, credential generation, and canonical decisions retain their existing owners. Native patch commands must be strings, and unknown request fields are rejected rather than silently discarded.
 

@@ -30,7 +30,7 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 
 | Layer | Location | Behavior |
 | --- | --- | --- |
-| Built-in | Bundled defaults and Noul rule pack | Supplies defaults when neither user nor project sets a value. |
+| Built-in | Non-rule settings defaults | Supplies defaults when neither user nor project sets a value. |
 | User | `REVIEW_USER_CONFIG_PATH`, otherwise `$XDG_CONFIG_HOME/hapsland/config.jsonc` (normally `~/.config/hapsland/config.jsonc`) | Supplies personal defaults and controls shared resident resources and review destination. |
 | Project | `.hapsland.jsonc` at the canonical Git root | Overrides ordinary settings for this repository. There are no nested config layers. |
 | Rule packs | Explicit `packs` paths in either document | Rule definitions, not another global config layer. Relative paths resolve from the declaring config. |
@@ -99,7 +99,7 @@ they are not Hapsland review-policy layers.
 | `graphLimits.outgoingEdges` | integer (1–16) | Optional | 16 | Maximum outgoing edges per accepted file. |
 | `graphLimits.depth` | integer (1–4) | Optional | 4 | Maximum supporting-reference depth. |
 | `graphLimits.work` | integer (1–128) | Optional | 128 | Maximum graph edge work steps. |
-| `packs` | array of non-empty string or object with `path` or object with `id` (may be empty) | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently. |
+| `packs` | array of non-empty string or object with `path` or object with `id` (may be empty) | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Shipped defaults are explicitly connected during authorized setup. |
 | `packs[]` | non-empty string or object with `path` or object with `id` | Array item (array may be empty) | — | A path declaration or an inherited pack identity; object forms contain exactly one locator. |
 | `packs[].path` | non-empty string | Required (path form) | — | Local rule-pack path; relative paths resolve from the originating configuration file. |
 | `packs[].enabled` | boolean | Optional | — | Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack. |
@@ -172,11 +172,43 @@ repair the finding.
 
 ## Declarative rule packs
 
-The bundled `noul` pack (nine binary Noul questions) is loaded through the same
-schema/compiler boundary as local packs. It retains the historical assessment
-keys (`r1_inferred_case` through `r9_body_reaches_undeclared`) and the built-in
-source-rung applicability checks. Effective file settings and credentials govern
-selected source dispatch to Jev.
+Authorized setup materializes Hapsland's nine shipped default rules as editable JSON
+at `~/.config/hapsland/rules/defaults/hapsland.json` (or the applicable
+`XDG_CONFIG_HOME`), then explicitly connects that file in personal configuration.
+The pack retains its stable `noul` identity and historical assessment keys;
+Noul is TypeSafe's probability result type, rather than the name of the rule set.
+Both shipped and custom packs use the same Effect Schema and semantic compiler.
+Source-rung eligibility is authored in each definition's `minimumRung`.
+
+The connected JSON is authoritative. Edit or remove rules there to change subsequent
+review. An empty `rules` array is valid. A missing or malformed connected file
+reports a local error; setup never silently restores deleted connected defaults.
+Repeated setup preserves authored files. An unreferenced JSON file is inactive,
+including a custom pack placed in the defaults directory.
+
+Use `hapsland rules list` to inspect the complete effective inventory, including
+disabled rules, qualified identities, configuration scopes and source paths.
+`hapsland rules show --id PACK/RULE` exposes question, criteria, feedback,
+threshold, targets, path filters and configuration origins. Add `--json` for automation.
+Zero enabled rules produces an explicit warning; enabled counts do not imply every
+rule runs on every edit. Review is bounded to supported type and function evidence.
+
+```sh
+hapsland rules disable --id noul/r1_inferred_case --scope project
+hapsland rules enable --id noul/r1_inferred_case --scope personal
+hapsland rules create --id my-rules --scope project
+hapsland rules connect --path /absolute/path/to/pack.json --scope personal
+```
+
+Interactive creation and connection offer personal scope with project as the
+default, then show concrete target files before confirmation. Unattended changes
+must specify `--scope`. Personal custom packs use
+`~/.config/hapsland/rules/custom/PACK.json`; project packs use
+`<Git root>/.hapsland/rules/custom/PACK.json` and cannot escape the working tree,
+including through symlinks. Creation preserves an existing valid authored file.
+Connection registers an explicit configuration reference. These commands validate
+schema, targets and identities locally; they do not launch an editor, call a
+classifier, or establish classifier quality. Users edit JSON questions themselves.
 
 Local packs use [`../schemas/review-rule-pack-v1.schema.json`](../schemas/review-rule-pack-v1.schema.json).
 
@@ -234,6 +266,8 @@ message. A rule's qualified ID is `pack-id/rule-id`.
 | `rules` | array of object (may be empty) | Required | — | Rules declared by this pack. Rule identities must be unique within the pack. |
 | `rules[]` | object | Array item (array may be empty) | — | One declarative rule in a rule pack. |
 | `rules[].id` | non-empty string matching a pattern | Required | — | Stable rule identity within this pack; it cannot contain separators or whitespace. |
+| `rules[].title` | non-empty string | Optional | — | Display title authored with the rule. |
+| `rules[].minimumRung` | 1 or 2 or 3 | Optional | — | Minimum source evidence rung: raw value, declaration, or refined schema. Omission uses 1. |
 | `rules[].question` | non-empty string | Required | — | Question evaluated against the available review input. |
 | `rules[].criteria` | object | Required | — | String-valued evidence criteria for both probability outcomes. |
 | `rules[].criteria.false` | non-empty string | Required | — | Text rendered when the evaluated criterion is false. |

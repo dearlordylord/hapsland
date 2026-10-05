@@ -6,7 +6,7 @@ import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.t
 import { adaptCodexAdd } from "./adapter.ts"
 import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { resolveRustModuleContext } from "./languages/rust-module-context.ts"
 import { captureStable } from "./capture.ts"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts"

@@ -1,3 +1,4 @@
+import { connectDefaultRuleFixture } from "../test-support/default-rules.ts"
 import { ConfigProvider, Effect } from "effect"
 import { previewClaudeInstallation, installClaudeIntegration } from "./claude-installation.ts"
 import { previewCodexInstallation, installCodexIntegration } from "./codex-installation.ts"
@@ -192,7 +193,9 @@ it.skipIf(process.platform !== "linux")(
     expect(result.code).toBe(0)
     expect(result.output).toContain("[ ] Claude Code — not installed")
     expect(result.output).toContain("[ ] Codex CLI — not installed")
-    expect(result.output.match(/Install these entries/g)).toHaveLength(2)
+    expect(result.output.match(/Apply these setup changes/g)).toHaveLength(2)
+    expect(result.output.match(/Rules for /g)).toHaveLength(1)
+    expect(result.output).toContain("9 enabled of 9")
     expect(readFileSync(join(clients.claudeHome, "settings.json"), "utf8")).toContain("--composed-host=claude-code")
     expect(readFileSync(join(clients.codexHome, "hooks.json"), "utf8")).toContain("--composed-host=codex-cli")
   }
@@ -205,6 +208,7 @@ it.skipIf(process.platform !== "linux")(
     await installBothClients(test, clients)
     const claude = readFileSync(join(clients.claudeHome, "settings.json"), "utf8")
     const codex = readFileSync(join(clients.codexHome, "hooks.json"), "utf8")
+    connectDefaultRuleFixture(test.repository, test.environment.REVIEW_USER_CONFIG_PATH)
     const resumed = await terminal(test, ["setup", ...clients.flags], "y", "\r")
     expect(resumed.code).toBe(0)
     expect(resumed.answered).toBe(false)

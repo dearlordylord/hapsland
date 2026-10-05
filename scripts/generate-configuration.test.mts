@@ -18,6 +18,10 @@ const withFixture = (run: (root: string) => void): void => {
   const root = mkdtempSync(join(tmpdir(), "configuration-generator-"))
   mkdirSync(join(root, "docs"), { recursive: true })
   writeFileSync(
+    join(root, "docs/installation-workflows.md"),
+    "Authored setup guide.\n<!-- unattended-setup-commands:start -->\nold\n<!-- unattended-setup-commands:end -->\n"
+  )
+  writeFileSync(
     join(root, "README.md"),
     "Authored README before.\n\n<!-- configuration-readme:start -->\nold\n<!-- configuration-readme:end -->\n\nAuthored README after.\n"
   )
@@ -41,6 +45,7 @@ const runGenerator = (root: string, mode: "--update" | "--check") =>
 const generatedFiles = (root: string): ReadonlyArray<string> => [
   join(root, "README.md"),
   join(root, "docs/configuration.md"),
+  join(root, "docs/installation-workflows.md"),
   join(root, "schemas/review-config-v1.schema.json"),
   join(root, "schemas/review-rule-pack-v1.schema.json")
 ]

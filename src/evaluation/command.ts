@@ -8,7 +8,7 @@ import { liveLayer } from "../jev-decision.ts"
 import { ReviewBackend } from "../ports/review-backend.ts"
 import { compileRules } from "../rules/compiler.ts"
 import type { LoadedRulePack } from "../rules/loader.ts"
-import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts"
+import { SHIPPED_DEFAULT_PACK } from "../rules/shipped.ts"
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
@@ -83,7 +83,7 @@ export type DefaultEvaluationSuite = {
 }
 
 const productionPack: LoadedRulePack = {
-  ...BUNDLED_NOUL_PACK,
+  ...SHIPPED_DEFAULT_PACK,
   origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" },
   path: "built-in:noul",
   enabled: true

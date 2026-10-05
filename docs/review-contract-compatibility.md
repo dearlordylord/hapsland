@@ -27,7 +27,7 @@ reviewTargets with an exact artifact kind, input contract, and required
 capabilities. A rule shared by type and function review names both targets.
 Unknown versions, targets, capabilities, or fields fail the selected pack.
 Invalid or unsupported pack versions fail configuration before source capture.
-Bundled Noul rules target type review; its body rule also targets function review.
+Hapsland default rules target type review; their body rule also targets function review. All explicitly connected packs compile through the same version-one schema and eligibility checks.
 The function target of the body rule requires the exact signature and body, not
 complete call/type closure. It reviews resource use visible in included source
 with omissions retained explicitly; missing references alone are not findings.

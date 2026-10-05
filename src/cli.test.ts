@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFileSync, spawnSync } from "../scripts/test-harness/process.mjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { configuredRules } from "./policy/rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "./test-support/default-rules.ts"
 
 const roots: Array<string> = []
 const makeTemporaryDirectory = (prefix: string): string => realpathSync(mkdtempSync(join(tmpdir(), prefix)))
@@ -22,6 +22,7 @@ afterEach(() => {
 
 const initializeRepository = (root: string, requestedStatePath?: string) => {
   execFileSync("git", ["init", "--quiet", root])
+  connectDefaultRuleFixture(root)
   return requestedStatePath ?? join(root, ".consent-state.json")
 }
 

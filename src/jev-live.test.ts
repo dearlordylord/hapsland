@@ -8,6 +8,8 @@ const live = process.env.RUN_LIVE_JEV === "1"
 describe.runIf(live)("credential-gated live Jev contract", () => {
   it.effect("validates one representative Noul", () =>
     Effect.gen(function* () {
+      const decision = E0.r6_bare_domain_value
+      if (decision === undefined) throw new Error("missing shipped rule")
       const answer = yield* decide({
         state: {
           artifact: {
@@ -22,7 +24,7 @@ describe.runIf(live)("credential-gated live Jev contract", () => {
 };`
           }
         },
-        decisions: { r6_bare_domain_value: E0.r6_bare_domain_value }
+        decisions: { r6_bare_domain_value: decision }
       }).pipe(Effect.provide(Live))
       expect(answer.answers.r6_bare_domain_value.probability).toBeGreaterThan(0.7)
       expect(answer.answers.r6_bare_domain_value.probability).toBeLessThanOrEqual(1)

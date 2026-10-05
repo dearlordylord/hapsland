@@ -1,10 +1,10 @@
 import * as Decision from "effect/ai/Decision"
-import { APPLIES_FROM, levelOf, type Level } from "../questions.ts"
+import { levelOf, type Level } from "../questions.ts"
 import { RuleId } from "../domain/contracts.ts"
 import { ConfigurationError } from "../configuration/errors.ts"
 import type { ConfigurationLayer } from "../configuration/resolve.ts"
 import { matchesAnyGlob } from "../matcher/glob.ts"
-import { BUNDLED_NOUL_PACK } from "./bundled.ts"
+import { SHIPPED_DEFAULT_PACK } from "./shipped.ts"
 import { applicableRule, includeRule } from "./decision.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT, type Capability, type ReviewTarget } from "./targets.ts"
 import {
@@ -25,7 +25,7 @@ export type RuleOverride = {
 }
 
 export type CompiledRule = {
-  /** Runtime key retained bare for bundled Noul compatibility. */
+  /** Runtime key retained bare for the default pack identity. */
   readonly id: RuleId
   /** Stable configuration/evaluation identity. */
   readonly qualifiedId: string
@@ -50,6 +50,7 @@ export type CompiledRule = {
 export type RuleCompilationOptions = {
   readonly packs: ReadonlyArray<LoadedRulePack>
   readonly layers?: ReadonlyArray<ConfigurationLayer>
+  readonly includeDisabled?: boolean
   readonly overrides?: Readonly<Record<string, RuleOverride>>
 }
 
@@ -122,7 +123,7 @@ const overrideFor = (
 ): RuleOverride | undefined =>
   overrides[qualified(pack.id, rule.id)] ??
   overrides[`${pack.id}:${rule.id}`] ??
-  (pack.id === BUNDLED_NOUL_PACK.id ? overrides[rule.id] : undefined)
+  (pack.id === SHIPPED_DEFAULT_PACK.id ? overrides[rule.id] : undefined)
 
 const validatePatterns = (patterns: ReadonlyArray<string> | undefined, source: string, field: string): void => {
   if (patterns === undefined) return
@@ -173,7 +174,7 @@ const unknownOverrideIds = (
     for (const rule of pack.rules) {
       known.add(qualified(pack.id, rule.id))
       known.add(`${pack.id}:${rule.id}`)
-      if (pack.id === BUNDLED_NOUL_PACK.id) known.add(rule.id)
+      if (pack.id === SHIPPED_DEFAULT_PACK.id) known.add(rule.id)
     }
     known.add(pack.id)
   }
@@ -216,10 +217,9 @@ const compiledMessage = (
   return message
 }
 const compiledIdentity = (pack: LoadedRulePack, rule: RuleDefinition, qualifiedId: string) => {
-  const builtIn = pack.id === BUNDLED_NOUL_PACK.id
+  const builtIn = pack.id === SHIPPED_DEFAULT_PACK.id
   const runtimeId = builtIn ? rule.id : qualifiedId
-  const minimumRung = builtIn ? APPLIES_FROM[rule.id] : 1
-  if (minimumRung === undefined) throw new Error(`missing bundled Noul rung for ${rule.id}`)
+  const minimumRung = rule.minimumRung ?? 1
   return { runtimeId, builtIn, minimumRung }
 }
 const validateRuleApplicability = (
@@ -289,7 +289,7 @@ export const compileRules = (options: RuleCompilationOptions): ReadonlyArray<Com
       const enabled = includeRule(packEnabled, overridePermitsRule(override))
       const applicability = mergedApplicability(rule, override)
       validateRuleApplicability(applicability, pack.source, qualifiedId)
-      if (!enabled) {
+      if (!enabled && options.includeDisabled !== true) {
         rank += 1
         continue
       }

@@ -81,7 +81,7 @@
       "items": {
         "$ref": "#/$defs/RulePackReference"
       },
-      "description": "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently."
+      "description": "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Shipped defaults are explicitly connected during authorized setup."
     },
     "ruleOverrides": {
       "type": "object",

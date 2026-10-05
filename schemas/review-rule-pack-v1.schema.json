@@ -130,6 +130,20 @@
           "pattern": "^[^/:\\\\\\s]+$",
           "description": "Stable rule identity within this pack; it cannot contain separators or whitespace."
         },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display title authored with the rule."
+        },
+        "minimumRung": {
+          "type": "number",
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "description": "Minimum source evidence rung: raw value, declaration, or refined schema. Omission uses 1."
+        },
         "question": {
           "type": "string",
           "minLength": 1,

@@ -49,7 +49,7 @@ const EnvironmentVariableName = Schema.String.check(Schema.isPattern(/^[A-Z_][A-
   default: DEFAULT_CREDENTIAL_ENV_VAR
 })
 
-/** A local or bundled declarative rule-pack reference. */
+/** An explicitly selected local declarative rule-pack reference. */
 const PackEnabled = Schema.Boolean.annotate({
   description:
     "Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack."
@@ -199,11 +199,11 @@ export const ConfigurationDocument = Schema.Struct({
     })
   ),
   graphLimits: Schema.optionalKey(GraphLimitsSettings),
-  /** Explicit local pack references. Bundled Noul is loaded independently. */
+  /** Explicit local pack references; directory placement never activates packs. */
   packs: Schema.optionalKey(
     Schema.Array(RulePackReference).annotate({
       description:
-        "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently."
+        "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Shipped defaults are explicitly connected during authorized setup."
     })
   ),
   /** Qualified rule IDs to per-field activation/selection overrides. */

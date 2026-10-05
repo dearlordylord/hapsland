@@ -22,8 +22,14 @@ import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put, stageFiles, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import {
+  addEvent,
+  makeReviewGitFixture as makeGitFixture,
+  put,
+  stageFiles,
+  advicee
+} from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts"
 import { readActivity } from "../activity/status.ts"
 import { claudeHostOutputText } from "../direct-event/claude-output.ts"

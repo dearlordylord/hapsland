@@ -11,7 +11,7 @@ import {
   type TypeDeclaration
 } from "../direct-event/model.ts"
 import { advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { makeResidentState, MAX_PARTITION_KEY_BYTES } from "./capacity.ts"
 import { SUCCESS_CACHE_BYTE_LIMIT, SUCCESS_CACHE_ENTRY_LIMIT, residentEvaluationIdentity } from "./evaluation-reuse.ts"

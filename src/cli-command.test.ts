@@ -291,5 +291,6 @@ it.each([
   ["--pilot", "--host=codex", "--new-key"]
 ])("preserves forced key entry across CLI dispatch: %j", async (...args) => {
   const result = await parse(args)
+  if (result.invocation?.kind === "rules") throw new Error("expected setup invocation")
   expect(result.invocation?.client.flags.get("--new-key")).toBe("true")
 })

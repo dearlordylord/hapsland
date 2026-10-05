@@ -6,7 +6,7 @@ import * as Result from "effect/Result"
 import * as Schema from "effect/Schema"
 import { Decision, DecisionModel } from "effect/ai"
 import type { CompiledRule } from "../rules/compiler.ts"
-import { applicableRules, configuredRules } from "../policy/rules.ts"
+import { applicableRules } from "../policy/rules.ts"
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts"
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts"
 import { admitReview } from "../configuration/decision.ts"
@@ -200,7 +200,7 @@ const currentPolicy = (context: DirectReviewContext): DirectFilePolicy =>
     : current(context.policy)
 
 const currentRules = (context: DirectReviewContext): ReadonlyArray<CompiledRule> =>
-  context.rules === undefined ? (context.settings.rules ?? configuredRules) : current(context.rules)
+  context.rules === undefined ? (context.settings.rules ?? []) : current(context.rules)
 
 const currentInputContract = (context: DirectReviewContext): string =>
   context.inputContract === undefined ? TYPE_INPUT_CONTRACT : current(context.inputContract)

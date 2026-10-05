@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import * as Effect from "effect/Effect"
 import { loadReviewSettings } from "../runtime/review-config.ts"
-import { BUNDLED_NOUL_PACK } from "./bundled.ts"
+import { SHIPPED_DEFAULT_PACK } from "./shipped.ts"
 import { compileRulePack, compileRules, parseQualifiedRuleId, selectApplicableRules } from "./compiler.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "./targets.ts"
 
@@ -36,7 +36,7 @@ describe("explicit rule target compilation", () => {
     const rules = compileRules({
       packs: [
         {
-          ...BUNDLED_NOUL_PACK,
+          ...SHIPPED_DEFAULT_PACK,
           path: "built-in:noul",
           enabled: true,
           origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" }

@@ -1,7 +1,7 @@
 import { cleanupOwnedResident } from "./test-harness/cleanup-owned-resident.mjs"
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
 import { preparePackageInstall } from "./test-harness/package-install.mjs"
-import { configuredRules } from "../src/policy/rules.ts"
+import { configuredRules } from "../src/test-support/default-rules.ts"
 import { nativeFindingLines, nativeFindingsSubmittedOnce } from "./package-finding-output.mjs"
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"

@@ -1,3 +1,5 @@
+import { previewDefaultRules, applyDefaultRules } from "./default-rules.ts"
+import { configurationError } from "../configuration/errors.ts"
 import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts"
 import * as Effect from "effect/Effect"
 import { discoverWorkingTreeRoot } from "../repository/root.ts"
@@ -17,6 +19,7 @@ type SetupFields = {
   readonly operation: "setup"
   readonly scope: { readonly cwd: string; readonly review: "enabled" | "disabled" }
   readonly credential: "saved" | "environment" | "skip"
+  readonly rulesProposalDigest?: string
   readonly installProposalDigest?: string
   readonly interactive?: boolean
   readonly newKey?: boolean
@@ -31,7 +34,14 @@ export type SetupRequest = SetupFields &
 
 type StageStatus = "complete" | "pending" | "skipped" | "unknown" | "unsupported" | "conflict" | "partial"
 type SetupStage = {
-  readonly stage: "compatibility" | "installation" | "credential" | "repository" | "host-trust" | "execution-context"
+  readonly stage:
+    | "compatibility"
+    | "installation"
+    | "credential"
+    | "repository"
+    | "rules"
+    | "host-trust"
+    | "execution-context"
   readonly status: StageStatus
   readonly summary: string
   readonly observed?: unknown
@@ -84,6 +94,8 @@ const reportRepositorySettings = (
       status: excludedAll ? "complete" : "pending",
       summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
       observed: {
+        configurationDigest: settings.configuration.policy.digest,
+        rulePackDigests: [...new Set(settings.rules?.map((rule) => `${rule.packId}:${rule.packDigest}`) ?? [])],
         canonicalRoot: root,
         effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value)
       }
@@ -103,6 +115,8 @@ const reportRepositorySettings = (
       status: "complete",
       summary: "effective file settings loaded",
       observed: {
+        configurationDigest: settings.configuration.policy.digest,
+        rulePackDigests: [...new Set(settings.rules?.map((rule) => `${rule.packId}:${rule.packDigest}`) ?? [])],
         canonicalRoot: root,
         effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
         effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value)
@@ -693,7 +707,64 @@ export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest,
   const completed: Array<string> = []
   const pending: Array<string> = []
   const progress: SetupProgress = { stages, actions, completed, pending }
+  const rulesPreview =
+    request.scope.review === "enabled"
+      ? yield* previewDefaultRules(options.userConfigPath, request.scope.cwd).pipe(Effect.result)
+      : undefined
+  if (
+    request.rulesProposalDigest !== undefined &&
+    rulesPreview?._tag === "Success" &&
+    request.rulesProposalDigest !== rulesPreview.success.digest
+  )
+    return yield* configurationError(
+      rulesPreview.success.configurationPath,
+      "rulesProposalDigest",
+      "default rules plan is stale; preview again before applying"
+    )
+  if (request.rulesProposalDigest !== undefined && rulesPreview?._tag === "Failure") return yield* rulesPreview.failure
   const { installed, hostHome, hostName } = yield* setupInstallation(request, progress)
+  if (rulesPreview?._tag === "Failure") {
+    stages.push({
+      stage: "rules",
+      status: "conflict",
+      summary: rulesPreview.failure.reason,
+      observed: { source: rulesPreview.failure.source, field: rulesPreview.failure.field }
+    })
+  } else if (rulesPreview?._tag === "Success") {
+    const proposal = rulesPreview.success
+    const application =
+      request.rulesProposalDigest === proposal.digest && installed
+        ? yield* applyDefaultRules(options.userConfigPath, proposal.digest, request.scope.cwd).pipe(Effect.result)
+        : undefined
+    const applied = application?._tag === "Success"
+    if (application?._tag === "Failure") {
+      stages.push({
+        stage: "rules",
+        status: "partial",
+        summary: "editable default rules application could not complete; inspect the reported files and preview again",
+        observed: { path: proposal.path, configurationPath: proposal.configurationPath }
+      })
+      pending.push("preview and resume default rules application")
+    } else
+      stages.push({
+        stage: "rules",
+        status: applied || !proposal.changed ? "complete" : "pending",
+        summary:
+          applied || !proposal.changed
+            ? "editable default rules connected"
+            : "editable default rules require setup authorization",
+        observed: { path: proposal.path, configurationPath: proposal.configurationPath, digest: proposal.digest }
+      })
+    if (!applied && proposal.changed) {
+      actions.push({
+        stage: "rules",
+        code: "approve-default-rules",
+        action: `materialize editable rules at ${proposal.path} and connect them in ${proposal.configurationPath}`,
+        authorization: { rulesProposalDigest: proposal.digest }
+      })
+      pending.push("approve editable default rules")
+    }
+  }
 
   const rootResult = yield* discoverWorkingTreeRoot(request.scope.cwd).pipe(Effect.result)
   const settingsResult =

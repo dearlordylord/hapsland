@@ -60,6 +60,12 @@ export const RuleDefinition = Schema.Struct({
   id: RuleIdentitySchema.annotate({
     description: "Stable rule identity within this pack; it cannot contain separators or whitespace."
   }),
+  title: Schema.optionalKey(NonEmpty.annotate({ description: "Display title authored with the rule." })),
+  minimumRung: Schema.optionalKey(
+    Schema.Literals([1, 2, 3]).annotate({
+      description: "Minimum source evidence rung: raw value, declaration, or refined schema. Omission uses 1."
+    })
+  ),
   question: NonEmpty.annotate({ description: "Question evaluated against the available review input." }),
   criteria: RuleCriteria,
   threshold: Schema.optionalKey(

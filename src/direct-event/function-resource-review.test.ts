@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { rm } from "node:fs/promises"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { FUNCTION_INPUT_CONTRACT, FUNCTION_CAPABILITIES } from "../rules/targets.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { adaptCodexAdd } from "./adapter.ts"

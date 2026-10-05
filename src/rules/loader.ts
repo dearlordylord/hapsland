@@ -3,7 +3,6 @@ import { readFile, realpath } from "node:fs/promises"
 import { dirname, isAbsolute, relative, resolve } from "node:path"
 import { configurationError, ConfigurationError } from "../configuration/errors.ts"
 import type { ConfigurationLayer } from "../configuration/resolve.ts"
-import { BUNDLED_NOUL_PACK } from "./bundled.ts"
 import { decodeRulePackText, type DecodedRulePack, type RulePackOrigin } from "./schema.ts"
 
 export type RulePackReference = {
@@ -20,11 +19,7 @@ export type LoadedRulePack = Omit<DecodedRulePack, "origin"> & {
   readonly reference?: RulePackReference
 }
 
-export type LoadRulePacksOptions = {
-  readonly root: string
-  readonly layers: ReadonlyArray<ConfigurationLayer>
-  readonly includeBundled?: boolean
-}
+export type LoadRulePacksOptions = { readonly root: string; readonly layers: ReadonlyArray<ConfigurationLayer> }
 
 const referenceObject = (value: unknown, origin: RulePackOrigin, index: number) => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -266,7 +261,7 @@ const inheritPack = Effect.fn("RulePacks.inherit")(
 )
 
 /**
- * Load bundled plus explicitly referenced local packs. All validation happens
+ * Load only explicitly referenced local packs. All validation happens
  * before the compiler can expose a partial rule set to the review runtime.
  */
 export const loadRulePacks = Effect.fn("RulePacks.load")(function* (options: LoadRulePacksOptions) {
@@ -274,14 +269,6 @@ export const loadRulePacks = Effect.fn("RulePacks.load")(function* (options: Loa
   const loaded = new Map<string, LoadedRulePack>()
   const seenWithinLayer = new Set<string>()
   const seenPackIdsWithinLayer = new Set<string>()
-  if (options.includeBundled !== false) {
-    loaded.set(BUNDLED_NOUL_PACK.id, {
-      ...BUNDLED_NOUL_PACK,
-      origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" },
-      path: "built-in:noul",
-      enabled: true
-    })
-  }
   for (const reference of yield* validate(options.root, "packs", () => referencesFromLayers(options.layers))) {
     const layerKey = `${reference.origin.layer}:${reference.origin.source}`
     const declarationKey = `${layerKey}:${reference.id ?? reference.path ?? ""}`

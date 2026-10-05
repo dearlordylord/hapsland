@@ -1,4 +1,4 @@
-import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts"
+import { SHIPPED_DEFAULT_PACK } from "../rules/shipped.ts"
 import { DEFAULT_RULE_THRESHOLD } from "../rules/schema.ts"
 import type { RulePack, RuleDefinition as ProductionRuleDefinition } from "../rules/schema.ts"
 import { makeAmbiguousExpectation, makeExpectation, makeFixture, makeRuleDefinition } from "./digest.ts"
@@ -30,7 +30,7 @@ export const evaluationDefinitionsFromPack = (
   )
 
 /** The exact bundled production definitions used by the default milestone. */
-export const BUNDLED_EVALUATION_RULES = evaluationDefinitionsFromPack(BUNDLED_NOUL_PACK)
+export const BUNDLED_EVALUATION_RULES = evaluationDefinitionsFromPack(SHIPPED_DEFAULT_PACK)
 
 /**
  * Human-labelled synthetic examples for the inferred-case rule.  The negative

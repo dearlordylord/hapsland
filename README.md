@@ -92,11 +92,12 @@ and network calls remain native code. See [proof scope and evidence](./docs/arch
 
 ## Built-in rules and your own
 
-Hapsland starts with the Noul rule pack: nine questions about code design, including
+Authorized setup connects an editable JSON pack of nine Hapsland default questions about code design, including
 whether a declaration allows meaningless combinations of values. Which rules
 run depends on the kind of declaration and the available related code.
 
-You can add local rule packs for your team's concerns and configure their scope,
+Inspect them with `hapsland rules list` or `hapsland rules show --id PACK/RULE`.
+You can create or connect local rule packs for your team's concerns and configure their scope,
 when feedback should be returned, and what its messages say. Rules ask yes-or-no
 questions about the supplied type or function and its related code. See [custom rule packs](./docs/configuration.md#declarative-rule-packs)
 and the [type-design rules](./TYPE-DESIGN-RULES.md).

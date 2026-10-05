@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 import { decodeConfigurationText } from "../configuration/decode.ts"
 import { resolveConfiguration, type ConfigurationLayer } from "../configuration/resolve.ts"
 import { ConfigurationError } from "../configuration/errors.ts"
-import { BUNDLED_NOUL_PACK } from "./bundled.ts"
+import { SHIPPED_DEFAULT_PACK } from "./shipped.ts"
 import { compileRules, selectApplicableRules } from "./compiler.ts"
 import { loadRulePacks } from "./loader.ts"
 import { decodeRulePackText, digestRulePack } from "./schema.ts"
@@ -340,7 +340,7 @@ describe("layered local pack loading and compilation", () => {
     const packs = [
       { ...team, path: "team.jsonc", enabled: true, origin: origin("project", ".hapsland.jsonc") },
       { ...other, path: "other.jsonc", enabled: true, origin: origin("project", ".hapsland.jsonc") },
-      { ...BUNDLED_NOUL_PACK, path: "built-in:noul", enabled: false, origin: origin("built-in", "built-in:noul") }
+      { ...SHIPPED_DEFAULT_PACK, path: "built-in:noul", enabled: false, origin: origin("built-in", "built-in:noul") }
     ]
     const rules = compileRules({ packs, layers })
     expect(rules.map((rule) => rule.qualifiedId)).toContain("other/has-question")
@@ -463,7 +463,6 @@ describe("rule-pack reference validation", () => {
         const packs = await Effect.runPromise(
           loadRulePacks({
             root,
-            includeBundled: false,
             layers: [
               {
                 name: "user",
@@ -491,29 +490,27 @@ describe("rule-pack reference validation", () => {
   it("inherits pack enablement across layers and rejects an undeclared identity", async () => {
     const root = mkdtempSync(join(tmpdir(), "rule-reference-inheritance-"))
     const source = join(root, "review.jsonc")
+    const defaults = join(root, "defaults.jsonc")
+    writeFileSync(defaults, packText(SHIPPED_DEFAULT_PACK.id))
     try {
       for (const enabled of [undefined, true, false]) {
         const packs = await Effect.runPromise(
           loadRulePacks({
             root,
             layers: [
-              {
-                name: "project",
-                source,
-                document: { version: 1, packs: [{ id: BUNDLED_NOUL_PACK.id, enabled: false }] }
-              },
+              { name: "project", source, document: { version: 1, packs: [{ path: defaults, enabled: false }] } },
               {
                 name: "user",
                 source: join(root, "user.jsonc"),
                 document: {
                   version: 1,
-                  packs: [{ id: BUNDLED_NOUL_PACK.id, ...(enabled === undefined ? {} : { enabled }) }]
+                  packs: [{ id: SHIPPED_DEFAULT_PACK.id, ...(enabled === undefined ? {} : { enabled }) }]
                 }
               }
             ]
           })
         )
-        expect(packs.find((pack) => pack.id === BUNDLED_NOUL_PACK.id)?.enabled).toBe(enabled ?? false)
+        expect(packs.find((pack) => pack.id === SHIPPED_DEFAULT_PACK.id)?.enabled).toBe(enabled ?? false)
       }
       const result = await Effect.runPromise(
         loadRulePacks({

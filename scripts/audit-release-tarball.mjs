@@ -31,6 +31,7 @@ const allowed = (name) =>
   name === "package.json" ||
   name === "package-runtime.json" ||
   name === "README.md" ||
+  name === "src/rules/defaults/hapsland.json" ||
   name === "bin/launch.sh" ||
   ["schemas/review-config-v1.schema.json", "schemas/review-rule-pack-v1.schema.json"].includes(name) ||
   [
@@ -69,7 +70,14 @@ if (
 ) {
   throw new Error("release package manifest differs from reviewed release coordinates or runtime contract")
 }
-const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh", "dist/pi/extension.js"]
+const required = [
+  "src/rules/defaults/hapsland.json",
+  "package.json",
+  "package-runtime.json",
+  "README.md",
+  "bin/launch.sh",
+  "dist/pi/extension.js"
+]
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
   for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"])
     required.push(`dist/bin/${profile}/${command}`)
@@ -88,6 +96,8 @@ for (const profile of ["linux-arm64", "darwin-arm64"]) {
   }
 }
 for (const name of required) if (!names.includes(name)) throw new Error(`release tarball is missing ${name}`)
+if (sha256(archiveFile("src/rules/defaults/hapsland.json")) !== sha256(gitFile("src/rules/defaults/hapsland.json")))
+  throw new Error("shipped default rules differ from the pinned release commit")
 for (const name of names.filter((name) =>
   /^(?:dist\/.*\.js|docs\/.*\.md|README\.md|package-runtime\.json|bin\/launch\.sh)$/.test(name)
 )) {

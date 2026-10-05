@@ -36,7 +36,8 @@
     "docs/pi-installation.md",
     "dist/bin",
     "dist/runtime/hook-catalog.js",
-    "dist/pi/**/*.js"
+    "dist/pi/**/*.js",
+    "src/rules/defaults/hapsland.json"
   ],
   "bin": {
     "hapsland": "bin/launch.sh",
