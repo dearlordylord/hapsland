@@ -1,9 +1,12 @@
 import * as Schema from "effect/Schema"
 
+const maxNat = 2 ** 48 - 1
+const maxBytes = 2 ** 47 - 1
+
 /** Bend's immediate Nat is 48 bits; byte pairs must remain within that range. */
-export const Nat = Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 2 ** 48 - 1 }))
+export const Nat = Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: maxNat }))
 export const PositiveNat = Nat.check(Schema.isGreaterThanOrEqualTo(1))
-export const ByteCount = PositiveNat.check(Schema.isLessThanOrEqualTo(2 ** 47 - 1))
+export const ByteCount = PositiveNat.check(Schema.isLessThanOrEqualTo(maxBytes))
 export const Word = Nat.check(Schema.isLessThanOrEqualTo(0xffffffff))
 export const Probability = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))
 export const ProbabilityWordsSchema = Schema.Struct({ high: Word, low: Word }).check(
@@ -34,10 +37,21 @@ export const decoder = <S extends Schema.ConstraintDecoder<unknown>>(schema: S) 
     }
   }
 }
-export const readNat = decoder(Nat)
-export const readPositiveNat = decoder(PositiveNat)
-export const readBytes = decoder(ByteCount)
-export const readBool = decoder(Schema.Boolean)
+/** Scalar fast paths match the public schemas; failures retain their schema diagnostics. */
+const naturalReader = (
+  schema: typeof Nat | typeof PositiveNat | typeof ByteCount,
+  minimum: number,
+  maximum: number
+) => {
+  const decode = decoder(schema)
+  return (value: unknown): number =>
+    typeof value === "number" && Number.isInteger(value) && value >= minimum && value <= maximum ? value : decode(value)
+}
+export const readNat = naturalReader(Nat, 0, maxNat)
+export const readPositiveNat = naturalReader(PositiveNat, 1, maxNat)
+export const readBytes = naturalReader(ByteCount, 1, maxBytes)
+const decodeBool = decoder(Schema.Boolean)
+export const readBool = (value: unknown): boolean => (typeof value === "boolean" ? value : decodeBool(value))
 const RecordSchema = Schema.Record(Schema.String, Schema.Unknown)
 const checkedRecords = new WeakSet<object>()
 /** Schema assertions preserve native object identity used by the provenance fence. */
