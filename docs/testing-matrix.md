@@ -10,8 +10,8 @@
 
 Use `npm run verify -- --profile=PROFILE [explicit test files]`. Every run records
 its resolved plan and finite deadline under `.test-runs`; build and archive reuse
-never reuses test outcomes or coverage. The source package command and migrated CLI fixtures select pinned Bun;
-remaining fixture launchers are still being audited. Node runs the test harness. Coverage runs attach a Bun
+never reuses test outcomes or coverage. Source application commands and resident fixtures select pinned Bun;
+Node runs the test harness and synthetic process fixtures. Coverage runs attach a Bun
 preload and merge original-source Istanbul counters with Vitest/V8 counters.
 The selected source files and CRAP thresholds remain unchanged. Killed fixtures
 retain conservative periodic snapshots; focused coverage is not a full gate.

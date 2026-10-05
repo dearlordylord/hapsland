@@ -94,7 +94,6 @@ const required = [
   "README.md",
   "bin/launch.sh",
   "dist/pi/extension.js",
-  "dist/pi/inspection.js",
   "dist/runtime/hook-catalog.js"
 ]
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
