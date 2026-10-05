@@ -1,4 +1,3 @@
-import { InspectionWriterObservation } from "../inspection/writer.ts"
 import { hookMonotonicMillis } from "./hook-clock.ts"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
@@ -75,7 +74,7 @@ it.effect("records native callback completion and releases its error observer", 
 it.effect("keeps submitted bytes uncertain on deadline and ignores a late callback", () =>
   Effect.gen(function* () {
     const started = yield* Deferred.make<void>()
-    const evidence: Array<{ state: string; encoded?: string }> = []
+
     let complete: (error?: Error | null) => void = () => {}
     let observers = 0
     let writes = 0
@@ -94,14 +93,9 @@ it.effect("keeps submitted bytes uncertain on deadline and ignores a late callba
         }
       }
     })
-    const writing = yield* output.write({ decision: "block" }, (yield* hookMonotonicMillis) + 1_000).pipe(
-      Effect.provideService(InspectionWriterObservation, {
-        observe: (event) => {
-          evidence.push(event)
-        }
-      }),
-      Effect.forkChild
-    )
+    const writing = yield* output
+      .write({ decision: "block" }, (yield* hookMonotonicMillis) + 1_000)
+      .pipe(Effect.forkChild)
     yield* Deferred.await(started)
     yield* TestClock.adjust("1 second")
     expect(yield* Fiber.join(writing)).toBe("uncertain")
@@ -109,17 +103,13 @@ it.effect("keeps submitted bytes uncertain on deadline and ignores a late callba
     complete()
     expect(writes).toBe(1)
     expect(yield* Fiber.join(writing)).toBe("uncertain")
-    expect(evidence).toEqual([
-      { state: "write-started", encoded: '{"decision":"block"}\n' },
-      { state: "uncertain", encoded: '{"decision":"block"}\n' }
-    ])
   })
 )
 
 it.effect("interrupts observation without retrying or treating submitted bytes as refused", () =>
   Effect.gen(function* () {
     const started = yield* Deferred.make<void>()
-    const evidence: Array<{ state: string; encoded?: string }> = []
+
     let observers = 0
     let writes = 0
     const output = makeHookOutput({
@@ -136,53 +126,29 @@ it.effect("interrupts observation without retrying or treating submitted bytes a
         }
       }
     })
-    const writing = yield* output.write({}, (yield* hookMonotonicMillis) + 1_000).pipe(
-      Effect.provideService(InspectionWriterObservation, {
-        observe: (event) => {
-          evidence.push(event)
-        }
-      }),
-      Effect.forkChild
-    )
+    const writing = yield* output.write({}, (yield* hookMonotonicMillis) + 1_000).pipe(Effect.forkChild)
     yield* Deferred.await(started)
     yield* Fiber.interrupt(writing)
     expect(observers).toBe(0)
     expect(writes).toBe(1)
-    expect(evidence).toEqual([
-      { state: "write-started", encoded: "{}\n" },
-      { state: "uncertain", encoded: "{}\n" }
-    ])
   })
 )
 
 it.live("settles a native Writable error event before removing its observer", () =>
   Effect.gen(function* () {
-    const evidence: Array<{ state: string; encoded?: string }> = []
     const stream = new Writable({
       write: (_chunk, _encoding, complete) => complete(new Error("fixture write failure"))
     })
     const output = makeWritableHookOutput(stream)
-    expect(
-      yield* output.writeEncoded("fixture\n", (yield* hookMonotonicMillis) + 1_000).pipe(
-        Effect.provideService(InspectionWriterObservation, {
-          observe: (event) => {
-            evidence.push(event)
-          }
-        })
-      )
-    ).toBe("error")
-    expect(evidence).toEqual([
-      { state: "write-started", encoded: "fixture\n" },
-      { state: "uncertain", encoded: "fixture\n" }
-    ])
+    expect(yield* output.writeEncoded("fixture\n", (yield* hookMonotonicMillis) + 1_000)).toBe("error")
+
     expect(stream.listenerCount("error")).toBe(0)
     expect(stream.destroyed).toBe(true)
   })
 )
 
-it.live("observes exact native writer bytes and callback success despite a failed optional observer", () =>
+it.live("observes exact native writer bytes and callback success without changing the output", () =>
   Effect.gen(function* () {
-    const evidence: Array<{ state: string; encoded?: string }> = []
     const written: Array<Buffer> = []
     const stream = new Writable({
       write: (chunk, _encoding, complete) => {
@@ -191,29 +157,17 @@ it.live("observes exact native writer bytes and callback success despite a faile
       }
     })
     const encoded = '{"decision":"block","reason":"日本語\\r\\n\\t"}\n'
-    const result = yield* makeWritableHookOutput(stream)
-      .writeEncoded(encoded, (yield* hookMonotonicMillis) + 1000)
-      .pipe(
-        Effect.provideService(InspectionWriterObservation, {
-          observe: (event) => {
-            evidence.push(event)
-            throw new Error("optional capture failure")
-          }
-        })
-      )
+    const result = yield* makeWritableHookOutput(stream).writeEncoded(encoded, (yield* hookMonotonicMillis) + 1000)
+
     expect(result).toBe("written")
     expect(Buffer.concat(written).equals(Buffer.from(encoded))).toBe(true)
-    expect(evidence).toEqual([
-      { state: "write-started", encoded },
-      { state: "written", encoded }
-    ])
+
     stream.end()
   })
 )
 
 it.effect("records an expired encoded write as failed before passing bytes to the port", () =>
   Effect.gen(function* () {
-    const evidence: Array<{ state: string; encoded?: string }> = []
     const output = makeHookOutput({
       writable: () => true,
       write: () => {
@@ -222,15 +176,6 @@ it.effect("records an expired encoded write as failed before passing bytes to th
       onError: () => () => {},
       settleErrors: () => Effect.void
     })
-    expect(
-      yield* output.writeEncoded("original\n", yield* hookMonotonicMillis).pipe(
-        Effect.provideService(InspectionWriterObservation, {
-          observe: (event) => {
-            evidence.push(event)
-          }
-        })
-      )
-    ).toBe("timed-out")
-    expect(evidence).toEqual([{ state: "failed-before-write", encoded: "original\n" }])
+    expect(yield* output.writeEncoded("original\n", yield* hookMonotonicMillis)).toBe("timed-out")
   })
 )

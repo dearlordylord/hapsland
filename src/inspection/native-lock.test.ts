@@ -7,6 +7,31 @@ import { spawnSync } from "node:child_process"
 import { lockInspectionDirectory } from "./native-lock.ts"
 import { packageAssetPath } from "../runtime/package-runtime.ts"
 
+it("allows simultaneous read-only owners and excludes a writer until both release", async () => {
+  const directory = await realpath(await mkdtemp(join(tmpdir(), "hapsland-shared-lock-")))
+  const first = await open(directory, "r")
+  const second = await open(directory, "r")
+  const writer = await open(directory, "r")
+  let firstClosed = false,
+    secondClosed = false
+  try {
+    expect(lockInspectionDirectory(first.fd, true)).toBe(true)
+    expect(lockInspectionDirectory(second.fd, true)).toBe(true)
+    expect(lockInspectionDirectory(writer.fd)).toBe(false)
+    await first.close()
+    firstClosed = true
+    expect(lockInspectionDirectory(writer.fd)).toBe(false)
+    await second.close()
+    secondClosed = true
+    expect(lockInspectionDirectory(writer.fd)).toBe(true)
+  } finally {
+    if (!firstClosed) await first.close()
+    if (!secondClosed) await second.close()
+    await writer.close()
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 it("accepts only private owned directory descriptors", async () => {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "hapsland-lock-")))
   const file = await open(join(directory, "file"), "wx", 0o600)

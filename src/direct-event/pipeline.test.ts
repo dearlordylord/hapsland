@@ -1438,9 +1438,9 @@ describe("direct-event vertical slice", () => {
 })
 
 describe("controlled host writer", () => {
-  it("captures the exact synchronous Codex payload without claiming completion or changing observer failures", () => {
+  it("captures the exact synchronous Codex payload without claiming completion", () => {
     const bytes: Buffer[] = []
-    const evidence: Array<{ state: string; encoded?: string }> = []
+
     const stream = new Writable({
       write: (chunk, _encoding, complete) => {
         bytes.push(Buffer.from(chunk))
@@ -1450,22 +1450,12 @@ describe("controlled host writer", () => {
     const output = {
       hookSpecificOutput: { hookEventName: "PostToolUse" as const, additionalContext: "Inspect 日本語\r\n\tcases" }
     }
-    const result = attemptCodexHostOutput(
-      output,
-      (encoded) => {
-        stream.write(encoded)
-      },
-      {
-        observe: (event) => {
-          evidence.push(event)
-          throw new Error("optional inspection unavailable")
-        }
-      }
-    )
+    const result = attemptCodexHostOutput(output, (encoded) => {
+      stream.write(encoded)
+    })
     stream.end()
     expect(result.status).toBe("attempted-unacknowledged")
-    expect(evidence.map((event) => event.state)).toEqual(["write-started", "uncertain"])
-    for (const event of evidence) expect(Buffer.from(event.encoded ?? "").equals(Buffer.concat(bytes))).toBe(true)
+
     expect(bytes[0]?.toString("utf8")).toBe(JSON.stringify(output) + "\n")
   })
   it("records attempted-unacknowledged only after the write invocation", () => {
@@ -1482,20 +1472,13 @@ describe("controlled host writer", () => {
   })
 
   it("does not manufacture an attempt record when the writer throws", () => {
-    const evidence: Array<{ state: string; encoded?: string }> = []
     expect(() =>
       attemptCodexHostOutput(
         { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "advice" } },
         () => {
           throw new Error("closed writer")
-        },
-        {
-          observe: (event) => {
-            evidence.push(event)
-          }
         }
       )
     ).toThrow("closed writer")
-    expect(evidence.map((event) => event.state)).toEqual(["write-started", "uncertain"])
   })
 })

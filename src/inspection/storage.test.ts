@@ -24,8 +24,97 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { makeInspectionHttpServer } from "./http.ts"
+import { lockInspectionDirectory, InspectionStorageBusy } from "./native-lock.ts"
 import { makeInspectionRecorder } from "./recorder.ts"
 import { readInspectionSettings } from "./settings.ts"
+
+it("retains an incoming edit after another inspector releases the real journal lock", async () => {
+  const directory = await fixture()
+  const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+  const ready = nativeDeferred<void>()
+  const attempted = nativeDeferred<void>()
+  const committed = nativeDeferred<void>()
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const recorder = yield* makeInspectionRecorder(
+          { endpoint: "/retry/resident.sock", lifetime: "retry" },
+          {
+            write: (record, encoded, publication) =>
+              store.write(record, encoded, publication).pipe(
+                Effect.tapError(() => Effect.sync(() => attempted.resolve())),
+                Effect.tap(() =>
+                  Effect.sync(() => {
+                    if (record.fact.kind === "recording-state") ready.resolve()
+                    if (record.fact.kind === "edit-received") committed.resolve()
+                  })
+                )
+              )
+          },
+          { now: () => 100 }
+        )
+        recorder.observeRecording("/project", true)
+        yield* Effect.promise(() => ready.promise)
+        let closed = false
+        const handle = yield* Effect.acquireRelease(
+          Effect.promise(() => open(directory, constants.O_RDONLY | constants.O_DIRECTORY)),
+          (handle) => (closed ? Effect.void : Effect.promise(() => handle.close()))
+        )
+        expect(lockInspectionDirectory(handle.fd)).toBe(true)
+        const edit = record(1)
+        if (edit.fact.kind !== "edit-received") throw new Error("expected edit fixture")
+        expect(recorder.offer(edit.scope, { receiptId: "after-contention" }, edit.fact)).toBe("queued")
+        yield* Effect.promise(() => attempted.promise)
+        yield* Effect.promise(() => handle.close())
+        closed = true
+        const saved = yield* Effect.promise(() =>
+          Promise.race([
+            committed.promise.then(() => true),
+            new Promise<boolean>((resolve) => {
+              const timer = setTimeout(() => resolve(false), 1000)
+              timer.unref()
+            })
+          ])
+        )
+        expect(saved).toBe(true)
+      })
+    )
+  )
+  expect(
+    (await Effect.runPromise(store.snapshot())).records.some(
+      (entry) => entry.correlation.receiptId === "after-contention"
+    )
+  ).toBe(true)
+})
+
+it("sends existing history in the first SSE snapshot after transient contention without any new event", async () => {
+  const directory = await fixture()
+  const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576, now: () => 100 })
+  await publish(store, record(1))
+  let attempts = 0
+  const scope = await Effect.runPromise(Scope.make())
+  const controller = new AbortController()
+  try {
+    const server = await Effect.runPromise(
+      makeInspectionHttpServer({
+        snapshot: () =>
+          Effect.suspend(() => (++attempts === 1 ? Effect.fail(new InspectionStorageBusy()) : store.snapshot()))
+      }).pipe(Effect.provideService(Scope.Scope, scope))
+    )
+    const response = await fetch(`${server.url}events`, { signal: controller.signal })
+    const reader = response.body!.getReader()
+    let frame = ""
+    while (!frame.includes("\n\n")) frame += new TextDecoder().decode((await reader.read()).value)
+    const payload = frame.split("\n").find((line) => line.startsWith("data: "))!
+    expect(JSON.parse(payload.slice(6))).toMatchObject({
+      records: [expect.objectContaining({ fact: expect.objectContaining({ kind: "edit-received" }) })]
+    })
+    expect(attempts).toBeGreaterThan(1)
+  } finally {
+    controller.abort()
+    await Effect.runPromise(Scope.close(scope, Exit.void))
+  }
+})
 
 const directories: string[] = []
 afterEach(async () => {
@@ -48,6 +137,66 @@ const record = (sequence: number, capturedAt = 100, lifetime = "first"): Inspect
 })
 const publish = (store: ReturnType<typeof makeInspectionStorage>, value: InspectionRecord, allowed = () => true) =>
   Effect.runPromise(store.write(value, JSON.stringify(value), { allowed, commit: allowed }))
+
+it("reads expired history and unfinished publications without changing any journal files", async () => {
+  const directory = await fixture()
+  let now = 100
+  const store = makeInspectionStorage(directory, { retentionMs: 50, storageBytes: 1048576, now: () => now })
+  await publish(store, record(1))
+  const pending = "pending-00000000-0000-0000-0000-000000000000"
+  await writeFile(join(directory, pending), JSON.stringify(record(2)), { mode: 0o600 })
+  const names = (await readdir(directory)).sort()
+  const contents = await Promise.all(names.map((name) => readFile(join(directory, name), "utf8")))
+  now = 150
+  expect(await Effect.runPromise(store.snapshot())).toEqual({
+    records: [],
+    losses: [],
+    expired: [{ sourceId: record(1).source.id, sequence: 1 }]
+  })
+  expect((await readdir(directory)).sort()).toEqual(names)
+  expect(await Promise.all(names.map((name) => readFile(join(directory, name), "utf8")))).toEqual(contents)
+  await publish(store, record(3, 150))
+  expect((await readdir(directory)).some((name) => name.startsWith("pending"))).toBe(false)
+  expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([3])
+})
+
+it("does not create a missing journal when reading history", async () => {
+  const directory = join(await fixture(), "missing")
+  const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1048576 })
+  expect(await Effect.runPromise(store.snapshot())).toEqual({ records: [], losses: [] })
+  await expect(lstat(directory)).rejects.toMatchObject({ code: "ENOENT" })
+})
+
+it("reuses immutable payloads while observing another writer and isolating returned snapshots", async () => {
+  const directory = await fixture()
+  const limits = { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }
+  let payloadReads = 0
+  const first = makeInspectionStorage(directory, limits, {
+    payloadRead: () => {
+      payloadReads += 1
+    }
+  })
+  const second = makeInspectionStorage(directory, limits)
+  await publish(first, record(1))
+  await publish(first, record(2))
+  expect(payloadReads).toBe(0)
+  await publish(second, record(3))
+  await publish(first, record(4))
+  expect(payloadReads).toBe(1)
+  const snapshot = await Effect.runPromise(first.snapshot())
+  Object.assign(snapshot.records[0]!.correlation, { receiptId: "mutated-view" })
+  expect((await Effect.runPromise(first.snapshot())).records.map((entry) => entry.correlation.receiptId)).toEqual([
+    "receipt-1",
+    "receipt-2",
+    "receipt-3",
+    "receipt-4"
+  ])
+  expect(payloadReads).toBe(1)
+  const changed = { ...record(1), correlation: { receiptId: "changed-on-disk" } }
+  await writeFile(join(directory, `${changed.source.id}-0000000000000001.json`), JSON.stringify(changed))
+  expect((await Effect.runPromise(first.snapshot())).records[0]!.correlation.receiptId).toBe("changed-on-disk")
+  expect(payloadReads).toBe(2)
+})
 
 describe("private inspection journal", () => {
   it.each(["changed", "added", "removed", "permissions"] as const)(
@@ -193,10 +342,9 @@ describe("private inspection journal", () => {
         child.kill("SIGKILL")
         await exited
         expect((await Effect.runPromise(store.snapshot())).records).toEqual([first])
-        expect(await readdir(directory)).toEqual([
-          `${first.source.id}-${String(first.sequence).padStart(16, "0")}.json`
-        ])
+        expect((await readdir(directory)).some((name) => name.startsWith("pending"))).toBe(true)
         await publish(store, record(3))
+        expect((await readdir(directory)).some((name) => name.startsWith("pending"))).toBe(false)
         expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([1, 3])
       } finally {
         clearTimeout(deadline)
@@ -287,18 +435,22 @@ describe("private inspection journal", () => {
     await publish(store, record(1, 51))
     await publish(store, record(2, 100))
     now = 101
+    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2])
+    expect((await readdir(directory)).filter((name) => name.endsWith(".json"))).toHaveLength(2)
+    await publish(store, record(3, 101))
     const pruned = await Effect.runPromise(store.snapshot())
     expect(pruned.losses).toEqual([
       { version: 1, sourceId: record(1).source.id, sequence: 1, capturedAt: 51, removedAt: 101, reason: "expired" }
     ])
-    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2])
-    expect((await readdir(directory)).filter((name) => name.endsWith(".json"))).toHaveLength(1)
-    await publish(store, record(3, 51))
-    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2])
+    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2, 3])
+    expect((await readdir(directory)).filter((name) => name.endsWith(".json"))).toHaveLength(2)
+    await publish(store, record(4, 51))
+    expect((await Effect.runPromise(store.snapshot())).records.map((entry) => entry.sequence)).toEqual([2, 3])
     now = 151
+    await publish(store, record(5, 151))
     const later = await Effect.runPromise(store.snapshot())
-    expect(later.records).toEqual([])
-    expect(later.losses.map((entry) => entry.sequence)).toEqual([2])
+    expect(later.records.map((entry) => entry.sequence)).toEqual([5])
+    expect(later.losses.map((entry) => entry.sequence)).toEqual([2, 3])
   })
   it("applies one allocated-storage cap across source lifetimes, evicting oldest records", async () => {
     const directory = await fixture()
@@ -474,7 +626,8 @@ describe("private inspection journal", () => {
       for (const record of ${JSON.stringify([record(1, 51), record(2, 100)])})
         await Effect.runPromise(store.write(record, JSON.stringify(record), { allowed: () => true, commit: () => true }));
       now = 101;
-      await Effect.runPromise(store.snapshot());
+      const next = ${JSON.stringify(record(3, 101))};
+      await Effect.runPromise(store.write(next, JSON.stringify(next), { allowed: () => true, commit: () => true }));
     `
       const child = spawn(bunExecutable(), ["--input-type=module", "-e", script, directory], {
         stdio: ["ignore", "pipe", "pipe"]
@@ -500,6 +653,8 @@ describe("private inspection journal", () => {
         const snapshot = await Effect.runPromise(store.snapshot())
         expect(snapshot.records.map((entry) => entry.sequence)).toEqual([2])
         expect(snapshot.losses).toEqual([])
+        expect((await readdir(directory)).some((name) => name.startsWith("pending"))).toBe(true)
+        await publish(store, record(4, 101))
         expect((await readdir(directory)).some((name) => name.startsWith("pending"))).toBe(false)
       } finally {
         clearTimeout(deadline)

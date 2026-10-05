@@ -1,5 +1,3 @@
-import { makeInspectionSubmissionRecorder } from "../inspection/submission-recorder.ts"
-import type { InspectionSubmissionObservation } from "../inspection/writer.ts"
 import { InspectionTransportObservation } from "../inspection/transport.ts"
 import { captureInspectionPolicy, captureInspectionFindings, captureInspectionFate } from "../inspection/capture.ts"
 import { inspectionSourceId, type InspectionScope, type InspectionCorrelation } from "../inspection/contract.ts"
@@ -80,7 +78,6 @@ import {
   encodeCurrentResidentResponse,
   type ResidentDispatchContext,
   type ResidentRequest,
-  type ResidentWriterEvidence,
   type ResidentResponse,
   type ResidentUnavailableReason
 } from "./protocol.ts"
@@ -476,7 +473,6 @@ export interface ResidentRuntimeOperations {
 }
 
 export interface ResidentRuntime {
-  readonly inspectionSubmissionObservation: InspectionSubmissionObservation["Service"]
   readonly operations: ResidentRuntimeOperations
   readonly lifetime: string
   readonly paths: ResidentPaths
@@ -569,23 +565,33 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const inspectionOrigins = new Map<string, string>()
   const inspectionRegistrations = new Map<string, { epoch: number; at: number }>()
   const inspectionLimits = new Map<string, { readonly retentionMs: number; readonly storageBytes: number }>()
+  let inspectionJournal:
+    | {
+        readonly retentionMs: number
+        readonly storageBytes: number
+        readonly store: ReturnType<typeof makeInspectionStorage>
+      }
+    | undefined
   const inspection = yield* makeInspectionRecorder(
     { endpoint: paths.socket, lifetime },
     options.inspectionPersistence ?? {
       write: (record, encoded, publication) =>
         Effect.suspend(() => {
           const limits = inspectionLimits.get(record.scope.root)
-          return limits === undefined
-            ? Effect.void
-            : makeInspectionStorage(join(HAPSLAND_STATE_DIRECTORY, "inspection"), limits).write(
-                record,
-                encoded,
-                publication
-              )
+          if (limits === undefined) return Effect.void
+          if (
+            inspectionJournal === undefined ||
+            inspectionJournal.retentionMs !== limits.retentionMs ||
+            inspectionJournal.storageBytes !== limits.storageBytes
+          )
+            inspectionJournal = {
+              ...limits,
+              store: makeInspectionStorage(join(HAPSLAND_STATE_DIRECTORY, "inspection"), limits)
+            }
+          return inspectionJournal.store.write(record, encoded, publication)
         })
     }
   )
-  const inspectionSubmissions = makeInspectionSubmissionRecorder(inspection, { endpoint: paths.socket, lifetime })
   const inspectionObserveAdviceFate = (
     advice: Advice,
     findings: ReadonlyArray<Finding>,
@@ -1599,9 +1605,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     frame: CollectionFrame,
     handoff: ReadonlyArray<Advice>,
     token: string,
-    now: number,
-    root: string,
-    recipient: DirectAdvicee
+    now: number
   ) {
     const offers = (yield* Effect.forEach(handoff, (advice) => residentHandoffOffers(frame, advice, now))).flat()
     const limited: Array<number> = []
@@ -1629,23 +1633,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     const contents = yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))
     const findings = contents.flatMap((content) => content.delivery?.findings ?? [])
-    if (inspection.isEnabled(root)) {
-      const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
-      if (payload.status === "available")
-        inspectionSubmissions.register(token, {
-          root,
-          advicee: recipient,
-          findingIds: payload.findingIds,
-          evaluations: contents.flatMap((content, index) => {
-            if (!content.delivery?.findings.length) return []
-            const advice = handoff[index]!
-            const evaluationId = inspectionOrigins.get(advice.evaluationKey)
-            return [
-              { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
-            ]
-          })
-        })
-    }
     return findings
   })
   const residentCollectionResponse = (
@@ -1693,7 +1680,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           // One clock reading checks ownership and authority after every final capture.
           const handoffNow = residentNow()
           const handoff = yield* residentCollectHandoff(frame, final, token, handoffNow)
-          const findings = yield* residentSelectHandoffFindings(frame, handoff, token, handoffNow, root, advicee)
+          const findings = yield* residentSelectHandoffFindings(frame, handoff, token, handoffNow)
           // Operational failures remain resident diagnostics; only actionable findings reach the agent.
           return residentCollectionResponse(frame, token, findings)
         }).pipe(
@@ -4760,39 +4747,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "collect") return yield* residentHandleCollect(request)
     return undefined
   })
-  const inspectionObserveWriterReport = (
-    token: string,
-    reportLifetime: string,
-    report: ResidentWriterEvidence
-  ): void => {
-    const observer = inspectionSubmissions.observation.forAttempt({
-      batchId: token,
-      attemptId: report.attemptId,
-      endpoint: paths.socket,
-      lifetime: reportLifetime,
-      root: report.root,
-      advicee: report.advicee,
-      findingCount: report.findingCount,
-      noticeOnly: report.noticeOnly
-    })
-    observer?.observe({
-      state: report.state,
-      ...(report.encoded === undefined ? {} : { encoded: report.encoded }),
-      ...(report.outputMissing === undefined ? {} : { outputMissing: report.outputMissing })
-    })
-  }
   const residentRouteAdministration = Effect.fn("ResidentRuntime.routeAdministration")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
-    if (request.operation === "inspection-writer") {
-      inspectionObserveWriterReport(request.token, request.lifetime, request)
-      // Receipt of an optional report is not delivery or persistence acknowledgement.
-      return residentResponse({ status: "empty" })
-    }
-    if (request.operation === "acknowledge" || request.operation === "finalize")
-      for (const report of request.writerReports ?? [])
-        inspectionObserveWriterReport(request.token, request.lifetime, report)
     if (
       (request.operation === "acknowledge" || request.operation === "finalize") &&
       !(yield* residentComposedDelivery.hasToken(request.token))
@@ -5032,7 +4990,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       )
     })
     if (response.status !== "advice") return yield* nonAdviceHandoff(response)
-    inspectionSubmissions.revoke(response.token)
     const now = residentNow()
     yield* residentExpirePending(now)
     yield* residentPruneNoticeCooldowns(now)
@@ -5304,27 +5261,48 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     )
     const finalResponse = yield* finishEditHandoff()
-    // Final fit, source and authority checks may change the provisional membership.
-    // Replace its detached observation ownership only after those checks finish.
-    if (finalResponse.status === "advice" && request.operation === "collect" && inspection.isEnabled(request.root)) {
+    // Capture the final resident message before the socket write, independently of hook output.
+    const messageOwner = request.operation === "admit-and-collect" ? request.observation : request
+    if (
+      finalResponse.status === "advice" &&
+      "root" in messageOwner &&
+      "advicee" in messageOwner &&
+      inspection.isEnabled(messageOwner.root)
+    ) {
       const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
-      if (
-        payload.status === "available" &&
-        inspectionSubmissions.register(response.token, {
-          root: request.root,
-          advicee: request.advicee,
-          findingIds: payload.findingIds,
-          evaluations: finalContents.flatMap((content, index) => {
-            if (!content.delivery?.findings.length) return []
-            const advice = handoff[index]!
-            const evaluationId = inspectionOrigins.get(advice.evaluationKey)
-            return [
-              { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
-            ]
-          })
-        })
-      )
-        return { ...finalResponse, inspectionReporting: true }
+      if (payload.status === "available") {
+        const text =
+          "hookSpecificOutput" in finalResponse.output
+            ? finalResponse.output.hookSpecificOutput.additionalContext
+            : finalResponse.output.reason
+        inspection.offer(
+          {
+            root: messageOwner.root,
+            runtime: messageOwner.advicee.host,
+            runtimeVersion: messageOwner.advicee.hostVersion,
+            sessionId: messageOwner.advicee.sessionId,
+            subagentId: messageOwner.advicee.subagentId
+          },
+          { batchId: finalResponse.token },
+          {
+            kind: "agent-message",
+            findingIds: payload.findingIds,
+            recipient: { turnId: messageOwner.advicee.turnId, toolUseId: messageOwner.advicee.toolUseId },
+            evaluations: finalContents.flatMap((content, index) => {
+              if (!content.delivery?.findings.length) return []
+              const advice = handoff[index]!
+              const evaluationId = inspectionOrigins.get(advice.evaluationKey)
+              return [
+                { semanticIdentity: advice.prepared.identity, ...(evaluationId === undefined ? {} : { evaluationId }) }
+              ]
+            }),
+            message:
+              Buffer.byteLength(text, "utf8") <= 16384
+                ? { status: "available", text }
+                : { status: "missing", reason: "oversized" }
+          }
+        )
+      }
     }
     return finalResponse
   }, Effect.uninterruptible)
@@ -5730,7 +5708,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     })
   )
   const runtime: ResidentRuntime = Object.freeze({
-    inspectionSubmissionObservation: inspectionSubmissions.observation,
     operations,
     lifetime,
     paths,

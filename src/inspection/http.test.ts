@@ -2,7 +2,6 @@ import { Writable } from "node:stream"
 import { submitDirectHookOutput, DirectHookSubmission } from "../resident/direct-hook-output.ts"
 import { HookOutput, makeWritableHookOutput } from "../resident/hook-output.ts"
 import { hookMonotonicMillis } from "../resident/hook-clock.ts"
-import { inspectionWriterClientLayer } from "../resident/inspection-writer-client.ts"
 import {
   collectReadyEffect,
   beginComposedSubmissionEffect,
@@ -327,7 +326,7 @@ it("exposes exceptional provider failure without a clear result, duplicate outco
             records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)
           ).toEqual([{ kind: "evaluation-outcome", outcome: "backend" }])
           expect(
-            records.some((record) => record.fact.kind === "validated-answers" || record.fact.kind === "writer-evidence")
+            records.some((record) => record.fact.kind === "validated-answers" || record.fact.kind === "agent-message")
           ).toBe(false)
           const transport = records.find((record) => record.fact.kind === "transport-invoked")
           if (!transport) throw new Error("missing retained transport")
@@ -450,7 +449,7 @@ it("rejects direct network exposure before opening a server", async () => {
 })
 
 it.each([true, false])(
-  "retains actual native hook output through the public feed when acknowledgement arrives: %s",
+  "retains the resident message through the public feed independently of acknowledgement: %s",
   async (acknowledged) => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number;\n")
@@ -474,11 +473,7 @@ it.each([true, false])(
           history.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
-                if (
-                  record.fact.kind === "writer-evidence" &&
-                  record.fact.state === (acknowledged ? "acknowledged" : "written")
-                )
-                  stored.resolve()
+                if (record.fact.kind === "agent-message") stored.resolve()
               })
             )
           )
@@ -523,7 +518,6 @@ it.each([true, false])(
     const response = await runClient(collectReadyEffect(root, observation.advicee, dispatch, resident.paths))
     if (!response) throw new Error("missing advice")
     expect(response.findingCount).toBe(2)
-    expect(response.inspectionReporting).toBe(true)
     const bytes: Array<Buffer> = []
     const stream = new Writable({
       write: (chunk, _encoding, complete) => {
@@ -540,7 +534,6 @@ it.each([true, false])(
           { composed: true, claude: true, deadlineAt: (await Effect.runPromise(hookMonotonicMillis)) + 5000 }
         ).pipe(
           Effect.provideService(HookOutput, makeWritableHookOutput(stream)),
-          Effect.provide(inspectionWriterClientLayer),
           Effect.provideService(DirectHookSubmission, {
             begin: beginComposedSubmissionEffect,
             release: releaseComposedSubmissionEffect,
@@ -564,32 +557,27 @@ it.each([true, false])(
       if (typeof body !== "object" || body === null || !("records" in body) || !Array.isArray(body.records))
         throw new Error("missing snapshot")
       const records = body.records.map(decodeInspectionRecord)
-      const states = records.filter((record) => record.fact.kind === "writer-evidence")
-      expect(states.map((record) => (record.fact.kind === "writer-evidence" ? record.fact.state : null))).toEqual([
-        "ready",
-        "authorized",
-        "write-started",
-        "written",
-        ...(acknowledged ? ["acknowledged"] : [])
-      ])
-      const written = states.find((record) => record.fact.kind === "writer-evidence" && record.fact.state === "written")
-      if (written?.fact.kind !== "writer-evidence" || written.fact.output.status !== "available")
-        throw new Error("missing written output")
-      expect(Buffer.from(written.fact.output.encoded, "base64").equals(Buffer.concat(bytes))).toBe(true)
-      expect(await (await fetch(`${server.url}payload/${written.source.id}/${written.sequence}`)).json()).toEqual({
-        version: 1,
-        sourceId: written.source.id,
-        sequence: written.sequence,
-        ...written.fact.output
+      const messages = records.filter((record) => record.fact.kind === "agent-message")
+      expect(messages).toHaveLength(1)
+      const message = messages[0]!
+      if (message.fact.kind !== "agent-message") throw new Error("missing resident message")
+      expect(message.fact.message).toEqual({
+        status: "available",
+        text: response.output.hookSpecificOutput.additionalContext
       })
-      expect(written.correlation.batchId).toBe(response.token)
-      expect(written.correlation.attemptId).toMatch(/^[a-f0-9-]{36}$/)
-      expect(written.fact.recipient).toEqual({
+      expect(await (await fetch(`${server.url}payload/${message.source.id}/${message.sequence}`)).json()).toEqual({
+        version: 1,
+        sourceId: message.source.id,
+        sequence: message.sequence,
+        ...message.fact.message
+      })
+      expect(message.correlation.batchId).toBe(response.token)
+      expect(message.fact.recipient).toEqual({
         turnId: observation.advicee.turnId,
         toolUseId: observation.advicee.toolUseId
       })
-      expect(written.fact.findingIds).toHaveLength(response.findingCount)
-      expect(written.fact.evaluations.map((member) => member.evaluationId).sort()).toEqual(
+      expect(message.fact.findingIds).toHaveLength(response.findingCount)
+      expect(message.fact.evaluations.map((member) => member.evaluationId).sort()).toEqual(
         records
           .filter((record) => record.fact.kind === "model-input")
           .map((record) => record.correlation.evaluationId)

@@ -19,9 +19,6 @@ import {
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts"
 import type { DirectAdvicee } from "../direct-event/model.ts"
 import type { ResidentDispatchContext } from "../resident/protocol.ts"
-import { decodeResidentWriterReports } from "../resident/protocol.ts"
-import { InspectionWriterReports } from "../resident/inspection-writer-reports.ts"
-import { InspectionWriterObservation } from "../inspection/writer.ts"
 
 /** Pi has an awaited boundary, with a four-second Hapsland wait inside its five-second resident fence. */
 export const PI_FINISH_DEADLINE_MS = 4_000
@@ -69,13 +66,6 @@ const retire = Effect.fn("Pi.retire")(function* ({ root, advicee, paths }: Conte
 })
 const acknowledge = Effect.fn("Pi.acknowledge")(function* ({ root, advicee, paths, options, event }: Context) {
   if (typeof event.token !== "string" || typeof event.lifetime !== "string") return incomplete
-  const reports = [...(decodeResidentWriterReports(event.writerReports) ?? [])]
-  const observer = InspectionWriterObservation.of({
-    observe: ({ state }) => {
-      const binding = reports[0]
-      if (state === "acknowledged" && binding !== undefined && reports.length < 8) reports.push({ ...binding, state })
-    }
-  })
   const acknowledged = yield* acknowledgeAdviceEffect({
     paths,
     token: event.token,
@@ -85,10 +75,7 @@ const acknowledge = Effect.fn("Pi.acknowledge")(function* ({ root, advicee, path
     activityPath: options.activityPath,
     findingCount: 0,
     output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "" } }
-  }).pipe(
-    Effect.provideService(InspectionWriterReports, { forBatch: () => reports }),
-    Effect.provideService(InspectionWriterObservation, observer)
-  )
+  })
   if (typeof event.stopToken === "string")
     yield* composedStopBoundaryEffect("finish-stop", root, advicee, event.stopToken, event.continued !== true, paths)
   return { status: acknowledged ? "acknowledged" : "uncertain" }
@@ -122,7 +109,7 @@ const offerAdvice = Effect.fn("Pi.offer")(function* (context: Context, advice: A
     lifetime: advice.lifetime,
     findingCount: advice.findingCount,
     continued,
-    ...(advice.inspectionReporting === true ? { inspection: { root: advice.root, advicee: advice.advicee } } : {}),
+
     ...(stopToken === undefined ? {} : { stopToken })
   }
 })

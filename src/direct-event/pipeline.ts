@@ -53,7 +53,8 @@ import {
 } from "./model.ts"
 import {
   DEFAULT_DIRECT_FILE_POLICY,
-  eligibleNamedPath,
+  type eligibleNamedPath,
+  inspectNamedPath,
   resolvedDirectFilePolicy,
   selectedByDirectFilePolicy,
   type DirectFilePolicy
@@ -618,15 +619,16 @@ const eligibleCandidate = Effect.fn("DirectEvent.eligibleCandidate")(function* (
   // same line already exists elsewhere; Codex still needs changed lines.
   if (metadataOnlyCandidate(candidate, observation))
     return { status: "skipped" as const, result: skippedCandidate(candidate.path, "metadata-only") }
-  const eligible = yield* eligibleNamedPath(
+  const admission = yield* inspectNamedPath(
     observation.root,
     candidate.path,
     currentPolicy(context),
     observation.rootIdentity
   )
-  if (eligible === undefined) {
-    return { status: "skipped" as const, result: skippedCandidate(candidate.path, "ineligible") }
+  if (admission.status === "denied") {
+    return { status: "skipped" as const, result: skippedCandidate(candidate.path, admission.reason) }
   }
+  const eligible = admission.path
   const selection = frozenCandidateNames(frozenNames, eligible.relativePath)
   if (!selection.included) return { status: "skipped" as const, result: skippedCandidate(eligible.relativePath) }
   return { status: "eligible" as const, eligible, frozen: selection.frozen, operation: candidate.operation }

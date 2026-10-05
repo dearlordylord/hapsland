@@ -2,8 +2,7 @@ import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Deferred, Effect, Fiber } from "effect"
 import { DirectHookSubmission, submitDirectHookOutput } from "./direct-hook-output.ts"
-import { InspectionSubmissionObservation, InspectionWriterObservation } from "../inspection/writer.ts"
-import { makeHookOutput, HookOutput } from "./hook-output.ts"
+import { HookOutput } from "./hook-output.ts"
 import { residentPaths } from "./paths.ts"
 import type { CollectedAdvice } from "./client.ts"
 
@@ -184,112 +183,5 @@ it.effect("leaves a timed-out write unacknowledged for conservative resident rec
       )
     )
     expect(result).toBe("timed-out")
-  })
-)
-
-it.effect("binds real writer evidence to the original batch and recipient without erasing a lost acknowledgement", () =>
-  Effect.gen(function* () {
-    const attemptIds: Array<string> = []
-    for (const acknowledged of [true, false]) {
-      const evidence: Array<{ state: string; encoded?: string }> = []
-      const bytes: Array<string> = []
-      const result = yield* submitDirectHookOutput(output, { ...options, deadlineAt: 10000 }).pipe(
-        Effect.provideService(
-          DirectHookSubmission,
-          service({
-            begin: () => Effect.succeed(true),
-            record: () => Effect.void,
-            acknowledge: () => Effect.succeed(acknowledged)
-          })
-        ),
-        Effect.provideService(
-          HookOutput,
-          makeHookOutput({
-            writable: () => true,
-            write: (encoded, complete) => {
-              bytes.push(encoded)
-              complete()
-            },
-            onError: () => () => {},
-            settleErrors: () => Effect.void
-          })
-        ),
-        Effect.provideService(InspectionSubmissionObservation, {
-          forAttempt: (attempt) => {
-            expect(attempt).toMatchObject({
-              batchId: advice.token,
-              lifetime: advice.lifetime,
-              endpoint: advice.paths.socket,
-              root: advice.root,
-              advicee: advice.advicee,
-              findingCount: 1,
-              noticeOnly: false
-            })
-            attemptIds.push(attempt.attemptId)
-            return {
-              observe: (event) => {
-                evidence.push(event)
-              }
-            }
-          }
-        })
-      )
-      expect(result).toBe("written")
-      expect(bytes).toEqual([JSON.stringify(output.value) + "\n"])
-      expect(evidence.map((event) => event.state)).toEqual([
-        "ready",
-        "authorized",
-        "write-started",
-        "written",
-        ...(acknowledged ? ["acknowledged"] : [])
-      ])
-      expect(evidence.find((event) => event.state === "written")?.encoded).toBe(bytes[0])
-    }
-    expect(new Set(attemptIds).size).toBe(2)
-  })
-)
-
-it.effect("keeps a refused or broken reporter from inheriting another attempt's writer observer", () =>
-  Effect.gen(function* () {
-    for (const broken of [false, true]) {
-      const inherited: Array<unknown> = []
-      let writes = 0
-      const result = yield* submitDirectHookOutput(output, { ...options, deadlineAt: 10000 }).pipe(
-        Effect.provideService(
-          DirectHookSubmission,
-          service({
-            begin: () => Effect.succeed(true),
-            record: () => Effect.void,
-            acknowledge: () => Effect.succeed(true)
-          })
-        ),
-        Effect.provideService(
-          HookOutput,
-          makeHookOutput({
-            writable: () => true,
-            write: (_encoded, complete) => {
-              writes += 1
-              complete()
-            },
-            onError: () => () => {},
-            settleErrors: () => Effect.void
-          })
-        ),
-        Effect.provideService(InspectionWriterObservation, {
-          observe: (event) => {
-            inherited.push(event)
-          }
-        }),
-        Effect.provideService(InspectionSubmissionObservation, {
-          forAttempt: () => {
-            if (broken) throw new Error("reporter unavailable")
-            return undefined
-          }
-        })
-      )
-      expect(result).toBe("written")
-      expect(writes).toBe(1)
-      expect(inherited).toEqual([])
-    }
   })
 )

@@ -1,0 +1,1838 @@
+{
+  "purpose": "Independently expected actual-Lab behavioral predicates in native and emitted JavaScript",
+  "date": "2026-10-05",
+  "outcome": "passed",
+  "supervisorExitCode": 0,
+  "sourceReceipt": ".test-runs/lab-native-assertions-cIP1I2/result.json",
+  "sourceReceiptSha256": "30d08b89f2f481f9bab3aec866a347e947cd0b0d893e9e7722349741eacf89ed",
+  "owner": "prototypes/canonical-defense/DefenseLabTests.bend",
+  "ownerSha256": "2b035cd9b8604a7046b5b4dea32b403c544d09a9f71c0d12bc3ad33692c00218",
+  "runner": "scripts/verify-game-lab-native-tests.mjs",
+  "runnerSha256": "eaa04b49f0886ff2d0dcbf89ac6e51cd81d6f50c13a63d169d2c957bc7a61343",
+  "command": "node scripts/verify-game-lab-native-tests.mjs",
+  "inputs": {
+    "seed": 152,
+    "budget": 160,
+    "seekFuel": 250
+  },
+  "selected": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "unselected": [],
+  "propertiesPerLane": 20,
+  "assertionsPerLane": 20,
+  "toolchain": {
+    "tools": {
+      "bend": {
+        "path": "/home/node/.bend/bin/bend",
+        "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+        "version": "bend 2.0.35"
+      },
+      "clang": {
+        "path": "/home/node/.local/bin/clang",
+        "sha256": "9b6a91b70b9a7a144c636e4bcfb31f279bac1c186d5db2d38780a5053bb4325f",
+        "version": "Debian clang version 14.0.6\nTarget: aarch64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /home/node/.local/opt/dnd-clang14/usr/lib/llvm-14/bin"
+      }
+    },
+    "host": {
+      "platform": "linux",
+      "architecture": "arm64",
+      "release": "7.0.14-orbstack-00380-ga7e0a2dc9535"
+    },
+    "flags": {
+      "cEmissionTimeoutMs": 30000,
+      "clangTimeoutMs": 30000,
+      "bend": [
+        "-o"
+      ],
+      "clang": [
+        "-O0",
+        "-Wno-unused-value"
+      ],
+      "libraries": [
+        "-lm",
+        "-pthread"
+      ]
+    },
+    "base": "/home/node/.bend/bend2/base.bend"
+  },
+  "sources": [
+    {
+      "path": "/home/node/.bend/bend2/base.bend",
+      "sha256": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/args.c",
+      "sha256": "2635223ad1d401b07e1834b9341e3f0be254796f6de1d9a0e800ca59fb3000b4"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/args.js",
+      "sha256": "ed1a7e7b73ae7fe58ac6d428d2762b66f223f4c70a165570fc5d68dc874ddc0b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/audio.c",
+      "sha256": "5b77ca51a275e0113cfb6fada35211f767c792a549d3b23375bde853d28d9478"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/audio_close.js",
+      "sha256": "c700e2fc0eda1f9a67afd317184999d9283912817aaec00637af41b135b84c62"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/audio_open.js",
+      "sha256": "6f531ac205dab98dd366111cdcc5eed69fb9058350ca715f3419065cd979b088"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/audio_write.js",
+      "sha256": "377d3e938ce3cc9f083c662b69d34e3a0cf391c92ddaf3fca8a4b28c78662da7"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/chan.c",
+      "sha256": "cf026f9d428e83870d046a973ac434ce0a2471f5b93748bb264af84a239eacd3"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/chan.js",
+      "sha256": "c228f8c6ac2ef2fc7b09a016f43e894b524eb49f2ac5d0ebd629cef76d4d1248"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_close.c",
+      "sha256": "08fdd18ef43dff0bc6f7e064eb7ccf7a49f4140c238450f1b5f49ee1a2739dd5"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_close.js",
+      "sha256": "2b83f900113776ab875fa3afd29f31000a191fe48645abe78b1d7b34cb12a7fe"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_open.c",
+      "sha256": "361322488ad1508478c8a8fc4c0d35434924cd6fe92c02fd0c12b28b37b16726"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_open.js",
+      "sha256": "dd549f5f05eb896aef9a3a02ffecf2ee902e653f5463be72781edab1cd1180ae"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_read.c",
+      "sha256": "f6b78f6c6060257a91e341fcc38ba6560d5023ded78e3096fa5bfdc50da9538f"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_read.js",
+      "sha256": "7aa8a95a0b02f3c8db1167da5a936958a90c64e7df3e327ba5c66766d5e57da7"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_size.c",
+      "sha256": "f9d0f2aba9f3e89131b8b4d6d69ab2f33a99b645f403174e60e26238cfee33f1"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_size.js",
+      "sha256": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_write.c",
+      "sha256": "a4d891e392ae0d913a73359fd80a30a64629eb893bf974c08eedb79b5fb9e2db"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/file_write.js",
+      "sha256": "4fe307538beb1047add7646f52df6e382a1da5d8999d8fe96969bd5055bc9b59"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/get_env.c",
+      "sha256": "3c05cb6453d858df9f24d5734defb51afce55da23f5799025782fe8e3191634f"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/get_env.js",
+      "sha256": "2fab2162d5ff9842d1b84bfdc56466a606eeb0b81b04dd29f091652ff715ded6"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/listener_close.c",
+      "sha256": "f3b023a763f62d85c861b9f6e0a717ba05992fe0b9d08bb827722ebaad291310"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/listener_close.js",
+      "sha256": "1b87fb43c373b1a8a54b5afaf0cf8e3ec2f8d39bdfde131e49527caa19ac0cb8"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/now.c",
+      "sha256": "268e869a5b5dd667aeb61ee7ef07f832238fb17f93015fe708528e95987c3ec3"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/now.js",
+      "sha256": "b2c45fdcfeba0f155be5631b25708341c09d3c80929d8467afd5977473b087bf"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/print.c",
+      "sha256": "28552d3b56aee6f6cdb66326aaa49ad0df35e4476e08c548c908efcbfafbd3e7"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/print.js",
+      "sha256": "814ceba4efbaa291b7b6a9ff29aa20e3a23c06eb4fa165c69ee0bd22878adaa9"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/print_err.c",
+      "sha256": "1ae1025f57d14ccc5a593319f9ea82bff061a05b4c468ab1bd0b939d4b98e2c4"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/print_err.js",
+      "sha256": "a7a00612edfe98af1a351e8f7b912af4ee33f4bb888c36f119f7712d72a9394e"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/process_run.c",
+      "sha256": "bf22b58053df01a4a3ac5edacf1593ae6fc0a3c2a2f238de682703a1826a01e8"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/process_run.js",
+      "sha256": "6ebe3b9875ef62ee189209096fb422508e79d34e58913457aefe52a052631e42"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/random_u32.c",
+      "sha256": "bb1e6b2d690590858e4cdbd78ba9b10d349eb3fc7dde0c3265e23af7991623fe"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/random_u32.js",
+      "sha256": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/sleep.c",
+      "sha256": "eb9d441b0ec6b11cbc775dd6f85da0aefdf8d9cdcb7f45f316d4f12c7aa1fdbc"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/sleep.js",
+      "sha256": "324704349471cacfb5ba94c1aed2f316d2e5fdbea486478ab1e2e5a278c7ad9d"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/socket_close.c",
+      "sha256": "742b164fecf63abf8b39fe8d2dd027cec4aa5a9cd31184e7d9d7825c91d5d65c"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/socket_close.js",
+      "sha256": "dc4bf1fa95692c91528d4eb855506dde8dfc9164a90de2c43cd1bd6916e0c380"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/spawn.c",
+      "sha256": "6d140b2b73b200c4bbd3004528734e7517e87d3f7ed40b901a06bfcbf2449abc"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/spawn.js",
+      "sha256": "8a14c7a7a5ff80b049f0659f9e58d43bf0f3b1a6724d35a199c3f864b3242e4b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_accept.c",
+      "sha256": "c72b9f83e2fb8f48b8bf28dc9a3ae95c3c9cee7725a6915797199949d560511c"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_accept.js",
+      "sha256": "3a9eb2359ec60af942fc0aa0390e1d5213a6c8b050bc832b6c8709f68e57b6ed"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_connect.c",
+      "sha256": "ec6d1900f4c7ca88890c7e689bd8317e807665eed0c84418bd7e6505addac8e7"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_connect.js",
+      "sha256": "a20819822e4ce18c8878b94e6ee70466833415eb9ebc2b6a39b65cabfcc553c9"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_listen.c",
+      "sha256": "e126135c5a7cf46e4b4a57060a83ef1983340502f958c65e5c9faf27787abd8a"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_listen.js",
+      "sha256": "0da4cfafaa24ba5e17d9fda5e6a5b207b2b36031b2c888944f67b85842d76399"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_poll.c",
+      "sha256": "1e651ea609d61e1fef86cd07aaca13fa81b04a2159b3a3ef85e788e381c21560"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_poll.js",
+      "sha256": "b0654046a2bfd27a89a4788eec0d4e61cd24dea4efb992e8924cb17ac4238283"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_recv.c",
+      "sha256": "18f669d4cac74e862559f39ecb277592d6b0f06da50000e32751b6505e1a7a43"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_recv.js",
+      "sha256": "642735a0dd844d4ea1c83d4b5d100fec334d6032ba3115f3a41d0bbfe2d93dfd"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_send.c",
+      "sha256": "571d9790ce5c32b2cae08d69ae83ffa0d2c13e2e149f524d14237a79a2f86410"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/tcp_send.js",
+      "sha256": "b5e56fa57d7cd48d7d0ca42d793322971dfc96b77b83b0eef4a528c26e7c326b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/thread_count.c",
+      "sha256": "ff5605b52535484adc10cb800c376ed77ededbddc9adea7064294e2cc0670d49"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/thread_count.js",
+      "sha256": "f4ef6d8ded95fe3114e50b7d2b6eb873e693419b85150f681b4a54a5043c2de9"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_bind.c",
+      "sha256": "abffc463de08b76c0a1ca1235af56b463711d91e7f6720a976b414443096da8b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_bind.js",
+      "sha256": "e3afae5bf246184e76703efbcf41cb35bf5289e746cc40dc0300eef98753dfb5"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_poll.c",
+      "sha256": "b6b6c6eb0ee4fce361e15df09b6579d30634ceab95d530f1e9e401c06155511b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_poll.js",
+      "sha256": "86a7c4eee06ac487f476589d3137e39c152d6ab87b9208adf18763a1ceb486bd"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_recv_from.c",
+      "sha256": "32cab1742c2e5017af56fc97c20db5b38490d05eb4eab39e137ea20cdccf1aa2"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_recv_from.js",
+      "sha256": "d2ca779e878b5f3f85db5fb56148de955f4d094b312299a33f27b70b5b330b1b"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_send_to.c",
+      "sha256": "f00dd855ec7120706bd26a4bab6cc44ebd438584b73d479db3e00ec21b95eb2d"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/udp_send_to.js",
+      "sha256": "0eb95a9c026918435f1eabc6d6d04044731d10f56950d06582086250240911c7"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/window.c",
+      "sha256": "617611d994fb7f4c57467f8d1a7e644ba19d4fce35770613dea2711e6cafd65c"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/window_close.js",
+      "sha256": "be4ef11e9ac57c59aa4aee847f15ece18034ca9fe1c4a68c6e0b0d7bbd7c3590"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/window_frame.js",
+      "sha256": "78baa53aa46e02165c0c94da68d1f6362386ebcfb97dbb36fffb82792a03d34f"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/window_grab.js",
+      "sha256": "55cfc1925114f2d1f177137fad24d6252fe28707d26a1aae18a98ad97060a668"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/window_open.js",
+      "sha256": "cd716864b8dfb27ca955c8aa58643c7d693ce76eb56472bd8255ff7ac0656e8d"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/window_set_title.js",
+      "sha256": "eee0bf26b7f381f8800364e22e8c735e47dd6db3f58e23ff3dda8478a8411513"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/write.c",
+      "sha256": "3e1dc13b5edbbed0c344df665d68e82c8b9d4b5972166ff2411ec039f76cf943"
+    },
+    {
+      "path": "/home/node/.bend/bend2/effs/write.js",
+      "sha256": "e3495066a5d8c53fe1c46cfd2bb32577e3bd7dcae9797808801599073504dacb"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Admission.bend",
+      "sha256": "5eec31d0d3d9e81030a510beaae5019bbfd5e0afb46df2857b508c4ade14e9de"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend",
+      "sha256": "a744b7aec1d03470368f0f1a1170ce1a1182aa208fa3246887cd8ebc35cafe70"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Collection.bend",
+      "sha256": "ab467b6c3d4486d8bd205a4dab75e5a900aae851ad854247cc76cd4edb9a8a12"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/CollectionState.bend",
+      "sha256": "aff63f55072bd8cc62762457e123800d61dfdc8e45286bcd3aacc5e82205f2f6"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/CollectorAuthority.bend",
+      "sha256": "f75d85ce2d8eff051593ffa51ef31c0a29c17d1912540d07352918704c58c042"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Configuration.bend",
+      "sha256": "3ac261b12ee4d463c32975fdf84f63cd8d39418230d3d0dda6af83d0cc4fae61"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Delivery.bend",
+      "sha256": "1681ef298739ae232400c9137d4e9687bf80219006bd6881bf249676388c420a"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/DeliveryState.bend",
+      "sha256": "fe38df27671f8f67164e33eb131b4b7b38f2635edddfd2552e3cb5d0a5900237"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Dispatch.bend",
+      "sha256": "ae10e0bde2c5059b330cb968a165703e029eb05d1d223bd790b413bf5998bf46"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/EditHistory.bend",
+      "sha256": "93af7be4e6acadc605ac6a2a709316bc10e84da03929da3c82cd037c213ed99a"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Flow.bend",
+      "sha256": "fcdf68ecfc402fec71ecd59e9de72f31b41c82a94d97be819c9c9b83b8eeb547"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Handoff.bend",
+      "sha256": "c5f2be72867198b58e8dfb329eaf44e4e109a216929b15a76d2d43bc9c666fed"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/ImportGraph.bend",
+      "sha256": "3a8e842097c23d0987dfb1d4428f524aefd0715a56a97cba13746ad88cda2781"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Ledger.bend",
+      "sha256": "5bb64c9bb55d7ec4d94648cf320b27cfaa3660f29c9806131ed96ffdee075cad"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Notice.bend",
+      "sha256": "1941e3a6a7b03d2b2fd9eaac9c5d0119a4ddf4e939284fbb4f2a40a13105b524"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/NoticeState.bend",
+      "sha256": "ad690c80b7b888c9a066e6ae6c53fb06ce2ba676a3ea905f3882b84eb4f9df40"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Quiescence.bend",
+      "sha256": "abb7112120c681419d252072b0682ee8e36a50bc33b4ddde217c9d60d2813b34"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Retention.bend",
+      "sha256": "1f1159849de71778a3c7eec075f0ca1e7c3c17e335ce2923731ddd85e36eeccd"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Reuse.bend",
+      "sha256": "1b8b0483f0d577d97fd60ee93d55caa4261dc022743b6541cf7bc7ee854e58b7"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/ReuseState.bend",
+      "sha256": "88dd20e7ac490cefb356e144c8af92d3193a6ed119a622cdf294bfa8633a5ba4"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/RevisionState.bend",
+      "sha256": "44b1319be1d28d13b3ada995ab082be9ebbb536eac5dd2449543a1fdd8013732"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Round.bend",
+      "sha256": "802eb3e6907f1c3e7224a0244b9e8c9677bc23b1b26140153bfe6907c2702764"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/RulePolicy.bend",
+      "sha256": "ae3d229f70614445b50736e5365c8f306845e134c335ace7ece78b071994b2a1"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/SubmissionState.bend",
+      "sha256": "b0f699a559c0fdf7a117e491c4fd44a863cc86c62bc23ee67e93cac443b50f95"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Work.bend",
+      "sha256": "0de19fec0321bdaae5178bfc0c512938e7154c671e43de30e670c60ea726b295"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/AdmissionAttempts.bend",
+      "sha256": "bb81d0fa8b5ae396f4c5d3ef47ad7b76bc87ac8e840f61baa39ec78d5b6fd971"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/AdviceeActivity.bend",
+      "sha256": "d88133281988b9210e3a41d05703e7a6afcaf605f0077f6f7af9dcb71efbf10b"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/AdviceeLifecycle.bend",
+      "sha256": "a6a4bfbe62f66d9d41f6954d8092c518ee33e228974f0fe009035febb84b727a"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/AdviceeLifecycleCleanup.bend",
+      "sha256": "305f635b955172ad0dc52a1a4a89c55f16994b867d4ac30b9296d44ca5493135"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/AdviceeScope.bend",
+      "sha256": "73807962ed58410bebfcc8db1f71ccd63c8b5fde0c0a2433698eadd1e123251f"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Advicees.bend",
+      "sha256": "d73b3c369855e05f2e2bade0e59ec10c0e34714efad320252efc68f8b8771ccd"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/CacheRuntime.bend",
+      "sha256": "a71ef02c1107c0bcb20ce1e94e7833f734151d0b685a5b29749a4fb28e73b9e9"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/CacheScenario.bend",
+      "sha256": "fe1edb1644b5289c76288f728cda9a84e390d14aceecd230728f96dd1c4644d1"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend",
+      "sha256": "fe215ef69a690ef9a6aa4667c9cf1479c1fdfb4776c47f6480aa6b097930cce5"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/CollectionScenario.bend",
+      "sha256": "99a2ec9990db2ef29d6eedb8bdbb0f55248e84a01d6efb747c0b2a3708bc2661"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/CollectorScenario.bend",
+      "sha256": "053e118f17cd7a3fb79c1d5ef71354f262c0dbfc4386737ad42627afed04cccf"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/CredentialContext.bend",
+      "sha256": "7c95a2b1199316dae35e2bada5580f646a68bf81f667541229db204805d0a5cf"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/CredentialFacts.bend",
+      "sha256": "0e0b5513aba142fb909641832e91ce21e30870f9b9065c3b95270193ed78f193"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend",
+      "sha256": "290e010ec6f96af3ddc8e75dd80cbef24b0db01eaf27f73581264316864dd179"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Engine.bend",
+      "sha256": "4cd5c8b6a3867d3ba1f58f709616a211f1b480724bb415b70b535a6b0862a5bd"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/ExpiryScenario.bend",
+      "sha256": "ca2c6aff78eab46d13789684217c6a2169dc17bba4765ba4cfaf2a3c303dca19"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/FaultTargets.bend",
+      "sha256": "41381f3fe68e921991c0e2faa698d282202894840a07c322a7709ee52d4a01f2"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/FreshnessContext.bend",
+      "sha256": "e1dc74d094a77a94882920e4121045c9c1c6f1e466be780807a5cfc741f5c107"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/FreshnessScenario.bend",
+      "sha256": "8c8c980d46938f0e27dca70ed03edc258b350b7949dab34b1a5bb7ff8fd7e905"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/JevEffects.bend",
+      "sha256": "36c9f1210d8c95bb3ac91cb04a160c0d628c7637728029d5315297c10c5d228d"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeFinish.bend",
+      "sha256": "2c88ebb588397f8a4e39e5fea9c5fc27e22642c281c4e6a7685ee18f23291dda"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend",
+      "sha256": "73d1b7073bf1a42891e3f1d2f5280afc38b4ec33b0987912c85ed72c2aa4f205"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend",
+      "sha256": "9b85ec5680dd27be72132a160953dac11d8631de6dd9fdbefcaacb79ea59333d"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NoticeScenario.bend",
+      "sha256": "f8163f073b4e1c11a4d93f7290acddeece3b13ab2c816672b0af0d77d36807d0"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Numeric.bend",
+      "sha256": "f105f5ed959cf6f0e549f4c6122cce8b28e725ea1ddd564e77435ebb3676dae0"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputCompletion.bend",
+      "sha256": "294d3e3ebc7dcd379a5c9ab21bfe0efa723991e43c83fb43b40067375882f727"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend",
+      "sha256": "be7888b3661e1d6b410803509e3905a2e2eef971da9eb40c217183ea663bb58f"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/PendingEffects.bend",
+      "sha256": "22d32db0003b8f14f057cf7537dc9c215ff4e9105268d514055b7db80af36db8"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/PermitScenario.bend",
+      "sha256": "a1876e0f84749e9983ba9f9a6e630ed17dfba9f91364b69f9e66358485037b51"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Postprocess.bend",
+      "sha256": "3a0d8fa51ae4e03cc3a6c4fb0faaaeb60769a485c1bc5139b756a55909f2ff3a"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Preparation.bend",
+      "sha256": "f11ec48588cd6d9c2777ef77301ba020ebb4494e49cc869e4cbbef5d4130fcd3"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/PreparationScenario.bend",
+      "sha256": "d4873cd204ca23946019002118de905f4cf532eff3c86eabe1266a9cd543165b"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/QuietScenario.bend",
+      "sha256": "75db35ee9e71e47f4aabe550ef35b90665cb3cb21775fb2dcd066f7a71d89737"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Random.bend",
+      "sha256": "2360899d33d3d776e6ea0c03cebc4888fc4a40bf606469d5baf907d11fb0925f"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/RuntimeScenarios.bend",
+      "sha256": "430761c0e5c7cf0595ddc51be473c74f10b5533bce6cd4d3959a37cac5056838"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Scheduler.bend",
+      "sha256": "ed06bd1a9d4cfb70ebae9ecdaae383aab863392b68c261d63c6890a96a23225c"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/ScopedRevision.bend",
+      "sha256": "71b3ace544f196364e53f5d565ecfbbd2802a1caf0437071206f30b7c6e721c5"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Session.bend",
+      "sha256": "97d8c87aab34273dbda1b44b188060676c0c3287908ea6a0f89fb97df7575038"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/SharingRuntime.bend",
+      "sha256": "e2318f9371795ad2cf3ac63492274e0745fbdfe0ae5ceb0d50b9783e8c45faad"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/SharingScenario.bend",
+      "sha256": "1ff77c9ab3c155c2c244889ec0ca91fe83b9b379d301f0ab412f2c79cf0933fa"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/StopScenario.bend",
+      "sha256": "0d81594e221da324fdff23cbe7cf90657013398b0f13bf925eea60dbb854d252"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/TreeFacts.bend",
+      "sha256": "72ba2fd5b8fceeb9ff371094bea2b678707ee50cf9fc0f57883809e6eb8b156b"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Types.bend",
+      "sha256": "1e94c15affe08b8f7d10ce2cb9b624cfce49a5b12cf2be0014eb5127ec656f1f"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Workload.bend",
+      "sha256": "61bf4338611c9a5e5247bdb8f599007b81042c4165437d4dfb656aa4861e184d"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/WriterScenario.bend",
+      "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseAuto.bend",
+      "sha256": "f7715487d37bba95ae645bbeb65c10e737ec80f8ec2a82fd7bef5bcb806fff40"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseConsumer.bend",
+      "sha256": "4c4b346e618c86de0c25417732918edbba6ea7aad69b9f2e70357359a4e9f804"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseCues.bend",
+      "sha256": "f7b7a1d095bc2d84a7488d850f91eaef544eb3b6d049af5f52e274afdbaff4e1"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseEffects.bend",
+      "sha256": "88a2b01b714c6dc969cb2d4985f53e2d29427aec779fbc6595f7b75ee92fe96c"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend",
+      "sha256": "8b560c11b1ac2aaf26a22e8d066ad2501c18138509473e4cbc69dea13835c88d"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend",
+      "sha256": "c91636d3b45892c4fe4a37e4682ad8dc5530b52c9bbb7a9b6722777efbd4344c"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseMap.bend",
+      "sha256": "debc6651614c46fff01353cbd008869688c5bf99bab3f3500f6dc7b9085db069"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseMechanics.bend",
+      "sha256": "a08641c1e682da58a50082c22c36b46b861d335c64ca827b125b8a05369a4186"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend",
+      "sha256": "f422e53370fb3c93368f223e35f75cfb9325e2b1203cfcf53665f78c7db66e76"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseMotion.bend",
+      "sha256": "b8a5fb72c007fea246011c66a2db270eb3432b8ee83ea9fdd15bbd5a77b49b5c"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseMotionTypes.bend",
+      "sha256": "6ca50e25e4c0fc76ecbf8f05b50c4d973aba70c999e2688681c69c7938db4322"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend",
+      "sha256": "8eef56db2e03671b17c795f77eca8785f58259ee7e645c96a83388a44def9495"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.c",
+      "sha256": "e717c4ef44db176b2ceaf71cb8d599ac91763c1c4b8d56e237958e05b0a2f493"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.js",
+      "sha256": "9987b4e217c49a4c832e22b5dfda6281a63b08a5385ea8fbe2308f4632ab0b8a"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseOutput.bend",
+      "sha256": "ee8903089e5cb73a5d3d1c0f7f74be1b8d76052934391755f5b4bef74a9c1ed3"
+    },
+    {
+      "path": "/workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseProjection.bend",
+      "sha256": "bd141b84710f5df083a3274c9b0a2f7174bd720668669442e44421f088ee5998"
+    }
+  ],
+  "records": [
+    {
+      "id": 0,
+      "label": "Jev Service costs60",
+      "native": [
+        0,
+        1
+      ],
+      "emitted": [
+        0,
+        1
+      ],
+      "elapsedMs": 22622,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "charged",
+        "test_0"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef charged(receipt: Lab.Receipt,price: U32,budget: U32) -> Bool:\n  match receipt:\n    case Lab.Receipt{+world,Lab.Applied{},actual}:\n      U32.is_eq(actual,price) && U32.is_eq(M.gold(world),budget) && Nat.is_eq(List.length(&2,M.Tower,M.towers(world)),1n)\n    case _: False{}\ndef test_0(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  charged(Lab.apply(value(origin),Lab.Build{424,392,0}),60,100)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([0n,flag(test_0(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "0ec4107a9abcd015f89a849c9b5165aa84f7644872e7952e48c3f4ff76cf45f3",
+      "artifacts": {
+        "c": "df90d3a41ab0cb184f18357344596f4e450cd7b531e69441ad100f173b9d03be",
+        "binary": "8dbe5652f44adbcdf14a4846c0baa65fdb61f065067a95ad5a0c925cb67de59c",
+        "emittedJavaScript": "ede3efe5fccc4855dce3fb6661ce97f4de41f7d47bccce16e705d9593bd3c325"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1585,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 5,
+          "status": 0,
+          "stdout": "[0,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3026,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 36,
+          "status": 0,
+          "stdout": "[0,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 1,
+      "label": "Delivery Relay costs55",
+      "native": [
+        1,
+        1
+      ],
+      "emitted": [
+        1,
+        1
+      ],
+      "elapsedMs": 24223,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "charged",
+        "test_1"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef charged(receipt: Lab.Receipt,price: U32,budget: U32) -> Bool:\n  match receipt:\n    case Lab.Receipt{+world,Lab.Applied{},actual}:\n      U32.is_eq(actual,price) && U32.is_eq(M.gold(world),budget) && Nat.is_eq(List.length(&2,M.Tower,M.towers(world)),1n)\n    case _: False{}\ndef test_1(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  charged(Lab.apply(value(origin),Lab.Build{152,392,1}),55,105)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([1n,flag(test_1(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "6e5a4d536838cd02ce66aabacc1c7a3e98df40a93624273c512a4ded14a4608a",
+      "artifacts": {
+        "c": "4adc33d0e4094d434f183e3751d9b208d906c2e983c5121ac19f63391ea5caca",
+        "binary": "a905de9cd9717cbed49388c8c45d9499c08f5de34c8dd4d2ebf1a2aacaf9c095",
+        "emittedJavaScript": "f544f9e83a58777855c7f1108de4e554682fde267ca5590229209113ff466958"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1444,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 4,
+          "status": 0,
+          "stdout": "[1,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3462,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 28,
+          "status": 0,
+          "stdout": "[1,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 2,
+      "label": "Access Repair costs45",
+      "native": [
+        2,
+        1
+      ],
+      "emitted": [
+        2,
+        1
+      ],
+      "elapsedMs": 23153,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "charged",
+        "test_2"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef charged(receipt: Lab.Receipt,price: U32,budget: U32) -> Bool:\n  match receipt:\n    case Lab.Receipt{+world,Lab.Applied{},actual}:\n      U32.is_eq(actual,price) && U32.is_eq(M.gold(world),budget) && Nat.is_eq(List.length(&2,M.Tower,M.towers(world)),1n)\n    case _: False{}\ndef test_2(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  charged(Lab.apply(value(origin),Lab.Build{424,232,2}),45,115)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([2n,flag(test_2(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "2e6b9033a260169bd82234b27f9597d313f7e934837d52d75328f7ff196fd42e",
+      "artifacts": {
+        "c": "8c2ba46d3ed05850e17804fa542bab44bf7152aae61251ba1da82291576fece6",
+        "binary": "fe333686a1ad10754deabecd0865939669e7aa0278c31fc238645712ade11347",
+        "emittedJavaScript": "44ab2be5d8cc8fe35427f25fdeb06c308e876f0333899c089a83fa8f88794bfa"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1473,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 4,
+          "status": 0,
+          "stdout": "[2,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3246,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 27,
+          "status": 0,
+          "stdout": "[2,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 3,
+      "label": "custom construction price17",
+      "native": [
+        3,
+        1
+      ],
+      "emitted": [
+        3,
+        1
+      ],
+      "elapsedMs": 23142,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "charged",
+        "test_3"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef charged(receipt: Lab.Receipt,price: U32,budget: U32) -> Bool:\n  match receipt:\n    case Lab.Receipt{+world,Lab.Applied{},actual}:\n      U32.is_eq(actual,price) && U32.is_eq(M.gold(world),budget) && Nat.is_eq(List.length(&2,M.Tower,M.towers(world)),1n)\n    case _: False{}\ndef test_3(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  charged(Lab.build_priced(value(origin),424,392,0,17),17,143)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([3n,flag(test_3(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "cfa0cc7a9eaa7b7bcdd0220ad15a7e4f7a9e25efe789fb499a9be98dbd2a9c7b",
+      "artifacts": {
+        "c": "e4bcceeb644213777dde1b83cd13fae714479b95fc50fc3566cb0255be4b2c96",
+        "binary": "484258c2d731b9e59843797363acba7e568bdaa0036fd9ce1f71ab2f8a967e71",
+        "emittedJavaScript": "2ab763c90e2f90c0b836e7500a06231d1556af10117f850770372460917d3982"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1804,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 5,
+          "status": 0,
+          "stdout": "[3,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3031,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 25,
+          "status": 0,
+          "stdout": "[3,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 4,
+      "label": "illegal placement costs zero",
+      "native": [
+        4,
+        1
+      ],
+      "emitted": [
+        4,
+        1
+      ],
+      "elapsedMs": 22886,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "illegal",
+        "test_4"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef illegal(receipt: Lab.Receipt) -> Bool:\n  match receipt:\n    case Lab.Receipt{world,Lab.IllegalPlacement{},0}: U32.is_eq(M.gold(world),160)\n    case _: False{}\ndef test_4(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  illegal(Lab.apply(value(origin),Lab.Build{0,0,0}))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([4n,flag(test_4(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "1f39f735be1bfbebd3f5aef84c9f5fa0cab9a03b56de4ecd0a0e67fa6111078a",
+      "artifacts": {
+        "c": "7e4ea033b111ce61c2273c39ce691c9b5d6eb88e09f50e8ceac3f1118e53634a",
+        "binary": "9fceecbe5a80035d76d33a31ab620cce2ec4df33680b49fc9e2941942b3fbb01",
+        "emittedJavaScript": "5097706fc528b115b59f896e49c807a950b9f2494069fb9a7d35e95275e9cb13"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1450,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 6,
+          "status": 0,
+          "stdout": "[4,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3181,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 25,
+          "status": 0,
+          "stdout": "[4,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 5,
+      "label": "unaffordable purchase costs zero",
+      "native": [
+        5,
+        1
+      ],
+      "emitted": [
+        5,
+        1
+      ],
+      "elapsedMs": 23003,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "poor",
+        "test_5"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef poor(receipt: Lab.Receipt) -> Bool:\n  match receipt:\n    case Lab.Receipt{world,Lab.Unaffordable{},0}: U32.is_eq(M.gold(world),54)\n    case _: False{}\ndef test_5(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  poor(Lab.apply(Lab.with_budget(value(origin),54),Lab.Build{152,392,1}))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([5n,flag(test_5(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "7be0fa2025f23e9fb6eac3dd4b5cf46b6934b2e6cb9ba44326e42233a84a46b8",
+      "artifacts": {
+        "c": "2830f481122655eb127577692183496abfaa85c629955eca6b537e63f46a0975",
+        "binary": "34bed6e722d8a5855ef0f9377747bebb712b5004e03cf320eea5614244a7afe6",
+        "emittedJavaScript": "a3066dc0d853a53c460aae06c9b08d8231c88abe750a20e56d935b1f8dcab61e"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1469,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 5,
+          "status": 0,
+          "stdout": "[5,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3064,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 25,
+          "status": 0,
+          "stdout": "[5,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 6,
+      "label": "absent tower upgrade costs zero",
+      "native": [
+        6,
+        1
+      ],
+      "emitted": [
+        6,
+        1
+      ],
+      "elapsedMs": 24320,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "unknown",
+        "test_6"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef unknown(receipt: Lab.Receipt) -> Bool:\n  match receipt:\n    case Lab.Receipt{world,Lab.UnknownTower{},0}: U32.is_eq(M.gold(world),160)\n    case _: False{}\ndef test_6(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  unknown(Lab.apply(value(origin),Lab.Upgrade{1}))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([6n,flag(test_6(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "05888a951d699d892bc88e02f455ec13fba25cb8a97150adea3ff952854de446",
+      "artifacts": {
+        "c": "3038c98e6e651200f616174bec842c6227d2d5558c08514d1470ef6003336fa3",
+        "binary": "07300e7b6876f4863b8866095d6420c5bb2839436009a7c34c92c082cd23744a",
+        "emittedJavaScript": "d6c7902f28447e0e6facdd334eb6f135f976d061038e07a333a095f771102398"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1442,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 6,
+          "status": 0,
+          "stdout": "[6,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3102,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 25,
+          "status": 0,
+          "stdout": "[6,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 7,
+      "label": "service upgrade40+60 and maximum3",
+      "native": [
+        7,
+        1
+      ],
+      "emitted": [
+        7,
+        1
+      ],
+      "elapsedMs": 23491,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "maximum",
+        "test_7"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef maximum(receipt: Lab.Receipt,budget: U32) -> Bool:\n  match receipt:\n    case Lab.Receipt{world,Lab.MaxLevel{},0}: U32.is_eq(M.gold(world),budget)\n    case _: False{}\ndef test_7(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  +service: List<&2,M.World> = [world(Lab.apply(value(origin),Lab.Build{424,392,0}))]\n  +two: List<&2,M.World> = [world(Lab.apply(value(service),Lab.Upgrade{1}))]\n  +upgraded: List<&2,M.World> = [world(Lab.apply(value(two),Lab.Upgrade{1}))]\n  U32.is_eq(M.gold(value(upgraded)),0) && maximum(Lab.apply(value(upgraded),Lab.Upgrade{1}),0)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([7n,flag(test_7(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "30af252534338759ec5c408750279488b2d3c8170ff777ef6c01c3c5076a6122",
+      "artifacts": {
+        "c": "a9fef2b7bef8cce0dc51a6288dcf27735f839f511d175ad489f1d86499052b0e",
+        "binary": "fc190be425cc04be9eb700fb0a3c8db0d9aaec122038aed3df37103b260381ef",
+        "emittedJavaScript": "e0341b25e963a96fc9e00ea156a825f0fb7b4da80e09524f07cf5f24ac013a5b"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1658,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 6,
+          "status": 0,
+          "stdout": "[7,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3090,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 30,
+          "status": 0,
+          "stdout": "[7,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 8,
+      "label": "repair maximum1",
+      "native": [
+        8,
+        1
+      ],
+      "emitted": [
+        8,
+        1
+      ],
+      "elapsedMs": 23097,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "maximum",
+        "test_8"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef maximum(receipt: Lab.Receipt,budget: U32) -> Bool:\n  match receipt:\n    case Lab.Receipt{world,Lab.MaxLevel{},0}: U32.is_eq(M.gold(world),budget)\n    case _: False{}\ndef test_8(+seed: Nat,+budget: U32) -> Bool:\n  +repair: List<&2,M.World> = [world(Lab.apply(created(False{},False{},1,seed,budget),Lab.Build{424,232,2}))]\n  maximum(Lab.apply(value(repair),Lab.Upgrade{1}),115)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([8n,flag(test_8(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "4700f9dd5c744188f91ad1a57cd9bca1b0df5dd048a6fa8da3d009ef795192e1",
+      "artifacts": {
+        "c": "b106f12507ddeba835849ed5ec4a5213f9104eb8885e0872e25d3159fb235c0f",
+        "binary": "4ba293c9b737b5a3db2b9d1c7e57f5a568ccb2e78defe7bb9d0411e3e6a52da7",
+        "emittedJavaScript": "0a9cf7979d444c5c3bae50018d9b32ca5ea30024e7eafa651ae081705f2ad623"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1488,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 6,
+          "status": 0,
+          "stdout": "[8,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3029,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 31,
+          "status": 0,
+          "stdout": "[8,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 9,
+      "label": "hard one-event and zero-event budgets",
+      "native": [
+        9,
+        1
+      ],
+      "emitted": [
+        9,
+        1
+      ],
+      "elapsedMs": 49116,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "count",
+        "events",
+        "scenario",
+        "created",
+        "bounded",
+        "test_9"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef count(observation: T.Observation) -> Nat:\n  match observation:\n    case T.Observation{_,count,_,_,_,_,_}: count\ndef events(world: M.World) -> Nat: count(Lab.engine_observation(world))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef bounded(+origin: M.World) -> Bool:\n  +one: List<&2,M.World> = [tick_world(Lab.tick_bounded(origin,1n))]\n  +none: List<&2,M.World> = [tick_world(Lab.tick_bounded(value(one),0n))]\n  Nat.is_eq(Nat.sub(events(value(one)),events(origin)),1n) &&\n    Nat.is_eq(events(value(none)),events(value(one))) && U32.is_eq(M.time(value(none)),M.time(value(one))) &&\n    U32.is_eq(M.gold(value(one)),160) && U32.is_eq(M.gold(value(none)),160)\ndef test_9(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  bounded(value(origin))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([9n,flag(test_9(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "772064488613b6eb2c25e90eb0df95f58e3e60e5659fc40b691b35adfbf1022f",
+      "artifacts": {
+        "c": "55eacf7b87f37d221eeb0bfd8d3a6bdeb4f78fa08b3b38e38c458854b42829d0",
+        "binary": "8db5046e8e151dbbaeecfc133e843be6fb6441ed852601c6e8c01911fb431487",
+        "emittedJavaScript": "e5069b05779c428c1d3cc44383f210bb1214b2ab39e7667e8c08a7d1ba42417f"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1673,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 10,
+          "status": 0,
+          "stdout": "[9,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3536,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 68,
+          "status": 0,
+          "stdout": "[9,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 10,
+      "label": "early request captures1600 and forced clear",
+      "native": [
+        10,
+        1
+      ],
+      "emitted": [
+        10,
+        1
+      ],
+      "elapsedMs": 49789,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "callbacks",
+        "captured",
+        "next_box",
+        "seek_selected",
+        "seek_box",
+        "scenario",
+        "created",
+        "forced_clear",
+        "test_10"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef callbacks(state: T.State) -> List<&2,T.RetainedCallback>:\n  match state:\n    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,items,_}}: items\ndef captured(items: List<&2,T.RetainedCallback>,+output: Bool) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.JevSettled{_},_},_,_,_}} <> rest:\n      Bool.pick(Nat,output,captured(rest,output),(due - issued : Nat))\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},_}} <> rest:\n      Bool.pick(Nat,output,(due - issued : Nat),captured(rest,output))\n    case _ <> rest: captured(rest,output)\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef seek_box(fuel: Nat,+worlds: List<&2,M.World>,+output: Bool) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n:\n      seek_selected(Nat.is_gt(captured(callbacks(M.engine(value(worlds))),output),0n),worlds,next => seek_box(n,next,output))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef forced_clear(state: T.State) -> Bool:\n  match state:\n    case T.State{_,_,_,_,_,T.Environment{_,Some{C.RequestClear{}},_,_,_,_,_,_,_,_,_,_,_,_},_,_,_,_,_}: True{}\n    case _: False{}\ndef test_10(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  +service: List<&2,M.World> = [world(Lab.apply(value(origin),Lab.Build{424,392,0}))]\n  +early: List<&2,M.World> = seek_box(250n,[value(service)],False{})\n  forced_clear(M.engine(value(service))) && Nat.is_eq(captured(callbacks(M.engine(value(early))),False{}),1600n)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([10n,flag(test_10(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "a3eda1bfeeb1244c173845a056d94fa75afa058022b4da2f26cc7d48b823e93a",
+      "artifacts": {
+        "c": "ccf821feafb1309e1d945cf520bb7ac886e5cdb02a650bee998416def5d49660",
+        "binary": "00c77b79f37369703bda31538c5739af0384954eeda8aa68c2f47049e090d8be",
+        "emittedJavaScript": "0bec0022d8e7fb7ba77d478c1d78832df8751ea42709561d5fe46573a606be80"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1382,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 31,
+          "status": 0,
+          "stdout": "[10,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3642,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 62,
+          "status": 0,
+          "stdout": "[10,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 11,
+      "label": "late request retains3200",
+      "native": [
+        11,
+        1
+      ],
+      "emitted": [
+        11,
+        1
+      ],
+      "elapsedMs": 50460,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "callbacks",
+        "captured",
+        "next_box",
+        "seek_selected",
+        "seek_box",
+        "scenario",
+        "created",
+        "test_11"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef callbacks(state: T.State) -> List<&2,T.RetainedCallback>:\n  match state:\n    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,items,_}}: items\ndef captured(items: List<&2,T.RetainedCallback>,+output: Bool) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.JevSettled{_},_},_,_,_}} <> rest:\n      Bool.pick(Nat,output,captured(rest,output),(due - issued : Nat))\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},_}} <> rest:\n      Bool.pick(Nat,output,(due - issued : Nat),captured(rest,output))\n    case _ <> rest: captured(rest,output)\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef seek_box(fuel: Nat,+worlds: List<&2,M.World>,+output: Bool) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n:\n      seek_selected(Nat.is_gt(captured(callbacks(M.engine(value(worlds))),output),0n),worlds,next => seek_box(n,next,output))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef test_11(+seed: Nat,+budget: U32) -> Bool:\n  +origin: List<&2,M.World> = [created(True{},True{},1,seed,budget)]\n  +late: List<&2,M.World> = seek_box(250n,[value(origin)],False{})\n  Nat.is_eq(captured(callbacks(M.engine(value(late))),False{}),3200n) && Nat.is_eq(captured(callbacks(M.engine(world(Lab.apply(value(late),Lab.Build{424,392,0})))),False{}),3200n)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([11n,flag(test_11(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "2d56cae7448357dbd3fc53c06b7ad30b9b8bd4099988499b946f5c7986fbcc20",
+      "artifacts": {
+        "c": "2338c6d737d735c3fd84fbd18584e467bba4c73a03ad63b3ba32eaad84a86159",
+        "binary": "b3a95c4e85a1a1cb1ad7003f06630b77a34fa97907e7853de65eb3cf830533b6",
+        "emittedJavaScript": "58d158df729c5709f8af8afb82ec962a928e6e57650095c5e78e3c231b465e08"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1379,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 29,
+          "status": 0,
+          "stdout": "[11,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3744,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 61,
+          "status": 0,
+          "stdout": "[11,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 12,
+      "label": "relay future output400 and lease5000",
+      "native": [
+        12,
+        1
+      ],
+      "emitted": [
+        12,
+        1
+      ],
+      "elapsedMs": 49783,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "callbacks",
+        "captured",
+        "next_box",
+        "seek_selected",
+        "seek_box",
+        "scenario",
+        "created",
+        "output_profile",
+        "test_12_profile",
+        "test_12_capture",
+        "test_12"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef callbacks(state: T.State) -> List<&2,T.RetainedCallback>:\n  match state:\n    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,items,_}}: items\ndef captured(items: List<&2,T.RetainedCallback>,+output: Bool) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.JevSettled{_},_},_,_,_}} <> rest:\n      Bool.pick(Nat,output,captured(rest,output),(due - issued : Nat))\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},_}} <> rest:\n      Bool.pick(Nat,output,(due - issued : Nat),captured(rest,output))\n    case _ <> rest: captured(rest,output)\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef seek_box(fuel: Nat,+worlds: List<&2,M.World>,+output: Bool) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n:\n      seek_selected(Nat.is_gt(captured(callbacks(M.engine(value(worlds))),output),0n),worlds,next => seek_box(n,next,output))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef output_profile(state: T.State) -> Bool:\n  match state:\n    case T.State{_,_,_,_,_,T.Environment{_,_,_,_,_,_,delay,lease,_,_,_,_,_,_},_,_,_,_,_}: Nat.is_eq(delay,400n) && Nat.is_eq(lease,5000n)\n    case _: False{}\ndef test_12_profile(seed: Nat,budget: U32) -> Bool:\n  +relay: List<&2,M.World> = [world(Lab.apply(created(True{},True{},2,seed,budget),Lab.Build{152,392,1}))]\n  output_profile(M.engine(value(relay)))\ndef test_12_capture(seed: Nat,budget: U32,fuel: Nat) -> Bool:\n  +relay: List<&2,M.World> = [world(Lab.apply(created(True{},True{},2,seed,budget),Lab.Build{152,392,1}))]\n  +delivered: List<&2,M.World> = seek_box(fuel,[value(relay)],True{})\n  Nat.is_eq(captured(callbacks(M.engine(value(delivered))),True{}),400n)\ndef test_12(+seed: Nat,+budget: U32,fuel: Nat) -> Bool:\n  test_12_profile(seed,budget) && test_12_capture(seed,budget,fuel)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([12n,flag(test_12(seed,U32.from_nat(budget),fuel))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "4f2956483f440743876d954521352a44db687e072cc4dc93b460a684b19a329c",
+      "artifacts": {
+        "c": "9cf9213b975af23cb5e4bcd1db866575051300659d5334b6a22cc0a92f10a26a",
+        "binary": "0a8c35753bf378fcd11ceb0b4c99de010e41d40c1524bdb27a7e6e31e74689de",
+        "emittedJavaScript": "c315c82cde1af3ba1a6e8fd0ad474fc4ad06aadaa1906ac76709fda2ded80d1f"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1414,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 60,
+          "status": 0,
+          "stdout": "[12,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3640,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 75,
+          "status": 0,
+          "stdout": "[12,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 13,
+      "label": "issued individual output lease5000",
+      "native": [
+        13,
+        1
+      ],
+      "emitted": [
+        13,
+        1
+      ],
+      "elapsedMs": 49807,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "callbacks",
+        "captured",
+        "captured_lease",
+        "next_box",
+        "seek_selected",
+        "seek_box",
+        "scenario",
+        "created",
+        "test_13"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef callbacks(state: T.State) -> List<&2,T.RetainedCallback>:\n  match state:\n    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,items,_}}: items\ndef captured(items: List<&2,T.RetainedCallback>,+output: Bool) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.JevSettled{_},_},_,_,_}} <> rest:\n      Bool.pick(Nat,output,captured(rest,output),(due - issued : Nat))\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},_}} <> rest:\n      Bool.pick(Nat,output,(due - issued : Nat),captured(rest,output))\n    case _ <> rest: captured(rest,output)\ndef captured_lease(items: List<&2,T.RetainedCallback>) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,_,_,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},Some{Output.Capture{Output.Individual{_,_},_,_,_,lease}}}} <> _: lease\n    case _ <> rest: captured_lease(rest)\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef seek_box(fuel: Nat,+worlds: List<&2,M.World>,+output: Bool) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n:\n      seek_selected(Nat.is_gt(captured(callbacks(M.engine(value(worlds))),output),0n),worlds,next => seek_box(n,next,output))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef test_13(+seed: Nat,+budget: U32,+fuel: Nat) -> Bool:\n  +relay: List<&2,M.World> = [world(Lab.apply(created(True{},True{},2,seed,budget),Lab.Build{152,392,1}))]\n  +delivered: List<&2,M.World> = seek_box(fuel,[value(relay)],True{})\n  Nat.is_eq(captured_lease(callbacks(M.engine(value(delivered)))),5000n)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([13n,flag(test_13(seed,U32.from_nat(budget),fuel))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "d9201654dd4c1b9aceb81a1ca34382228dd92bd19279e7f42cc6682ebca23526",
+      "artifacts": {
+        "c": "201b00acaabe46697bca81074bb9ecd6a12edb924231af0cb2a8099f48aece8b",
+        "binary": "3b563410634470406d0321ae2470c052068d3500852146f0d3f858faed2b1e87",
+        "emittedJavaScript": "31ac2db291dc03a4298a9dfc1938ae6dbcc40a08607c83a20100034c96d616cc"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1400,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 60,
+          "status": 0,
+          "stdout": "[13,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3575,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 98,
+          "status": 0,
+          "stdout": "[13,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 14,
+      "label": "late output retains800",
+      "native": [
+        14,
+        1
+      ],
+      "emitted": [
+        14,
+        1
+      ],
+      "elapsedMs": 49684,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "callbacks",
+        "captured",
+        "next_box",
+        "seek_selected",
+        "seek_box",
+        "scenario",
+        "created",
+        "test_14"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef callbacks(state: T.State) -> List<&2,T.RetainedCallback>:\n  match state:\n    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,items,_}}: items\ndef captured(items: List<&2,T.RetainedCallback>,+output: Bool) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.JevSettled{_},_},_,_,_}} <> rest:\n      Bool.pick(Nat,output,captured(rest,output),(due - issued : Nat))\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},_}} <> rest:\n      Bool.pick(Nat,output,(due - issued : Nat),captured(rest,output))\n    case _ <> rest: captured(rest,output)\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef seek_box(fuel: Nat,+worlds: List<&2,M.World>,+output: Bool) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n:\n      seek_selected(Nat.is_gt(captured(callbacks(M.engine(value(worlds))),output),0n),worlds,next => seek_box(n,next,output))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef test_14(+seed: Nat,+budget: U32,+fuel: Nat) -> Bool:\n  +late_output: List<&2,M.World> = seek_box(fuel,[created(True{},True{},2,seed,budget)],True{})\n  Nat.is_eq(captured(callbacks(M.engine(value(late_output))),True{}),800n) && Nat.is_eq(captured(callbacks(M.engine(world(Lab.apply(value(late_output),Lab.Build{152,392,1})))),True{}),800n)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([14n,flag(test_14(seed,U32.from_nat(budget),fuel))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "398fa7bb0f8556b82e7964391073a2f16663654192437baa0ec278b01f5d9635",
+      "artifacts": {
+        "c": "4e058f9cc39a5319b14465bdecfff0cc19ae5396bd2cb2d5e5f04968f5fff209",
+        "binary": "ead51afeec89c16daaa74e2451b2d276f5a3e470c4166180b77d1d5b67125e55",
+        "emittedJavaScript": "4fd9bfd95cd2f4069a818d210f9531b5417d00bafa2f614cbd17cf45e44e2d5a"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1395,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 60,
+          "status": 0,
+          "stdout": "[14,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 4049,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 72,
+          "status": 0,
+          "stdout": "[14,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 15,
+      "label": "repair restores access with generation1",
+      "native": [
+        15,
+        1
+      ],
+      "emitted": [
+        15,
+        1
+      ],
+      "elapsedMs": 23227,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "scenario",
+        "created",
+        "access",
+        "test_15"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef access(state: T.State) -> Bool:\n  match state:\n    case T.State{_,_,_,_,_,T.Environment{_,_,_,_,_,_,_,_,_,True{},1n,True{},_,_},_,_,_,_,_}: True{}\n    case _: False{}\ndef test_15(seed: Nat,budget: U32) -> Bool:\n  +repair: List<&2,M.World> = [world(Lab.apply(created(False{},False{},1,seed,budget),Lab.Build{424,232,2}))]\n  access(M.engine(value(repair)))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([15n,flag(test_15(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "47ab2a6cafec92127810195a68a15d99683d41ebce16bfbeaf7d337ac5e4e815",
+      "artifacts": {
+        "c": "3c56a13b42bf8e055c0d894801f69d62a8a52f97fc4e87f37948f591de3621ac",
+        "binary": "15002f0391b7b4131ffb3708591dd76de4f45b9a89b070c1b98dc0ff18dfcfd5",
+        "emittedJavaScript": "a3b014cca38b6147eeacf10b93a0bac80c2a1afd40b110d6d3c929c1d8f8d423"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1395,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 6,
+          "status": 0,
+          "stdout": "[15,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3049,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 29,
+          "status": 0,
+          "stdout": "[15,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 16,
+      "label": "failed source work is gone",
+      "native": [
+        16,
+        1
+      ],
+      "emitted": [
+        16,
+        1
+      ],
+      "elapsedMs": 50320,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "next_box",
+        "seek_selected",
+        "run_box",
+        "scenario",
+        "created",
+        "empty_work",
+        "test_16"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef run_box(fuel: Nat,+worlds: List<&2,M.World>) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n: seek_selected((M.time(value(worlds)) >= 200 : U32),worlds,next => run_box(n,next))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef empty_work(world: M.World) -> Bool:\n  Nat.is_eq(List.length(&2,C.Work,M.work(M.core(world))),0n)\ndef test_16(seed: Nat,budget: U32) -> Bool:\n  +failed: List<&2,M.World> = run_box(200n,[created(True{},False{},1,seed,budget)])\n  empty_work(value(failed))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([16n,flag(test_16(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "dbb40ecff0f5fd4097b12841e640b6e75f8dc6cbe97ca4254ba19914a7c2371f",
+      "artifacts": {
+        "c": "4ba9b069d204f1c5c12d34f85e1bcc9f262f0d41171af5397f301b4c42cbd708",
+        "binary": "398368c3535d316e589127fc2646d1050293175541922b040dfb0f201674d8d2",
+        "emittedJavaScript": "70cef6fb1343c6d4373d14159407572b5d9e86989e6f0ebe168030fea402b26b"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1386,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 44,
+          "status": 0,
+          "stdout": "[16,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3554,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 61,
+          "status": 0,
+          "stdout": "[16,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 17,
+      "label": "repair does not resurrect work",
+      "native": [
+        17,
+        1
+      ],
+      "emitted": [
+        17,
+        1
+      ],
+      "elapsedMs": 50085,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "next_box",
+        "seek_selected",
+        "run_box",
+        "scenario",
+        "created",
+        "empty_work",
+        "test_17"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef run_box(fuel: Nat,+worlds: List<&2,M.World>) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n: seek_selected((M.time(value(worlds)) >= 200 : U32),worlds,next => run_box(n,next))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef empty_work(world: M.World) -> Bool:\n  Nat.is_eq(List.length(&2,C.Work,M.work(M.core(world))),0n)\ndef test_17(seed: Nat,budget: U32) -> Bool:\n  +failed: List<&2,M.World> = run_box(200n,[created(True{},False{},1,seed,budget)])\n  +after: List<&2,M.World> = [world(Lab.apply(value(failed),Lab.Build{424,232,2}))]\n  empty_work(value(after))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([17n,flag(test_17(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "2a610cec8b87d252f7347ea31dc71370c0e780918f1574c9e7dcb99f64a8fe52",
+      "artifacts": {
+        "c": "2b2e8c71d095b2b41254d385db47d120d91eb548da23287bd69f1bbe5e7a3b52",
+        "binary": "132a4a832f548d48dcb94354fd21569fe535d53e08631f0c5af5290f8d9fcfd4",
+        "emittedJavaScript": "0856d679fec15254dd398a8b9ceb5465b3d5a44e8d09f980a13b73b86516fbf2"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1632,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 44,
+          "status": 0,
+          "stdout": "[17,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3735,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 88,
+          "status": 0,
+          "stdout": "[17,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 18,
+      "label": "late repair preserves generation1",
+      "native": [
+        18,
+        1
+      ],
+      "emitted": [
+        18,
+        1
+      ],
+      "elapsedMs": 49681,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "next_box",
+        "seek_selected",
+        "run_box",
+        "scenario",
+        "created",
+        "access",
+        "test_18"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef run_box(fuel: Nat,+worlds: List<&2,M.World>) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n: seek_selected((M.time(value(worlds)) >= 200 : U32),worlds,next => run_box(n,next))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef access(state: T.State) -> Bool:\n  match state:\n    case T.State{_,_,_,_,_,T.Environment{_,_,_,_,_,_,_,_,_,True{},1n,True{},_,_},_,_,_,_,_}: True{}\n    case _: False{}\ndef test_18(seed: Nat,budget: U32) -> Bool:\n  +failed: List<&2,M.World> = run_box(200n,[created(True{},False{},1,seed,budget)])\n  +after: List<&2,M.World> = [world(Lab.apply(value(failed),Lab.Build{424,232,2}))]\n  access(M.engine(value(after)))\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([18n,flag(test_18(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "9130d73340841a657eed6d8719cb2a79a1285be77fad2ce36f4f783bf7a058c7",
+      "artifacts": {
+        "c": "a9c33721eacd7724f5b3d125ac3dcaa5375d6050bee426f0bf5265393f33ed56",
+        "binary": "c62988c9191e37c08257cb02bd4d8aa9f32fdb06255830c8534fb24014c6213a",
+        "emittedJavaScript": "2fa35d8abc296c258c1d9154cbda4c5f076bb1c994fc81af31d82a5b7a7db38d"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1411,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 52,
+          "status": 0,
+          "stdout": "[18,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3717,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 61,
+          "status": 0,
+          "stdout": "[18,1]\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": 19,
+      "label": "repair issues no abandoned request",
+      "native": [
+        19,
+        1
+      ],
+      "emitted": [
+        19,
+        1
+      ],
+      "elapsedMs": 49391,
+      "selectedDefinitions": [
+        "world",
+        "value",
+        "tick_world",
+        "callbacks",
+        "captured",
+        "next_box",
+        "seek_selected",
+        "run_box",
+        "scenario",
+        "created",
+        "test_19"
+      ],
+      "generatedRoot": "import Base\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseLab.bend as Lab\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseHost.bend as H\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseModel.bend as M\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRun.bend as Run\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/NativeRunTypes.bend as T\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Callbacks.bend as Callbacks\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/Driver.bend as Driver\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/monkey-business-bend/OutputScenario.bend as Output\nimport /workspace/typescript/jev-worktrees/game-balance-lab/packages/agent-flow-bend/Canonical.bend as C\nimport /workspace/typescript/jev-worktrees/game-balance-lab/prototypes/canonical-defense/DefenseNumericOutput.bend as NumericOutput\n\ndef world(receipt: Lab.Receipt) -> M.World:\n  match receipt:\n    case Lab.Receipt{value,_,_}: value\ndef value(worlds: List<&2,M.World>) -> M.World:\n  match worlds:\n    case head <> _: head\n    case Nil{}: H.initial()\ndef tick_world(tick: H.TickObserved) -> M.World:\n  match tick:\n    case H.TickObserved{world,_,_}: world\ndef callbacks(state: T.State) -> List<&2,T.RetainedCallback>:\n  match state:\n    case T.State{_,_,_,_,_,_,_,_,_,_,T.HostFacts{_,items,_}}: items\ndef captured(items: List<&2,T.RetainedCallback>,+output: Bool) -> Nat:\n  match items:\n    case Nil{}: 0n\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.JevSettled{_},_},_,_,_}} <> rest:\n      Bool.pick(Nat,output,captured(rest,output),(due - issued : Nat))\n    case T.RetainedCallback{_,issued,due,_,Callbacks.Fact{Callbacks.Target{_,Callbacks.OutputTerminal{_,_},_},_,Driver.Action{C.SubmissionTerminal{_,_,_},_,_,_,_},_}} <> rest:\n      Bool.pick(Nat,output,(due - issued : Nat),captured(rest,output))\n    case _ <> rest: captured(rest,output)\ndef next_box(worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match worlds:\n    case world <> Nil{}: rest([tick_world(Lab.tick_bounded(world,256n))])\n    case _: []\ndef seek_selected(found: Bool,worlds: List<&2,M.World>,rest: List<&2,M.World> -> List<&2,M.World>) -> List<&2,M.World>:\n  match found:\n    case True{}: worlds\n    case False{}: next_box(worlds,rest)\ndef run_box(fuel: Nat,+worlds: List<&2,M.World>) -> List<&2,M.World>:\n  match fuel:\n    case 0n: worlds\n    case 1n+n: seek_selected((M.time(value(worlds)) >= 200 : U32),worlds,next => run_box(n,next))\ndef scenario(ready: Bool,readable: Bool,result: U32) -> Lab.Scenario:\n  Lab.Scenario{3200n,800n,800n,ready,readable,result,1,60000}\ndef created(ready: Bool,readable: Bool,result: U32,+seed: Nat,budget: U32) -> M.World:\n  Lab.create_scenario(scenario(ready,readable,Bool.pick(U32,Nat.is_eq(seed,152n),result,0)),seed,budget,0)\ndef test_19(seed: Nat,budget: U32) -> Bool:\n  +failed: List<&2,M.World> = run_box(200n,[created(True{},False{},1,seed,budget)])\n  +after: List<&2,M.World> = [world(Lab.apply(value(failed),Lab.Build{424,232,2}))]\n  Nat.is_eq(captured(callbacks(M.engine(value(after))),False{}),0n)\n\ndef flag(ok: Bool) -> Nat:\n  match ok:\n    case True{}: 1n\n    case False{}: 0n\ndef three(text: String) -> Nat:\n  match text:\n    case SCon{a,SCon{b,SCon{c,SNil{}}}}:\n      (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)\n    case _: 0n\ndef checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):\n  match valid:\n    case True{}: NumericOutput.write([19n,flag(test_19(seed,U32.from_nat(budget)))])\n    case False{}: IO.die(Unit,1,\"expected152 160 250\")\ndef inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):\n  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)\ndef arguments(args: List<String>) -> IO(Unit):\n  match args:\n    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))\n    case _: IO.die(Unit,1,\"expected152 160 250\")\ndef main() -> IO(Unit):\n  IO.bind(List<String>,Unit,IO.args(),args => arguments(args))\n",
+      "graphSha256": "b730732e924890b5dac47d600d23e949e8fa893108ae04ccde61d9fcdff15d20",
+      "artifacts": {
+        "c": "afef1fb6ee71f138273d01262576731c0bf54bd07fff4ac66a265b3a55612367",
+        "binary": "23f1c255d3c2ab9dd2787b327450b70a0692b24589a223d8af53419ef13c2bab",
+        "emittedJavaScript": "93e393ef2cb2199ad996ac962f1072024a35658be6e6f2ec3de1464eb99cb781"
+      },
+      "stages": {
+        "source-check": {
+          "elapsedMs": 1404,
+          "status": 1,
+          "stdout": "",
+          "stderr": "SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n- ../../../prototypes/canonical-defense/DefenseNumericOutput.write\n- checked\n- inputs\n- arguments\n- main\n"
+        },
+        "native": {
+          "elapsedMs": 46,
+          "status": 0,
+          "stdout": "[19,1]\n",
+          "stderr": ""
+        },
+        "js-emission": {
+          "elapsedMs": 3519,
+          "status": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        "emitted": {
+          "elapsedMs": 69,
+          "status": 0,
+          "stdout": "[19,1]\n",
+          "stderr": ""
+        }
+      }
+    }
+  ],
+  "sourceCheckBoundary": "Five-second checks accept only the exact existing foreign numeric-IO declarations DefenseNumericOutput.write, checked, inputs, arguments and main; all other checker failures and timeouts reject qualification. Behavioral assertions execute independently in both lanes.",
+  "preparationDiagnosis": "Rich World fixture roots are mechanically selected from the exact maintained owner. Deep Nat constructor patterns for delay400/lease5000 were replaced by bound fields and exact Nat.is_eq comparisons; original composite predicates remain intact.",
+  "limits": [
+    "Twenty declared examples, not universal mathematical proof, exhaustive balance, human learning/enjoyment, live backend or additional platform qualification.",
+    "Each root uses source5/C30/clang30/JS30/native5/emitted5 bounds; the maintained runner has a finite30-minute overall deadline. This all20 gate also had an outer20-minute supervisor."
+  ]
+}

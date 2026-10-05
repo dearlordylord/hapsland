@@ -1,0 +1,85 @@
+{
+  "purpose": "Source-bound validation of balance-lab integration with the three-request/four-check game; no native lab or release/platform qualification",
+  "date": "2026-10-05",
+  "codeSHA256": {
+    "prototypes/canonical-defense/DefenseLab.bend": "e3c4547f8bddc7a602cb10dd3dafefe1332101370a66e3a4093c977e0a36496c",
+    "prototypes/canonical-defense/DefenseLabConformance.bend": "6beeea3fce0ff2c89f5e7e2d6a419054b6e57e2fde2a7c2fbc9737680e5ac853",
+    "prototypes/canonical-defense/DefenseRules.bend": "26dbad92cdbb3c8528267205d3736f897c9c6cb7dd5b970a72b8db4535370116",
+    "prototypes/canonical-defense/lab/business-replay.ts": "353da2ed7451e5235e636a38d3a888f5949894d9e23d9b963f1d3d2766021c07",
+    "prototypes/canonical-defense/lab/game.generated.json": "8d4ca155a480daa78a84db419b04af18f3bd4e4d9d375abb9d595dce1ad0bcf6",
+    "prototypes/canonical-defense/lab/game.generated.mjs": "4f8e758a57490a467222711f72f786e66c3e892d0f181bc9b66174ca362890d6",
+    "scripts/game-balance-lab.test.mts": "b02235aa970225176d5577cdc94bd353af0863fbf9595dba35edae5c8534326b",
+    "scripts/compare-game-lab-native.mjs": "0959f542ca947e94c4befbff06cf4665e9c19fd2667f702018fdcfa2e90f823f",
+    "scripts/run-game-consumer.mjs": "534c8a9a4b290e5004b937f1f061df593a01a7493ad4841d0c3dbae078a14e61"
+  },
+  "passed": {
+    "labFocused": {
+      "tests": 33,
+      "run": "20261005222414254-1086497-25b5fd",
+      "seconds": 263.654,
+      "environment": "isolated worktree"
+    },
+    "toolTests": 13,
+    "checkFast": "isolated final candidate including current committed inspection changes",
+    "changedCodeLint": 7,
+    "labTypes": true,
+    "generatedLabIdentity": true,
+    "traceCodecIdentity": true,
+    "docs": true,
+    "gameConsumer": {
+      "batches": 145,
+      "ticks": 3222,
+      "midpointReplay": true,
+      "run": "20261005221940191-1079369-a085df",
+      "origin": "explicit source/tool/artifact-validated retained outputs; no fresh compilation or execution claim"
+    },
+    "spatialStudy": {
+      "tuningRuns": 49,
+      "heldOutContexts": 2,
+      "pressureComparisons": 2,
+      "parameterComparisons": 5,
+      "note": "Before relocation of identical bounded advance into the lab; final focused tests requalify its behavior"
+    }
+  },
+  "productionIndependence": {
+    "scope": "Current production type import graph and source CLI; existing standalone CLI smoke, no fresh release-build claim",
+    "gameDirectoryRestored": true,
+    "records": [
+      {
+        "name": "production-types",
+        "exit": 0,
+        "seconds": 4.516501731937751,
+        "limitSeconds": 60
+      },
+      {
+        "name": "source-cli",
+        "exit": 0,
+        "seconds": 1.4143539131619036,
+        "limitSeconds": 20
+      },
+      {
+        "name": "standalone-cli",
+        "exit": 0,
+        "seconds": 0.5032529979944229,
+        "limitSeconds": 15
+      }
+    ],
+    "packageFiles": {
+      "tool": "npm-packlist (npm actual packaging file enumeration, no compression)",
+      "files": 47,
+      "prototypeFiles": 0
+    }
+  },
+  "limitations": {
+    "currentNativeLab": "not qualified: direct C30 and supervised clang120 timeouts; runtime-horizon compiler experiment discarded; selected native predicate source5 timed out before execution",
+    "freshGameNative": "clang120 timed out; unchanged game vectors restored and fully compared instead",
+    "proof": "No new universal proofs",
+    "earlierNativeReceipts": "native-conformance.json and native-predicates.json bind only their original branch source/tool identities"
+  },
+  "diagnostics": [
+    "Initial public replay profile mismatch fixed to four checks with default 100% Finding and explicit forced Clear retained",
+    "Oversized unit bundles split and horizons matched asserted endpoints without changing unit deadlines",
+    "Root workspace fast gate encountered parallel inspection type error and later git discovery timeout; final isolated gate passed",
+    "A focused rerun exhausted external185s during preparation; final standard300s isolated run passed"
+  ]
+}

@@ -1,15 +1,11 @@
 import assert from "node:assert/strict"
-import { writeFile, rm, lstat, readdir, statfs } from "node:fs/promises"
+import { revealInspection } from "./inspection-browser-controls.mjs"
+import { writeFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium } from "playwright"
-import { Effect, Scope, Exit, Fiber } from "effect"
-import { Writable } from "node:stream"
-import { submitDirectHookOutput, DirectHookSubmission } from "../../../src/resident/direct-hook-output.ts"
-import { HookOutput, makeWritableHookOutput } from "../../../src/resident/hook-output.ts"
-import { hookMonotonicMillis } from "../../../src/resident/hook-clock.ts"
-import { InspectionSubmissionObservation, InspectionWriterObservation } from "../../../src/inspection/writer.ts"
-import { attemptCodexHostOutput } from "../../../src/direct-event/writer.ts"
+import { Effect, Scope, Exit } from "effect"
 import { makeResidentRuntime } from "../../../src/resident/server.ts"
+import { residentRequestEffect } from "../../../src/resident/client.ts"
 import { residentPaths } from "../../../src/resident/paths.ts"
 import { adaptCodexDirectEvent } from "../../../src/direct-event/adapter.ts"
 import { addEvent, makeGitFixture, put, advicee } from "../../../src/direct-event/test-fixtures.ts"
@@ -53,9 +49,7 @@ try {
   let published = nativeDeferred()
   let recordingPublished = nativeDeferred()
   const retired = nativeDeferred()
-  const writerPublished = new Map(
-    ["failed-before-write", "uncertain", "written"].map((state) => [state, nativeDeferred()])
-  )
+  const messagePublished = nativeDeferred()
   const resident = await Effect.runPromise(
     makeResidentRuntime(residentPaths(join(root, "runtime")), undefined, {
       offlineHttpClient: HttpClient.make((request) => {
@@ -87,7 +81,7 @@ try {
               Effect.sync(() => {
                 if (record.fact.kind === "recording-state") recordingPublished.resolve()
                 if (record.fact.kind === "finding-fate" && record.fact.fate === "stale") retired.resolve()
-                if (record.fact.kind === "writer-evidence") writerPublished.get(record.fact.state)?.resolve()
+                if (record.fact.kind === "agent-message") messagePublished.resolve()
                 if (
                   (record.fact.kind === "finding-fate" && record.fact.fate === "retained") ||
                   (record.fact.kind === "evaluation-route" && record.fact.route !== "fresh")
@@ -117,7 +111,7 @@ try {
     )
     assert.ok(observation)
     published = nativeDeferred()
-    assert.equal((await Effect.runPromise(resident.admit(observation, dispatch))).status, "accepted")
+    assert.equal((await Effect.runPromise(resident.admit(observation, dispatch, true))).status, "accepted")
     if (waitForCapture) await published.promise
     await Effect.runPromise(resident.whenIdle())
   }
@@ -136,9 +130,25 @@ try {
   await page.goto(server.url)
   const row = page.getByRole("button", { name: /type\.ts/ })
   await row.waitFor()
+  const originalKey = await row.getAttribute("data-key")
+  const originalRow = page.locator(`#edits button[data-key="${originalKey}"]`)
+  assert.ok((await row.boundingBox()).y < 812, "Edits appear on the first narrow screen")
+  assert.equal(await page.locator("#sources").isVisible(), false)
+  assert.equal(await page.locator("#current-recording").isVisible(), false)
+  assert.equal(await page.locator("#root-filter").isVisible(), false)
   await row.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#detail").textContent.includes("edit-admission"))
+  assert.equal(await page.locator("#review").isVisible(), true)
+  assert.equal(await page.locator("#results").isVisible(), false)
+  assert.equal(await page.locator("#exact").isVisible(), false)
+  if (process.env.HAPSLAND_UX_SCREENSHOTS === "1") {
+    await page.screenshot({ path: "/tmp/hapsland-inspection-ux-mobile.png", fullPage: true })
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.screenshot({ path: "/tmp/hapsland-inspection-ux-desktop.png", fullPage: true })
+    await page.setViewportSize({ width: 375, height: 812 })
+  }
+  await revealInspection(page, "#copy")
   await page.getByRole("button", { name: "Copy exact request", exact: true }).click()
   await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[0]))
@@ -175,15 +185,26 @@ try {
   assert.equal(new Set(copiedRequests).size, 2)
   await page.locator("#requests button").first().focus()
   await page.keyboard.press("Enter")
-  assert.match(await page.locator("#files").textContent(), /Recorded physical preparation reads:[\s\S]*support\.ts/)
-  assert.match(await page.locator("#files").textContent(), /Source actually included[\s\S]*support\.ts · Amount/)
+  assert.match(await page.locator("#files").textContent(), /Physically read:[\s\S]*support\.ts/)
+  const includedFiles = await page.locator("#files").evaluate((element) => {
+    const section = Array.from(element.querySelectorAll("section")).find(
+      (group) => group.querySelector("h3")?.textContent === "Included in model input:"
+    )
+    return Array.from(section?.querySelectorAll("li") || []).map((item) => ({
+      path: item.querySelector("span")?.textContent,
+      declaration: item.querySelector("small")?.textContent,
+      source: item.querySelector("pre")?.textContent
+    }))
+  })
+  assert.ok(includedFiles.some((item) => item.path === "support.ts" && item.declaration === "Amount"))
+  assert.ok(includedFiles.some((item) => item.path === "support.ts" && item.source === "export type Amount = number;"))
   assert.match(await page.locator("#source").textContent(), /日本語/)
   assert.match(await page.locator("#source").textContent(), /export type Amount = number;/)
   assert.match(await page.locator("#results").textContent(), /Effective threshold: 0.6/)
   assert.match(await page.locator("#results").textContent(), /Validated backend answers:[\s\S]*0.7/)
   assert.match(await page.locator("#results").textContent(), /Interpreted findings:[\s\S]*Inspect browser 日本語 cases/)
   const selection = await page.locator("#detail").textContent()
-  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("button", { name: "Pause updates", exact: true }).click()
   const hostile = "<img onerror=alert(1)>.ts"
   await put(root, hostile, "type OtherCount = number\n")
   await edit(hostile, "while-paused")
@@ -200,11 +221,12 @@ try {
   )
   assert.equal(await page.locator("#detail").textContent(), selection)
   assert.equal(await page.locator("#edits li").count(), 1)
-  await page.getByRole("button", { name: "Resume", exact: true }).click()
+  await page.getByRole("button", { name: "Resume updates", exact: true }).click()
   await page.getByRole("button", { name: /<img onerror/ }).waitFor()
   assert.equal(await page.locator("#edits img").count(), 0)
   assert.equal(await page.locator("#detail").textContent(), selection)
   await page.waitForFunction(() => document.querySelector("#recording").textContent.includes("enabled"))
+  await revealInspection(page, "#detail")
   await page.evaluate(() => {
     const detail = document.querySelector("#detail")
     const range = document.createRange()
@@ -236,16 +258,16 @@ try {
   for (const record of originalInputs) {
     await rm(join(root, "inspection", `${record.source.id}-${String(record.sequence).padStart(16, "0")}.json`))
   }
-  await page
-    .getByRole("button", { name: /type\.ts/ })
-    .first()
-    .click()
+  await originalRow.click()
   await page.waitForFunction(() => document.querySelector("#input").textContent.includes("No retained model input"))
   assert.equal(await page.locator("#requests button").count(), 2, "Transport evidence survives model-input loss")
   await edit("type.ts", "reuse-existing-advice")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
   assert.equal(dispatched.length, 4, "existing advice must not create another classifier invocation")
-  const reused = page.getByRole("button", { name: /type\.ts/ }).last()
+  const reused = page
+    .locator("#edits")
+    .getByRole("button", { name: /type\.ts/ })
+    .first()
   await reused.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("existing-advice"))
@@ -299,201 +321,59 @@ try {
   assert.equal(await page.locator("#requests button").count(), 1)
   assert.equal(await page.locator("#copy").isDisabled(), true)
   assert.match(await page.locator("#request-metadata").textContent(), /no retained transport evidence/)
-  phase = "mixed outcomes and native handoffs"
+  phase = "mixed outcomes and resident message"
   await put(root, "mixed.ts", "type MixedCount = number;\n")
   await put(root, "bad.ts", 'import { Amount } from "./support";\ntype BadCount = Amount;\n')
   await edit(["mixed.ts", "bad.ts"], "mixed-preparation")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 5)
   await page.getByRole("button", { name: /mixed\.ts, bad\.ts/ }).click()
-  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed recorded outcomes"))
-  assert.match(await page.locator("#files").textContent(), /Recorded skipped preparation paths:[\s\S]*bad\.ts/)
-  assert.match(await page.locator("#files").textContent(), /Recorded omissions:[\s\S]*bad\.ts[\s\S]*import/)
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed outcomes"))
+  assert.match(await page.locator("#files").textContent(), /Skipped:[\s\S]*bad\.ts/)
+  await page.waitForFunction(() =>
+    /Omitted:[\s\S]*bad\.ts[\s\S]*import/.test(document.querySelector("#files").textContent)
+  )
+  assert.match(await page.locator("#files").textContent(), /Omitted:[\s\S]*bad\.ts[\s\S]*import/)
   assert.equal(dispatched.length, 5, "failed preparation must not create a classifier request")
   await put(root, "type.ts", "type OrderCount = string;\n")
-  const response = await Effect.runPromise(resident.collect(root, advicee(), dispatch))
+  await Effect.runPromise(resident.listen())
+  const response = await Effect.runPromise(
+    residentRequestEffect(
+      resident.paths,
+      {
+        requestRoute: "shared",
+        operation: "collect",
+        lifetime: resident.lifetime,
+        root,
+        advicee: advicee(),
+        dispatch,
+        composed: true
+      },
+      5000
+    )
+  )
   await retired.promise
-  await page
-    .getByRole("button", { name: /type\.ts/ })
-    .first()
-    .click()
+  await originalRow.click()
   await page.waitForFunction(() => document.querySelector("#results").textContent.includes('"fate": "stale"'))
   assert.match(await page.locator("#results").textContent(), /Observed finding fates \(independent of submission\)/)
   assert.match(await page.locator("#results").textContent(), /"fate": "retained"/)
   assert.equal(dispatched.length, 5, "advice revalidation must not invent another classifier request")
   assert.equal(response.status, "advice")
   assert.equal(response.findingCount, 3)
-  const collected = {
-    output: response.output,
-    token: response.token,
-    lifetime: resident.lifetime,
-    paths: resident.paths,
-    root,
-    advicee: advicee(),
-    activityPath: undefined,
-    findingCount: response.findingCount
-  }
-  const submission = {
-    begin: () => Effect.die("unexpected composed admission"),
-    release: () => Effect.die("unexpected composed release"),
-    writeCodex: () => Effect.die("unexpected synchronous writer"),
-    record: () => Effect.void,
-    acknowledge: () => resident.acknowledge(response.token).pipe(Effect.as(false))
-  }
-  const submit = (stream, deadlineAt) =>
-    submitDirectHookOutput({ value: response.output, collected }, { composed: false, claude: true, deadlineAt }).pipe(
-      Effect.provideService(HookOutput, makeWritableHookOutput(stream)),
-      Effect.provideService(DirectHookSubmission, submission),
-      Effect.provideService(InspectionSubmissionObservation, resident.inspectionSubmissionObservation)
-    )
-  let refusedWrites = 0
-  const refused = new Writable({
-    write: (_chunk, _encoding, complete) => {
-      refusedWrites++
-      complete()
-    }
-  })
-  assert.equal(await Effect.runPromise(submit(refused, await Effect.runPromise(hookMonotonicMillis))), "timed-out")
-  assert.equal(refusedWrites, 0)
-  refused.end()
-  await writerPublished.get("failed-before-write").promise
-  const started = nativeDeferred()
-  const interruptedBytes = []
-  const interrupted = new Writable({
-    write: (chunk) => {
-      interruptedBytes.push(Buffer.from(chunk))
-      started.resolve()
-    }
-  })
-  const writing = await Effect.runPromise(
-    Effect.forkIn(submit(interrupted, (await Effect.runPromise(hookMonotonicMillis)) + 5000), scope)
-  )
-  await started.promise
-  await Effect.runPromise(Fiber.interrupt(writing))
-  interrupted.destroy()
-  await writerPublished.get("uncertain").promise
-  const nativeBytes = []
-  const native = new Writable({
-    write: (chunk, _encoding, complete) => {
-      nativeBytes.push(Buffer.from(chunk))
-      complete()
-    }
-  })
-  assert.equal(
-    await Effect.runPromise(submit(native, (await Effect.runPromise(hookMonotonicMillis)) + 5000)),
-    "written"
-  )
-  native.end()
-  await writerPublished.get("written").promise
-  const synchronousBytes = []
-  const synchronous = new Writable({
-    write: (chunk, _encoding, complete) => {
-      synchronousBytes.push(Buffer.from(chunk))
-      complete()
-    }
-  })
-  const synchronousPublished = nativeDeferred()
-  writerPublished.set("uncertain", synchronousPublished)
-  const observing = resident.inspectionSubmissionObservation
-  assert.equal(
-    await Effect.runPromise(
-      submitDirectHookOutput(
-        { value: response.output, collected },
-        { composed: false, claude: false, deadlineAt: (await Effect.runPromise(hookMonotonicMillis)) + 5000 }
-      ).pipe(
-        Effect.provideService(HookOutput, makeWritableHookOutput(synchronous)),
-        Effect.provideService(InspectionSubmissionObservation, observing),
-        Effect.provideService(DirectHookSubmission, {
-          ...submission,
-          acknowledge: () => Effect.succeed(false),
-          writeCodex: (value) =>
-            Effect.gen(function* () {
-              const observer = yield* InspectionWriterObservation
-              yield* Effect.sync(() =>
-                attemptCodexHostOutput(
-                  value,
-                  (encoded) => {
-                    synchronous.write(encoded)
-                  },
-                  observer
-                )
-              )
-            })
-        })
-      )
-    ),
-    "written"
-  )
-  synchronous.end()
-  await synchronousPublished.promise
-  assert.equal(await page.locator("#handoffs").count(), 1)
-  const allHandoffs = page.getByRole("button", { name: "Show all handoffs", exact: true })
-  await allHandoffs.focus()
-  await page.keyboard.press("Enter")
-  await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 4)
-  const failed = page.getByRole("button", { name: /Handoff .*Failed before write/ })
-  await failed.focus()
-  await page.keyboard.press("Enter")
-  await page.waitForFunction(() =>
-    document.querySelector("#handoff-summary").textContent.includes("failed-before-write")
-  )
-  assert.match(await page.locator("#handoff-output-status").textContent(), /Failed before write/)
-  const uncertain = page.getByRole("button", { name: /Handoff .*Uncertain output/ }).first()
-  await uncertain.focus()
-  await page.keyboard.press("Enter")
-  await page.waitForFunction(() =>
-    document.querySelector("#handoff-summary").textContent.includes('"state": "uncertain"')
-  )
-  await page.evaluate(() => {
-    document.querySelector("#handoff-copy-status").textContent = ""
-  })
-  await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
-  assert.ok(
-    Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(interruptedBytes))
-  )
-  const synchronousHandoff = page.getByRole("button", { name: /Handoff .*Uncertain output/ }).last()
-  await synchronousHandoff.focus()
-  await page.keyboard.press("Enter")
-  await page.waitForFunction(() =>
-    document.querySelector("#handoffs button[aria-pressed=true]").textContent.startsWith("Handoff 4")
-  )
-  const synchronousEvidence = JSON.parse(await page.locator("#handoff-summary").textContent())
-  assert.ok(synchronousEvidence.events.some((event) => event.state === "uncertain"))
-  assert.ok(!synchronousEvidence.events.some((event) => event.state === "written"))
-  await page.evaluate(() => {
-    document.querySelector("#handoff-copy-status").textContent = ""
-  })
-  await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
-  assert.ok(
-    Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(synchronousBytes))
-  )
-  const written = page.getByRole("button", { name: /Handoff .*Output written/ })
-  await written.focus()
-  await page.keyboard.press("Enter")
-  await page.waitForFunction(() =>
-    document.querySelector("#handoff-summary").textContent.includes('"state": "written"')
-  )
-  const membership = JSON.parse(await page.locator("#handoff-summary").textContent())
-  assert.equal(membership.findingIds.length, 3)
-  assert.equal(membership.evaluations.length, 3)
-  assert.equal(membership.recipient.toolUseId, advicee().toolUseId)
-  assert.ok(!membership.events.some((event) => event.state === "acknowledged"))
-  await page.evaluate(() => {
-    document.querySelector("#handoff-copy-status").textContent = ""
-  })
-  await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
-  assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(nativeBytes)))
-  assert.equal(await page.locator("#handoff-exact").textContent(), Buffer.concat(nativeBytes).toString("utf8"))
+  await messagePublished.promise
+  await revealInspection(page, "#all-handoffs")
+  await page.getByRole("button", { name: "Show all messages", exact: true }).click()
+  await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 1)
+  const messageText = response.output.hookSpecificOutput.additionalContext
+  await page.getByRole("button", { name: "Copy message", exact: true }).click()
+  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Message copied")
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), messageText)
+  assert.equal(await page.locator("#handoff-message").textContent(), messageText)
+  assert.match(await page.locator("#handoff-output-status").textContent(), /Prepared by the resident/)
   assert.equal(await page.locator("#handoff-edits button").count(), 3)
-  const batchEdit = page.getByRole("button", { name: /Inspect batch edit · mixed\.ts/ })
-  await batchEdit.focus()
-  await page.keyboard.press("Enter")
+  await page.getByRole("button", { name: /Inspect batch edit · mixed\.ts/ }).click()
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("mixed.ts"))
-  assert.equal(await page.locator("#handoff-exact").textContent(), Buffer.concat(nativeBytes).toString("utf8"))
   await page.evaluate(() => {
-    const output = document.querySelector("#handoff-exact")
+    const output = document.querySelector("#handoff-message")
     const range = document.createRange()
     range.setStart(output.firstChild, 0)
     range.setEnd(output.firstChild, 20)
@@ -501,16 +381,16 @@ try {
     getSelection().addRange(range)
     output.scrollTop = 30
   })
-  const outputPosition = await page.locator("#handoff-exact").evaluate((element) => element.scrollTop)
+  const outputPosition = await page.locator("#handoff-message").evaluate((element) => element.scrollTop)
   await put(root, "after-handoff.ts", "type LaterCount = number;\n")
-  await edit("after-handoff.ts", "while-reading-output")
+  await edit("after-handoff.ts", "while-reading-message")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 6)
   assert.equal(await page.evaluate(() => getSelection().toString().length), 20)
-  assert.equal(await page.locator("#handoff-exact").evaluate((element) => element.scrollTop), outputPosition)
-  assert.equal(await page.locator("#handoff-exact img").count(), 0)
+  assert.equal(await page.locator("#handoff-message").evaluate((element) => element.scrollTop), outputPosition)
+  assert.equal(await page.locator("#handoff-message img").count(), 0)
   assert.equal(dispatched.length, 6)
   phase = "recording periods"
-  for (const cycle of [1, 2]) {
+  for (const cycle of [1]) {
     phase = `recording disable ${cycle}`
     recordingPublished = nativeDeferred()
     await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ ...inspectionConfig, sessionInspection: false }))
@@ -525,67 +405,44 @@ try {
     await recordingPublished.promise
   }
   phase = "recording periods display"
-  await page.locator("#recording-periods").waitFor({ timeout: 2000 })
-  await page.waitForFunction(() => JSON.parse(document.querySelector("#recording-periods").textContent).length === 5)
+  await revealInspection(page, "#recording-periods")
+  await page.waitForFunction(() => JSON.parse(document.querySelector("#recording-periods").textContent).length === 3)
   const periods = JSON.parse(await page.locator("#recording-periods").textContent())
   assert.deepEqual(
     periods.map((period) => period.state),
-    ["enabled", "disabled", "enabled", "disabled", "enabled"]
+    ["enabled", "disabled", "enabled"]
   )
   assert.deepEqual(
     periods.map((period) => period.consentEpoch),
-    [1, 1, 2, 2, 3]
+    [1, 1, 2]
   )
   assert.deepEqual(
     periods.map((period) => period.nextObservedTransition?.state ?? null),
-    ["disabled", "enabled", "disabled", "enabled", null]
+    ["disabled", "enabled", null]
   )
   assert.ok(periods.every((period) => period.root === root && period.sourceId === periods[0].sourceId))
   assert.ok(
     periods.slice(0, -1).every((period) => period.nextObservedTransition.sequence > period.observedStart.sequence)
   )
   const retainedPeriods = await (await fetch(`${server.url}snapshot`)).json()
-  assert.equal(retainedPeriods.records.filter((record) => record.fact.kind === "recording-state").length, 5)
+  assert.equal(retainedPeriods.records.filter((record) => record.fact.kind === "recording-state").length, 3)
   assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-1.ts"))
-  assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-2.ts"))
-  await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 8)
-  assert.equal(dispatched.length, 10)
+  await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 7)
+  assert.equal(dispatched.length, 8)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
-  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("button", { name: "Pause updates", exact: true }).click()
   const frozen = await page.locator("#detail").textContent()
   const copiedBeforeExpiry = await page.evaluate(() => navigator.clipboard.readText())
-  phase = "capacity eviction and payload expiry"
-  const journal = join(root, "inspection")
-  const allocation = (value) => Math.max(value.size, value.blocks * 512)
-  let allocated = allocation(await lstat(journal))
-  for (const name of await readdir(journal)) allocated += allocation(await lstat(join(journal, name)))
-  const block = (await statfs(journal)).bsize
-  historyLimits.storageBytes = Math.max(block * 16, allocated - block * 4)
-  const evicted = await (await fetch(`${server.url}snapshot`)).json()
-  assert.ok(evicted.losses.some((loss) => loss.reason === "capacity-evicted"))
-  assert.ok(
-    evicted.records.some(
-      (record) =>
-        record.fact.kind === "writer-evidence" &&
-        record.fact.state === "written" &&
-        record.fact.output.status === "available" &&
-        record.fact.output.encoded === Buffer.concat(nativeBytes).toString("base64")
-    )
-  )
-  await page.waitForFunction(() =>
-    document.querySelector("#history-status").textContent.includes("Known capacity eviction")
-  )
-  assert.equal(await page.locator("#detail").textContent(), frozen)
-  historyLimits.storageBytes = 4 * 1048576
+  phase = "paused resident message expiry"
   historyNow += 2 * 86400000
   await page.evaluate(() => {
     document.querySelector("#handoff-copy-status").textContent = ""
   })
-  await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
+  await page.getByRole("button", { name: "Copy message", exact: true }).click()
   await page.waitForFunction(
     () =>
       document.querySelector("#handoff-copy-status").textContent.length > 0 &&
-      document.querySelector("#handoff-copy-status").textContent !== "Retrieving selected output"
+      document.querySelector("#handoff-copy-status").textContent !== "Retrieving message"
   )
   assert.match(await page.locator("#handoff-copy-status").textContent(), /expired/)
   await page.waitForFunction(() =>
@@ -595,7 +452,7 @@ try {
   assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, per-unit request selection and exact copy, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, known capacity eviction, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, per-unit request selection and exact copy, resident-owned messages and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)

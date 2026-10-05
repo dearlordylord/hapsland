@@ -1,4 +1,5 @@
-import { Effect, Queue } from "effect"
+import { Effect, Queue, Schedule } from "effect"
+import { InspectionStorageBusy } from "./native-lock.ts"
 import {
   decodeInspectionRecord,
   decodeInspectionRecordText,
@@ -171,6 +172,11 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
           : Effect.void
       )
       yield* write.pipe(
+        Effect.retry({
+          times: 50,
+          while: (error) => error instanceof InspectionStorageBusy,
+          schedule: Schedule.spaced("100 millis")
+        }),
         Effect.catchCause(() => Effect.void),
         Effect.ensuring(Effect.sync(() => free(entry)))
       )

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { revealInspection } from "./inspection-browser-controls.mjs"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium } from "playwright"
@@ -171,6 +172,7 @@ try {
     } else {
       assert.equal(payload.status, "available")
       assert.ok(Buffer.from(payload.encoded, "base64").equals(dispatched[index]))
+      await revealInspection(page, "#copy")
       await page.getByRole("button", { name: "Copy exact request", exact: true }).focus()
       await page.keyboard.press("Enter")
       await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")

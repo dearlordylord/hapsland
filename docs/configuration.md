@@ -92,6 +92,15 @@ are supported. Patterns are bounded to 1,024 characters, eight brace groups, eig
 choices per group, and 256 expansions. Absolute paths, traversal, and negated
 re-inclusion are invalid. Moving a rule document never changes the pattern base.
 
+The built-in root include is `**/*`; installation inherits this scope rather than
+writing a narrower project list. Wildcards omit hidden files and directories, so
+this is not a literal all-paths selection. To review a hidden source directory,
+keep the ordinary scope and add its explicit pattern, for example
+`"includes": ["**/*", ".scratch/**"]`. Protected paths, repository `.gitignore`,
+and enabled languages still apply. Use `hapsland explain` to inspect a path's
+resolved selection before expecting a review result.
+
+
 <!-- configuration-guide:start -->
 
 ## Configuration example

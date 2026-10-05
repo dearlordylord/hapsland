@@ -1,3 +1,4 @@
+import type { PathEligibilityReason } from "./selection.ts"
 import type { ProviderIdentity } from "../review-providers/catalog.ts"
 import { createHash } from "node:crypto"
 import { reviewTargetForInput, type CompiledRule } from "../rules/compiler.ts"
@@ -150,7 +151,7 @@ export type PathObservationOutcome =
   | {
       readonly status: "incomplete"
       readonly path: string
-      readonly reason: "unsupported-operation" | "metadata-only" | "ineligible" | "capture-unavailable"
+      readonly reason: "unsupported-operation" | "metadata-only" | PathEligibilityReason | "capture-unavailable"
     }
 
 export type ChangeSet = {

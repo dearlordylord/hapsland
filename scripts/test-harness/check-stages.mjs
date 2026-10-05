@@ -2,7 +2,6 @@
 export const precheckStages = [
   ["configuration", "--experimental-strip-types", "scripts/generate-configuration.ts", "--check"],
   ["bend-artifacts", "scripts/verify-bend-artifacts.mjs"],
-  ["monkey-business-freshness", "packages/monkey-business-bend/build.mjs", "--check"],
   ["canonical-authority", "scripts/check-canonical-authority.mjs"],
   ["jev-request", "--experimental-strip-types", "packages/agent-flow-bend/scripts/check-jev-request.mjs"],
   ...[

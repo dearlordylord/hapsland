@@ -1,0 +1,11 @@
+{
+  "roots": {
+    "lab_trace": {
+      "module": "prototypes/canonical-defense/DefenseLabTraceTypes.bend",
+      "type": "Envelope",
+      "vector": false
+    }
+  },
+  "codec": "prototypes/canonical-defense/DefenseLabTraceCodec.bend",
+  "metadata": "prototypes/canonical-defense/lab-trace-metadata.ts"
+}
