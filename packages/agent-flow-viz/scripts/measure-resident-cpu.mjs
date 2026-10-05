@@ -2,6 +2,8 @@ import { chromium } from "playwright"
 import { execFileSync } from "node:child_process"
 import { resolve } from "node:path"
 
+const started = Date.now()
+const stage = (name) => console.error(`CPU evaluator ${Date.now() - started}ms: ${name}`)
 const deadline = setTimeout(() => {
   console.error("CPU evaluator exceeded10seconds")
   process.exit(124)
@@ -18,6 +20,7 @@ try {
   browser = await chromium.launch({ headless: true, env: { ...process.env, LD_LIBRARY_PATH: libraries } })
   const cases = []
   for (const advicees of [1, 6]) {
+    stage(`${advicees}: setup`)
     const page = await browser.newPage({ viewport: { width: 1512, height: 1100 } })
     page.setDefaultTimeout(5000)
     const errors = []
@@ -38,12 +41,15 @@ try {
       if (!window.metricRun) throw new Error("Active resident was not created")
       return window.metricRun.eventCount
     })
+    stage(`${advicees}: resident ready`)
     const cdp = await page.context().newCDPSession(page)
     await cdp.send("Performance.enable")
     const metricsBefore = await cdp.send("Performance.getMetrics")
     await page.getByRole("button", { name: "Play resident", exact: true }).click()
+    stage(`${advicees}: playing`)
     await page.waitForTimeout(1500)
     await page.getByRole("button", { name: "Pause resident", exact: true }).click()
+    stage(`${advicees}: paused`)
     const metricsAfter = await cdp.send("Performance.getMetrics")
     const eventsAfter = await page.evaluate(() => window.metricRun.eventCount)
     const metric = (result, name) => result.metrics.find((entry) => entry.name === name).value
@@ -52,6 +58,7 @@ try {
     if (errors.length || events <= 0 || !Number.isFinite(cpuMs) || cpuMs <= 0)
       throw new Error(`Invalid CPU sample: ${JSON.stringify({ advicees, events, cpuMs, errors })}`)
     cases.push({ advicees, events, cpuMs, cpuMsPerEvent: cpuMs / events })
+    stage(`${advicees}: captured`)
     await page.close()
   }
   const value = cases.reduce((sum, entry) => sum + entry.cpuMsPerEvent, 0) / cases.length
