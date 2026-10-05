@@ -4,6 +4,8 @@ import Game from "./game.generated.mjs"
 import { readNat, readRecord } from "../../../src/canonical/boundary-schema.ts"
 import { projectTrustedCanonical } from "../../../src/canonical/canonical-boundary.ts"
 import { configurationIdentity } from "./identity.ts"
+import { createGameBusinessReplay } from "./business-replay.ts"
+import { restoreReplay } from "../../../packages/monkey-business/src/index.ts"
 
 const towerKinds = { jevService: 0, deliveryRelay: 1, accessRepair: 2 } as const
 export type TowerAbility = keyof typeof towerKinds
@@ -48,10 +50,31 @@ export type GameExperiment = {
   readonly maxEvents: number
 }
 
+export type GameArtifactManifest = {
+  readonly compiler: string
+  readonly sourceIdentity: string
+  readonly moduleIdentity: string
+  readonly sources: readonly string[]
+}
+/** Refuse stale emission before naming an experiment after the current source. */
+export function verifyGeneratedGameIdentity(metadata: GameArtifactManifest): void {
+  const emitted = readFileSync(new URL("./game.generated.mjs", import.meta.url))
+  if (`sha256:${createHash("sha256").update(emitted).digest("hex")}` !== metadata.moduleIdentity)
+    throw new Error("incompatible generated game module identity")
+  const source = createHash("sha256").update(metadata.compiler)
+  for (const path of [...metadata.sources].sort((a, b) => a.localeCompare(b))) {
+    const bytes = readFileSync(new URL(`../../../${path}`, import.meta.url))
+    source.update(`${path}\0${bytes.length}\0`).update(bytes)
+  }
+  if (`sha256:${source.digest("hex")}` !== metadata.sourceIdentity)
+    throw new Error("incompatible generated game source identity; rebuild game laboratory")
+}
+
 function sourceIdentity() {
   const hash = createHash("sha256")
-  const metadata = JSON.parse(readFileSync(new URL("./game.generated.json", import.meta.url), "utf8")) as { sources: string[] }
-  for (const path of ["game.ts", "identity.ts", "game.generated.mjs", "game.generated.d.mts", "game.generated.json",
+  const metadata = JSON.parse(readFileSync(new URL("./game.generated.json", import.meta.url), "utf8")) as GameArtifactManifest
+  verifyGeneratedGameIdentity(metadata)
+  for (const path of ["game.ts", "identity.ts", "business-replay.ts", "../compare-native-runtime.mjs", "game.generated.mjs", "game.generated.d.mts", "game.generated.json",
     "../../../src/canonical/canonical-boundary.ts", "../../../src/canonical/boundary-schema.ts"])
     hash.update(path).update(readFileSync(new URL(path, import.meta.url)))
   for (const path of metadata.sources)
@@ -140,6 +163,9 @@ export function runGameExperiment(input: GameExperiment) {
     result: settings.outcome === "clear" ? 1 : settings.outcome === "finding" ? 2 : 0,
     burst: settings.burst ?? 1, interval: settings.arrivalIntervalMs ?? 30000
   }, BigInt(input.seed), input.budget, input.layout)
+  const mirror = createGameBusinessReplay(settings, input.seed)
+  const nativeObservation = () => boundary(Game.engine_observation(world))
+  mirror.compare(nativeObservation(), "game creation")
   const observations = [observe(world)]
   const actions: { action: GameAction; result: string; charged: number }[] = []
   const trace: unknown[] = []
@@ -150,8 +176,11 @@ export function runGameExperiment(input: GameExperiment) {
     if (state.business.events >= input.maxEvents || state.game.health === 0) break
     while (position < schedule.length && schedule[position]!.atTick === state.game.tick) {
       const action = schedule[position++]!
+      const before = nativeObservation()
+      const label = `game action ${position}`
       if (action.kind === "build" && !input.enabled.includes(action.tower)) {
         actions.push({ action, result: "disabled", charged: 0 })
+        mirror.recordAction({ before, after: nativeObservation(), applied: false, label })
         continue
       }
       const receipt = readRecord(action.kind === "build"
@@ -159,23 +188,32 @@ export function runGameExperiment(input: GameExperiment) {
           towerKinds[input.catalogue![action.tower]!.ability], input.catalogue![action.tower]!.cost)
         : Game.apply(world, { $: "Upgrade", index: action.index }))
       world = receipt.world
-      actions.push({ action, result: readRecord(receipt.result).$ as string, charged: readNat(boundary(receipt.charged)) })
+      const result = readRecord(receipt.result).$ as string
+      actions.push({ action, result, charged: readNat(boundary(receipt.charged)) })
+      mirror.recordAction({ before, after: nativeObservation(), applied: result === "Applied", label })
       state = observe(world)
     }
     if (state.game.tick >= input.untilTicks || state.business.events >= input.maxEvents || state.game.health === 0) break
-    const tick = readRecord(Game.tick_bounded(world, BigInt(input.maxEvents - state.business.events)))
-    trace.push(boundary({ frames: tick.frames, physical: tick.physical }))
+    const before = nativeObservation()
+    const untilTime = (state.game.tick + 1) * 20
+    const maxEvents = Math.min(256, input.maxEvents - state.business.events)
+    const tick = readRecord(Game.tick_bounded(world, BigInt(maxEvents)))
+    const frames = boundary(tick.frames), physical = boundary(tick.physical)
+    trace.push({ frames, physical })
     world = tick.world
+    mirror.advanceAndCompare({ before, after: nativeObservation(), frames, physical, untilTime, maxEvents,
+      label: `game tick ${state.game.tick + 1}` })
     state = observe(world)
     observations.push(state)
   }
   for (const action of schedule.slice(position)) actions.push({ action, result: "notReached", charged: 0 })
+  const businessReplay = mirror.exportAndRestore(nativeObservation())
   const traceIdentity = configurationIdentity({ trace, state, actions })
   const recording = { format: 1 as const, sourceIdentity: SOURCE_IDENTITY,
-    configurationIdentity: configurationIdentity(input), experiment: input, traceIdentity }
+    configurationIdentity: configurationIdentity(input), experiment: input, traceIdentity, businessReplay }
   return { context: input.context, actions, observations,
     game: { ...state.game, initialBudget: input.budget, spent: input.budget - state.game.remainingBudget },
-    business: state.business, trace,
+    business: state.business, trace, businessReplay,
     termination: state.game.health === 0 ? "dead" as const : state.business.events >= input.maxEvents ? "eventLimit" as const : "tickLimit" as const,
     recording }
 }
@@ -184,7 +222,10 @@ export function replayGameExperiment(recording: ReturnType<typeof runGameExperim
   if (recording.format !== 1 || recording.sourceIdentity !== SOURCE_IDENTITY ||
     recording.configurationIdentity !== configurationIdentity(recording.experiment))
     throw new Error("incompatible game experiment recording")
+  restoreReplay(recording.businessReplay)
   const result = runGameExperiment(recording.experiment)
+  if (JSON.stringify(result.businessReplay) !== JSON.stringify(recording.businessReplay))
+    throw new Error("incompatible game business replay")
   if (result.recording.traceIdentity !== recording.traceIdentity) throw new Error("incompatible game experiment trace")
   return result
 }

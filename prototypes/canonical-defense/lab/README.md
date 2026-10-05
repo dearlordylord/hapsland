@@ -33,6 +33,18 @@ Observed in the current executable fixtures: JevService alone adds one confirmed
 
 Compact measured data can be regenerated with `summarizeExampleStudy`; complete observations and ordinary business replay remain in `runExampleStudy` results. No retained result snapshot is required: rerun the executable study when mechanism/configuration/engine identity changes. Outputs are evidence for the exact declared inputs, not roster acceptance or a balance patch.
 
+## Spatial game balance study
+
+The separate [spatial study](game-example.ts) exercises actual Host construction, connectivity, upgrades, health and game-owned ability mapping. After rebuilding the integrated game laboratory, run its declared expectations and compact structured results:
+
+```sh
+timeout 120s node --experimental-strip-types --input-type=module -e 'import {runGameExampleStudy,checkGameExampleStudy,summarizeGameExampleStudy} from "./prototypes/canonical-defense/lab/game-example.ts"; const study=runGameExampleStudy(); console.log(JSON.stringify({checks:checkGameExampleStudy(study),study:summarizeGameExampleStudy(study)},null,2));'
+```
+
+This study is prepared but execution remains unvalidated until the integrated game module is regenerated. It declares five tuning contexts (slow Jev, slow delivery, unreadable source, unavailable credentials and clear reviews), matched 160-resource construction budgets, separate health/business observations, service/relay and relay/repair four-arm comparisons, late timing countercases and a legally placed disconnected service investment. Search runs 49 of 50 declared placement/timing combinations and exposes the final unsearched placement plan. Two held-out contexts evaluate a relay candidate declared before observing their results. Each run is bounded by 16 game ticks and 128 business events. These are authored fixtures; no probability, universal balance or learning claim follows from their outcomes.
+
+Full study results retain recorded configuration/source identities, action receipts, frames and replayable game inputs. Summaries distinguish individual submission terminal events from bundle output terminal events rather than counting every successful-looking frame as confirmed delivery. Rerun the executable study when engine, game, scenario or catalogue configuration changes; retain a structured snapshot only when a current review needs its immutable provenance.
+
 ## Control-only probe inputs and outputs
 
 The control-only [API](index.ts) accepts a source-free public `RunConfig`, context identity, fixed budget, enabled mechanism identities, catalogue and finite `untilTime`/`maxEvents` bounds. It creates an ordinary shared Run; it does not maintain another business scheduler or patch Canonical.

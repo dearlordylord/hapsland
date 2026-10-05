@@ -1,6 +1,8 @@
 import { expect, it } from "vitest"
+import { readFileSync } from "node:fs"
 import {
   runGameExperiment,
+  verifyGeneratedGameIdentity,
   replayGameExperiment,
   compareGameExperiments,
   compareGameInteraction,
@@ -58,6 +60,10 @@ it("records actual-game placement and upgrades with configured scenarios and exa
     towerCount: 1
   })
   expect(replayGameExperiment(JSON.parse(JSON.stringify(result.recording)))).toEqual(result)
+  expect(result.businessReplay.format).toBe("monkey-business/1")
+  const mutatedReplay = JSON.parse(JSON.stringify(result.recording))
+  mutatedReplay.businessReplay.logicIdentity = "wrong business logic"
+  expect(() => replayGameExperiment(mutatedReplay)).toThrow()
   expect(() => replayGameExperiment({ ...result.recording, traceIdentity: "changed" })).toThrow("trace")
   expect(() =>
     replayGameExperiment({
@@ -114,7 +120,7 @@ it("compares actual-game four arms and enumerates only declared placement schedu
   }
   const b = {
     name: "relay",
-    actions: [{ atTick: 0, kind: "build" as const, tower: "deliveryRelay" as const, x: 624, y: 552 }]
+    actions: [{ atTick: 0, kind: "build" as const, tower: "deliveryRelay" as const, x: 152, y: 392 }]
   }
   const interaction = compareGameInteraction({ ...gameInput, untilTicks: 0 }, a, b)
   expect(
@@ -185,11 +191,11 @@ it("accelerates future actual-game finding output with a clear countercase and c
   const baseline = runGameExperiment(gameInput)
   const early = runGameExperiment({
     ...gameInput,
-    actions: [{ atTick: 0, kind: "build", tower: "deliveryRelay", x: 624, y: 552 }]
+    actions: [{ atTick: 0, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
   })
   const late = runGameExperiment({
     ...gameInput,
-    actions: [{ atTick: 6, kind: "build", tower: "deliveryRelay", x: 624, y: 552 }]
+    actions: [{ atTick: 6, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
   })
   const outputs = (result: typeof baseline) => gameEvents(result.trace, "OutputTerminal")
   expect(outputs(baseline)).toHaveLength(1)
@@ -198,7 +204,7 @@ it("accelerates future actual-game finding output with a clear countercase and c
   const clear = runGameExperiment({
     ...gameInput,
     settings: { ...gameInput.settings, outcome: "clear" },
-    actions: [{ atTick: 0, kind: "build", tower: "deliveryRelay", x: 624, y: 552 }]
+    actions: [{ atTick: 0, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
   })
   expect(outputs(clear)).toEqual([])
   expect(clear.game.spent).toBe(55)
@@ -236,7 +242,7 @@ it("uses configured actual-game prices and refuses unaffordable or disabled purc
     budget: 20,
     untilTicks: 0,
     actions: [
-      { atTick: 0, kind: "build", tower: "helper", x: 624, y: 552 },
+      { atTick: 0, kind: "build", tower: "helper", x: 152, y: 392 },
       { atTick: 0, kind: "build", tower: "helper", x: 424, y: 392 },
       { atTick: 0, kind: "build", tower: "disabled", x: 424, y: 232 }
     ]
@@ -265,7 +271,7 @@ it("uses configured actual-game prices and refuses unaffordable or disabled purc
 
 it("replaces a stable actual-game identity with delivery ability and records its causal countercase", () => {
   const descriptor = { cost: 60, displayName: "Editable mechanism", lesson: "Future service" }
-  const actions = [{ atTick: 0, kind: "build" as const, tower: "experiment", x: 624, y: 552 }]
+  const actions = [{ atTick: 0, kind: "build" as const, tower: "experiment", x: 152, y: 392 }]
   const original = runGameExperiment({
     ...gameInput,
     enabled: ["experiment"],
@@ -293,6 +299,15 @@ it("replaces a stable actual-game identity with delivery ability and records its
   })
   expect(outputs(clear)).toEqual([])
   expect(clear.game.spent).toBe(60)
+})
+
+it("refuses deliberately stale generated actual-game identities", () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL("../prototypes/canonical-defense/lab/game.generated.json", import.meta.url), "utf8")
+  )
+  expect(() => verifyGeneratedGameIdentity({ ...manifest, moduleIdentity: "sha256:stale" })).toThrow("module identity")
+  expect(() => verifyGeneratedGameIdentity({ ...manifest, sourceIdentity: "sha256:stale" })).toThrow("source identity")
+  expect(() => verifyGeneratedGameIdentity(manifest)).not.toThrow()
 })
 
 const direct = {
