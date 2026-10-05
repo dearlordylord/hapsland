@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { dirname, extname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { typeScriptRoot, descendants } from "../../src/direct-event/languages/native-parser.ts"
+import { isOptionalDevelopmentTest } from "./test-scope.mjs"
 import { boundedScenarioFiles, timeoutForKind } from "./policy.mjs"
 
 const processModules = new Set(["node:child_process", "child_process", "node:worker_threads", "worker_threads"])
@@ -52,10 +53,11 @@ const testFiles = (root) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = resolve(directory, entry.name)
       if (entry.isDirectory()) visit(path)
-      else if (/\.test\.(ts|mts)$/u.test(entry.name)) files.push(path)
+      else if (/\.test\.(ts|mts)$/u.test(entry.name) && !isOptionalDevelopmentTest(relative(root, path)))
+        files.push(path)
     }
   }
-  for (const directory of ["src", "scripts", "packages/monkey-business/src"]) visit(resolve(root, directory))
+  for (const directory of ["src", "scripts"]) visit(resolve(root, directory))
   return files.sort()
 }
 

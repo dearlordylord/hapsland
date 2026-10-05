@@ -6,6 +6,10 @@
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
 **Lifecycle:** Update this matrix whenever a test scenario, runner, supported language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
+## Optional development modules
+
+Ordinary `npm test`, coverage/quality checks, and production/release builds exclude the game and the separate Monkey Business test suite. The production build does not validate or rebuild the standalone simulator. Run `npm run test:game` for generated game-lab identity, lab types and the focused lab suite; run `npm run test:simulation` for simulator freshness and all explicitly enumerated Monkey Business tests. Both entrypoints use the finite supervisor; native game/lab checks remain separate commands in the matrix below. Explicit `test:focused` selections can still include these owners. Production conformance tests using the model as an oracle remain in the ordinary gate, as do the production Bend artifact and authority checks. This separation changes test selection, not CRAP thresholds or missing-evidence policy. Review it when a development module becomes a production dependency.
+
 ## Which gate to run
 
 The byte-bound preparation inputs `packages/monkey-business/src/preparation.ts` and

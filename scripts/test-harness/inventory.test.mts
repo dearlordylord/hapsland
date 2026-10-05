@@ -32,7 +32,17 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   put("packages/monkey-business/src/outcomes.test.ts", "const seededReplay = true;")
   put("packages/monkey-business/src/cache-scenarios.test.ts", "const seededCacheReplay = true;")
   put("src/resident/server.test.ts", "const boundedSaturation = true;")
-  const entries = Object.fromEntries(inventoryTestHarness(root).map((entry) => [entry.path, entry]))
+  const defaultEntries = inventoryTestHarness(root)
+  expect(defaultEntries.some((entry) => entry.path.startsWith("packages/monkey-business/"))).toBe(false)
+  const entries = Object.fromEntries(
+    [
+      ...defaultEntries,
+      ...inventoryTestHarness(root, [
+        "packages/monkey-business/src/outcomes.test.ts",
+        "packages/monkey-business/src/cache-scenarios.test.ts"
+      ])
+    ].map((entry) => [entry.path, entry])
+  )
   expect(entries["src/unit.test.ts"].kind).toBe("unit")
   expect(entries["src/named-type.test.ts"].kind).toBe("unit")
   expect(entries["src/export-type.test.ts"].kind).toBe("unit")
@@ -71,4 +81,19 @@ it("inventories only focused owners while preserving their transitive process cl
   ])
   expect(() => inventoryTestHarness(root)).toThrow()
   expect(() => inventoryTestHarness(root, ["../outside.test.ts"])).toThrow(/Invalid focused inventory file/)
+})
+
+it("keeps unavailable optional game and generator modules out of production inventory", () => {
+  const root = mkdtempSync(join(tmpdir(), "haps-harness-optional-inventory-"))
+  roots.push(root)
+  for (const folder of ["src", "scripts"]) mkdirSync(join(root, folder), { recursive: true })
+  writeFileSync(join(root, "src/required.test.ts"), "const required = true;")
+  writeFileSync(join(root, "scripts/required.test.mts"), "const requiredTool = true;")
+  symlinkSync(join(root, "unavailable.ts"), join(root, "scripts/game-future.test.mts"))
+  expect(inventoryTestHarness(root).map((entry) => entry.path)).toEqual([
+    "scripts/required.test.mts",
+    "src/required.test.ts"
+  ])
+  expect(() => inventoryTestHarness(root, ["scripts/game-future.test.mts"])).toThrow()
+  expect(() => inventoryTestHarness(root, ["packages/monkey-business/src/generator.test.ts"])).toThrow()
 })

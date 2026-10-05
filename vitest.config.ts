@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config"
 import { inventoryTestHarness } from "./scripts/test-harness/inventory.mjs"
+import { testDiscovery } from "./scripts/test-harness/test-scope.mjs"
 import { UNIT_TEST_TIMEOUT_MS } from "./scripts/test-harness/policy.mjs"
 
 const focusedSelection = process.env.HAPSLAND_FOCUSED_TEST_SELECTION
@@ -11,8 +12,7 @@ export default defineConfig({
     testTimeout: UNIT_TEST_TIMEOUT_MS,
     setupFiles: ["./scripts/test-harness/setup.mts"],
     provide: { harnessInventory: inventoryTestHarness(import.meta.dirname, selectedFiles) },
-    include: ["src/**/*.test.ts", "scripts/**/*.test.mts", "packages/monkey-business/src/**/*.test.ts"],
-    exclude: ["vendor/**", "node_modules/**"],
+    ...testDiscovery(selectedFiles),
     coverage: {
       provider: "custom",
       customProviderModule: "./scripts/coverage-provider.mjs",
