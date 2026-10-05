@@ -122,6 +122,8 @@ def duration(+world: M.World, +work: C.Work) -> U32:
     case C.Work{_, _, _, _, _, C.Preparing{}, _}: 176
     case C.Work{_, _, _, _, _, C.Reviewing{}, _}: Map.path_length(Map.review_route(M.layout(world), lane(world, work)))
     case C.Work{_, _, _, _, _, C.AtJev{}, _}: Bool.pick(U32, U32.is_eq(lane(world, work), 0), 160, 240)
+    case C.Work{_, _, _, _, _, C.PendingFinding{_}, _}:
+      (Map.path_length(Map.retained_route(M.layout(world))) + Map.path_length(Map.room_route(M.layout(world),5,0)) : U32)
     case _: 0
 
 # Road progress and service effort share the same permanent acceleration.
@@ -220,6 +222,33 @@ def find_work(+operation: Nat, items: List<&2, C.Work>) -> Maybe<&2, C.Work>:
     case Nil{}: None{}
     case +work <> rest:
       Bool.pick(Maybe<&2, C.Work>, Nat.is_eq(operation, id(work)), Some{work}, find_work(operation, rest))
+
+# Presentation backpressure belongs to the game, not the shared engine. Keep
+# the actual owned work at its current stage until it reaches that stage's exit.
+def existing_ready(+world: M.World,+before: C.Work,after: Maybe<&2,C.Work>) -> Bool:
+  match after:
+    case Some{work}: U32.is_eq(kind(before),kind(work)) || U32.is_eq(remaining(world,before),0)
+    case None{}: U32.is_eq(remaining(world,before),0)
+def changed_ready(items: List<&2,C.Work>,+world: M.World,+after: List<&2,C.Work>) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +work <> rest:
+      existing_ready(world,work,find_work(id(work),after)) && changed_ready(rest,world,after)
+def parent_ready(world: M.World,parent: Maybe<&2,C.Work>) -> Bool:
+  match parent:
+    case Some{work}: U32.is_eq(remaining(world,work),0)
+    case None{}: True{}
+def birth_ready(known: Maybe<&2,C.Work>,+world: M.World,work: C.Work) -> Bool:
+  match known:
+    case Some{_}: True{}
+    case None{}: parent_ready(world,find_work(family(work),M.work(M.core(world))))
+def births_ready(items: List<&2,C.Work>,+world: M.World) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +work <> rest:
+      birth_ready(find_work(id(work),M.work(M.core(world))),world,work) && births_ready(rest,world)
+def transition_ready(+world: M.World,+after: C.State) -> Bool:
+  changed_ready(M.work(M.core(world)),world,M.work(after)) && births_ready(M.work(after),world)
 
 def has_timer(+id: Nat, items: List<&2, M.Timer>) -> Bool:
   match items:

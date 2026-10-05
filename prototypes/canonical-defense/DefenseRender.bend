@@ -636,8 +636,8 @@ def on_word(on: Bool) -> String:
     case True{}: "ON"
     case False{}: "OFF"
 
-def activity_line(world: M.World) -> String:
-  Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED")
+def activity_line(+world: M.World) -> String:
+  Bool.pick(String,M.active(world),Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED"),"BUILD FIRST - N/ENTER START")
 
 def family_row(+world: M.World,+family: Nat,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
