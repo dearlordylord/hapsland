@@ -95,6 +95,33 @@ try {
     )
   }
   const compiled = canonical.projectCanonical(canonical.initialCanonical(fixture.limits))
+  const projection = await server.ssrLoadModule("/../agent-flow-projection/src/index.ts")
+  // Identical snapshots must retain command and supplied outcome evidence.
+  for (const outcome of ["clear", "failed"]) {
+    const step = {
+      event: { kind: "jevRequestSettled", operation: 1, partition: 1, lifetime: 1, round: 1, outcome },
+      commands: [{ kind: "reviewRecorded", outcome }],
+      before: compiled,
+      after: compiled
+    }
+    const projected = projection.projectFlowStep(step)
+    assert.deepEqual(projected, projection.projectFlowStep({ ...step, after: structuredClone(compiled) }))
+    assert.equal(projected.projectionChanged, false)
+    assert.ok(projected.evidence.some((entry) => entry.source === "command"))
+    assert.ok(
+      projected.evidence.some((entry) => entry.source === (outcome === "clear" ? "external fact" : "native fact"))
+    )
+    assert.ok(projected.changedStages.includes("outcomes"))
+  }
+  assert.deepEqual(
+    projection.projectFlowStep({
+      event: { kind: "preparationGraph" },
+      commands: [],
+      before: compiled,
+      after: compiled
+    }),
+    { evidence: [], changedStages: [], projectionChanged: false, storedResultConversions: [] }
+  )
   const presentation = await server.ssrLoadModule("/src/production-flow-presentation.ts")
   const flowView = await server.ssrLoadModule("/src/production-flow-view.ts")
   const numbering = await server.ssrLoadModule(

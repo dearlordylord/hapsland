@@ -1,69 +1,121 @@
 import { chromium } from "playwright"
-import { execFileSync } from "node:child_process"
-import { resolve } from "node:path"
+import { mkdirSync, writeFileSync } from "node:fs"
+import { dirname } from "node:path"
 
-const started = Date.now()
-const stage = (name) => console.error(`CPU evaluator ${Date.now() - started}ms: ${name}`)
+// Measure the served production bundle. Each process has a ten-second deadline;
+// setup/build time is excluded, and each case stops after actual event progress.
+const options = Object.fromEntries(
+  process.argv.slice(2).map((argument) => {
+    const [key, ...value] = argument.split("=")
+    return [key, value.join("=")]
+  })
+)
+const url = options["--url"] ?? "http://127.0.0.1:4180/index.html"
+const targetEvents = Number(options["--events"] ?? 1200)
+const advicees = options["--advicees"] ? [Number(options["--advicees"])] : [1, 6]
+if (!Number.isSafeInteger(targetEvents) || targetEvents < 1 || advicees.some((count) => ![1, 6].includes(count)))
+  throw new Error("Expected a positive event target and one or six advicees")
 const deadline = setTimeout(() => {
-  console.error("CPU evaluator exceeded10seconds")
+  console.error("CPU evaluator exceeded ten seconds")
   process.exit(124)
 }, 10000)
-const root = resolve(import.meta.dirname, "../../..")
-const libraries = "/tmp/hapsland-browser-libs/prefix/usr/lib/aarch64-linux-gnu"
 let browser
 try {
-  execFileSync(process.execPath, ["packages/monkey-business-bend/build.mjs", "--reuse-compiled-policy"], {
-    cwd: root,
-    timeout: 5000,
-    stdio: "pipe"
-  })
-  browser = await chromium.launch({ headless: true, env: { ...process.env, LD_LIBRARY_PATH: libraries } })
+  browser = await chromium.launch({ headless: true })
   const cases = []
-  for (const advicees of [1, 6]) {
-    stage(`${advicees}: setup`)
+  for (const count of advicees) {
     const page = await browser.newPage({ viewport: { width: 1512, height: 1100 } })
     page.setDefaultTimeout(5000)
     const errors = []
     page.on("pageerror", (error) => errors.push(error.message))
-    await page.goto("http://127.0.0.1:4181/")
-    await page.getByLabel("Advicee count", { exact: true }).fill(String(advicees))
+    await page.goto(url)
+    const bundle = await page.evaluate(
+      () =>
+        performance.getEntriesByType("resource").find((entry) => /\/assets\/dashboard-[^/]+\.js$/.test(entry.name))
+          ?.name
+    )
+    if (!bundle) throw new Error("CPU evaluation requires a production dashboard bundle")
+    await page.getByLabel("Advicee count", { exact: true }).fill(String(count))
+    await page.getByLabel("Seed", { exact: true }).fill("7")
     await page.getByRole("button", { name: "Start resident", exact: true }).click()
     await page.waitForFunction(() =>
       document.querySelector(".simulation-status")?.textContent.includes("Seeded session started")
     )
-    const eventsBefore = await page.evaluate(async () => {
-      const loaded = performance.getEntriesByType("resource").findLast((entry) =>
-        new URL(entry.name).pathname === "/src/simulation.ts"
-      )
-      if (!loaded) throw new Error("Active simulation module was not loaded")
-      const { simulationRun } = await import(loaded.name)
-      window.metricRun = simulationRun()
-      if (!window.metricRun) throw new Error("Active resident was not created")
-      return window.metricRun.eventCount
-    })
-    stage(`${advicees}: resident ready`)
+    const eventEndpoint = () =>
+      page.getByLabel("Retained event timeline", { exact: true }).getAttribute("max").then(Number)
+    // A freshly started Run has no events and renders a zero slider endpoint.
+    // After progress, Observation.sequence is eventCount - 1; structural frames
+    // do not enter this history. Do not mistake the initial zero for one event.
+    const before = 0
+    if ((await eventEndpoint()) !== 0 || (await page.locator(".simulation-history button").count()) !== 0)
+      throw new Error("Expected a fresh Run without processed events")
     const cdp = await page.context().newCDPSession(page)
-    await cdp.send("Performance.enable")
-    const metricsBefore = await cdp.send("Performance.getMetrics")
-    await page.getByRole("button", { name: "Play resident", exact: true }).click()
-    stage(`${advicees}: playing`)
-    await page.waitForTimeout(1500)
-    await page.getByRole("button", { name: "Pause resident", exact: true }).evaluate((button) => button.click())
+    await cdp.send("Performance.enable", { timeDomain: "threadTicks" })
+    if (options["--profile"]) {
+      await cdp.send("Profiler.enable")
+      await cdp.send("Profiler.setSamplingInterval", { interval: 1000 })
+      await cdp.send("Profiler.start")
+    }
+    const prior = await cdp.send("Performance.getMetrics")
+    const started = performance.now()
+    await page.getByRole("button", { name: "Play resident", exact: true }).evaluate((button) => button.click())
+    await page.waitForFunction(
+      (target) => {
+        if (!document.querySelector(".simulation-history button")) return false
+        if (Number(document.querySelector('[aria-label="Retained event timeline"]')?.max) < target) return false
+        const pause = [...document.querySelectorAll("button")].find((button) => button.textContent === "Pause resident")
+        if (!pause) throw new Error("Pause control missing")
+        pause.click()
+        return true
+      },
+      targetEvents - 1,
+      { polling: "raf", timeout: 7000 }
+    )
     await page.waitForFunction(() => document.querySelector(".simulation-status")?.textContent.startsWith("Paused"))
-    stage(`${advicees}: paused`)
-    const metricsAfter = await cdp.send("Performance.getMetrics")
-    const eventsAfter = await page.evaluate(() => window.metricRun.eventCount)
-    const metric = (result, name) => result.metrics.find((entry) => entry.name === name).value
-    const events = eventsAfter - eventsBefore
-    const cpuMs = (metric(metricsAfter, "TaskDuration") - metric(metricsBefore, "TaskDuration")) * 1000
-    if (errors.length || events <= 0 || !Number.isFinite(cpuMs) || cpuMs <= 0)
-      throw new Error(`Invalid CPU sample: ${JSON.stringify({ advicees, events, cpuMs, errors })}`)
-    cases.push({ advicees, events, cpuMs, cpuMsPerEvent: cpuMs / events })
-    stage(`${advicees}: captured`)
+    const elapsedMs = performance.now() - started
+    const after = await cdp.send("Performance.getMetrics")
+    if (options["--profile"]) {
+      const { profile } = await cdp.send("Profiler.stop")
+      const path = `${options["--profile"]}.${count}.cpuprofile`
+      mkdirSync(dirname(path), { recursive: true })
+      writeFileSync(path, JSON.stringify(profile))
+    }
+    const events = (await eventEndpoint()) + 1
+    const delta = (name) => {
+      const value = (result) => result.metrics.find((entry) => entry.name === name)?.value
+      return (value(after) - value(prior)) * 1000
+    }
+    // Chromium ThreadTime uses the main thread CPU clock even when the host
+    // schedules other jobs. Wall elapsed time is reported separately.
+    const cpuMs = delta("ThreadTime")
+    if (errors.length || events < targetEvents || !Number.isFinite(cpuMs) || cpuMs <= 0)
+      throw new Error(`Invalid CPU sample: ${JSON.stringify({ count, events, cpuMs, errors })}`)
+    cases.push({
+      advicees: count,
+      seed: 7,
+      before,
+      events,
+      cpuMs,
+      cpuMsPerEvent: cpuMs / events,
+      elapsedMs,
+      taskCpuMs: delta("TaskDuration"),
+      scriptCpuMs: delta("ScriptDuration"),
+      layoutCpuMs: delta("LayoutDuration"),
+      styleCpuMs: delta("RecalcStyleDuration"),
+      bundle
+    })
     await page.close()
   }
   const value = cases.reduce((sum, entry) => sum + entry.cpuMsPerEvent, 0) / cases.length
-  console.log(JSON.stringify({ cases, metric: "main_thread_cpu_ms_per_processed_event", value }))
+  console.log(
+    JSON.stringify({
+      metric: "main_thread_cpu_ms_per_processed_event",
+      timeDomain: "threadTicks",
+      evaluatorVersion: 2,
+      cases,
+      value
+    })
+  )
   console.log(`METRIC main_thread_cpu_ms_per_processed_event=${value}`)
 } finally {
   await browser?.close()

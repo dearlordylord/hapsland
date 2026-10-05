@@ -10,9 +10,9 @@ import {
   readBendList,
   Probability
 } from "./boundary-schema.ts"
+import { readCanonicalEvent } from "./event-reader.ts"
 import { decodeCanonicalConstructor, decodeCanonicalRejection } from "./constructors.ts"
 import {
-  CanonicalEventSchema,
   CanonicalLimitsSchema,
   type JevRequestOutcome,
   type CompletedEditReason,
@@ -177,7 +177,6 @@ const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
   decodeCanonicalConstructor(value, name)
   return outcome
 }
-const decodeEvent = decoder(CanonicalEventSchema)
 const encodeReserveCapacity = (event: Extract<CanonicalEvent, { kind: "reserveCapacity" }>): unknown => {
   return {
     $: "Canonical.ReserveCapacity",
@@ -1265,7 +1264,7 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
 
 const encodeVariant = <Kind extends keyof EventByKind>(event: EventByKind[Kind] & { readonly kind: Kind }): unknown =>
   eventEncoders[event.kind](event)
-export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(decodeEvent(input))
+export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(readCanonicalEvent(input))
 
 const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interrupted" | "discarded" => {
   const name = tag(value)

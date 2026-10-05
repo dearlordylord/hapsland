@@ -405,13 +405,15 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
       storedResultConversions: [],
       rejection: step.rejection
     }
+  const sameSnapshot = step.before === step.after
   const before = placements(step.before, numbers)
-  const after = placements(step.after, numbers)
+  const after = sameSnapshot ? before : placements(step.after, numbers)
   const evidence: FlowEvidence[] = []
   const changedStages = new Set<FlowStage>()
-  for (const stage of FLOW_STAGES)
-    if (JSON.stringify(stageSignature(step.before, stage)) !== JSON.stringify(stageSignature(step.after, stage)))
-      changedStages.add(stage)
+  if (!sameSnapshot)
+    for (const stage of FLOW_STAGES)
+      if (JSON.stringify(stageSignature(step.before, stage)) !== JSON.stringify(stageSignature(step.after, stage)))
+        changedStages.add(stage)
   for (const [key, prior] of before) {
     const next = after.get(key)
     if (next === undefined) {
@@ -714,7 +716,7 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
       changedStages.add("round")
     }
   }
-  const projectionChanged = JSON.stringify(step.before) !== JSON.stringify(step.after)
+  const projectionChanged = !sameSnapshot && JSON.stringify(step.before) !== JSON.stringify(step.after)
   return {
     evidence,
     changedStages: [...changedStages],
