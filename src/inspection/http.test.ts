@@ -62,7 +62,13 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
     expect(page.status).toBe(200)
     expect(page.headers.get("content-security-policy")).toContain("script-src 'sha256-")
     expect(await page.text()).toContain("Hapsland inspection")
-    expect(JSON.stringify(snapshot)).not.toContain("type OrderCount")
+    expect(snapshot).toMatchObject({
+      records: expect.arrayContaining([
+        expect.objectContaining({
+          fact: expect.objectContaining({ kind: "model-input", representation: "decision-model-json" })
+        })
+      ])
+    })
     expect((await fetch(`${server.origin}/snapshot`)).status).toBe(404)
     expect((await fetch(`${server.url}snapshot`, { headers: { origin: "https://evil.invalid" } })).status).toBe(403)
     const hostileHostStatus = await new Promise<number | undefined>((resolve, reject) => {

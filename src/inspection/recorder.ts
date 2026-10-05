@@ -157,5 +157,5 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
     correlation: InspectionCorrelation,
     fact: InspectionObservation
   ): InspectionOffer => enqueue(scope, correlation, fact)
-  return { offer, observeRecording }
+  return { offer, observeRecording, isEnabled: (root: string) => !closed && roots.get(root)?.state === "enabled" }
 })

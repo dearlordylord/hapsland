@@ -151,6 +151,12 @@ describe("resident inspection capture", () => {
     expect(unit?.correlation.receiptId).toBe(received.correlation.receiptId)
     expect(unit?.correlation.unitId).toMatch(/^[a-f0-9]{64}$/)
     expect(unit?.fact).toMatchObject({ kind: "unit-prepared", declaration: "OrderCount", path: "type.ts" })
+    const modelInput = preparedRecords.find((record) => record.fact.kind === "model-input")?.fact
+    expect(modelInput?.kind).toBe("model-input")
+    if (modelInput?.kind !== "model-input" || modelInput.payload.status !== "available")
+      throw new Error("missing model input")
+    expect(modelInput.payload.byteLength).toBe(Buffer.byteLength(modelInput.payload.encoded))
+    expect(modelInput.payload.encoded).toContain("type OrderCount")
     expect(preparedRecords.find((record) => record.fact.kind === "validated-answers")?.fact).toMatchObject({
       kind: "validated-answers",
       answers: configuredRules.map((rule) => ({ ruleId: rule.id, probability: 0.9 }))

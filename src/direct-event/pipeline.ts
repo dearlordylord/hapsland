@@ -1033,6 +1033,7 @@ const evaluateProbabilityAnswers = (prepared: PreparedUnit, answers: Probability
 }
 
 export type EvaluationEvidence =
+  | { readonly kind: "model-input"; readonly input: typeof Schema.Json.Type }
   | {
       readonly kind: "validated-answers"
       readonly answers: ReadonlyArray<{ readonly ruleId: string; readonly probability: number }>
@@ -1071,7 +1072,12 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   const input = yield* Schema.decodeUnknownEffect(Schema.Json)(providerInput).pipe(Effect.orDie)
   const model = yield* DecisionModel.DecisionModel
   const evaluated = yield* beforeDispatch.pipe(
-    Effect.andThen(model.decide(definition, { input })),
+    Effect.andThen(
+      Effect.suspend(() => {
+        emit({ kind: "model-input", input })
+        return model.decide(definition, { input })
+      })
+    ),
     Effect.timeoutOption(`${DIRECT_EVENT_DEADLINE_MS} millis`),
     Effect.result
   )

@@ -3509,7 +3509,27 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               )
             )
             const evaluation = evaluatePrepared(job.prepared, beforeDispatch, (evidence) => {
-              if (job.inspectionReceipt === undefined) return
+              if (job.inspectionReceipt === undefined || !inspection.isEnabled(job.inspectionReceipt.scope.root)) return
+              const fact =
+                evidence.kind === "model-input"
+                  ? (() => {
+                      const encoded = JSON.stringify(evidence.input)
+                      const byteLength = Buffer.byteLength(encoded)
+                      return {
+                        kind: "model-input" as const,
+                        representation: "decision-model-json" as const,
+                        payload:
+                          byteLength > 16384
+                            ? { status: "missing" as const, reason: "oversized" as const }
+                            : {
+                                status: "available" as const,
+                                encoded,
+                                byteLength,
+                                sha256: createHash("sha256").update(encoded).digest("hex")
+                              }
+                      }
+                    })()
+                  : evidence
               inspection.offer(
                 job.inspectionReceipt.scope,
                 {
@@ -3517,7 +3537,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                   unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
                   requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
                 },
-                evidence
+                fact
               )
             }).pipe(Effect.provide(decisionModel))
             return yield* credentialProvider === undefined

@@ -52,6 +52,19 @@ export const InspectionWriterState = Schema.Literals([
 ])
 export const InspectionFact = Schema.Union([
   Schema.Struct({
+    kind: Schema.Literal("model-input"),
+    representation: Schema.Literal("decision-model-json"),
+    payload: Schema.Union([
+      Schema.Struct({
+        status: Schema.Literal("available"),
+        encoded: Schema.String.check(Schema.isMaxLength(16384)),
+        byteLength: Count,
+        sha256: Hash
+      }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literal("oversized") })
+    ])
+  }),
+  Schema.Struct({
     kind: Schema.Literal("validated-answers"),
     answers: Schema.Array(
       Schema.Struct({ ruleId: Id, probability: Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 })) })
@@ -122,6 +135,16 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
   const record = decode(value)
   if (record.source.id !== inspectionSourceId(record.source.endpoint, record.source.lifetime))
     throw new Error("inspection source identity mismatch")
+  if (record.fact.kind === "model-input" && record.fact.payload.status === "available") {
+    const payload = record.fact.payload
+    if (
+      Buffer.byteLength(payload.encoded) !== payload.byteLength ||
+      payload.byteLength > 16384 ||
+      createHash("sha256").update(payload.encoded).digest("hex") !== payload.sha256
+    )
+      throw new Error("inspection payload identity mismatch")
+    Schema.decodeUnknownSync(Schema.Json)(JSON.parse(payload.encoded))
+  }
   return record
 }
 export const decodeInspectionRecordText = (encoded: string): InspectionRecord => {
