@@ -541,7 +541,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               h.p(
                 [],
                 [
-                  "The built-in Noul rules ask about data and code design. Type rules examine what values a type permits. The built-in function rule asks whether a body uses structure its declaration does not reveal."
+                  "Hapsland’s default rules ask about data and code design. Type rules examine what values a type permits. The built-in function rule asks whether a body uses structure its declaration does not reveal."
                 ]
               ),
               h.blockquote([], ["Can this type store the same fact twice, with copies that disagree?"]),

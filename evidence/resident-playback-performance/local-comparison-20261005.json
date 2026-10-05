@@ -1,0 +1,80 @@
+{
+  "status": "inconclusive",
+  "baseline": "54fdecec",
+  "candidate": "34df1734",
+  "environment": "Chromium headless against Vite development servers; not production bundle",
+  "metric": "CDP TaskDuration milliseconds per processed event",
+  "requestedSampleMs": 1500,
+  "perCommandLimitSeconds": 10,
+  "runs": [
+    {
+      "role": "before",
+      "repetition": 1,
+      "advicees": 1,
+      "events": 928,
+      "cpuMs": 3023.0420000000004,
+      "cpuMsPerEvent": 3.257588362068966
+    },
+    {
+      "role": "after",
+      "repetition": 1,
+      "advicees": 1,
+      "events": 1136,
+      "cpuMs": 3603.268,
+      "cpuMsPerEvent": 3.1718908450704224
+    },
+    {
+      "role": "before",
+      "repetition": 1,
+      "advicees": 6,
+      "events": 900,
+      "cpuMs": 5336.215,
+      "cpuMsPerEvent": 5.9291277777777776
+    },
+    {
+      "role": "after",
+      "repetition": 1,
+      "advicees": 6,
+      "events": 600,
+      "cpuMs": 4287.2300000000005,
+      "cpuMsPerEvent": 7.145383333333334
+    },
+    {
+      "role": "before",
+      "repetition": 2,
+      "advicees": 1,
+      "events": 1460,
+      "cpuMs": 2411.846,
+      "cpuMsPerEvent": 1.6519493150684932
+    },
+    {
+      "role": "after",
+      "repetition": 2,
+      "advicees": 1,
+      "events": 1660,
+      "cpuMs": 2199.892,
+      "cpuMsPerEvent": 1.3252361445783132
+    },
+    {
+      "role": "before",
+      "repetition": 2,
+      "advicees": 6,
+      "events": 1200,
+      "cpuMs": 4193.982,
+      "cpuMsPerEvent": 3.494985
+    },
+    {
+      "role": "after",
+      "repetition": 2,
+      "advicees": 6,
+      "events": 1400,
+      "cpuMs": 3907.6400000000003,
+      "cpuMsPerEvent": 2.791171428571429
+    }
+  ],
+  "limitations": [
+    "Large variation between repetitions; no reliable overall performance improvement established.",
+    "Pause settles after a pending simulation batch.",
+    "One-off comparison; not formally qualified autoresearch result."
+  ]
+}
