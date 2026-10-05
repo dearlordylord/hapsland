@@ -317,6 +317,10 @@ const freezePreparedUnitInput = (
     interpretation: "probability-strictly-greater-than-threshold"
   } satisfies ReviewInput)
 }
+const supportedRuleLanguage = (language: string | undefined): language is "typescript" | "rust" | "bend" =>
+  language === "typescript" || language === "rust" || language === "bend"
+const missingRequiredRootLocation = (contract: string, location: ReviewInput["rootLocation"]): boolean =>
+  isGraphInputContract(contract) && location === undefined
 const prepareResolvedUnit = (
   unit: ReviewUnit,
   candidateDeclarations: readonly CandidateDeclaration[],
@@ -325,14 +329,14 @@ const prepareResolvedUnit = (
 ): PrepareOutcome | undefined => {
   const declaration = unit.root.artifact
   const rootLocation = candidateRootLocation(frame.contract, declaration, candidateDeclarations)
-  if (isGraphInputContract(frame.contract) && rootLocation === undefined) return undefined
+  if (missingRequiredRootLocation(frame.contract, rootLocation)) return undefined
   const sourceFingerprints = unitSourceFingerprints(unit, frame.supportingCaptures)
   if (sourceFingerprints === undefined) return undefined
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
   const partial = unitHasOmissions(unit)
   const capabilities = preparationCapabilities(frame.contract, partial)
   const language = languageForPath(path)?.id
-  if (language !== "typescript" && language !== "rust" && language !== "bend") return undefined
+  if (!supportedRuleLanguage(language)) return undefined
   const rules = applicableRules(declaration.source, path, currentRules(frame.context), {
     language,
     artifactKind,

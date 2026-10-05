@@ -30,6 +30,94 @@ const mergeSettings = (existing: RuleSettings, incoming: RuleSettings): RuleSett
     ? {}
     : { excludes: [...new Set([...(existing.excludes ?? []), ...(incoming.excludes ?? [])])] })
 })
+type InheritedReference = Extract<RuleReference, { readonly id: string }>
+type AuthoredReference = Extract<RuleReference, { readonly path: string }>
+const inheritRule = Effect.fn("Rules.inherit")(function* (
+  reference: InheritedReference,
+  loaded: Map<string, LoadedRule>,
+  seen: Set<string>
+) {
+  const { origin } = reference
+  const previous = loaded.get(reference.id)
+  if (previous === undefined)
+    return yield* configurationError(
+      origin.source,
+      origin.field,
+      `inherited rule '${reference.id}' needs an earlier path declaration`
+    )
+  if (seen.has(reference.id))
+    return yield* configurationError(
+      origin.source,
+      origin.field,
+      `duplicate rule '${reference.id}' from '${previous.path}'`
+    )
+  seen.add(reference.id)
+  loaded.set(reference.id, {
+    ...previous,
+    origin,
+    enabled: reference.enabled ?? previous.enabled,
+    reference: { ...mergeSettings(previous.reference, reference), id: reference.id, origin }
+  })
+})
+const outsideWorkingTree = (offset: string): boolean =>
+  offset === ".." || offset.startsWith(`..\\`) || offset.startsWith("../") || isAbsolute(offset)
+const checkRuleLocation = Effect.fn("Rules.checkLocation")(function* (root: string, path: string, origin: RuleOrigin) {
+  const inside = relative(root, path)
+  if (origin.layer === "project" && outsideWorkingTree(inside))
+    return yield* configurationError(
+      origin.source,
+      origin.field,
+      "project rule references must stay inside the Git working tree"
+    )
+})
+const checkRuleIdentity = Effect.fn("Rules.checkIdentity")(function* (
+  decoded: DecodedRule,
+  path: string,
+  origin: RuleOrigin,
+  previous: LoadedRule | undefined,
+  seen: Set<string>
+) {
+  if (previous !== undefined && (previous.path !== path || seen.has(decoded.id)))
+    return yield* configurationError(
+      origin.source,
+      origin.field,
+      `duplicate or rebound rule ID '${decoded.id}': '${previous.path}' and '${path}'`
+    )
+})
+const mergeLoadedRule = (
+  decoded: DecodedRule,
+  reference: AuthoredReference,
+  path: string,
+  previous: LoadedRule | undefined
+): LoadedRule => {
+  const origin = reference.origin
+  const merged = previous === undefined ? reference : { ...mergeSettings(previous.reference, reference), path, origin }
+  return { ...decoded, path, origin, reference: merged, enabled: reference.enabled ?? previous?.enabled ?? true }
+}
+const loadAuthoredRule = Effect.fn("Rules.loadAuthored")(function* (
+  root: string,
+  reference: AuthoredReference,
+  loaded: Map<string, LoadedRule>,
+  seen: Set<string>
+) {
+  const { origin } = reference
+  const requested = isAbsolute(reference.path)
+    ? resolve(reference.path)
+    : resolve(dirname(resolve(origin.source)), reference.path)
+  const path = yield* read(
+    origin.source,
+    origin.field,
+    () => realpath(requested),
+    `rule file '${requested}' does not exist`
+  )
+  yield* checkRuleLocation(root, path, origin)
+  const text = yield* read(path, "$", () => readFile(path, "utf8"), "rule could not be read")
+  const decoded = yield* validate(path, "$", () => decodeRuleText(text, path, origin))
+  const previous = loaded.get(decoded.id)
+  yield* checkRuleIdentity(decoded, path, origin, previous, seen)
+  seen.add(decoded.id)
+  loaded.set(decoded.id, mergeLoadedRule(decoded, reference, path, previous))
+})
 export const loadRules = Effect.fn("Rules.load")(function* (options: LoadRulesOptions) {
   const loaded = new Map<string, LoadedRule>()
   const root = yield* read(options.root, "rules", () => realpath(options.root), "root is unavailable")
@@ -38,67 +126,8 @@ export const loadRules = Effect.fn("Rules.load")(function* (options: LoadRulesOp
     for (const [index, value] of (layer.document.rules ?? []).entries()) {
       const origin: RuleOrigin = { layer: layer.name, source: layer.source, field: `rules[${index}]` }
       const reference: RuleReference = { ...(typeof value === "string" ? { path: value } : value), origin }
-      if ("id" in reference) {
-        const previous = loaded.get(reference.id)
-        if (previous === undefined)
-          return yield* configurationError(
-            layer.source,
-            origin.field,
-            `inherited rule '${reference.id}' needs an earlier path declaration`
-          )
-        if (seen.has(reference.id))
-          return yield* configurationError(
-            layer.source,
-            origin.field,
-            `duplicate rule '${reference.id}' from '${previous.path}'`
-          )
-        seen.add(reference.id)
-        loaded.set(reference.id, {
-          ...previous,
-          origin,
-          enabled: reference.enabled ?? previous.enabled,
-          reference: { ...mergeSettings(previous.reference, reference), id: reference.id, origin }
-        })
-        continue
-      }
-      const requested = isAbsolute(reference.path)
-        ? resolve(reference.path)
-        : resolve(dirname(resolve(layer.source)), reference.path)
-      const path = yield* read(
-        layer.source,
-        origin.field,
-        () => realpath(requested),
-        `rule file '${requested}' does not exist`
-      )
-      const inside = relative(root, path)
-      if (
-        layer.name === "project" &&
-        (inside === ".." || inside.startsWith(`..\\`) || inside.startsWith("../") || isAbsolute(inside))
-      )
-        return yield* configurationError(
-          layer.source,
-          origin.field,
-          "project rule references must stay inside the Git working tree"
-        )
-      const text = yield* read(path, "$", () => readFile(path, "utf8"), "rule could not be read")
-      const decoded = yield* validate(path, "$", () => decodeRuleText(text, path, origin))
-      const previous = loaded.get(decoded.id)
-      if (previous !== undefined && (previous.path !== path || seen.has(decoded.id)))
-        return yield* configurationError(
-          layer.source,
-          origin.field,
-          `duplicate or rebound rule ID '${decoded.id}': '${previous.path}' and '${path}'`
-        )
-      seen.add(decoded.id)
-      const merged =
-        previous === undefined ? reference : { ...mergeSettings(previous.reference, reference), path, origin }
-      loaded.set(decoded.id, {
-        ...decoded,
-        path,
-        origin,
-        reference: merged,
-        enabled: reference.enabled ?? previous?.enabled ?? true
-      })
+      if ("id" in reference) yield* inheritRule(reference, loaded, seen)
+      else yield* loadAuthoredRule(root, reference, loaded, seen)
     }
   }
   return [...loaded.values()]

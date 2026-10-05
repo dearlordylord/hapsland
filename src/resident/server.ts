@@ -798,6 +798,41 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentAdmissionStale = (composed: boolean, generation: number | undefined): boolean =>
     composed && generation === undefined
+  const residentAdmissionSettings = Effect.fn("ResidentRuntime.admissionSettings")(function* (
+    observation: DirectObservation,
+    group: string,
+    dispatch: ResidentDispatchContext
+  ) {
+    const registered = yield* residentComposedDelivery.registeredEditSettings(group, observation.advicee.toolUseId)
+    return (
+      registered ??
+      (yield* reviewSettings
+        .capture(settingsSource(observation.root, residentOptionalUserConfig(dispatch)))
+        .pipe(Effect.catch(() => Effect.succeed(undefined))))
+    )
+  })
+  const residentReserveAdmission = Effect.fn("ResidentRuntime.reserveAdmission")(function* (
+    observation: DirectObservation,
+    dispatch: ResidentDispatchContext,
+    partition: string,
+    canonicalRound: number
+  ) {
+    const reservation = yield* residentLedger.reserve(
+      partition,
+      logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES,
+      "observationDispatch"
+    )
+    if (reservation === undefined) {
+      yield* residentRejectAdmissionCapacity(observation, dispatch)
+      return undefined
+    }
+    const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound))
+    if (Exit.isFailure(admission)) {
+      yield* residentLedger.release(reservation)
+      return undefined
+    }
+    return { reservation, canonicalObservationId: admission.value }
+  })
   const residentAdmit = Effect.fn("ResidentRuntime.admit")(function* (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
@@ -812,15 +847,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active")
       return { response: { status: "rejected-capacity" } }
     const group = adviceePartition(observation.root, observation.advicee)
-    const registeredSettings = yield* residentComposedDelivery.registeredEditSettings(
-      group,
-      observation.advicee.toolUseId
-    )
-    const settings =
-      registeredSettings ??
-      (yield* reviewSettings
-        .capture(settingsSource(observation.root, residentOptionalUserConfig(dispatch)))
-        .pipe(Effect.catch(() => Effect.succeed(undefined))))
+    const settings = yield* residentAdmissionSettings(observation, group, dispatch)
     // A registered edit keeps its original snapshot, even after the cache expires.
     if (settings === undefined) return { response: { status: "rejected-stale" } }
     const editAdmission = yield* residentAdmissionGeneration(group, observation, composed, requirePermit)
@@ -833,21 +860,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const round = yield* residentBindAdmissionRound(group, generation, observation, dispatch)
     const partition = group
     const canonicalRound = yield* residentAdmissionCanonicalRound(round, partition)
-    const reservation = yield* residentLedger.reserve(
-      partition,
-      logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES,
-      "observationDispatch"
-    )
-    if (reservation === undefined) {
-      yield* residentRejectAdmissionCapacity(observation, dispatch)
-      return { response: { status: "rejected-capacity" } }
-    }
-    const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound))
-    if (Exit.isFailure(admission)) {
-      yield* residentLedger.release(reservation)
-      return { response: { status: "rejected-capacity" } }
-    }
-    const canonicalObservationId = admission.value
+    const reserved = yield* residentReserveAdmission(observation, dispatch, partition, canonicalRound)
+    if (reserved === undefined) return { response: { status: "rejected-capacity" } }
+    const { reservation, canonicalObservationId } = reserved
     const job = yield* residentAdmissionJob(
       observation,
       dispatch,
@@ -4724,9 +4739,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     })
     const fitResponse = yield* checkHandoffOutputFit()
     if (fitResponse !== undefined) return fitResponse
-    for (const notice of notices) {
-      yield* residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS)
-    }
+    const renewHandoffNotices = Effect.fn("ResidentRuntime.renewHandoffNotices")(function* () {
+      for (const notice of notices) yield* residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS)
+    })
+    yield* renewHandoffNotices()
     const checkHandoffFinalAuthority = Effect.fn("ResidentRuntime.checkHandoffFinalAuthority")(
       function* (): Effect.fn.Return<ResidentResponse | undefined> {
         const checkCollectorAuthority = Effect.fn("ResidentRuntime.checkCollectorAuthority")(

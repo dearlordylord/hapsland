@@ -63,6 +63,19 @@ const installationStageProposal = (result: SetupResult): unknown => {
   const observed = setupStage(result, "installation")?.observed
   return typeof observed === "object" && observed !== null && "proposal" in observed ? observed.proposal : undefined
 }
+const setupAuthorization = Effect.fn("Pilot.setupAuthorization")(function* (
+  action: SetupResult["actions"][number] | undefined,
+  rulesAction: SetupResult["actions"][number] | undefined
+) {
+  const digest = action?.authorization?.installProposalDigest
+  if (action !== undefined && digest === undefined)
+    return yield* Effect.fail(new Error("installation preview omitted its approval digest"))
+  const rulesDigest = rulesAction?.authorization?.rulesProposalDigest
+  return {
+    ...(digest === undefined ? {} : { installProposalDigest: digest }),
+    ...(rulesDigest === undefined ? {} : { rulesProposalDigest: rulesDigest })
+  }
+})
 const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function* (
   frame: PilotFrame,
   result: SetupResult,
@@ -79,15 +92,7 @@ const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function
     )
     return undefined
   }
-  const digest = action?.authorization?.installProposalDigest
-  if (action !== undefined && digest === undefined)
-    return yield* Effect.fail(new Error("installation preview omitted its approval digest"))
-  const rulesDigest = rulesAction?.authorization?.rulesProposalDigest
-  return {
-    ...request,
-    ...(digest === undefined ? {} : { installProposalDigest: digest }),
-    ...(rulesDigest === undefined ? {} : { rulesProposalDigest: rulesDigest })
-  }
+  return { ...request, ...(yield* setupAuthorization(action, rulesAction)) }
 })
 const setupCredentialComplete = (result: SetupResult): boolean =>
   stageStatus(result, "installation") === "complete" && stageStatus(result, "credential") === "complete"

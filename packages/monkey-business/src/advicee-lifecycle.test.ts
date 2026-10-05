@@ -2,8 +2,7 @@ import { expect, it } from "vitest"
 import fc from "fast-check"
 import {
   runWorkloadEmitted,
-  runWorkloadNative,
-  WORKLOAD_CONFORMANCE_TIMEOUT_MS
+  runWorkloadNative
 } from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 import {
   createRun,
@@ -651,14 +650,15 @@ it.each([
   "native shared driver agrees on original %s and fresh activity inputs",
   (action, fixture) => {
     const native = runWorkloadNative(
-      new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url)
+      new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url),
+      process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { clangTimeoutMs: 90000 }
     ) as number[][]
     expect(native.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
     expect(native.length).toBeLessThan(120)
     expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0])
     expect(native).toEqual(lifecycleTrace(departAndResume(action)))
   },
-  WORKLOAD_CONFORMANCE_TIMEOUT_MS
+  150000
 )
 
 it("native shared driver agrees on original preparation completion after departure", () => {
@@ -680,7 +680,8 @@ it.each([
   "fresh emitted JS driver agrees on original %s and fresh activity inputs",
   (action, fixture) => {
     const emitted = runWorkloadEmitted(
-      new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url)
+      new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url),
+      process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { clangTimeoutMs: 90000 }
     ) as number[][]
     expect(emitted.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
     expect(emitted.length).toBeLessThan(120)

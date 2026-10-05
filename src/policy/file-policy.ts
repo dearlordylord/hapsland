@@ -54,23 +54,30 @@ export const selectGlobalPath = (policy: ResolvedPolicy, path: string): Selectio
 export const selectContextPath = (policy: ResolvedPolicy, path: string): SelectionDecision =>
   selectPolicyPath(policy, path, true)
 
+const selectionPatterns = (policy: ResolvedPolicy, context: boolean) =>
+  context
+    ? { includes: policy.contextIncludes, excludes: policy.contextExcludes }
+    : { includes: policy.includes, excludes: policy.excludes }
+const matchingPath = (patterns: ReadonlyArray<PatternOrigin>, path: string | undefined) =>
+  path === undefined ? [] : matching(patterns, path)
+const pathIncluded = (policy: ResolvedPolicy, path: string, context: boolean, includes: ReadonlyArray<PatternOrigin>) =>
+  includes.length > 0 &&
+  (context || policy.languages.value.includes(rootLanguageForPath(path) as "typescript" | "rust" | "bend"))
+
 const selectPolicyPath = (policy: ResolvedPolicy, path: string, context: boolean): SelectionDecision => {
-  const includes = context ? policy.contextIncludes : policy.includes
-  const excludes = context ? policy.contextExcludes : policy.excludes
+  const { includes, excludes } = selectionPatterns(policy, context)
   const observed = pathFacts(path)
   const value = observed.kind === "valid" ? observed.normalized : undefined
   // Compute configured matches before protected gates so explain can account for
   // an attempted sensitive/generated path without implying that it was eligible.
-  const matchingIncludes = value === undefined ? [] : matching(includes, value)
-  const matchingExcludes = value === undefined ? [] : matching([...excludes, ...policy.protectedExcludes], value)
+  const matchingIncludes = matchingPath(includes, value)
+  const matchingExcludes = matchingPath([...excludes, ...policy.protectedExcludes], value)
   const gate = protectedPathReason(path)
   const reason = selectFile({
     protected: gate !== undefined,
     excluded: matchingExcludes.length > 0,
     includesEmpty: includes.length === 0,
-    included:
-      matchingIncludes.length > 0 &&
-      (context || policy.languages.value.includes(rootLanguageForPath(path) as "typescript" | "rust" | "bend"))
+    included: pathIncluded(policy, path, context, matchingIncludes)
   })
   if (reason === "protected")
     return {

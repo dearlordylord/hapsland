@@ -24,9 +24,9 @@ it.each([
     reason: "invalid target"
   },
   { cause: { source: 7, field: null, reason: undefined }, source: "7", field: "null", reason: "undefined" },
-  { cause: new Error("internal"), source: undefined, field: "ruleOverrides", reason: "rule-pack compilation failed" },
-  { cause: null, source: undefined, field: "ruleOverrides", reason: "rule-pack compilation failed" },
-  { cause: "internal", source: undefined, field: "ruleOverrides", reason: "rule-pack compilation failed" }
+  { cause: new Error("internal"), source: undefined, field: "rules", reason: "rule compilation failed" },
+  { cause: null, source: undefined, field: "rules", reason: "rule compilation failed" },
+  { cause: "internal", source: undefined, field: "rules", reason: "rule compilation failed" }
 ])(
   "preserves compilation diagnostics and supplies missing fields: $cause",
   async ({ cause, source, field, reason }) => {

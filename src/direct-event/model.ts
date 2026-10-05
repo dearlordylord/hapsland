@@ -1,13 +1,7 @@
 import type { ProviderIdentity } from "../review-providers/catalog.ts"
 import { createHash } from "node:crypto"
-import type { CompiledRule } from "../rules/compiler.ts"
-import {
-  TYPE_INPUT_CONTRACT,
-  FUNCTION_INPUT_CONTRACT,
-  TYPE_CAPABILITIES,
-  FUNCTION_CAPABILITIES,
-  type ReviewTarget
-} from "../rules/targets.ts"
+import { reviewTargetForInput, type CompiledRule } from "../rules/compiler.ts"
+import type { ReviewTarget } from "../rules/targets.ts"
 import type { RuleLanguage } from "../rules/schema.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
 import type { GraphLimits } from "../configuration/graph-limits.ts"
@@ -244,49 +238,35 @@ const deepFreeze = <A>(value: A): A => {
 
 export const freezeInput = (value: ReviewInput): ReviewInput => deepFreeze(value)
 
+type FrozenRuleSelection = {
+  readonly language: RuleLanguage
+  readonly artifactKind: "typeShape" | "function"
+  readonly inputContract: string
+}
+const selectedRuleTarget = (rule: CompiledRule, target: FrozenRuleSelection | undefined): ReviewTarget | undefined => {
+  if (target === undefined) return undefined
+  const kind = target.artifactKind === "typeShape" ? "type" : "function"
+  const input = rule.inputs.find(
+    (candidate) => candidate.kind === kind && candidate.languages.includes(target.language)
+  )
+  return input === undefined ? undefined : reviewTargetForInput(input, target.inputContract)
+}
 export const freezeRules = (
   rules: ReadonlyArray<CompiledRule>,
-  target?: {
-    readonly language: RuleLanguage
-    readonly artifactKind: "typeShape" | "function"
-    readonly inputContract: string
-  }
+  target?: FrozenRuleSelection
 ): ReadonlyArray<FrozenRule> =>
   deepFreeze(
-    rules.map((rule) => ({
-      id: rule.id,
-      source: rule.source,
-      definitionDigest: rule.definitionDigest,
-      threshold: rule.threshold,
-      message: rule.message,
-      rank: rule.rank,
-      decision: { ...rule.decision, criteria: { ...rule.decision.criteria } },
-      ...(() => {
-        const input =
-          target === undefined
-            ? undefined
-            : rule.inputs.find(
-                (candidate) =>
-                  candidate.kind === (target.artifactKind === "typeShape" ? "type" : "function") &&
-                  candidate.languages.includes(target.language)
-              )
-        const selected: ReviewTarget | undefined =
-          input === undefined || target === undefined
-            ? undefined
-            : input.kind === "type" && target.inputContract === TYPE_INPUT_CONTRACT
-              ? {
-                  artifactKind: "typeShape",
-                  inputContract: TYPE_INPUT_CONTRACT,
-                  capabilities: TYPE_CAPABILITIES.filter((capability) => input.requires.includes(capability))
-                }
-              : input.kind === "function" && target.inputContract === FUNCTION_INPUT_CONTRACT
-                ? {
-                    artifactKind: "function",
-                    inputContract: FUNCTION_INPUT_CONTRACT,
-                    capabilities: FUNCTION_CAPABILITIES.filter((capability) => input.requires.includes(capability))
-                  }
-                : undefined
-        return selected === undefined ? {} : { target: selected }
-      })()
-    }))
+    rules.map((rule) => {
+      const selected = selectedRuleTarget(rule, target)
+      return {
+        id: rule.id,
+        source: rule.source,
+        definitionDigest: rule.definitionDigest,
+        threshold: rule.threshold,
+        message: rule.message,
+        rank: rule.rank,
+        decision: { ...rule.decision, criteria: { ...rule.decision.criteria } },
+        ...(selected === undefined ? {} : { target: selected })
+      }
+    })
   )

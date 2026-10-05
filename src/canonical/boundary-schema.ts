@@ -64,22 +64,28 @@ const assignDecodedProperty = (target: Record<string, unknown>, key: string, val
   }
 }
 
+const isRecordObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+const checkRecordReads = (value: unknown): void => {
+  if (!isRecordObject(value)) Schema.asserts(RecordSchema, value)
+  else {
+    const decoded: Record<string, unknown> = {}
+    for (const key of Object.keys(value)) assignDecodedProperty(decoded, key, value[key])
+  }
+}
+const rememberCheckedRecord = (value: object): void => {
+  if (
+    Object.isFrozen(value) &&
+    Object.values(Object.getOwnPropertyDescriptors(value)).every((descriptor) => "value" in descriptor)
+  )
+    checkedRecords.add(value)
+}
 /** Preserve native identity while matching the schema parser's reads and writes. */
 export const readRecord = (value: unknown): Record<string, unknown> => {
   if (typeof value === "object" && value !== null && checkedRecords.has(value)) return value as Record<string, unknown>
   try {
-    if (!(typeof value === "object" && value !== null && !Array.isArray(value))) {
-      Schema.asserts(RecordSchema, value)
-    } else {
-      const record = value as Record<string, unknown>
-      const decoded: Record<string, unknown> = {}
-      for (const key of Object.keys(record)) assignDecodedProperty(decoded, key, record[key])
-    }
-    if (
-      Object.isFrozen(value) &&
-      Object.values(Object.getOwnPropertyDescriptors(value)).every((descriptor) => "value" in descriptor)
-    )
-      checkedRecords.add(value)
+    checkRecordReads(value)
+    rememberCheckedRecord(value as object)
   } catch (cause) {
     throw new TypeError("invalid Bend object", { cause })
   }
@@ -158,17 +164,18 @@ export const readNil = (value: unknown): typeof NilSchema.Type => {
 
 type ListCell = typeof ConsSchema.Type | typeof NilSchema.Type
 
+const isListCandidate = (value: unknown): value is Record<PropertyKey, unknown> =>
+  (typeof value === "object" && value !== null) || typeof value === "function"
+const readListTag = (value: unknown): "Con" | "Nil" => {
+  if (!isListCandidate(value)) throw new Error("no union candidate")
+  const tag = "$" in value ? value.$ : undefined
+  if (tag !== "Con" && tag !== "Nil") throw new Error("no union candidate")
+  return tag
+}
 /** Match the union sentinel read, then the selected strict Struct parser. */
 const readListCell = (value: unknown): ListCell => {
   try {
-    if (!((typeof value === "object" && value !== null) || typeof value === "function")) {
-      throw new Error("no union candidate")
-    }
-    const candidate = value as Record<PropertyKey, unknown>
-    const hasTag = "$" in candidate
-    const tag = hasTag ? candidate.$ : undefined
-    if (tag !== "Con" && tag !== "Nil") throw new Error("no union candidate")
-
+    const tag = readListTag(value)
     const { record, decoded } = strictStruct(value, tag === "Con" ? ConsFields : NilFields)
     readLiteral(record, decoded, "$", tag)
     if (tag === "Nil") return decoded as typeof NilSchema.Type
@@ -179,7 +186,6 @@ const readListCell = (value: unknown): ListCell => {
     throw new TypeError("invalid Bend boundary value", { cause })
   }
 }
-
 /** Iterate native list cells, never recursively decode a generated linked list. */
 export const readBendList = <T>(value: unknown, decode: (item: unknown) => T, limit: number): T[] => {
   const result: T[] = []

@@ -71,6 +71,24 @@ export const stableRuleValue = (rule: RuleDefinition): string =>
   })
 export const digestRuleDefinition = (rule: RuleDefinition): string =>
   createHash("sha256").update(stableRuleValue(rule), "utf8").digest("hex")
+const validateInputDeclarations = (input: RuleInput, index: number, source: string): void => {
+  if (input.languages.length === 0 || new Set(input.languages).size !== input.languages.length)
+    throw configurationError(source, `inputs[${index}].languages`, "declare distinct input languages")
+  if (new Set(input.requires).size !== input.requires.length)
+    throw configurationError(source, `inputs[${index}].requires`, "declare distinct required capabilities")
+}
+const validateRuleInputs = (rule: RuleDefinition, source: string): void => {
+  if (rule.inputs.length === 0) throw configurationError(source, "inputs", "declare at least one input")
+  const pairs = new Set<string>()
+  for (const [index, input] of rule.inputs.entries()) {
+    validateInputDeclarations(input, index, source)
+    for (const language of input.languages) {
+      const key = `${language}:${input.kind}`
+      if (pairs.has(key)) throw configurationError(source, `inputs[${index}]`, `duplicate input '${key}'`)
+      pairs.add(key)
+    }
+  }
+}
 export const decodeRuleDocument = (value: unknown, source: string, origin?: RuleOrigin): DecodedRule => {
   let rule: RuleDefinition
   try {
@@ -78,19 +96,7 @@ export const decodeRuleDocument = (value: unknown, source: string, origin?: Rule
   } catch (cause) {
     throw schemaConfigurationError(source, cause, "rule contains an unknown or malformed field")
   }
-  if (rule.inputs.length === 0) throw configurationError(source, "inputs", "declare at least one input")
-  const pairs = new Set<string>()
-  for (const [index, input] of rule.inputs.entries()) {
-    if (input.languages.length === 0 || new Set(input.languages).size !== input.languages.length)
-      throw configurationError(source, `inputs[${index}].languages`, "declare distinct input languages")
-    if (new Set(input.requires).size !== input.requires.length)
-      throw configurationError(source, `inputs[${index}].requires`, "declare distinct required capabilities")
-    for (const language of input.languages) {
-      const key = `${language}:${input.kind}`
-      if (pairs.has(key)) throw configurationError(source, `inputs[${index}]`, `duplicate input '${key}'`)
-      pairs.add(key)
-    }
-  }
+  validateRuleInputs(rule, source)
   return { ...rule, source, ...(origin === undefined ? {} : { origin }), definitionDigest: digestRuleDefinition(rule) }
 }
 export const decodeRuleText = (text: string, source: string, origin?: RuleOrigin): DecodedRule => {

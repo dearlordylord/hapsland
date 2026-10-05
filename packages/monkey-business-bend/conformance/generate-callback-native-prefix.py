@@ -1,6 +1,6 @@
 # Mechanical source generator; does not run Bend or validate business policy.
 from pathlib import Path
-import re,json,hashlib,sys,os,argparse
+import re,json,hashlib,sys,os,argparse,subprocess
 root=Path(__file__).resolve().parents[3]
 parser=argparse.ArgumentParser(description='Generate the ONE lossless owner prefix transport')
 parser.add_argument('--check',action='store_true')
@@ -221,6 +221,9 @@ if profile is None:
 for name,owner_type in family_types.items():metadata[name]=metadata[owner_type]
 ownerSources=[{'path':str(p.relative_to(root)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(aliases)]
 p=(root/'packages/monkey-business/src/callback-native-metadata.ts') if profile is None else prototype_path(profile['metadata'],'.ts');metadata_text = '// Generated mechanical transport descriptors from actual Bend owner declarations.\n// Semantic validation remains in the production exact boundary codecs.\nexport const callbackNativeDescriptors = '+json.dumps(metadata,separators=(',',':'))+' as const;\nexport const callbackNativeOwnerSources = '+json.dumps(ownerSources,separators=(',',':'))+' as const;\n'
+if profile is None:
+ metadata_text = subprocess.run([str(root/'node_modules/.bin/dprint'),'fmt','--stdin','ts'],
+  input=metadata_text,text=True,capture_output=True,cwd=root,timeout=5,check=True).stdout
 native_text = '\n'.join(lines)
 if arguments.check:
  if out.read_text() != native_text or p.read_text() != metadata_text:

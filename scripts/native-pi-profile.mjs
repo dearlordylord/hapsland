@@ -1,3 +1,4 @@
+import { connectDefaultRuleFixture } from "../src/test-support/default-rules.ts"
 // Installed Pi branch of the shared native cross-file harness; no CLI entry point.
 import { spawn, spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -206,6 +207,7 @@ export async function runPiNativeProfile({ project, fixture, language, scenario,
     )
     const userConfig = join(temp, "review-config.jsonc")
     writeFileSync(userConfig, JSON.stringify({ version: 1 }))
+    connectDefaultRuleFixture(repo, userConfig)
     const answers = Object.fromEntries(Object.keys(messages).map((id) => [id, { _tag: "Probability", probability: 0 }]))
     const env = {
       ...process.env,
@@ -275,7 +277,7 @@ syncBuiltinESMExports();
       scenario === "unsupported-write"
         ? `Use write to replace ${fixture.entry} with this exact draft`
         : `Use edit (edits array) to replace the exact seed ${JSON.stringify(seed)} in ${fixture.entry} with this exact draft`
-    const prompt = `${action}:\n${initial}\nThen run npm test. ${scenario === "adoption" ? `Act on actionable Hapsland advice that reaches you. If review is pending, run npm test again to receive advice. Only after receiving actionable advice, use edit to change only PaymentState to exactly this final design, preserving imports:\n${fixture.good}\nRun npm test after repair and if review is pending run npm test again. Use at most two source mutations. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and acted on Hapsland advice.` : "Do not repair or make another source mutation. Finish with HAPSLAND_ADVICE_NOT_APPLIED."} Do not inspect settings, credentials or environment variables. Stay inside the repository.`
+    const prompt = `${action}:\n${initial}\nThen run npm test. ${scenario === "adoption" ? `Act on actionable Hapsland advice that reaches you. If review is pending, run npm test again to receive advice. Only after receiving actionable advice, use edit to change only PaymentState to exactly this final design, preserving imports:\n${fixture.good}\nRun npm test after repair and if review is pending run npm test again. Keep the import line exactly as supplied, including unused imported names. After the second source mutation use only read or bash; do not format, clean imports, or make another source edit. Use at most two source mutations. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and acted on Hapsland advice.` : "Do not repair or make another source mutation. Finish with HAPSLAND_ADVICE_NOT_APPLIED."} Do not inspect settings, credentials or environment variables. Stay inside the repository.`
     const result = await execute(
       binary,
       [

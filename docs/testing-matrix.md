@@ -144,9 +144,9 @@ selected qualification with a 300-second stage. These overrides do not change
 runner defaults or product deadlines. Recovery compares the complete native
 and compiler-emitted vectors before its independent public and replay checks.
 
-The original advicee preparation-after-departure comparison uses C30/clang90/native5
+The original advicee preparation-after-departure, disconnect, and remove comparisons use C30/clang90/native5
 with a 150-second aggregate watchdog; an authenticated preflight session keeps
-its own fixed compilation policy. Freshness source-change comparisons retain
+its own fixed compilation policy. The compact 2050-request public recovery and targeted-control stress tests use a 100-second aggregate watchdog without changing their request counts or assertions. Freshness source-change comparisons retain
 native/emitted-JS agreement under a 200-second watchdog (C90/clang60/native5,
 JS15+5). Their independent public milestones and replay also run as separate
 TypeScript tests. The concurrent-notice comparison uses the shared native runner

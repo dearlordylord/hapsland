@@ -1272,6 +1272,23 @@ const pilotConfiguration = Effect.fn("InteractiveSetup.configuration")(function*
   return { statePath, ...(userConfigPath === undefined ? {} : { userConfigPath }) }
 })
 let setupInventoryShown = false
+const writeSetupRuleInventory = Effect.fn("InteractiveSetup.ruleInventory")(function* (
+  terminal: boolean,
+  cwd: string,
+  configuration: Effect.Success<ReturnType<typeof pilotConfiguration>> | undefined
+) {
+  if (terminal && !setupInventoryShown) {
+    setupInventoryShown = true
+    const { loadRuleInventory, formatRuleInventory } = yield* Effect.promise(() => import("./rules/inventory.ts"))
+    const root = yield* discoverWorkingTreeRoot(cwd)
+    const inventory = yield* loadRuleInventory(root, configuration ?? {}).pipe(Effect.result)
+    if (inventory._tag === "Success") process.stderr.write(formatRuleInventory(inventory.success))
+    else
+      process.stderr.write(
+        "Rule inventory unavailable; repair the connected rule files or configuration and run hapsland rules list.\n"
+      )
+  }
+})
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
   const { runSetup } = yield* Effect.promise(() => import("./onboarding/setup.ts"))
   const { readMaskedCredential } = yield* Effect.promise(() => import("./credentials/masked-input.ts"))
@@ -1341,17 +1358,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
       }
     }
   )
-  if (terminal && !setupInventoryShown) {
-    setupInventoryShown = true
-    const { loadRuleInventory, formatRuleInventory } = yield* Effect.promise(() => import("./rules/inventory.ts"))
-    const root = yield* discoverWorkingTreeRoot(cwd)
-    const inventory = yield* loadRuleInventory(root, configuration ?? {}).pipe(Effect.result)
-    if (inventory._tag === "Success") process.stderr.write(formatRuleInventory(inventory.success))
-    else
-      process.stderr.write(
-        "Rule inventory unavailable; repair the connected pack or configuration and run hapsland rules list.\n"
-      )
-  }
+  yield* writeSetupRuleInventory(terminal, cwd, configuration)
   return result
 })
 

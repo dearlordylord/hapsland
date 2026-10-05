@@ -25,6 +25,7 @@ export const precheckStages = [
   ].map((name) => [name, `scripts/check-${name}.mjs`]),
   ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs"],
   ["native-pi-observation", "--test", "scripts/native-pi-observation.test.mjs"],
+  ["native-rule-observation", "--test", "scripts/native-rule-observation.test.mjs"],
   [
     "test-harness",
     "--test",

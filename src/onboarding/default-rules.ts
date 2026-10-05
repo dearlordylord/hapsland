@@ -1,3 +1,5 @@
+import type { ConfigurationLayer } from "../configuration/resolve.ts"
+import type { DecodedRule } from "../rules/schema.ts"
 import { withInstallationLock } from "./installation-lock.ts"
 import { createHash } from "node:crypto"
 import { realpathSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -8,7 +10,7 @@ import { decodeConfigurationText, decodeConfigurationDocument } from "../configu
 import { configurationError } from "../configuration/errors.ts"
 import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { decodeRuleText } from "../rules/schema.ts"
-import { loadRules } from "../rules/loader.ts"
+import { loadRules, type LoadedRule } from "../rules/loader.ts"
 import { compileRules } from "../rules/compiler.ts"
 import { ruleOperation } from "../rules/operations.ts"
 import { atomicInstallationFile } from "./atomic-installation-file.ts"
@@ -16,6 +18,40 @@ import { atomicInstallationFile } from "./atomic-installation-file.ts"
 const readOptional = (path: string): string | undefined => (existsSync(path) ? readFileSync(path, "utf8") : undefined)
 const samePath = (left: string, right: string) =>
   left === right || (existsSync(left) && existsSync(right) && realpathSync(left) === realpathSync(right))
+
+type DefaultRuleReference = NonNullable<ConfigurationLayer["document"]["rules"]>[number]
+const defaultReferencePath = (reference: DefaultRuleReference): string | undefined =>
+  typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
+const validateDefaultRuleIdentity = (
+  authored: DecodedRule,
+  path: string,
+  current: ReadonlyArray<LoadedRule>,
+  connected: boolean,
+  references: ReadonlyArray<DefaultRuleReference>,
+  configurationPath: string
+): void => {
+  const existing = current.find((rule) => rule.id === authored.id)
+  if (existing !== undefined && !samePath(existing.path, path))
+    throw configurationError(
+      path,
+      "id",
+      `default rule identity is already connected to a different file: '${existing.path}' and '${path}'`
+    )
+  if (
+    !connected &&
+    references.some((reference) => typeof reference !== "string" && "id" in reference && reference.id === authored.id)
+  )
+    throw configurationError(
+      configurationPath,
+      "rules",
+      "default rule identity already has an inherited reference; connect its source explicitly"
+    )
+}
+const defaultRulesChanged = (
+  files: ReadonlyArray<{ readonly before: string | undefined }>,
+  references: ReadonlyArray<DefaultRuleReference>,
+  document: ConfigurationLayer["document"]
+): boolean => files.some((file) => file.before === undefined) || references.length !== (document.rules ?? []).length
 
 /** Bind every authored source and every configuration layer; preview never writes. */
 export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(function* (
@@ -36,7 +72,7 @@ export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(functi
     const files = (explicitSelection ? [] : SHIPPED_DEFAULT_RULES).map((shipped) => {
       const path = join(dirname(configurationPath), "rules", "defaults", `${encodeURIComponent(shipped.id)}.json`)
       const connected = references.some((reference) => {
-        const selected = typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
+        const selected = defaultReferencePath(reference)
         return selected !== undefined && samePath(resolve(dirname(configurationPath), selected), path)
       })
       const before = readOptional(path)
@@ -49,24 +85,7 @@ export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(functi
       const { source: _source, origin: _origin, definitionDigest: _digest, ...definition } = shipped
       const after = before ?? JSON.stringify(definition, null, 2) + "\n"
       const authored = decodeRuleText(after, path)
-      const existing = current.find((rule) => rule.id === authored.id)
-      if (existing !== undefined && !samePath(existing.path, path))
-        throw configurationError(
-          path,
-          "id",
-          `default rule identity is already connected to a different file: '${existing.path}' and '${path}'`
-        )
-      if (
-        !connected &&
-        references.some(
-          (reference) => typeof reference !== "string" && "id" in reference && reference.id === authored.id
-        )
-      )
-        throw configurationError(
-          configurationPath,
-          "rules",
-          "default rule identity already has an inherited reference; connect its source explicitly"
-        )
+      validateDefaultRuleIdentity(authored, path, current, connected, references, configurationPath)
       if (!connected) references.push(path)
       return { path, before, after, authored }
     })
@@ -109,7 +128,7 @@ export const previewDefaultRules = Effect.fn("Setup.previewDefaultRules")(functi
     }
     return {
       ...plan,
-      changed: files.some((file) => file.before === undefined) || references.length !== (document.rules ?? []).length,
+      changed: defaultRulesChanged(files, references, document),
       digest: createHash("sha256").update(JSON.stringify(plan)).digest("hex")
     }
   })

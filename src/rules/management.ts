@@ -49,11 +49,10 @@ const generatedRule = (id: string) => ({
   inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
 })
 
-/** Plan configuration changes against the complete current rule set before any write. */
-export const previewRuleChange = Effect.fn("Rules.previewChange")(function* (
+const loadRuleChangeContext = Effect.fn("Rules.changeContext")(function* (
   root: string,
   change: RuleChange,
-  options: LoadConfigurationOptions = {}
+  options: LoadConfigurationOptions
 ) {
   const configurationPath =
     change.scope === "personal"
@@ -71,145 +70,210 @@ export const previewRuleChange = Effect.fn("Rules.previewChange")(function* (
   )
   const capture = yield* loadConfiguration(root, options)
   const currentRules = yield* loadRules({ root, layers: capture.policy.layers })
-  let proposed = document
-  let path: string | undefined
-  let ruleBefore: string | undefined
-  let ruleAfter: string | undefined
-  let selectedRules = currentRules
-  if (change.action === "enable" || change.action === "disable") {
-    const inventory = yield* ruleOperation(configurationPath, "$", () =>
-      compileRules({ rules: currentRules, includeDisabled: true })
+  return { root, configurationPath, before, document, capture, currentRules }
+})
+type RuleChangeContext = Effect.Success<ReturnType<typeof loadRuleChangeContext>>
+type ConfigurationRuleReference = NonNullable<RuleChangeContext["document"]["rules"]>[number]
+type ActivationChange = Extract<RuleChange, { action: "enable" | "disable" }>
+type AuthoredChange = Extract<RuleChange, { action: "create" | "connect" }>
+const referencePath = (reference: ConfigurationRuleReference): string | undefined =>
+  typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
+const referenceSelectsRule = (
+  reference: ConfigurationRuleReference,
+  selected: RuleChangeContext["currentRules"][number] | undefined,
+  id: string,
+  configurationPath: string
+): boolean => {
+  if (typeof reference !== "string" && "id" in reference) return reference.id === id
+  if (selected === undefined) return false
+  const path = typeof reference === "string" ? reference : reference.path
+  return canonicalDestination(resolve(dirname(configurationPath), path)) === selected.path
+}
+const activationDocument = (document: RuleChangeContext["document"], index: number, id: string, enabled: boolean) => {
+  const references = document.rules ?? []
+  if (index < 0) return { ...document, rules: [...references, { id, enabled }] }
+  return {
+    ...document,
+    rules: references.map((reference, offset) =>
+      offset !== index ? reference : { ...(typeof reference === "string" ? { path: reference } : reference), enabled }
     )
-    if (!inventory.some((rule) => rule.ruleId === change.id))
-      return yield* configurationError(
-        configurationPath,
-        "rules",
-        "select a rule identity shown by hapsland rules list"
-      )
-    const references = document.rules ?? []
-    const selected = currentRules.find((rule) => rule.id === change.id)
-    const index = references.findIndex((reference) =>
-      typeof reference !== "string" && "id" in reference
-        ? reference.id === change.id
-        : selected !== undefined &&
-          canonicalDestination(
-            resolve(dirname(configurationPath), typeof reference === "string" ? reference : reference.path)
-          ) === selected.path
-    )
-    selectedRules = currentRules.map((rule) =>
-      rule.id === change.id
-        ? {
-            ...rule,
-            enabled: change.action === "enable",
-            reference: { ...rule.reference, enabled: change.action === "enable" }
-          }
-        : rule
-    )
-    proposed = {
-      ...document,
-      rules:
-        index < 0
-          ? [...references, { id: change.id, enabled: change.action === "enable" }]
-          : references.map((reference, offset) =>
-              offset !== index
-                ? reference
-                : {
-                    ...(typeof reference === "string" ? { path: reference } : reference),
-                    enabled: change.action === "enable"
-                  }
-            )
-    }
-  } else {
-    // Validate an ID before using it as a filename.
-    if (change.action === "create")
-      yield* ruleOperation(configurationPath, "$", () =>
-        decodeRuleDocument(generatedRule(change.id), configurationPath)
-      )
-    path =
-      change.action === "connect"
-        ? resolve(change.path)
-        : join(
-            change.scope === "personal" ? dirname(configurationPath) : join(root, ".hapsland"),
-            "rules",
-            "custom",
-            `${encodeURIComponent(change.id)}.json`
-          )
-    if (change.scope === "project" && !contained(root, path))
-      return yield* configurationError(path, "$", "project rule files must stay inside the Git working tree")
-    const selectedPath = path
-    ruleBefore = yield* ruleOperation(configurationPath, "$", () => optionalText(selectedPath))
-    if (change.action === "connect" && ruleBefore === undefined)
-      return yield* configurationError(path, "$", "rule file does not exist; provide an existing rule with --path")
-    ruleAfter = ruleBefore ?? JSON.stringify(generatedRule(change.action === "create" ? change.id : ""), null, 2) + "\n"
-    const selectedContent = ruleAfter
-    const authored = yield* ruleOperation(configurationPath, "$", () => decodeRuleText(selectedContent, selectedPath))
-    if (change.action === "create" && authored.id !== change.id)
-      return yield* configurationError(
-        path,
-        "id",
-        "existing authored rule has a different identity; connect it explicitly instead"
-      )
-    const canonical = canonicalDestination(path)
-    const prior = currentRules.find((candidate) => candidate.id === authored.id)
-    if (prior !== undefined && prior.path !== canonical)
-      return yield* configurationError(
-        path,
-        "id",
-        `rule identity is already connected to a different file: '${prior.path}' and '${canonical}'`
-      )
-    const references = document.rules ?? []
-    const connected = references.some((reference) => {
-      const selected = typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
-      return selected !== undefined && canonicalDestination(resolve(dirname(configurationPath), selected)) === canonical
-    })
-    proposed = connected
-      ? document
-      : { ...document, rules: [...references, relative(dirname(configurationPath), path)] }
-    if (prior === undefined)
-      selectedRules = [
-        ...currentRules,
-        {
-          ...authored,
-          origin: {
-            layer: change.scope === "personal" ? "user" : "project",
-            source: configurationPath,
-            field: "rules"
-          },
-          path: canonical,
-          enabled: true,
-          reference: {
-            path: canonical,
-            origin: {
-              layer: change.scope === "personal" ? "user" : "project",
-              source: configurationPath,
-              field: "rules"
-            }
-          }
-        }
-      ]
   }
+}
+const planActivation = Effect.fn("Rules.planActivation")(function* (
+  context: RuleChangeContext,
+  change: ActivationChange
+) {
+  const { configurationPath, currentRules, document } = context
+  const inventory = yield* ruleOperation(configurationPath, "$", () =>
+    compileRules({ rules: currentRules, includeDisabled: true })
+  )
+  if (!inventory.some((rule) => rule.ruleId === change.id))
+    return yield* configurationError(configurationPath, "rules", "select a rule identity shown by hapsland rules list")
+  const references = document.rules ?? []
+  const selected = currentRules.find((rule) => rule.id === change.id)
+  const index = references.findIndex((reference) =>
+    referenceSelectsRule(reference, selected, change.id, configurationPath)
+  )
+  const enabled = change.action === "enable"
+  const selectedRules = currentRules.map((rule) =>
+    rule.id === change.id ? { ...rule, enabled, reference: { ...rule.reference, enabled } } : rule
+  )
+  return {
+    proposed: activationDocument(document, index, change.id, enabled),
+    selectedRules,
+    path: undefined,
+    ruleBefore: undefined,
+    ruleAfter: undefined
+  }
+})
+const authoredRulePath = (context: RuleChangeContext, change: AuthoredChange): string =>
+  change.action === "connect"
+    ? resolve(change.path)
+    : join(
+        change.scope === "personal" ? dirname(context.configurationPath) : join(context.root, ".hapsland"),
+        "rules",
+        "custom",
+        `${encodeURIComponent(change.id)}.json`
+      )
+const authoredRuleText = (change: AuthoredChange, before: string | undefined): string =>
+  before ?? JSON.stringify(generatedRule(change.action === "create" ? change.id : ""), null, 2) + "\n"
+const readAuthoredRuleChange = Effect.fn("Rules.readAuthoredChange")(function* (
+  context: RuleChangeContext,
+  change: AuthoredChange
+) {
+  const { configurationPath, root } = context
+  if (change.action === "create")
+    yield* ruleOperation(configurationPath, "$", () => decodeRuleDocument(generatedRule(change.id), configurationPath))
+  const path = authoredRulePath(context, change)
+  if (change.scope === "project" && !contained(root, path))
+    return yield* configurationError(path, "$", "project rule files must stay inside the Git working tree")
+  const ruleBefore = yield* ruleOperation(configurationPath, "$", () => optionalText(path))
+  if (change.action === "connect" && ruleBefore === undefined)
+    return yield* configurationError(path, "$", "rule file does not exist; provide an existing rule with --path")
+  const ruleAfter = authoredRuleText(change, ruleBefore)
+  const authored = yield* ruleOperation(configurationPath, "$", () => decodeRuleText(ruleAfter, path))
+  return { path, ruleBefore, ruleAfter, authored }
+})
+const validateAuthoredIdentity = Effect.fn("Rules.validateAuthoredIdentity")(function* (
+  context: RuleChangeContext,
+  change: AuthoredChange,
+  selected: Effect.Success<ReturnType<typeof readAuthoredRuleChange>>
+) {
+  const { path, authored } = selected
+  if (change.action === "create" && authored.id !== change.id)
+    return yield* configurationError(
+      path,
+      "id",
+      "existing authored rule has a different identity; connect it explicitly instead"
+    )
+  const canonical = canonicalDestination(path)
+  const prior = context.currentRules.find((candidate) => candidate.id === authored.id)
+  if (prior !== undefined && prior.path !== canonical)
+    return yield* configurationError(
+      path,
+      "id",
+      `rule identity is already connected to a different file: '${prior.path}' and '${canonical}'`
+    )
+  return { canonical, prior }
+})
+const referenceAtPath = (
+  reference: ConfigurationRuleReference,
+  configurationPath: string,
+  canonical: string
+): boolean => {
+  const selected = referencePath(reference)
+  return selected !== undefined && canonicalDestination(resolve(dirname(configurationPath), selected)) === canonical
+}
+const planAuthoredChange = Effect.fn("Rules.planAuthoredChange")(function* (
+  context: RuleChangeContext,
+  change: AuthoredChange
+) {
+  const selected = yield* readAuthoredRuleChange(context, change)
+  const { canonical, prior } = yield* validateAuthoredIdentity(context, change, selected)
+  const { document, configurationPath, currentRules } = context
+  const references = document.rules ?? []
+  const connected = references.some((reference) => referenceAtPath(reference, configurationPath, canonical))
+  const proposed = connected
+    ? document
+    : { ...document, rules: [...references, relative(dirname(configurationPath), selected.path)] }
+  const origin = {
+    layer: change.scope === "personal" ? ("user" as const) : ("project" as const),
+    source: configurationPath,
+    field: "rules"
+  }
+  const selectedRules =
+    prior === undefined
+      ? [
+          ...currentRules,
+          { ...selected.authored, origin, path: canonical, enabled: true, reference: { path: canonical, origin } }
+        ]
+      : currentRules
+  return {
+    proposed,
+    selectedRules,
+    path: selected.path,
+    ruleBefore: selected.ruleBefore,
+    ruleAfter: selected.ruleAfter
+  }
+})
+type PlannedRuleMutation =
+  | Effect.Success<ReturnType<typeof planAuthoredChange>>
+  | Effect.Success<ReturnType<typeof planActivation>>
+const replacementLayers = (context: RuleChangeContext, change: RuleChange, proposed: RuleChangeContext["document"]) => {
+  const { configurationPath } = context
   const replacement = {
     name: change.scope === "personal" ? ("user" as const) : ("project" as const),
     source: configurationPath,
     document: proposed
   }
-  const layers = capture.policy.layers.some((layer) => layer.source === configurationPath)
-    ? capture.policy.layers.map((layer) => (layer.source === configurationPath ? replacement : layer))
-    : change.scope === "personal"
-      ? [
-          ...capture.policy.layers.filter((layer) => layer.name === "built-in"),
-          replacement,
-          ...capture.policy.layers.filter((layer) => layer.name === "project")
-        ]
-      : [...capture.policy.layers, replacement]
-  if (change.action === "enable" || change.action === "disable" || ruleBefore !== undefined)
-    selectedRules = yield* loadRules({ root, layers })
+  const layers = context.capture.policy.layers
+  if (layers.some((layer) => layer.source === configurationPath))
+    return layers.map((layer) => (layer.source === configurationPath ? replacement : layer))
+  if (change.scope === "personal")
+    return [
+      ...layers.filter((layer) => layer.name === "built-in"),
+      replacement,
+      ...layers.filter((layer) => layer.name === "project")
+    ]
+  return [...layers, replacement]
+}
+const rulesForPlan = Effect.fn("Rules.planSelection")(function* (
+  root: string,
+  change: RuleChange,
+  planned: PlannedRuleMutation,
+  layers: ReturnType<typeof replacementLayers>
+) {
+  if (change.action === "enable" || change.action === "disable" || planned.ruleBefore !== undefined)
+    return yield* loadRules({ root, layers })
+  return planned.selectedRules
+})
+const planRuleId = (
+  change: RuleChange,
+  path: string | undefined,
+  selectedRules: PlannedRuleMutation["selectedRules"]
+): string | undefined => {
+  if (change.action !== "connect") return change.id
+  const canonical = path === undefined ? undefined : canonicalDestination(path)
+  return selectedRules.find((rule) => rule.path === canonical)?.id
+}
+/** Plan configuration changes against the complete current rule set before any write. */
+export const previewRuleChange = Effect.fn("Rules.previewChange")(function* (
+  root: string,
+  change: RuleChange,
+  options: LoadConfigurationOptions = {}
+) {
+  const context = yield* loadRuleChangeContext(root, change, options)
+  const planned =
+    change.action === "create" || change.action === "connect"
+      ? yield* planAuthoredChange(context, change)
+      : yield* planActivation(context, change)
+  const { configurationPath, currentRules, before } = context
+  const { proposed, path, ruleBefore, ruleAfter } = planned
+  const layers = replacementLayers(context, change, proposed)
+  const selectedRules = yield* rulesForPlan(root, change, planned, layers)
   yield* ruleOperation(configurationPath, "$", () => resolveConfiguration(layers, root))
   yield* ruleOperation(configurationPath, "$", () => compileRules({ rules: selectedRules, includeDisabled: true }))
-  const selectedId =
-    change.action === "connect"
-      ? selectedRules.find((rule) => rule.path === (path === undefined ? undefined : canonicalDestination(path)))?.id
-      : change.id
+  const selectedId = planRuleId(change, path, selectedRules)
   const enabled = selectedRules.find((rule) => rule.id === selectedId)?.enabled
   const after = JSON.stringify(decodeConfigurationDocument(proposed, configurationPath), null, 2) + "\n"
   const authoredSources = yield* ruleOperation(configurationPath, "rules", () =>
@@ -218,7 +282,7 @@ export const previewRuleChange = Effect.fn("Rules.previewChange")(function* (
   const plan = {
     enabled,
     authoredSources,
-    layers: capture.policy.layers,
+    layers: context.capture.policy.layers,
     version: 1 as const,
     root,
     change,

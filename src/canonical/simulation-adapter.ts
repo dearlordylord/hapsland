@@ -312,44 +312,45 @@ const schedulerEntry = decoder(
 )
 const maxSchedulerEntryNat = 2 ** 48 - 1
 const maxSchedulerEntryBigNat = BigInt(maxSchedulerEntryNat)
+const validSchedulerNat = (value: number): boolean =>
+  Number.isInteger(value) && value >= 0 && value <= maxSchedulerEntryNat
 const schedulerEntryNat = (value: unknown): number | undefined => {
-  if (typeof value === "number")
-    return Number.isInteger(value) && value >= 0 && value <= maxSchedulerEntryNat ? value : undefined
+  if (typeof value === "number") return validSchedulerNat(value) ? value : undefined
   if (typeof value === "bigint") return value >= 0n && value <= maxSchedulerEntryBigNat ? Number(value) : undefined
   return undefined
+}
+const isPlainSchedulerObject = (value: unknown): value is object =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.getPrototypeOf(value) === Object.prototype
+const schedulerKeysMatch = (descriptors: Record<PropertyKey, PropertyDescriptor>): boolean => {
+  const keys = Reflect.ownKeys(descriptors).filter((key) => descriptors[key]?.enumerable)
+  return keys.length === 3 && keys.includes("$") && keys.includes("at") && keys.includes("order")
+}
+const dataDescriptor = (descriptor: PropertyDescriptor | undefined): descriptor is PropertyDescriptor =>
+  descriptor !== undefined && "value" in descriptor
+const schedulerDataFields = (descriptors: Record<PropertyKey, PropertyDescriptor>) => {
+  const tag = descriptors["$"]
+  const at = descriptors.at
+  const order = descriptors.order
+  if (!dataDescriptor(tag) || tag.value !== "Scheduler.Entry") return undefined
+  if (!dataDescriptor(at) || !dataDescriptor(order)) return undefined
+  return { at: at.value as unknown, order: order.value as unknown }
 }
 /** Fast path only for the plain data objects emitted by the trusted scheduler. */
 const fastSchedulerEntry = (value: unknown): { readonly at: number; readonly order: number } | undefined => {
   try {
-    if (
-      typeof value !== "object" ||
-      value === null ||
-      Array.isArray(value) ||
-      Object.getPrototypeOf(value) !== Object.prototype
-    )
-      return undefined
-
-    // Descriptor inspection lets accessors and unexpected shapes fall through
-    // without reading their values. The existing decoder owns those cases.
+    if (!isPlainSchedulerObject(value)) return undefined
+    // Inspect descriptors without reading accessor values; the schema owns unusual shapes.
     const descriptors = Object.getOwnPropertyDescriptors(value) as Record<PropertyKey, PropertyDescriptor>
-    const enumerableKeys = Reflect.ownKeys(descriptors).filter((key) => descriptors[key]?.enumerable)
-    if (
-      enumerableKeys.length !== 3 ||
-      !enumerableKeys.includes("$") ||
-      !enumerableKeys.includes("at") ||
-      !enumerableKeys.includes("order")
-    )
-      return undefined
-
-    const tag = descriptors["$"]
-    const at = descriptors.at
-    const order = descriptors.order
-    if (!tag || !("value" in tag) || tag.value !== "Scheduler.Entry") return undefined
-    if (!at || !("value" in at) || !order || !("value" in order)) return undefined
-    const nativeAt = schedulerEntryNat(at.value)
-    const nativeOrder = schedulerEntryNat(order.value)
-    if (nativeAt === undefined || nativeOrder === undefined) return undefined
-    return Object.freeze({ at: nativeAt, order: nativeOrder })
+    if (!schedulerKeysMatch(descriptors)) return undefined
+    const fields = schedulerDataFields(descriptors)
+    if (fields === undefined) return undefined
+    const at = schedulerEntryNat(fields.at)
+    const order = schedulerEntryNat(fields.order)
+    if (at === undefined || order === undefined) return undefined
+    return Object.freeze({ at, order })
   } catch {
     // Proxies and other unusual values retain the established schema path.
     return undefined

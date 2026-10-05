@@ -102,34 +102,42 @@ const frozenDataRecord = (record: Record<string, unknown>): boolean =>
     const descriptor = Object.getOwnPropertyDescriptor(record, key)
     return typeof key === "string" && descriptor?.enumerable === true && "value" in descriptor
   })
-const convertRecord = (record: Record<string, unknown>, encode: boolean): unknown => {
-  const frozen = frozenDataRecord(record)
-  if (record.$ === "Con" || record.$ === "Nil") {
-    const items = readBendList(record, (item) => convert(item, encode), 2048)
-    if (frozen) {
-      let cursor = record
-      let unchanged = true
-      for (const item of items) {
-        if (!frozenDataRecord(cursor) || cursor.head !== item) unchanged = false
-        cursor = readRecord(cursor.tail)
-      }
-      if (unchanged && frozenDataRecord(cursor)) return record
-    }
-    return items.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+const unchangedList = (record: Record<string, unknown>, items: ReadonlyArray<unknown>): boolean => {
+  let cursor = record
+  let unchanged = true
+  for (const item of items) {
+    if (!frozenDataRecord(cursor) || cursor.head !== item) unchanged = false
+    cursor = readRecord(cursor.tail)
   }
+  return unchanged && frozenDataRecord(cursor)
+}
+const convertListRecord = (record: Record<string, unknown>, encode: boolean, frozen: boolean): unknown => {
+  const items = readBendList(record, (item) => convert(item, encode), 2048)
+  if (frozen && unchangedList(record, items)) return record
+  return items.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
+}
+const assignConvertedField = (record: Record<string, unknown>, key: string, value: unknown): void => {
+  if (key === "__proto__")
+    Object.defineProperty(record, key, { value, enumerable: true, writable: true, configurable: true })
+  else record[key] = value
+}
+const convertRecordField = (key: string, field: unknown, tag: string, words: boolean, encode: boolean): unknown =>
+  key === "$" ? tag : convert(field, encode, words && wordFields.has(key))
+const convertObjectRecord = (record: Record<string, unknown>, encode: boolean, frozen: boolean): unknown => {
   const tag = convertTag(record.$, encode)
   const words = wordTags.has(tag)
   let result: Record<string, unknown> | undefined = frozen ? undefined : {}
   for (const [key, field] of Object.entries(record)) {
-    const converted = key === "$" ? tag : convert(field, encode, words && wordFields.has(key))
+    const converted = convertRecordField(key, field, tag, words, encode)
     if (result === undefined && converted !== field) result = { ...record }
-    if (result !== undefined) {
-      if (key === "__proto__")
-        Object.defineProperty(result, key, { value: converted, enumerable: true, writable: true, configurable: true })
-      else result[key] = converted
-    }
+    if (result !== undefined) assignConvertedField(result, key, converted)
   }
   return result ?? record
+}
+const convertRecord = (record: Record<string, unknown>, encode: boolean): unknown => {
+  const frozen = frozenDataRecord(record)
+  if (record.$ === "Con" || record.$ === "Nil") return convertListRecord(record, encode, frozen)
+  return convertObjectRecord(record, encode, frozen)
 }
 /** The emitter ABI uses exact Nat values and U32 probability words. Linked lists
  * are traversed iteratively with the existing canonical boundary limit. */

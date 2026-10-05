@@ -1,3 +1,4 @@
+import type { ConfigurationLayer } from "../configuration/resolve.ts"
 import { rootLanguageForPath } from "../direct-event/languages/path-language.ts"
 import { selectGlobalPath, selectContextPath } from "../policy/file-policy.ts"
 import { existsSync, realpathSync } from "node:fs"
@@ -6,9 +7,35 @@ import { ruleOperation } from "./operations.ts"
 import * as Effect from "effect/Effect"
 import { loadConfiguration, type LoadConfigurationOptions } from "../configuration/load.ts"
 import { compileRules } from "./compiler.ts"
-import { loadRules } from "./loader.ts"
+import { loadRules, type LoadedRule } from "./loader.ts"
 import { matchesAnyGlob } from "../matcher/glob.ts"
 
+type ConfigurationRuleReference = NonNullable<ConfigurationLayer["document"]["rules"]>[number]
+const referencedPath = (reference: ConfigurationRuleReference): string | undefined =>
+  typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
+const referenceMatchesRule = (
+  reference: ConfigurationRuleReference,
+  layer: ConfigurationLayer,
+  id: string,
+  definition: LoadedRule | undefined
+): boolean => {
+  const selected = referencedPath(reference)
+  const selectedPath = selected === undefined ? undefined : resolve(dirname(layer.source), selected)
+  if (typeof reference !== "string" && "id" in reference) return reference.id === id
+  return selectedPath !== undefined && existsSync(selectedPath) && realpathSync(selectedPath) === definition?.path
+}
+const ruleSettingOrigins = (
+  layers: ReadonlyArray<ConfigurationLayer>,
+  id: string,
+  definition: LoadedRule | undefined
+) =>
+  layers.flatMap((layer) =>
+    (layer.document.rules ?? []).flatMap((reference, index) => {
+      if (!referenceMatchesRule(reference, layer, id, definition)) return []
+      const fields = typeof reference === "string" ? ["path"] : Object.keys(reference)
+      return fields.map((field) => ({ layer: layer.name, source: layer.source, field: `rules[${index}].${field}` }))
+    })
+  )
 export const loadRuleInventory = Effect.fn("Rules.inventory")(function* (
   root: string,
   options: LoadConfigurationOptions = {}
@@ -18,23 +45,7 @@ export const loadRuleInventory = Effect.fn("Rules.inventory")(function* (
   const compiled = yield* ruleOperation(root, "rules", () => compileRules({ rules: sources, includeDisabled: true }))
   const rules = compiled.map((rule) => {
     const definition = sources.find((candidate) => candidate.id === rule.ruleId)
-    const origins = capture.policy.layers.flatMap((layer) =>
-      (layer.document.rules ?? []).flatMap((reference, index) => {
-        const selected = typeof reference === "string" ? reference : "path" in reference ? reference.path : undefined
-        const selectedPath = selected === undefined ? undefined : resolve(dirname(layer.source), selected)
-        const matching =
-          typeof reference !== "string" && "id" in reference
-            ? reference.id === rule.ruleId
-            : selectedPath !== undefined && existsSync(selectedPath) && realpathSync(selectedPath) === definition?.path
-        return matching
-          ? (typeof reference === "string" ? ["path"] : Object.keys(reference)).map((field) => ({
-              layer: layer.name,
-              source: layer.source,
-              field: `rules[${index}].${field}`
-            }))
-          : []
-      })
-    )
+    const origins = ruleSettingOrigins(capture.policy.layers, rule.ruleId, definition)
     return {
       id: rule.ruleId,
       title: definition?.title ?? rule.ruleId,
@@ -98,50 +109,64 @@ export const formatRule = (rule: RuleInventoryEntry): string =>
     `Source origin: ${rule.origin?.layer} ${rule.origin?.source} ${rule.origin?.field}`,
     ...rule.origins.map((origin) => `Setting origin: ${origin.layer} ${origin.source} ${origin.field}`)
   ].join("\n") + "\n"
+const ruleFilterReasons = (rule: RuleInventoryEntry, path: string): string[] => {
+  const reasons: string[] = []
+  if (rule.filters?.includes !== undefined)
+    reasons.push(
+      matchesAnyGlob(rule.filters.includes, path) ? "Path matches rule includes." : "Path does not match rule includes."
+    )
+  if (rule.filters?.excludes !== undefined)
+    reasons.push(
+      matchesAnyGlob(rule.filters.excludes, path)
+        ? "Path is excluded by this rule."
+        : "Path is not excluded by this rule."
+    )
+  return reasons
+}
+const ruleLanguageReasons = (rule: RuleInventoryEntry, language: ReturnType<typeof rootLanguageForPath>): string[] => {
+  if (language === undefined) return []
+  const declared = rule.inputs.some(
+    (input) => input.languages.includes(language) && (rule.languages === undefined || rule.languages.includes(language))
+  )
+  return [
+    declared ? "Language matches a declared input." : "Language does not match the authored and configured languages."
+  ]
+}
+const configurationPathReasons = (
+  inventory: RuleInventory,
+  language: ReturnType<typeof rootLanguageForPath>,
+  globalSelection: ReturnType<typeof selectGlobalPath>,
+  contextSelection: ReturnType<typeof selectContextPath>
+): string[] => {
+  const reasons = [
+    `Changed-root global selection: ${globalSelection.reason}${globalSelection.reason === "protected" ? ` (${globalSelection.gate})` : ""}.`,
+    `Supporting-context selection: ${contextSelection.reason}; context selection does not make a file a changed review root.`,
+    `Configured root languages: ${inventory.policy.languages.value.join(", ") || "none"} (${inventory.policy.languages.origin.source}#${inventory.policy.languages.origin.field}).`
+  ]
+  for (const match of [...globalSelection.matchingIncludes, ...globalSelection.matchingExcludes])
+    reasons.push(`Global pattern: ${match.value} (${match.origin.layer} ${match.origin.source}#${match.origin.field}).`)
+  reasons.push(
+    language === undefined ? "Path has no supported detected language." : `Detected language from path: ${language}.`
+  )
+  return reasons
+}
+const pathConfigurationSelection = (inventory: RuleInventory, path: string) => ({
+  path,
+  language: rootLanguageForPath(path),
+  globalSelection: selectGlobalPath(inventory.policy, path),
+  contextSelection: selectContextPath(inventory.policy, path)
+})
 export const explainRule = (rule: RuleInventoryEntry, inventory: RuleInventory, path?: string) => {
-  const language = path === undefined ? undefined : rootLanguageForPath(path)
-  const globalSelection = path === undefined ? undefined : selectGlobalPath(inventory.policy, path)
-  const contextSelection = path === undefined ? undefined : selectContextPath(inventory.policy, path)
+  const selection = path === undefined ? undefined : pathConfigurationSelection(inventory, path)
+  const language = selection?.language
+  const globalSelection = selection?.globalSelection
+  const contextSelection = selection?.contextSelection
   const reasons = [rule.enabled ? "Rule is enabled." : "Rule is disabled."]
-  if (path !== undefined) {
+  if (selection !== undefined) {
     reasons.push(
-      `Changed-root global selection: ${globalSelection?.reason}${globalSelection?.reason === "protected" ? ` (${globalSelection.gate})` : ""}.`
+      ...configurationPathReasons(inventory, selection.language, selection.globalSelection, selection.contextSelection)
     )
-    reasons.push(
-      `Supporting-context selection: ${contextSelection?.reason}; context selection does not make a file a changed review root.`
-    )
-    reasons.push(
-      `Configured root languages: ${inventory.policy.languages.value.join(", ") || "none"} (${inventory.policy.languages.origin.source}#${inventory.policy.languages.origin.field}).`
-    )
-    for (const match of [...(globalSelection?.matchingIncludes ?? []), ...(globalSelection?.matchingExcludes ?? [])])
-      reasons.push(
-        `Global pattern: ${match.value} (${match.origin.layer} ${match.origin.source}#${match.origin.field}).`
-      )
-
-    reasons.push(
-      language === undefined ? "Path has no supported detected language." : `Detected language from path: ${language}.`
-    )
-    if (rule.filters?.includes !== undefined)
-      reasons.push(
-        matchesAnyGlob(rule.filters.includes, path)
-          ? "Path matches rule includes."
-          : "Path does not match rule includes."
-      )
-    if (rule.filters?.excludes !== undefined)
-      reasons.push(
-        matchesAnyGlob(rule.filters.excludes, path)
-          ? "Path is excluded by this rule."
-          : "Path is not excluded by this rule."
-      )
-    if (language !== undefined)
-      reasons.push(
-        rule.inputs.some(
-          (input) =>
-            input.languages.includes(language) && (rule.languages === undefined || rule.languages.includes(language))
-        )
-          ? "Language matches a declared input."
-          : "Language does not match the authored and configured languages."
-      )
+    reasons.push(...ruleFilterReasons(rule, selection.path), ...ruleLanguageReasons(rule, selection.language))
   }
   reasons.push(
     "Static configuration explanation only. No source was parsed; declaration kind, evidence requirements and global file policy still govern dispatch."

@@ -25,7 +25,7 @@ import { addEvent } from "../src/direct-event/test-fixtures.ts"
 import { adaptCodexAdd, adaptCodexDirectEvent, adaptClaudeDirectEvent } from "../src/direct-event/adapter.ts"
 import { prepareObservation } from "../src/direct-event/pipeline.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
-import { configuredRules } from "../src/test-support/default-rules.ts"
+import { configuredRules, connectDefaultRuleFixture } from "../src/test-support/default-rules.ts"
 import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
 import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.ts"
 import { COEXISTENCE_CASES, TASK_CANARY, setupAbideCoexistence } from "./native-abide-coexistence.mjs"
@@ -120,6 +120,7 @@ const initialSourceMarker =
     : language === "rust"
       ? "struct PaymentState"
       : "PaymentState{status:"
+const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
 if (host === "pi") {
   await runPiNativeProfile({
@@ -128,7 +129,7 @@ if (host === "pi") {
     language,
     scenario,
     mode,
-    messages: DEFAULT_RULE_MESSAGES,
+    messages: feedbackMessages,
     runnerPath: new URL(import.meta.url)
   })
   process.exit(process.exitCode ?? 0)
@@ -362,7 +363,8 @@ const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli
   {input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output; try { output=JSON.parse(result.stdout) } catch {}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
-const ruleIds=[...message.matchAll(/\\[([a-z0-9_]+), p=/g)].map(match=>match[1]);
+const {findingRuleIds}=await import(${JSON.stringify(join(project, "scripts/native-rule-observation.mjs"))});
+const ruleIds=findingRuleIds(message,${JSON.stringify(feedbackMessages)});
 const source=${JSON.stringify(rootFile)};
 const value=existsSync(source)?readFileSync(source,'utf8'):'';
 if(kind==='edit' && native)appendFileSync(process.env.HAPSLAND_NATIVE_EDITS,JSON.stringify(native)+'\\n',{mode:0o600});
@@ -455,6 +457,7 @@ globalThis.fetch=async (...args)=>{
       ...(coexistence === "privacy" ? { excludes: ["payment.ts"] } : {})
     })
   )
+  connectDefaultRuleFixture(repo, config)
   const home = coexistence ? join(temp, "profile", ".codex") : join(temp, "codex-home")
   if (host === "codex") {
     mkdirSync(home, { mode: 0o700, recursive: true })
@@ -520,9 +523,9 @@ globalThis.fetch=async (...args)=>{
       env
     })
   const prompt = coexistence
-    ? `${TASK_CANARY}. Use ${host === "codex" ? "apply_patch" : "Write"} to create payment.ts with exactly this initial draft:\n${initial}\nRun npm test. Only if you actually receive actionable advice from Hapsland or Abide, repair PaymentState using exactly this final design:\n${fixture.good}\nKeep imports and support.ts unchanged; modify only the PaymentState declaration. ${host === "claude" ? "For repair use Edit with old_string containing only the interface declaration line, and new_string containing only the type declaration line. Do not include the import in either Edit string." : "For repair use apply_patch with a relative path and change only the declaration."} Use at most two source-edit calls. Run npm test after repair and again if review is pending. Stay in the repository and do not inspect integration settings, credentials, or environment variables. At the end report HAPSLAND_ADVICE_APPLIED only if you personally received and acted on Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Separately report ABIDE_ADVICE_APPLIED only if you personally received and acted on Abide advice, otherwise ABIDE_ADVICE_NOT_APPLIED. Name the actual rule IDs you received. Do not repair merely because this prompt supplies the final design.`
+    ? `${TASK_CANARY}. Use ${host === "codex" ? "apply_patch" : "Write"} to create payment.ts with exactly this initial draft:\n${initial}\nRun npm test. Only if you actually receive actionable advice from Hapsland or Abide, repair PaymentState using exactly this final design:\n${fixture.good}\nKeep imports and support.ts unchanged; modify only the PaymentState declaration. ${host === "claude" ? "For repair use Edit with old_string containing only the interface declaration line, and new_string containing only the type declaration line. Do not include the import in either Edit string." : "For repair use apply_patch with a relative path and change only the declaration."} Use at most two source-edit calls. Run npm test after repair and again if review is pending. Stay in the repository and do not inspect integration settings, credentials, or environment variables. At the end report HAPSLAND_ADVICE_APPLIED only if you personally received and acted on Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Separately report ABIDE_ADVICE_APPLIED only if you personally received and acted on Abide advice, otherwise ABIDE_ADVICE_NOT_APPLIED. Quote one actual Hapsland finding sentence you received. Do not repair merely because this prompt supplies the final design.`
     : scenario === "adoption"
-      ? `${unicodeUpdate ? `Use ${host === "codex" ? "apply_patch with a relative path" : "Edit"} to update the existing ${fixture.entry}: replace only failure_reason: number | null with failure_reason: string | null. Keep both Unicode comments and every other line unchanged.` : `Use ${host === "codex" ? "apply_patch" : "Write"} to create ${fixture.entry} with exactly this initial draft:\n${initial}`}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Name the delivered rule ID. Be truthful.`
+      ? `${unicodeUpdate ? `Use ${host === "codex" ? "apply_patch with a relative path" : "Edit"} to update the existing ${fixture.entry}: replace only failure_reason: number | null with failure_reason: string | null. Keep both Unicode comments and every other line unchanged.` : `Use ${host === "codex" ? "apply_patch" : "Write"} to create ${fixture.entry} with exactly this initial draft:\n${initial}`}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote one actual delivered finding sentence. Be truthful.`
       : scenario === "stale-result"
         ? `This is a controlled integration check. Use ${host === "codex" ? "apply_patch" : "Write"} to create ${fixture.entry} with exactly this first draft:\n${initial}\nImmediately make a second source edit, replacing only the PaymentState declaration with this exact final design and keeping imports unchanged:\n${fixture.good}\nDo not wait for or act on Hapsland advice between the two edits. After the second edit, run the shell command sleep 16, then npm test, and finish. The second edit is a planned user edit, not an advice-driven repair. Do not make further source edits. Do not inspect integration settings, credentials or environment variables. End with HAPSLAND_ADVICE_NOT_APPLIED.`
         : `This is a controlled integration check. Use ${host === "codex" ? "apply_patch" : "Write"} to create ${fixture.entry} with exactly this draft:\n${initial}\nThen run npm test. ${scenario === "reviewer-unavailable" ? "Run the shell command sleep 8 so the unavailable review can finish." : ""} Do not change the source again. Do not inspect integration settings, credentials or environment variables. If no actionable Hapsland advice reaches you, end with HAPSLAND_ADVICE_NOT_APPLIED. Report only what you actually received.`
@@ -815,7 +818,7 @@ globalThis.fetch=async (...args)=>{
     findingDelivered: !!finding,
     editAfterFinding: !!repair,
     agentAcknowledgesAdvice: text.includes("HAPSLAND_ADVICE_APPLIED") && !text.includes("HAPSLAND_ADVICE_NOT_APPLIED"),
-    agentNamesRule: !!finding && finding.ruleIds.some((id) => text.includes(id)),
+    agentQuotesFinding: !!finding && finding.ruleIds.some((id) => text.includes(feedbackMessages[id])),
     sourceChanged: !!source && source !== initial,
     finalDesignConstrained:
       language === "typescript"
@@ -1041,13 +1044,7 @@ globalThis.fetch=async (...args)=>{
     credentialsRetained: false,
     hostBytesDiscarded: Buffer.byteLength(result.stdout) + result.stderrBytes
   }
-  record.verdict =
-    result.code === 0 &&
-    Object.entries(record.checks)
-      .filter(([name]) => name !== "agentNamesRule")
-      .every(([, value]) => value)
-      ? "demonstrated"
-      : "incomplete"
+  record.verdict = result.code === 0 && Object.values(record.checks).every(Boolean) ? "demonstrated" : "incomplete"
   const output = join(evidenceRoot, `${runId}.json`)
   mkdirSync(evidenceRoot, { recursive: true })
   writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`)

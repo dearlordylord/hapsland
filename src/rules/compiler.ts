@@ -60,28 +60,30 @@ const currentTypeTarget: RuleTargetContext = {
 }
 export const shouldDispatchRule = (gates: RuleSelectionGates): boolean =>
   applicableRule({ ...gates, complete: true, target: "typeShape", targetDeclared: true, capabilitiesAvailable: true })
+const inputContract = (input: RuleInput) =>
+  input.kind === "type" ? TYPE_INPUT_CONTRACT : input.kind === "function" ? FUNCTION_INPUT_CONTRACT : undefined
+export const reviewTargetForInput = (input: RuleInput, contract?: string): ReviewTarget | undefined => {
+  if (contract !== undefined && contract !== inputContract(input)) return undefined
+  if (input.kind === "type")
+    return {
+      artifactKind: "typeShape",
+      inputContract: TYPE_INPUT_CONTRACT,
+      capabilities: TYPE_CAPABILITIES.filter((capability) => input.requires.includes(capability))
+    }
+  if (input.kind === "function")
+    return {
+      artifactKind: "function",
+      inputContract: FUNCTION_INPUT_CONTRACT,
+      capabilities: FUNCTION_CAPABILITIES.filter((capability) => input.requires.includes(capability))
+    }
+  return undefined
+}
 const targetsFor = (rule: RuleDefinition): ReadonlyArray<ReviewTarget> =>
-  rule.inputs.flatMap(
-    (input): Array<ReviewTarget> =>
-      input.kind === "type"
-        ? [
-            {
-              artifactKind: "typeShape",
-              inputContract: TYPE_INPUT_CONTRACT,
-              capabilities: TYPE_CAPABILITIES.filter((capability) => input.requires.includes(capability))
-            }
-          ]
-        : input.kind === "function"
-          ? [
-              {
-                artifactKind: "function",
-                inputContract: FUNCTION_INPUT_CONTRACT,
-                capabilities: FUNCTION_CAPABILITIES.filter((capability) => input.requires.includes(capability))
-              }
-            ]
-          : []
-  )
-const validateSupport = (rule: LoadedRule): void => {
+  rule.inputs.flatMap((input) => {
+    const target = reviewTargetForInput(input)
+    return target === undefined ? [] : [target]
+  })
+const validateConfiguredLanguages = (rule: LoadedRule): void => {
   for (const language of rule.reference.languages ?? [])
     if (!rule.inputs.some((input) => input.languages.includes(language)))
       throw configurationError(
@@ -89,58 +91,71 @@ const validateSupport = (rule: LoadedRule): void => {
         "languages",
         `language restriction '${language}' cannot extend authored inputs`
       )
+}
+const supportedInput = (input: RuleInput, language: RuleLanguage): boolean =>
+  input.kind !== "schema" && !(input.kind === "function" && language !== "typescript")
+const validateRequiredCapabilities = (rule: LoadedRule, input: RuleInput, language: RuleLanguage): void => {
+  const capabilities: ReadonlyArray<string> = input.kind === "type" ? TYPE_CAPABILITIES : FUNCTION_CAPABILITIES
+  for (const required of input.requires)
+    if (!capabilities.includes(required))
+      throw configurationError(
+        rule.source,
+        "inputs.requires",
+        `unsupported capability '${required}' for '${language}:${input.kind}'`
+      )
+}
+const validateSelectedInput = (rule: LoadedRule, input: RuleInput, language: RuleLanguage): void => {
+  if (!supportedInput(input, language))
+    throw configurationError(
+      rule.source,
+      "inputs",
+      `unsupported selected input '${language}:${input.kind}'; select supported languages or disable this rule until an analyzer is available`
+    )
+  validateRequiredCapabilities(rule, input, language)
+}
+const validateSupport = (rule: LoadedRule): void => {
+  validateConfiguredLanguages(rule)
   if (!rule.enabled) return
   for (const input of rule.inputs)
     for (const language of input.languages) {
       if (rule.reference.languages !== undefined && !rule.reference.languages.includes(language)) continue
-      if (input.kind === "schema" || (input.kind === "function" && language !== "typescript"))
-        throw configurationError(
-          rule.source,
-          "inputs",
-          `unsupported selected input '${language}:${input.kind}'; select supported languages or disable this rule until an analyzer is available`
-        )
-      const capabilities: ReadonlyArray<string> = input.kind === "type" ? TYPE_CAPABILITIES : FUNCTION_CAPABILITIES
-      for (const required of input.requires)
-        if (!capabilities.includes(required))
-          throw configurationError(
-            rule.source,
-            "inputs.requires",
-            `unsupported capability '${required}' for '${language}:${input.kind}'`
-          )
+      validateSelectedInput(rule, input, language)
     }
+}
+const configuredApplicability = (settings: LoadedRule["reference"]): RuleApplicability | undefined => {
+  if (settings.includes === undefined && settings.excludes === undefined) return undefined
+  return {
+    ...(settings.includes === undefined ? {} : { includes: settings.includes }),
+    ...(settings.excludes === undefined ? {} : { excludes: settings.excludes })
+  }
+}
+const compileLoadedRule = (rule: LoadedRule, rank: number): CompiledRule => {
+  const settings = rule.reference
+  const applicability = configuredApplicability(settings)
+  return {
+    id: RuleId.make(rule.id),
+    ruleId: rule.id,
+    definitionDigest: rule.definitionDigest,
+    decision: {
+      ...Decision.probability({ instructions: rule.question, criteria: rule.criteria }),
+      criteria: rule.criteria
+    },
+    threshold: settings.threshold ?? rule.threshold ?? DEFAULT_RULE_THRESHOLD,
+    message: settings.message ?? rule.message,
+    rank,
+    source: rule.source,
+    enabled: rule.enabled,
+    inputs: rule.inputs,
+    reviewTargets: targetsFor(rule),
+    ...(settings.languages === undefined ? {} : { languages: settings.languages }),
+    ...(applicability === undefined ? {} : { applicability })
+  }
 }
 export const compileRules = (options: RuleCompilationOptions): ReadonlyArray<CompiledRule> =>
   options.rules.flatMap((rule, rank) => {
     validateSupport(rule)
     if (!rule.enabled && !options.includeDisabled) return []
-    const settings = rule.reference
-    return [
-      {
-        id: RuleId.make(rule.id),
-        ruleId: rule.id,
-        definitionDigest: rule.definitionDigest,
-        decision: {
-          ...Decision.probability({ instructions: rule.question, criteria: rule.criteria }),
-          criteria: rule.criteria
-        },
-        threshold: settings.threshold ?? rule.threshold ?? DEFAULT_RULE_THRESHOLD,
-        message: settings.message ?? rule.message,
-        rank,
-        source: rule.source,
-        enabled: rule.enabled,
-        inputs: rule.inputs,
-        reviewTargets: targetsFor(rule),
-        ...(settings.languages === undefined ? {} : { languages: settings.languages }),
-        ...(settings.includes === undefined && settings.excludes === undefined
-          ? {}
-          : {
-              applicability: {
-                ...(settings.includes === undefined ? {} : { includes: settings.includes }),
-                ...(settings.excludes === undefined ? {} : { excludes: settings.excludes })
-              }
-            })
-      }
-    ]
+    return [compileLoadedRule(rule, rank)]
   })
 export const compileRule = (raw: unknown, source: string): CompiledRule => {
   const rule = decodeRuleDocument(raw, source)
@@ -151,6 +166,19 @@ export const compileRule = (raw: unknown, source: string): CompiledRule => {
   if (compiled === undefined) throw configurationError(source, "rules", "rule could not be compiled")
   return compiled
 }
+const targetPolicyKind = (target: RuleTargetContext) =>
+  target.inputContract === FUNCTION_INPUT_CONTRACT
+    ? ("functionTarget" as const)
+    : target.inputContract === TYPE_INPUT_CONTRACT
+      ? ("typeShape" as const)
+      : ("unsupportedTarget" as const)
+const ruleIncludesPath = (rule: CompiledRule, path: string | undefined): boolean => {
+  if (path === undefined)
+    return rule.applicability?.includes === undefined && (rule.applicability?.excludes?.length ?? 0) === 0
+  return rule.applicability?.includes === undefined || matchesAnyGlob(rule.applicability.includes, path)
+}
+const ruleExcludesPath = (rule: CompiledRule, path: string | undefined): boolean =>
+  rule.applicability?.excludes !== undefined && path !== undefined && matchesAnyGlob(rule.applicability.excludes, path)
 export const selectApplicableRules = (
   rules: ReadonlyArray<CompiledRule>,
   _source: string,
@@ -168,23 +196,12 @@ export const selectApplicableRules = (
     return applicableRule({
       consent: true,
       complete: target.complete,
-      target:
-        target.inputContract === FUNCTION_INPUT_CONTRACT
-          ? "functionTarget"
-          : target.inputContract === TYPE_INPUT_CONTRACT
-            ? "typeShape"
-            : "unsupportedTarget",
+      target: targetPolicyKind(target),
       globalIncluded: true,
       globalExcluded: false,
       ruleEnabled: rule.enabled,
-      ruleIncluded:
-        path === undefined
-          ? rule.applicability?.includes === undefined && (rule.applicability?.excludes?.length ?? 0) === 0
-          : rule.applicability?.includes === undefined || matchesAnyGlob(rule.applicability.includes, path),
-      ruleExcluded:
-        rule.applicability?.excludes !== undefined &&
-        path !== undefined &&
-        matchesAnyGlob(rule.applicability.excludes, path),
+      ruleIncluded: ruleIncludesPath(rule, path),
+      ruleExcluded: ruleExcludesPath(rule, path),
       targetDeclared: inputs.length > 0,
       capabilitiesAvailable: inputs.some((input) =>
         input.requires.every((capability) => target.capabilities?.some((available) => available === capability))

@@ -713,16 +713,16 @@ const setupStatus = (request: SetupRequest, installed: boolean, progress: SetupP
   return status
 }
 
-export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest, options: SetupOptions) {
-  const stages: Array<SetupStage> = []
-  const actions: Array<SetupAction> = []
-  const completed: Array<string> = []
-  const pending: Array<string> = []
-  const progress: SetupProgress = { stages, actions, completed, pending }
-  const rulesPreview =
-    request.scope.review === "enabled"
-      ? yield* previewDefaultRules(options.userConfigPath, request.scope.cwd).pipe(Effect.result)
-      : undefined
+const previewSetupRules = Effect.fn("Setup.previewRules")(function* (request: SetupRequest, options: SetupOptions) {
+  return request.scope.review === "enabled"
+    ? yield* previewDefaultRules(options.userConfigPath, request.scope.cwd).pipe(Effect.result)
+    : undefined
+})
+type SetupRulesPreview = Effect.Success<ReturnType<typeof previewSetupRules>>
+const validateRulesAuthorization = Effect.fn("Setup.validateRulesAuthorization")(function* (
+  request: SetupRequest,
+  rulesPreview: SetupRulesPreview
+) {
   if (
     request.rulesProposalDigest !== undefined &&
     rulesPreview?._tag === "Success" &&
@@ -734,52 +734,82 @@ export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest,
       "default rules plan is stale; preview again before applying"
     )
   if (request.rulesProposalDigest !== undefined && rulesPreview?._tag === "Failure") return yield* rulesPreview.failure
-  const { installed, hostHome, hostName } = yield* setupInstallation(request, progress)
-  if (rulesPreview?._tag === "Failure") {
+})
+const rulesStageSummary = (proposal: Effect.Success<ReturnType<typeof previewDefaultRules>>, ready: boolean): string =>
+  ready
+    ? proposal.paths.length === 0
+      ? "explicit rule selection preserved"
+      : "editable default rules connected"
+    : "editable default rules require setup authorization"
+const reportRulesApplication = (
+  proposal: Effect.Success<ReturnType<typeof previewDefaultRules>>,
+  application: Effect.Success<ReturnType<typeof applyApprovedRules>>,
+  progress: SetupProgress
+): void => {
+  const { stages, actions, pending } = progress
+  const applied = application?._tag === "Success"
+  const ready = applied || !proposal.changed
+  if (application?._tag === "Failure") {
     stages.push({
+      stage: "rules",
+      status: "partial",
+      summary: "editable default rules application could not complete; inspect the reported files and preview again",
+      observed: { paths: proposal.paths, configurationPath: proposal.configurationPath }
+    })
+    pending.push("preview and resume default rules application")
+  } else
+    stages.push({
+      stage: "rules",
+      status: ready ? "complete" : "pending",
+      summary: rulesStageSummary(proposal, ready),
+      observed: { paths: proposal.paths, configurationPath: proposal.configurationPath, digest: proposal.digest }
+    })
+  if (!applied && proposal.changed) {
+    actions.push({
+      stage: "rules",
+      code: "approve-default-rules",
+      action: `materialize editable rules at ${proposal.paths.join(", ")} and connect them in ${proposal.configurationPath}`,
+      authorization: { rulesProposalDigest: proposal.digest }
+    })
+    pending.push("approve editable default rules")
+  }
+}
+const applyApprovedRules = Effect.fn("Setup.applyApprovedRules")(function* (
+  request: SetupRequest,
+  options: SetupOptions,
+  proposal: Effect.Success<ReturnType<typeof previewDefaultRules>>,
+  installed: boolean
+) {
+  return request.rulesProposalDigest === proposal.digest && installed
+    ? yield* applyDefaultRules(options.userConfigPath, proposal.digest, request.scope.cwd).pipe(Effect.result)
+    : undefined
+})
+const setupRules = Effect.fn("Setup.rules")(function* (
+  request: SetupRequest,
+  options: SetupOptions,
+  rulesPreview: SetupRulesPreview,
+  installed: boolean,
+  progress: SetupProgress
+) {
+  if (rulesPreview?._tag === "Failure")
+    progress.stages.push({
       stage: "rules",
       status: "conflict",
       summary: rulesPreview.failure.reason,
       observed: { source: rulesPreview.failure.source, field: rulesPreview.failure.field }
     })
-  } else if (rulesPreview?._tag === "Success") {
+  else if (rulesPreview?._tag === "Success") {
     const proposal = rulesPreview.success
-    const application =
-      request.rulesProposalDigest === proposal.digest && installed
-        ? yield* applyDefaultRules(options.userConfigPath, proposal.digest, request.scope.cwd).pipe(Effect.result)
-        : undefined
-    const applied = application?._tag === "Success"
-    if (application?._tag === "Failure") {
-      stages.push({
-        stage: "rules",
-        status: "partial",
-        summary: "editable default rules application could not complete; inspect the reported files and preview again",
-        observed: { paths: proposal.paths, configurationPath: proposal.configurationPath }
-      })
-      pending.push("preview and resume default rules application")
-    } else
-      stages.push({
-        stage: "rules",
-        status: applied || !proposal.changed ? "complete" : "pending",
-        summary:
-          applied || !proposal.changed
-            ? proposal.paths.length === 0
-              ? "explicit rule selection preserved"
-              : "editable default rules connected"
-            : "editable default rules require setup authorization",
-        observed: { paths: proposal.paths, configurationPath: proposal.configurationPath, digest: proposal.digest }
-      })
-    if (!applied && proposal.changed) {
-      actions.push({
-        stage: "rules",
-        code: "approve-default-rules",
-        action: `materialize editable rules at ${proposal.paths.join(", ")} and connect them in ${proposal.configurationPath}`,
-        authorization: { rulesProposalDigest: proposal.digest }
-      })
-      pending.push("approve editable default rules")
-    }
+    const application = yield* applyApprovedRules(request, options, proposal, installed)
+    reportRulesApplication(proposal, application, progress)
   }
-
+})
+const setupRepository = Effect.fn("Setup.repository")(function* (
+  request: SetupRequest,
+  options: SetupOptions,
+  installed: boolean,
+  progress: SetupProgress
+) {
   const rootResult = yield* discoverWorkingTreeRoot(request.scope.cwd).pipe(Effect.result)
   const settingsResult =
     rootResult._tag === "Success"
@@ -797,6 +827,21 @@ export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest,
 
     reportRepositorySettings(request, settings, rootResult.success, progress)
   }
+
+  return rootResult
+})
+
+export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest, options: SetupOptions) {
+  const stages: Array<SetupStage> = []
+  const actions: Array<SetupAction> = []
+  const completed: Array<string> = []
+  const pending: Array<string> = []
+  const progress: SetupProgress = { stages, actions, completed, pending }
+  const rulesPreview = yield* previewSetupRules(request, options)
+  yield* validateRulesAuthorization(request, rulesPreview)
+  const { installed, hostHome, hostName } = yield* setupInstallation(request, progress)
+  yield* setupRules(request, options, rulesPreview, installed, progress)
+  const rootResult = yield* setupRepository(request, options, installed, progress)
 
   reportExecutionContext(installed, hostName, progress)
 

@@ -184,7 +184,7 @@ const validatePermitLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
   }
 }
 
-const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
+const resolveRootPatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
   let includes: ReadonlyArray<PatternOrigin> = patternsFor(
     layers[0] ?? { name: "built-in", source: "built-in", document: { version: 1 } },
     "includes",
@@ -220,6 +220,14 @@ const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
     }
   }
 
+  return { includes, overriddenIncludes, excludes, protectedExcludes }
+}
+
+const resolveContextPatterns = (
+  layers: ReadonlyArray<ConfigurationLayer>,
+  includes: ReadonlyArray<PatternOrigin>,
+  excludes: ReadonlyArray<PatternOrigin>
+) => {
   let contextIncludes = includes
   let overriddenContextIncludes: ReadonlyArray<PatternOrigin> = []
   let contextExcludes: ReadonlyArray<PatternOrigin> = []
@@ -248,15 +256,15 @@ const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
       languages = originated(layer.document.languages, origin(layer, "languages"))
   }
   if (!explicitContextExcludes) contextExcludes = excludes
+  return { contextIncludes, overriddenContextIncludes, contextExcludes, languages }
+}
+
+const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
+  const root = resolveRootPatterns(layers)
   return {
-    includes,
-    overriddenIncludes,
-    excludes,
-    contextIncludes,
-    overriddenContextIncludes,
-    contextExcludes,
-    languages,
-    protectedExcludes: dedupePatterns(protectedExcludes)
+    ...root,
+    ...resolveContextPatterns(layers, root.includes, root.excludes),
+    protectedExcludes: dedupePatterns(root.protectedExcludes)
   }
 }
 

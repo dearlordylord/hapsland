@@ -42,6 +42,7 @@ const fixture = () => {
 }
 
 type SetupOutput = {
+  readonly error?: unknown
   readonly status: string
   readonly providerCalls: number
   readonly stages: ReadonlyArray<{
@@ -86,17 +87,19 @@ const invoke = (
   expect(child.stderr).toBe("")
   const output = JSON.parse(child.stdout) as SetupOutput
   const expectedExit =
-    output.status === "needs-user-action"
-      ? 6
-      : output.status === "partial"
-        ? 5
-        : output.status === "conflict"
-          ? 4
-          : output.status === "unsupported"
-            ? 3
-            : 0
+    output.error !== undefined
+      ? 2
+      : output.status === "needs-user-action"
+        ? 6
+        : output.status === "partial"
+          ? 5
+          : output.status === "conflict"
+            ? 4
+            : output.status === "unsupported"
+              ? 3
+              : 0
   expect(child.status).toBe(expectedExit)
-  expect(output.providerCalls).toBe(0)
+  if (output.error === undefined) expect(output.providerCalls).toBe(0)
   expect(`${child.stdout}${child.stderr}`).not.toContain("setup-environment-secret")
   return output
 }
@@ -710,6 +713,29 @@ it("binds editable defaults and configuration to setup authorization and preserv
   rmSync(path)
   invoke(test, {})
   expect(existsSync(path)).toBe(false)
+})
+
+it.each(["changed", "malformed"])("rejects %s default rules before installing an approved setup", (variant) => {
+  const test = fixture()
+  const approved = authorization(invoke(test, {}))
+  const path = join(test.root, "rules", "defaults", `${SHIPPED_DEFAULT_RULES[0]?.id}.json`)
+  mkdirSync(join(test.root, "rules", "defaults"), { recursive: true })
+  const original = readFileSync(join(process.cwd(), "src", "rules", "defaults", "r1_inferred_case.json"), "utf8")
+  writeFileSync(
+    path,
+    variant === "malformed"
+      ? '{"version":1,"question":null}'
+      : JSON.stringify({ ...JSON.parse(original), question: "New authored concern after approval" })
+  )
+  const authored = readFileSync(path, "utf8")
+  const rejected = invoke(test, approved)
+  expect(rejected.error).toEqual({
+    code: "invalid_request",
+    message: "input does not satisfy a supported command contract"
+  })
+  expect(existsSync(join(test.codexHome, "hooks.json"))).toBe(false)
+  expect(existsSync(join(test.root, "user.jsonc"))).toBe(false)
+  expect(readFileSync(path, "utf8")).toBe(authored)
 })
 
 it("unattended setup previews without writes, applies a saved plan and rejects stale authored bytes", () => {
