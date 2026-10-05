@@ -67,6 +67,8 @@ def main() -> IO(Unit):
     require(same_observation(Run.observe(M.engine(H.damage(H.move(built,160,180)))),Run.observe(M.engine(built))),"damage and geometry preserve observed engine counters")
     require(same_observation(Run.observe(M.engine(run(4n,paused))),Run.observe(M.engine(origin))) && U32.is_eq(M.time(run(4n,paused)),0),"pause freezes game clock and all engine transitions")
     require(valid(Run.observe(M.engine(burst))),"N submits a supported generic Burst control")
+    require(U32.is_eq(M.arrival_interval(H.key(origin,93)),29900),"] speeds up arrivals by reducing the interval")
+    require(U32.is_eq(M.arrival_interval(H.key(origin,91)),30100),"[ slows down arrivals even above the old10000ms cap")
     require(returned_frames(burst,H.tick_observed(burst)),"actual tick observer returns every counted engine frame exactly once")
     require(paused_frames(H.tick_observed(paused)),"actual paused tick observer returns no frames and keeps virtual time0")
     require(U32.is_eq(M.time(progress),100) && (M.offered(progress) > 0 : U32),"continuous virtual endpoints reach original admitted workload without authored waves")

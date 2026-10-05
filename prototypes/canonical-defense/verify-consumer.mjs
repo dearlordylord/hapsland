@@ -112,7 +112,8 @@ for (const seed of [0,3,17,41]) {
     if (input.$ === "DefenseConsumerObserved.GameKey") {
       if (input.code === 110) run.applyControl({ kind: "burst", agent: "agent-1", count: 1 });
       if (input.code === 97) { suspended = !suspended; run.applyControl({ kind: "suspendArrivals", agent: "agent-1", suspended }); }
-      if (input.code === 91) { pace = Math.max(20, pace - 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
+      if (input.code === 91) { pace = Math.min(60000, pace + 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
+      if (input.code === 93) { pace = Math.max(20, pace - 100); run.applyControl({ kind: "editPace", agent: "agent-1", intervalMs: pace }); }
       if (input.code === 32) paused = !paused;
       assert.deepEqual([...checkpointTicks()],[]);
       assert.equal(afterWorld.clock, ticks, "keys do not advance virtual time");

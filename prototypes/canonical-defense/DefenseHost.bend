@@ -273,14 +273,14 @@ def reset_layout(layout: U32) -> M.World:
       world: M.World = initial()
       reset_found(world, l)
 def pacing(+world: M.World,faster: Bool) -> M.World:
-  +pace = Bool.pick(U32,faster,U32.max(20,M.sub(M.arrival_interval(world),100)),U32.min(10000,(M.arrival_interval(world) + 100 : U32)))
+  +pace = Bool.pick(U32,faster,U32.max(20,M.sub(M.arrival_interval(world),100)),U32.min(60000,(M.arrival_interval(world) + 100 : U32)))
   action(M.with_control(world,M.control_with_pace(M.control(world),pace)),T.WorkloadControl{Some{1n},Workload.Pace{pace}})
 def key_result(world: M.World, code: U32) -> M.World:
   match code:
     case 114: reset_layout(M.layout(world))
     case 117: upgrade(world)
-    case 91: pacing(world,True{})
-    case 93: pacing(world,False{})
+    case 91: pacing(world,False{})
+    case 93: pacing(world,True{})
     case 110: start(world)
     case 13: start(world)
     case _: world
