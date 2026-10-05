@@ -11,4 +11,4 @@ function defense_numeric_output(values) {
   io_out(1, new TextEncoder().encode(pieces.join("")));
   return { $: CID(Unit) };
 }
-io_eff(CID(DefenseNumericOutput.write), defense_numeric_output);
+io_eff(CID(write), defense_numeric_output);

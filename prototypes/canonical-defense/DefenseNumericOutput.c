@@ -24,5 +24,5 @@ Term defense_numeric_output_run(Env e, Term* f, IoWork* w) {
   return term_pak(CID(Unit), 0);
 }
 static void __attribute__((constructor)) defense_numeric_output_use(void) {
-  io_eff(CID(DefenseNumericOutput.write), defense_numeric_output_run, 0);
+  io_eff(CID(write), defense_numeric_output_run, 0);
 }
