@@ -245,6 +245,17 @@ export async function runPiNativeProfile({ project, fixture, language, scenario,
       { version: 1, operation: "doctor", host: "pi", piHome: home, piExecutable: binary, cwd: repo },
       { cwd: repo, env }
     )
+    const installationStage = setup.value.stages?.find((stage) => stage.stage === "installation")
+    if (setup.code !== 0 || installationStage?.status !== "complete") {
+      const summary = {
+        exitCode: setup.code,
+        status: setup.value.status,
+        errorCode: setup.value.error?.code,
+        stages: setup.value.stages?.map(({ stage, status }) => ({ stage, status })),
+        actions: setup.value.actions?.map(({ stage, code }) => ({ stage, code }))
+      }
+      throw new Error(`Pi setup did not complete installation: ${JSON.stringify(summary)}`)
+    }
     const observer = join(home, "extensions", "z-native-observer.ts")
     writeFileSync(
       observer,
