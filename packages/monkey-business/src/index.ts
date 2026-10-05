@@ -2285,8 +2285,7 @@ export class Run {
       }
     }
     emissionSourceJob = afterSourceJob
-    for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      emitDriver(action, item.job, afterSourceJob)
+    for (const action of result.afterActions) emitDriver(action, item.job, afterSourceJob)
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find((w) => w.operation === event.operation)?.parent
       if (parent) this.jobs.delete(parent)
@@ -2391,12 +2390,12 @@ export class Run {
     return this.record(observation)
   }
   private enqueueResponseActions(
-    actions: unknown,
+    actions: readonly DriverAction[],
     origin: Scheduled["responseOrigin"],
     fallback: number,
     writer: Scheduled["writerOrigin"] = undefined
   ): void {
-    for (const action of decodeDriver({ handled: true, actions }).actions) {
+    for (const action of actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event, fallback) ?? fallback
       this.event(owner, action.event, action.delay, undefined, action.expiryAdvice)
       const item = this.scheduled.get(this.order - 1)
