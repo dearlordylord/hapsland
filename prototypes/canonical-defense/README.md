@@ -72,6 +72,16 @@ retention does not permit automatic reuse or convert a failed phase to a pass.
 
 Existing [laws](LAWS.bend) and [proofs](PROOF.bend) retain two concrete pressure facts and the universally quantified damage-preserves-Canonical-state statement. [Candidate engine-preservation laws](ConsumerLAWS.bend) quantify over every game World, and pointer coordinates over every U32, without premises. Their [proofs](ConsumerPROOF.bend) are proposals until owner review. The optional proposal-falsification runner has been removed because it launched external tooling without a time bound. These unaccepted proposals do not add a business completion gate; any future owner review must declare its own finite falsification and kernel-validation scope.
 
+## Teaching purpose and design boundary
+
+The owner's direction is to teach Hapsland through the shared simulator's actual work. An edit can fan out into source, preparation, review and advice operations; Stop is a separate input. Roads and queues explain observed progress. Issued operations retain captured deadlines, while work waiting for eligibility or a resource has no guaranteed start time. Visual travel never delays acceptance of a business event.
+
+Players can release arbitrary repeated edit bursts and suspend automatic arrivals independently. Towers retain placement, range, construction costs, upgrades and pressure-based health consequences. Their effects use supported simulator controls. The current experimental teaching roster is Jev Service for future request latency, Delivery Relay for future output latency, and Access Repair for source/credential availability. These choices remain replaceable; they do not establish a final roster or human learning outcomes.
+
+Game/process corrections are qualified on a branch from master and integrated into master first. The separate laboratory branch incorporates master and owns balance experiments, finite search and experiment replay. It must not become another business scheduler. The enduring laboratory contract is [#203](https://github.com/dearlordylord/hapsland/issues/203). Experiments should distinguish measured effects, dead investments, interactions and held-out countercases.
+
+The intended next design steps are reversible mechanism selection and replacement, wider context comparisons, and precise development-time tuning where evidence warrants it. Human prediction and explanation checks remain separate from measured difficulty, engagement and replay interest. No adaptive difficulty or automatic balance patch application is included.
+
 ## Bounded mechanism configuration
 
 Host construction accepts a strength multiplier from 1 to 16 and a base support radius from 20 to 240 pixels. Repair accepts strength 1 because it restores availability rather than changing latency. Ordinary interactive purchases use strength 1 and radius 100. A tower contributes `level * strength` to the connected service or delivery total; future delay is `base / (1 + total)`. Support radius is `baseRadius + 12 * level`. Upgrades preserve the configured multiplier and base radius. Invalid parameters refuse the purchase without charging resources. The actual tower ring and inspection panel show its configured radius. These bounds define supported experiments, not recommended balance values.
