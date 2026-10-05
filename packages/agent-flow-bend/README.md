@@ -105,6 +105,14 @@ The existing policy and lifecycle artifacts are
 still checked against their source hashes by the root build. The canonical
 ledger owns reservation limits.
 
+Artifact generation requires exact **Bend 2.0.35**. The pinned Linux release
+archives and SHA-256 digests live in `../../scripts/install-bend-toolchain.mjs`;
+its proof kernel uses Lean 4.34.0. Build scripts reject another compiler version
+before writing an artifact. A compiler update must update the pin and generated
+bindings together, then pass the package proofs, mutation checks, independent
+traces, production ABI checks and TypeScript adapter tests. The installed product
+bundles generated JavaScript and does not invoke the Bend compiler at runtime.
+
 Generated JavaScript is an artifact, not an alternate implementation. The
 resident maps exact native identities to numeric IDs, revalidates each offered
 finding at the final handoff and writer barriers, and keeps source capture,

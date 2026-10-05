@@ -14,16 +14,16 @@ if (process.argv.includes("--github-actions") && process.env.GITHUB_ACTIONS !== 
 }
 
 const root = resolve(import.meta.dirname, "..")
-// bendlang/bend v2.0.34, source 7d8a3eb036042c6549461054d25a10f26d361c5c.
+// bendlang/bend v2.0.35, source 79df8d9.
 // Digests from first-party GitHub release asset metadata, not downloaded at install time.
 const platforms = {
   "linux-x64": {
-    bend: "78106a97af242429dcc057258eb8d10f69cddebcd5e263022185a52d003e09bf",
+    bend: "63039d1a119f716767ac5a7d8fe0717cfacf219c6c253c35192148e0dade722f",
     leanName: "linux",
     lean: "caaa98356098c85dc0fcbbd28e1ec66f39eb6551829972b752ff20e1286b646b"
   },
   "linux-arm64": {
-    bend: "416a17d282a9fd05ab9637a238b51d5ca508114d9773c37d1c11cad595440ed1",
+    bend: "09b813073241628f590f2c2fe420299ec25e4dddd6cf3fdc49c9486339989564",
     leanName: "linux_aarch64",
     lean: "40b04fdb7fb849d3c80e10c3bbeebc7b7354b6d3f07450b9168c2149b40d2a82"
   }
@@ -31,7 +31,7 @@ const platforms = {
 const platform = `${process.platform}-${process.arch}`
 const selected = platforms[platform]
 if (!selected) throw new Error(`No pinned Bend proof toolchain for ${platform}`)
-const bendRoot = join(root, ".tools/bend", `2.0.34-${platform}`)
+const bendRoot = join(root, ".tools/bend", `2.0.35-${platform}`)
 const leanRoot = join(root, ".tools/lean", `4.34.0-${platform}`)
 await mkdir(join(root, ".tools/bend"), { recursive: true })
 const temporary = await mkdtemp(join(root, ".tools/bend", ".install-"))
@@ -79,7 +79,7 @@ async function install(url, expected, destination, compressed) {
 }
 try {
   await install(
-    `https://github.com/bendlang/bend/releases/download/v2.0.34/bend-2.0.34-${platform}.tar.gz`,
+    `https://github.com/bendlang/bend/releases/download/v2.0.35/bend-2.0.35-${platform}.tar.gz`,
     selected.bend,
     bendRoot,
     "bend.tar.gz"

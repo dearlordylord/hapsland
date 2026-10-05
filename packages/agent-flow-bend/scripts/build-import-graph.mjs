@@ -3,6 +3,12 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
+// Generated bindings depend on this compiler's JavaScript ABI.
+const compilerVersion = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5_000 }).trim()
+if (compilerVersion !== "bend 2.0.35") {
+  throw new Error(`Bend artifact generation requires exact Bend 2.0.35; observed ${compilerVersion}`)
+}
+
 const root = resolve(import.meta.dirname, "..")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-import-graph-bend-"))
 try {
@@ -12,8 +18,8 @@ try {
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (
     !footer.test(source) ||
-    !source.includes("function $ImportGraph$bounded_step$(") ||
-    !source.includes("function $ImportGraph$bounded_initial$(")
+    !source.includes("function $ImportGraph$058bounded_step$(") ||
+    !source.includes("function $ImportGraph$058bounded_initial$(")
   ) {
     throw new Error("Bend import graph JavaScript layout changed; inspect generated runtime")
   }
@@ -44,11 +50,11 @@ const normalize = (value) => {
   }
   return value;
 };
-export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$bounded_initial$(normalize(limits)));
+export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$058bounded_initial$(normalize(limits)));
 export const bendImportGraphStep = (state, event) =>
-  run_loop($ImportGraph$bounded_step$(state, normalize(event)));
+  run_loop($ImportGraph$058bounded_step$(state, normalize(event)));
 export const bendImportGraphLocalBudget = (limits, localWork, localDepth, distinctTargets, graphWork) =>
-  run_loop($ImportGraph$local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
+  run_loop($ImportGraph$058local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
 `
   )
   writeFileSync(join(root, "import-graph.generated.js"), source)
