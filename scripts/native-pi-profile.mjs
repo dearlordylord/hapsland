@@ -212,9 +212,12 @@ export async function runPiNativeProfile({
         install,
         tarball
       ],
-      { cwd: temp, timeout: 120000 }
+      { cwd: temp, timeout: 240000 }
     )
-    if (installed.code !== 0) throw new Error("Native production package installation failed")
+    if (installed.code !== 0)
+      throw new Error(
+        `Native production package installation failed: ${JSON.stringify({ exitCode: installed.code, signal: installed.signal })}`
+      )
     const packageRoot = join(install, "node_modules/@hapsland/hapsland")
     const runtimeAssets = piRuntimeAssetsDigest(packageRoot)
     const currentBuildAssets = piRuntimeAssetsDigest(project)
