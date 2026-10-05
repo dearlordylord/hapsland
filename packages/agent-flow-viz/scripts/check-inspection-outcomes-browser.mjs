@@ -121,7 +121,7 @@ try {
     )
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [path], { tool_use_id: name })))
     assert.ok(observation)
-    assert.equal(Effect.runSync(resident.admit(observation, dispatch)).status, "accepted")
+    assert.equal((await Effect.runPromise(resident.admit(observation, dispatch))).status, "accepted")
     if (name === "interrupted") {
       await started.promise
       await Effect.runPromise(resident.close)

@@ -19,7 +19,7 @@ import {
 
 describe("Pi native extension inspection through production command and public feed", () => {
   const stateHome = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-pi-inspection-")))
-  beforeAll(() => setupInstalledPi("source"))
+  beforeAll(() => setupInstalledPi("installed"), 240_000)
   afterEach(cleanupPiFixtures)
   afterAll(() => {
     cleanupInstalledPi()

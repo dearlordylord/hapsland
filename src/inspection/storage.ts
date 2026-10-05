@@ -25,6 +25,10 @@ const privateOwned = (stat: Stats): boolean =>
   (stat.mode & 0o077) === 0 &&
   !stat.isSymbolicLink()
 const sameFile = (a: Stats, b: Stats): boolean => a.dev === b.dev && a.ino === b.ino
+const fileMetadata = (stat: Stats): string =>
+  [stat.dev, stat.ino, stat.mode, stat.uid, stat.nlink, stat.size, stat.blocks, stat.mtimeMs, stat.ctimeMs].join(":")
+const unchangedPrivateFile = (stat: Stats, metadata: string): boolean =>
+  privateOwned(stat) && stat.isFile() && fileMetadata(stat) === metadata
 const recordName = (record: InspectionRecord): string =>
   `${record.source.id}-${String(record.sequence).padStart(16, "0")}.json`
 const lossName = (loss: InspectionLoss): string => `${loss.sourceId}-${String(loss.sequence).padStart(16, "0")}.loss`
@@ -36,9 +40,15 @@ type Stored = {
   readonly record: InspectionRecord
   readonly encoded: string
   readonly bytes: number
+  readonly metadata: string
 }
 
-type StoredLoss = { readonly name: string; readonly loss: InspectionLoss; readonly bytes: number }
+type StoredLoss = {
+  readonly name: string
+  readonly loss: InspectionLoss
+  readonly bytes: number
+  readonly metadata: string
+}
 type Inventory = { readonly records: Stored[]; readonly losses: StoredLoss[] }
 
 /** A private journal shared by all producers. Lock contention loses optional capture; it never waits. */
@@ -47,6 +57,7 @@ export const makeInspectionStorage = (
   limits: { readonly retentionMs: number; readonly storageBytes: number; readonly now?: () => number },
   controls: {
     /** Local IO barriers for the physical failure seam; never supplied by IPC or configuration. */
+    readonly beforeAllocationCheck?: () => Promise<void>
     readonly beforePublication?: () => Promise<void>
     readonly afterPublication?: () => Promise<void>
     readonly beforeCommit?: () => Promise<void>
@@ -84,7 +95,7 @@ export const makeInspectionStorage = (
       const encoded = await file.readFile({ encoding: "utf8" })
       const record = decodeInspectionRecordText(encoded)
       if (record.source.id !== match[1] || String(record.sequence).padStart(16, "0") !== match[2]) throw unavailable()
-      return { name, record, encoded, bytes: inspectionAllocatedBytes(stat) }
+      return { name, record, encoded, bytes: inspectionAllocatedBytes(stat), metadata: fileMetadata(stat) }
     } finally {
       await file.close()
     }
@@ -98,7 +109,7 @@ export const makeInspectionStorage = (
       if (!privateOwned(stat) || !stat.isFile() || stat.nlink !== 1 || stat.size > 512) throw unavailable()
       const loss = decodeInspectionLossText(await file.readFile({ encoding: "utf8" }))
       if (loss.sourceId !== match[1] || String(loss.sequence).padStart(16, "0") !== match[2]) throw unavailable()
-      return { name, loss, bytes: inspectionAllocatedBytes(stat) }
+      return { name, loss, bytes: inspectionAllocatedBytes(stat), metadata: fileMetadata(stat) }
     } finally {
       await file.close()
     }
@@ -186,11 +197,12 @@ export const makeInspectionStorage = (
       await controls.beforeLossPublication?.()
       await link(temporary, join(root, lossName(loss)))
       await controls.afterLossPublication?.()
-      return { name: lossName(loss), loss, bytes }
     } finally {
       await file.close()
       await unlink(temporary)
     }
+    // Linking and removing the temporary name changes ctime/link count.
+    return await readLoss(root, lossName(loss))
   }
   const prune = async (root: string, current: Inventory, reserved: number, rootStat: Stats) => {
     const block = (await statfs(root)).bsize
@@ -289,13 +301,11 @@ export const makeInspectionStorage = (
           try {
             await file.writeFile(encoded, "utf8")
             const actual = await file.stat()
+            await controls.beforeAllocationCheck?.()
             const currentRoot = await lstat(root)
             const total =
               inspectionAllocatedBytes(currentRoot) +
-              (await inventoryWithoutPending(root, temporary, read, readLoss)).reduce(
-                (sum, entry) => sum + entry.bytes,
-                0
-              ) +
+              (await allocatedInventoryBytes(root, temporary, [...retained.records, ...retained.losses])) +
               inspectionAllocatedBytes(actual)
             await controls.beforePublication?.()
             if (total + block > limits.storageBytes || signal.aborted || !publication.allowed()) return
@@ -344,18 +354,27 @@ export const makeInspectionStorage = (
   }
 }
 
-const inventoryWithoutPending = async (
+/** Payloads were validated under this same exclusive lock. Recheck every
+ * retained file's identity and mutation metadata before counting allocation;
+ * changed or additional files fail closed instead of reusing stale evidence. */
+const allocatedInventoryBytes = async (
   root: string,
   pending: string,
-  read: (root: string, name: string) => Promise<Stored>,
-  readLoss: (root: string, name: string) => Promise<StoredLoss>
-): Promise<Array<Stored | StoredLoss>> => {
+  retained: ReadonlyArray<Stored | StoredLoss>
+): Promise<number> => {
   const names = await readdir(root)
   if (names.length > MAX_FILES) throw unavailable()
-  const records: Array<Stored | StoredLoss> = []
+  const known = new Map(retained.map((entry) => [entry.name, entry]))
+  let bytes = 0
   for (const name of names) {
     if (join(root, name) === pending) continue
-    records.push(LOSS_NAME.test(name) ? await readLoss(root, name) : await read(root, name))
+    const entry = known.get(name)
+    if (entry === undefined) throw unavailable()
+    const stat = await lstat(join(root, name))
+    if (!unchangedPrivateFile(stat, entry.metadata)) throw unavailable()
+    bytes += inspectionAllocatedBytes(stat)
+    known.delete(name)
   }
-  return records
+  if (known.size > 0) throw unavailable()
+  return bytes
 }

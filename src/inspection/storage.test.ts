@@ -49,6 +49,42 @@ const publish = (store: ReturnType<typeof makeInspectionStorage>, value: Inspect
   Effect.runPromise(store.write(value, JSON.stringify(value), { allowed, commit: allowed }))
 
 describe("private inspection journal", () => {
+  it.each(["changed", "added", "removed", "permissions"] as const)(
+    "refuses a %s file after quota inventory validation",
+    async (change) => {
+      const directory = await fixture()
+      const limits = { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }
+      await publish(makeInspectionStorage(directory, limits), record(1))
+      const existing = (await readdir(directory))[0]!
+      let mutated = false
+      const store = makeInspectionStorage(directory, limits, {
+        beforeAllocationCheck: async () => {
+          mutated = true
+          if (change === "changed") {
+            const value = record(1)
+            await writeFile(
+              join(directory, existing),
+              JSON.stringify({ ...value, correlation: { receiptId: "changed-size" } })
+            )
+          } else if (change === "removed") {
+            await rm(join(directory, existing))
+          } else if (change === "permissions") {
+            await chmod(join(directory, existing), 0o644)
+          } else {
+            const value = record(3)
+            const name = `${value.source.id}-${String(value.sequence).padStart(16, "0")}.json`
+            await writeFile(join(directory, name), JSON.stringify(value), { mode: 0o600 })
+          }
+        }
+      })
+      await expect(publish(store, record(2))).rejects.toThrow("inspection storage unavailable")
+      expect(mutated).toBe(true)
+      const names = await readdir(directory)
+      expect(names.some((name) => name.endsWith("0000000000000002.json"))).toBe(false)
+      expect(names.some((name) => name.startsWith("pending-"))).toBe(false)
+      expect(names.includes(existing)).toBe(change !== "removed")
+    }
+  )
   it.each([
     { boundary: "beforeCommit", retained: 0 },
     { boundary: "afterCommit", retained: 1 }

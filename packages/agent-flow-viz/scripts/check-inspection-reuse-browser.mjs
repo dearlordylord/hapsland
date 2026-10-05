@@ -87,7 +87,7 @@ try {
   const admit = async (path, tool_use_id, context = dispatch) => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [path], { tool_use_id })))
     assert.ok(observation)
-    assert.equal(Effect.runSync(resident.admit(observation, context)).status, "accepted")
+    assert.equal((await Effect.runPromise(resident.admit(observation, context))).status, "accepted")
   }
   phase = "join"
   await admit("type.ts", "owner")

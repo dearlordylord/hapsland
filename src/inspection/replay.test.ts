@@ -55,17 +55,19 @@ it("replays real per-source increments after a snapshot and resets honestly when
         const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [path])))
         if (!observation) throw new Error("missing observation")
         expect(
-          Effect.runSync(
-            resident.admit(observation, {
-              statePath: join(root, "consent"),
-              userConfigPath: join(root, "absent-user"),
-              credential: null,
-              controlled: {
-                answers: Object.fromEntries(
-                  configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
-                )
-              }
-            })
+          (
+            await Effect.runPromise(
+              resident.admit(observation, {
+                statePath: join(root, "consent"),
+                userConfigPath: join(root, "absent-user"),
+                credential: null,
+                controlled: {
+                  answers: Object.fromEntries(
+                    configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
+                  )
+                }
+              })
+            )
           ).status
         ).toBe("accepted")
         await stored.promise

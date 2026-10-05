@@ -248,26 +248,26 @@ export const fixture = (
     // ordinary 250 ms callback polls only its first 100 ms, so a busy reply can
     // truthfully defer the offer. Exercise at most two real later opportunities;
     // never stretch the production callback deadline or fabricate an offer.
+    // Comment-only edits keep this witness about the existing finding; starting
+    // unrelated classifier jobs here competes with its short collection window.
     let output
     let editCount = 0
     for (const [index, path] of ["other.ts", "later.ts"].entries()) {
       const next = {
         ...before,
         toolCallId: `native-edit-${index + 2}`,
-        input: { path, edits: [{ oldText: "type Before = string", newText: `type Later${index}Count = number` }] }
+        input: { path, edits: [{ oldText: "// before", newText: `// callback opportunity ${index}` }] }
       }
-      writeFileSync(join(root, path), "type Before = string\n")
+      writeFileSync(join(root, path), "// before\n")
       await call("tool_call", next, ctx)
-      writeFileSync(join(root, path), `type Later${index}Count = number\n`)
+      writeFileSync(join(root, path), `// callback opportunity ${index}\n`)
       output = await call(
         "tool_result",
         {
           ...result,
           ...next,
           content: [{ type: "text", text: `Successfully replaced text in ${path}.` }],
-          details: {
-            patch: `--- ${path}\n+++ ${path}\n@@ -1 +1 @@\n-type Before = string\n+type Later${index}Count = number\n`
-          }
+          details: { patch: `--- ${path}\n+++ ${path}\n@@ -1 +1 @@\n-// before\n+// callback opportunity ${index}\n` }
         },
         ctx
       )

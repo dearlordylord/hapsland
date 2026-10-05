@@ -78,17 +78,19 @@ it("disconnects a stalled public feed while real resident reviews and persistenc
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (!observation) throw new Error("missing observation")
     expect(
-      Effect.runSync(
-        resident.admit(observation, {
-          statePath: join(root, "consent"),
-          userConfigPath: join(root, "absent-user"),
-          credential: null,
-          controlled: {
-            answers: Object.fromEntries(
-              configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
-            )
-          }
-        })
+      (
+        await Effect.runPromise(
+          resident.admit(observation, {
+            statePath: join(root, "consent"),
+            userConfigPath: join(root, "absent-user"),
+            credential: null,
+            controlled: {
+              answers: Object.fromEntries(
+                configuredRules.map((rule) => [rule.id, { _tag: "Probability" as const, probability: 0 }])
+              )
+            }
+          })
+        )
       ).status
     ).toBe("accepted")
     await published.promise

@@ -117,7 +117,7 @@ try {
     )
     assert.ok(observation)
     published = nativeDeferred()
-    assert.equal(Effect.runSync(resident.admit(observation, dispatch)).status, "accepted")
+    assert.equal((await Effect.runPromise(resident.admit(observation, dispatch))).status, "accepted")
     if (waitForCapture) await published.promise
     await Effect.runPromise(resident.whenIdle())
   }

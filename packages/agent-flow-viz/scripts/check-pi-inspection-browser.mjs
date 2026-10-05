@@ -24,22 +24,24 @@ const scope = await Effect.runPromise(Scope.make())
 let browser
 const errors = []
 let expired = false
-const deadline = setTimeout(() => {
-  expired = true
-  console.error("Pi inspection browser deadline expired")
-  void (async () => {
-    try {
-      await browser?.close()
-      await cleanupPiFixtures()
-    } catch (error) {
-      console.error("Pi inspection browser cleanup failed:", error.message)
-    } finally {
-      process.exit(1)
-    }
-  })()
-}, 45000)
+let deadline
 try {
-  await setupInstalledPi("source")
+  // Package preparation has its own finite build/pack bounds; the interaction clock starts afterwards.
+  await setupInstalledPi("installed")
+  deadline = setTimeout(() => {
+    expired = true
+    console.error("Pi inspection browser deadline expired")
+    void (async () => {
+      try {
+        await browser?.close()
+        await cleanupPiFixtures()
+      } catch (error) {
+        console.error("Pi inspection browser cleanup failed:", error.message)
+      } finally {
+        process.exit(1)
+      }
+    })()
+  }, 45000)
   const outputs = []
   for (const variant of ["edit", "unavailable", "oversized", "lost-ack"]) {
     if (expired) throw new Error("Pi inspection browser deadline expired")
@@ -80,8 +82,8 @@ try {
           retentionMs: 86400000,
           storageBytes: 134217728
         })
-        const retained = await Effect.runPromise(journal.snapshot())
-        const observations = retained.records
+        const retained = await Effect.runPromise(journal.snapshot()).catch(() => undefined)
+        const observations = (retained?.records ?? [])
           .slice(-64)
           .map(({ capturedAt, fact }) => ({
             capturedAt,
@@ -91,7 +93,7 @@ try {
             ...(typeof fact.reason === "string" ? { reason: fact.reason } : {})
           }))
         assert.fail(
-          `native edit offer missing; last 64 retained lifecycle observations: ${JSON.stringify(observations)}`
+          `native edit offer missing; journal ${retained === undefined ? "unavailable" : "available"}; last 64 retained lifecycle observations: ${JSON.stringify(observations)}`
         )
       }
     }

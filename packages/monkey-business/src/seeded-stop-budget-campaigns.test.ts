@@ -77,6 +77,8 @@ it.each(campaigns)("seed $seed preserves captured Stop membership and output pro
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 })
 
+// Four actual outputs and exact replay are the continuation-limit witness.
+// Covered execution took 9.3s; keep every transition with a finite 15s fixture bound.
 it("uses four actual same-round outputs then permits Stop without a fifth continuation", () => {
   const run = createRun({
     seed: 91001,
@@ -161,4 +163,4 @@ it("uses four actual same-round outputs then permits Stop without a fifth contin
         frame.commands.some((command) => command.kind === "finishAllowedNoAdvice") && frame.time === 4 * 40 + 2 + 5
     )
   ).toBe(true)
-})
+}, 15_000)

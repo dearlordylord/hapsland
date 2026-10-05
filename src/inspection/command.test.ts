@@ -137,17 +137,19 @@ describe.each(["source", "package"] as const)("%s foreground inspection command"
       if (!observation) throw new Error("missing observation")
       published = nativeDeferred<void>()
       expect(
-        Effect.runSync(
-          resident.admit(observation, {
-            statePath: join(root, "consent"),
-            userConfigPath: join(root, "absent-user"),
-            credential: null,
-            controlled: {
-              answers: Object.fromEntries(
-                configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
-              )
-            }
-          })
+        (
+          await Effect.runPromise(
+            resident.admit(observation, {
+              statePath: join(root, "consent"),
+              userConfigPath: join(root, "absent-user"),
+              credential: null,
+              controlled: {
+                answers: Object.fromEntries(
+                  configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
+                )
+              }
+            })
+          )
         ).status
       ).toBe("accepted")
       await published.promise
