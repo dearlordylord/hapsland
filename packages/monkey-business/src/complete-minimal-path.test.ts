@@ -5,6 +5,10 @@ import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { expect, it } from "vitest"
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunConfig } from "./index.ts"
+import {
+  runWorkloadNative,
+  WORKLOAD_CONFORMANCE_TIMEOUT_MS
+} from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 
 // The public scenario seam is agreed in #176. Expected observations below come
 // from the advice/handoff contract, not another invocation of Canonical.
@@ -213,271 +217,248 @@ it("keeps a wide delay exact in the compiled native driver execution lane", () =
   }
 })
 
-it("runs original source-free minimal scenarios through the native shared driver and agrees on intermediate public traces", () => {
-  const directory = mkdtempSync(join(tmpdir(), "hapsland-minimal-scenario-"))
-  let nativeTraces: number[][][]
-  try {
-    const source = join(directory, "scenario.c")
-    const binary = join(directory, "scenario")
-    const emit = spawnSync(
-      "bend",
-      [
-        fileURLToPath(new URL("../../monkey-business-bend/conformance/minimal-scenario.bend", import.meta.url)),
-        "-o",
-        source
-      ],
-      { encoding: "utf8", timeout: 5000 }
-    )
-    expect(emit.error).toBeUndefined()
-    expect(emit.status, emit.stdout + emit.stderr).toBe(0)
-    // Bend checking/emission and native execution each retain a five-second bound.
-    // External C compilation has a separate fifteen-second bound: it took 4.1s
-    // without load and exceeded 5s during concurrent checks. This compile budget
-    // changes no proof or simulated-time deadline; optimization is irrelevant to traces.
-    const compile = spawnSync("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], {
-      encoding: "utf8",
-      timeout: 15000
-    })
-    expect(compile.error).toBeUndefined()
-    expect(compile.status, compile.stdout + compile.stderr).toBe(0)
-    const native = spawnSync(binary, [], { encoding: "utf8", timeout: 5000 })
-    expect(native.error).toBeUndefined()
-    expect(native.status, native.stdout + native.stderr).toBe(0)
-    nativeTraces = JSON.parse(native.stdout)
-  } finally {
-    rmSync(directory, { recursive: true, force: true })
-  }
-  // Independent contract observations also constrain the native lane directly.
-  expect(nativeTraces.map((trace) => trace.filter((row) => row[0] === 18).length)).toEqual([1, 0, 0, 0, 0, 0, 0])
-  for (const trace of nativeTraces) {
-    expect(trace.some((row) => row[0] === 97 || row[0] === 98 || row[0] === 99)).toBe(false)
-    expect(trace.filter((row) => row[0] === 21).map((row) => row.slice(1, 6))).toEqual([
-      [0, 0, 1, 100, 20],
-      [0, 1, 1, 100, 20],
-      [0, 2, 1, 100, 20],
-      [1, 3, 1, 100, 20],
-      [1, 0, 2, 200, 40],
-      [1, 4, 2, 200, 40]
-    ])
-    expect(trace.filter((row) => row[0] === 11)).toHaveLength(1)
-    expect(trace.filter((row) => row[0] === 12).map((row) => row[1])).toEqual([7])
-    expect(trace.filter((row) => row[0] === 8).map((row) => row[1])).toEqual([2, 7])
-  }
-  for (const trace of nativeTraces.slice(5)) {
-    const retirements = trace.filter((row) => row[0] === 24)
-    expect(retirements.length).toBeGreaterThan(0)
-    expect(retirements.every((row) => row[3] === 2)).toBe(true)
-    expect(trace.at(-1)!.slice(15, 17)).toEqual([0, 0])
-  }
-  const eventCodes: Record<string, number> = {
-    openRound: 1,
-    admitObservation: 2,
-    queueDispatch: 3,
-    startObservation: 4,
-    beginObservedPreparation: 5,
-    preparationCompleted: 6,
-    completeObservation: 7,
-    dispatchSettled: 8,
-    startReview: 9,
-    jevRequestReady: 10,
-    jevRequestStarted: 11,
-    jevRequestSettled: 12,
-    collectionReady: 13,
-    finalCandidateCheck: 14,
-    submissionSuppressCheck: 15,
-    collectionReserveLease: 16,
-    submissionBegin: 17,
-    submissionTerminal: 18,
-    collectionLeaseCheck: 19,
-    collectionReleaseLease: 20,
-    collectionRetireAdvice: 22,
-    submissionForget: 23,
-    retireReview: 24
-  }
-  const commandCodes: Record<string, number> = {
-    roundStarted: 1,
-    observationAdmitted: 2,
-    dispatchStarted: 3,
-    prepare: 4,
-    unitAdmitted: 5,
-    jevRequestIssued: 6,
-    retainFinding: 7,
-    collectionEligible: 8,
-    retainCandidate: 9,
-    submissionUnsuppressed: 10,
-    collectionLeaseReserved: 11,
-    submissionBegun: 12,
-    submissionRecorded: 13,
-    observationStarted: 14,
-    preparationReleased: 15,
-    observationCompleted: 16,
-    reviewStarted: 17,
-    jevRequestStartRecorded: 18,
-    jevRequestOutcomeRecorded: 19,
-    reservationReleased: 20,
-    collectionLeaseKept: 21,
-    collectionLeaseReleased: 22,
-    settleClear: 23,
-    reviewRecorded: 24,
-    retireCandidate: 25,
-    releaseCandidate: 26,
-    collectionAdviceRetired: 27,
-    submissionForgotten: 28
-  }
-  const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 }
-  const scenarios = [
-    { outcome: "finding" as const },
-    { outcome: "clear" as const },
-    { outcome: "finding" as const, environment: { currentWork: false, credentialReady: true } },
-    { outcome: "finding" as const, environment: { currentWork: true, credentialReady: false } },
-    { outcome: "finding" as const, environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 } },
-    { outcome: "finding" as const, lifetime: 2, environment: { currentWork: false, credentialReady: true } },
-    {
-      outcome: "finding" as const,
-      lifetime: 2,
-      environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 }
+it(
+  "runs original source-free minimal scenarios through the native shared driver and agrees on intermediate public traces",
+  () => {
+    const nativeTraces = runWorkloadNative(
+      new URL("../../monkey-business-bend/conformance/minimal-scenario.bend", import.meta.url)
+    ) as number[][][]
+    // Independent contract observations also constrain the native lane directly.
+    expect(nativeTraces.map((trace) => trace.filter((row) => row[0] === 18).length)).toEqual([1, 0, 0, 0, 0, 0, 0])
+    for (const trace of nativeTraces) {
+      expect(trace.some((row) => row[0] === 97 || row[0] === 98 || row[0] === 99)).toBe(false)
+      expect(trace.filter((row) => row[0] === 21).map((row) => row.slice(1, 6))).toEqual([
+        [0, 0, 1, 100, 20],
+        [0, 1, 1, 100, 20],
+        [0, 2, 1, 100, 20],
+        [1, 3, 1, 100, 20],
+        [1, 0, 2, 200, 40],
+        [1, 4, 2, 200, 40]
+      ])
+      expect(trace.filter((row) => row[0] === 11)).toHaveLength(1)
+      expect(trace.filter((row) => row[0] === 12).map((row) => row[1])).toEqual([7])
+      expect(trace.filter((row) => row[0] === 8).map((row) => row[1])).toEqual([2, 7])
     }
-  ]
-  const traces = scenarios.map(({ outcome, environment, lifetime }, index) => {
-    const config = minimal(outcome)
-    const run = createRun(
-      lifetime === undefined
-        ? config
-        : {
-            ...config,
-            inputs: [
-              { at: 0, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime } },
-              ...config.inputs!
-            ]
-          }
-    )
-    if (environment) {
-      for (
-        let steps = 0;
-        steps < 100 && !run.observations.some((frame) => frame.event.kind === "jevRequestSettled");
-        steps++
-      )
-        run.step()
-      run.applyControl({ kind: "environment", ...environment })
-    }
-    run.advance({ untilTime: 10 })
-    if (lifetime === 2) {
-      // A stale finding releases its original lifetime's reservation; ownership
-      // cannot be reconstructed using the resident's initial lifetime.
-      expect(run.projection.pendingFindings).toEqual([])
-      expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-      expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
-      const retirements = run.observations.filter((frame) => frame.event.kind === "retireReview")
+    for (const trace of nativeTraces.slice(5)) {
+      const retirements = trace.filter((row) => row[0] === 24)
       expect(retirements.length).toBeGreaterThan(0)
-      for (const frame of retirements) expect(frame.event).toMatchObject({ partition: 1, lifetime: 2, round: 1 })
+      expect(retirements.every((row) => row[3] === 2)).toBe(true)
+      expect(trace.at(-1)!.slice(15, 17)).toEqual([0, 0])
     }
-    expect(run.eventCount).toBe(nativeTraces[index]!.length)
-    expect(run.now).toBe(nativeTraces[index]!.at(-1)![1])
-    expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
-    return run.observations.map((frame) => {
-      if (frame.preparation) {
-        const { command, after } = frame.preparation
+    const eventCodes: Record<string, number> = {
+      openRound: 1,
+      admitObservation: 2,
+      queueDispatch: 3,
+      startObservation: 4,
+      beginObservedPreparation: 5,
+      preparationCompleted: 6,
+      completeObservation: 7,
+      dispatchSettled: 8,
+      startReview: 9,
+      jevRequestReady: 10,
+      jevRequestStarted: 11,
+      jevRequestSettled: 12,
+      collectionReady: 13,
+      finalCandidateCheck: 14,
+      submissionSuppressCheck: 15,
+      collectionReserveLease: 16,
+      submissionBegin: 17,
+      submissionTerminal: 18,
+      collectionLeaseCheck: 19,
+      collectionReleaseLease: 20,
+      collectionRetireAdvice: 22,
+      submissionForget: 23,
+      retireReview: 24
+    }
+    const commandCodes: Record<string, number> = {
+      roundStarted: 1,
+      observationAdmitted: 2,
+      dispatchStarted: 3,
+      prepare: 4,
+      unitAdmitted: 5,
+      jevRequestIssued: 6,
+      retainFinding: 7,
+      collectionEligible: 8,
+      retainCandidate: 9,
+      submissionUnsuppressed: 10,
+      collectionLeaseReserved: 11,
+      submissionBegun: 12,
+      submissionRecorded: 13,
+      observationStarted: 14,
+      preparationReleased: 15,
+      observationCompleted: 16,
+      reviewStarted: 17,
+      jevRequestStartRecorded: 18,
+      jevRequestOutcomeRecorded: 19,
+      reservationReleased: 20,
+      collectionLeaseKept: 21,
+      collectionLeaseReleased: 22,
+      settleClear: 23,
+      reviewRecorded: 24,
+      retireCandidate: 25,
+      releaseCandidate: 26,
+      collectionAdviceRetired: 27,
+      submissionForgotten: 28
+    }
+    const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 }
+    const scenarios = [
+      { outcome: "finding" as const },
+      { outcome: "clear" as const },
+      { outcome: "finding" as const, environment: { currentWork: false, credentialReady: true } },
+      { outcome: "finding" as const, environment: { currentWork: true, credentialReady: false } },
+      {
+        outcome: "finding" as const,
+        environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 }
+      },
+      { outcome: "finding" as const, lifetime: 2, environment: { currentWork: false, credentialReady: true } },
+      {
+        outcome: "finding" as const,
+        lifetime: 2,
+        environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 }
+      }
+    ]
+    const traces = scenarios.map(({ outcome, environment, lifetime }, index) => {
+      const config = minimal(outcome)
+      const run = createRun(
+        lifetime === undefined
+          ? config
+          : {
+              ...config,
+              inputs: [
+                { at: 0, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime } },
+                ...config.inputs!
+              ]
+            }
+      )
+      if (environment) {
+        for (
+          let steps = 0;
+          steps < 100 && !run.observations.some((frame) => frame.event.kind === "jevRequestSettled");
+          steps++
+        )
+          run.step()
+        run.applyControl({ kind: "environment", ...environment })
+      }
+      run.advance({ untilTime: 10 })
+      if (lifetime === 2) {
+        // A stale finding releases its original lifetime's reservation; ownership
+        // cannot be reconstructed using the resident's initial lifetime.
+        expect(run.projection.pendingFindings).toEqual([])
+        expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
+        expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
+        const retirements = run.observations.filter((frame) => frame.event.kind === "retireReview")
+        expect(retirements.length).toBeGreaterThan(0)
+        for (const frame of retirements) expect(frame.event).toMatchObject({ partition: 1, lifetime: 2, round: 1 })
+      }
+      expect(run.eventCount).toBe(nativeTraces[index]!.length)
+      expect(run.now).toBe(nativeTraces[index]!.at(-1)![1])
+      expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
+      return run.observations.map((frame) => {
+        if (frame.preparation) {
+          const { command, after } = frame.preparation
+          return [
+            21,
+            frame.time,
+            graphCodes[command.kind] ?? 99,
+            after.files,
+            after.readBytes,
+            after.treeBytes,
+            frame.after.global.items,
+            frame.after.global.bytes,
+            frame.after.dispatch.running.length,
+            frame.after.dispatch.requests.length,
+            frame.after.collection.leases.length
+          ]
+        }
+        const event = frame.event as unknown as Record<string, unknown>
+        const facts =
+          event.kind === "finalCandidateCheck"
+            ? [
+                event.ownerCurrent,
+                event.credentialGeneration,
+                event.credentialAuthorized,
+                event.expired,
+                event.workCurrent,
+                event.hasFindings
+              ].map(Number)
+            : event.kind === "jevRequestReady"
+              ? [
+                  event.rootValid,
+                  event.configurationValid,
+                  event.credentialReady,
+                  event.selected,
+                  event.currentWork,
+                  event.physicalAvailable
+                ].map(Number)
+              : event.kind === "jevRequestSettled"
+                ? [
+                    Number(event.currentWork),
+                    { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[
+                      event.outcome as "finding"
+                    ],
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                : event.kind === "submissionTerminal"
+                  ? [Number(event.certain), 0, 0, 0, 0, 0]
+                  : event.kind === "beginObservedPreparation"
+                    ? [event.bytes, 0, 0, 0, 0, 0]
+                    : event.kind === "preparationCompleted"
+                      ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0]
+                      : event.kind === "submissionBegin"
+                        ? [
+                            Number(event.authorizeNow),
+                            (event.fingerprints as number[]).length,
+                            (event.fingerprints as number[])[0] ?? 0,
+                            (event.units as number[]).length,
+                            (event.units as number[])[0] ?? 0,
+                            0
+                          ]
+                        : event.kind === "collectionLeaseCheck"
+                          ? [
+                              Number(event.expired),
+                              Number(event.stopCollector),
+                              Number(event.sameGroup),
+                              Number(event.reofferable),
+                              0,
+                              0
+                            ]
+                          : [0, 0, 0, 0, 0, 0]
         return [
-          21,
+          eventCodes[frame.event.kind] ?? 99,
           frame.time,
-          graphCodes[command.kind] ?? 99,
-          after.files,
-          after.readBytes,
-          after.treeBytes,
+          ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(
+            (key) =>
+              (frame.event as unknown as Record<string, unknown>)[key] ??
+              (key === "operation"
+                ? event.observation
+                : key === "partition"
+                  ? event.group
+                  : key === "token"
+                    ? event.fingerprint
+                    : undefined) ??
+              0
+          ),
+          ...facts,
           frame.after.global.items,
           frame.after.global.bytes,
           frame.after.dispatch.running.length,
           frame.after.dispatch.requests.length,
-          frame.after.collection.leases.length
+          frame.after.collection.leases.length,
+          Number(!!frame.rejection),
+          ...frame.commands.map((command) => {
+            if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`)
+            return commandCodes[command.kind]!
+          })
         ]
-      }
-      const event = frame.event as unknown as Record<string, unknown>
-      const facts =
-        event.kind === "finalCandidateCheck"
-          ? [
-              event.ownerCurrent,
-              event.credentialGeneration,
-              event.credentialAuthorized,
-              event.expired,
-              event.workCurrent,
-              event.hasFindings
-            ].map(Number)
-          : event.kind === "jevRequestReady"
-            ? [
-                event.rootValid,
-                event.configurationValid,
-                event.credentialReady,
-                event.selected,
-                event.currentWork,
-                event.physicalAvailable
-              ].map(Number)
-            : event.kind === "jevRequestSettled"
-              ? [
-                  Number(event.currentWork),
-                  { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[
-                    event.outcome as "finding"
-                  ],
-                  0,
-                  0,
-                  0,
-                  0
-                ]
-              : event.kind === "submissionTerminal"
-                ? [Number(event.certain), 0, 0, 0, 0, 0]
-                : event.kind === "beginObservedPreparation"
-                  ? [event.bytes, 0, 0, 0, 0, 0]
-                  : event.kind === "preparationCompleted"
-                    ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0]
-                    : event.kind === "submissionBegin"
-                      ? [
-                          Number(event.authorizeNow),
-                          (event.fingerprints as number[]).length,
-                          (event.fingerprints as number[])[0] ?? 0,
-                          (event.units as number[]).length,
-                          (event.units as number[])[0] ?? 0,
-                          0
-                        ]
-                      : event.kind === "collectionLeaseCheck"
-                        ? [
-                            Number(event.expired),
-                            Number(event.stopCollector),
-                            Number(event.sameGroup),
-                            Number(event.reofferable),
-                            0,
-                            0
-                          ]
-                        : [0, 0, 0, 0, 0, 0]
-      return [
-        eventCodes[frame.event.kind] ?? 99,
-        frame.time,
-        ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(
-          (key) =>
-            (frame.event as unknown as Record<string, unknown>)[key] ??
-            (key === "operation"
-              ? event.observation
-              : key === "partition"
-                ? event.group
-                : key === "token"
-                  ? event.fingerprint
-                  : undefined) ??
-            0
-        ),
-        ...facts,
-        frame.after.global.items,
-        frame.after.global.bytes,
-        frame.after.dispatch.running.length,
-        frame.after.dispatch.requests.length,
-        frame.after.collection.leases.length,
-        Number(!!frame.rejection),
-        ...frame.commands.map((command) => {
-          if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`)
-          return commandCodes[command.kind]!
-        })
-      ]
+      })
     })
-  })
-  expect(nativeTraces).toEqual(traces)
-}, 30000)
+    expect(nativeTraces).toEqual(traces)
+  },
+  WORKLOAD_CONFORMANCE_TIMEOUT_MS
+)
 
 it.each([
   { currentWork: false, credentialReady: true },

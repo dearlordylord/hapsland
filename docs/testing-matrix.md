@@ -113,6 +113,8 @@ These source-checkout diagnostics do not amend the original comparison cell or
 establish a general delivery guarantee. The investigation made four physical Jev
 requests across its two live runs.
 
+The compact native terminal recovery fixture retains all 2050 requests and its full result vector. It uses the shared runner’s explicit 15-second execution allowance; ordinary fixtures retain the default five seconds. A retained binary completed in 4.06 seconds separately but twice exceeded five seconds during the focused suite. This allowance bounds offline stress execution and makes no product latency claim. The original minimal native trace fixture also uses the shared runner, with separate default 30-second C emission and clang allowances.
+
 ## Native compilation phase
 
 Ordinary `npm test` and `npm run quality:check` invoke Vitest directly after the

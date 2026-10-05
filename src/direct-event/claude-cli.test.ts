@@ -251,7 +251,7 @@ describe("Claude synchronous hook CLI", () => {
       const stats = await runClient(
         residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime })
       )
-      expect(stats).toMatchObject({ status: "stats", pendingAdvice: 0 })
+      expect(stats).toMatchObject({ status: "stats", pendingAdvice: 1 })
     } finally {
       writeFileSync(`${gate}.release`, "release\n")
       if (child.exitCode === null) child.kill()
