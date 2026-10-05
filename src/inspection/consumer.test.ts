@@ -95,7 +95,21 @@ it("disconnects a stalled public feed while real resident reviews and persistenc
     ).toBe("accepted")
     await published.promise
     await Effect.runPromise(resident.whenIdle())
-    const live = (await (await fetch(`${server.url}snapshot`)).json()) as { records: InspectionRecord[] }
+    // SSE polling can own the non-waiting journal lock. Unavailability is a truthful
+    // snapshot response, so wait finitely for a readable snapshot rather than treating it as records.
+    let live: { records: InspectionRecord[] } | undefined
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const value = (await (await fetch(`${server.url}snapshot`)).json()) as
+        | { records: InspectionRecord[] }
+        | { status: "unavailable" }
+      if ("records" in value) {
+        live = value
+        break
+      }
+      expect(value.status).toBe("unavailable")
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    if (live === undefined) throw new Error("persisted history remained unavailable")
     expect(live.records.some((record) => record.fact.kind === "evaluation-outcome" && record.scope.root === root)).toBe(
       true
     )
