@@ -7,6 +7,7 @@ const bindings = {
   "tree-sitter-typescript": "tree_sitter_typescript_binding.node",
   "tree-sitter-rust": "tree_sitter_rust_binding.node"
 } as const
+export const nativeParserBindings = bindings
 const bindingEnvironment = {
   "tree-sitter": "TREE_SITTER_PREBUILD",
   "tree-sitter-typescript": "TREE_SITTER_TYPESCRIPT_PREBUILD",

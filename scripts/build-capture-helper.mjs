@@ -3,6 +3,7 @@ import { existsSync, mkdirSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { buildNativeArtifact, copyNativeArtifact } from "./native-artifact.mjs"
+import { configureNativeBindings, nativeParserBindings } from "../src/runtime/native-bindings.ts"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const nativeDirectory = resolve(root, "native/prebuilt", `${process.platform}-${process.arch}`)
@@ -117,20 +118,8 @@ if (process.platform === "linux") {
   })
 }
 
-const parserBindings = [
-  {
-    packageName: "tree-sitter-rust",
-    localBuild: "tree_sitter_rust_binding.node",
-    publishedPrebuild: "tree-sitter-rust.node"
-  },
-  { packageName: "tree-sitter", localBuild: "tree_sitter_runtime_binding.node", publishedPrebuild: "tree-sitter.node" },
-  {
-    packageName: "tree-sitter-typescript",
-    localBuild: "tree_sitter_typescript_binding.node",
-    publishedPrebuild: "tree-sitter-typescript.node"
-  }
-]
-for (const binding of parserBindings) {
+for (const [packageName, localBuildName] of Object.entries(nativeParserBindings)) {
+  const binding = { packageName, localBuild: localBuildName, publishedPrebuild: `${packageName}.node` }
   const packageRoot = resolve(root, "node_modules", binding.packageName)
   const localBuild = resolve(packageRoot, "build/Release", binding.localBuild)
   const publishedPrebuild = resolve(
@@ -139,30 +128,24 @@ for (const binding of parserBindings) {
     `${process.platform}-${process.arch}`,
     binding.publishedPrebuild
   )
-  const candidates = process.platform === "darwin" ? [publishedPrebuild, localBuild] : [localBuild, publishedPrebuild]
+  const output = resolve(nativeDirectory, binding.packageName, "build/Release", binding.localBuild)
+  // Frozen installs can omit local compilation. Retain the maintained target
+  // binding before considering an npm prebuild with a different host ABI.
+  const candidates = [localBuild, output, publishedPrebuild]
   const source = candidates.find(existsSync)
   if (source === undefined) throw new Error(`release build is missing the ${binding.packageName} native binding`)
-  const output = resolve(nativeDirectory, binding.packageName, "build/Release", binding.localBuild)
   mkdirSync(dirname(output), { recursive: true, mode: 0o755 })
-  copyNativeArtifact(source, output)
+  if (source !== output) copyNativeArtifact(source, output)
 }
 
+configureNativeBindings(nativeDirectory)
 const parserProbe = spawnSync(
   process.execPath,
   [
     "-e",
     "const Parser = require('tree-sitter'); const { typescript } = require('tree-sitter-typescript'); const parser = new Parser(); parser.setLanguage(typescript); parser.parse('type Probe = string'); const Rust = require('tree-sitter-rust'); parser.setLanguage(Rust); const tree = parser.parse('struct Probe { value: Option<String> }'); if (tree.rootNode.hasError) process.exit(1);"
   ],
-  {
-    cwd: root,
-    env: {
-      ...process.env,
-      TREE_SITTER_PREBUILD: resolve(nativeDirectory, "tree-sitter"),
-      TREE_SITTER_TYPESCRIPT_PREBUILD: resolve(nativeDirectory, "tree-sitter-typescript"),
-      TREE_SITTER_RUST_PREBUILD: resolve(nativeDirectory, "tree-sitter-rust")
-    },
-    stdio: "pipe"
-  }
+  { cwd: root, env: process.env, stdio: "pipe" }
 )
 if (parserProbe.error !== undefined || parserProbe.status !== 0) {
   throw new Error("release parser bindings failed the target-host load probe")
