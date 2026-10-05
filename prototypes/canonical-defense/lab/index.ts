@@ -1,8 +1,6 @@
 import { createRun, restoreReplay, type Replay, type RunConfig, type Observation, type Control } from "../../../packages/monkey-business/src/index.ts"
 
 import { labSourceIdentity, configurationIdentity } from "./identity.ts"
-import Mechanics from "./mechanics.generated.mjs"
-import { reviewWeights } from "./review-profile.ts"
 
 const MECHANISM_IDENTITY = labSourceIdentity()
 
@@ -32,7 +30,7 @@ export type MechanismAction = {
 export type ActionReport = {
   readonly charged: number
   readonly action: MechanismAction
-  readonly result: "unsupported" | "disabled" | "unaffordable" | "applied" | "notReached"
+  readonly result: "disabled" | "unaffordable" | "applied" | "notReached" | "inapplicable"
 }
 
 export type MechanismDescriptor = {
@@ -43,53 +41,39 @@ export type MechanismDescriptor = {
   readonly applicability: string
   readonly observation: string
   readonly ability:
-    | { readonly kind: "unsupported"; readonly requirement: string; readonly mapping: "DependencyAcceleration" | "FutureBatching" | "LaunchPacing" }
-    | { readonly kind: "refinement" }
-    | { readonly kind: "outputLatency"; readonly delayMs: number; readonly leaseMs: number }
+    | { readonly kind: "jevService"; readonly baseDelayMs?: number }
+    | { readonly kind: "deliveryRelay"; readonly baseDelayMs?: number }
+    | { readonly kind: "accessRepair" }
 }
 
 export const mechanisms: Readonly<Record<string, MechanismDescriptor>> = {
-  refiner: { cost: 55, displayName: "Refiner", lesson: "Prevention before observation",
-    target: "future sampled review requests", applicability: "issued requests retain sampled outcome and deadline",
-    observation: "request outcomes and retained finding entries",
-    ability: { kind: "refinement" } },
-  coordinator: { cost: 35, displayName: "Coordinator", lesson: "Dependency waiting before collection",
-    target: "running dependency service", applicability: "requires an unavailable targeted acceleration control", observation: "dependency completion and collection eligibility times",
-    ability: { kind: "unsupported", mapping: "DependencyAcceleration", requirement: "targeted service acceleration" } },
-  packager: { cost: 60, displayName: "Packager", lesson: "Future batching versus committed output membership",
-    target: "future output batching", applicability: "requires an unavailable future batching control", observation: "batch membership at commitment and acknowledgment",
-    ability: { kind: "unsupported", mapping: "FutureBatching", requirement: "future output batching" } },
-  outputLatency: { cost: 60, displayName: "Output latency experiment", lesson: "Future output versus committed ownership",
-    target: "future output attempts", applicability: "profile must change before authorization to affect an attempt", observation: "submissionTerminal and finishTerminal times and certainty",
-    ability: { kind: "outputLatency", delayMs: 2, leaseMs: 100 } },
-  parallelizer: { cost: 70, displayName: "Parallelizer", lesson: "Launch pacing within fixed shared permits",
-    target: "future request launch pacing", applicability: "requires an unavailable launch pacing control; shared permits remain fixed", observation: "request start times and occupied shared permits",
-    ability: { kind: "unsupported", mapping: "LaunchPacing", requirement: "launch pacing" } }
+  jevService: { cost: 60, displayName: "JevService", lesson: "Future request latency within shared permits",
+    target: "future Jev requests", applicability: "issued requests preserve outcomes and deadlines",
+    observation: "request settlement times and occupied permits", ability: { kind: "jevService" } },
+  deliveryRelay: { cost: 55, displayName: "DeliveryRelay", lesson: "Future delivery versus committed ownership",
+    target: "future finding output attempts", applicability: "authorized attempts preserve captured timing and membership",
+    observation: "submissionTerminal timing and retained findings", ability: { kind: "deliveryRelay" } },
+  accessRepair: { cost: 45, displayName: "AccessRepair", lesson: "Access restoration before useful work",
+    target: "source readability and credential availability", applicability: "one restoration per experiment",
+    observation: "request admission after restored access", ability: { kind: "accessRepair" } }
 }
 
-function mechanismControl(input: Experiment, action: MechanismAction): Control | undefined {
-  const ability = (input.catalogue ?? mechanisms)[action.mechanism]!.ability
-  if (ability.kind === "unsupported") {
-    if (Mechanics.translate({ $: ability.mapping }).$ !== "Unsupported")
-      throw new Error("invalid unsupported mechanic translation")
-    return undefined
+/** Each level derives from the declared base, never the previously reduced delay. */
+function mechanismControls(input: Experiment, action: MechanismAction, level: number,
+  initial: ReturnType<ReturnType<typeof createRun>["runtimeSnapshot"]>): readonly Control[] {
+  const ability = input.catalogue![action.mechanism]!.ability
+  if (ability.kind === "jevService") {
+    const delayMs = Math.floor((ability.baseDelayMs ?? initial.jevDelay) / (1 + level))
+    return [{ kind: "jevProfile", delayMs, ...(initial.outcome === undefined
+      ? { outcomeWeights: initial.outcomeWeights } : { outcome: initial.outcome }) }]
   }
-  if (ability.kind === "refinement") {
-    const translated = Mechanics.translate({ $: "Refinement" })
-    if (translated.$ !== "FutureReview" || typeof translated.delay !== "bigint" || translated.delay < 0n || translated.delay > 1_000_000_000n)
-      throw new Error("invalid game refinement translation")
-    return { kind: "jevProfile", delayMs: Number(translated.delay), outcomeWeights: reviewWeights(translated.weights) }
-  }
-  const outcomes = ["certain", "uncertain", "failed"] as const
-  const outcome = input.scenario.outputProfile?.outcome ?? "certain"
-  const translated = Mechanics.translate({
-    $: "OutputLatency", outcome: outcomes.indexOf(outcome),
-    delay: BigInt(ability.delayMs), lease: BigInt(ability.leaseMs)
-  })
-  if (translated.$ !== "OutputTiming" || translated.outcome !== outcomes.indexOf(outcome) ||
-    translated.delay !== BigInt(ability.delayMs) || translated.lease !== BigInt(ability.leaseMs))
-    throw new Error("invalid game mechanic translation")
-  return { kind: "outputProfile", outcome, delayMs: Number(translated.delay), leaseMs: Number(translated.lease) }
+  if (ability.kind === "deliveryRelay")
+    return [{ kind: "outputProfile", ...initial.outputProfile,
+      delayMs: Math.floor((ability.baseDelayMs ?? initial.outputProfile.delayMs) / (1 + level)) }]
+  return [
+    { kind: "environment", ...initial.environment, sourceReadable: true },
+    { kind: "credentials", action: "restore" }
+  ]
 }
 
 function validateExperiment(input: Experiment): void {
@@ -103,15 +87,11 @@ function validateExperiment(input: Experiment): void {
     if (!Number.isSafeInteger(descriptor.cost) || descriptor.cost < 0) throw new RangeError("invalid mechanism cost")
     for (const field of [descriptor.displayName, descriptor.lesson, descriptor.target, descriptor.applicability, descriptor.observation])
       if (typeof field !== "string" || !field.trim()) throw new RangeError("invalid mechanism descriptor")
-    if (descriptor.ability.kind === "outputLatency") {
-      const { delayMs, leaseMs } = descriptor.ability
-      if (!Number.isSafeInteger(delayMs) || delayMs < 0 || delayMs > 1_000_000_000 ||
-        !Number.isSafeInteger(leaseMs) || leaseMs < 1 || leaseMs > 1_000_000_000)
-        throw new RangeError("invalid output timing")
-    } else if (descriptor.ability.kind !== "refinement" && (descriptor.ability.kind !== "unsupported" || !descriptor.ability.requirement ||
-      !["DependencyAcceleration", "FutureBatching", "LaunchPacing"].includes(descriptor.ability.mapping))) {
-      throw new RangeError("invalid mechanism ability")
-    }
+    if (descriptor.ability.kind === "jevService" || descriptor.ability.kind === "deliveryRelay") {
+      const delay = descriptor.ability.baseDelayMs
+      if (delay !== undefined && (!Number.isSafeInteger(delay) || delay < 0 || delay > 1_000_000_000))
+        throw new RangeError("invalid base delay")
+    } else if (descriptor.ability.kind !== "accessRepair") throw new RangeError("invalid mechanism ability")
   }
   for (const identity of input.enabled)
     if (!Object.hasOwn(catalogue, identity)) throw new RangeError(`unknown mechanism: ${identity}`)
@@ -120,7 +100,7 @@ function validateExperiment(input: Experiment): void {
     if (!Number.isSafeInteger(action.at) || action.at < 0 || action.at > input.untilTime)
       throw new RangeError("invalid action time")
     if (Object.hasOwn(action, "cost")) throw new RangeError("action cost belongs to mechanism configuration")
-    if (Object.hasOwn(action, "delayMs") || Object.hasOwn(action, "leaseMs"))
+    if (Object.hasOwn(action, "delayMs") || Object.hasOwn(action, "leaseMs") || Object.hasOwn(action, "baseDelayMs"))
       throw new RangeError("action parameters belong to mechanism configuration")
   }
   if (new Set(input.enabled).size !== input.enabled.length) throw new RangeError("duplicate mechanism")
@@ -146,14 +126,17 @@ export function runExperiment(input: Experiment) {
   })
   const actions: ActionReport[] = []
   let spent = 0
+  const initial = run.runtimeSnapshot()
+  const levels = new Map<string, number>()
+  let repaired = false
   let remainingEvents = input.maxEvents
   for (const action of [...input.actions].sort((a, b) => a.at - b.at)) {
-    const control = mechanismControl(input, action)
+    const ability = input.catalogue![action.mechanism]!.ability
     const cost = input.catalogue![action.mechanism]!.cost
     if (!input.enabled.includes(action.mechanism)) {
       actions.push({ action, result: "disabled", charged: 0 })
-    } else if (!control) {
-      actions.push({ action, result: "unsupported", charged: 0 })
+    } else if (ability.kind === "accessRepair" && repaired) {
+      actions.push({ action, result: "inapplicable", charged: 0 })
     } else if (cost > input.budget - spent) {
       actions.push({ action, result: "unaffordable", charged: 0 })
     } else if (remainingEvents === 0) {
@@ -167,7 +150,10 @@ export function runExperiment(input: Experiment) {
           continue
         }
       }
-      run.applyControl(control)
+      const level = (levels.get(action.mechanism) ?? 0) + 1
+      for (const control of mechanismControls(input, action, level, initial)) run.applyControl(control)
+      levels.set(action.mechanism, level)
+      if (ability.kind === "accessRepair") repaired = true
       spent += cost
       actions.push({ action, result: "applied", charged: cost })
     }

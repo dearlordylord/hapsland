@@ -1,20 +1,24 @@
 # Tower mechanisms for teaching Hapsland
 
-**Purpose:** Rank the seven inspected pre-migration tower mechanisms as candidates for an exploratory balance laboratory.
-**Status:** Temporary pre-migration source-inspection report; the owner selected the first three mechanisms for initial experiments on 2026-10-02. The final lineup remains open.
+**Purpose:** Explain the current teaching priorities and preserve the useful lessons from the earlier tower inspection until laboratory consolidation.
+**Status:** Temporary design advice updated for the supported three-mechanism experiments on 2026-10-05; the final lineup remains open.
 **Authority:** Design advice based on implementation inspection; accepted product contracts and issues #176/#199 own architecture and migration scope. This report does not establish human learning or empirical balance.
 **Expected use:** Choose two or three provisional interventions and paired cases for the laboratory specification.
 **Lifecycle:** When the initial mechanism cases are accepted at completion of [laboratory issue #203](https://github.com/dearlordylord/hapsland/issues/203), **consolidate** useful decisions and limitations into the optional-game guide and game design owner, update inbound links, and **delete** this report. Revisit before acceptance if #176/#199 change their simulation boundary.
 
-## Recommendation
+## Current teaching selection
 
-Start with **dependency-targeted acceleration (Coordinator), output batching (Packager), and launch pacing under fixed permits (Parallelizer)**. These name mechanisms, not permanent tower identities. Their current implementations can be replaced while keeping the teaching questions and observation requirements. Coordinator versus general acceleration gives a useful later comparison; Shield gives a useful negative control.
+The current supported experiment roster is **Jev Service, Delivery Relay and Access Repair**. This replaces the earlier dependency/batching/pacing study suggestion after inspection of the continuous simulator and the owner's process-display clarification. It does not establish a permanent roster or learning effectiveness.
 
-This is a priority for explaining actual Hapsland ownership and causality, not a strongest-tower ranking. It is inferred from code and contracts. No new runs, user study, visual review or measurement were performed for this report.
+| Priority | Mechanism | Observable lesson | Necessary countercase |
+| --- | --- | --- | --- |
+| 1 | Jev Service | A future request captures the changed latency; already issued requests keep their original deadline and outcome. Faster service does not grant a permit. | A late purchase cannot accelerate an already issued request; inaccessible source/credentials remain inaccessible. |
+| 2 | Delivery Relay | Future output becomes faster while commitment, acknowledgment and retained findings remain distinct. | A captured output keeps its original timing; clear reviews provide no finding output to accelerate. |
+| 3 | Access Repair | Source readability and credentials are independent factual conditions. A connected purchase restores them once without rotating identity or resurrecting refused work. | Healthy access makes the investment ineffective; an old repair is not continuing protection against a later outage. |
 
-Owner decision after the assessment: use these first three mechanisms as the initial experimental set. This accepts the study selection, not the final abilities, names, balance or evidence of learning.
+The game remains a tower-defense interpretation: building connection, range, prices, upgrades, manual releases and actual ledger pressure matter. The first two towers act as service support; the third is an explicit recovery utility. Their effects are measured through the shared simulator rather than through synthetic mob damage.
 
-The source assessment below predates the continuous-consumer rewrite. Current capability availability is recorded in the [laboratory guide](../prototypes/canonical-defense/lab/README.md#current-ability-boundary-and-remaining-work); its three provisional business interventions are unsupported today.
+The following table records the earlier pre-migration inspection as advisory context. Its names and mechanisms are not current runtime options. Current capability and validation scope belongs to the [laboratory guide](../prototypes/canonical-defense/lab/README.md#current-ability-boundary-and-remaining-work).
 
 ## Priority
 

@@ -1,7 +1,7 @@
 # Architecture teaching game: design context and next decisions
 
 **Purpose:** Preserve the owner's goals for the teaching game and balance laboratory without fixing the tower roster or abilities prematurely.
-**Status:** Laboratory implementation is in progress in `spec/game-balance-lab`. The owner confirmed the shared-engine testing seam on 2026-10-02 and clarified the game's teaching purpose and process-display boundary on 2026-10-05. Replacement abilities remain proposals; the earlier Coordinator/Packager/Parallelizer selection is provisional.
+**Status:** Laboratory implementation is in progress in `spec/game-balance-lab`. The owner confirmed the shared-engine testing seam on 2026-10-02 and clarified the game's teaching purpose and process-display boundary on 2026-10-05. The overnight implementation is authorized. Jev Service, Delivery Relay and Access Repair are the current experimental roster; names, parameters and future abilities remain replaceable.
 **Authority:** Owner-stated design intentions and proposed game decisions. Existing product contracts and shared-simulator issues own business behavior; this document neither changes them nor establishes learning outcomes.
 **Expected use:** Select a small initial set of teaching mechanisms, specify the laboratory, and evaluate replacements or wider gameplay changes against the same goals.
 **Lifecycle:** At completion of [laboratory implementation #203](https://github.com/dearlordylord/hapsland/issues/203), **consolidate** its selected decisions into the implementation issue and enduring optional-game guide; keep unresolved roster/ability decisions in that named design owner, update inbound links, and **delete** this temporary context document. Review before changing a teaching mechanism or replacing the shared simulator consumer.
@@ -16,18 +16,18 @@ The player wants to release chosen quantities of edits at chosen times; manual b
 
 Roads, buildings and queues should explain the observed process. Work awaiting a resource has no guaranteed start deadline; an issued simulated operation may have a captured completion time. Playback and geometry must not become an additional condition for accepting business transitions. A tower's process effect must be a supported simulator intervention; changing only a game motion counter does not establish accelerated business service.
 
-The owner is willing to replace acceleration abilities and treats towers as ways to influence mechanics rather than a requirement to preserve the seven existing abilities. Delivery improvements and restoration of source/credential availability are proposed initial studies. A future reuse ability is a separate proposal requiring an actual supported intervention. These candidates are not an accepted final roster or evidence of educational effectiveness.
+The owner is willing to replace acceleration abilities and treats towers as ways to influence mechanics rather than a requirement to preserve the seven existing abilities. Future Jev request latency, future delivery latency and restoration of source/credential availability are the current initial studies. A future reuse ability is a separate proposal requiring an actual supported intervention. This experimental selection is not an accepted final roster or evidence of educational effectiveness.
 
-This clarification changes the direction of the remaining laboratory integration. Keep reproducible scenarios, budgets, paired comparisons, bounded search and replay; revise game mappings and process display together before balancing replacement abilities. The local integration must remove dependence on visual progression rather than qualifying a laboratory which measures that artificial gate. Interactive and headless execution must share the resulting action mapping. Wider visual redesign and final spatial gameplay choices remain separate decisions.
+This clarification changes the direction of the remaining laboratory integration. Keep reproducible scenarios, budgets, paired comparisons, bounded search and replay; revise game mappings and process display together before balancing replacement abilities. The local integration must remove dependence on visual progression rather than qualifying a laboratory which measures that artificial gate. Interactive and headless execution must share the resulting action mapping. The implementation retains tower-defense placement, range, investment, upgrades and pressure-based defeat. Supporting a building changes future simulator operations; it does not shoot away existing ownership. Exact manual release sizes and independent automatic arrivals remain player choices.
 
-The owner wants to learn how to find imbalance and eventually balance towers, workload difficulty and investment choices. Development-time automatic parameter search is the intended direction; adaptive difficulty during play is a separate feature and is not requested. The present task ranks teaching mechanisms and prepares specifications, not implementation or new balance trials. The owner clarified that Monkey Business is currently being rewritten in Bend: finish the specification now, and wait for its required public scenario/action capabilities before implementing the laboratory.
+The owner wants to learn how to find imbalance and eventually balance towers, workload difficulty and investment choices. Development-time automatic parameter search is the intended direction; adaptive difficulty during play is a separate feature and is not requested. Monkey Business is available on master. The owner authorized implementation of the game process-display corrections and the balance laboratory, with separate branches: game changes are qualified and integrated into master first; the laboratory then incorporates master. Balance experiments and development-time search stay in the laboratory branch.
 
 The seven existing towers and their abilities are candidates. They are not a retention requirement. A laboratory must allow an enabled subset, parameter changes, ability replacement and removal, and later changes to the game's principles without creating a second business engine. The correct research outcome may be "replace this ability", not merely a numerical nerf.
 
 Sequence:
 
 1. Rank current mechanisms by importance and fidelity of the architecture lesson, causal clarity and suitability for a small first experiment.
-2. Use the owner-selected provisional study set: Coordinator, Packager and Parallelizer. Selection is reversible and does not require all seven towers to become useful.
+2. Use the current supported study set: Jev Service, Delivery Relay and Access Repair. The earlier dependency/batching/pacing suggestions are advisory lessons, not an obligation to preserve unsupported abilities.
 3. Build a headless laboratory for controlled comparisons and imbalance search at the highest existing simulation boundary.
 4. Investigate universal purchase plans, dead investments, context-dependent tradeoffs and problematic combinations; allow these findings to change the roster or abilities.
 5. After selecting useful mechanics, tune costs, strengths, radii, cadence and workload difficulty more precisely, using bounded development-time search where warranted.
@@ -80,7 +80,7 @@ The [published laboratory specification #203](https://github.com/dearlordylord/h
 
 Outstanding decisions after the laboratory foundation:
 
-- implement the selected provisional Coordinator, Packager and Parallelizer experiments using the ranked causal cases;
+- qualify the supported request-delay, output-delay and access-restoration cases, including late purchases and contexts where they cannot help;
 - revise or remove unsupported/misleading abilities;
 - decide the first workload contexts and finite experiment objectives;
 - establish gameplay economy/reward rules suitable for continuous workload, without importing obsolete wave rewards;
