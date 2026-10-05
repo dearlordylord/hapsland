@@ -14,7 +14,7 @@
     "**/prototypes",
     "**/test/fixtures",
     "**/*.generated.*",
-    "packages/session-bend/session.mjs",
+    "packages/monkey-business-bend/engine.mjs",
     "**/vendor/**",
     "**/fixtures/**"
   ],

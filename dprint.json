@@ -22,6 +22,7 @@
     "**/prototypes",
     "**/test/fixtures",
     "**/*.generated.*",
+    "packages/monkey-business-bend/engine.mjs",
     "**/vendor/**",
     "**/fixtures/**",
     "packages/monkey-business/src/preparation.ts",
