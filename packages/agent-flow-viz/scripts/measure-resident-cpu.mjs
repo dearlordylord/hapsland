@@ -1,5 +1,4 @@
 import { chromium } from "playwright"
-import { createServer } from "vite"
 import { execFileSync } from "node:child_process"
 import { resolve } from "node:path"
 
@@ -9,7 +8,6 @@ const deadline = setTimeout(() => {
 }, 10000)
 const root = resolve(import.meta.dirname, "../../..")
 const libraries = "/tmp/hapsland-browser-libs/prefix/usr/lib/aarch64-linux-gnu"
-let server
 let browser
 try {
   execFileSync(process.execPath, ["packages/monkey-business-bend/build.mjs", "--reuse-compiled-policy"], {
@@ -17,12 +15,6 @@ try {
     timeout: 5000,
     stdio: "pipe"
   })
-  server = await createServer({
-    root: resolve(import.meta.dirname, ".."),
-    logLevel: "silent",
-    server: { host: "127.0.0.1", port: 0, hmr: false }
-  })
-  await server.listen()
   browser = await chromium.launch({ headless: true, env: { ...process.env, LD_LIBRARY_PATH: libraries } })
   const cases = []
   for (const advicees of [1, 6]) {
@@ -30,7 +22,7 @@ try {
     page.setDefaultTimeout(5000)
     const errors = []
     page.on("pageerror", (error) => errors.push(error.message))
-    await page.goto(server.resolvedUrls.local[0])
+    await page.goto("http://127.0.0.1:4181/")
     await page.getByLabel("Advicee count", { exact: true }).fill(String(advicees))
     await page.getByRole("button", { name: "Start resident", exact: true }).click()
     const eventsBefore = await page.evaluate(async () => {
@@ -59,6 +51,5 @@ try {
   console.log(`METRIC main_thread_cpu_ms_per_processed_event=${value}`)
 } finally {
   await browser?.close()
-  await server?.close()
   clearTimeout(deadline)
 }
