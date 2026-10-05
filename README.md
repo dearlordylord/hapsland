@@ -112,7 +112,7 @@ See [supported languages and limits](#supported-languages) before setup.
 [Explore the studies, examples and evidence](./docs/review-studies.md).
 Our larger-declaration comparison covers **six scenarios: four types and two
 functions**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**.
-Both reviewers used Jev and the same target Noul concerns; Abide 0.0.7 used an
+Both reviewers used Jev and the same target design concerns; Abide 0.0.7 used an
 active custom rubric. All conditions included equal diagnostic feedback reporting.
 
 With **one larger defective input per scenario**, Hapsland sessions produced
@@ -151,7 +151,9 @@ Or install manually after a stable release is published and verified:
    `hapsland setup claude` or `hapsland setup codex`.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
-   through masked input, and reports offline readiness.
+   through masked input, shows the selected key source and replacement instructions,
+   and reports offline readiness. You can then approve one optional Jev key check
+   using a built-in greeting; it sends no project code and may use paid credits.
 
 3. Finish current client work, restart the client normally, complete its native
    trust prompts, and make a supported edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;

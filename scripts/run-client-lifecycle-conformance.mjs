@@ -1,4 +1,5 @@
 import { standaloneEnvironment } from "./test-harness/standalone-environment.mjs"
+import { offlineSetupAnswers } from "./test-harness/offline-setup-answers.mjs"
 // Offline regression for the public multi-client lifecycle. Uses isolated homes and a local registry fixture.
 import assert from "node:assert/strict"
 import { spawn, execFileSync } from "node:child_process"
@@ -70,12 +71,16 @@ const terminal = async (args, entrypoint = join(checkout, "src/cli.ts")) => {
   })
   let output = ""
   let sent = 0
+  let answered = 0
+  let declinedVerifications = 0
   child.stdout.on("data", (chunk) => {
     output += chunk
-    const count = output.match(/\[y\/N\]/g)?.length ?? 0
-    if (count > sent) {
-      sent = count
-      child.stdin.write("y\n")
+    const prompts = offlineSetupAnswers(output)
+    for (const prompt of prompts.slice(answered)) {
+      answered++
+      if (prompt.verification) declinedVerifications++
+      else sent++
+      child.stdin.write(`${prompt.answer}\n`)
     }
   })
   child.stderr.on("data", (chunk) => {
@@ -93,12 +98,14 @@ const terminal = async (args, entrypoint = join(checkout, "src/cli.ts")) => {
     })
   })
   assert(!output.includes("offline-fixture-key"))
-  return { code, output, confirmations: sent }
+  if (declinedVerifications > 0) assert(output.includes("Key validity: not checked."))
+  return { code, output, confirmations: sent, declinedVerifications }
 }
 try {
   for (const host of ["claude", "codex"]) {
     const initial = await terminal(["setup", host])
     assert.equal(initial.code, 0, `${host} source setup: ${initial.output}`)
+    assert.equal(initial.declinedVerifications, 1, initial.output)
   }
   const originalClaude = readFileSync(join(claudeHome, "settings.json"), "utf8")
   assert(originalClaude.includes(join(checkout, "src/cli.ts")))
@@ -129,6 +136,7 @@ try {
   const setup = await terminal(["setup", "claude"])
   assert.equal(setup.code, 0, setup.output)
   assert.equal(setup.confirmations, 0)
+  assert.equal(setup.declinedVerifications, 1)
   assert.equal(readFileSync(join(claudeHome, "settings.json"), "utf8"), updatedClaude)
   const doctor = await terminal(["doctor"])
   assert(doctor.output.includes("configuration-ownership: ready"), doctor.output)
@@ -184,12 +192,14 @@ try {
   const piSetup = await piRun(["setup", "pi"])
   assert.equal(piSetup.code, 0, piSetup.output)
   assert.equal(piSetup.confirmations, 1)
+  assert.equal(piSetup.declinedVerifications, 1)
   const piExtension = join(piHome, "extensions/hapsland.ts")
   const firstPi = readFileSync(piExtension, "utf8")
   assert(firstPi.includes("/dist/pi/extension.js"))
   const piRepeated = await piRun(["setup", "pi"])
   assert.equal(piRepeated.code, 0, piRepeated.output)
   assert.equal(piRepeated.confirmations, 0)
+  assert.equal(piRepeated.declinedVerifications, 1)
   const piDoctor = await piRun(["doctor", "pi"])
   assert.equal(piDoctor.code, 0, piDoctor.output)
   assert(piDoctor.output.includes("review-support: unknown"), piDoctor.output)

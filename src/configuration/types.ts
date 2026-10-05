@@ -1,10 +1,11 @@
 import * as Schema from "effect/Schema"
 import { RuleIdentitySchema } from "../domain/rule-identity.ts"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimitField } from "./graph-limits.ts"
+import { JEV_PROVIDER } from "../runtime/backend.ts"
 
 /** The only configuration format accepted by the product in this phase. */
 export const CONFIGURATION_VERSION = 1 as const
-export const DEFAULT_CREDENTIAL_ENV_VAR = "TYPESAFE_API_KEY" as const
+export const DEFAULT_CREDENTIAL_ENV_VAR = JEV_PROVIDER.credentialEnvVar
 export const ClaudeFeedbackMode = Schema.Literals(["advisory", "block-current-findings"]).annotate({
   description:
     "Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory.",

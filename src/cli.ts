@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { formatOutcome, formatStatusOutcome } from "./onboarding/human-output.ts"
+import { NEW_KEY_FLAG, CLI_NAME, LOGIN_FLAG, setupCommand } from "./runtime/cli-names.ts"
+import { JEV_PROVIDER } from "./runtime/backend.ts"
 import { HAPSLAND_CONFIG_DIRECTORY, HAPSLAND_STATE_DIRECTORY } from "./runtime/user-paths.ts"
 import { profileFields } from "./onboarding/client-command.ts"
 import type { DoctorCheck } from "./onboarding/doctor.ts"
@@ -952,7 +954,7 @@ const runJsonEvaluation = Effect.fn("Cli.runJsonEvaluation")(function* (input: s
   return yield* runEvaluationCommand(evaluationInput, {
     allowLive: cliSwitch("evaluation-live"),
     credentialEnvVar: yield* Config.NonEmptyString("EVALUATION_CREDENTIAL_ENV").pipe(
-      Config.withDefault("TYPESAFE_API_KEY")
+      Config.withDefault(DEFAULT_CREDENTIAL_ENV_VAR)
     ),
     ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {})
   })
@@ -1288,7 +1290,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
       fields: hostFields(host),
       cwd,
       platform: process.platform,
-      newKey: clientArguments?.flags.has("--new-key") ?? false
+      newKey: clientArguments?.flags.has(NEW_KEY_FLAG) ?? false
     },
     {
       run: (request, entered) => {
@@ -1299,6 +1301,30 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
         })
       },
       activate: activateCurrentPackage(currentCommand()),
+      verifyCredential: Effect.gen(function* () {
+        const { runGuidedCredentialCheck } = yield* Effect.promise(
+          () => import("./onboarding/credential-verification.ts")
+        )
+        yield* runGuidedCredentialCheck({
+          cwd,
+          host,
+          platform: process.platform,
+          ...(configuration?.userConfigPath === undefined ? {} : { userConfigPath: configuration.userConfigPath }),
+          confirm: askConfirmation,
+          readCredential: readMaskedCredential,
+          write: (text) => {
+            process.stderr.write(text)
+          }
+        })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.sync(() => {
+            process.stderr.write(
+              "[WARN] Key validity: not checked because verification preparation failed. The selected key was not removed.\n"
+            )
+          })
+        )
+      ),
       doctor: execFileClosedStdin(command.executable, [...command.args, "--doctor"], {
         cwd,
         env: process.env,
@@ -1713,7 +1739,7 @@ if (cliSwitch("feedback-preview")) {
       (result.operation === "logout"
         ? "Use user file exclusions to stop future review dispatches if needed."
         : result.status === "invalid"
-          ? "Enter a nonempty Jev key and retry hapsland --login. The previous saved key was preserved."
+          ? `Enter a nonempty ${JEV_PROVIDER.name} key and retry ${CLI_NAME} ${LOGIN_FLAG}. The previous saved key was preserved.`
           : result.status === "cancelled"
             ? "No key was changed. Run hapsland --login again when ready."
             : result.status === "locked" || result.status === "interaction-required"
@@ -1733,7 +1759,7 @@ if (cliSwitch("feedback-preview")) {
   const writeCredentialSummary = (result: Readonly<Record<string, unknown>>): void => {
     if (result.operation === "login" && result.status === "stored") {
       process.stdout.write(
-        `Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: run hapsland setup claude or hapsland setup codex, then complete client sign-in and native trust.\n`
+        `${JEV_PROVIDER.name} key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No ${JEV_PROVIDER.name} request or review was sent.\nNext: run ${setupCommand("claude")} or ${setupCommand("codex")}, then complete client sign-in and native trust.\n`
       )
     } else {
       const next = credentialNextAction(result)

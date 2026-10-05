@@ -13,6 +13,15 @@ import * as Option from "effect/Option"
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import { clientCommands, type ClientCommand } from "./onboarding/client-command.ts"
 import type { SetupClient } from "./onboarding/client-selection.ts"
+import { JEV_PROVIDER } from "./runtime/backend.ts"
+import {
+  NEW_KEY_OPTION,
+  NEW_KEY_FLAG,
+  LOGIN_OPTION,
+  LOGOUT_OPTION,
+  SETUP_COMMAND,
+  CLI_NAME
+} from "./runtime/cli-names.ts"
 
 const validate = <A>(read: () => A) =>
   Effect.try({
@@ -67,18 +76,18 @@ const operationFlags = {
   "evaluation-plan": switchFlag("evaluation-plan", [], false),
   "evaluation-run": switchFlag("evaluation-run", [], false),
   "evaluation-report": switchFlag("evaluation-report", [], false),
-  setup: switchFlag("setup", [], false),
+  [SETUP_COMMAND]: switchFlag(SETUP_COMMAND, [], false),
   demo: switchFlag("demo", [], false),
-  login: switchFlag("login", [], false),
-  logout: switchFlag("logout", [], false),
+  [LOGIN_OPTION]: switchFlag(LOGIN_OPTION, [], false),
+  [LOGOUT_OPTION]: switchFlag(LOGOUT_OPTION, [], false),
   "package-identity": switchFlag("package-identity"),
   "runtime-identity": switchFlag("runtime-identity"),
   pilot: switchFlag("pilot", [], false)
 }
 const automationFlags = {
   ...operationFlags,
-  "new-key": switchFlag("new-key", [], false).pipe(
-    Flag.withDescription("Request a new saved Jev key instead of checking the existing key")
+  [NEW_KEY_OPTION]: switchFlag(NEW_KEY_OPTION, [], false).pipe(
+    Flag.withDescription(`Request a new saved ${JEV_PROVIDER.name} key instead of checking the existing key`)
   ),
   human: switchFlag("human", ["status-human"], false),
   json: switchFlag("json", [], false),
@@ -175,7 +184,8 @@ const clientArguments = (values: ClientArgumentValues): ClientArguments => {
   const host = selectedClientHost(values)
   const flags = new Map<string, string>()
   for (const [name, value] of Object.entries(values)) if (typeof value === "string") flags.set(`--${name}`, value)
-  for (const name of ["new-key", "no-input", "apply", "json"]) if (values[name] === true) flags.set(`--${name}`, "true")
+  if (values[NEW_KEY_OPTION] === true) flags.set(NEW_KEY_FLAG, "true")
+  for (const name of ["no-input", "apply", "json"]) if (values[name] === true) flags.set(`--${name}`, "true")
   return { host, flags }
 }
 
@@ -189,7 +199,7 @@ type ParentOptions = Command.Command.Config.Infer<typeof parentOptions>
 const activeOption = (value: unknown): boolean => value !== false && value !== undefined
 const automationOptionNames = new Set(Object.keys(automationFlags))
 const forbiddenPilotOption = (name: string): boolean =>
-  automationOptionNames.has(name) && name !== "pilot" && name !== "new-key"
+  automationOptionNames.has(name) && name !== "pilot" && name !== NEW_KEY_OPTION
 const pilotConflicts = (values: ParentOptions): boolean =>
   Object.entries(values).some(([name, value]) => forbiddenPilotOption(name) && activeOption(value))
 const validateHookChannels = (
@@ -203,8 +213,8 @@ const validateHookChannels = (
 }
 const validateAutomationMode = (values: ParentOptions, operations: ReadonlyArray<string>): void => {
   if (values.pilot && pilotConflicts(values))
-    throw new Error("--pilot accepts only client profile, --target and --new-key options.")
-  if (values["new-key"] && !values.pilot) throw new Error("--new-key requires the setup command or --pilot.")
+    throw new Error(`--pilot accepts only client profile, --target and ${NEW_KEY_FLAG} options.`)
+  if (values[NEW_KEY_OPTION] && !values.pilot) throw new Error(`${NEW_KEY_FLAG} requires the setup command or --pilot.`)
   if (values["credential-stdin"] && !values.login) throw new Error("--credential-stdin requires --login.")
   if (operations.length > 1) throw new Error("Operation options cannot be combined.")
 }
@@ -244,7 +254,7 @@ const validateAutomation = (values: ParentOptions): void => {
 /** Parse once before any workflow, stdin read, package dispatch or installation mutation. */
 export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invocation | undefined> => {
   let invocation: Invocation | undefined
-  const parent = Command.make("hapsland", parentOptions, (values) =>
+  const parent = Command.make(CLI_NAME, parentOptions, (values) =>
     validate(() => {
       validateAutomation(values)
       invocation = { kind: "automation", options: values, client: clientArguments(values) }
@@ -262,9 +272,11 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
           command,
           {
             ...profiles,
-            ...(command === "setup" ? { "new-key": automationFlags["new-key"], ...unattendedSetupOptions } : {}),
+            ...(command === SETUP_COMMAND
+              ? { [NEW_KEY_OPTION]: automationFlags[NEW_KEY_OPTION], ...unattendedSetupOptions }
+              : {}),
             client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional),
-            ...(command === "update" || command === "setup" || command === "repair" || command === "reinstall"
+            ...(command === "update" || command === SETUP_COMMAND || command === "repair" || command === "reinstall"
               ? { target: valueFlag("target") }
               : {}),
             ...(command === "update"

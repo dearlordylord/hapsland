@@ -46,7 +46,7 @@ The task asks the agent to rename `label` to `displayLabel` while preserving the
 
 ## What happened
 
-Each result below is **one native session on one defective input**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**. Both reviewers use Jev and the same target Noul concern; Abide 0.0.7 uses an active custom rubric. All conditions include equal diagnostic feedback reporting.
+Each result below is **one native session on one defective input**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**. Both reviewers use Jev and the same target design concern; Abide 0.0.7 uses an active custom rubric. All conditions include equal diagnostic feedback reporting.
 
 | Input layout | Hapsland session | Abide session |
 | --- | --- | --- |

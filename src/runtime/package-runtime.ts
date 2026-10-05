@@ -1,6 +1,7 @@
 import { realpathSync } from "node:fs"
 import { dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import { CLI_NAME } from "./cli-names.ts"
 
 export interface RuntimeCommand {
   readonly executable: string
@@ -9,7 +10,7 @@ export interface RuntimeCommand {
 export type PackageRole = "cli" | "doctor" | "parser" | "resident"
 export const BUN_VERSION = "1.3.14"
 const roleNames: Readonly<Record<PackageRole, string>> = {
-  cli: "hapsland",
+  cli: CLI_NAME,
   doctor: "hapsland-doctor",
   parser: "hapsland-parser",
   resident: "hapsland-resident"
@@ -58,7 +59,7 @@ export const runtimeVersion = (): string => {
   return standalone ? (engine?.version ?? "unavailable") : process.version
 }
 export const runtimeProbeArguments = (runtime: string): ReadonlyArray<string> =>
-  ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"].includes(runtime.split("/").at(-1) ?? "")
+  Object.values(roleNames).includes(runtime.split("/").at(-1) ?? "")
     ? ["--runtime-identity"]
     : [
         "-e",

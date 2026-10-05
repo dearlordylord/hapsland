@@ -11,7 +11,7 @@ const renderInstructions = ({ question, focus }: ProbabilityInstructions): strin
 const renderCriterion = ({ what, examples }: ProbabilityCriterion): string =>
   `${what}\n\nExamples:\n${examples.map((example) => `- ${example}`).join("\n")}`
 
-/** Renders structured Noul wording for Effect's provider-neutral Decision API. */
+/** Renders structured binary question wording for Effect's provider-neutral Decision API. */
 export const probability = (
   instructions: ProbabilityInstructions,
   criteria: ProbabilityCriteria

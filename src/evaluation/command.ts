@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import { Option, Redacted } from "effect"
-import { JEV_API_BASE } from "../runtime/backend.ts"
+import { JEV_API_BASE, JEV_PROVIDER } from "../runtime/backend.ts"
 import { liveLayer } from "../jev-decision.ts"
 import { ReviewBackend } from "../ports/review-backend.ts"
 import { compileRules } from "../rules/compiler.ts"
@@ -215,7 +215,10 @@ const runLayer = (options: EvaluationCommandOptions, suite: DefaultEvaluationSui
     return ReviewBackend.layerWithOptions({ transientRetries: suite.run.budget.maximumRetriesPerRequest })
       .pipe(
         Layer.provide(
-          liveLayer({ apiUrl: JEV_API_BASE, credentialEnvVar: options.credentialEnvVar ?? "TYPESAFE_API_KEY" })
+          liveLayer({
+            apiUrl: JEV_API_BASE,
+            credentialEnvVar: options.credentialEnvVar ?? JEV_PROVIDER.credentialEnvVar
+          })
         )
       )
       .pipe(Layer.orDie)
@@ -247,7 +250,7 @@ const planFor = Effect.fn("EvaluationCommand.plan")(function* (
     catch: () => new EvaluationCommandError({ reason: "evaluation plan input was invalid" })
   })
   const liveCredentialPresent = live
-    ? yield* credentialPresent(options.credentialEnvVar ?? "TYPESAFE_API_KEY")
+    ? yield* credentialPresent(options.credentialEnvVar ?? JEV_PROVIDER.credentialEnvVar)
     : undefined
   const planOptions = liveCredentialPresent === undefined ? {} : { liveCredentialPresent }
   return { ...suite, plan: planEvaluation(suite.run, suite.scenarios, planOptions) }

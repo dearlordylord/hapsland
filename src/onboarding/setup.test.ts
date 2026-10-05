@@ -427,9 +427,13 @@ describe("public resumable setup operation", () => {
     expect(result.providerCalls).toBe(0)
   })
 
-  it.skipIf(process.platform !== "linux").each([false, true])(
-    "uses masked terminal entry with forced replacement=%s",
-    async (newKey) => {
+  it.skipIf(process.platform !== "linux").each([
+    { newKey: false, fileOverride: false },
+    { newKey: true, fileOverride: false },
+    { newKey: true, fileOverride: true }
+  ])(
+    "uses masked terminal entry with forced replacement=$newKey and file override=$fileOverride",
+    async ({ newKey, fileOverride }) => {
       const test = fixture()
       const preview = invoke(test, {})
       const approvals = authorization(preview)
@@ -474,6 +478,8 @@ else if (operation === "probe") console.log('{"status":"available"}');
         TEST_SECRET_VAULT: vault
       }
       delete environment.TYPESAFE_API_KEY
+      const keyFile = join(test.repository, ".env.local")
+      if (fileOverride) writeFileSync(keyFile, "TYPESAFE_API_KEY=project-override-key\n")
       const child = spawn("script", ["-qfec", command, "/dev/null"], {
         cwd: test.repository,
         env: environment,
@@ -510,10 +516,21 @@ else if (operation === "probe") console.log('{"status":"available"}');
       const operations = readFileSync(vault + ".operations", "utf8")
         .trim()
         .split("\n")
-      if (newKey) expect(operations).toEqual(["set", "get"])
+      if (newKey) expect(operations).toEqual(fileOverride ? ["set"] : ["set", "get"])
       const encoded = output.split(/\r?\n/).find((line) => line.startsWith('{"version":1,"operation":"setup"'))
       if (encoded === undefined) throw new Error(`setup JSON was not emitted: ${output}`)
       const result = JSON.parse(encoded) as SetupOutput
+      if (fileOverride) {
+        expect(result.stages).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              stage: "credential",
+              observed: expect.objectContaining({ source: "environment", file: keyFile })
+            })
+          ])
+        )
+        expect(output).not.toContain("project-override-key")
+      }
       expect(result.stages).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ stage: "credential", status: "complete" }),

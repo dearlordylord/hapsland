@@ -3,7 +3,29 @@ import { ConfigProvider, Effect } from "effect"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { dispatchActivePackage, dispatchSelectedPackage, formatProposal, formatDoctor } from "./client-lifecycle.ts"
+import {
+  dispatchActivePackage,
+  dispatchSelectedPackage,
+  formatProposal,
+  formatDoctor,
+  formatInstallationRequirements
+} from "./client-lifecycle.ts"
+
+it("explains missing agent hooks and damaged packaged components without blaming the user's runtime", () => {
+  const output = formatInstallationRequirements({
+    codex: { supported: false, version: "0.200.0", hooksAvailable: false },
+    runtime: {
+      checks: {
+        parser: { ready: false, observed: "missing", path: "/package/hapsland-parser" },
+        engine: { ready: true }
+      }
+    }
+  }).join("\n")
+  expect(output).toContain("did not expose lifecycle hooks in codex features list")
+  expect(output).toContain("package parser check failed: missing at /package/hapsland-parser")
+  expect(output).not.toContain("compatible")
+  expect(output).not.toContain("engine")
+})
 
 it("renders every handler including background commands, timeouts and configuration files", () => {
   const output = formatProposal({

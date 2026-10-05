@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { CLOUDFLARE_PROVIDER } from "../runtime/backend.ts"
 import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
@@ -264,7 +265,7 @@ const resolveCredentialReference = (layers: ReadonlyArray<ConfigurationLayer>) =
     (layer) => layer.name === "user" && layer.document.reviewBackend?.provider === "cloudflare"
   )
   let credentialEnvVar: Originated<string> = originated(
-    backendOwner === undefined ? DEFAULT_CREDENTIAL_ENV_VAR : "CLOUDFLARE_API_TOKEN",
+    backendOwner === undefined ? DEFAULT_CREDENTIAL_ENV_VAR : CLOUDFLARE_PROVIDER.credentialEnvVar,
     backendOwner === undefined
       ? { layer: "built-in", source: "built-in", field: "credentialEnvVar" }
       : origin(backendOwner, "reviewBackend")

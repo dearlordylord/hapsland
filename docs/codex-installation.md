@@ -17,7 +17,7 @@ hapsland setup codex
 ```
 
 Setup previews owned hooks, asks before installation, offers masked entry for a
-missing Jev key, and reports offline readiness without contacting Jev. Finish
+missing Jev key, and reports offline readiness. Guided setup then offers a separately confirmed Jev key check using a built-in greeting, without project code; declining sends no request. Finish
 current client work, restart the client, and complete its native trust prompts.
 The default registration is user-wide: [file settings](configuration.md) control
 which repositories and files can be reviewed.
@@ -266,7 +266,8 @@ is preserved.
 
 ## Optional first-review demo
 
-Completed setup remains offline. The optional demo is a separate two-step operation and its
+Installation and local setup checks remain offline. Guided setup separately offers a
+confirmed synthetic Jev key check; declining sends no request. The optional demo is a separate two-step operation and its
 preview performs no Jev request. Preview creates a small disposable Git root containing only a
 known synthetic `session.ts`, discloses that the input deliberately permits a logged-out session
 with a user ID and a logged-in session without one, and does not tell Codex how to repair it.

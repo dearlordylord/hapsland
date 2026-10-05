@@ -57,6 +57,7 @@ const fixture = (
       return results.shift() ?? Effect.fail(new Error("unexpected setup call"))
     }),
     activate: Effect.sync(() => events.push("activate")).pipe(Effect.andThen(settings.activation ?? Effect.void)),
+    verifyCredential: Effect.sync(() => events.push("verify")),
     doctor: Effect.sync(() => {
       events.push("doctor")
       return {
@@ -88,7 +89,8 @@ it("runs an initial noninteractive check before activation and offline readiness
   })
   expect(requests[0]?.interactive).toBeUndefined()
   expect(requests[1]?.interactive).toBe(true)
-  expect(f.events).toEqual(["activate", "doctor"])
+  expect(f.events).toEqual(["activate", "verify", "doctor"])
+  expect(f.output.join("")).not.toContain("Compatibility:")
   expect(f.ports.confirm).not.toHaveBeenCalled()
   expect(f.output.join("")).toContain("[OK] Setup: offline readiness: ready.")
   expect(f.output.join("")).not.toContain("Jev key saved")
@@ -284,4 +286,29 @@ it("names Pi in setup and next actions rather than labeling it as Codex", async 
   expect(f.output.join("")).toContain("Pi review integration setup")
   expect(f.output.join("")).toContain("Next: restart Pi")
   expect(f.output.join("")).not.toContain("Codex")
+})
+
+it("reports a newly saved key losing to a project file without duplicating source guidance", async () => {
+  const result: Result = {
+    ...complete,
+    stages: complete.stages.map((stage) =>
+      stage.stage === "credential"
+        ? {
+            ...stage,
+            observed: {
+              source: "environment",
+              file: "/repo/.env.local",
+              envVar: "TYPESAFE_API_KEY",
+              environmentOnly: false,
+              provider: "jev"
+            }
+          }
+        : stage
+    )
+  }
+  const f = fixture({ enterCredential: true, results: [Effect.succeed(complete), Effect.succeed(result)] })
+  await Effect.runPromise(runPilotSetup(f.options, f.ports))
+  const output = f.output.join("")
+  expect(output).toContain("The newly saved key is not active")
+  expect(output).not.toContain("Selected key source:")
 })

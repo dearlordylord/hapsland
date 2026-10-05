@@ -567,23 +567,20 @@ else if (operation === "probe") console.log('{"status":"available"}');
   const pilotCodexExecutable = process.env.REVIEW_PILOT_CODEX_EXECUTABLE ?? codexExecutable
   const declinedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
     { prompt: "Apply these setup changes", value: "y" },
-    { prompt: "Jev API key:", value: pilotMarker }
+    { prompt: "Jev API key:", value: pilotMarker },
+    { prompt: "Verify this key with one request", value: "n" }
   ])
   expect(
     declinedPilot.includes(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}`),
     "guided login did not confirm credential storage"
   )
   expect(declinedPilot.includes("No real verification or review was sent"), "guided login overstated verification")
+  expect(declinedPilot.includes("Key validity: not checked."), "guided setup did not decline key verification")
   expect(!declinedPilot.includes(pilotMarker), "guided credential appeared in terminal output")
   expect((await readFile(pilotVault, "utf8")) === pilotMarker, "guided credential was not saved")
-  const approvedPilot = await runGuidedPilot(
-    cli,
-    pilotRepository,
-    pilotEnvironment,
-    pilotHome,
-    pilotCodexExecutable,
-    []
-  )
+  const approvedPilot = await runGuidedPilot(cli, pilotRepository, pilotEnvironment, pilotHome, pilotCodexExecutable, [
+    { prompt: "Verify this key with one request", value: "n" }
+  ])
   expect(approvedPilot.includes("Setup: offline readiness: unknown"), "guided pilot overstated native trust")
   expect(approvedPilot.includes("native trust or hook review prompt"), "guided pilot omitted trust handoff")
   expect(!approvedPilot.includes(pilotMarker), "guided rerun disclosed saved credential")

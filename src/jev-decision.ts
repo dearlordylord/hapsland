@@ -7,7 +7,7 @@ import * as Schema from "effect/Schema"
 import { Decision, DecisionModel } from "effect/ai"
 import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as HttpClient from "effect/http/HttpClient"
-import { JEV_API_BASE } from "./runtime/backend.ts"
+import { JEV_API_BASE, JEV_PROVIDER } from "./runtime/backend.ts"
 
 assertReviewEngineBoundary("jev-decision")
 
@@ -54,4 +54,4 @@ export const liveLayer = (options: {
 }
 
 /** Reads TYPESAFE_API_KEY and uses the TypeSafe service's default destination. */
-export const Live = liveLayer({ apiUrl: JEV_API_BASE, credentialEnvVar: "TYPESAFE_API_KEY" })
+export const Live = liveLayer({ apiUrl: JEV_API_BASE, credentialEnvVar: JEV_PROVIDER.credentialEnvVar })

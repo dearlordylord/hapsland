@@ -204,6 +204,32 @@ export const formatCompatibility = (value: unknown): string[] => {
   walk(value, "Compatibility")
   return lines
 }
+const codexRequirementLines = (codex: Record<string, unknown>): string[] => {
+  if (codex.supported !== false) return []
+  const lines: string[] = []
+  if (codex.version === "unavailable")
+    lines.push(
+      `Cannot read a stable Codex CLI version from the selected executable: ${displayValue(codex.observed, "unavailable")}.`
+    )
+  if (codex.hooksAvailable === false)
+    lines.push("The selected Codex executable did not expose lifecycle hooks in codex features list.")
+  return lines
+}
+const packageRequirementLines = (name: string, value: unknown): string[] => {
+  const check = record(value)
+  if (check.ready !== false) return []
+  const path = check.path === undefined ? "" : ` at ${String(check.path)}`
+  const requirement = check.required === undefined ? "" : `; expected ${String(check.required)}`
+  return [`Hapsland package ${name} check failed: ${displayValue(check.observed, "unavailable")}${path}${requirement}.`]
+}
+/** Explain a refused installation; successful package/agent probes stay silent in setup. */
+export const formatInstallationRequirements = (value: unknown): string[] => {
+  const compatibility = record(value)
+  const lines = codexRequirementLines(record(compatibility.codex))
+  for (const [name, check] of Object.entries(record(record(compatibility.runtime).checks)))
+    lines.push(...packageRequirementLines(name, check))
+  return lines.length > 0 ? lines : formatCompatibility(value)
+}
 const displayValue = (value: unknown, fallback: string): string => String(value ?? fallback)
 const proposalVersionLines = (current: Record<string, unknown>, target: Record<string, unknown>): string[] =>
   target.packageVersion === undefined

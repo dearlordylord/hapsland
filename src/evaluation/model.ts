@@ -66,7 +66,7 @@ export const RuleApplicability = Schema.Struct({
 })
 export interface RuleApplicability extends Schema.Schema.Type<typeof RuleApplicability> {}
 
-/** Production rules use the structured Noul criteria; string criteria remain
+/** Production rules use the structured binary review criteria; string criteria remain
  * accepted for small authored fixtures. */
 export const RuleCriteria = Schema.Union([
   Schema.NonEmptyString,

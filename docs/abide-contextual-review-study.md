@@ -1,6 +1,6 @@
 # Hapsland and Abide: readable rule examples and measured outcomes
 
-**Purpose:** Show concrete examples for all nine bundled Noul rules and explain their comparative validation.
+**Purpose:** Show concrete examples for all nine bundled Hapsland rules and explain their comparative validation.
 **Status:** Draft for publication review; current resource-rule batch completed on 2026-10-03 (UTC).
 **Authority:** Comparative research advisory and validation evidence; not an accepted product contract or release certification.
 **Expected use:** Read the code, inspect measured differences and limitations, and assess relevance to your workflow.
@@ -12,7 +12,7 @@ This report covers all nine rules through two separate matrices: duplicate-fact 
 
 ## What this comparison establishes
 
-All native sessions used **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning effort `max`**. Each product supplied its own response instructions during the same maintenance task. Abide 0.0.7 used a custom active rubric expressing the same target Noul concern; both reviewers used Jev.
+All native sessions used **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning effort `max`**. Each product supplied its own response instructions during the same maintenance task. Abide 0.0.7 used a custom active rubric expressing the same target design concern; both reviewers used Jev.
 
 The four selected cross-file duplicate-fact designs produced **12/12 checked repairs with Hapsland and 1/12 with Abide** across three repetitions. Hapsland also warned on all six clean-control observations. This advantage belongs to those selected conditions, not all rules.
 
