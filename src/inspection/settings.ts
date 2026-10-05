@@ -46,3 +46,9 @@ export const readInspectionSettings = (
     return undefined
   }
 }
+
+/** Dashboard maintenance uses only shared user limits, never a cwd-derived project. */
+export const readInspectionUserLimits = (userConfigPath = DEFAULT_USER_CONFIGURATION_FILE) => {
+  const user = layer("user", resolve(userConfigPath))
+  return effectiveInspectionLimits({ layers: user ? [user] : [] })
+}

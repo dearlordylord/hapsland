@@ -24,7 +24,8 @@
     "test:resident-liveness-browser": "node scripts/check-resident-liveness-browser.mjs",
     "test:live-drafts-browser": "node scripts/check-live-drafts-browser.mjs",
     "test:collectors-browser": "node scripts/check-collectors-browser.mjs",
-    "test:stop-slot-browser": "node scripts/check-stop-slot-browser.mjs"
+    "test:stop-slot-browser": "node scripts/check-stop-slot-browser.mjs",
+    "test:inspection-browser": "node scripts/check-inspection-browser.mjs"
   },
   "dependencies": {
     "@effect/platform-browser": "4.0.0",

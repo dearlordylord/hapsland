@@ -1554,7 +1554,10 @@ const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* 
   return { diagnosis, status: checked.status, exitCode: result.exitCode }
 })
 
-if (cliSwitch("feedback-preview")) {
+if (invocation.kind === "dashboard") {
+  const { runInspectionDashboard } = await import("./inspection/command.ts")
+  runInspectionDashboard(invocation)
+} else if (cliSwitch("feedback-preview")) {
   process.stdout.write(
     "Synthetic example; no review was run.\n\n" +
       formatReviewFeedback([

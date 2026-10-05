@@ -291,5 +291,16 @@ it.each([
   ["--pilot", "--host=codex", "--new-key"]
 ])("preserves forced key entry across CLI dispatch: %j", async (...args) => {
   const result = await parse(args)
-  expect(result.invocation?.client.flags.get("--new-key")).toBe("true")
+  if (!result.invocation || result.invocation.kind === "dashboard") throw new Error("missing client invocation")
+  expect(result.invocation.client.flags.get("--new-key")).toBe("true")
+})
+
+it("parses the foreground loopback dashboard without client or review options", async () => {
+  expect(await parseInvocation(["dashboard", "--host", "localhost", "--port", "8090"])).toEqual({
+    kind: "dashboard",
+    host: "localhost",
+    port: 8090
+  })
+  await expect(parseInvocation(["dashboard", "--host", "0.0.0.0"])).rejects.toThrow("loopback")
+  await expect(parseInvocation(["dashboard", "--daemon"])).rejects.toThrow()
 })
