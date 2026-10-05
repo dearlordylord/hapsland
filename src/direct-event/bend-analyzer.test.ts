@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import fc from "fast-check"
 import { extractBendDeclarations } from "./languages/bend/extractor.ts"
 import { analyzeTypeFile, inspectGraphFile, combinedAnalyzerMaterializationPreflight } from "./analyzer.ts"
 
@@ -9,6 +10,90 @@ const analyze = (source: string) => {
 }
 
 describe("bounded Bend datatype extraction", () => {
+  it.each([
+    'def greeting() -> String:\n  "hello # not a comment"',
+    'def greeting() -> String:\n  "say \\"hello\\" and type Fake is Data:"',
+    "def hash() -> Char:\n  '#'",
+    'law greeting_identity:\n  {"hello" == "hello" : String}\ndef greeting_identity():\n  {==}'
+  ])("isolates a supported datatype from unrelated literal-bearing code: %s", (other) => {
+    const datatype = "type Order is Data: # exact root\n  Order{amount: U32}"
+    for (const source of [`import Base\n${datatype}\n${other}`, `import Base\n${other}\n${datatype}`]) {
+      expect(analyze(source)).toMatchObject([
+        { status: "ready", unit: { root: { artifact: { name: "Order", source: datatype } } } }
+      ])
+    }
+  })
+
+  it("does not bind column-zero declaration or import text inside multiline literals", () => {
+    const source = [
+      "import Base",
+      "def greeting() -> String:",
+      '  "hello',
+      "type Fake is Data:",
+      "  Fake{}",
+      "import ./fake.bend as R",
+      '"',
+      "type Order is Data:",
+      "  Order{amount: U32}"
+    ].join("\n")
+    const graph = inspectGraphFile("model.bend", source)
+    expect(graph).toBeDefined()
+    expect([...(graph?.declarations.keys() ?? [])]).toEqual(["Order"])
+    expect(graph?.imports.size).toBe(0)
+    expect(graph?.declarations.get("Order")?.location).toEqual({
+      start: { line: 8, column: 1 },
+      end: { line: 9, column: 21 }
+    })
+    expect(analyze(source)[0]?.status).toBe("ready")
+  })
+
+  it("preserves CRLF source and comments with quotes without importing sibling bodies", () => {
+    const datatype = "type Order is Data: # \"root\"\r\n  Order{amount: U32} # 'field'"
+    const source = `import Base\r\n${datatype}\r\ndef greeting() -> String:\r\n  "hello"\r\n`
+    expect(inspectGraphFile("model.bend", source)?.declarations.get("Order")).toMatchObject({
+      artifact: { source: `${datatype}\r` },
+      location: { start: { line: 2, column: 1 }, end: { line: 3, column: 32 } }
+    })
+  })
+
+  it("retains real definition bindings even when their bodies contain literals", () => {
+    const source =
+      'import Base\ndef String() -> Data:\n  # "not a binding"\n  U32\ndef label() -> String:\n  "text"\ntype Root is Data:\n  Root{value: String}'
+    expect(analyze(source)[0]?.status).toBe("unsupported")
+  })
+
+  it("keeps literal-dependent datatype syntax unsupported and retains its entire source", () => {
+    const datatype = 'type Root is Data:\n  Root{value: Box<"literal\ncontent\n">}'
+    const extracted = extractBendDeclarations(
+      `import Base\ntype Box<-label: String> is Data:\n  Box{}\n${datatype}\n`,
+      64
+    )
+    if (!("declarations" in extracted)) throw new Error(extracted.reason)
+    expect(extracted.declarations[1]?.source).toBe(datatype)
+    expect(extracted.declarations[1]?.references).toContainEqual({ kind: "unsupported", name: "Root" })
+    expect(analyze(`import Base\ntype Box<-label: String> is Data:\n  Box{}\n${datatype}`).at(-1)?.status).toBe(
+      "unsupported"
+    )
+  })
+
+  it("keeps datatype evidence independent of unrelated escaped string contents", () => {
+    const contents = fc.array(
+      fc.constantFrom("a", "#", '"', "'", "\\", "type Fake is Data:", "import ./fake.bend as R", "\n", " "),
+      { maxLength: 40 }
+    )
+    const datatype = "type Order is Data:\n  Order{amount: U32}"
+    fc.assert(
+      fc.property(contents, (parts) => {
+        const source = `import Base\n${datatype}\ndef greeting() -> String:\n  ${JSON.stringify(parts.join(""))}`
+        expect(analyze(source)).toMatchObject([
+          { status: "ready", unit: { root: { artifact: { name: "Order", source: datatype } } } }
+        ])
+        expect(inspectGraphFile("model.bend", source)?.imports.size).toBe(0)
+      }),
+      { numRuns: 100, seed: 217 }
+    )
+  })
+
   it("closes same-file payloads and retains exact source and coordinates", () => {
     const source =
       "# intro\nimport Base\n\ntype Receipt is Data:\n  Receipt{id: String}\n\ntype Delivery is Data: # root\n  Waiting{}\n  Delivered{receipt: Receipt}\n"
@@ -178,7 +263,7 @@ describe("bounded Bend datatype extraction", () => {
     ).toMatchObject({ status: "unsupported", reason: "no-declarations" })
     expect(analyzeTypeFile("model.bend", 'def main() -> String:\n  "type Fake is Data:"')).toMatchObject({
       status: "unsupported",
-      reason: "parse"
+      reason: "no-declarations"
     })
     expect(analyzeTypeFile("model.bend", "type Bad is Data")).toMatchObject({ status: "unsupported", reason: "parse" })
   })

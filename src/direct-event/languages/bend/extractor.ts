@@ -99,6 +99,15 @@ const basePrefixes = new Set([
 ])
 const kinds = new Set(["Data", "Type", "Quant"])
 
+// Lexical isolation only: source syntax is assumed valid. Literal contents
+// cannot introduce bindings; literal syntax within a datatype remains unsupported.
+const lexicalTokens = /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|#[^\r\n]*/g
+const maskBendSource = (source: string, boundaries: boolean): string =>
+  source.replace(lexicalTokens, (token) => {
+    const masked = token.replace(/[^\r\n]/g, " ")
+    return boundaries || token.startsWith("#") ? masked : `?${masked.slice(1, -1)}?`
+  })
+
 type ExtractionReason = Extract<BendExtraction, { reason: unknown }>["reason"]
 type Reference = BendDeclaration["references"][number]
 type TypeTokens = { readonly tokens: ReadonlyArray<string>; readonly names: string[]; index: number }
@@ -158,6 +167,7 @@ const splitFields = (text: string): string[] | undefined => {
 type BendScope = {
   readonly lines: ReadonlyArray<string>
   readonly clean: ReadonlyArray<string>
+  readonly topLevel: ReadonlyArray<string>
   readonly starts: number[]
   readonly aliases: Map<string, string>
   readonly imports: Map<string, { readonly path: string; readonly name: string }>
@@ -211,8 +221,8 @@ const ignoredTopLevelLine = (line: string): boolean => line.trim() === "" || /^\
 const ambiguousBaseAliases = (scope: BendScope): boolean =>
   scope.base && [...scope.aliases.keys()].some((alias) => basePrefixes.has(alias))
 const collectTopLevel = (scope: BendScope): ExtractionReason | undefined => {
-  for (let row = 0; row < scope.clean.length; row++) {
-    const line = scope.clean[row] ?? ""
+  for (let row = 0; row < scope.topLevel.length; row++) {
+    const line = scope.topLevel[row] ?? ""
     if (ignoredTopLevelLine(line)) continue
     const reason = line.startsWith("import ") ? collectImport(scope, line) : collectBinding(scope, line, row)
     if (reason !== undefined) return reason
@@ -366,12 +376,18 @@ const collectTypeDeclarations = (scope: BendScope, starts: ReadonlyArray<number>
 }
 export const extractBendDeclarations = (source: string, limit: number): BendExtraction => {
   const lines = source.split("\n")
-  // Comments cannot introduce declarations; strings and multiline forms stay outside this profile.
-  const clean = lines.map((line) => line.replace(/#.*$/, "").replace(/\r$/, ""))
-  if (clean.some((line) => /["'`]/.test(line))) return { reason: "parse" }
+  // Keep a semantic projection with literal markers and a boundary projection
+  // without literals. Both retain rows/columns; all evidence comes from original lines.
+  const clean = maskBendSource(source, false)
+    .split("\n")
+    .map((line) => line.replace(/\r$/, ""))
+  const topLevel = maskBendSource(source, true)
+    .split("\n")
+    .map((line) => line.replace(/\r$/, ""))
   const scope: BendScope = {
     lines,
     clean,
+    topLevel,
     starts: [],
     aliases: new Map(),
     imports: new Map(),

@@ -54,6 +54,46 @@ const prepare = (event: unknown, closure = true) =>
   })
 
 describe("Bend direct review integration", () => {
+  it.effect("prepares imported datatype evidence without unrelated literal-bearing functions", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      const receipt = "type Receipt is Data:\n  Receipt{id: U32}"
+      const delivery = "type Delivery is Data:\n  Delivered{receipt: R.Receipt}"
+      yield* Effect.promise(() =>
+        put(root, "receipt.bend", `import Base\n${receipt}\ndef label() -> String:\n  "receipt # type Fake is Data:"`)
+      )
+      yield* Effect.promise(() =>
+        put(root, "model.bend", `import ./receipt.bend as R\n${delivery}\ndef label() -> String:\n  "delivery"`)
+      )
+      const prepared = yield* prepare(addEvent(root, ["model.bend"]))
+      const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+      if (ready?.status !== "ready") throw new Error("Bend datatype evidence was not prepared")
+      const input = preparedProviderInput(ready.prepared)
+      expect(input).toMatchObject({
+        evidence: { nodes: [{ kind: "datatype", name: "Receipt" }] },
+        inputContract: { completeness: "complete" }
+      })
+      expect(JSON.stringify(input)).toContain("Receipt{id: U32}")
+      expect(JSON.stringify(input)).not.toContain("def label")
+      expect(JSON.stringify(input)).not.toContain("Fake")
+      let calls = 0
+      const evaluated = yield* evaluatePrepared(ready.prepared).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({
+            answers: Object.fromEntries(
+              rules(true).map((rule) => [rule.id, { _tag: "Probability", probability: 0.91 }])
+            ),
+            onRequest: Effect.sync(() => {
+              calls += 1
+            })
+          })
+        )
+      )
+      expect(evaluated.status).toBe("evaluated")
+      expect(calls).toBe(1)
+    })
+  )
+
   it.effect("does not bind TypeScript imports to Bend declarations", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

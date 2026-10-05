@@ -19,6 +19,15 @@ Source-language code lives in
 [registry](../src/direct-event/languages/registry.ts) selects adapters by their
 extension metadata. It is not a dynamic plugin system.
 
+Analysis assumes syntactically valid source after a completed agent edit, as
+defined by the [source-analysis assumption](type-function-review-proposal.md#source-analysis-assumption).
+Hapsland is not a syntax checker and does not guarantee analysis of incomplete or
+malformed source. Do not introduce editor-style recovery merely to support such
+inputs. Keep syntax validity separate from evidence completeness: unsupported
+types and missing or ambiguous dependencies still require omissions and rule
+gating. For Bend, unrelated def/law bodies and literals must not obscure supported
+datatype declarations or create bindings from literal text.
+
 | Responsibility | Owner |
 | --- | --- |
 | Grammar setup, extraction, exact declaration source and locations, bindings, import candidates, parser smoke probe | Source-language adapter |
@@ -60,6 +69,14 @@ language flags, grammar selection, or filename conventions.
    research report or a narrative change log.
 
 ## Binding and attribution checks
+
+The Bend lexical boundary borrows the separation of literal/comment tokens from
+declaration recognition in [bend-idea's lexer](https://github.com/dearlordylord/bend-idea/blob/499fecb8dd9fbc8ea9e77c7ab75b4454cab6221b/src/main/scala/com/dearlordylord/bend/idea/syntax/lexer/BendLexer.scala).
+It uses a separate boundary projection and a semantic projection with literal
+markers, while source and positions come from the original capture. This adopts
+neither the editor's malformed-input recovery nor its JVM/IntelliJ dependency.
+Compare new lexical examples with the development compiler when changing the
+profile; compiler acceptance and supported evidence are separate assertions.
 
 Test plausible-looking bindings as well as happy paths:
 
