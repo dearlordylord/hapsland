@@ -6,8 +6,8 @@ import * as Effect from "effect/Effect"
 import { join } from "node:path"
 import { existsSync } from "node:fs"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { residentPaths } from "./paths.ts"
 import { type JevRequestObservation } from "./server.ts"
 import { makeResidentState } from "./capacity.ts"
@@ -30,28 +30,23 @@ describe("canonical Jev request boundary", () => {
       root,
       "rules.jsonc",
       JSON.stringify({
-        schemaVersion: 1,
-        id: "team",
-        contentVersion: "1",
-        rules: [
+        version: 1,
+        id: "check",
+        question: "Is this clear?",
+        criteria: { false: "No", true: "Yes" },
+        message: "Clarify",
+        inputs: [
           {
-            id: "check",
-            question: "Is this clear?",
-            criteria: { false: "No", true: "Yes" },
-            message: "Clarify",
-            reviewTargets: [
-              {
-                artifactKind: "typeShape",
-                inputContract: TYPE_INPUT_CONTRACT,
-                capabilities: ["root-declaration", "resolved-outbound-types"]
-              },
-              { artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT, capabilities: ["signature", "body"] }
-            ]
-          }
+            languages: ["typescript", "rust", "bend"],
+            kind: "type",
+
+            requires: ["root-declaration", "resolved-outbound-types"]
+          },
+          { languages: ["typescript"], kind: "function", requires: ["signature", "body"] }
         ]
       })
     )
-    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, rules: ["rules.jsonc"] }))
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])))
     if (observation === undefined) throw new Error("fixture observation missing")
     const seen: string[] = []
@@ -60,7 +55,7 @@ describe("canonical Jev request boundary", () => {
       reviewControls: reviewControlsLayer({
         beforeEvaluate: (prepared) =>
           Effect.gen(function* () {
-            if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract)
+            if (prepared.input.rules.some((rule) => rule.id === "check")) seen.push(prepared.input.contract)
           })
       })
     })
@@ -134,24 +129,16 @@ describe("canonical Jev request boundary", () => {
       root,
       "rules.jsonc",
       JSON.stringify({
-        schemaVersion: 1,
-        id: "team",
-        contentVersion: "1",
-        rules: [
-          {
-            id: "large",
-            question: "x".repeat(140_000),
-            criteria: { false: "No", true: "Yes" },
-            threshold: 0.7,
-            message: "Large",
-            reviewTargets: [
-              { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }
-            ]
-          }
-        ]
+        version: 1,
+        id: "large",
+        question: "x".repeat(140_000),
+        criteria: { false: "No", true: "Yes" },
+        threshold: 0.7,
+        message: "Large",
+        inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
       })
     )
-    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, rules: ["rules.jsonc"] }))
     const statePath = join(root, "consent")
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])))
     if (observation === undefined) throw new Error("fixture observation missing")

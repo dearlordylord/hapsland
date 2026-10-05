@@ -1,4 +1,4 @@
-import { NOUL_MESSAGES } from "../src/rules/bundled.ts"
+import { DEFAULT_RULE_MESSAGES } from "../src/rules/shipped.ts"
 import { runClient } from "../src/test-support/client-runtime.ts"
 // Opt-in real Codex + real Jev demonstration. Retains only source-free evidence.
 import { spawn, execFileSync } from "node:child_process"
@@ -124,7 +124,7 @@ try {
   const hook = join(temp, "hook.mjs")
   await writeFile(
     hook,
-    `import {readFileSync,appendFileSync,existsSync} from 'node:fs';import {spawnSync} from 'node:child_process';import {createHash} from 'node:crypto';\nconst input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}const at=Date.now();const p=spawnSync(process.execPath,[${JSON.stringify(join(root, "src/cli.ts"))},'--codex-hook','--controlled-writer'],{input,encoding:'utf8',env:process.env,maxBuffer:1048576});let out;try{out=JSON.parse(p.stdout)}catch{}const context=out?.hookSpecificOutput?.additionalContext??'';const file=${JSON.stringify(join(repo, "payment.ts"))};const source=existsSync(file)?readFileSync(file,'utf8'):'';appendFileSync(process.env.DEMO_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:p.status,findings:context.split('\\n').some(line=>/^.+ :: .+: /.test(line)),notice:context.includes('Operational notice:'),ruleId:Object.entries(${JSON.stringify(NOUL_MESSAGES)}).find(([,text])=>context.includes(text))?.[0]??null,ruleIdSource:'configured-message-match',sourceHash:source?createHash('sha256').update(source).digest('hex'):null,sourceBytes:Buffer.byteLength(source),draft:source.includes('receipt: string | null')&&source.includes('failureReason: string | null')})+'\\n',{mode:0o600});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');process.exitCode=p.status??1;\n`
+    `import {readFileSync,appendFileSync,existsSync} from 'node:fs';import {spawnSync} from 'node:child_process';import {createHash} from 'node:crypto';\nconst input=readFileSync(0,'utf8');let event;try{event=JSON.parse(input)}catch{}const at=Date.now();const p=spawnSync(process.execPath,[${JSON.stringify(join(root, "src/cli.ts"))},'--codex-hook','--controlled-writer'],{input,encoding:'utf8',env:process.env,maxBuffer:1048576});let out;try{out=JSON.parse(p.stdout)}catch{}const context=out?.hookSpecificOutput?.additionalContext??'';const file=${JSON.stringify(join(repo, "payment.ts"))};const source=existsSync(file)?readFileSync(file,'utf8'):'';appendFileSync(process.env.DEMO_EVENTS,JSON.stringify({kind:'hook',at,doneAt:Date.now(),tool:event?.tool_name??'unknown',exitCode:p.status,findings:context.split('\\n').some(line=>/^.+ :: .+: /.test(line)),notice:context.includes('Operational notice:'),ruleId:Object.entries(${JSON.stringify(DEFAULT_RULE_MESSAGES)}).find(([,text])=>context.includes(text))?.[0]??null,ruleIdSource:'configured-message-match',sourceHash:source?createHash('sha256').update(source).digest('hex'):null,sourceBytes:Buffer.byteLength(source),draft:source.includes('receipt: string | null')&&source.includes('failureReason: string | null')})+'\\n',{mode:0o600});process.stdout.write(p.stdout??'');process.stderr.write(p.stderr??'');process.exitCode=p.status??1;\n`
   )
   await writeFile(join(home, "config.toml"), "[features]\nhooks = true\n")
   await writeFile(
@@ -224,7 +224,8 @@ try {
       agentAcknowledgesAdvice:
         (messages.at(-1) ?? "").includes("HAPSLAND_ADVICE_APPLIED") &&
         !(messages.at(-1) ?? "").includes("HAPSLAND_ADVICE_NOT_APPLIED"),
-      agentQuotesDeliveredFinding: !!finding?.ruleId && (messages.at(-1) ?? "").includes(NOUL_MESSAGES[finding.ruleId]),
+      agentQuotesDeliveredFinding:
+        !!finding?.ruleId && (messages.at(-1) ?? "").includes(DEFAULT_RULE_MESSAGES[finding.ruleId]),
       finalSourceChanged: source.length > 0 && !source.includes("receipt: string | null"),
       followupClearObserved: followup?.stage === "clear",
       followupFindingObserved: followup?.stage === "findings"

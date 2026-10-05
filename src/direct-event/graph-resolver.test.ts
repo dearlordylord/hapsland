@@ -1,16 +1,17 @@
+import { resolveConfiguration } from "../configuration/resolve.ts"
+import { resolvedDirectFilePolicy, DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { put, makeGitFixture, addEvent } from "./test-fixtures.ts"
 import { adaptCodexAdd } from "./adapter.ts"
 import { evaluatePrepared, prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "./pipeline.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { inspectGraphFile } from "./analyzer.ts"
 import { captureStable } from "./capture.ts"
 import { resolveGraphUnit } from "./graph-resolver.ts"
-import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts"
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import type { ReviewNode } from "./model.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
@@ -20,50 +21,124 @@ const hasOmitted = (node: ReviewNode): boolean =>
     (reference) => reference.kind === "omitted" || (reference.kind === "expanded" && hasOmitted(reference.node))
   )
 
-const candidateRules = compileRulePack(
-  {
-    schemaVersion: 1,
-    id: "graph",
-    contentVersion: "1",
-    rules: [
-      {
-        id: "shape",
-        question: "Is the type clear?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Clarify type",
-        reviewTargets: [
-          {
-            artifactKind: "typeShape",
-            inputContract: TYPE_INPUT_CONTRACT,
-            capabilities: ["root-declaration", "resolved-outbound-types"]
-          }
-        ]
-      }
-    ]
-  },
-  "fixture-current"
-)
-const rootOnlyRules = compileRulePack(
-  {
-    schemaVersion: 1,
-    id: "root-only",
-    contentVersion: "1",
-    rules: [
-      {
-        id: "shape",
-        question: "Is the declaration clear?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Clarify declaration",
-        reviewTargets: [
-          { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }
-        ]
-      }
-    ]
-  },
-  "fixture-current"
-)
+const candidateRules = [
+  compileRule(
+    {
+      version: 1,
+      id: "graph-shape",
+      question: "Is the type clear?",
+      criteria: { false: "No", true: "Yes" },
+      message: "Clarify type",
+      inputs: [
+        {
+          languages: ["typescript", "rust", "bend"],
+          kind: "type",
+          requires: ["root-declaration", "resolved-outbound-types"]
+        }
+      ]
+    },
+    "fixture-current"
+  )
+]
+const rootOnlyRules = [
+  compileRule(
+    {
+      version: 1,
+      id: "root-only-shape",
+      question: "Is the declaration clear?",
+      criteria: { false: "No", true: "Yes" },
+      message: "Clarify declaration",
+      inputs: [{ languages: ["typescript", "rust", "bend"], kind: "type", requires: ["root-declaration"] }]
+    },
+    "fixture-current"
+  )
+]
 
 describe("cross-file graph preparation", () => {
+  it.effect(
+    "expands explicit supporting scope without reviewing its changed roots and vetoes privacy before reads",
+    () =>
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        yield* Effect.promise(() =>
+          put(
+            root,
+            "src/order.ts",
+            "import type { Customer } from '../shared/customer'; interface Order { customer: Customer }"
+          )
+        )
+        yield* Effect.promise(() =>
+          put(root, "shared/customer.ts", "export interface Customer { customerName: string }")
+        )
+        const observation = yield* adaptCodexAdd(addEvent(root, ["src/order.ts", "shared/customer.ts"]))
+        if (observation === undefined) throw new Error("fixture adaptation failed")
+        const policy = resolvedDirectFilePolicy(
+          resolveConfiguration([
+            {
+              name: "project",
+              source: "fixture",
+              document: {
+                version: 1,
+                includes: ["src/**"],
+                languages: ["typescript"],
+                contextIncludes: ["src/**", "shared/**"]
+              }
+            }
+          ])
+        )
+        const base = {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+          rules: candidateRules,
+          inputContract: TYPE_INPUT_CONTRACT,
+          policy
+        } as const
+        const prepared = yield* prepareObservation(observation, base)
+        const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready")
+        expect(ready.map((outcome) => outcome.prepared.input.path)).toEqual(["src/order.ts"])
+        const order = ready[0]
+        if (order === undefined) throw new Error("order root did not prepare")
+        expect(order.prepared.input.unit.root.references[0]).toMatchObject({
+          kind: "expanded",
+          node: { artifact: { id: "shared/customer.ts:interface:Customer" } }
+        })
+        expect(yield* preparedUnitStillCurrent(observation, order.prepared, base)).toBe(true)
+        const privatePolicy = resolvedDirectFilePolicy(
+          resolveConfiguration([
+            {
+              name: "project",
+              source: "fixture",
+              document: {
+                version: 1,
+                includes: ["src/**"],
+                contextIncludes: ["src/**", "shared/**"],
+                privacyExcludes: ["shared/**"]
+              }
+            }
+          ])
+        )
+        expect(yield* preparedUnitStillCurrent(observation, order.prepared, { ...base, policy: privatePolicy })).toBe(
+          false
+        )
+        const reads: string[] = []
+        const privatePrepared = yield* prepareObservation(observation, {
+          ...base,
+          rules: rootOnlyRules,
+          policy: privatePolicy,
+          captureHooks: {
+            sourceRead: (path: string) => {
+              reads.push(path)
+            }
+          }
+        })
+        expect(reads).not.toContain("shared/customer.ts")
+        const privateReady = privatePrepared.outcomes.find((outcome) => outcome.status === "ready")
+        if (privateReady?.status !== "ready") throw new Error("root-only private graph did not prepare")
+        expect(JSON.stringify(preparedProviderInput(privateReady.prepared))).not.toContain("customerName")
+      })
+  )
+
   it.effect("does not physically read an oversized supporting source", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
@@ -432,7 +507,7 @@ describe("cross-file graph preparation", () => {
       ).toBe(true)
       const evaluated = yield* evaluatePrepared(ready.prepared).pipe(
         Effect.provide(
-          controlledDecisionModelLayer({ answers: { "root-only/shape": { _tag: "Probability", probability: 0.91 } } })
+          controlledDecisionModelLayer({ answers: { "root-only-shape": { _tag: "Probability", probability: 0.91 } } })
         )
       )
       expect(evaluated.status).toBe("evaluated")

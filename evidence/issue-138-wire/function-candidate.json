@@ -75,7 +75,7 @@
       }
     },
     "decisions": {
-      "wire-proposal/function": {
+      "function": {
         "_tag": "Probability",
         "instructions": "Does the selected function call its helper?",
         "criteria": {
@@ -87,5 +87,5 @@
   },
   "canonicalTreeBytes": 553,
   "providerInputBytes": 854,
-  "completeRequestBytes": 1026
+  "completeRequestBytes": 1012
 }

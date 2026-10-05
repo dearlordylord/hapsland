@@ -1,9 +1,10 @@
+import { configuredRules } from "../test-support/default-rules.ts"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { symlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptClaudeDirectEvent } from "./adapter.ts"
-import { makeGitFixture } from "./test-fixtures.ts"
+import { makeReviewGitFixture as makeGitFixture } from "./test-fixtures.ts"
 import { decodeResidentRequest } from "../resident/protocol.ts"
 import { MAX_SOURCE_BYTES } from "./capture.ts"
 import { prepareObservation } from "./pipeline.ts"
@@ -52,7 +53,8 @@ describe("Claude Code 2.1.218 direct adapter", () => {
       prepareObservation(observation, {
         controlledWriter: true,
         advicee: observation.advicee,
-        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: configuredRules
       })
     )
     expect(
@@ -100,7 +102,8 @@ describe("Claude Code 2.1.218 direct adapter", () => {
       prepareObservation(observation, {
         controlledWriter: true,
         advicee: observation.advicee,
-        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: configuredRules
       })
     )
     expect(

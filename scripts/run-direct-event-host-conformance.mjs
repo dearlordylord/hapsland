@@ -135,28 +135,24 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
     join(repository, "visibility-rules.jsonc"),
     `${JSON.stringify(
       {
-        schemaVersion: 1,
-        id: "host-visibility",
-        contentVersion: "1.0.0",
-        rules: [
-          {
-            id: "marker",
-            question: "Does this declaration define a delivery-shaped interface?",
-            criteria: { false: "The declaration is not delivery-shaped.", true: "The declaration is delivery-shaped." },
-            threshold: 0.7,
-            message: `Visibility probe token: ${visibilityMarker}`,
-            applicability: { includes: ["profile.ts"] }
-          }
-        ]
+        version: 1,
+        id: "marker",
+        question: "Does this declaration define a delivery-shaped interface?",
+        criteria: { false: "The declaration is not delivery-shaped.", true: "The declaration is delivery-shaped." },
+        threshold: 0.7,
+        message: `Visibility probe token: ${visibilityMarker}`,
+        inputs: [{ languages: ["typescript"], kind: "type", requires: ["root-declaration"] }]
       },
       null,
       2
     )}\n`,
     { mode: 0o600 }
   )
-  await writeFile(join(repository, ".hapsland.jsonc"), '{"version":1,"packs":["visibility-rules.jsonc"]}\n', {
-    mode: 0o600
-  })
+  await writeFile(
+    join(repository, ".hapsland.jsonc"),
+    '{"version":1,"rules":[{"path":"visibility-rules.jsonc","includes":["profile.ts"]}]}\n',
+    { mode: 0o600 }
+  )
   const answers = Object.fromEntries(
     [
       "r1_inferred_case",
@@ -170,7 +166,7 @@ appendFileSync(process.env.REVIEW_HOST_STAGE_PATH, JSON.stringify({
       "r9_body_reaches_undeclared"
     ].map((id) => [id, { _tag: "Probability", probability: 0.91 }])
   )
-  answers["host-visibility/marker"] = { _tag: "Probability", probability: 0.91 }
+  answers["marker"] = { _tag: "Probability", probability: 0.91 }
   const env = {
     ...standaloneEnvironment(join(temporary, "standalone-path"), process.env, ["codex"]),
     CODEX_HOME: home,

@@ -12,8 +12,8 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { readAnalytics } from "../activity/analytics.ts"
 import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from "./client.ts"
 import { residentPaths } from "./paths.ts"
@@ -108,11 +108,13 @@ describe("resident session analytics", () => {
       await Effect.runPromise(server.whenIdle())
       await put(
         f.root,
-        "user.jsonc",
+        ".hapsland.jsonc",
         JSON.stringify({
           version: 1,
-          sessionAnalytics: true,
-          ruleOverrides: Object.fromEntries(configuredRules.map((rule) => [rule.id, { enabled: false }]))
+          rules: configuredRules.map((rule) => ({
+            path: join(f.root, ".hapsland", "rules", "defaults", `${encodeURIComponent(rule.id)}.json`),
+            enabled: false
+          }))
         })
       )
       expect(Effect.runSync(server.admit(await f.observation("rules-disabled"), f.dispatch)).status).toBe("accepted")

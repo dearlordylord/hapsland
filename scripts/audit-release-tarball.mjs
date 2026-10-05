@@ -27,12 +27,19 @@ const names = files
     }
     return name.slice("package/".length)
   })
+const defaultRuleFiles = command("git", ["ls-tree", "-r", "--name-only", commit, "src/rules/defaults"])
+  .toString()
+  .trim()
+  .split("\n")
+  .filter((name) => /^src\/rules\/defaults\/r[1-9]_[a-z_]+\.json$/.test(name))
+if (defaultRuleFiles.length !== 9) throw new Error("release must contain nine individual default rules")
 const allowed = (name) =>
   name === "package.json" ||
   name === "package-runtime.json" ||
   name === "README.md" ||
+  defaultRuleFiles.includes(name) ||
   name === "bin/launch.sh" ||
-  ["schemas/review-config-v1.schema.json", "schemas/review-rule-pack-v1.schema.json"].includes(name) ||
+  ["schemas/review-config-v1.schema.json", "schemas/review-rule-v1.schema.json"].includes(name) ||
   [
     "docs/codex-installation.md",
     "docs/claude-installation.md",
@@ -47,6 +54,7 @@ const allowed = (name) =>
     "docs/npm-publishing.md"
   ].includes(name) ||
   name === "dist/pi/extension.js" ||
+  name === "dist/runtime/hook-catalog.js" ||
   /^dist\/bin\/(?:linux|darwin)-arm64\/hapsland(?:-doctor|-parser|-resident)?$/.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name)
 for (const name of names) {
@@ -69,7 +77,15 @@ if (
 ) {
   throw new Error("release package manifest differs from reviewed release coordinates or runtime contract")
 }
-const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh", "dist/pi/extension.js"]
+const required = [
+  ...defaultRuleFiles,
+  "package.json",
+  "package-runtime.json",
+  "README.md",
+  "bin/launch.sh",
+  "dist/pi/extension.js",
+  "dist/runtime/hook-catalog.js"
+]
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
   for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"])
     required.push(`dist/bin/${profile}/${command}`)
@@ -88,6 +104,9 @@ for (const profile of ["linux-arm64", "darwin-arm64"]) {
   }
 }
 for (const name of required) if (!names.includes(name)) throw new Error(`release tarball is missing ${name}`)
+for (const name of defaultRuleFiles)
+  if (sha256(archiveFile(name)) !== sha256(gitFile(name)))
+    throw new Error(`shipped default rule differs from the pinned release commit: ${name}`)
 for (const name of names.filter((name) =>
   /^(?:dist\/.*\.js|docs\/.*\.md|README\.md|package-runtime\.json|bin\/launch\.sh)$/.test(name)
 )) {

@@ -25,7 +25,7 @@ import { addEvent } from "../src/direct-event/test-fixtures.ts"
 import { adaptCodexAdd, adaptCodexDirectEvent, adaptClaudeDirectEvent } from "../src/direct-event/adapter.ts"
 import { prepareObservation } from "../src/direct-event/pipeline.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../src/runtime/review-config.ts"
-import { configuredRules } from "../src/policy/rules.ts"
+import { configuredRules } from "../src/test-support/default-rules.ts"
 import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
 import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.ts"
 import { COEXISTENCE_CASES, TASK_CANARY, setupAbideCoexistence } from "./native-abide-coexistence.mjs"
@@ -128,7 +128,7 @@ if (host === "pi") {
     language,
     scenario,
     mode,
-    messages: NOUL_MESSAGES,
+    messages: DEFAULT_RULE_MESSAGES,
     runnerPath: new URL(import.meta.url)
   })
   process.exit(process.exitCode ?? 0)

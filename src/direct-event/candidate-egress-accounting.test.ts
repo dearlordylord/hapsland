@@ -9,8 +9,8 @@ import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { DEFAULT_API_BASE, DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { compileRulePack } from "../rules/compiler.ts"
-import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts"
+import { compileRule } from "../rules/compiler.ts"
+import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { adaptCodexDirectEvent } from "./adapter.ts"
 import { encodedFullJevRequestBytes, evaluatePrepared, prepareObservation, preparedProviderInput } from "./pipeline.ts"
@@ -50,10 +50,10 @@ const sentinel = "OFFLINE_CANDIDATE_EGRESS_SENTINEL"
 describe("T-case candidate HTTP body and source scope", () => {
   it("matches all 12 source-backed candidate rows through the pinned injected client", async () => {
     const manifest = await readJson<{ readonly cases: ReadonlyArray<Fixture> }>("manifest.json")
-    const rule = BUNDLED_NOUL_PACK.rules.find((item) => item.id === "r2_meaningless_combinations")
+    const rule = SHIPPED_DEFAULT_RULES.find((item) => item.id === "r2_meaningless_combinations")
     if (rule === undefined) throw new Error("missing built-in probe rule")
-    const pack = { schemaVersion: 1, id: "noul-type", contentVersion: "1", rules: [rule] }
-    const rules = compileRulePack(pack, "proposal:issue-138-candidate-egress")
+    const { source: _source, origin: _origin, definitionDigest: _digest, ...definition } = rule
+    const rules = [compileRule(definition, "proposal:issue-138-candidate-egress")]
     const measured: Array<{ readonly id: string; readonly candidate: CandidateRecord }> = []
     for (const fixture of manifest.cases.filter((item) => item.branch.split("/")[0] === "type-shape")) {
       const root = await makeGitFixture()

@@ -26,9 +26,12 @@ const validateConfigurationGlobs = (document: ConfigurationDocumentType, source:
   validatePatterns(document.includes, source, "includes")
   validatePatterns(document.excludes, source, "excludes")
   validatePatterns(document.privacyExcludes, source, "privacyExcludes")
-  for (const [ruleId, override] of Object.entries(document.ruleOverrides ?? {})) {
-    validatePatterns(override.includes, source, `ruleOverrides.${ruleId}.includes`)
-    validatePatterns(override.excludes, source, `ruleOverrides.${ruleId}.excludes`)
+  validatePatterns(document.contextIncludes, source, "contextIncludes")
+  validatePatterns(document.contextExcludes, source, "contextExcludes")
+  for (const [index, reference] of (document.rules ?? []).entries()) {
+    if (typeof reference === "string") continue
+    validatePatterns(reference.includes, source, `rules[${index}].includes`)
+    validatePatterns(reference.excludes, source, `rules[${index}].excludes`)
   }
 }
 

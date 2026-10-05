@@ -7,7 +7,7 @@ import type * as DecisionModel from "effect/ai/DecisionModel"
 import { execFileAsync } from "../../scripts/test-harness/process.mjs"
 import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises"
 import { join } from "node:path"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import {
   controlledDecisionModelLayer,

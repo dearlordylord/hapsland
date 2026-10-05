@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { rm } from "node:fs/promises"
-import { configuredRules } from "../policy/rules.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { FUNCTION_INPUT_CONTRACT, FUNCTION_CAPABILITIES } from "../rules/targets.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { adaptCodexAdd } from "./adapter.ts"
@@ -80,6 +80,7 @@ export function check(input: ModerationInput): ModerationDecision {
         // A rule which actually requires closure must still be withheld.
         const strict = {
           ...rule,
+          inputs: [{ languages: ["typescript" as const], kind: "function" as const, requires: FUNCTION_CAPABILITIES }],
           reviewTargets: [
             {
               artifactKind: "function" as const,

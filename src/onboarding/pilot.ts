@@ -64,17 +64,25 @@ const approveSetupInstallation = Effect.fn("Pilot.approveInstallation")(function
   request: SetupRequest
 ) {
   const action = setupAction(result, "approve-installation") ?? setupAction(result, "resume-installation")
-  if (action === undefined) return request
+  const rulesAction = setupAction(result, "approve-default-rules")
+  if (action === undefined && rulesAction === undefined) return request
   frame.ports.write(`Installation preview:\n${formatProposal(installationStageProposal(result)).join("\n")}\n`)
-  if (!(yield* frame.ports.confirm(`Install these entries in the selected ${frame.hostName} profile?`))) {
+  if (rulesAction !== undefined) frame.ports.write(`Rules preview: ${rulesAction.action}.\n`)
+  if (!(yield* frame.ports.confirm(`Apply these setup changes for ${frame.hostName}?`))) {
     frame.ports.write(
       `${formatOutcome("info", `Installation was not changed. Run hapsland setup ${frame.options.host} to resume.`)}\n`
     )
     return undefined
   }
-  const digest = action.authorization?.installProposalDigest
-  if (digest === undefined) return yield* Effect.fail(new Error("installation preview omitted its approval digest"))
-  return { ...request, installProposalDigest: digest }
+  const digest = action?.authorization?.installProposalDigest
+  if (action !== undefined && digest === undefined)
+    return yield* Effect.fail(new Error("installation preview omitted its approval digest"))
+  const rulesDigest = rulesAction?.authorization?.rulesProposalDigest
+  return {
+    ...request,
+    ...(digest === undefined ? {} : { installProposalDigest: digest }),
+    ...(rulesDigest === undefined ? {} : { rulesProposalDigest: rulesDigest })
+  }
 })
 const setupCredentialComplete = (result: SetupResult): boolean =>
   stageStatus(result, "installation") === "complete" && stageStatus(result, "credential") === "complete"

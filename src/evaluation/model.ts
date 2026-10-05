@@ -24,14 +24,8 @@ export type EvaluationId = typeof EvaluationId.Type
 export const FixtureId = Identifier.pipe(Schema.brand("EvaluationFixtureId"))
 export type FixtureId = typeof FixtureId.Type
 
-export const RulePackId = Identifier.pipe(Schema.brand("EvaluationRulePackId"))
-export type RulePackId = typeof RulePackId.Type
-
-export const LocalRuleId = Identifier.pipe(Schema.brand("EvaluationLocalRuleId"))
-export type LocalRuleId = typeof LocalRuleId.Type
-
-export const QualifiedRuleId = Identifier.pipe(Schema.brand("EvaluationQualifiedRuleId"))
-export type QualifiedRuleId = typeof QualifiedRuleId.Type
+export const RuleId = Identifier.pipe(Schema.brand("EvaluationRuleId"))
+export type RuleId = typeof RuleId.Type
 
 export const ConfigurationCaseId = Identifier.pipe(Schema.brand("EvaluationConfigurationCaseId"))
 export type ConfigurationCaseId = typeof ConfigurationCaseId.Type
@@ -63,12 +57,7 @@ export type Version = typeof Version.Type
 export const DigestRef = Schema.Struct({ id: Identifier, version: Version, digest: EvaluationDigest })
 export interface DigestRef extends Schema.Schema.Type<typeof DigestRef> {}
 
-export const RuleIdentity = Schema.Struct({
-  packId: RulePackId,
-  ruleId: LocalRuleId,
-  qualifiedId: QualifiedRuleId,
-  packVersion: Version
-})
+export const RuleIdentity = Schema.Struct({ ruleId: RuleId })
 export interface RuleIdentity extends Schema.Schema.Type<typeof RuleIdentity> {}
 
 export const RuleApplicability = Schema.Struct({
@@ -77,8 +66,8 @@ export const RuleApplicability = Schema.Struct({
 })
 export interface RuleApplicability extends Schema.Schema.Type<typeof RuleApplicability> {}
 
-/** Production packs use the structured Noul criteria; string criteria remain
- * accepted for small authored fixtures and backwards-compatible model data. */
+/** Production rules use the structured Noul criteria; string criteria remain
+ * accepted for small authored fixtures. */
 export const RuleCriteria = Schema.Union([
   Schema.NonEmptyString,
   Schema.Struct({ false: Schema.NonEmptyString, true: Schema.NonEmptyString })
@@ -117,7 +106,7 @@ export const FixtureReference = Schema.Struct({
 })
 export interface FixtureReference extends Schema.Schema.Type<typeof FixtureReference> {}
 
-export const RuleReference = Schema.Struct({ qualifiedId: QualifiedRuleId, definitionDigest: EvaluationDigest })
+export const RuleReference = Schema.Struct({ ruleId: RuleId, definitionDigest: EvaluationDigest })
 export interface RuleReference extends Schema.Schema.Type<typeof RuleReference> {}
 
 const ExpectedBandFields = Schema.Struct({
@@ -144,7 +133,7 @@ export type ExpectedResult = typeof ExpectedResult.Type
 
 export const Expectation = Schema.Struct({
   fixtureId: FixtureId,
-  ruleId: QualifiedRuleId,
+  ruleId: RuleId,
   result: ExpectedResult,
   rationale: Schema.NonEmptyString,
   expectationDigest: EvaluationDigest
@@ -152,7 +141,7 @@ export const Expectation = Schema.Struct({
 export interface Expectation extends Schema.Schema.Type<typeof Expectation> {}
 
 export const ConfigurationRuleOverride = Schema.Struct({
-  ruleId: QualifiedRuleId,
+  ruleId: RuleId,
   enabled: Schema.optionalKey(Schema.Boolean),
   threshold: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
   message: Schema.optionalKey(Schema.NonEmptyString)
@@ -185,7 +174,7 @@ export interface ConfigurationProvenance extends Schema.Schema.Type<typeof Confi
 export const EffectiveConfiguration = Schema.Struct({
   includePatterns: Schema.Array(Schema.String),
   excludePatterns: Schema.Array(Schema.String),
-  selectedRuleIds: Schema.Array(QualifiedRuleId),
+  selectedRuleIds: Schema.Array(RuleId),
   ruleOverrides: Schema.Array(ConfigurationRuleOverride),
   provenance: Schema.Array(ConfigurationProvenance),
   configurationDigest: EvaluationDigest
@@ -264,7 +253,7 @@ export const EvaluationScenario = EvaluationScenarioFields.check(
 export interface EvaluationScenario extends Schema.Schema.Type<typeof EvaluationScenario> {}
 
 export const AssessmentEntry = Schema.Struct({
-  ruleId: QualifiedRuleId,
+  ruleId: RuleId,
   probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))
 })
 export interface AssessmentEntry extends Schema.Schema.Type<typeof AssessmentEntry> {}
@@ -274,7 +263,7 @@ export const RequestShape = Schema.Struct({
   domain: Schema.NonEmptyString,
   path: Schema.NonEmptyString,
   contentHash: EvaluationDigest,
-  ruleIds: Schema.Array(QualifiedRuleId),
+  ruleIds: Schema.Array(RuleId),
   inputContract: InputContractIdentity,
   rendererAdapter: RendererAdapterIdentity
 })
@@ -313,7 +302,7 @@ export const ConformanceObservation = Schema.Struct({
 export interface ConformanceObservation extends Schema.Schema.Type<typeof ConformanceObservation> {}
 
 export const FindingObservation = Schema.Struct({
-  ruleId: QualifiedRuleId,
+  ruleId: RuleId,
   probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   message: Schema.NonEmptyString
 })
@@ -382,7 +371,7 @@ const ComparisonFields = Schema.Struct({
   leftObservationId: Schema.optionalKey(ObservationId),
   rightObservationId: Schema.optionalKey(ObservationId),
   observationId: Schema.optionalKey(ObservationId),
-  ruleId: Schema.optionalKey(QualifiedRuleId),
+  ruleId: Schema.optionalKey(RuleId),
   expectation: Schema.optionalKey(Expectation),
   fixtureRelation: Schema.optionalKey(Schema.Literals(["identical", "transformed"] as const)),
   direction: Schema.optionalKey(Schema.Literals(["increase", "decrease", "change", "no-change"] as const)),
