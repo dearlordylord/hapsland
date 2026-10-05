@@ -111,7 +111,11 @@ requests across its two live runs.
 
 The [journal tests](../src/inspection/storage.test.ts) exercise actual asynchronous
 filesystem publication, shared allocated-byte accounting, exact capture-aged
-expiry, independent writer contention, and killed producers. Consent is checked
+expiry, independent writer contention, and killed producers. A physical near-full
+128 MiB journal uses the actual default settings and measured filesystem
+allocation, then exercises two project/source writers and contending maintenance.
+It checks publication allocation, non-waiting contention, oldest-first record
+eviction, surviving exact loss-marker identities, and the shared cap after cleanup. Consent is checked
 at the recorder's synchronous commit of an already-readable immutable object:
 disable before commit drops it; disable during later cleanup retains the earlier
 capture. Incomplete temporary links are conservatively discarded after a crash,

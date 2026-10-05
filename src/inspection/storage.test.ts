@@ -24,6 +24,7 @@ import { spawn } from "node:child_process"
 import { once } from "node:events"
 import { makeInspectionHttpServer } from "./http.ts"
 import { makeInspectionRecorder } from "./recorder.ts"
+import { readInspectionSettings } from "./settings.ts"
 
 const directories: string[] = []
 afterEach(async () => {
@@ -278,6 +279,99 @@ describe("private inspection journal", () => {
       allocated += inspectionAllocatedBytes(await lstat(join(directory, name)))
     expect(allocated).toBeLessThanOrEqual(cap)
   })
+  it("shares the default 128 MiB allocated cap across contending project writers and maintenance", async () => {
+    const directory = await fixture()
+    const settings = readInspectionSettings(directory, join(directory, "absent-user"))
+    expect(settings).toMatchObject({ retentionMs: 7 * 86400000, storageBytes: 128 * 1048576 })
+    if (!settings) throw new Error("missing default inspection limits")
+    const limits = { ...settings, now: () => 2000 }
+    const paddedRecord = (value: InspectionRecord) => {
+      const encoded = JSON.stringify(value)
+      return encoded + " ".repeat(128 * 1024 - Buffer.byteLength(encoded))
+    }
+    // Existing immutable history is fixture setup. Padding keeps each valid JSON
+    // record at the real per-record byte limit without fabricating a UI producer.
+    const seeded = Array.from({ length: 1023 }, (_, index) => {
+      const value = record(index + 1, 100 + index, index % 2 ? "second" : "first")
+      return { ...value, scope: { ...value.scope, root: index % 2 ? "/project-b" : "/project-a" } }
+    })
+    for (let start = 0; start < seeded.length; start += 32) {
+      await Promise.all(
+        seeded.slice(start, start + 32).map((value) => {
+          const encoded = paddedRecord(value)
+          return writeFile(
+            join(directory, `${value.source.id}-${String(value.sequence).padStart(16, "0")}.json`),
+            encoded,
+            { mode: 0o600 }
+          )
+        })
+      )
+    }
+    const allocated = async () => {
+      let total = inspectionAllocatedBytes(await lstat(directory))
+      for (const name of await readdir(directory)) total += inspectionAllocatedBytes(await lstat(join(directory, name)))
+      return total
+    }
+    // Filesystem allocation can exceed the padded logical record size. Trim
+    // fixture setup using measured allocation, leaving less than one full record
+    // of free quota so actual publications must exercise capacity eviction.
+    while ((await allocated()) > settings.storageBytes) {
+      const value = seeded.pop()
+      if (!value) throw new Error("fixture cannot fit the default storage cap")
+      await rm(join(directory, `${value.source.id}-${String(value.sequence).padStart(16, "0")}.json`))
+    }
+    expect(await allocated()).toBeGreaterThan(settings.storageBytes - 256 * 1024)
+    expect(await allocated()).toBeLessThanOrEqual(settings.storageBytes)
+    const entered = nativeDeferred<void>()
+    const release = nativeDeferred<void>()
+    const first = makeInspectionStorage(directory, limits, {
+      beforePublication: async () => {
+        expect(await allocated()).toBeLessThanOrEqual(settings.storageBytes)
+        entered.resolve()
+        await release.promise
+      }
+    })
+    const second = makeInspectionStorage(directory, limits)
+    const next = { ...record(1024, 1500), scope: { ...record(1024).scope, root: "/project-a" } }
+    const writing = Effect.runPromise(
+      first.write(next, paddedRecord(next), { allowed: () => true, commit: () => true })
+    )
+    await Promise.race([
+      entered.promise,
+      writing.then(() => {
+        throw new Error("writer settled without reaching publication")
+      })
+    ])
+    try {
+      await expect(publish(second, record(1025, 1600, "second"))).rejects.toThrow("inspection storage unavailable")
+      await expect(Effect.runPromise(second.snapshot())).rejects.toThrow("inspection storage unavailable")
+    } finally {
+      release.resolve()
+      await writing
+    }
+    const final = { ...record(1025, 1600, "second"), scope: { ...record(1025).scope, root: "/project-b" } }
+    await Effect.runPromise(second.write(final, paddedRecord(final), { allowed: () => true, commit: () => true }))
+    const retained = await Effect.runPromise(second.snapshot())
+    expect(retained.records.map((value) => value.sequence)).toContain(1024)
+    expect(retained.records.map((value) => value.sequence)).toContain(1025)
+    expect(retained.records.map((value) => value.sequence)).not.toContain(1)
+    const remainingSeed = retained.records.filter((value) => value.sequence <= seeded.length)
+    expect(remainingSeed.length).toBeGreaterThan(0)
+    expect(remainingSeed.map((value) => value.sequence)).toEqual(
+      seeded.slice(remainingSeed[0]!.sequence - 1).map((value) => value.sequence)
+    )
+    // Loss markers also share the quota: later admission can evict an older
+    // marker, but every surviving marker must identify a genuinely removed seed.
+    expect(retained.losses.length).toBeGreaterThan(0)
+    for (const loss of retained.losses) {
+      expect(loss.reason).toBe("capacity-evicted")
+      expect(loss.sequence).toBeLessThan(remainingSeed[0]!.sequence)
+      expect(loss.sourceId).toBe(seeded[loss.sequence - 1]!.source.id)
+    }
+    expect(new Set(retained.records.map((value) => value.scope.root))).toEqual(new Set(["/project-a", "/project-b"]))
+    expect(await allocated()).toBeLessThanOrEqual(settings.storageBytes)
+  }, 60000)
+
   it("retains exact capacity-loss identities across readers within the allocated cap", async () => {
     const directory = await fixture()
     const block = (await statfs(directory)).bsize
