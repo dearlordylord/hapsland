@@ -581,6 +581,26 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         })
     }
   )
+  const inspectionObserveAdviceFate = (
+    advice: Advice,
+    findings: ReadonlyArray<Finding>,
+    fate: Parameters<typeof captureInspectionFate>[1],
+    reason: Parameters<typeof captureInspectionFate>[2]
+  ) => {
+    if (!inspection.isEnabled(advice.observation.root)) return
+    const evaluationId = inspectionOrigins.get(advice.evaluationKey)
+    inspection.offer(
+      {
+        root: advice.observation.root,
+        runtime: advice.observation.advicee.host,
+        runtimeVersion: advice.observation.advicee.hostVersion,
+        sessionId: advice.observation.advicee.sessionId,
+        subagentId: advice.observation.advicee.subagentId
+      },
+      evaluationId === undefined ? {} : { evaluationId },
+      captureInspectionFate(findings, fate, reason, advice.id)
+    )
+  }
   const inspectionReceive = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
     const settings = readInspectionSettings(observation.root, dispatch.userConfigPath ?? undefined)
     if (settings && (inspectionLimits.has(observation.root) || inspectionLimits.size < 128))
@@ -1038,8 +1058,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const retained: Array<Finding> = []
     const partition = adviceePartition(advice.observation.root, advice.observation.advicee)
     for (const finding of findings) {
-      if (yield* residentComposedDelivery.suppresses(advice.id, partition, finding, stopCollector ? "stop" : undefined))
+      if (
+        yield* residentComposedDelivery.suppresses(advice.id, partition, finding, stopCollector ? "stop" : undefined)
+      ) {
+        inspectionObserveAdviceFate(advice, [finding], "suppressed", "collection-suppression")
         continue
+      }
       retained.push(finding)
       if (firstOnly) break
     }
@@ -1145,7 +1169,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       generationValid: advice.credentialGeneration === frame.credentialGeneration
     })
     if (result.rejection !== undefined) throw new Error("canonical credential check refused")
-    if (result.commands[0]?.kind === "collectionRetireCredential") yield* residentRemoveAdvice(advice.id)
+    if (result.commands[0]?.kind === "collectionRetireCredential")
+      yield* residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "credential-invalid" })
     else if (result.commands[0]?.kind !== "collectionRetainCredential")
       throw new Error("invalid canonical credential decision")
   })
@@ -1792,7 +1817,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return
     }
     if (disposition?.kind === "deliveryRetireAdvice") {
-      yield* residentRemoveAdvice(item.id, token)
+      yield* residentRemoveAdvice(item.id, token, { fate: "discarded", reason: "delivery-finalized" })
       return
     }
     if (disposition?.kind !== "deliveryKeepRemaining") throw new Error("invalid canonical delivery disposition")
@@ -2246,7 +2271,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     }
     for (const advice of [...(yield* residentAdvice())]) {
-      if (yield* superseded(advice.revision)) yield* residentRemoveAdvice(advice.id)
+      if (yield* superseded(advice.revision))
+        yield* residentRemoveAdvice(advice.id, undefined, { fate: "stale", reason: "resident-stale" })
     }
   })
 
@@ -2271,7 +2297,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentReleaseCurrentWork(job.revision)
   }, Effect.uninterruptible)
 
-  const residentRemoveAdvice = Effect.fn("ResidentRuntime.removeAdvice")(function* (id: string, token?: string) {
+  const residentRemoveAdvice = Effect.fn("ResidentRuntime.removeAdvice")(function* (
+    id: string,
+    token?: string,
+    retirement?: {
+      readonly fate: Parameters<typeof captureInspectionFate>[1]
+      readonly reason: Parameters<typeof captureInspectionFate>[2]
+    }
+  ) {
     const advice = (yield* residentAdvice()).find((item) => item.id === id)
     if (advice === undefined) return false
     const expired = yield* residentAdviceExpired(advice, residentNow())
@@ -2290,8 +2323,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         evaluationId === undefined ? {} : { evaluationId },
         captureInspectionFate(
           findings,
-          expired ? "expired" : "stale",
-          expired ? "retention-expired" : "resident-stale",
+          expired ? "expired" : (retirement?.fate ?? "discarded"),
+          expired ? "retention-expired" : (retirement?.reason ?? "publication-retired"),
           advice.id
         )
       )
@@ -2477,7 +2510,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const discarded = yield* residentDispatcher.discardWhere(({ value }) => value.round === round)
       for (const job of discarded) yield* residentDiscardJob(job)
       for (const advice of [...(yield* residentAdvice())])
-        if (advice.round === round) yield* residentRemoveAdvice(advice.id)
+        if (advice.round === round)
+          yield* residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "round-closed" })
       for (const [key, notice] of yield* residentNotices.entries()) {
         if (notice.partition === round.group) yield* residentReleaseNoticeCooldown(key)
       }
@@ -4164,7 +4198,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         // Replacing that work cohort must not discard the completed finding.
         if (!(yield* residentJobActive(job))) return
         yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice), advice.id)
-      }).pipe(Effect.onError(() => residentRemoveAdvice(advice.id).pipe(Effect.asVoid)))
+      }).pipe(
+        Effect.onError(() =>
+          residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "retention-failed" }).pipe(
+            Effect.asVoid
+          )
+        )
+      )
     })
   })
 
@@ -4226,6 +4266,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }),
             advice.round?.controller.signal ?? residentLifetimeController.signal
           )
+          if (!capacityUnavailable && current.status === "current")
+            inspectionObserveAdviceFate(advice, current.findings, "current", "revalidated-current")
+          if (!capacityUnavailable && current.status === "stale")
+            inspectionObserveAdviceFate(advice, content.findings, "stale", "resident-stale")
           return capacityUnavailable ? { status: "unavailable" as const, findings: [] } : current
         }).pipe(
           Effect.catch(() => Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] })),
@@ -5423,7 +5467,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
         })
         yield* closeDispatchedJobs()
-        for (const advice of yield* residentAdvice()) yield* residentRemoveAdvice(advice.id)
+        for (const advice of yield* residentAdvice())
+          yield* residentRemoveAdvice(advice.id, undefined, { fate: "discarded", reason: "resident-disposed" })
         for (const key of [...(yield* residentNotices.entries()).map(([key]) => key)])
           yield* residentReleaseNoticeCooldown(key)
         // Running work may be interrupted by process exit or finish later. Clear

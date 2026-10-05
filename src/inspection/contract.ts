@@ -56,8 +56,21 @@ export const InspectionWriterState = Schema.Literals([
 export const InspectionFact = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("finding-fate"),
-    fate: Schema.Literals(["retained", "stale", "expired", "discarded"]),
-    reason: Schema.Literals(["pending-advice", "resident-stale", "retention-expired", "settlement-ignored"]),
+    fate: Schema.Literals(["retained", "current", "stale", "expired", "discarded", "suppressed"]),
+    reason: Schema.Literals([
+      "pending-advice",
+      "revalidated-current",
+      "resident-stale",
+      "retention-expired",
+      "settlement-ignored",
+      "collection-suppression",
+      "publication-retired",
+      "delivery-finalized",
+      "credential-invalid",
+      "round-closed",
+      "resident-disposed",
+      "retention-failed"
+    ]),
     adviceId: Schema.optionalKey(Id),
     payload: Schema.Union([
       Schema.Struct({

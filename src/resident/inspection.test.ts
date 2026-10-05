@@ -13,6 +13,89 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it.each([false, true])(
+    "distinguishes current findings from finalized retirement or suppression (composed: %s)",
+    async (composed) => {
+      const root = await makeGitFixture()
+      await put(root, "type.ts", "type OrderCount = number;\n")
+      await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+      const retained = nativeDeferred<void>()
+      const current = nativeDeferred<void>()
+      let suppressionStored = false
+      let finalizationStored = false
+      const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+      const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+        inspectionPersistence: {
+          write: (record, encoded, publication) =>
+            store.write(record, encoded, publication).pipe(
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  if (record.fact.kind !== "finding-fate") return
+                  if (record.fact.fate === "retained") retained.resolve()
+                  if (record.fact.fate === "current") current.resolve()
+                  if (record.fact.fate === "suppressed") suppressionStored = true
+                  if (record.fact.reason === "delivery-finalized") finalizationStored = true
+                })
+              )
+            )
+        }
+      })
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+      if (!observation) throw new Error("missing observation")
+      const dispatch: ResidentDispatchContext = {
+        statePath: join(root, "consent"),
+        userConfigPath: join(root, "absent-user"),
+        credential: null,
+        controlled: {
+          answers: Object.fromEntries(
+            configuredRules.map((rule, index) => [rule.id, { _tag: "Probability", probability: index === 0 ? 0.9 : 0 }])
+          )
+        }
+      }
+      expect(Effect.runSync(server.admit(observation, dispatch, composed)).status).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+      await retained.promise
+      const collect = () =>
+        !composed
+          ? Effect.runPromise(server.collect(root, observation.advicee, dispatch))
+          : Effect.runPromise(
+              server.handle({
+                requestRoute: "shared",
+                operation: "collect",
+                lifetime: server.lifetime,
+                root,
+                advicee: observation.advicee,
+                dispatch,
+                mode: "ordinary",
+                composed: true
+              })
+            )
+      const first = await collect()
+      expect(first.status).toBe("advice")
+      if (first.status !== "advice") throw new Error("missing advice")
+      await current.promise
+      expect(suppressionStored).toBe(false)
+      if (composed)
+        expect((await Effect.runPromise(server.beginComposedSubmission(first.token, "background"))).status).toBe(
+          "submitting"
+        )
+      expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged")
+      expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized")
+      expect((await collect()).status).toBe("empty")
+      await expect.poll(() => (composed ? suppressionStored : finalizationStored), { timeout: 3000 }).toBe(true)
+      const records = await Effect.runPromise(store.snapshot())
+      const fate = records.find(
+        (record) => record.fact.kind === "finding-fate" && record.fact.fate === (composed ? "suppressed" : "discarded")
+      )
+      expect(fate?.fact).toMatchObject({
+        fate: composed ? "suppressed" : "discarded",
+        reason: composed ? "collection-suppression" : "delivery-finalized"
+      })
+      expect(records.some((record) => record.fact.kind === "finding-fate" && record.fact.fate === "stale")).toBe(false)
+      expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
+    }
+  )
+
   it("records actual advice expiry without claiming source repair or submission", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number;\n")
@@ -273,7 +356,12 @@ describe("resident inspection capture", () => {
                 if (record.fact.kind === "edit-admission") stored.resolve()
                 if (record.fact.kind === "unit-prepared") prepared.resolve()
                 if (record.fact.kind === "finding-fate" && record.fact.fate === "retained") evaluated.resolve()
-                if (record.fact.kind === "finding-fate" && record.fact.fate === "stale") retired.resolve()
+                if (
+                  record.fact.kind === "finding-fate" &&
+                  record.fact.fate === "discarded" &&
+                  record.fact.reason === "publication-retired"
+                )
+                  retired.resolve()
               })
             )
           )
