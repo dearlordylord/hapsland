@@ -1,3 +1,4 @@
+import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { DEFAULT_CHILD_TIMEOUT_MS } from "../scripts/test-harness/policy.mjs"
 import { describe, expect, it, vi } from "vitest"
 import { parseInvocation } from "./cli-command.ts"
@@ -46,6 +47,16 @@ const parse = async (args: ReadonlyArray<string>) => {
 }
 
 describe("declarative CLI subprocess contracts", () => {
+  it("lists every supported client in public help and accepts it for setup", async () => {
+    const help = await parse(["--help"])
+    for (const client of SUPPORTED_CLIENTS) {
+      expect(help.output).toContain(CLIENT_NAMES[client])
+      const result = await parse(["setup", client])
+      if (result.invocation?.kind !== "lifecycle") throw new Error("Expected setup lifecycle invocation")
+      expect(result.invocation.client.host).toBe(client)
+    }
+  })
+
   it("previews agent feedback without stdin, credentials, or persisted activity", () => {
     const result = cli(["--feedback-preview"], "not JSON")
     expect(result.status).toBe(0)

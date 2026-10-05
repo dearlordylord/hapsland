@@ -1,7 +1,9 @@
+import { SUPPORTED_CLIENTS } from "../runtime/agent-clients.ts"
+import { setupCommand } from "../runtime/cli-names.ts"
 import { Effect, Schema } from "effect"
 import { emitKeypressEvents } from "node:readline"
 
-export type SetupClient = "claude" | "codex" | "pi"
+export type SetupClient = (typeof SUPPORTED_CLIENTS)[number]
 export type ClientChoice = {
   readonly host: SetupClient
   readonly name: string
@@ -87,8 +89,7 @@ export const selectSetupClients = Effect.fn("ClientSelection.select")(function* 
   if (!terminal.available)
     return yield* Effect.fail(
       new ClientSelectionError({
-        message:
-          "Client selection needs a terminal. Use hapsland setup claude or hapsland setup codex, or --setup JSON for automation."
+        message: `Client selection needs a terminal. Use ${SUPPORTED_CLIENTS.map((client) => setupCommand(client)).join(" or ")}, or --setup JSON for automation.`
       })
     )
   return yield* Effect.acquireUseRelease(

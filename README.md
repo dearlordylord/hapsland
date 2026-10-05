@@ -377,11 +377,11 @@ Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeou
 
 | Runtime | Event | Selection | Mode | Limit | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| Codex | `PreToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 5 s | Register an edit attempt before the tool runs |
-| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 10 s | Report the edit and collect ready advice |
-| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Async command | 25 s | Deliver advice that finishes after the edit response |
-| Codex | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
-| Codex | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Codex CLI | `PreToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Codex CLI | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 10 s | Report the edit and collect ready advice |
+| Codex CLI | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Async command | 25 s | Deliver advice that finishes after the edit response |
+| Codex CLI | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Codex CLI | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
 | Claude Code | `PreToolUse` | `Edit\|Write` | Sync command | 5 s | Register an edit attempt before the tool runs |
 | Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
 | Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |

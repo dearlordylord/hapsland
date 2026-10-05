@@ -1,3 +1,4 @@
+import { CLIENT_NAMES } from "../src/runtime/agent-clients.ts"
 import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { commandHooks, piHooks, piHookCommand } from "../src/runtime/hook-catalog.ts"
@@ -9,7 +10,7 @@ const rows = []
 for (const [runtime, hooks] of Object.entries(commandHooks)) {
   for (const hook of Object.values(hooks))
     rows.push([
-      runtime === "codex" ? "Codex" : "Claude Code",
+      CLIENT_NAMES[runtime],
       `\`${hook.event}\``,
       "matcher" in hook ? `\`${hook.matcher}\`` : "All",
       "async" in hook && hook.async ? "Async command" : "Sync command",
@@ -19,7 +20,7 @@ for (const [runtime, hooks] of Object.entries(commandHooks)) {
 }
 for (const hook of Object.values(piHooks))
   rows.push([
-    "Pi",
+    CLIENT_NAMES.pi,
     `\`${hook.event}\``,
     "tool" in hook ? `\`${hook.tool}\`` : "All",
     "Extension callback",

@@ -1,3 +1,4 @@
+import { SUPPORTED_CLIENTS, supportedClientNames } from "./runtime/agent-clients.ts"
 import { SETUP_REVIEW_CHOICES, SETUP_CREDENTIAL_CHOICES } from "./onboarding/setup-request.ts"
 import { isHookInvocation } from "./runtime/hook-invocation.ts"
 import * as Argument from "effect/cli/Argument"
@@ -49,7 +50,7 @@ const valueFlag = (name: string) =>
     Flag.map((values) => values[0])
   )
 const profiles = {
-  host: Flag.Literals("host", ["claude", "codex", "pi"]).pipe(
+  host: Flag.Literals("host", SUPPORTED_CLIENTS).pipe(
     Flag.atMost(1),
     Flag.map((values) => values[0])
   ),
@@ -193,7 +194,7 @@ const parentOptions = {
   ...automationFlags,
   ...profiles,
   target: valueFlag("target"),
-  client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional)
+  client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(Argument.optional)
 }
 type ParentOptions = Command.Command.Config.Infer<typeof parentOptions>
 const activeOption = (value: unknown): boolean => value !== false && value !== undefined
@@ -259,7 +260,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
       validateAutomation(values)
       invocation = { kind: "automation", options: values, client: clientArguments(values) }
     })
-  ).pipe(Command.withDescription("Hapsland — Claude Code and Codex review integration"))
+  ).pipe(Command.withDescription(`Hapsland — ${supportedClientNames} review integration`))
   const rulesCommand = Command.make("rules", rulesOptions, (options) =>
     Effect.sync(() => {
       invocation = { kind: "rules", options }
@@ -275,7 +276,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
             ...(command === SETUP_COMMAND
               ? { [NEW_KEY_OPTION]: automationFlags[NEW_KEY_OPTION], ...unattendedSetupOptions }
               : {}),
-            client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional),
+            client: Argument.Literals("client", SUPPORTED_CLIENTS).pipe(Argument.optional),
             ...(command === "update" || command === SETUP_COMMAND || command === "repair" || command === "reinstall"
               ? { target: valueFlag("target") }
               : {}),

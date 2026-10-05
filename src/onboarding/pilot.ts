@@ -1,3 +1,4 @@
+import { CLIENT_NAMES } from "../runtime/agent-clients.ts"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import type { profileFields } from "./client-command.ts"
 import * as Effect from "effect/Effect"
@@ -201,11 +202,7 @@ export const runPilotSetup = Effect.fn("Pilot.run")(function* (options: PilotOpt
     ports.exitCode(6)
     return
   }
-  const frame: PilotFrame = {
-    options,
-    ports,
-    hostName: { claude: "Claude Code", codex: "Codex", pi: "Pi" }[options.host]
-  }
+  const frame: PilotFrame = { options, ports, hostName: CLIENT_NAMES[options.host] }
   const request: SetupRequest = {
     version: 1,
     operation: "setup",

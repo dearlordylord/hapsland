@@ -3,7 +3,6 @@ import { SETUP_COMMAND } from "../runtime/cli-names.ts"
 
 export const clientCommands = [SETUP_COMMAND, "update", "doctor", "repair", "reinstall", "uninstall"] as const
 export type ClientCommand = (typeof clientCommands)[number]
-export const clients: ReadonlyArray<SetupClient> = ["claude", "codex", "pi"]
 const piProfile = (home: string | undefined, executable: string | undefined) => ({
   host: "pi" as const,
   ...(home === undefined ? {} : { piHome: home }),

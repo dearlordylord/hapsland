@@ -1,3 +1,4 @@
+import { SUPPORTED_CLIENTS } from "../runtime/agent-clients.ts"
 import { formatOutcome, formatStatusOutcome } from "./human-output.ts"
 import { currentCommand, type RuntimeCommand } from "../runtime/package-runtime.ts"
 import * as Effect from "effect/Effect"
@@ -12,7 +13,7 @@ import { hasClaudeRegistration } from "./claude-installation.ts"
 import { hasCodexRegistration } from "./codex-installation.ts"
 import { hasPiRegistration } from "./pi-installation.ts"
 import type { SetupClient } from "./client-selection.ts"
-import { clients, profileFields, type ClientCommand } from "./client-command.ts"
+import { profileFields, type ClientCommand } from "./client-command.ts"
 
 const hasRegistration = (fields: ReturnType<typeof profileFields>): boolean => {
   switch (fields.host) {
@@ -28,7 +29,7 @@ export const registeredClients = (
   flags: ReadonlyMap<string, string>,
   onError?: (host: SetupClient, cause: unknown) => void
 ): SetupClient[] =>
-  clients.filter((host) => {
+  SUPPORTED_CLIENTS.filter((host) => {
     try {
       const fields = profileFields(host, flags)
       return hasRegistration(fields)

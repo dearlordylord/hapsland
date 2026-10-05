@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { SUPPORTED_CLIENTS, CLIENT_NAMES } from "./runtime/agent-clients.ts"
 import { formatOutcome, formatStatusOutcome } from "./onboarding/human-output.ts"
 import { NEW_KEY_FLAG, CLI_NAME, LOGIN_FLAG, setupCommand } from "./runtime/cli-names.ts"
 import { JEV_PROVIDER } from "./runtime/backend.ts"
@@ -1423,7 +1424,6 @@ const piClientStatus = Effect.fn("InteractiveSetup.piStatus")(function* (
 const clientStatuses = { pi: piClientStatus, claude: claudeClientStatus, codex: codexClientStatus }
 const currentClientStatus = (fields: ReturnType<typeof hostFields>, initial: ClientChoice["status"]) =>
   clientStatuses[fields.host](fields, initial)
-const clientNames = { pi: "Pi", claude: "Claude Code", codex: "Codex CLI" } as const
 const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (host: SetupClient) {
   const fields = hostFields(host)
   const { inspect } = yield* clientInstallationPorts()
@@ -1432,13 +1432,13 @@ const setupClientChoice = Effect.fn("InteractiveSetup.clientChoice")(function* (
     Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) })
   )(inspection)
   const status = yield* currentClientStatus(fields, initialClientStatus(decoded))
-  return { host, name: clientNames[host], status }
+  return { host, name: CLIENT_NAMES[host], status }
 })
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
   const { selectSetupClients } = yield* Effect.promise(() => import("./onboarding/client-selection.ts"))
   if (!process.stdin.isTTY || !process.stderr.isTTY)
     throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.")
-  const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex", "pi"] as const, setupClientChoice)
+  const choices: ClientChoice[] = yield* Effect.forEach(SUPPORTED_CLIENTS, setupClientChoice)
   const hosts = yield* selectSetupClients(choices)
   if (hosts.length === 0) {
     process.stderr.write("No clients selected. No changes made.\n")

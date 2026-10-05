@@ -1,3 +1,4 @@
+import { CLIENT_NAMES } from "../runtime/agent-clients.ts"
 import { previewDefaultRules, applyDefaultRules } from "./default-rules.ts"
 import { configurationError } from "../configuration/errors.ts"
 import { JEV_PROVIDER } from "../runtime/backend.ts"
@@ -660,7 +661,7 @@ const installationPreview = (request: SetupRequest, installation: unknown) => {
 }
 
 const setupInstallation = Effect.fn("Setup.installation")(function* (request: SetupRequest, progress: SetupProgress) {
-  const hostName = request.host === "pi" ? "Pi" : request.host === "claude" ? "Claude Code" : "Codex"
+  const hostName = CLIENT_NAMES[request.host]
   const { preview, install } = installationOperations(request)
   let installation: unknown = yield* preview()
   const previewEvidence = installationPreview(request, installation)
