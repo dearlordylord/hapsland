@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const targets = [
+  ["linux-arm64", "inspection-lock.node"],
+  ["darwin-arm64", "inspection-lock.node"],
   ["linux-arm64", "credential-secret-service"],
   ["linux-arm64", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
   ["linux-arm64", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],

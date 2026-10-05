@@ -53,8 +53,7 @@ const allowed = (name) =>
     "docs/installation-workflows.md",
     "docs/npm-publishing.md"
   ].includes(name) ||
-  name === "dist/pi/extension.js" ||
-  name === "dist/runtime/hook-catalog.js" ||
+  ["dist/pi/extension.js", "dist/pi/inspection.js", "dist/runtime/hook-catalog.js"].includes(name) ||
   /^dist\/bin\/(?:linux|darwin)-arm64\/hapsland(?:-doctor|-parser|-resident)?$/.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name)
 for (const name of names) {
@@ -84,6 +83,7 @@ const required = [
   "README.md",
   "bin/launch.sh",
   "dist/pi/extension.js",
+  "dist/pi/inspection.js",
   "dist/runtime/hook-catalog.js"
 ]
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
@@ -91,6 +91,7 @@ for (const profile of ["linux-arm64", "darwin-arm64"]) {
     required.push(`dist/bin/${profile}/${command}`)
   for (const artifact of [
     "credential-secret-service",
+    "inspection-lock.node",
     "tree-sitter/build/Release/tree_sitter_runtime_binding.node",
     "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
     "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",

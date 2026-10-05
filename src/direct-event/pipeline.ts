@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Result from "effect/Result"
 import * as Schema from "effect/Schema"
-import { Decision, DecisionModel } from "effect/ai"
+import { AiError, Decision, DecisionModel } from "effect/ai"
 import type { CompiledRule } from "../rules/compiler.ts"
 import { applicableRules } from "../policy/rules.ts"
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts"
@@ -74,6 +74,12 @@ export type DirectReviewContext = {
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>)
   readonly inputContract?: string | (() => string)
   readonly captureHooks?: CaptureHooks
+  /** Optional observation of the actual preparation refusal; never participates in review authority. */
+  readonly observePreparationOmission?: (
+    path: string,
+    declaration: string,
+    reason: "missing-evidence" | "no-applicable-rule"
+  ) => void
   /** Fixture-only source effect; production uses the stable native capture. */
   readonly captureSource?: typeof captureStable
   /** Fixture-only graph clock for deterministic deadline checks. */
@@ -328,10 +334,18 @@ const prepareResolvedUnit = (
   frame: PreparationFrame
 ): PrepareOutcome | undefined => {
   const declaration = unit.root.artifact
+  const omitted = (reason: "missing-evidence" | "no-applicable-rule") => {
+    try {
+      frame.context.observePreparationOmission?.(path, declaration.name, reason)
+    } catch {
+      /* Optional evidence cannot refuse review. */
+    }
+    return undefined
+  }
   const rootLocation = candidateRootLocation(frame.contract, declaration, candidateDeclarations)
-  if (missingRequiredRootLocation(frame.contract, rootLocation)) return undefined
+  if (missingRequiredRootLocation(frame.contract, rootLocation)) return omitted("missing-evidence")
   const sourceFingerprints = unitSourceFingerprints(unit, frame.supportingCaptures)
-  if (sourceFingerprints === undefined) return undefined
+  if (sourceFingerprints === undefined) return omitted("missing-evidence")
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
   const partial = unitHasOmissions(unit)
   const capabilities = preparationCapabilities(frame.contract, partial)
@@ -344,7 +358,7 @@ const prepareResolvedUnit = (
     complete: true,
     ...(capabilities === undefined ? {} : { capabilities })
   })
-  if (rules.length === 0) return undefined
+  if (rules.length === 0) return omitted("no-applicable-rule")
   const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial, language)
   return {
     status: "ready",
@@ -1041,33 +1055,92 @@ const evaluateProbabilityAnswers = (prepared: PreparedUnit, answers: Probability
   return { status: "evaluated", findings } satisfies Evaluation
 }
 
+export type EvaluationEvidence =
+  | { readonly kind: "model-input"; readonly input: typeof Schema.Json.Type }
+  | { readonly kind: "interpreted-findings"; readonly findings: ReadonlyArray<Finding> }
+  | {
+      readonly kind: "validated-answers"
+      readonly answers: ReadonlyArray<{ readonly ruleId: string; readonly probability: number }>
+    }
+  | {
+      readonly kind: "evaluation-outcome"
+      readonly outcome:
+        | "clear"
+        | "findings"
+        | "input-limit"
+        | "backend"
+        | "invalid-response"
+        | "timeout"
+        | "interrupted"
+    }
+
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
 export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(function* (
   prepared: PreparedUnit,
-  beforeDispatch: Effect.Effect<void, unknown> = Effect.void
+  beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
+  observe?: (evidence: EvaluationEvidence) => void
 ) {
+  const emit = (evidence: EvaluationEvidence) => {
+    try {
+      observe?.(evidence)
+    } catch {
+      /* Optional evidence cannot change evaluation. */
+    }
+  }
+
   const providerInput = preparedProviderInput(prepared)
   const modelId = prepared.input.providerIdentity.model
   if (
     providerInput === undefined ||
     requestLimitViolation(modelId, probabilityRequest(modelId, providerInput, prepared.input.rules)) !== undefined
-  )
+  ) {
+    emit({ kind: "evaluation-outcome", outcome: "input-limit" })
     return { status: "input-limit" } as const
+  }
   const decisions: Record<string, Decision.Probability> = {}
   for (const rule of prepared.input.rules) decisions[rule.id] = rule.decision
   const definition = Decision.make({ input: Schema.Json, decisions })
   const input = yield* Schema.decodeUnknownEffect(Schema.Json)(providerInput).pipe(Effect.orDie)
   const model = yield* DecisionModel.DecisionModel
   const evaluated = yield* beforeDispatch.pipe(
-    Effect.andThen(model.decide(definition, { input })),
+    Effect.andThen(
+      Effect.suspend(() => {
+        emit({ kind: "model-input", input })
+        return model.decide(definition, { input })
+      })
+    ),
     Effect.timeoutOption(`${DIRECT_EVENT_DEADLINE_MS} millis`),
-    Effect.result
+    Effect.result,
+    Effect.onInterrupt(() => Effect.sync(() => emit({ kind: "evaluation-outcome", outcome: "interrupted" })))
   )
-  if (Result.isFailure(evaluated)) return { status: "backend" } as const
-  if (Option.isNone(evaluated.success)) return { status: "timeout" } as const
+  if (Result.isFailure(evaluated)) {
+    const invalid =
+      AiError.isAiError(evaluated.failure) &&
+      (evaluated.failure.reason._tag === "InvalidOutputError" ||
+        evaluated.failure.reason._tag === "StructuredOutputError")
+    emit({ kind: "evaluation-outcome", outcome: invalid ? "invalid-response" : "backend" })
+    return { status: "backend" } as const
+  }
+  if (Option.isNone(evaluated.success)) {
+    emit({ kind: "evaluation-outcome", outcome: "timeout" })
+    return { status: "timeout" } as const
+  }
   const answers = evaluated.success.value.answers
-  if (!expectedProbabilityAnswers(prepared, answers)) return { status: "backend" } as const
-  return evaluateProbabilityAnswers(prepared, answers)
+  if (!expectedProbabilityAnswers(prepared, answers) || !Object.values(answers).every(validProbabilityAnswer)) {
+    emit({ kind: "evaluation-outcome", outcome: "invalid-response" })
+    return { status: "backend" } as const
+  }
+  emit({
+    kind: "validated-answers",
+    answers: Object.entries(answers).map(([ruleId, answer]) => ({ ruleId, probability: answer.probability }))
+  })
+  const result = evaluateProbabilityAnswers(prepared, answers)
+  if (result.status === "evaluated") emit({ kind: "interpreted-findings", findings: result.findings })
+  emit({
+    kind: "evaluation-outcome",
+    outcome: result.status === "evaluated" ? (result.findings.length ? "findings" : "clear") : "invalid-response"
+  })
+  return result
 })
 
 /** Core path consumes the one immutable observation produced at the host boundary. */

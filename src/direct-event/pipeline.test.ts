@@ -21,10 +21,12 @@ import {
   revalidateEvaluations,
   reviewCodexDirectEvent,
   reviewObservation,
-  type DirectReviewContext
+  type DirectReviewContext,
+  type EvaluationEvidence
 } from "./pipeline.ts"
 import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboarding/demo-budget.ts"
 import { attemptCodexHostOutput } from "./writer.ts"
+import { Writable } from "node:stream"
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts"
 import { adaptCodexAdd } from "./adapter.ts"
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
@@ -766,6 +768,32 @@ describe("direct-event vertical slice", () => {
     })
   )
 
+  it.effect("observes no-applicable-rule preparation without letting the observer change review behavior", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number;\n"))
+      const observation = yield* adaptCodexAdd(addEvent(root))
+      if (observation === undefined) throw new Error("missing observation")
+      for (const throws of [false, true]) {
+        const omissions: Array<unknown> = []
+        const prepared = yield* prepareObservation(observation, {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings,
+          rules: [],
+          inputContract: TYPE_INPUT_CONTRACT,
+          observePreparationOmission: (path, declaration, reason) => {
+            omissions.push({ path, declaration, reason })
+            if (throws) throw new Error("optional observer failure")
+          }
+        })
+        expect(omissions).toEqual([{ path: "type.ts", declaration: "OrderCount", reason: "no-applicable-rule" }])
+        expect(prepared.observation.status).toBe("complete")
+        expect(prepared.outcomes).toEqual([])
+      }
+    })
+  )
+
   it.effect("keeps file selection distinct from analyzer applicability", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
@@ -996,6 +1024,50 @@ describe("direct-event vertical slice", () => {
         const result = yield* Fiber.join(fiber)
         expect(result).toEqual({ status: "unavailable", reason: "timeout", output: undefined })
         expect(calls).toBe(1)
+      })
+    )
+  )
+
+  it.effect("distinguishes canceled inspection requests from deadline expiry", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"))
+        const observation = yield* adaptCodexAdd(addEvent(root))
+        expect(observation).toBeDefined()
+        if (observation === undefined) return
+        const prepared = yield* prepareObservation(observation, {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings,
+          rules: configuredRules
+        })
+        const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+        expect(ready?.status).toBe("ready")
+        if (ready?.status !== "ready") return
+        for (const cancellation of ["interrupt", "deadline"] as const) {
+          const entered = yield* Deferred.make<void>()
+          const evidence: Array<EvaluationEvidence> = []
+          const fiber = yield* evaluatePrepared(ready.prepared, Effect.void, (event) => evidence.push(event)).pipe(
+            Effect.provide(
+              controlledDecisionModelLayer({
+                answers: findingAnswers(),
+                delayMs: DIRECT_EVENT_DEADLINE_MS + 1,
+                onRequest: Deferred.succeed(entered, undefined)
+              })
+            ),
+            Effect.forkChild
+          )
+          yield* Deferred.await(entered)
+          if (cancellation === "interrupt") yield* Fiber.interrupt(fiber)
+          else {
+            yield* TestClock.adjust(`${DIRECT_EVENT_DEADLINE_MS} millis`)
+            expect(yield* Fiber.join(fiber)).toEqual({ status: "timeout" })
+          }
+          expect(evidence.filter((event) => event.kind !== "model-input")).toEqual([
+            { kind: "evaluation-outcome", outcome: cancellation === "interrupt" ? "interrupted" : "timeout" }
+          ])
+        }
       })
     )
   )
@@ -1366,6 +1438,36 @@ describe("direct-event vertical slice", () => {
 })
 
 describe("controlled host writer", () => {
+  it("captures the exact synchronous Codex payload without claiming completion or changing observer failures", () => {
+    const bytes: Buffer[] = []
+    const evidence: Array<{ state: string; encoded?: string }> = []
+    const stream = new Writable({
+      write: (chunk, _encoding, complete) => {
+        bytes.push(Buffer.from(chunk))
+        complete()
+      }
+    })
+    const output = {
+      hookSpecificOutput: { hookEventName: "PostToolUse" as const, additionalContext: "Inspect 日本語\r\n\tcases" }
+    }
+    const result = attemptCodexHostOutput(
+      output,
+      (encoded) => {
+        stream.write(encoded)
+      },
+      {
+        observe: (event) => {
+          evidence.push(event)
+          throw new Error("optional inspection unavailable")
+        }
+      }
+    )
+    stream.end()
+    expect(result.status).toBe("attempted-unacknowledged")
+    expect(evidence.map((event) => event.state)).toEqual(["write-started", "uncertain"])
+    for (const event of evidence) expect(Buffer.from(event.encoded ?? "").equals(Buffer.concat(bytes))).toBe(true)
+    expect(bytes[0]?.toString("utf8")).toBe(JSON.stringify(output) + "\n")
+  })
   it("records attempted-unacknowledged only after the write invocation", () => {
     const events: Array<string> = []
     const attempt = attemptCodexHostOutput(
@@ -1380,13 +1482,20 @@ describe("controlled host writer", () => {
   })
 
   it("does not manufacture an attempt record when the writer throws", () => {
+    const evidence: Array<{ state: string; encoded?: string }> = []
     expect(() =>
       attemptCodexHostOutput(
         { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "advice" } },
         () => {
           throw new Error("closed writer")
+        },
+        {
+          observe: (event) => {
+            evidence.push(event)
+          }
         }
       )
     ).toThrow("closed writer")
+    expect(evidence.map((event) => event.state)).toEqual(["write-started", "uncertain"])
   })
 })

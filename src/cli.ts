@@ -47,6 +47,7 @@ import {
 import { isCodexHostVersion, type CodexHostVersion, type DirectObservation } from "./direct-event/model.ts"
 import { type ClaudeHostOutput } from "./direct-event/claude-output.ts"
 import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts"
+import { inspectionWriterClientLayer } from "./resident/inspection-writer-client.ts"
 import {
   type ResidentStartup,
   admitObservationEffect,
@@ -1580,7 +1581,10 @@ const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* 
   return { diagnosis, status: checked.status, exitCode: result.exitCode }
 })
 
-if (cliSwitch("feedback-preview")) {
+if (invocation.kind === "dashboard") {
+  const { runInspectionDashboard } = await import("./inspection/command.ts")
+  runInspectionDashboard(invocation)
+} else if (cliSwitch("feedback-preview")) {
   process.stdout.write(
     "Synthetic example; no review was run.\n\n" +
       formatReviewFeedback([
@@ -1795,6 +1799,7 @@ if (cliSwitch("feedback-preview")) {
         runReviewProgram().pipe(
           Effect.provide(processConfigurationLayer),
           Effect.provide(directHookSubmissionLayer),
+          Effect.provide(inspectionWriterClientLayer),
           Effect.provide(composedHookRuntimeLayer),
           Effect.provide(hookOutputLayer),
           Effect.provide(residentStartupLayer),

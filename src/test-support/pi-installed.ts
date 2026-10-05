@@ -1,9 +1,9 @@
 import { spawn, type ChildProcess } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
-import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs"
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { expect } from "vitest"
+import assert from "node:assert/strict"
 import { configuredRules, connectDefaultRuleFixture } from "./default-rules.ts"
 import { pathToFileURL } from "node:url"
 import { residentRequestEffect } from "../resident/client.ts"
@@ -172,7 +172,7 @@ export const fixture = (
   control: Record<string, unknown> = {},
   options: { commandFactory?: (cli: string, root: string) => readonly string[]; env?: NodeJS.ProcessEnv } = {}
 ) => {
-  const root = mkdtempSync(join(tmpdir(), "hapsland-pi-boundary-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "haps-pi-")))
   roots.push(root)
   residentMains.set(
     root,
@@ -217,8 +217,8 @@ export const fixture = (
   const context = { cwd: root, sessionManager: { getSessionId: () => "pi-boundary-session" } }
   const call = async (name: string, event: unknown, ctx = context) => {
     const handler = handlers.get(name)
-    expect(handler, `registered ${name} handler`).toBeDefined()
-    return handler!(event, ctx)
+    assert.ok(handler, `registered ${name} handler`)
+    return handler(event, ctx)
   }
   const prepareResident = async () => {
     // Opt-in healthy-resident precondition for lifecycle witnesses. Cold-start
@@ -237,7 +237,46 @@ export const fixture = (
     await waitForResidentStats(root, () => true)
   }
   const waitForWork = (count: number) => waitForResidentStats(root, (stats) => stats.queued + stats.running === count)
-  return { root, capturePath, call, context, reload, prepareResident, waitForWork }
+  const waitForAdvice = () =>
+    waitForResidentStats(
+      root,
+      (stats) =>
+        stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0 && stats.pendingFindingBatches > 0
+    )
+  const offerOnLaterEdits = async (ctx = context) => {
+    // A healthy pending batch still requires current-source revalidation. The
+    // ordinary 250 ms callback polls only its first 100 ms, so a busy reply can
+    // truthfully defer the offer. Exercise at most two real later opportunities;
+    // never stretch the production callback deadline or fabricate an offer.
+    // Comment-only edits keep this witness about the existing finding; starting
+    // unrelated classifier jobs here competes with its short collection window.
+    let output
+    let editCount = 0
+    for (const [index, path] of ["other.ts", "later.ts"].entries()) {
+      const next = {
+        ...before,
+        toolCallId: `native-edit-${index + 2}`,
+        input: { path, edits: [{ oldText: "// before", newText: `// callback opportunity ${index}` }] }
+      }
+      writeFileSync(join(root, path), "// before\n")
+      await call("tool_call", next, ctx)
+      writeFileSync(join(root, path), `// callback opportunity ${index}\n`)
+      output = await call(
+        "tool_result",
+        {
+          ...result,
+          ...next,
+          content: [{ type: "text", text: `Successfully replaced text in ${path}.` }],
+          details: { patch: `--- ${path}\n+++ ${path}\n@@ -1 +1 @@\n-// before\n+// callback opportunity ${index}\n` }
+        },
+        ctx
+      )
+      editCount += 1
+      if (output !== undefined) break
+    }
+    return { output, editCount }
+  }
+  return { root, capturePath, call, context, reload, prepareResident, waitForWork, waitForAdvice, offerOnLaterEdits }
 }
 
 export const input = {

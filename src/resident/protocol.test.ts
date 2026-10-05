@@ -17,6 +17,69 @@ import {
 } from "./protocol.ts"
 
 describe("resident protocol bounds", () => {
+  it("validates lifetime-bound read-only inspection state without caller-selected roots", () => {
+    const request = { requestRoute: "shared", operation: "inspection-status", lifetime: "owner" } as const
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(request))).toEqual(request)
+    expect(decodeResidentRequest(JSON.stringify({ ...request, root: "/untrusted" }))).toBeUndefined()
+    const response = {
+      status: "inspection-status",
+      sourceId: "0".repeat(64),
+      observedAt: 1,
+      roots: [{ root: "/project", state: "disabled", epoch: 1 }],
+      omittedRoots: 0
+    } as const
+    expect(decodeCurrentResidentResponse(JSON.parse(encodeCurrentResidentResponse(response)), request)).toEqual(
+      response
+    )
+    for (const roots of [
+      Array.from({ length: 129 }, () => response.roots[0]),
+      [{ ...response.roots[0], epoch: -1 }],
+      [{ ...response.roots[0], state: "recorded" }]
+    ])
+      expect(decodeResidentResponse({ ...response, roots })).toBeUndefined()
+    expect(decodeResidentResponse({ ...response, observedAt: -1 })).toBeUndefined()
+  })
+  it("bounds optional writer reports by UTF-8 bytes and rejects invented writer states", () => {
+    const report = {
+      requestRoute: "shared",
+      operation: "inspection-writer",
+      lifetime: "owner",
+      token: "batch",
+      attemptId: "11111111-1111-4111-8111-111111111111",
+      root: "/tmp/repository",
+      advicee: advicee(),
+      findingCount: 1,
+      noticeOnly: false,
+      state: "written",
+      encoded: "日本語\r\n\t".repeat(100)
+    } as const
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(report))).toEqual(report)
+    for (const change of [
+      { encoded: "日".repeat(5462) },
+      { state: "model-read" },
+      { findingCount: 129 },
+      { attemptId: "not-an-attempt" },
+      { credentials: "forbidden" },
+      { findingCount: -1 }
+    ])
+      expect(decodeResidentRequest(JSON.stringify({ ...report, ...change }))).toBeUndefined()
+    expect(decodeResidentRequest(JSON.stringify({ ...report, encoded: "日".repeat(5461) + "a" }))).toBeDefined()
+    const { requestRoute: _route, operation: _operation, token: _token, lifetime: _lifetime, ...evidence } = report
+    const acknowledgement = {
+      requestRoute: "shared",
+      operation: "acknowledge",
+      lifetime: "owner",
+      token: "batch",
+      writerReports: [evidence]
+    } as const
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(acknowledgement))).toEqual(acknowledgement)
+    for (const writerReports of [
+      Array.from({ length: 9 }, () => evidence),
+      [{ ...evidence, encoded: "日".repeat(5462) }],
+      [{ ...evidence, outputMissing: "oversized" }]
+    ])
+      expect(decodeResidentRequest(JSON.stringify({ ...acknowledgement, writerReports }))).toBeUndefined()
+  })
   it("uses one version-one envelope for bounded edit responses and rejects retired ticket requests", () => {
     const observation = {
       root: "/tmp/repository",

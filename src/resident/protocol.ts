@@ -1,4 +1,5 @@
 import type { CodexDirectEventOutput } from "../direct-event/output.ts"
+import { InspectionWriterState, InspectionRecordingRoot } from "../inspection/contract.ts"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts"
 import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts"
 
@@ -46,6 +47,16 @@ export type ResidentDispatchContext = {
 export const CURRENT_IPC_VERSION = 1 as const
 export type ResidentRequestRoute = "shared" | "edit"
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired"
+export type ResidentWriterEvidence = {
+  readonly attemptId: string
+  readonly root: string
+  readonly advicee: DirectAdvicee
+  readonly findingCount: number
+  readonly noticeOnly: boolean
+  readonly state: typeof InspectionWriterState.Type
+  readonly encoded?: string
+  readonly outputMissing?: "oversized" | "unavailable"
+}
 
 export type ResidentRequest =
   | {
@@ -136,14 +147,22 @@ export type ResidentRequest =
       readonly operation: "acknowledge"
       readonly lifetime: string
       readonly token: string
+      readonly writerReports?: ReadonlyArray<ResidentWriterEvidence>
     }
   | {
       readonly requestRoute: "shared"
       readonly operation: "finalize"
       readonly lifetime: string
       readonly token: string
+      readonly writerReports?: ReadonlyArray<ResidentWriterEvidence>
     }
-  | { readonly requestRoute: "shared"; readonly operation: "stats"; readonly lifetime: string }
+  | (ResidentWriterEvidence & {
+      readonly requestRoute: "shared"
+      readonly operation: "inspection-writer"
+      readonly lifetime: string
+      readonly token: string
+    })
+  | { readonly requestRoute: "shared"; readonly operation: "stats" | "inspection-status"; readonly lifetime: string }
   | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string }
 
 export type ResidentResponse =
@@ -159,8 +178,16 @@ export type ResidentResponse =
       readonly token: string
       readonly findingCount: number
       readonly output: ClaudeHostOutput
+      readonly inspectionReporting?: true
     }
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
+  | {
+      readonly status: "inspection-status"
+      readonly sourceId: string
+      readonly observedAt: number
+      readonly roots: ReadonlyArray<typeof InspectionRecordingRoot.Type>
+      readonly omittedRoots: number
+    }
   | {
       readonly status:
         | "accepted"
@@ -185,6 +212,7 @@ export type ResidentResponse =
       readonly token: string
       readonly findingCount: number
       readonly output: CodexDirectEventOutput
+      readonly inspectionReporting?: true
     }
   | {
       readonly status: "stats"
@@ -305,6 +333,29 @@ const lifetime = { ...shared, lifetime: BoundedString }
 const owner = { ...lifetime, root: BoundedString, advicee: Advicee }
 const token = { ...lifetime, token: BoundedString }
 const admission = { controlledWriter: Schema.Literal(true), composed: Schema.Literal(true), dispatch: Dispatch }
+const writerEvidenceFields = {
+  root: BoundedString,
+  advicee: Advicee,
+  attemptId: Schema.String.check(Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)),
+  findingCount: SafeNatural.check(Schema.isLessThanOrEqualTo(128)),
+  noticeOnly: Schema.Boolean,
+  state: InspectionWriterState,
+  outputMissing: Schema.optionalKey(Schema.Literals(["oversized", "unavailable"])),
+  encoded: Schema.optionalKey(
+    Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 16384))
+  )
+}
+const WriterEvidence = Schema.Struct(writerEvidenceFields).check(
+  Schema.makeFilter((value) => value.encoded === undefined || value.outputMissing === undefined)
+)
+const WriterReports = Schema.Array(WriterEvidence).check(
+  Schema.isMaxLength(8),
+  Schema.makeFilter((value) => Buffer.byteLength(JSON.stringify(value)) <= 131072)
+)
+export const decodeResidentWriterReports = (value: unknown): ReadonlyArray<ResidentWriterEvidence> | undefined => {
+  const decoded = Schema.decodeUnknownOption(WriterReports, { onExcessProperty: "error" })(value)
+  return Option.isSome(decoded) ? decoded.value : undefined
+}
 const collection = {
   ...owner,
   operation: Schema.Literal("collect"),
@@ -354,7 +405,18 @@ const ResidentRequestSchema = Schema.Union([
     operation: Schema.Literal("begin-submission"),
     surface: Schema.Literals(["edit", "background", "stop"])
   }),
-  Schema.Struct({ ...token, operation: Schema.Literals(["release", "acknowledge", "finalize"]) }),
+  Schema.Struct({ ...token, operation: Schema.Literal("release") }),
+  Schema.Struct({
+    ...token,
+    operation: Schema.Literals(["acknowledge", "finalize"]),
+    writerReports: Schema.optionalKey(WriterReports)
+  }),
+  Schema.Struct({
+    ...owner,
+    operation: Schema.Literal("inspection-writer"),
+    token: BoundedString,
+    ...writerEvidenceFields
+  }).check(Schema.makeFilter((value) => value.encoded === undefined || value.outputMissing === undefined)),
   Schema.Struct({ ...lifetime, operation: Schema.Literal("admit"), ...admission, observation: Observation }),
   // Separate alternatives make finish mandatory only for turn-end collection.
   Schema.Struct({ ...collection, mode: Schema.optionalKey(Schema.Literal("ordinary")) }),
@@ -363,7 +425,7 @@ const ResidentRequestSchema = Schema.Union([
     mode: Schema.Literal("turn-end"),
     finish: Schema.Struct({ token: BoundedString, deadlineReached: Schema.Boolean })
   }),
-  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup"]) })
+  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup", "inspection-status"]) })
 ])
 const decodeRequest = Schema.decodeUnknownOption(ResidentRequestSchema, { onExcessProperty: "error" })
 
@@ -407,6 +469,7 @@ const ResidentResponseSchema = Schema.Union([
     status: Schema.Literal("advice"),
     token: Schema.NonEmptyString,
     findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    inspectionReporting: Schema.optionalKey(Schema.Literal(true)),
     output: HostOutput
   }),
   Schema.Struct({
@@ -414,9 +477,17 @@ const ResidentResponseSchema = Schema.Union([
     status: Schema.Literal("advice"),
     token: Schema.NonEmptyString,
     findingCount: Schema.Int.check(Schema.isGreaterThan(0)),
+    inspectionReporting: Schema.optionalKey(Schema.Literal(true)),
     output: ClaudeBlockHostOutput
   }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
+  Schema.Struct({
+    status: Schema.Literal("inspection-status"),
+    sourceId: Digest,
+    observedAt: SafeNatural,
+    roots: Schema.Array(InspectionRecordingRoot).check(Schema.isMaxLength(128)),
+    omittedRoots: SafeNatural
+  }),
   Schema.Struct({
     status: Schema.Literals([
       "accepted",
@@ -441,6 +512,7 @@ const ResidentResponseSchema = Schema.Union([
     status: Schema.Literal("advice"),
     token: Schema.NonEmptyString,
     findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    inspectionReporting: Schema.optionalKey(Schema.Literal(true)),
     output: HostOutput
   }),
   Schema.Struct({

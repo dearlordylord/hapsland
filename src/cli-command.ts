@@ -1,4 +1,5 @@
 import { SUPPORTED_CLIENTS, supportedClientNames } from "./runtime/agent-clients.ts"
+import { validInspectionAddress } from "./inspection/options.ts"
 import { SETUP_REVIEW_CHOICES, SETUP_CREDENTIAL_CHOICES } from "./onboarding/setup-request.ts"
 import { isHookInvocation } from "./runtime/hook-invocation.ts"
 import * as Argument from "effect/cli/Argument"
@@ -166,6 +167,7 @@ const rulesOptions = {
 }
 export type RulesOptions = Command.Command.Config.Infer<typeof rulesOptions>
 export type Invocation =
+  | { readonly kind: "dashboard"; readonly host: string; readonly port: number }
   | { readonly kind: "rules"; readonly options: RulesOptions }
   | { readonly kind: "automation"; readonly options: AutomationOptions; readonly client: ClientArguments }
   | { readonly kind: "lifecycle"; readonly command: ClientCommand; readonly client: ClientArguments }
@@ -268,6 +270,16 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
   ).pipe(Command.withDescription("Inspect, toggle, create or connect local JSON rules; no classifier calls"))
   const root = parent.pipe(
     Command.withSubcommands([
+      Command.make("dashboard", { host: valueFlag("host"), port: valueFlag("port") }, (values) =>
+        validate(() => {
+          const host = values.host ?? "127.0.0.1"
+          const text = values.port ?? "0"
+          const port = Number(text)
+          if (!/^[0-9]+$/.test(text) || !validInspectionAddress(host, port))
+            throw new Error("dashboard requires a loopback host and a port from 0 to 65535")
+          invocation = { kind: "dashboard", host, port }
+        })
+      ).pipe(Command.withDescription("Foreground local inspection dashboard; does not enable recording")),
       ...clientCommands.map((command) =>
         Command.make(
           command,

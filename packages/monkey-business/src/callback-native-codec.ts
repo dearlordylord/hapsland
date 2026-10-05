@@ -22,7 +22,7 @@ import { freezeCanonicalData } from "../../../src/canonical/immutable.ts"
 import { decodeDriverEvent } from "./driver-codec.ts"
 import { decodeCallbackTarget, validateCallbackControl } from "./callback-controls.ts"
 import { decodeAdviceeLifecycles } from "./advicee-lifecycle.ts"
-import type { RunObservation } from "./index.ts"
+import { type RunObservation } from "./index.ts"
 
 const MaybeScope = Schema.Union([Nat, Schema.Null])
 const Scopes = boundedArray(MaybeScope, 2048)

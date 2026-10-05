@@ -4,6 +4,8 @@ import { ConfigurationError } from "./errors.ts"
 import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts"
 import {
   effectiveSessionAnalytics,
+  effectiveSessionInspection,
+  effectiveInspectionLimits,
   effectiveEditPermitLimits,
   effectiveGraphLimits,
   effectiveVirtualRoundQuietMs,
@@ -27,6 +29,55 @@ const builtIn = (): ConfigurationLayer => ({
 })
 
 describe("configuration v1 decoding", () => {
+  it("keeps inspection consent independent and permits both project override directions", () => {
+    expect(effectiveSessionInspection(resolveConfiguration([]))).toBe(false)
+    expect(
+      effectiveSessionInspection(resolveConfiguration([source("user", '{"version":1,"sessionAnalytics":true}')]))
+    ).toBe(false)
+    for (const user of [true, false]) {
+      expect(
+        effectiveSessionInspection(
+          resolveConfiguration([source("user", JSON.stringify({ version: 1, sessionInspection: user }))])
+        )
+      ).toBe(user)
+      for (const project of [true, false]) {
+        const policy = resolveConfiguration([
+          source("user", JSON.stringify({ version: 1, sessionInspection: user })),
+          source("project", JSON.stringify({ version: 1, sessionInspection: project }))
+        ])
+        expect(effectiveSessionInspection(policy)).toBe(project)
+        expect(effectiveSessionAnalytics(policy)).toBe(false)
+      }
+    }
+    expect(() => source("project", '{"version":1,"sessionInspection":"true"}')).toThrowError(
+      expect.objectContaining({ field: "sessionInspection" })
+    )
+  })
+
+  it("resolves shared inspection retention and allocation limits from user configuration", () => {
+    expect(effectiveInspectionLimits(resolveConfiguration([]))).toEqual({
+      retentionMs: 7 * 24 * 60 * 60_000,
+      storageBytes: 128 * 1024 * 1024
+    })
+    expect(
+      effectiveInspectionLimits(
+        resolveConfiguration([
+          source("user", '{"version":1,"inspectionRetentionDays":2,"inspectionStorageBytes":8388608}')
+        ])
+      )
+    ).toEqual({ retentionMs: 2 * 24 * 60 * 60_000, storageBytes: 8388608 })
+    for (const field of ["inspectionRetentionDays", "inspectionStorageBytes"]) {
+      expect(() => resolveConfiguration([source("project", JSON.stringify({ version: 1, [field]: 1 }))])).toThrowError(
+        expect.objectContaining({ field })
+      )
+      for (const value of [0, -1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+        expect(() => source("user", JSON.stringify({ version: 1, [field]: value }))).toThrowError(
+          expect.objectContaining({ field })
+        )
+      }
+    }
+  })
+
   it("resolves session analytics with project precedence, including explicit false", () => {
     expect(effectiveSessionAnalytics(resolveConfiguration([], "/repo"))).toBe(false)
     const explanation = explainPath(

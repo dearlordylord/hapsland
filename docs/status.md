@@ -1,10 +1,10 @@
 # Readiness doctor and session activity
 
-**Purpose:** Explain offline readiness, session activity, and optional analytics.
+**Purpose:** Explain offline readiness, session activity, optional analytics, and local inspection observations.
 **Status:** Active user guidance.
 **Authority:** Maintained guidance describing implementation; accepted review contracts remain in their specification owners.
 **Expected use:** Diagnose readiness and inspect recorded session work.
-**Lifecycle:** Update with status, analytics, configuration, or retention changes; review when runtime instrumentation or storage behavior changes.
+**Lifecycle:** Update with status, analytics, inspection, configuration, or retention changes; review when runtime instrumentation or storage behavior changes.
 
 ## Supported source languages
 
@@ -86,6 +86,51 @@ authority differ. Operational notices remain distinct from rule findings.
 For actual feedback, inspect the agent runtime's session transcript. Status
 intentionally does not retain advice text. Submission records cannot prove
 that the agent read, acknowledged, or applied a finding.
+
+## Opt-in local inspection
+
+`hapsland dashboard` runs the private loopback inspector in the foreground and
+prints its launch URL. It does not enable recording or start a resident. Enable
+`sessionInspection` through [configuration](configuration.md) to record new work;
+recording continues independently of the dashboard process. Source-bearing
+inspection history is separate from the source-free status and analytics below.
+
+The inspector shows **current recording observations** from live residents
+separately from **retained recording state observations**. A lost history write
+can leave the last retained event as enabled even when the resident now reports
+disabled. Configuration changes apply when that resident next receives an edit.
+Unreachable residents have unknown current recording state; paused displays keep
+the observation at their displayed snapshot. Enabled capture does not guarantee
+that every event was successfully retained.
+
+For edits with multiple classifier invocations, choose the captured request by
+review unit and request identity. The exact-body view and copy action use that
+immutable selection. Original-evaluation links select the matching captured
+request; missing transport evidence is explicit and is not replaced by another
+unit's body.
+
+Retained classifier totals follow the visible edit filters. Observed model
+invocations and HTTP attempts are counted separately, with live, controlled and
+unknown activity kept distinct. Joins, cache hits and existing advice add no new
+calls. Replayed source/sequence identities count once; missing capture or history
+can leave these totals incomplete.
+
+Retained recording transitions are grouped into observed periods for each resident
+lifetime and working root. Each period names its retained start and next retained
+transition, with separate consent epochs after re-enabling. A missing next
+transition does not establish current state, and missing observations can hide
+other periods; these summaries do not establish continuous capture.
+
+Resumed live feeds send retained increments after each source's saved position.
+The inspector merges these by immutable source/sequence identity and removes rows
+no longer present in the retained view. A reset supplies a fresh bounded snapshot.
+
+Known expiry and capacity eviction are shown through bounded source-free loss
+markers. Markers share the journal's quota and can themselves expire or be lost;
+an unclassified missing record remains unknown. Payload reads return an explicit
+missing result, and copy actions preserve the clipboard when selected bytes are
+no longer available. Pausing keeps the selected preview while recording and
+known-loss notifications continue.
 
 ## Session status
 

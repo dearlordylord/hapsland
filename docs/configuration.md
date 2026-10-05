@@ -129,6 +129,9 @@ re-inclusion are invalid. Moving a rule document never changes the pattern base.
 | `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `sessionAnalytics` | boolean | Optional | false | Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
+| `sessionInspection` | boolean | Optional | false | Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording. |
+| `inspectionRetentionDays` | integer (1–3650) | Optional | 7 | User-owned capture-aged inspection retention in days, shared across residents and projects. |
+| `inspectionStorageBytes` | integer (1–9007199254740991) | Optional | 134217728 | User-owned shared allocated inspection-storage cap, including records, indices, payloads and temporary allocations. Unavailable quota drops capture; review continues. |
 | `claudeFeedbackMode` | "advisory" or "block-current-findings" | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
 | `editPermitLimits` | object | Optional | — | User-owned shared resident admission limits. Omitted values use built-in defaults. |
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |

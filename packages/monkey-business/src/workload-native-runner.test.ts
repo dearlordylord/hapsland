@@ -1,14 +1,15 @@
-import {
-  runWorkloadNative,
-  runWorkloadEmitted,
-  readRetainedWorkloadOutput
-} from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 import { createHash } from "node:crypto"
 import { gunzipSync, gzipSync } from "node:zlib"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from "node:fs"
 import { vi, expect, it, beforeEach } from "vitest"
+import {
+  runWorkloadNative,
+  runWorkloadEmitted,
+  readRetainedWorkloadOutput
+} from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
+
 const spawn = vi.hoisted(() => vi.fn())
 const preflight = vi.hoisted(() => ({
   capture: vi.fn(() => ({

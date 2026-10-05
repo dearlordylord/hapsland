@@ -25,6 +25,10 @@ evidence before regenerating the scenario pages.
 | Resident edit settings | `npm run test:focused -- src/runtime/review-settings.test.ts src/resident/edit-settings.test.ts` | Five-second non-sliding cache TTL, shared concurrent loads, failure recovery, immutable snapshots, pre-edit ownership, delayed delivery and mixed Claude modes | Configuration and compiled rules remain fixed for each edit; no disk-I/O or latency improvement claim |
 | Resident settings inspection | `npm run test:focused -- packages/monkey-business/src/applied-settings.test.ts` | Snapshot identity across execution, defensive copies and deep freezing, control invalidation, rejected controls and replay restoration | Applied configuration and controls are stable inspection inputs; no performance-improvement claim |
 | Immutable simulation boundary reuse | `npm run test:focused -- src/canonical/immutable.test.ts src/canonical/simulation-codec.test.ts src/canonical/boundary-schema.test.ts src/canonical/boundary.test.ts src/canonical/simulation-adapter.test.ts src/canonical/constructors-reuse.test.ts` | Transactional constructor reuse with strict public decoding; schema-equivalent scalar fast paths; cyclic/shared/wide freezing; frozen graph reuse; mutable and accessor isolation; list and scalar bounds; emitted Engine equivalence | Boundary correctness and snapshot isolation; no throughput claim |
+| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; per-unit request selection, exact request and native output copy, refused/interrupted/synchronous/written attempts, three-edit batch links, keyboard selection, pause/resume, keyboard reconnect with a retained cursor, recovery gaps, stable live reading, typed payload loss while paused, repeated observed recording periods, safe text, 375 px layout | Observed preparation/results/fates and historical writer evidence; written output without retained acknowledgement remains distinct from uncertainty. Pi and verified source discovery have separate checks below; full-feature milestone validation remains pending; no agent visibility or repair claim |
+| Inspection evaluation reuse | `npm --prefix packages/agent-flow-viz run test:inspection-reuse-browser` | Actual provider request held while another edit joins, clear result reused from cache, separate controlled DecisionModel call, public API/browser links and filtered retained totals, repeated recovery and physical policy-record loss | Joins/cache add no model or transport calls; controlled model activity remains distinct from live HTTP. Unknown activity after policy loss is explicit. Totals count retained immutable identities and do not claim complete capture |
+| Inspection classifier outcomes | `npm --prefix packages/agent-flow-viz run test:inspection-outcomes-browser` | Real resident and offline production provider transport through private journal and public API/browser; clear/findings, invalid answers, backend failure, timeout, interruption, oversized capture, exact copy and credential/error-body exclusion | Observed outcomes remain distinct from submission. The backend-error fixture exercises the resident error boundary without suppressing the original failure; no live Jev or model-visibility claim |
+| Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → freshly packed production command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, exact copy, oversized absence, lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch, recording disabled, and unavailable serialization with the original native value preserved. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture permits at most two later eligible comment mutations without starting unrelated classifier work, each with the existing short callback deadline; the extracted package boundary does not establish npm installation or other-platform support; no general latency or repair claim |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
 | Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, real Husky/lint-staged formatting and commit rejection | Offline temporary-repository workflow; no build or agent invocation |
@@ -120,6 +124,135 @@ recovery and credential fixtures own C/JavaScript/public/replay agreement; they 
 not repeat the 2050-request stress campaign. The original minimal native trace
 fixture uses the shared runner, with separate default 30-second C emission and
 clang allowances.
+## Local inspection storage boundary
+
+The [foreground command tests](../src/inspection/command.test.ts) run both the
+source CLI and the standalone CLI extracted from a freshly built production
+archive. They check no implicit opt-in or resident startup, SIGINT exit without
+forced termination, pre-launch history, continued resident recording while the
+dashboard is stopped, and retained history after dashboard restart. The packaged
+case uses an environment without Node or Bun on PATH. This establishes the local
+host's packaged dashboard lifecycle, not additional platform support.
+
+The [journal tests](../src/inspection/storage.test.ts) exercise actual asynchronous
+filesystem publication, shared allocated-byte accounting, exact capture-aged
+expiry, independent writer contention, and killed producers. A physical near-full
+128 MiB journal uses the actual default settings and measured filesystem
+allocation, then exercises two project/source writers and contending maintenance.
+It checks publication allocation, non-waiting contention, oldest-first record
+eviction, surviving exact loss-marker identities, and the shared cap after cleanup. Consent is checked
+at the recorder's synchronous commit of an already-readable immutable object:
+disable before commit drops it; disable during later cleanup retains the earlier
+capture. Incomplete temporary links are conservatively discarded after a crash,
+so this is optional history rather than a durable audit guarantee.
+
+The [native lock tests](../src/inspection/native-lock.test.ts) establish private
+directory descriptor validation and loading from a compiled Bun package layout.
+The non-waiting kernel lock releases on descriptor close or process exit and
+allocates no journal recovery files. The native build/release checks require the
+binding in both existing arm64 profiles. These focused checks do not establish
+production archive installation or full-feature acceptance; affected installed
+checks and the final milestone gate remain separate requirements.
+
+The [source discovery tests](../src/inspection/registry.test.ts) connect two real
+residents through retained private registrations and the public inspection API.
+They reject changed private permissions, owner symlinks and FIFOs, distinguish
+resident exit from lifetime replacement, and check bounded metadata and source
+counts. Inspection probes use a separate private `inspection.sock` endpoint accepting only hello and lifetime-bound recording-status reads. Its four connection slots and 300 ms total connection deadline are independent of the 32 hook-control slots. The socket saturation test verifies control requests while inspection is full, read-only probes while control is full, and rejection of cleanup on the inspection endpoint, and closure despite trickled incomplete input. Probes do not start residents or extend review lifetime.
+The Pi browser gate exercises distinct residents and roots with native selectors;
+its keyboard checks cover focus traversal and button activation, not native popup
+menu keystrokes. These checks do not establish replay or all runtime/child filters.
+
+Exact-payload reads use the capability-protected `payload/<source-id>/<sequence>`
+route. The [HTTP tests](../src/inspection/http.test.ts) retrieve real provider and
+native-writer bytes, then distinguish known expiry (`expired`), known capacity
+eviction (`capacity-evicted`), and missing unclassified records (`not-retained`) from an
+inaccessible journal (`history-unavailable`) and facts without exact bytes
+(`no-exact-payload`). Browser copy actions retrieve that immutable identity again
+and check it against the captured payload. The browser fixture fans one edit into
+two actual provider requests, selects both by keyboard, and compares each copy
+and unit label against its dispatched body. Original-evaluation links select the
+matching request rather than the first invocation in the original receipt. The
+fixture also removes the original model-input records while preserving actual
+transport records, then verifies the original links and exact bodies still work. A
+missing selection never switches to another body. A missing result leaves the clipboard
+unchanged and labels the remaining preview as previously captured history. These
+checks do not establish replay cursors or complete recording coverage.
+
+The [public replay test](../src/inspection/replay.test.ts) records two real resident
+sources, takes a snapshot, records further edits, and resumes after each source's
+sequence position through HTTP and SSE `Last-Event-ID`. Resumed SSE frames carry
+only records after each saved source position, plus a bounded list of the current
+view's retained identities. An unchanged cursor sends no record payloads. The
+browser merges by source/sequence and removes identities no longer retained,
+including while paused. Fresh or reset frames replace the retained view. Repeated
+source/sequence records are idempotent. Cursors are signed per inspector launch, carry at most 128
+source positions, and fit the server's header bound. A missing retained anchor or
+invalid cursor produces explicit gaps and a fresh retained snapshot; source and
+view bounds remain visible. Browser checks reconnect by keyboard while paused,
+keep selection frozen, and display loss after actual journal expiry. Coverage is
+always limited to retained observations; this does not prove that silent capture
+failures are known. Exact loss markers distinguish known expiry and capacity eviction;
+missing markers keep the reason unknown. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
+reader against a bounded saturated feed. A real resident review and private
+journal publication continue, the stalled response closes, and a new connection
+retrieves that review with the saved cursor. Five seconds of continuous socket
+backpressure trigger closure, checked every 100 ms; draining resets the deadline.
+The HTTP adapter waits for drain before pulling another bounded event, so a slow
+feed retains one response frame rather than an unbounded event queue. This is an
+observed local transport case, not a general network latency guarantee.
+
+The [current recording test](../src/inspection/recording-current.test.ts) drops a
+real resident's disabled-state history write and verifies that the public API
+still reports the resident's disabled capture state separately from its last
+retained enabled observation. The lifetime-bound `inspection-status` operation
+reads only in-memory recorder state: it neither starts a resident nor changes
+recording, review, cleanup or submission state. Known roots and metadata are
+bounded, with omitted counts. The Pi browser checks enabled observations from
+three live sources and unknown current root states after their disconnection.
+Configuration changes apply at the next edit admission; this observation does
+not reread project files or guarantee successful persistence. Paused displays
+retain their explicitly timed observation. The real-resident browser gate toggles
+only inspection consent through two disabled periods, preserving its original
+review policy. It verifies five retained state periods and three consent epochs,
+links each period to its next retained transition, and excludes disabled edits
+from source-bearing history. An open historical period does not claim current
+state or continuous coverage. Its configured 4 MiB fixture quota preserves the
+full bounded marker window for the selected older handoff's expiry check; the
+physical default-cap journal check is described above; bounded marker retention and
+marker loss have separate journal checks.
+
+Loss markers are source-free, private, immutable version-one journal objects
+naming an exact removed source/sequence identity and the observed reason. They
+are published after successful unlink, under the journal lock, and count toward
+the same allocated cap with their temporary files. At most 128 markers are kept,
+further bounded by the configured quota; diagnostic retention ages from removal.
+Older markers can be lost, so absence is not evidence of complete coverage.
+The journal samples records and markers together for HTTP, replay and payload
+reads. [Journal tests](../src/inspection/storage.test.ts) cover capacity markers
+across fresh readers, refusal to republish marked identities, physical publication
+peaks, marker expiry, and producer death before/after marker linking. Private
+record and marker FIFOs fail promptly without being deleted. The real-resident
+browser gate reduces the allocated cap while paused, observes known eviction,
+then expires retained data without changing selection or copying missing bytes.
+
+## Local inspection model
+
+`node scripts/check-inspection-model.mjs` typechecks the executable
+[inspection model](models/sessionInspection.qnt), runs its deterministic protocol
+scenarios, and samples the consent/evidence/loss/replay invariants with seeds
+226, 233 and 225, 1,000 traces per seed and at most 120 steps per trace. Every
+major action must be reached in at least one of the sampled runs. Use
+`--write-evidence` to replace the [sampling record](../evidence/inspection/model-sampling.json)
+when the model changes.
+
+This is design evidence for [#226](https://github.com/dearlordylord/hapsland/issues/226),
+subordinate to the [accepted feature requirements](https://github.com/dearlordylord/hapsland/issues/225).
+Abstract immutable byte tokens and item quotas do not establish actual request
+serialization, allocated storage, private access, process lifetime or native
+handoff. Production inspection acceptance remains at the real-resident public
+HTTP/feed and rendered inspector boundary defined in #225. All eight slices
+must land before its declared final full gate.
 
 ## Native compilation phase
 

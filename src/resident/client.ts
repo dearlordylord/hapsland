@@ -1,5 +1,7 @@
 import * as Redacted from "effect/Redacted"
 import { resolveCredentialInput } from "../credentials/input.ts"
+import { InspectionWriterReports } from "./inspection-writer-reports.ts"
+import { InspectionWriterObservation, observeInspectionWriter } from "../inspection/writer.ts"
 import type { CodexDirectEventOutput } from "../direct-event/output.ts"
 import { packageCommand } from "../runtime/package-runtime.ts"
 import { effectiveSessionAnalytics } from "../configuration/resolve.ts"
@@ -40,6 +42,7 @@ import {
   STARTUP_READINESS_DEADLINE_MS,
   decodeCurrentResidentResponse,
   encodeCurrentResidentRequest,
+  decodeResidentWriterReports,
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse
@@ -436,6 +439,7 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
 })
 
 export type CollectedAdvice = {
+  readonly inspectionReporting?: true
   readonly output: ClaudeHostOutput
   readonly token: string
   readonly lifetime: string
@@ -512,7 +516,8 @@ const editCollectionOutcome = (
       root: observation.root,
       advicee: observation.advicee,
       activityPath: dispatch.activityPath,
-      findingCount: response.findingCount
+      findingCount: response.findingCount,
+      ...(response.inspectionReporting === true ? { inspectionReporting: true as const } : {})
     }
   }
 }
@@ -537,7 +542,8 @@ const collectedSharedAdvice = (
   root,
   advicee,
   activityPath: dispatch.activityPath,
-  findingCount: response.findingCount
+  findingCount: response.findingCount,
+  ...(response.inspectionReporting === true ? { inspectionReporting: true as const } : {})
 })
 const inspectedLifetime = (owner: { readonly available: boolean; readonly lifetime?: string }): string | undefined =>
   owner.available ? owner.lifetime : undefined
@@ -744,18 +750,45 @@ export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvi
   advice: CollectedAdvice
 ) {
   const deadline = (yield* monotonicMillis) + CLIENT_REQUEST_DEADLINE_MS
+  const context = yield* Effect.context()
+  const reporting = Context.getOrUndefined(context, InspectionWriterReports)
+  const reports = (): Extract<ResidentRequest, { operation: "acknowledge" }>["writerReports"] => {
+    try {
+      const offered = reporting?.forBatch({
+        endpoint: advice.paths.socket,
+        token: advice.token,
+        lifetime: advice.lifetime,
+        root: advice.root,
+        advicee: advice.advicee
+      })
+      if (offered !== undefined && offered.length > 0) return decodeResidentWriterReports(offered)
+    } catch {
+      /* Optional evidence cannot refuse the existing acknowledgement. */
+    }
+    return undefined
+  }
+  const writerReports = reports()
   const acknowledged = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared",
     operation: "acknowledge",
     lifetime: advice.lifetime,
-    token: advice.token
+    token: advice.token,
+    ...(writerReports === undefined ? {} : { writerReports })
   }).pipe(Effect.catch(() => Effect.succeed(undefined)))
   if (acknowledged?.status !== "acknowledged") return false
+  observeInspectionWriter(Context.getOrUndefined(context, InspectionWriterObservation), "acknowledged")
   const remaining = deadline - (yield* monotonicMillis)
   if (remaining <= 0) return false
+  const finalReports = reports()
   const finalized = yield* residentRequestEffect(
     advice.paths,
-    { requestRoute: "shared", operation: "finalize", lifetime: advice.lifetime, token: advice.token },
+    {
+      requestRoute: "shared",
+      operation: "finalize",
+      lifetime: advice.lifetime,
+      token: advice.token,
+      ...(finalReports === undefined ? {} : { writerReports: finalReports })
+    },
     remaining
   ).pipe(Effect.catch(() => Effect.succeed(undefined)))
   return finalized?.status === "finalized"

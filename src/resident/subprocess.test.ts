@@ -881,7 +881,7 @@ describe("resident separate-process lifecycle", () => {
         )
       ).status
     ).toBe("busy")
-    expect((await readdir(runtime)).sort()).toEqual(["owner.json", "owner.lock", "resident.sock"])
+    expect((await readdir(runtime)).sort()).toEqual(["inspection.sock", "owner.json", "owner.lock", "resident.sock"])
     process.kill(first.pid, "SIGKILL")
     await waitFor(async () => {
       try {

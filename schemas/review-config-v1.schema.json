@@ -84,6 +84,25 @@
       "description": "Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
       "default": false
     },
+    "sessionInspection": {
+      "type": "boolean",
+      "description": "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
+      "default": false
+    },
+    "inspectionRetentionDays": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3650,
+      "description": "User-owned capture-aged inspection retention in days, shared across residents and projects.",
+      "default": 7
+    },
+    "inspectionStorageBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "User-owned shared allocated inspection-storage cap, including records, indices, payloads and temporary allocations. Unavailable quota drops capture; review continues.",
+      "default": 134217728
+    },
     "claudeFeedbackMode": {
       "type": "string",
       "enum": [
