@@ -24,8 +24,7 @@
     "**/*.generated.*",
     "packages/session-bend/session.mjs",
     "**/vendor/**",
-    "**/fixtures/**",
-    "packages/monkey-business-bend/session.d.mts"
+    "**/fixtures/**"
   ],
   "plugins": [
     "https://plugins.dprint.dev/oxc-0.32.0.wasm"
