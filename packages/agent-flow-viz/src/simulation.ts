@@ -277,6 +277,7 @@ export const followsRecord = (frame: Observation, identity: string) => {
   return field in frame.event && String((frame.event as unknown as Record<string, unknown>)[field]) === id
 }
 let totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 }
+const currentTotals = () => totals
 const countFrame = (item: Observation) => {
   totals.checked++
   totals.admitted += item.commands.filter((command) => command.kind === "observationAdmitted").length
@@ -461,6 +462,8 @@ export const changeSimulation = (model: SimulationModel, field: string, raw: str
     ].includes(field)
   )
     return model
+  if (field === "delay" || JEV_OUTCOME_ORDER.some((outcome) => weightField(outcome) === field))
+    model = finishSimulationAdvance(model)
   const draft = { ...model, [field]: raw }
   if (!run || (field !== "delay" && !JEV_OUTCOME_ORDER.some((outcome) => weightField(outcome) === field))) return draft
   if (replaySource)
@@ -487,7 +490,7 @@ export const changeSimulation = (model: SimulationModel, field: string, raw: str
     }
   }
 }
-export const actSimulation = (model: SimulationModel, action: string): SimulationModel => {
+const actSimulationNow = (model: SimulationModel, action: string): SimulationModel => {
   model = { ...model, activityFrom: -1 }
   try {
     const exported = () => ({ ...run!.exportReplay(), dashboard: { bookmark: model.bookmark } })
@@ -1092,6 +1095,194 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
     }
   }
 }
+type AdvanceResult = ReturnType<NonNullable<typeof run>["advance"]>
+type PublishedRun = Pick<
+  NonNullable<typeof run>,
+  | "now"
+  | "eventCount"
+  | "projection"
+  | "observations"
+  | "agentScopes"
+  | "appliedSettings"
+  | "capacityMetadata"
+  | "editPermitLimits"
+  | "futurePermitProfile"
+  | "interventions"
+  | "observe"
+>
+let publishedRun: PublishedRun | undefined
+let publishedTotals = { ...totals }
+let advanceGeneration = 0
+type PendingAdvanceStatus =
+  | { state: "running" }
+  | { state: "result"; result: AdvanceResult }
+  | { state: "error"; error: unknown }
+type PendingAdvance = {
+  iterator: Generator<void, AdvanceResult>
+  beforeTime: number
+  activityFrom: number
+  generation: number
+  scheduled: boolean
+  status: PendingAdvanceStatus
+  runner?: Promise<void>
+}
+let pendingAdvance: PendingAdvance | undefined
+const capturePublishedRun = () => {
+  if (!run) return
+  const observed = run.observe()
+  publishedTotals = { ...totals }
+  publishedRun = {
+    ...observed,
+    appliedSettings: run.appliedSettings,
+    editPermitLimits: run.editPermitLimits,
+    futurePermitProfile: run.futurePermitProfile,
+    observe: () => observed
+  }
+}
+/** The renderer sees a complete boundary while the actual Run advances privately. */
+export const simulationReadRun = (): PublishedRun | undefined => (pendingAdvance ? publishedRun : run)
+const completedAdvance = (
+  model: SimulationModel,
+  batch: NonNullable<typeof pendingAdvance>,
+  result: AdvanceResult
+): SimulationModel => {
+  if (!run) return model
+  // Empty windows leave the virtual clock at the last event. Carry that
+  // budget forward; an event-limited batch also preserves its unspent time.
+  wallBudget = result.reason === "idle" ? 0 : Math.max(0, wallBudget - (result.now - batch.beforeTime))
+  const completed = completeReplay()
+  return {
+    ...model,
+    selected: -1,
+    activityFrom: batch.activityFrom,
+    suspended:
+      (
+        run.appliedSettings.controls.findLast(
+          (entry) =>
+            entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId)
+        )?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined
+      )?.suspended ?? model.suspended,
+    revision: model.revision + 1,
+    playing:
+      !completed &&
+      (result.reason !== "idle" || model.suspended) &&
+      (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
+    feedback: completed
+      ? "Replay reached its exact recorded endpoint."
+      : /^(Cannot apply:|Cannot update:|Could not read replay file:)/.test(model.feedback)
+        ? model.feedback
+        : result.reason === "idle"
+          ? model.suspended
+            ? "Existing work settled; waiting for edit generation to resume."
+            : "No pending events; playback paused."
+          : `Playback advanced (${result.reason}).`
+  }
+}
+const advanceSlice = (batch: PendingAdvance): void => {
+  if (pendingAdvance !== batch || batch.status.state !== "running") return
+  const deadline = performance.now() + 5
+  try {
+    do {
+      if (pendingAdvance !== batch || batch.status.state !== "running") return
+      const next = batch.iterator.next()
+      if (next.done) {
+        batch.status = { state: "result", result: next.value }
+        return
+      }
+    } while (performance.now() < deadline)
+  } catch (error) {
+    batch.status = { state: "error", error }
+  }
+}
+const failedAdvance = (model: SimulationModel, error: unknown): SimulationModel => ({
+  ...model,
+  playing: false,
+  revision: model.revision + 1,
+  feedback: `Run error: ${error instanceof Error ? error.message : String(error)}`
+})
+const commitTerminalAdvance = (model: SimulationModel, batch: PendingAdvance): SimulationModel => {
+  if (pendingAdvance !== batch || batch.status.state === "running") return model
+  pendingAdvance = undefined
+  return batch.status.state === "result"
+    ? completedAdvance(model, batch, batch.status.result)
+    : failedAdvance(model, batch.status.error)
+}
+export const finishSimulationAdvance = (model: SimulationModel): SimulationModel => {
+  const batch = pendingAdvance
+  advanceGeneration++
+  if (!batch || !run) return model
+  if (batch.status.state !== "running") return commitTerminalAdvance(model, batch)
+  // Invalidate the asynchronous owner before returning the generator. Its next
+  // timer wake will see that this batch is no longer current and will stop.
+  pendingAdvance = undefined
+  try {
+    // Closing normalizes the completed step without executing the remaining batch.
+    // The required generator return argument is ignored; read actual coordinates
+    // only after normalization, which can also remove the final queued fact.
+    batch.iterator.return({ reason: "eventLimit", events: run.eventCount - batch.activityFrom, now: run.now })
+    return completedAdvance(model, batch, {
+      reason: run.queuedFacts.length ? "eventLimit" : "idle",
+      events: run.eventCount - batch.activityFrom,
+      now: run.now
+    })
+  } catch (error) {
+    return failedAdvance(model, error)
+  }
+}
+export const actSimulation = (model: SimulationModel, action: string): SimulationModel => {
+  const settled = finishSimulationAdvance(model)
+  // Pause/Resume follows the user's pre-action intent even when closing work
+  // discovers an idle queue and automatically pauses the completed boundary.
+  return actSimulationNow(action === "play" ? { ...settled, playing: model.playing } : settled, action)
+}
+/** Reserve one continuation, avoiding duplicate commands from animation ticks. */
+export const simulationContinuation = (): number | undefined => {
+  if (!pendingAdvance || pendingAdvance.status.state !== "running" || pendingAdvance.scheduled || pendingAdvance.runner)
+    return undefined
+  pendingAdvance.scheduled = true
+  return pendingAdvance.generation
+}
+export const continueSimulation = (model: SimulationModel, generation: number): SimulationModel => {
+  const batch = pendingAdvance
+  if (batch?.generation !== generation || batch.runner) return model
+  if (batch.status.state !== "running") return commitTerminalAdvance(model, batch)
+  batch.scheduled = false
+  advanceSlice(batch)
+  return batch.status.state === "running" ? model : commitTerminalAdvance(model, batch)
+}
+const yieldContinuation = (channel: MessageChannel): Promise<void> => {
+  if (typeof globalThis.scheduler?.yield === "function") return globalThis.scheduler.yield()
+  return new Promise((resolve) => {
+    channel.port1.onmessage = () => resolve()
+    channel.port2.postMessage(undefined)
+  })
+}
+/** Drive the reserved batch across browser turns; only the continuation message commits it. */
+export const runSimulationContinuation = (generation: number, signal?: AbortSignal): Promise<void> => {
+  const batch = pendingAdvance
+  if (batch?.generation !== generation) return Promise.resolve()
+  if (batch.runner) return batch.runner
+  if (batch.status.state !== "running") return Promise.resolve()
+  batch.scheduled = false
+  const channel = new MessageChannel()
+  const runner = (async () => {
+    while (true) {
+      await yieldContinuation(channel)
+      if (signal?.aborted || pendingAdvance !== batch || batch.generation !== generation) return
+      if (batch.status.state !== "running") return
+      advanceSlice(batch)
+      if (batch.status.state !== "running") return
+    }
+  })()
+  batch.runner = runner
+  const clearRunner = () => {
+    channel.port1.close()
+    channel.port2.close()
+    if (batch.runner === runner) batch.runner = undefined
+  }
+  void runner.then(clearRunner, clearRunner)
+  return runner
+}
 export const tickSimulation = (model: SimulationModel, deltaMs: number): SimulationModel => {
   if (fileReadState.error) {
     const feedback = fileReadState.error
@@ -1099,45 +1290,20 @@ export const tickSimulation = (model: SimulationModel, deltaMs: number): Simulat
     return { ...model, feedback }
   }
   if (!model.playing || !run) return model
+  wallBudget += Math.min(deltaMs, 100) * model.appliedSpeed
+  if (pendingAdvance || wallBudget < 50) return model
   try {
-    wallBudget += Math.min(deltaMs, 100) * model.appliedSpeed
-    if (wallBudget < 50) return model
-    const beforeTime = run.now
-    const activityFrom = run.eventCount
-    const result = run.advance({
-      untilTime: beforeTime + Math.floor(wallBudget),
-      maxEvents: replayEndpoint ? Math.min(100, replayEndpoint.eventCount - run.eventCount) : 100
-    })
-    // Empty windows leave the virtual clock at the last event. Carry that
-    // budget forward; an event-limited batch also preserves its unspent time.
-    wallBudget = result.reason === "idle" ? 0 : Math.max(0, wallBudget - (result.now - beforeTime))
-    const completed = completeReplay()
-    return {
-      ...model,
-      selected: -1,
-      activityFrom,
-      suspended:
-        (
-          run.appliedSettings.controls.findLast(
-            (entry) =>
-              entry.control.kind === "suspendArrivals" &&
-              (!entry.control.agent || entry.control.agent === model.agentId)
-          )?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined
-        )?.suspended ?? model.suspended,
-      revision: model.revision + 1,
-      playing:
-        !completed &&
-        (result.reason !== "idle" || model.suspended) &&
-        (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
-      feedback: completed
-        ? "Replay reached its exact recorded endpoint."
-        : /^(Cannot apply:|Cannot update:|Could not read replay file:)/.test(model.feedback)
-          ? model.feedback
-          : result.reason === "idle"
-            ? model.suspended
-              ? "Existing work settled; waiting for edit generation to resume."
-              : "No pending events; playback paused."
-            : `Playback advanced (${result.reason}).`
+    capturePublishedRun()
+    pendingAdvance = {
+      iterator: run.beginAdvance({
+        untilTime: run.now + Math.floor(wallBudget),
+        maxEvents: replayEndpoint ? Math.min(100, replayEndpoint.eventCount - run.eventCount) : 100
+      }),
+      beforeTime: run.now,
+      activityFrom: run.eventCount,
+      generation: ++advanceGeneration,
+      scheduled: false,
+      status: { state: "running" }
     }
   } catch (error) {
     return {
@@ -1146,6 +1312,10 @@ export const tickSimulation = (model: SimulationModel, deltaMs: number): Simulat
       feedback: `Run error: ${error instanceof Error ? error.message : String(error)}`
     }
   }
+  const batch = pendingAdvance
+  if (!batch) return model
+  advanceSlice(batch)
+  return batch.status.state === "running" ? model : commitTerminalAdvance(model, batch)
 }
 export const simulationView = <Message>(
   model: SimulationModel,
@@ -1157,9 +1327,12 @@ export const simulationView = <Message>(
     readonly projection: import("../../../src/canonical/adapter").CanonicalProjection
     readonly observations: readonly Observation[]
     readonly partition?: number
+    readonly numbers?: import("@hapsland/agent-flow-projection").RecordNumbers
     readonly agents?: readonly import("./shared-resident-view").AgentScope[]
   }
 ) => {
+  const run = simulationReadRun()
+  const totals = pendingAdvance ? publishedTotals : currentTotals()
   // Native dirty inputs own their visible draft. A controlled Value would replay older
   // queued models into the focused field; only explicit draft replacement changes its key.
   const input = (field: string, label: string, value: string) =>
@@ -1264,9 +1437,11 @@ export const simulationView = <Message>(
     ? model.resourceRound
     : ""
   // A clipped observation history cannot establish the first ordinal of each kind.
-  const numbers = numberRecords(
-    observations[0]?.sequence === 0 ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []
-  )
+  const numbers =
+    inspection?.numbers ??
+    numberRecords(
+      observations[0]?.sequence === 0 ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []
+    )
   const last: ReplayStep | undefined = current
     ? {
         event: current.event,

@@ -125,7 +125,7 @@ it("waits for checked finish allowance before generating a later task", () => {
   expect(commands).toContain("finishReserved")
   expect(commands).toContain("finishAuthorized")
   expect(commands).toContain("finishRecorded")
-  expect(commands).toContain("continuationConsumed")
+  expect(commands).toContain("roundContinuationAvailable")
   expect(commands).toContain("finishEnded")
   expect(run.observations.filter((x) => x.rejection)).toEqual([])
   expect(run.observations.filter((x) => x.event.kind === "beginObservedPreparation").length).toBeGreaterThan(1)
@@ -165,7 +165,8 @@ it("a virtual finish deadline cancels unfinished requests and permits later work
 })
 it("uses checked continuation exhaustion to allow finish instead of inventing another continuation", () => {
   const run = createRun({
-    session: { editIntervalMs: 10, variationMs: 0, editsPerTask: 1, taskPauseMs: 1 },
+    outcome: "finding",
+    session: { editIntervalMs: 10, variationMs: 0, editsPerTask: 1, taskPauseMs: 1, adviceResponse: "promptRepair" },
     jevDelay: 30,
     finishDeadline: 100
   })
