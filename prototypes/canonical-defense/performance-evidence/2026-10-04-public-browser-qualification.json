@@ -1,0 +1,193 @@
+{
+  "head": "8d8447ff67b01830bf38d3d1271390983670326e",
+  "public_run": {
+    "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004224027844-1789574-525b25",
+    "manifest": {
+      "id": "20261004224027844-1789574-525b25",
+      "root": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration",
+      "pid": 1789574,
+      "deadline": 1791153807847,
+      "mode": "focused",
+      "startedAt": "2026-10-04T22:40:27.848Z",
+      "plannedStages": [
+        "focused"
+      ],
+      "skippedStages": [],
+      "sourcePin": "8d8447ff67b01830bf38d3d1271390983670326e",
+      "scope": "gap-191-192-195",
+      "selectedTestFiles": [
+        "packages/monkey-business/src/output-attempt.test.ts",
+        "packages/monkey-business/src/output-controls.test.ts",
+        "packages/monkey-business/src/collection-scenario.test.ts",
+        "packages/monkey-business/src/collection-response.test.ts",
+        "packages/monkey-business/src/resource-scenarios.test.ts",
+        "packages/monkey-business/src/stop-output-scope.test.ts",
+        "packages/monkey-business/src/seeded-stop-budget-campaigns.test.ts",
+        "packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+        "packages/agent-flow-viz/src/collection-response-controls.test.ts"
+      ]
+    },
+    "results": {
+      "id": "20261004224027844-1789574-525b25",
+      "mode": "focused",
+      "state": "passed",
+      "exitCode": 0,
+      "startedAt": "2026-10-04T22:40:27.848Z",
+      "finishedAt": "2026-10-04T22:40:51.542Z",
+      "elapsedMs": 23694,
+      "failedStages": [],
+      "skippedStages": [],
+      "failures": 0,
+      "stages": [
+        {
+          "name": "vitest-focused",
+          "ownerPid": 1789574,
+          "command": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/node_modules/.bin/vitest",
+          "args": [
+            "run",
+            "--maxWorkers=1",
+            "packages/monkey-business/src/output-attempt.test.ts",
+            "packages/monkey-business/src/output-controls.test.ts",
+            "packages/monkey-business/src/collection-scenario.test.ts",
+            "packages/monkey-business/src/collection-response.test.ts",
+            "packages/monkey-business/src/resource-scenarios.test.ts",
+            "packages/monkey-business/src/stop-output-scope.test.ts",
+            "packages/monkey-business/src/seeded-stop-budget-campaigns.test.ts",
+            "packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "packages/agent-flow-viz/src/collection-response-controls.test.ts",
+            "--testNamePattern=^(?!.*native).*$"
+          ],
+          "startedAt": "2026-10-04T22:40:27.898Z",
+          "state": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "elapsedMs": 23634,
+          "logPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004224027844-1789574-525b25/1789574-001-vitest-focused.log",
+          "pid": 1789594
+        }
+      ],
+      "testFailures": []
+    },
+    "actual": "7 files;53 passed,2 native tests skipped;23.694s harness"
+  },
+  "dashboard_controls": {
+    "cwd": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-viz",
+    "command": "timeout 45s ../../node_modules/.bin/vitest run --maxWorkers=1 src/output-attempt-controls.test.ts src/collection-response-controls.test.ts",
+    "exitCode": 0,
+    "filesPassed": 2,
+    "testsPassed": 3,
+    "durationSeconds": 3.13
+  },
+  "sha256": {
+    "packages/monkey-business/src/collection-scenario.test.ts": "8a49992516fe67450a762cdf6ad3981412219f5c51f52f0323c26ba742037d16",
+    "packages/agent-flow-viz/src/collection-response-controls.test.ts": "bff5b6e75c51e71be37472c9e7a6ef0aaea740744ca60398a5cdca7bde0da15e",
+    "packages/monkey-business/src/collection-response.test.ts": "b5de7176d81adfa5492e75817973e21316550f8dca6e4ce4c0f935beddd399db",
+    "packages/agent-flow-viz/src/production-flow-view.ts": "6c7f5894653ca7d81d430c04bfe2724b0aff4acebcd386024d365e1bc3ef6beb",
+    "packages/monkey-business/src/output-attempt.test.ts": "414d60e26165d2433eddb288ca9bd96a4cedd7c46f3c86c41e1ff931ab47d44b",
+    "packages/monkey-business/src/output-controls.test.ts": "d0c7ea5e50b1fd963f1fad1e4bead8187f42278f4f70a1123ed4966443824400",
+    "packages/monkey-business/src/stop-output-scope.test.ts": "abe2f7a98d0a5289c150ca4a852695085bbc595eb8dc9020d54fb11f91e15768",
+    "packages/monkey-business/src/seeded-stop-budget-campaigns.test.ts": "56d6c0f4ab2acdbe8e303ca328e48e3f88204794c5ed7f2b85d01099ed5e7d25",
+    "packages/monkey-business/src/resource-scenarios.test.ts": "e0db077248b8e863398bffe2ad5a12f8810db49afa8811fc95041e9107823338",
+    "packages/agent-flow-viz/src/output-attempt-controls.test.ts": "2446175cb5202035f8363e8988c8c8d4c47648a91ea3ee3355b8b2e1f755b767"
+  },
+  "remaining": {
+    "191": "Named public output/control tests and dashboard control tests now passed; existing native owner evidence preserved.",
+    "192": "Selected collector-meter browser passed after stale terminology locator repair; named public/response/dashboard controls passed.",
+    "195": "Selected exclusive Stop-slot/group browser passed after stale terminology locator repair; existing continuation headless/campaign assertions passed. No further selected meter/slot evidence gap."
+  },
+  "browser": {
+    "os": "Debian12 bookworm",
+    "missingLibrary": "libatk-1.0.so.0",
+    "package": "libatk1.0-0",
+    "availableVersion": "2.46.0-5",
+    "route": "apt-get install libatk1.0-0 (administrator install); then identify any further Chromium dependencies before browser run",
+    "installedByThisTask": false
+  },
+  "limits": [
+    "No C/native/full-suite/CI run",
+    "Root focused config excluded viz files; explicitly separate package-cwd run establishes actual3 dashboard control tests",
+    "No repository files modified"
+  ],
+  "browser_prerequisite_attempt": {
+    "uid": 1000,
+    "sudo_command": "sudo -n true",
+    "result": "sudo: a password is required",
+    "playwright_executable": "/home/node/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome",
+    "missing_libraries": [
+      "libatk-1.0.so.0",
+      "libatk-bridge-2.0.so.0",
+      "libxkbcommon.so.0",
+      "libgbm.so.1",
+      "libXcomposite.so.1",
+      "libXdamage.so.1",
+      "libXfixes.so.3",
+      "libXrandr.so.2",
+      "libatspi.so.0"
+    ],
+    "needed_debian_packages": [
+      "libatk1.0-0",
+      "libatk-bridge2.0-0",
+      "libxkbcommon0",
+      "libgbm1",
+      "libxcomposite1",
+      "libxdamage1",
+      "libxfixes3",
+      "libxrandr2",
+      "libatspi2.0-0"
+    ],
+    "install_route": "apt-get install --no-install-recommends libatk1.0-0 libatk-bridge2.0-0 libxkbcommon0 libgbm1 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libatspi2.0-0",
+    "browser_execution": "Not launched: missing shared libraries and no noninteractive elevated install privilege",
+    "additional_setup": "Integration viz has no package-local playwright resolution; primary viz installed cohort exists and may be linked after package/lock alignment. No dependency edits made.",
+    "screenshots": [],
+    "superseded_by": "browser_completed local extracted-library route; no privilege/global installation required"
+  },
+  "browser_completed": {
+    "source_pin": "7a0d0535cae7c6cc781fc33f436efb337a588054",
+    "base": "8d8447ff67b01830bf38d3d1271390983670326e",
+    "checks": [
+      {
+        "name": "collectors",
+        "exitCode": 0,
+        "log": "/tmp/hapsland-browser-libs/collectors-amended2.log",
+        "summary": "Collector browser passed: checked occupied/wrong-token/release/expiry/custom-full/history-unknown, resident mirrors across agent selection, exact recorded limits/no unknown fill, group tokens in inspector/title, claims distinct from leases/output, top duplicate removed, 3D/focus/narrow/reload."
+      },
+      {
+        "name": "stop-slot",
+        "exitCode": 0,
+        "log": "/tmp/hapsland-browser-libs/stop-slot-amended.log",
+        "summary": "Stop-slot browser passed: actual held/free selected group, multiple occupied groups each1/1, exact round/phase, no stale unknown-group cell, facets preserved, replay, 3D/focus/narrow."
+      },
+      {
+        "name": "callback",
+        "exitCode": 0,
+        "log": "/tmp/hapsland-browser-libs/callback.log",
+        "summary": "Callback controls browser passed: actual issued completion, Hold/Release applicability and unchanged original identity."
+      }
+    ],
+    "setup": "apt-get download nine named packages; dpkg-deb -x to /tmp/hapsland-browser-libs/prefix; LD_LIBRARY_PATH local aarch64 directory; package.json/package-lock byte equal to primary installed viz cohort, symlink only ignored node_modules",
+    "limits": "Three selected scripts, no full browser/native/game run. Original failed stale-label receipts preserved. Callback probe establishes Hold/Release scope only.",
+    "screenshots": [
+      "/workspace/hapsland-review/callback-controls.png",
+      "/workspace/hapsland-review/collectors/after-expired-detail.png",
+      "/workspace/hapsland-review/collectors/after-occupied-detail.png",
+      "/workspace/hapsland-review/collectors/after-historical-unknown-detail.png",
+      "/workspace/hapsland-review/collectors/after-occupied-3d.png",
+      "/workspace/hapsland-review/collectors/after-occupied-narrow.png",
+      "/workspace/hapsland-review/collectors/after-released-detail.png",
+      "/workspace/hapsland-review/collectors/after-occupied-focus.png",
+      "/workspace/hapsland-review/collectors/after-full-custom-limit-detail.png",
+      "/workspace/hapsland-review/stop-slot/before-held-detail.png",
+      "/workspace/hapsland-review/stop-slot/after-held-narrow.png",
+      "/workspace/hapsland-review/stop-slot/after-held-3d.png",
+      "/workspace/hapsland-review/stop-slot/before-free-detail.png",
+      "/workspace/hapsland-review/stop-slot/after-historical-unknown-detail.png",
+      "/workspace/hapsland-review/stop-slot/before-held-focus.png",
+      "/workspace/hapsland-review/stop-slot/after-held-focus.png",
+      "/workspace/hapsland-review/stop-slot/after-free-detail.png",
+      "/workspace/hapsland-review/stop-slot/before-held-3d.png",
+      "/workspace/hapsland-review/stop-slot/before-held-narrow.png",
+      "/workspace/hapsland-review/stop-slot/after-held-detail.png"
+    ]
+  }
+}

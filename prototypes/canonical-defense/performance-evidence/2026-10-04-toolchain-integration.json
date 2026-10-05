@@ -1,0 +1,83 @@
+{
+  "purpose": "Offline integration and compiler compatibility evidence; not a product contract",
+  "source_commit": "e823083a",
+  "master_ancestor": "a783ce951082d855b5e1d3d02568954b3e7a1913",
+  "engine_artifact_commit": "11ac3f03",
+  "checks": {
+    "engine_artifact_check": "passed",
+    "typecheck_configuration": "passed",
+    "canonical_production_authority": "passed",
+    "harness_regressions": "15/15 passed",
+    "public_structural_sourcejob_replay_identity": {
+      "tests": 12,
+      "run_id": "20261005002016194-2106909-ad071a",
+      "result": "passed"
+    },
+    "docs": "96 documents; 1126 links; 0 errors; hook index passed",
+    "dashboard_build": "passed after current-master integration",
+    "game_absent_dashboard_build": "passed at e823083a in14.722s; game directory physically absent and restored",
+    "regenerated_engine_public_oracles": [
+      {
+        "owner": "output",
+        "tests": 10,
+        "run_id": "20261005002903448-2149652-e19c24",
+        "elapsed_s": 5.966
+      },
+      {
+        "owner": "recovery",
+        "tests": 4,
+        "run_id": "20261005002903452-2149661-254489",
+        "elapsed_s": 9.712
+      },
+      {
+        "owner": "collection",
+        "tests": 5,
+        "run_id": "20261005002903449-2149658-09bd78",
+        "elapsed_s": 5.947
+      }
+    ],
+    "regenerated_engine_public_oracles_scope": "All selected public intermediate/replay assertions passed; native producers explicitly excluded; earlier native/emitted comparisons retain recorded2.0.34 provenance.",
+    "exact_original_output_five": {
+      "result": "passed; fresh native/emitted vectors, independent public/literal/intermediate/replay on current Engine",
+      "run_id": "20261005002958506-2152819-25e89a",
+      "elapsed_s": 58.576
+    }
+  },
+  "toolchain_change": {
+    "prior": "Bend 2.0.34",
+    "current": "Bend 2.0.35",
+    "changed": [
+      "compiler executable",
+      "effs/file_size.js",
+      "effs/random_u32.js"
+    ],
+    "repository_sources_changed": false,
+    "update_actor": "unknown",
+    "old_output_reuse": "correctly rejected by existing source/tool identity guards"
+  },
+  "compatibility_fix": {
+    "failed_run": "20261005002258586-2124437-236dae",
+    "elapsed_s": 7.73,
+    "error": "CID(DefenseNumericOutput.write) names no constructor or def",
+    "cause": "Foreign effect registration hardcoded a module name that differs from importing namespaces",
+    "change": "CID(write) resolves the actual importing namespace in C and JS",
+    "commit": "e823083a",
+    "canary": {
+      "phase_limits_s": 10,
+      "native_emitted_literal_equal": true,
+      "bytes": 561,
+      "sha256": "e7a033f94b80b0665266dbff4afda28abdcf9eb57f75ad72c1581673c7a31ac0"
+    },
+    "upstream_defect_established": false
+  },
+  "native_run_current": {
+    "run_id": "20261005002207757-2119570-b85cbe",
+    "result": "7/7 passed; fresh native/emitted/public/replay",
+    "elapsed_s": 44.593
+  },
+  "game_current": {
+    "run_id": "20261005002505744-2134577-de8a96",
+    "result": "passed; all145 pairs and original public/replay comparisons",
+    "elapsed_s": 138.673
+  }
+}

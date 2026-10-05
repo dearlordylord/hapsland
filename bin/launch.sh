@@ -2,10 +2,10 @@
 set -eu
 
 case "${0##*/}" in
-  hapsland) entry=dist/cli.js ;;
-  hapsland-doctor) entry=dist/package-doctor.js ;;
-  hapsland-parser) entry=dist/parser-main.js ;;
-  hapsland-resident) entry=dist/resident/main.js ;;
+  hapsland|launch.sh) command=hapsland ;;
+  hapsland-doctor) command=hapsland-doctor ;;
+  hapsland-parser) command=hapsland-parser ;;
+  hapsland-resident) command=hapsland-resident ;;
   *) echo "Unknown review integration command." >&2; exit 2 ;;
 esac
 
@@ -20,18 +20,13 @@ done
 package_root=$(CDPATH= cd "$(dirname "$self")/.." && pwd -P)
 
 case "$(uname -s)/$(uname -m)" in
-  Darwin/arm64) runtime_package=node-bin-darwin-arm64 ;;
-  Linux/aarch64|Linux/arm64) runtime_package=node-linux-arm64 ;;
+  Darwin/arm64) profile=darwin-arm64 ;;
+  Linux/aarch64|Linux/arm64) profile=linux-arm64 ;;
   *) echo "This review integration package does not support this OS and architecture." >&2; exit 2 ;;
 esac
-
-runtime="$package_root/node_modules/$runtime_package/bin/node"
-if [ ! -x "$runtime" ]; then
-  runtime="$package_root/../../$runtime_package/bin/node"
-fi
-if [ ! -x "$runtime" ]; then
-  echo "The review integration runtime is missing. Reinstall the package with optional dependencies enabled." >&2
+executable="$package_root/dist/bin/$profile/$command"
+if [ ! -x "$executable" ]; then
+  echo "The standalone review integration executable is missing. Reinstall the package." >&2
   exit 2
 fi
-
-exec "$runtime" "$package_root/$entry" "$@"
+exec "$executable" "$@"

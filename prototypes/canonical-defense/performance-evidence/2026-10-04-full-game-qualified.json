@@ -1,0 +1,658 @@
+{
+  "source_commit": "e823083a",
+  "run_id": "20261005002505744-2134577-de8a96",
+  "command": [
+    "node",
+    "scripts/run-game-consumer.mjs"
+  ],
+  "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002505744-2134577-de8a96/workload-outputs/game-output-2134630-5Q6Sn8/receipt.json",
+  "origin": {
+    "native": "fresh compiler",
+    "emitted": "fresh JS emission",
+    "tools": [
+      {
+        "file": "/home/node/.bend/bin/bend",
+        "expected": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a"
+      },
+      {
+        "file": "/home/node/.local/bin/clang",
+        "expected": "9b6a91b70b9a7a144c636e4bcfb31f279bac1c186d5db2d38780a5053bb4325f"
+      }
+    ]
+  },
+  "batches_per_lane": 145,
+  "bytes": {
+    "native": 82121538,
+    "emitted": 82121538
+  },
+  "all_compressed_and_decoded_hashes_verified": true,
+  "all_native_js_pairs_byte_equal": true,
+  "terminal": "passed",
+  "exit_code": 0,
+  "elapsed_s": 138.673,
+  "scope": "Original four campaigns, all 3222 Host ticks, native/emitted-JS/public histories, independently expected midpoints and ordinary replay",
+  "limits_s": {
+    "overall": 380,
+    "native_execution": 180,
+    "js_execution": 180
+  },
+  "sources": [
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Admission.bend",
+      "expected": "5eec31d0d3d9e81030a510beaae5019bbfd5e0afb46df2857b508c4ade14e9de"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Canonical.bend",
+      "expected": "a744b7aec1d03470368f0f1a1170ce1a1182aa208fa3246887cd8ebc35cafe70"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/CollectionState.bend",
+      "expected": "aff63f55072bd8cc62762457e123800d61dfdc8e45286bcd3aacc5e82205f2f6"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/CollectorAuthority.bend",
+      "expected": "f75d85ce2d8eff051593ffa51ef31c0a29c17d1912540d07352918704c58c042"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Configuration.bend",
+      "expected": "3ac261b12ee4d463c32975fdf84f63cd8d39418230d3d0dda6af83d0cc4fae61"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Delivery.bend",
+      "expected": "1681ef298739ae232400c9137d4e9687bf80219006bd6881bf249676388c420a"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/DeliveryState.bend",
+      "expected": "fe38df27671f8f67164e33eb131b4b7b38f2635edddfd2552e3cb5d0a5900237"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Dispatch.bend",
+      "expected": "ae10e0bde2c5059b330cb968a165703e029eb05d1d223bd790b413bf5998bf46"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/EditHistory.bend",
+      "expected": "93af7be4e6acadc605ac6a2a709316bc10e84da03929da3c82cd037c213ed99a"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Handoff.bend",
+      "expected": "c5f2be72867198b58e8dfb329eaf44e4e109a216929b15a76d2d43bc9c666fed"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/ImportGraph.bend",
+      "expected": "3a8e842097c23d0987dfb1d4428f524aefd0715a56a97cba13746ad88cda2781"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Ledger.bend",
+      "expected": "5bb64c9bb55d7ec4d94648cf320b27cfaa3660f29c9806131ed96ffdee075cad"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/NoticeState.bend",
+      "expected": "ad690c80b7b888c9a066e6ae6c53fb06ce2ba676a3ea905f3882b84eb4f9df40"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Quiescence.bend",
+      "expected": "abb7112120c681419d252072b0682ee8e36a50bc33b4ddde217c9d60d2813b34"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Retention.bend",
+      "expected": "1f1159849de71778a3c7eec075f0ca1e7c3c17e335ce2923731ddd85e36eeccd"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Reuse.bend",
+      "expected": "1b8b0483f0d577d97fd60ee93d55caa4261dc022743b6541cf7bc7ee854e58b7"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/ReuseState.bend",
+      "expected": "88dd20e7ac490cefb356e144c8af92d3193a6ed119a622cdf294bfa8633a5ba4"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/RevisionState.bend",
+      "expected": "44b1319be1d28d13b3ada995ab082be9ebbb536eac5dd2449543a1fdd8013732"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/RulePolicy.bend",
+      "expected": "ae3d229f70614445b50736e5365c8f306845e134c335ace7ece78b071994b2a1"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/SubmissionState.bend",
+      "expected": "b0f699a559c0fdf7a117e491c4fd44a863cc86c62bc23ee67e93cac443b50f95"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/AdviceeActivity.bend",
+      "expected": "d88133281988b9210e3a41d05703e7a6afcaf605f0077f6f7af9dcb71efbf10b"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/AdviceeLifecycle.bend",
+      "expected": "a6a4bfbe62f66d9d41f6954d8092c518ee33e228974f0fe009035febb84b727a"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/AdviceeLifecycleCleanup.bend",
+      "expected": "305f635b955172ad0dc52a1a4a89c55f16994b867d4ac30b9296d44ca5493135"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Advicees.bend",
+      "expected": "d73b3c369855e05f2e2bade0e59ec10c0e34714efad320252efc68f8b8771ccd"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CacheRuntime.bend",
+      "expected": "a71ef02c1107c0bcb20ce1e94e7833f734151d0b685a5b29749a4fb28e73b9e9"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CacheScenario.bend",
+      "expected": "fe1edb1644b5289c76288f728cda9a84e390d14aceecd230728f96dd1c4644d1"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Callbacks.bend",
+      "expected": "fe215ef69a690ef9a6aa4667c9cf1479c1fdfb4776c47f6480aa6b097930cce5"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CollectionScenario.bend",
+      "expected": "99a2ec9990db2ef29d6eedb8bdbb0f55248e84a01d6efb747c0b2a3708bc2661"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CollectorScenario.bend",
+      "expected": "053e118f17cd7a3fb79c1d5ef71354f262c0dbfc4386737ad42627afed04cccf"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CredentialFacts.bend",
+      "expected": "0e0b5513aba142fb909641832e91ce21e30870f9b9065c3b95270193ed78f193"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Driver.bend",
+      "expected": "290e010ec6f96af3ddc8e75dd80cbef24b0db01eaf27f73581264316864dd179"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/ExpiryScenario.bend",
+      "expected": "ca2c6aff78eab46d13789684217c6a2169dc17bba4765ba4cfaf2a3c303dca19"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/FreshnessScenario.bend",
+      "expected": "8c8c980d46938f0e27dca70ed03edc258b350b7949dab34b1a5bb7ff8fd7e905"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRunTypes.bend",
+      "expected": "3e8e8d9fa9e302222c7687399ed555281674ebdbc49aa7fa9f282e107ce199dd"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NoticeScenario.bend",
+      "expected": "f8163f073b4e1c11a4d93f7290acddeece3b13ab2c816672b0af0d77d36807d0"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Numeric.bend",
+      "expected": "f105f5ed959cf6f0e549f4c6122cce8b28e725ea1ddd564e77435ebb3676dae0"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/OutputScenario.bend",
+      "expected": "be7888b3661e1d6b410803509e3905a2e2eef971da9eb40c217183ea663bb58f"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Random.bend",
+      "expected": "2360899d33d3d776e6ea0c03cebc4888fc4a40bf606469d5baf907d11fb0925f"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/RuntimeScenarios.bend",
+      "expected": "430761c0e5c7cf0595ddc51be473c74f10b5533bce6cd4d3959a37cac5056838"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Scheduler.bend",
+      "expected": "ed06bd1a9d4cfb70ebae9ecdaae383aab863392b68c261d63c6890a96a23225c"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/ScopedRevision.bend",
+      "expected": "71b3ace544f196364e53f5d565ecfbbd2802a1caf0437071206f30b7c6e721c5"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Session.bend",
+      "expected": "97d8c87aab34273dbda1b44b188060676c0c3287908ea6a0f89fb97df7575038"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/SharingRuntime.bend",
+      "expected": "e2318f9371795ad2cf3ac63492274e0745fbdfe0ae5ceb0d50b9783e8c45faad"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/SharingScenario.bend",
+      "expected": "1ff77c9ab3c155c2c244889ec0ca91fe83b9b379d301f0ab412f2c79cf0933fa"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/StopScenario.bend",
+      "expected": "0d81594e221da324fdff23cbe7cf90657013398b0f13bf925eea60dbb854d252"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/TreeFacts.bend",
+      "expected": "72ba2fd5b8fceeb9ff371094bea2b678707ee50cf9fc0f57883809e6eb8b156b"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Types.bend",
+      "expected": "1e94c15affe08b8f7d10ce2cb9b624cfce49a5b12cf2be0014eb5127ec656f1f"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Workload.bend",
+      "expected": "61bf4338611c9a5e5247bdb8f599007b81042c4165437d4dfb656aa4861e184d"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/WriterScenario.bend",
+      "expected": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseAuto.bend",
+      "expected": "f7715487d37bba95ae645bbeb65c10e737ec80f8ec2a82fd7bef5bcb806fff40"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseConsumerBatches.bend",
+      "expected": "6bf9828d02f7be81c7fba126bbcdf9a55a34febb04d189b7d2d04104fa3ebeed"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseConsumerObserved.bend",
+      "expected": "5ac26e633bf2f8d619de3ea2091c3f260ab750402567f361c9edc62e12d71290"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseModel.bend",
+      "expected": "e363e8acbaecf418c98e2136505568ea62324f44386baa87e10403c00c5bc14c"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseConsumerConformance.bend",
+      "expected": "f6ade326ea2fa4cdad16acc81f38ebbb70145a427f0b6e59f06fc4d97c9aa4a2"
+    },
+    {
+      "file": "/home/node/.bend/bend2/base.bend",
+      "expected": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/print.c",
+      "expected": "28552d3b56aee6f6cdb66326aaa49ad0df35e4476e08c548c908efcbfafbd3e7"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/print.js",
+      "expected": "814ceba4efbaa291b7b6a9ff29aa20e3a23c06eb4fa165c69ee0bd22878adaa9"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/write.c",
+      "expected": "3e1dc13b5edbbed0c344df665d68e82c8b9d4b5972166ff2411ec039f76cf943"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/write.js",
+      "expected": "e3495066a5d8c53fe1c46cfd2bb32577e3bd7dcae9797808801599073504dacb"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/print_err.c",
+      "expected": "1ae1025f57d14ccc5a593319f9ea82bff061a05b4c468ab1bd0b939d4b98e2c4"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/print_err.js",
+      "expected": "a7a00612edfe98af1a351e8f7b912af4ee33f4bb888c36f119f7712d72a9394e"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/get_env.c",
+      "expected": "3c05cb6453d858df9f24d5734defb51afce55da23f5799025782fe8e3191634f"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/get_env.js",
+      "expected": "2fab2162d5ff9842d1b84bfdc56466a606eeb0b81b04dd29f091652ff715ded6"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/args.c",
+      "expected": "2635223ad1d401b07e1834b9341e3f0be254796f6de1d9a0e800ca59fb3000b4"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/args.js",
+      "expected": "ed1a7e7b73ae7fe58ac6d428d2762b66f223f4c70a165570fc5d68dc874ddc0b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/process_run.c",
+      "expected": "bf22b58053df01a4a3ac5edacf1593ae6fc0a3c2a2f238de682703a1826a01e8"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/process_run.js",
+      "expected": "6ebe3b9875ef62ee189209096fb422508e79d34e58913457aefe52a052631e42"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/random_u32.c",
+      "expected": "bb1e6b2d690590858e4cdbd78ba9b10d349eb3fc7dde0c3265e23af7991623fe"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/random_u32.js",
+      "expected": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/spawn.c",
+      "expected": "6d140b2b73b200c4bbd3004528734e7517e87d3f7ed40b901a06bfcbf2449abc"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/spawn.js",
+      "expected": "8a14c7a7a5ff80b049f0659f9e58d43bf0f3b1a6724d35a199c3f864b3242e4b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/sleep.c",
+      "expected": "eb9d441b0ec6b11cbc775dd6f85da0aefdf8d9cdcb7f45f316d4f12c7aa1fdbc"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/sleep.js",
+      "expected": "324704349471cacfb5ba94c1aed2f316d2e5fdbea486478ab1e2e5a278c7ad9d"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/now.c",
+      "expected": "268e869a5b5dd667aeb61ee7ef07f832238fb17f93015fe708528e95987c3ec3"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/now.js",
+      "expected": "b2c45fdcfeba0f155be5631b25708341c09d3c80929d8467afd5977473b087bf"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/thread_count.c",
+      "expected": "ff5605b52535484adc10cb800c376ed77ededbddc9adea7064294e2cc0670d49"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/thread_count.js",
+      "expected": "f4ef6d8ded95fe3114e50b7d2b6eb873e693419b85150f681b4a54a5043c2de9"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/chan.c",
+      "expected": "cf026f9d428e83870d046a973ac434ce0a2471f5b93748bb264af84a239eacd3"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/chan.js",
+      "expected": "c228f8c6ac2ef2fc7b09a016f43e894b524eb49f2ac5d0ebd629cef76d4d1248"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_open.c",
+      "expected": "361322488ad1508478c8a8fc4c0d35434924cd6fe92c02fd0c12b28b37b16726"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_open.js",
+      "expected": "dd549f5f05eb896aef9a3a02ffecf2ee902e653f5463be72781edab1cd1180ae"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_read.c",
+      "expected": "f6b78f6c6060257a91e341fcc38ba6560d5023ded78e3096fa5bfdc50da9538f"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_read.js",
+      "expected": "7aa8a95a0b02f3c8db1167da5a936958a90c64e7df3e327ba5c66766d5e57da7"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_size.c",
+      "expected": "f9d0f2aba9f3e89131b8b4d6d69ab2f33a99b645f403174e60e26238cfee33f1"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_size.js",
+      "expected": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_write.c",
+      "expected": "a4d891e392ae0d913a73359fd80a30a64629eb893bf974c08eedb79b5fb9e2db"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_write.js",
+      "expected": "4fe307538beb1047add7646f52df6e382a1da5d8999d8fe96969bd5055bc9b59"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_close.c",
+      "expected": "08fdd18ef43dff0bc6f7e064eb7ccf7a49f4140c238450f1b5f49ee1a2739dd5"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/file_close.js",
+      "expected": "2b83f900113776ab875fa3afd29f31000a191fe48645abe78b1d7b34cb12a7fe"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_listen.c",
+      "expected": "e126135c5a7cf46e4b4a57060a83ef1983340502f958c65e5c9faf27787abd8a"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_listen.js",
+      "expected": "0da4cfafaa24ba5e17d9fda5e6a5b207b2b36031b2c888944f67b85842d76399"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_accept.c",
+      "expected": "c72b9f83e2fb8f48b8bf28dc9a3ae95c3c9cee7725a6915797199949d560511c"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_accept.js",
+      "expected": "3a9eb2359ec60af942fc0aa0390e1d5213a6c8b050bc832b6c8709f68e57b6ed"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_connect.c",
+      "expected": "ec6d1900f4c7ca88890c7e689bd8317e807665eed0c84418bd7e6505addac8e7"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_connect.js",
+      "expected": "a20819822e4ce18c8878b94e6ee70466833415eb9ebc2b6a39b65cabfcc553c9"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_send.c",
+      "expected": "571d9790ce5c32b2cae08d69ae83ffa0d2c13e2e149f524d14237a79a2f86410"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_send.js",
+      "expected": "b5e56fa57d7cd48d7d0ca42d793322971dfc96b77b83b0eef4a528c26e7c326b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_recv.c",
+      "expected": "18f669d4cac74e862559f39ecb277592d6b0f06da50000e32751b6505e1a7a43"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_recv.js",
+      "expected": "642735a0dd844d4ea1c83d4b5d100fec334d6032ba3115f3a41d0bbfe2d93dfd"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_poll.c",
+      "expected": "1e651ea609d61e1fef86cd07aaca13fa81b04a2159b3a3ef85e788e381c21560"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/tcp_poll.js",
+      "expected": "b0654046a2bfd27a89a4788eec0d4e61cd24dea4efb992e8924cb17ac4238283"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_bind.c",
+      "expected": "abffc463de08b76c0a1ca1235af56b463711d91e7f6720a976b414443096da8b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_bind.js",
+      "expected": "e3afae5bf246184e76703efbcf41cb35bf5289e746cc40dc0300eef98753dfb5"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_send_to.c",
+      "expected": "f00dd855ec7120706bd26a4bab6cc44ebd438584b73d479db3e00ec21b95eb2d"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_send_to.js",
+      "expected": "0eb95a9c026918435f1eabc6d6d04044731d10f56950d06582086250240911c7"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_recv_from.c",
+      "expected": "32cab1742c2e5017af56fc97c20db5b38490d05eb4eab39e137ea20cdccf1aa2"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_recv_from.js",
+      "expected": "d2ca779e878b5f3f85db5fb56148de955f4d094b312299a33f27b70b5b330b1b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_poll.c",
+      "expected": "b6b6c6eb0ee4fce361e15df09b6579d30634ceab95d530f1e9e401c06155511b"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/udp_poll.js",
+      "expected": "86a7c4eee06ac487f476589d3137e39c152d6ab87b9208adf18763a1ceb486bd"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/socket_close.c",
+      "expected": "742b164fecf63abf8b39fe8d2dd027cec4aa5a9cd31184e7d9d7825c91d5d65c"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/socket_close.js",
+      "expected": "dc4bf1fa95692c91528d4eb855506dde8dfc9164a90de2c43cd1bd6916e0c380"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/listener_close.c",
+      "expected": "f3b023a763f62d85c861b9f6e0a717ba05992fe0b9d08bb827722ebaad291310"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/listener_close.js",
+      "expected": "1b87fb43c373b1a8a54b5afaf0cf8e3ec2f8d39bdfde131e49527caa19ac0cb8"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/window.c",
+      "expected": "617611d994fb7f4c57467f8d1a7e644ba19d4fce35770613dea2711e6cafd65c"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/window_open.js",
+      "expected": "cd716864b8dfb27ca955c8aa58643c7d693ce76eb56472bd8255ff7ac0656e8d"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/window_frame.js",
+      "expected": "78baa53aa46e02165c0c94da68d1f6362386ebcfb97dbb36fffb82792a03d34f"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/window_set_title.js",
+      "expected": "eee0bf26b7f381f8800364e22e8c735e47dd6db3f58e23ff3dda8478a8411513"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/window_grab.js",
+      "expected": "55cfc1925114f2d1f177137fad24d6252fe28707d26a1aae18a98ad97060a668"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/window_close.js",
+      "expected": "be4ef11e9ac57c59aa4aee847f15ece18034ca9fe1c4a68c6e0b0d7bbd7c3590"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/audio.c",
+      "expected": "5b77ca51a275e0113cfb6fada35211f767c792a549d3b23375bde853d28d9478"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/audio_open.js",
+      "expected": "6f531ac205dab98dd366111cdcc5eed69fb9058350ca715f3419065cd979b088"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/audio_write.js",
+      "expected": "377d3e938ce3cc9f083c662b69d34e3a0cf391c92ddaf3fca8a4b28c78662da7"
+    },
+    {
+      "file": "/home/node/.bend/bend2/effs/audio_close.js",
+      "expected": "c700e2fc0eda1f9a67afd317184999d9283912817aaec00637af41b135b84c62"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseHost.bend",
+      "expected": "cc2af5ff12f26e41a3ece0873401e2b23e56237ce995baea34a590dfb94f8df4"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseConsumer.bend",
+      "expected": "8212d3625cc4485f4244f8cad678b98118b4f7e6850c3e8788a461475305c9f8"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Work.bend",
+      "expected": "0de19fec0321bdaae5178bfc0c512938e7154c671e43de30e670c60ea726b295"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Flow.bend",
+      "expected": "fcdf68ecfc402fec71ecd59e9de72f31b41c82a94d97be819c9c9b83b8eeb547"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Collection.bend",
+      "expected": "ab467b6c3d4486d8bd205a4dab75e5a900aae851ad854247cc76cd4edb9a8a12"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Round.bend",
+      "expected": "802eb3e6907f1c3e7224a0244b9e8c9677bc23b1b26140153bfe6907c2702764"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/agent-flow-bend/Notice.bend",
+      "expected": "1941e3a6a7b03d2b2fd9eaac9c5d0119a4ddf4e939284fbb4f2a40a13105b524"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeRun.bend",
+      "expected": "82e8f254320369233eeb891c1aa125f8e42b9e08af65f8c77761489a33f3a78e"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/JevEffects.bend",
+      "expected": "36c9f1210d8c95bb3ac91cb04a160c0d628c7637728029d5315297c10c5d228d"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Engine.bend",
+      "expected": "4cd5c8b6a3867d3ba1f58f709616a211f1b480724bb415b70b535a6b0862a5bd"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/QuietScenario.bend",
+      "expected": "75db35ee9e71e47f4aabe550ef35b90665cb3cb21775fb2dcd066f7a71d89737"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/FreshnessContext.bend",
+      "expected": "e1dc74d094a77a94882920e4121045c9c1c6f1e466be780807a5cfc741f5c107"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/OutputCompletion.bend",
+      "expected": "294d3e3ebc7dcd379a5c9ab21bfe0efa723991e43c83fb43b40067375882f727"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/PermitScenario.bend",
+      "expected": "a1876e0f84749e9983ba9f9a6e630ed17dfba9f91364b69f9e66358485037b51"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/CredentialContext.bend",
+      "expected": "7c95a2b1199316dae35e2bada5580f646a68bf81f667541229db204805d0a5cf"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/PendingEffects.bend",
+      "expected": "22d32db0003b8f14f057cf7537dc9c215ff4e9105268d514055b7db80af36db8"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/AdmissionAttempts.bend",
+      "expected": "bb81d0fa8b5ae396f4c5d3ef47ad7b76bc87ac8e840f61baa39ec78d5b6fd971"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/AdviceeScope.bend",
+      "expected": "73807962ed58410bebfcc8db1f71ccd63c8b5fde0c0a2433698eadd1e123251f"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/PreparationScenario.bend",
+      "expected": "d4873cd204ca23946019002118de905f4cf532eff3c86eabe1266a9cd543165b"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/FaultTargets.bend",
+      "expected": "41381f3fe68e921991c0e2faa698d282202894840a07c322a7709ee52d4a01f2"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Preparation.bend",
+      "expected": "f11ec48588cd6d9c2777ef77301ba020ebb4494e49cc869e4cbbef5d4130fcd3"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/Postprocess.bend",
+      "expected": "3a0d8fa51ae4e03cc3a6c4fb0faaaeb60769a485c1bc5139b756a55909f2ff3a"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/packages/monkey-business-bend/NativeFinish.bend",
+      "expected": "2c88ebb588397f8a4e39e5fea9c5fc27e22642c281c4e6a7685ee18f23291dda"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseProjection.bend",
+      "expected": "bd141b84710f5df083a3274c9b0a2f7174bd720668669442e44421f088ee5998"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseEffects.bend",
+      "expected": "79e8af836f51701882be710a8e3976a8747169218e2006f33f05db2e97bd0e12"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseMap.bend",
+      "expected": "debc6651614c46fff01353cbd008869688c5bf99bab3f3500f6dc7b9085db069"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseOutput.bend",
+      "expected": "e7e35f030142f9db9756aae7e44aeb3734476f6e65e818793cb47cab61447ab7"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseConsumerCodec.bend",
+      "expected": "de673242ee1fda33de5e85db6e176d6b138147615a095496c452ee5590fd63a5"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseNumericOutput.bend",
+      "expected": "8eef56db2e03671b17c795f77eca8785f58259ee7e645c96a83388a44def9495"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseNumericOutput.c",
+      "expected": "e717c4ef44db176b2ceaf71cb8d599ac91763c1c4b8d56e237958e05b0a2f493"
+    },
+    {
+      "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseNumericOutput.js",
+      "expected": "9987b4e217c49a4c832e22b5dfda6281a63b08a5385ea8fbe2308f4632ab0b8a"
+    }
+  ],
+  "toolchain": "Bend 2.0.35"
+}

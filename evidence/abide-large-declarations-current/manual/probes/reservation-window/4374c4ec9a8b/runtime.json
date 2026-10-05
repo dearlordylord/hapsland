@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "blinded": true,
+  "typescriptVersion": "5.9.3",
+  "sourceDigest": "a0e5a55224bd4018d2282aa30c88b489e999637f73155be2ac0c9b84c52582c8",
+  "supportingDigest": "977947813a5282b0922e22677f565e825040ee930dbf576743c77285f885ca07",
+  "mode": "hidden",
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "checks": [
+    {
+      "label": "before-deadline",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "available",
+        "seatsAfterBooking": 2
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "available",
+        "seatsAfterBooking": 2
+      },
+      "passed": true
+    },
+    {
+      "label": "before-deadline-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "at-deadline",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "expired",
+        "seatsAfterBooking": 4
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "expired",
+        "seatsAfterBooking": 4
+      },
+      "passed": true
+    },
+    {
+      "label": "at-deadline-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "after-deadline",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "expired",
+        "seatsAfterBooking": 4
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "expired",
+        "seatsAfterBooking": 4
+      },
+      "passed": true
+    },
+    {
+      "label": "after-deadline-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "closed-dominates-expired-and-unavailable",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "closed",
+        "seatsAfterBooking": 4
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "closed",
+        "seatsAfterBooking": 4
+      },
+      "passed": true
+    },
+    {
+      "label": "closed-dominates-expired-and-unavailable-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "expired-dominates-unavailable",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "expired",
+        "seatsAfterBooking": 4
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "expired",
+        "seatsAfterBooking": 4
+      },
+      "passed": true
+    },
+    {
+      "label": "expired-dominates-unavailable-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "unavailable-before-deadline",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "unavailable",
+        "seatsAfterBooking": 4
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "unavailable",
+        "seatsAfterBooking": 4
+      },
+      "passed": true
+    },
+    {
+      "label": "unavailable-before-deadline-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "exact-inventory-available",
+      "expected": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "available",
+        "seatsAfterBooking": 0
+      },
+      "actual": {
+        "description": "Demo reservation",
+        "reference": "r-α/27",
+        "status": "available",
+        "seatsAfterBooking": 0
+      },
+      "passed": true
+    },
+    {
+      "label": "exact-inventory-available-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    },
+    {
+      "label": "arbitrary-reference-and-description",
+      "expected": {
+        "description": "arbitrary presentation Ω",
+        "reference": "any reference: 空白",
+        "status": "available",
+        "seatsAfterBooking": 2
+      },
+      "actual": {
+        "description": "arbitrary presentation Ω",
+        "reference": "any reference: 空白",
+        "status": "available",
+        "seatsAfterBooking": 2
+      },
+      "passed": true
+    },
+    {
+      "label": "arbitrary-reference-and-description-resource-use",
+      "expected": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "actual": {
+        "suppliedClockCalls": 0,
+        "hiddenClockCalls": 1
+      },
+      "passed": true
+    }
+  ]
+}

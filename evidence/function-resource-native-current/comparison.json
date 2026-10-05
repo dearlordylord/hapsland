@@ -1,0 +1,709 @@
+{
+  "version": 1,
+  "completedAt": "2026-10-03T00:45:41.892Z",
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "physicalRequests": 30,
+  "plannedDetectionCells": 18,
+  "plannedNativeSessions": 9,
+  "families": [
+    {
+      "ruleId": "r9_body_reaches_undeclared",
+      "cases": [
+        {
+          "id": "clock-sensitive-expiry",
+          "gold": true,
+          "supportingFiles": [
+            "support.ts"
+          ]
+        },
+        {
+          "id": "hidden-audit-write",
+          "gold": true,
+          "supportingFiles": [
+            "support.ts"
+          ]
+        },
+        {
+          "id": "clean-explicit-time",
+          "gold": false,
+          "supportingFiles": []
+        }
+      ],
+      "detection": {
+        "hapsland": {
+          "observations": 9,
+          "truePositives": 6,
+          "falsePositives": 0,
+          "trueNegatives": 3,
+          "falseNegativesAmongEvaluated": 0,
+          "uncheckedFlaws": 0,
+          "uncheckedClean": 0,
+          "middleBand": 0,
+          "emittedRuleBearingOutputs": 6,
+          "transportErrors": 0
+        },
+        "abide": {
+          "observations": 9,
+          "truePositives": 6,
+          "falsePositives": 0,
+          "trueNegatives": 3,
+          "falseNegativesAmongEvaluated": 0,
+          "uncheckedFlaws": 0,
+          "uncheckedClean": 0,
+          "middleBand": 0,
+          "emittedRuleBearingOutputs": 6,
+          "transportErrors": 0
+        }
+      },
+      "native": {
+        "baseline": {
+          "sessions": 3,
+          "flawedSessions": 2,
+          "repaired": 0,
+          "completedRepaired": 0,
+          "remaining": 2,
+          "cleanSessions": 1,
+          "cleanPreserved": 1,
+          "newDomainRestriction": 0,
+          "unassessed": 0,
+          "verifiedReceipts": 0,
+          "receiptLinkedRepairs": 0,
+          "positiveReviewerAnswers": 0,
+          "ruleBearingOutputs": 0,
+          "successfulSessions": 3,
+          "compiled": 3,
+          "timeouts": 0,
+          "transportErrors": 0,
+          "budgetStops": 0,
+          "requests": 0
+        },
+        "hapsland": {
+          "sessions": 3,
+          "flawedSessions": 2,
+          "repaired": 2,
+          "completedRepaired": 2,
+          "remaining": 0,
+          "cleanSessions": 1,
+          "cleanPreserved": 1,
+          "newDomainRestriction": 0,
+          "unassessed": 0,
+          "verifiedReceipts": 2,
+          "receiptLinkedRepairs": 2,
+          "positiveReviewerAnswers": 2,
+          "ruleBearingOutputs": 2,
+          "successfulSessions": 3,
+          "compiled": 3,
+          "timeouts": 0,
+          "transportErrors": 0,
+          "budgetStops": 0,
+          "requests": 5
+        },
+        "abide": {
+          "sessions": 3,
+          "flawedSessions": 2,
+          "repaired": 2,
+          "completedRepaired": 2,
+          "remaining": 0,
+          "cleanSessions": 1,
+          "cleanPreserved": 1,
+          "newDomainRestriction": 0,
+          "unassessed": 0,
+          "verifiedReceipts": 1,
+          "receiptLinkedRepairs": 1,
+          "positiveReviewerAnswers": 1,
+          "ruleBearingOutputs": 1,
+          "successfulSessions": 3,
+          "compiled": 3,
+          "timeouts": 0,
+          "transportErrors": 0,
+          "budgetStops": 0,
+          "requests": 7
+        }
+      },
+      "cells": [
+        {
+          "caseId": "clock-sensitive-expiry",
+          "candidate": "baseline",
+          "blindId": "252434b176d3",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "remaining",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "sourceDigest": "753cfc4b3b1da2000007258964713adb1e40bb2828efb512d5e829e2e4fd61e4",
+          "supportingDigest": "37e224617ca8d146885c68766237ed86e553de35c217176ca9220f6c8e7e6d94",
+          "adjudication": {
+            "blindId": "252434b176d3",
+            "sourceDigest": "753cfc4b3b1da2000007258964713adb1e40bb2828efb512d5e829e2e4fd61e4",
+            "supportingDigest": "37e224617ca8d146885c68766237ed86e553de35c217176ca9220f6c8e7e6d94",
+            "caseId": "clock-sensitive-expiry",
+            "status": "remaining",
+            "rationale": "The unchanged callable reads imported currentTime with no time or clock in its signature; the hidden clock dependency remains.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": false
+            },
+            "checks": [
+              {
+                "label": "deadline20-time10",
+                "expected": false,
+                "actual": false,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/252434b176d3/probe.mjs"
+              },
+              {
+                "label": "deadline20-time20",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/252434b176d3/probe.mjs"
+              },
+              {
+                "label": "deadline20-time30",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/252434b176d3/probe.mjs"
+              }
+            ],
+            "rubric": "Expose observation time or clock dependency; preserve comparison at times before, equal to and after deadline. Check deterministic time values10/20/30 with deadline20; a constant answer or merely deleting clock read is not repair.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "hidden-audit-write",
+          "candidate": "baseline",
+          "blindId": "d33539fac717",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "remaining",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "sourceDigest": "2a022ec2a505686be76ffc62da781d34c9098ac4dc239c9d221cd73e9cde573e",
+          "supportingDigest": "8dd08c3404f9b75a3f718c1fb68b47e525e85c4f2e0c8f667de3ceb1948e7e70",
+          "adjudication": {
+            "blindId": "d33539fac717",
+            "sourceDigest": "2a022ec2a505686be76ffc62da781d34c9098ac4dc239c9d221cd73e9cde573e",
+            "supportingDigest": "8dd08c3404f9b75a3f718c1fb68b47e525e85c4f2e0c8f667de3ceb1948e7e70",
+            "caseId": "hidden-audit-write",
+            "status": "remaining",
+            "rationale": "The unchanged callable invokes imported recordAudit with no audit writer or state requirement in its signature; the hidden write remains.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": false
+            },
+            "checks": [
+              {
+                "label": "audit-and-trim-\" hello \"",
+                "expected": {
+                  "returned": "hello",
+                  "entries": [
+                    " hello "
+                  ]
+                },
+                "actual": {
+                  "returned": "hello",
+                  "entries": [
+                    " hello "
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/d33539fac717/probe.mjs"
+              },
+              {
+                "label": "audit-and-trim-\"   \"",
+                "expected": {
+                  "returned": "",
+                  "entries": [
+                    "   "
+                  ]
+                },
+                "actual": {
+                  "returned": "",
+                  "entries": [
+                    "   "
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/d33539fac717/probe.mjs"
+              },
+              {
+                "label": "audit-and-trim-\"\"",
+                "expected": {
+                  "returned": "",
+                  "entries": [
+                    ""
+                  ]
+                },
+                "actual": {
+                  "returned": "",
+                  "entries": [
+                    ""
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/d33539fac717/probe.mjs"
+              }
+            ],
+            "rubric": "Expose usable audit writer or resource-bearing effect requirement. Preserve exact supplied audit text once per invocation and trimmed return. Test whitespace and empty input; deleting audit side effect is not repair.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "clean-explicit-time",
+          "candidate": "baseline",
+          "blindId": "4ce6187296d1",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "sourceDigest": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+          "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "adjudication": {
+            "blindId": "4ce6187296d1",
+            "sourceDigest": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+            "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "caseId": "clean-explicit-time",
+            "status": "clean-preserved",
+            "rationale": "The caller supplies observation time; no clock read remains in the callable.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "deadline20-time10",
+                "expected": false,
+                "actual": false,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/4ce6187296d1/probe.mjs"
+              },
+              {
+                "label": "deadline20-time20",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/4ce6187296d1/probe.mjs"
+              },
+              {
+                "label": "deadline20-time30",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/4ce6187296d1/probe.mjs"
+              }
+            ],
+            "rubric": "Retain explicit observation time and deterministic deadline comparison before/equal/after; no introduced hidden time dependency.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "clock-sensitive-expiry",
+          "candidate": "hapsland",
+          "blindId": "eeb4686d071f",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "repaired",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": true,
+          "reportedApplication": "APPLIED",
+          "sourceDigest": "c8a29cd9b19e7951f6766bb78cef3090cd8399540ab8ee5dd31f2dcca1ad7579",
+          "supportingDigest": "37e224617ca8d146885c68766237ed86e553de35c217176ca9220f6c8e7e6d94",
+          "adjudication": {
+            "blindId": "eeb4686d071f",
+            "sourceDigest": "c8a29cd9b19e7951f6766bb78cef3090cd8399540ab8ee5dd31f2dcca1ad7579",
+            "supportingDigest": "37e224617ca8d146885c68766237ed86e553de35c217176ca9220f6c8e7e6d94",
+            "caseId": "clock-sensitive-expiry",
+            "status": "repaired",
+            "rationale": "The callable accepts the clock it reads; supplied clock determines deadline comparison.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "deadline20-time10",
+                "expected": false,
+                "actual": false,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/eeb4686d071f/probe.mjs"
+              },
+              {
+                "label": "deadline20-time20",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/eeb4686d071f/probe.mjs"
+              },
+              {
+                "label": "deadline20-time30",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/eeb4686d071f/probe.mjs"
+              }
+            ],
+            "rubric": "Expose observation time or clock dependency; preserve comparison at times before, equal to and after deadline. Check deterministic time values10/20/30 with deadline20; a constant answer or merely deleting clock read is not repair.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "hidden-audit-write",
+          "candidate": "hapsland",
+          "blindId": "0721b2e43929",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "repaired",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": true,
+          "reportedApplication": "APPLIED",
+          "sourceDigest": "56e46b0b87bd4a2d2b321a0838bb9c3d890433de692e13ea81deb6ba72ced969",
+          "supportingDigest": "8dd08c3404f9b75a3f718c1fb68b47e525e85c4f2e0c8f667de3ceb1948e7e70",
+          "adjudication": {
+            "blindId": "0721b2e43929",
+            "sourceDigest": "56e46b0b87bd4a2d2b321a0838bb9c3d890433de692e13ea81deb6ba72ced969",
+            "supportingDigest": "8dd08c3404f9b75a3f718c1fb68b47e525e85c4f2e0c8f667de3ceb1948e7e70",
+            "caseId": "hidden-audit-write",
+            "status": "repaired",
+            "rationale": "The callable accepts a usable writer, emits the original text once, and returns trimmed text.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "audit-and-trim-\" hello \"",
+                "expected": {
+                  "returned": "hello",
+                  "entries": [
+                    " hello "
+                  ]
+                },
+                "actual": {
+                  "returned": "hello",
+                  "entries": [
+                    " hello "
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/0721b2e43929/probe.mjs"
+              },
+              {
+                "label": "audit-and-trim-\"   \"",
+                "expected": {
+                  "returned": "",
+                  "entries": [
+                    "   "
+                  ]
+                },
+                "actual": {
+                  "returned": "",
+                  "entries": [
+                    "   "
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/0721b2e43929/probe.mjs"
+              },
+              {
+                "label": "audit-and-trim-\"\"",
+                "expected": {
+                  "returned": "",
+                  "entries": [
+                    ""
+                  ]
+                },
+                "actual": {
+                  "returned": "",
+                  "entries": [
+                    ""
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/0721b2e43929/probe.mjs"
+              }
+            ],
+            "rubric": "Expose usable audit writer or resource-bearing effect requirement. Preserve exact supplied audit text once per invocation and trimmed return. Test whitespace and empty input; deleting audit side effect is not repair.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "clean-explicit-time",
+          "candidate": "hapsland",
+          "blindId": "98e3464b5960",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "sourceDigest": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+          "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "adjudication": {
+            "blindId": "98e3464b5960",
+            "sourceDigest": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+            "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "caseId": "clean-explicit-time",
+            "status": "clean-preserved",
+            "rationale": "The caller supplies observation time; no clock read remains in the callable.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "deadline20-time10",
+                "expected": false,
+                "actual": false,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/98e3464b5960/probe.mjs"
+              },
+              {
+                "label": "deadline20-time20",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/98e3464b5960/probe.mjs"
+              },
+              {
+                "label": "deadline20-time30",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/98e3464b5960/probe.mjs"
+              }
+            ],
+            "rubric": "Retain explicit observation time and deterministic deadline comparison before/equal/after; no introduced hidden time dependency.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "clock-sensitive-expiry",
+          "candidate": "abide",
+          "blindId": "f28446bb4b49",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "repaired",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": true,
+          "reportedApplication": "APPLIED",
+          "sourceDigest": "3975806d69905868cb879f21b12db46756878b2875db5cd1a71432bc4ebff792",
+          "supportingDigest": "37e224617ca8d146885c68766237ed86e553de35c217176ca9220f6c8e7e6d94",
+          "adjudication": {
+            "blindId": "f28446bb4b49",
+            "sourceDigest": "3975806d69905868cb879f21b12db46756878b2875db5cd1a71432bc4ebff792",
+            "supportingDigest": "37e224617ca8d146885c68766237ed86e553de35c217176ca9220f6c8e7e6d94",
+            "caseId": "clock-sensitive-expiry",
+            "status": "repaired",
+            "rationale": "The callable accepts the clock it reads; supplied clock determines deadline comparison.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "deadline20-time10",
+                "expected": false,
+                "actual": false,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/f28446bb4b49/probe.mjs"
+              },
+              {
+                "label": "deadline20-time20",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/f28446bb4b49/probe.mjs"
+              },
+              {
+                "label": "deadline20-time30",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/f28446bb4b49/probe.mjs"
+              }
+            ],
+            "rubric": "Expose observation time or clock dependency; preserve comparison at times before, equal to and after deadline. Check deterministic time values10/20/30 with deadline20; a constant answer or merely deleting clock read is not repair.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "hidden-audit-write",
+          "candidate": "abide",
+          "blindId": "8649dea28950",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "repaired",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "sourceDigest": "56e46b0b87bd4a2d2b321a0838bb9c3d890433de692e13ea81deb6ba72ced969",
+          "supportingDigest": "8dd08c3404f9b75a3f718c1fb68b47e525e85c4f2e0c8f667de3ceb1948e7e70",
+          "adjudication": {
+            "blindId": "8649dea28950",
+            "sourceDigest": "56e46b0b87bd4a2d2b321a0838bb9c3d890433de692e13ea81deb6ba72ced969",
+            "supportingDigest": "8dd08c3404f9b75a3f718c1fb68b47e525e85c4f2e0c8f667de3ceb1948e7e70",
+            "caseId": "hidden-audit-write",
+            "status": "repaired",
+            "rationale": "The callable accepts a usable writer, emits the original text once, and returns trimmed text.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "audit-and-trim-\" hello \"",
+                "expected": {
+                  "returned": "hello",
+                  "entries": [
+                    " hello "
+                  ]
+                },
+                "actual": {
+                  "returned": "hello",
+                  "entries": [
+                    " hello "
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/8649dea28950/probe.mjs"
+              },
+              {
+                "label": "audit-and-trim-\"   \"",
+                "expected": {
+                  "returned": "",
+                  "entries": [
+                    "   "
+                  ]
+                },
+                "actual": {
+                  "returned": "",
+                  "entries": [
+                    "   "
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/8649dea28950/probe.mjs"
+              },
+              {
+                "label": "audit-and-trim-\"\"",
+                "expected": {
+                  "returned": "",
+                  "entries": [
+                    ""
+                  ]
+                },
+                "actual": {
+                  "returned": "",
+                  "entries": [
+                    ""
+                  ]
+                },
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/8649dea28950/probe.mjs"
+              }
+            ],
+            "rubric": "Expose usable audit writer or resource-bearing effect requirement. Preserve exact supplied audit text once per invocation and trimmed return. Test whitespace and empty input; deleting audit side effect is not repair.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        },
+        {
+          "caseId": "clean-explicit-time",
+          "candidate": "abide",
+          "blindId": "95d045552cdf",
+          "originalScore": "manual-adjudication-required",
+          "finalStatus": "clean-preserved",
+          "compiled": true,
+          "completed": true,
+          "verifiedReceipt": false,
+          "reportedApplication": "NO_FEEDBACK",
+          "sourceDigest": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+          "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "adjudication": {
+            "blindId": "95d045552cdf",
+            "sourceDigest": "15dcec8eb9c9b7fd138a8ecf26fb9b52fd4b000fc7c152e2c842ce24b7157495",
+            "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "caseId": "clean-explicit-time",
+            "status": "clean-preserved",
+            "rationale": "The caller supplies observation time; no clock read remains in the callable.",
+            "sourceClass": "RUN",
+            "verificationState": "RUNTIME-TESTED",
+            "sourceInspection": {
+              "sourceClass": "SRC",
+              "verificationState": "SOURCE-INSPECTED",
+              "explicitDependency": true
+            },
+            "checks": [
+              {
+                "label": "deadline20-time10",
+                "expected": false,
+                "actual": false,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/95d045552cdf/probe.mjs"
+              },
+              {
+                "label": "deadline20-time20",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/95d045552cdf/probe.mjs"
+              },
+              {
+                "label": "deadline20-time30",
+                "expected": true,
+                "actual": true,
+                "passed": true,
+                "probe": "manual/probes/r9_body_reaches_undeclared/95d045552cdf/probe.mjs"
+              }
+            ],
+            "rubric": "Retain explicit observation time and deterministic deadline comparison before/equal/after; no introduced hidden time dependency.",
+            "blindnessLimitation": null,
+            "limitations": "Finite runtime observations support the listed behavior; signature dependency exposure is separately source-inspected. The VM allows only the inspected ./support import, intercepts clock or audit in unrepaired examples, and exposes no external IO. This is not a general proof."
+          }
+        }
+      ]
+    }
+  ],
+  "limits": "Selected synthetic examples. Three detection repetitions and one native session per case/arm. Anonymous semantic judgments supplement fixed finite probes; no general or context-only superiority claim."
+}

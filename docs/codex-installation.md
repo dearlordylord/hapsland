@@ -22,8 +22,11 @@ current client work, restart the client, and complete its native trust prompts.
 The default registration is user-wide: [file settings](configuration.md) control
 which repositories and files can be reviewed.
 
-For a fresh checkout build, use `npm run dev-install -- --host=codex`; add
-`--update` when this profile already has Hapsland. See the
+For a fixed checkout snapshot, use
+`mise exec bun@1.3.14 -- npm run dev-install -- --host=codex`.
+Rerun the same command after source changes: it rebuilds and activates the new
+snapshot through guided setup. `--update` optionally selects the dedicated
+update flow; it is not required for repeated installation. See the
 [personal development workflow](installation-workflows.md#personal-development-on-your-own-clients).
 
 Update this integration separately:
@@ -77,9 +80,10 @@ the single action reported for that stage. Doctor never prompts, launches or rep
 resident, changes Codex configuration, or calls Jev.
 
 The packaged `hapsland` CLI exposes versioned, noninteractive JSON operations for the
-declared Codex CLI 0.155.1 and 0.156.0 / Node 24.20.0 installed profiles on Linux arm64 and macOS arm64.
-Its public commands select an exact platform Node runtime from installed optional dependencies,
-independently of the shell's Node version. Install with optional dependencies enabled.
+Codex CLI lifecycle-hook contract with Bun 1.3.14 on Linux arm64 and macOS arm64.
+Compilation and installed execution evidence are recorded separately in the compatibility guide.
+Its public commands select the matching platform's standalone Bun executable.
+They run without Node or Bun on PATH.
 The archive carries prebuilt native helpers and parser bindings for each declared profile. Installation does not run
 the product's lifecycle scripts or require a compiler; `npm install --ignore-scripts=true` is a
 supported path. Release assembly uses the helper sources and platform build hosts. If a helper
@@ -124,8 +128,11 @@ invalid and administratively suspended states are reported without the value by
 login when Linux storage is locked; start a Secret Service provider for that user session when
 unavailable. On macOS, unlock or authorize the selected default Keychain from an explicit login.
 
-The default nonempty `TYPESAFE_API_KEY` takes precedence over the saved item. Selecting
-`credentialEnvVar` in user or project configuration is an explicit environment-only choice;
+Setup and hooks share key lookup: explicit process environment, repository `.env.local`,
+repository `.env`, then the user Hapsland configuration directory’s `.env`; see
+[credential lookup](installation-workflows.md#personal-development-on-your-own-clients).
+These sources take precedence over the native saved item. Selecting
+`credentialEnvVar` in user or project configuration is an explicit environment/file choice;
 missing, empty or invalid selected values do not fall back to the saved default. Replacement and
 logout advance a nonsecret generation file. Resident work captured under an older generation is
 dropped before a provider call. Logout deletes only the owned credential item.
@@ -209,7 +216,7 @@ process. A repeated update returns `already-current`.
 The ownership-record write precedes the hook replacement, so a failure after the first update
 step leaves the previous hook working. Every `partial` update result includes a structured
 `recovery.command` with the original digest. Rerun that exact request from the same target package.
-Recovery binds the exact target package version, executable, entrypoint, and resident protocol.
+Recovery binds the exact target package version, executable, argument vector, and resident protocol.
 It treats the journal as untrusted input: the operation reproduces every recorded transformation
 from its recorded original content and cross-checks the before, after, and proposal digests before
 continuing. Completed and pending files are then validated against current state, preserving
@@ -223,9 +230,9 @@ unrelated hooks, native trust records, and settings required by remaining hooks.
 Requests already sent to Jev cannot be recalled.
 
 Before writing configuration, the installer executes a bounded probe through the selected
-runtime and requires it to report Node 24.20.0 on Linux arm64 or macOS arm64. `/bin/true` or another merely
-executable file is not accepted as a runtime. The CLI, parser, and resident packaged entrypoints
-must all be readable regular files, and a declared Codex CLI version must be ready. The
+standalone executable and requires it to report Bun 1.3.14 on the declared arm64 platform. `/bin/true` or another merely
+executable file is not accepted as the package command. The CLI, parser, and resident packaged commands
+must all be executable regular files, and a declared Codex CLI version must be ready. The
 installer validates `config.toml` and `hooks.json`, preserves object and array order, and
 ordinary installation/update rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
 locally changed owned entries. Missing recorded hooks can be restored by repair/update. Explicit
@@ -300,3 +307,19 @@ run still requires an authenticated Codex profile, completed native trust, and a
 available to the real hook context.
 
 For automation, `install-preview` and `install` accept `reinstall: true` with the same proposal-digest authorization. This explicitly replaces marked Hapsland entries and can replace damaged ownership metadata. See [recovery and removal](installation-workflows.md#disablement-removal-and-recovery) for journal recovery and the limits of safe reconstruction.
+
+## Codex upgrades and installation eligibility
+
+Installation does not use a version allowlist. A bounded `codex --version`
+probe must identify a stable semantic version, and `codex features list` must
+advertise the `hooks` capability. The enabled/disabled feature configuration,
+owned hooks and native trust are checked separately; an upgrade does not bypass
+those checks. Hook commands retain the observed version, while adapter and IPC
+validation enforce the actual supported payload and identity contract.
+
+`package-runtime.json` records `codex.testedVersions` as observation coverage,
+not allowed versions. Earlier exact-version trials remain historical evidence;
+accepting an installation on a newer version is not a claim of native repair,
+all modes or all race cases having been tested there. If Codex changes a required
+capability or payload, report that concrete incompatibility rather than rejecting
+it solely because its version number changed.

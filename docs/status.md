@@ -67,6 +67,26 @@ for the same hashed unit remain idempotent. Submission does not prove that the m
 `modelReaction` remains `unavailable` until separate host evidence
 exists. Missing instrumentation and silence are never reported as `clear`.
 
+## Preview the message sent to the agent
+
+Run `hapsland --feedback-preview` to display the shared feedback heading,
+response instructions, and a synthetic finding. From a source checkout, run
+`node src/cli.ts --feedback-preview`. This command does not read stdin or project
+source, resolve credentials, call a review backend, or persist activity. It is a
+format preview, not a replay of your session or a positive review result.
+
+The text is owned by [one runtime-neutral formatter](../src/feedback/message.ts).
+It names Hapsland, lists the file, declaration, and configured message for each
+finding, and asks the agent to check the findings, fix valid issues and verify,
+or explain disagreement. Rule IDs and classification probabilities remain
+internal review metadata; they are not included in the agent-facing text. Notice-only messages do not request a repair.
+Claude and Codex use this same text; their hook envelopes and optional blocking
+authority differ. Operational notices remain distinct from rule findings.
+
+For actual feedback, inspect the agent runtime's session transcript. Status
+intentionally does not retain advice text. Submission records cannot prove
+that the agent read, acknowledged, or applied a finding.
+
 ## Session status
 
 Use an explicit session ID with the status operation:
@@ -90,9 +110,8 @@ being presented as healthy review.
 
 ## Optional session analytics
 
-Analytics recording is **disabled by default**. Enable it in the user configuration
-at `~/.config/realtime-review-tool/config.jsonc` (merge this field into an existing
-version-one document):
+Analytics recording is **disabled by default**. Enable it for a repository in
+its root `.hapsland.jsonc` (merge this field into an existing version-one document):
 
 ```jsonc
 {
@@ -101,8 +120,10 @@ version-one document):
 }
 ```
 
-Only user configuration may set this field. Project configuration cannot enable or
-disable it. Set it to `false` or remove it to stop future recording. Existing recorded
+Project configuration overrides the user default in either direction. User defaults
+are read from `$XDG_CONFIG_HOME/hapsland/config.jsonc`, normally
+`~/.config/hapsland/config.jsonc`. Set `sessionAnalytics` to `false` in a project
+to stop future recording there; omission inherits the user default. Existing recorded
 analytics remain readable until expiry or eviction; enablement never reconstructs earlier
 work. Each work item captures the recording setting, which is refreshed before provider
 dispatch; already-started work can still finish recording after the setting changes.
@@ -148,3 +169,11 @@ per detail; IDs outside the safe printable identifier subset are omitted, and
 `ruleIdsTruncated` reports omissions. These records show which rules fired, not their
 full finding text or whether the agent acted. Use the native session transcript for that
 additional evidence. The storage root can be relocated with `REVIEW_ACTIVITY_PATH`.
+
+Activity is stored under `$XDG_STATE_HOME/hapsland/activity`, normally
+`~/.local/state/hapsland/activity`. XDG bases must be absolute; absent, empty or
+relative bases use their standard defaults. The explicit `REVIEW_ACTIVITY_PATH`
+overrides that location. Superseded `realtime-review-tool` config/state directories
+are not read or migrated automatically. If you used the earlier pre-release, move
+your chosen configuration to the new location before restarting the agent; old
+activity remains in its original directory.

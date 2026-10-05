@@ -1,0 +1,24 @@
+{
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "checks": [
+    {
+      "label": "deadline20-time10",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "label": "deadline20-time20",
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "label": "deadline20-time30",
+      "expected": true,
+      "actual": true,
+      "passed": true
+    }
+  ]
+}

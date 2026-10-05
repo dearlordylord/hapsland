@@ -1,0 +1,107 @@
+{
+  "stage": "A",
+  "caseId": "load-preview",
+  "candidate": "hapsland",
+  "pass": 2,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "af139b590d508136810603f45bdecdc5c890254136afef6c1200481c2d2f8ba7",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "ruleIds": [
+          "r8_name_claims_resource"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r8_name_claims_resource"
+        ],
+        "findingIds": [
+          "r8_name_claims_resource"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "e37bb4a2-afda-484c-8b4c-6146409f2544",
+      "at": 1790982896572,
+      "candidate": "hapsland",
+      "caseId": "load-preview",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 2247,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r8_name_claims_resource"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "e37bb4a2-afda-484c-8b4c-6146409f2544",
+      "at": 1790982896572,
+      "candidate": "hapsland",
+      "caseId": "load-preview",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 182,
+      "answers": {
+        "r8_name_claims_resource": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 969,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

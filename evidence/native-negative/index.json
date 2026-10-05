@@ -392,5 +392,79 @@
   },
   "sourceRetained": false,
   "providerBodiesRetained": false,
-  "credentialsRetained": false
+  "credentialsRetained": false,
+  "installedPiNativeCells": {
+    "recordedAt": "2026-10-03",
+    "runtime": "Pi",
+    "version": "1.0.0",
+    "platform": "linux-arm64",
+    "reviewer": "controlled-offline",
+    "agentModel": "openai-codex/gpt-6-luna",
+    "selectedJevRequests": 0,
+    "primary": [
+      {
+        "file": "pi-typescript-reviewer-unavailable-controlled-offline-1791013918006.json",
+        "declaration": "pi-typescript-reviewer-unavailable-controlled-offline-1791013918006-declaration.json",
+        "scenario": "reviewer-unavailable",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "assertions": 8,
+        "runtimeAssets": {
+          "sha256": "320cc9812f023ae72b5929c67700b2ada2826f54fb3ed4b773933c2ec3099117",
+          "files": 168
+        }
+      },
+      {
+        "file": "pi-typescript-unicode-edit-controlled-offline-1791013892049.json",
+        "declaration": "pi-typescript-unicode-edit-controlled-offline-1791013892049-declaration.json",
+        "scenario": "unicode-edit",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "assertions": 7,
+        "runtimeAssets": {
+          "sha256": "320cc9812f023ae72b5929c67700b2ada2826f54fb3ed4b773933c2ec3099117",
+          "files": 168
+        }
+      },
+      {
+        "file": "pi-typescript-unsupported-write-controlled-offline-1791013892033.json",
+        "declaration": "pi-typescript-unsupported-write-controlled-offline-1791013892033-declaration.json",
+        "scenario": "unsupported-write",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "assertions": 7,
+        "runtimeAssets": {
+          "sha256": "320cc9812f023ae72b5929c67700b2ada2826f54fb3ed4b773933c2ec3099117",
+          "files": 168
+        }
+      }
+    ],
+    "earlierAttempts": [
+      {
+        "file": "pi-typescript-reviewer-unavailable-controlled-offline-1791006394501.json",
+        "declaration": "pi-typescript-reviewer-unavailable-controlled-offline-1791006394501-declaration.json",
+        "scenario": "reviewer-unavailable",
+        "verdict": "demonstrated",
+        "providerCalls": 0
+      },
+      {
+        "file": "pi-typescript-unicode-edit-controlled-offline-1791006345293.json",
+        "declaration": "pi-typescript-unicode-edit-controlled-offline-1791006345293-declaration.json",
+        "scenario": "unicode-edit",
+        "verdict": "demonstrated",
+        "providerCalls": 0
+      },
+      {
+        "file": "pi-typescript-unsupported-write-controlled-offline-1791006345275.json",
+        "declaration": "pi-typescript-unsupported-write-controlled-offline-1791006345275-declaration.json",
+        "scenario": "unsupported-write",
+        "verdict": "demonstrated",
+        "providerCalls": 0
+      }
+    ],
+    "limits": [
+      "Selected native failure observations supplement the deterministic installed fault matrix.",
+      "Earlier candidate observations remain independent; primary cells use final production runtime assets."
+    ]
+  }
 }

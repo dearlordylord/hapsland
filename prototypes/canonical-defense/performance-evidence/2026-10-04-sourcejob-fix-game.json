@@ -1,0 +1,23 @@
+{
+  "source_commit": "bcfd6fbe",
+  "run_id": "20261004232335065-1943007-2eb050",
+  "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004232335065-1943007-2eb050/workload-outputs/game-output-1943020-fXIlP5/receipt.json",
+  "origin": {
+    "native": "fresh compiler",
+    "emitted": "fresh JS emission",
+    "cHash": "eff8730caf3edc5ec9bc3c0f703fbdb789f5dca0cdb63638139de204c50918b6",
+    "binaryHash": "e0c9cdebd80f6bb2170a187d20417c89a0eed645282ad06bd67a8d4bc89e2d75",
+    "jsHash": "f7220f5cd01f0ecc7eea8d3d6a0a95494178a0b50d165fa0047e830c61e2cc18"
+  },
+  "batches_per_lane": 145,
+  "bytes": {
+    "native": 82119878,
+    "emitted": 82119878
+  },
+  "all_compressed_and_decoded_hashes_verified": true,
+  "all_native_js_pairs_byte_equal": true,
+  "terminal": "failed",
+  "elapsed_s": 112.02,
+  "failure": "campaign 3 tick 94 frame 6 after item 173 original SourceJob absent in native",
+  "acceptance": "Public comparison and replay incomplete; earlier campaign 0 tick 200 discrepancy passed."
+}

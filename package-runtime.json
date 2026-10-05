@@ -1,15 +1,33 @@
 {
   "schemaVersion": 1,
   "runtime": {
-    "name": "node",
-    "version": "24.20.0"
+    "name": "bun",
+    "version": "1.3.14",
+    "distribution": "standalone-executables"
   },
-  "codex": { "compatibleVersions": ["0.155.1", "0.156.0"] },
+  "codex": {
+    "testedVersions": [
+      "0.155.1",
+      "0.156.0"
+    ]
+  },
   "profiles": [
-    { "operatingSystem": "linux", "architecture": "arm64", "descriptorFacility": "/proc/self/fd", "verification": "tested" },
-    { "operatingSystem": "darwin", "architecture": "arm64", "descriptorFacility": "/dev/fd", "verification": "tested-controlled-package" }
+    {
+      "operatingSystem": "linux",
+      "architecture": "arm64",
+      "descriptorFacility": "/proc/self/fd",
+      "verification": "pending-standalone-validation"
+    },
+    {
+      "operatingSystem": "darwin",
+      "architecture": "arm64",
+      "descriptorFacility": "/dev/fd",
+      "verification": "cross-built-format-only"
+    }
   ],
-  "requiredCommands": ["git"],
+  "requiredCommands": [
+    "git"
+  ],
   "linuxCredentialStore": {
     "implementation": "Secret Service through libsecret",
     "releaseBuildDependency": "C compiler, pkg-config, and libsecret-1 development files",
@@ -26,7 +44,10 @@
   },
   "parser": {
     "implementation": "tree-sitter",
-    "languages": ["typescript", "tsx"]
+    "languages": [
+      "typescript",
+      "tsx"
+    ]
   },
   "residentProtocol": 1
 }

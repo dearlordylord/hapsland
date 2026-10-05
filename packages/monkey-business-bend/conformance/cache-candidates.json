@@ -1,0 +1,13 @@
+{
+ "authority":"unapproved finite candidate examples under #176",
+ "validation":"source-only; no check, falsification or proof run",
+ "cases":[
+  {"name":"declared-five-byte-boundary","byteCeilings":[4,5,6],"accepted":[false,true,true]},
+  {"name":"completed-same-scoped-prepared-input","issuedRequests":1,"retainedCharges":1,"bytes":5},
+  {"name":"changed-prepared-input","issuedRequests":2},
+  {"name":"other-partition-same-input","issuedRequests":2},
+  {"name":"one-entry-pressure","freedReservation":"original evicted entry, not incoming offer"},
+  {"name":"concurrent-commit-refusal","freedReservation":"new refused offer only"},
+  {"name":"cache-has-no-independent-TTL","invalidation":"actual owner discard/clear; identity change is a miss"}
+ ]
+}

@@ -1,7 +1,7 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support and the 2026-10-01 request to add bounded Bend support and cross-file support for both languages.
+**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support and the 2026-10-01 request to add bounded Bend support and cross-file support for both languages, and the 2026-10-04 decision to assume valid source syntax and isolate unrelated Bend literals.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the supported direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
@@ -52,6 +52,19 @@ still does not show that the new input gives better advice.
 
 The remaining sections specify the accepted behavior. Validation and later
 study work are named at the end. Runtime claims require separate test evidence.
+
+## Source-analysis assumption
+
+Source analysis assumes the completed agent edit leaves syntactically valid
+source. Hapsland does not validate syntax and does not guarantee review of
+incomplete or malformed source. Recovering unfinished edits or repairing syntax
+is outside the review contract. No compiler invocation is required to establish
+this assumption at runtime.
+
+Syntactic validity does not establish complete review evidence. A valid program
+can use types, bindings or dependencies outside the supported analysis profile;
+those remain unsupported or explicitly incomplete. Rule evidence gates still
+apply, and missing evidence is never a clear review result.
 
 ## Supported event and selection contract
 
@@ -219,9 +232,15 @@ Quantity-polymorphic kinds, term applications,
 dependent fields, proof/equality terms, function/product/sum types, reusable
 `+` types, and unsupported parameter forms remain explicit omissions.
 Multiline constructors and other indentation styles remain incomplete evidence;
-malformed headers, strings anywhere in the file, and unrecognized top-level
-syntax are conservatively rejected. Bend defs/laws are not review roots; their
-bodies are not checked. Extraction does not establish compiler validity,
+unsupported headers and unrecognized top-level syntax are outside the bounded
+profile. Bend defs/laws are not review roots; their bodies are not checked.
+Comments and single/double quoted literals in unrelated bodies cannot introduce
+type declarations or import bindings, and do not prevent supported datatype
+extraction. Literal-dependent syntax inside a datatype remains incomplete;
+masking literal contents must not manufacture complete type evidence. Exact
+datatype source and coordinates still come from the original captured text.
+This lexical isolation does not add malformed-source recovery or syntax checking.
+Extraction does not establish compiler validity,
 termination, law coverage, or proof correctness. Rule evidence gates and all
 existing shared source, graph, work, and freshness limits apply.
 

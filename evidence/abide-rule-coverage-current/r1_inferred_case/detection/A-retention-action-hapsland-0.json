@@ -1,0 +1,103 @@
+{
+  "stage": "A",
+  "caseId": "retention-action",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "26d77dcd6b5f4d47e09b66ed1af90cf8991291de19089bc162ab52ebc72526f2",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r1_inferred_case"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r1_inferred_case"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "fbd90dda-969c-4a10-8ebd-8a7257652a5c",
+      "at": 1790982778129,
+      "candidate": "hapsland",
+      "caseId": "retention-action",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 2336,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r1_inferred_case"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "fbd90dda-969c-4a10-8ebd-8a7257652a5c",
+      "at": 1790982778129,
+      "candidate": "hapsland",
+      "caseId": "retention-action",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 231,
+      "answers": {
+        "r1_inferred_case": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 943,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

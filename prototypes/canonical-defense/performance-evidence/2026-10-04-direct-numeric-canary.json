@@ -1,0 +1,1 @@
+{"equal": true, "cases": ["empty", "zero", "u48max/multiple", "258 words"], "results": {"native": {"exit": 0, "seconds": 0.0009997561573982239, "bytes": 561, "sha256": "e7a033f94b80b0665266dbff4afda28abdcf9eb57f75ad72c1581673c7a31ac0"}, "js": {"exit": 0, "seconds": 0.019213405903428793, "bytes": 561, "sha256": "e7a033f94b80b0665266dbff4afda28abdcf9eb57f75ad72c1581673c7a31ac0"}}}

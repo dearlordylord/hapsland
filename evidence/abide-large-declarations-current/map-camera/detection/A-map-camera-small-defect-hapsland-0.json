@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "map-camera-small-defect",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "2767f2e2042ecf4cf13f82094e2fea14cebb620923bf3f1c79bb2cabf57a223c",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r3_split_correlations"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r3_split_correlations"
+        ],
+        "findingIds": [
+          "r3_split_correlations"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "5d627350-dc0a-4abf-ba3c-8ae511df8699",
+      "at": 1790989752930,
+      "candidate": "hapsland",
+      "caseId": "map-camera-small-defect",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 2165,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r3_split_correlations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "5d627350-dc0a-4abf-ba3c-8ae511df8699",
+      "at": 1790989752930,
+      "candidate": "hapsland",
+      "caseId": "map-camera-small-defect",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 175,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 911,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

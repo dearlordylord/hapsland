@@ -1,99 +1,333 @@
-import type { CanonicalProjection } from "../../../src/canonical/adapter";
-import { FLOW_STAGES, findingLineage, recordLabel, type RecordNumbers, type FlowStage as Place } from "@hapsland/agent-flow-projection";
+import type { CanonicalProjection } from "../../../src/canonical/adapter"
+import {
+  FLOW_STAGES,
+  findingLineage,
+  recordLabel,
+  type RecordNumbers,
+  type FlowStage as Place
+} from "@hapsland/agent-flow-projection"
 
-export type SquareFacet = Readonly<{ label: string; count: number; references: readonly string[]; sample?: string }>;
-type Square = Readonly<{ title: string; owner: string; x: number; y: number; facets: (state: CanonicalProjection, numbers?: RecordNumbers) => readonly SquareFacet[]; detail: (state: CanonicalProjection, numbers?: RecordNumbers) => string }>;
-const facet = (label: string, references: readonly string[], sample?: string): SquareFacet => ({ label, count: references.length, references, sample });
-const ids = (items: readonly number[], noun: string) => items.map((id) => `${noun} #${id}`);
+export type SquareFacet = Readonly<{ label: string; count: number; references: readonly string[]; sample?: string }>
+type Square = Readonly<{
+  title: string
+  owner: string
+  x: number
+  y: number
+  facets: (state: CanonicalProjection, numbers?: RecordNumbers) => readonly SquareFacet[]
+  detail: (state: CanonicalProjection, numbers?: RecordNumbers) => string
+}>
+const facet = (label: string, references: readonly string[], sample?: string): SquareFacet => ({
+  label,
+  count: references.length,
+  references,
+  sample
+})
+const ids = (items: readonly number[], noun: string) => items.map((id) => `${noun} #${id}`)
 const work = (state: CanonicalProjection, kind: CanonicalProjection["work"][number]["kind"], numbers?: RecordNumbers) =>
-  state.work.filter((item) => item.kind === kind).map((item) => recordLabel(
-    kind === "sourceReading" || kind === "awaitingSourceRead" ? "source" : kind === "preparing" ? "preparation" : "review",
-    item.operation, numbers));
+  state.work
+    .filter((item) => item.kind === kind)
+    .map((item) =>
+      recordLabel(
+        kind === "sourceReading" || kind === "awaitingSourceRead"
+          ? "source"
+          : kind === "preparing"
+            ? "preparation"
+            : "review",
+        item.operation,
+        numbers
+      )
+    )
 const workLabel = (item: CanonicalProjection["work"][number], numbers?: RecordNumbers) =>
-  recordLabel(item.kind === "awaitingSourceRead" || item.kind === "sourceReading" ? "source" :
-    item.kind === "preparing" ? "preparation" : "review", item.operation, numbers);
-const dispatch = (state: CanonicalProjection, place: "queued" | "running", numbers?: RecordNumbers, preparation?: boolean) =>
-  state.dispatch[place].filter((item) => preparation === undefined || item.preparation === preparation)
-    .map((item) => `${recordLabel(item.preparation ? "source" : "review", item.operation, numbers)}/agent ${item.partition}/round ${item.round}/seq ${item.sequence}/${item.preparation ? "preparation" : "review"}${item.cancelled ? "/cancelled" : ""}`);
-const facetCount = (item: SquareFacet) => `${item.count} ${item.count === 1 ? item.label.replace(/\b(rounds|permits|charges|requests|units|leases|claims|slots|preparations|items|reads|findings)\b/g, (word) => word.slice(0, -1)) : item.label}`;
-const square = (definition: Omit<Square, "detail">): Square => ({ ...definition, detail: (state, numbers) => definition.facets(state, numbers).map((item) => `${facetCount(item)}${item.references.length ? `: ${item.references.join(", ")}` : ""}`).join(" · ") });
+  recordLabel(
+    item.kind === "awaitingSourceRead" || item.kind === "sourceReading"
+      ? "source"
+      : item.kind === "preparing"
+        ? "preparation"
+        : "review",
+    item.operation,
+    numbers
+  )
+const dispatch = (
+  state: CanonicalProjection,
+  place: "queued" | "running",
+  numbers?: RecordNumbers,
+  preparation?: boolean
+) =>
+  state.dispatch[place]
+    .filter((item) => preparation === undefined || item.preparation === preparation)
+    .map(
+      (item) =>
+        `${recordLabel(item.preparation ? "source" : "review", item.operation, numbers)}/agent ${item.partition}/round ${item.round}/seq ${item.sequence}/${item.preparation ? "preparation" : "review"}${item.cancelled ? "/cancelled" : ""}`
+    )
+const facetCount = (item: SquareFacet) =>
+  `${item.count} ${item.count === 1 ? item.label.replace(/\b(rounds|permits|charges|requests|units|leases|claims|slots|preparations|items|reads|findings)\b/g, (word) => word.slice(0, -1)) : item.label}`
+const square = (definition: Omit<Square, "detail">): Square => ({
+  ...definition,
+  detail: (state, numbers) =>
+    definition
+      .facets(state, numbers)
+      .map((item) => `${facetCount(item)}${item.references.length ? `: ${item.references.join(", ")}` : ""}`)
+      .join(" · ")
+})
 /** Count and facet name always remain visible; only the identity sample is bounded. */
 export const squareFacetLine = (item: SquareFacet): string => {
-  const count = facetCount(item);
-  if (item.count === 0) return count;
-  if (item.sample !== undefined && item.sample.length <= 40) return item.sample;
-  const first = item.references[0].split("/")[0];
-  const remaining = item.count > 1 ? ` +${item.count - 1} more` : "";
-  const sampled = `${count} · ${first}${remaining}`;
-  return sampled.length <= 40 ? sampled : count;
-};
+  const count = facetCount(item)
+  if (item.count === 0) return count
+  if (item.sample !== undefined && item.sample.length <= 40) return item.sample
+  const first = item.references[0].split("/")[0]
+  const remaining = item.count > 1 ? ` +${item.count - 1} more` : ""
+  const sampled = `${count} · ${first}${remaining}`
+  return sampled.length <= 40 ? sampled : count
+}
 
-export const squareFacetFontSize = (item: SquareFacet): "8" | "10" => squareFacetLine(item).length > 28 ? "8" : "10";
+export const squareFacetFontSize = (item: SquareFacet): "8" | "10" => (squareFacetLine(item).length > 28 ? "8" : "10")
 
 /** The view alone names and positions conceptual flow stages as squares. Counts are checked record facets, never an aggregate of overlapping references. */
 export const SQUARES: Record<Place, Square> = {
-  observation: square({ title: "Agent edit", owner: "NATIVE FACT", x: 32, y: 52,
-    facets: () => [] }),
-  admission: square({ title: "Admission & capacity", owner: "BEND DECISION", x: 310, y: 52,
-    facets: (s, n) => [facet("edit permits", ids(s.admissions.flatMap((x) => x.permits.map((permit) => permit.token)), "Permit")), facet("observation charges", s.charges.filter((x) => x.purpose === "observationDispatch").map((x) => recordLabel("charge:observationDispatch", x.id, n))),
-      facet("stored result charges", s.charges.filter((x) => x.purpose === "storedResult").map((x) => recordLabel("charge:storedResult", x.id, n)))] }),
-  sourcePending: square({ title: "Awaiting source read", owner: "BEND STATE", x: 32, y: 190,
-    facets: (s, n) => [facet("pending source reads", work(s, "awaitingSourceRead", n))] }),
-  scheduling: square({ title: "Job scheduling", owner: "BEND DECISION + STATE", x: 588, y: 190,
-    facets: (s, n) => [facet("waiting to prepare", dispatch(s, "queued", n, true)), facet("waiting to review", dispatch(s, "queued", n, false)),
-      facet("running preparation jobs", dispatch(s, "running", n, true)), facet("running review jobs", dispatch(s, "running", n, false))] }),
-  preparation: square({ title: "Read & prepare source", owner: "NATIVE EFFECT + BEND STATE", x: 866, y: 52,
-    facets: (s, n) => [facet("active source reads", work(s, "sourceReading", n)), facet("active preparations", work(s, "preparing", n))] }),
-  units: square({ title: "Review work items", owner: "BEND STATE", x: 1144, y: 52,
-    facets: (s, n) => [facet("review items", work(s, "reviewing", n)), facet("unit charges", s.charges.filter((x) => x.purpose === "reviewUnit").map((x) => recordLabel("charge:reviewUnit", x.id, n)))] }),
-  authorization: square({ title: "Jev ready check", owner: "BEND DECISION", x: 1144, y: 350,
-    facets: (s, n) => [facet("unstarted requests", s.dispatch.requests.filter((x) => !x.started).map((x) => recordLabel("request", x.request, n)))] }),
-  effect: square({ title: "Jev request attempt", owner: "NATIVE FACT", x: 866, y: 350,
-    facets: (s, n) => [facet("started requests", s.dispatch.requests.filter((x) => x.started).map((x) => recordLabel("request", x.request, n)))] }),
-  jev: square({ title: "Awaiting Jev result", owner: "BEND STATE", x: 588, y: 350,
-    facets: (s, n) => [facet("at Jev work", work(s, "atJev", n)), facet("request permits", s.dispatch.requests.map((x) => recordLabel("request", x.request, n)))] }),
-  outcomes: square({ title: "Review outcomes", owner: "BEND DECISION", x: 310, y: 350,
+  observation: square({ title: "Agent edit", owner: "NATIVE FACT", x: 32, y: 52, facets: () => [] }),
+  admission: square({
+    title: "Admission & capacity",
+    owner: "BEND DECISION",
+    x: 310,
+    y: 52,
+    facets: (s, n) => [
+      facet(
+        "edit permits",
+        ids(
+          s.admissions.flatMap((x) => x.permits.map((permit) => permit.token)),
+          "Permit"
+        )
+      ),
+      facet(
+        "observation charges",
+        s.charges
+          .filter((x) => x.purpose === "observationDispatch")
+          .map((x) => recordLabel("charge:observationDispatch", x.id, n))
+      ),
+      facet(
+        "stored result charges",
+        s.charges.filter((x) => x.purpose === "storedResult").map((x) => recordLabel("charge:storedResult", x.id, n))
+      )
+    ]
+  }),
+  sourcePending: square({
+    title: "Awaiting source read",
+    owner: "BEND STATE",
+    x: 32,
+    y: 190,
+    facets: (s, n) => [facet("pending source reads", work(s, "awaitingSourceRead", n))]
+  }),
+  scheduling: square({
+    title: "Job scheduling",
+    owner: "BEND DECISION + STATE",
+    x: 588,
+    y: 190,
+    facets: (s, n) => [
+      facet("waiting to prepare", dispatch(s, "queued", n, true)),
+      facet("waiting to review", dispatch(s, "queued", n, false)),
+      facet("running preparation jobs", dispatch(s, "running", n, true)),
+      facet("running review jobs", dispatch(s, "running", n, false))
+    ]
+  }),
+  preparation: square({
+    title: "Read & prepare source",
+    owner: "NATIVE EFFECT + BEND STATE",
+    x: 866,
+    y: 52,
+    facets: (s, n) => [
+      facet("active source reads", work(s, "sourceReading", n)),
+      facet("active preparations", work(s, "preparing", n))
+    ]
+  }),
+  units: square({
+    title: "Review work items",
+    owner: "BEND STATE",
+    x: 1144,
+    y: 52,
+    facets: (s, n) => [
+      facet("review items", work(s, "reviewing", n)),
+      facet(
+        "unit charges",
+        s.charges.filter((x) => x.purpose === "reviewUnit").map((x) => recordLabel("charge:reviewUnit", x.id, n))
+      )
+    ]
+  }),
+  authorization: square({
+    title: "Jev ready check",
+    owner: "BEND DECISION",
+    x: 1144,
+    y: 350,
+    facets: (s, n) => [
+      facet(
+        "unstarted requests",
+        s.dispatch.requests.filter((x) => !x.started).map((x) => recordLabel("request", x.request, n))
+      )
+    ]
+  }),
+  effect: square({
+    title: "Jev request attempt",
+    owner: "NATIVE FACT",
+    x: 866,
+    y: 350,
+    facets: (s, n) => [
+      facet(
+        "started requests",
+        s.dispatch.requests.filter((x) => x.started).map((x) => recordLabel("request", x.request, n))
+      )
+    ]
+  }),
+  jev: square({
+    title: "Awaiting Jev result",
+    owner: "BEND STATE",
+    x: 588,
+    y: 350,
+    facets: (s, n) => [
+      facet("at Jev work", work(s, "atJev", n)),
+      facet(
+        "request permits",
+        s.dispatch.requests.map((x) => recordLabel("request", x.request, n))
+      )
+    ]
+  }),
+  outcomes: square({
+    title: "Review outcomes",
+    owner: "BEND DECISION",
+    x: 310,
+    y: 350,
     facets: (s, n) => {
-      const waiting = findingLineage(s).filter((item) => !item.ready && item.unfinished.length > 0);
-      const first = waiting[0];
-      const compact = (id: number) => recordLabel("review", id, n).split("/")[0].replace("Review item", "Review");
-      const blocker = first?.unfinished[0];
-      const sample = first === undefined || blocker === undefined ? undefined
-        : `${waiting.length} waiting · ${compact(first.operation)}→${blocker.kind === "reviewing" || blocker.kind === "atJev" ? compact(blocker.operation).replace("Review ", "") : workLabel(blocker, n).split("/")[0]}${waiting.length > 1 ? ` +${waiting.length - 1}` : ""}`;
-      return [facet("finding work", work(s, "pendingFinding", n)),
-        facet("findings waiting for work", waiting
-          .map((item) => `${recordLabel("review", item.operation, n)} from edit observation #${item.observation} waits for ${item.unfinished.map((other) => workLabel(other, n)).join(", ")}`), sample),
-        facet("pending findings", s.pendingFindings.map((x) => `Review #${x.operation}:${x.count}`))];
-    } }),
-  advice: square({ title: "Ready advice", owner: "BEND STATE", x: 32, y: 350,
+      const waiting = findingLineage(s).filter((item) => !item.ready && item.unfinished.length > 0)
+      const first = waiting[0]
+      const compact = (id: number) => recordLabel("review", id, n).split("/")[0].replace("Review item", "Review")
+      const blocker = first?.unfinished[0]
+      const sample =
+        first === undefined || blocker === undefined
+          ? undefined
+          : `${waiting.length} waiting · ${compact(first.operation)}→${blocker.kind === "reviewing" || blocker.kind === "atJev" ? compact(blocker.operation).replace("Review ", "") : workLabel(blocker, n).split("/")[0]}${waiting.length > 1 ? ` +${waiting.length - 1}` : ""}`
+      return [
+        facet("finding work", work(s, "pendingFinding", n)),
+        facet(
+          "findings waiting for work",
+          waiting.map(
+            (item) =>
+              `${recordLabel("review", item.operation, n)} from edit observation #${item.observation} waits for ${item.unfinished.map((other) => workLabel(other, n)).join(", ")}`
+          ),
+          sample
+        ),
+        facet(
+          "pending findings",
+          s.pendingFindings.map((x) => `Review #${x.operation}:${x.count}`)
+        )
+      ]
+    }
+  }),
+  advice: square({
+    title: "Ready advice",
+    owner: "BEND STATE",
+    x: 32,
+    y: 350,
     facets: (s, n) => {
-      const submitted = new Set(s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map((x) => x.advice));
-      const origin = new Map(findingLineage(s).map((item) => [item.operation, item.observation]));
-      const advice = (id: number) => `${recordLabel("advice", id, n)}${origin.has(id) ? ` from ${recordLabel("review", id, n)} · edit observation #${origin.get(id)}` : ""}`;
-      return [facet("awaiting delivery", s.collection.ready.filter((id) => !submitted.has(id)).map(advice)), facet("retained submitted", s.collection.ready.filter((id) => submitted.has(id)).map(advice)), facet("leases", s.collection.leases.map((x) => recordLabel("advice", x.advice, n)))];
-    } }),
-  collection: square({ title: "Advice collection", owner: "BEND DECISION", x: 32, y: 592,
-    facets: (s, n) => [facet("waiting rounds", ids(s.rounds.filter((x) => x.waiting).map((x) => x.id), "Round")), facet("leases", s.collection.leases.map((x) => recordLabel("advice", x.advice, n))), facet("background claims", ids(s.collection.claims.map((x) => x.group), "Claim group"))] }),
-  delivery: square({ title: "Host output", owner: "BEND + NATIVE EFFECT", x: 310, y: 592,
+      const submitted = new Set(
+        s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map((x) => x.advice)
+      )
+      const origin = new Map(findingLineage(s).map((item) => [item.operation, item.observation]))
+      const advice = (id: number) =>
+        `${recordLabel("advice", id, n)}${origin.has(id) ? ` from ${recordLabel("review", id, n)} · edit observation #${origin.get(id)}` : ""}`
+      return [
+        facet("awaiting delivery", s.collection.ready.filter((id) => !submitted.has(id)).map(advice)),
+        facet("retained submitted", s.collection.ready.filter((id) => submitted.has(id)).map(advice)),
+        facet(
+          "leases",
+          s.collection.leases.map((x) => recordLabel("advice", x.advice, n))
+        )
+      ]
+    }
+  }),
+  collection: square({
+    title: "Advice collection",
+    owner: "BEND DECISION",
+    x: 32,
+    y: 592,
+    facets: (s, n) => [
+      facet(
+        "waiting rounds",
+        ids(
+          s.rounds.filter((x) => x.waiting).map((x) => x.id),
+          "Round"
+        )
+      ),
+      facet(
+        "leases",
+        s.collection.leases.map((x) => recordLabel("advice", x.advice, n))
+      ),
+      facet(
+        "background claims",
+        ids(
+          s.collection.claims.map((x) => x.group),
+          "Claim group"
+        )
+      )
+    ]
+  }),
+  delivery: square({
+    title: "Host output",
+    owner: "BEND + NATIVE EFFECT",
+    x: 310,
+    y: 592,
     facets: (s, n) => {
       const batch = (x: CanonicalProjection["delivery"]["submissions"]["batches"][number]) =>
-        `${recordLabel("advice", x.advice, n).split("/")[0]}:${x.phase}/operation ${x.advice}:${x.surface}`;
-      const pending = s.delivery.submissions.batches.filter((x) => x.phase === "reserved" || x.phase === "authorized")
-        .sort((left, right) => (n?.advice.get(left.advice) ?? left.advice) - (n?.advice.get(right.advice) ?? right.advice));
-      const shortBatch = (x: typeof pending[number]) => `#${n?.advice.get(x.advice) ?? x.advice}:${x.phase}`;
-      const visible = pending.slice(0, 2).map(shortBatch).join(", ");
-      const pendingSample = pending.length === 0 ? undefined
-        : `${pending.length} ${pending.length === 1 ? "record" : "records"} · ${visible}${pending.length > 2 ? ` +${pending.length - 2}` : ""}`;
-      return [facet("Stop output slots", s.delivery.slots.map((x) => `Stop output for advicee #${x.group}:${x.phase}`)),
+        `${recordLabel("advice", x.advice, n).split("/")[0]}:${x.phase}/operation ${x.advice}:${x.surface}`
+      const pending = s.delivery.submissions.batches
+        .filter((x) => x.phase === "reserved" || x.phase === "authorized")
+        .sort(
+          (left, right) => (n?.advice.get(left.advice) ?? left.advice) - (n?.advice.get(right.advice) ?? right.advice)
+        )
+      const shortBatch = (x: (typeof pending)[number]) => `#${n?.advice.get(x.advice) ?? x.advice}:${x.phase}`
+      const visible = pending.slice(0, 2).map(shortBatch).join(", ")
+      const pendingSample =
+        pending.length === 0
+          ? undefined
+          : `${pending.length} ${pending.length === 1 ? "record" : "records"} · ${visible}${pending.length > 2 ? ` +${pending.length - 2}` : ""}`
+      return [
+        facet(
+          "Stop output slots",
+          s.delivery.slots.map((x) => `Stop output for advicee #${x.group}:${x.phase}`)
+        ),
         facet("advice records awaiting output", pending.map(batch), pendingSample),
-        facet("submitted advice records", s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map(batch)),
-        facet("uncertain advice records", s.delivery.submissions.batches.filter((x) => x.phase === "uncertain").map(batch))];
-    } }),
-  round: square({ title: "Round state", owner: "BEND STATE", x: 588, y: 592,
-    facets: (s) => [facet("active rounds", ids(s.rounds.map((x) => x.id), "Round")), facet("uncertain rounds", ids(s.rounds.filter((x) => x.uncertain).map((x) => x.id), "Round"))] }),
-};
-export const PLACE_ORDER = FLOW_STAGES;
-
+        facet(
+          "submitted advice records",
+          s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map(batch)
+        ),
+        facet(
+          "uncertain advice records",
+          s.delivery.submissions.batches.filter((x) => x.phase === "uncertain").map(batch)
+        )
+      ]
+    }
+  }),
+  round: square({
+    title: "Round state",
+    owner: "BEND STATE",
+    x: 588,
+    y: 592,
+    facets: (s) => [
+      facet(
+        "active rounds",
+        ids(
+          s.rounds.map((x) => x.id),
+          "Round"
+        )
+      ),
+      facet(
+        "uncertain rounds",
+        ids(
+          s.rounds.filter((x) => x.uncertain).map((x) => x.id),
+          "Round"
+        )
+      )
+    ]
+  })
+}
+export const PLACE_ORDER = FLOW_STAGES
 
 /** Fixed edges describe possible presentation connections; they make no reducer decisions. */
 export const CONNECTIONS = [
@@ -121,5 +355,5 @@ export const CONNECTIONS = [
   { from: "collection", to: "delivery", label: "output authorized" },
   { from: "delivery", to: "delivery", label: "delivery phase recorded" },
   { from: "delivery", to: "round", label: "output fact changes round" },
-  { from: "round", to: "round", label: "round retirement and release" },
-] as const satisfies readonly Readonly<{ from: Place; to: Place; label: string; relation?: "linked record" }>[];
+  { from: "round", to: "round", label: "round retirement and release" }
+] as const satisfies readonly Readonly<{ from: Place; to: Place; label: string; relation?: "linked record" }>[]

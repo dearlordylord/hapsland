@@ -1,0 +1,34 @@
+{
+  "oxc": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120,
+    "semicolons": "asNeeded",
+    "quoteStyle": "double",
+    "trailingCommas": "none",
+    "expand": "never"
+  },
+  "includes": [
+    "*.config.{js,mjs,cjs,ts,mts,cts,tsx}",
+    "src/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
+    "packages/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
+    "scripts/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
+    "test/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"
+  ],
+  "excludes": [
+    "**/node_modules",
+    "**/dist",
+    "**/coverage",
+    "**/prototypes",
+    "**/test/fixtures",
+    "**/*.generated.*",
+    "packages/monkey-business-bend/engine.mjs",
+    "**/vendor/**",
+    "**/fixtures/**",
+    "packages/monkey-business/src/preparation.ts",
+    "packages/monkey-business/src/file-trees.ts"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/oxc-0.32.0.wasm"
+  ]
+}

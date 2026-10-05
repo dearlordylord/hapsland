@@ -2,7 +2,7 @@
 import Base
 import ./RoadModel.bend as M
 import ./RoadGame.bend as G
-import ../../packages/session-bend/Session.bend as Session
+import ../../packages/monkey-business-bend/Session.bend as Session
 
 type State is Data:
   Schedule{enabled: Bool, pending: Bool, left: U32, live: Bool, task: Nat, session: Session.State}

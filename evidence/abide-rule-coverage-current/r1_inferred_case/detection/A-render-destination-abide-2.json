@@ -1,0 +1,64 @@
+{
+  "stage": "A",
+  "caseId": "render-destination",
+  "candidate": "abide",
+  "pass": 2,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": 0,
+    "hookExit": 0,
+    "finding": false
+  },
+  "requests": [
+    {
+      "id": "a66e8b94-610a-42f6-9fd4-f79bee5d6eac",
+      "at": 1790982788280,
+      "candidate": "abide",
+      "caseId": "render-destination",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 2,
+      "kind": "request",
+      "bytes": 2172,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r1-inferred-case"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "a66e8b94-610a-42f6-9fd4-f79bee5d6eac",
+      "at": 1790982788280,
+      "candidate": "abide",
+      "caseId": "render-destination",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 2,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 168,
+      "answers": {
+        "r1_inferred_case": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 744,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

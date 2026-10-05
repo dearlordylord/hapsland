@@ -22,8 +22,11 @@ current client work, restart the client, and complete its native trust prompts.
 The default registration is user-wide: [file settings](configuration.md) control
 which repositories and files can be reviewed.
 
-For a fresh checkout build, use `npm run dev-install -- --host=claude`; add
-`--update` when this profile already has Hapsland. See the
+For a fixed checkout snapshot, use
+`mise exec bun@1.3.14 -- npm run dev-install -- --host=claude`.
+Rerun the same command after source changes: it rebuilds and activates the new
+snapshot through guided setup. `--update` optionally selects the dedicated
+update flow; it is not required for repeated installation. See the
 [personal development workflow](installation-workflows.md#personal-development-on-your-own-clients).
 
 Update this integration separately:
@@ -59,7 +62,7 @@ checks or acts on every registered Claude/Codex profile; setup opens the selecto
 For supported source languages and limitations, see the
 [supported-language table](../README.md#supported-languages).
 
-This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and bounded stale, failure, and restart fixtures. The bounded [#136 native evidence](issue-136-native-evidence.md) later observed live Jev findings through Stop and a model-originated repair, without a final acknowledgment token. These selected runs do not establish interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](../evidence/host-94/decision-and-evidence.md).
+This adapter targets the exact Claude Code `2.1.218` profile. Selected headless native `Edit|Write` trials with a controlled local backend passed an opted-in block-and-repair fixture and bounded stale, failure, and restart fixtures. The bounded [#136 native evidence](../evidence/native-136/index.json) later observed live Jev findings through Stop and a model-originated repair, without a final acknowledgment token. These selected runs do not establish interactive compatibility, a reaction rate, or general Claude Code support. Installation alone does not establish host compatibility or advice reaction; see the [#94 scope decision package](../evidence/host-94/decision-and-evidence.md).
 
 The versioned JSON operations use `host: "claude"`, `claudeHome` (default `~/.claude`), and optionally `claudeExecutable` (default `claude`). Preview is read-only and returns `proposal.digest`. Apply that digest to install or update. The first uninstall call is also a preview; pass its digest to remove the owned entry.
 
@@ -72,7 +75,7 @@ printf '%s\n' '{"version":1,"operation":"uninstall","host":"claude"}' | hapsland
 printf '%s\n' '{"version":1,"operation":"uninstall","host":"claude","proposalDigest":"<digest>"}' | hapsland --uninstall
 ```
 
-The installer checks the selected executable's exact host version, Node `v24.20.0`, and the packaged CLI entrypoint. It installs a synchronous `PreToolUse` permit command, one marked `PostToolUse` `Edit|Write` group containing one synchronous command, and prompt, Stop, and SubagentStop commands. Those commands share the resident's admission, advice, lease, and round state. The synchronous edit command may return current advice within its hook budget; Stop may offer it later as a safety net. Claude has no asynchronous PostToolUse collector, so background output cannot consume advice before Stop. The installer records owned fingerprints under `~/.claude/.realtime-review-tool/`. Existing settings and unrelated hooks remain in order. Inspection reports missing, duplicated, or modified owned entries as a damaged integration. Update/repair can restore missing entries; explicit reinstall replaces modified or duplicate marked handlers. Removal tolerates missing entries and preserves unrelated hooks. A digest mismatch requires a fresh preview.
+The installer checks the selected executable's exact host version and the packaged standalone CLI's Bun `1.3.14` runtime identity. It installs a synchronous `PreToolUse` permit command, one marked `PostToolUse` `Edit|Write` group containing one synchronous command, and prompt, Stop, and SubagentStop commands. Those commands share the resident's admission, advice, lease, and round state. The synchronous edit command may return current advice within its hook budget; Stop may offer it later as a safety net. Claude has no asynchronous PostToolUse collector, so background output cannot consume advice before Stop. The installer records owned fingerprints under `~/.claude/.hapsland/`. Existing settings and unrelated hooks remain in order. Inspection reports missing, duplicated, or modified owned entries as a damaged integration. Update/repair can restore missing entries; explicit reinstall replaces modified or duplicate marked handlers. Removal tolerates missing entries and preserves unrelated hooks. A digest mismatch requires a fresh preview.
 
 The edit hook has a five-second host timeout; the handler's resident collection bound remains approximately 3.9 seconds. A finite deadline does not guarantee a review result. The preview discloses all events, matchers, foreground/background commands, timeouts and configuration files. Claude Code owns workspace trust and native hook approval. With Jev credentials available, effective file settings select otherwise eligible files by default. User exclusions can turn review off. The installer does not change native trust or file settings. `doctor` is read-only and reports native trust, file settings, and credential accessibility. Headless Claude Code trust behavior can differ from interactive use.
 

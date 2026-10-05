@@ -1,0 +1,54 @@
+{
+  "sourceClass": "RUN",
+  "verificationState": "RUNTIME-TESTED",
+  "checks": [
+    {
+      "label": "audit-and-trim-\" hello \"",
+      "expected": {
+        "returned": "hello",
+        "entries": [
+          " hello "
+        ]
+      },
+      "actual": {
+        "returned": "hello",
+        "entries": [
+          " hello "
+        ]
+      },
+      "passed": true
+    },
+    {
+      "label": "audit-and-trim-\"   \"",
+      "expected": {
+        "returned": "",
+        "entries": [
+          "   "
+        ]
+      },
+      "actual": {
+        "returned": "",
+        "entries": [
+          "   "
+        ]
+      },
+      "passed": true
+    },
+    {
+      "label": "audit-and-trim-\"\"",
+      "expected": {
+        "returned": "",
+        "entries": [
+          ""
+        ]
+      },
+      "actual": {
+        "returned": "",
+        "entries": [
+          ""
+        ]
+      },
+      "passed": true
+    }
+  ]
+}

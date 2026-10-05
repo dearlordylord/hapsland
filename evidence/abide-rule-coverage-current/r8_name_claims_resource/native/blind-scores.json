@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "blinded": true,
+  "scorerDigest": "810c6e87536e324a0a35a2f42959762c9ce718ebb5f2ef4a19d691ae39053990",
+  "fixtureDigest": "829d471819121b812ac298c73482a5d941d6227ed274b564b2a24c82b82a1ac0",
+  "typescriptVersion": "5.9.3",
+  "scores": [
+    {
+      "blindId": "0e539062aef2",
+      "caseId": "publish-bulletin",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "1a46fdd22abd969c1dc9fae3b9d8745610555e885dea5730ed83c9d4d90d23ab",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "2eac6d63dad9",
+      "caseId": "load-preview",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "733a1615d88a13d96ff62d5519147067cfd4bbe0154a065b8df30192f037a712",
+      "supportingDigest": "d00378c75183a0b4f23f2fdacbae4ace0c6aaa1ffd4c3fd64182b1f4c35c34c8",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "3087730b50c9",
+      "caseId": "load-preview",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "1fde94ba24f1704792c5413c25c689881390e37a336fe8f72718310f17b43b2c",
+      "supportingDigest": "d00378c75183a0b4f23f2fdacbae4ace0c6aaa1ffd4c3fd64182b1f4c35c34c8",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "3ad513f3d2a1",
+      "caseId": "publish-bulletin",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "19a372877a1bdb06ec931f8b48d167b72aa508c58d1fc52a75b9533979b77a76",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "4c24ac7dd98b",
+      "caseId": "clean-explicit-channel",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "618ccf5f1b1c9f2e008eb30df6c6f5dfd349f0d2f8513304bfa72580c8eb0654",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": false,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "94882be801d1",
+      "caseId": "load-preview",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "1fde94ba24f1704792c5413c25c689881390e37a336fe8f72718310f17b43b2c",
+      "supportingDigest": "d00378c75183a0b4f23f2fdacbae4ace0c6aaa1ffd4c3fd64182b1f4c35c34c8",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "958f5637f2ed",
+      "caseId": "clean-explicit-channel",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "618ccf5f1b1c9f2e008eb30df6c6f5dfd349f0d2f8513304bfa72580c8eb0654",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": false,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "a077ba850a2c",
+      "caseId": "publish-bulletin",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "1a46fdd22abd969c1dc9fae3b9d8745610555e885dea5730ed83c9d4d90d23ab",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "e3fe0ebaae67",
+      "caseId": "clean-explicit-channel",
+      "ruleId": "r8_name_claims_resource",
+      "sourceDigest": "618ccf5f1b1c9f2e008eb30df6c6f5dfd349f0d2f8513304bfa72580c8eb0654",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": false,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    }
+  ]
+}

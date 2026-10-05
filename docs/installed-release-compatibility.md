@@ -1,5 +1,43 @@
 # Installed release compatibility
 
+The current distribution contains Bun 1.3.14 standalone commands for CLI, parser,
+resident, and package doctor. The declared Linux/macOS arm64 build artifacts are
+separate from actual installed execution evidence. The historical Node records below
+do not validate the Bun distribution. Current validation runs and the installed
+hook-startup comparison are selected through the [testing matrix](testing-matrix.md).
+
+The [first standalone comparison](../evidence/package/hook-startup-comparison-01-linux-arm64.json)
+retains failed registrations caused by Bun's process-relative `hrtime` coordinate.
+The [corrected comparison](../evidence/package/hook-startup-comparison-02-linux-arm64.json)
+uses an explicit OS-monotonic clock adapter and retains all 54 successful registrations.
+On Linux arm64, fifteen round-robin registrations per client against one ready
+Bun resident observed median wall times of 506 ms for the original Node package,
+446 ms for the lighter Node package, and 521 ms for Bun. These samples establish
+no Bun startup improvement. Each variant also registered on all three separately
+started cold residents. This small uninstrumented sample has uncontrolled scheduling
+and OS file cache; it is not a user latency guarantee or an installed edit/advice gate.
+The lighter Node archive precedes further Effect CLI subpath cuts and the clock
+adapter in the Bun candidate; differences cannot be attributed solely to the engine.
+
+The [final import-cut comparison](../evidence/package/hook-startup-comparison-03-linux-arm64.json)
+uses the same [production TypeScript snapshot](../evidence/package/hook-startup-production-source-snapshot.json)
+for the optimized Node comparator and Bun candidate. The Node comparator exists
+only as an experimental archive assembled with the baseline Node packaging;
+there is no parallel installed Node distribution in the current product branch.
+All fifteen ready-resident registrations and all three cold-resident
+registrations per variant succeeded. Observed ready-resident medians were
+1044 ms (baseline Node), 627 ms (optimized Node), and 309 ms (Bun).
+The earlier and final runs have different uncontrolled scheduling/cache conditions;
+compare variants within a run, not absolute times across runs. These samples
+show an improvement for the measured Bun candidate, before subsequent IPC and
+installation fixes. They do not measure the final package bytes or establish
+100 ms startup, a population percentile, or installed review/advice compatibility.
+
+The standalone candidate currently packs both platform groups and four commands
+per platform: approximately 268 MB compressed and 737 MB unpacked. Each command
+includes Bun. These are candidate archive sizes, not reviewed release pins.
+
+
 Codex background and bounded finish delivery, and Claude synchronous edit delivery
 with bounded Stop fallback, are **not part of the pinned release support declaration below**. The
 [Advicing target contract](advicing-target-contract.md) states accepted behavior;
@@ -68,3 +106,9 @@ the machine manifest and may not be removed to obtain a passing declaration.
 This declaration covers Codex only. It makes no runtime support claim for other agent hosts and no
 public distribution or registry claim. Updating a version, platform, artifact, or evidence record
 requires a new exact cell and checksum rather than inference from an adjacent tested profile.
+
+## Pi installed native observation
+
+Pi 1.0.0 on Linux arm64 is a separate current observed profile, documented in the [Pi guide](pi-installation.md) and [testing matrix](testing-matrix.md). Its installed native runner production-installs the current locally packed package and records each attempt independently. It does not amend the checksum-bound historical Codex release cells above. The [current installed TypeScript observation](../evidence/native-languages/pi-typescript-adoption-controlled-offline-1791013892029.json) separately demonstrates installed setup/doctor ownership, pre-edit permit registration, exact edit attribution, semantic cross-file review, submitted native advice, advice in a provider request, an observed repair, and its correlated clear follow-up. Its package checksum and clean source commit `64987460267792d48dd4a8679f6bbfad8b2b65ac` scope that observation; it uses authenticated gpt-6-luna in isolated print/JSON mode with zero Jev requests. Registration and offline doctor ownership readiness alone establish neither native review submission nor model-visible advice or repair. Registry publication, macOS Pi support, arbitrary Pi versions, and interactive native trust remain outside this observed declaration.
+
+The final four Pi observations share production runtime asset SHA-256 `320cc9812f023ae72b5929c67700b2ada2826f54fb3ed4b773933c2ec3099117` across 168 compiled JavaScript, native, schema, and launcher assets. All four observed artifacts share tarball SHA-256 `efa7a522c0293a932b5e5d541b9fddb0a559e3c70b36725b33fab61487384b8f`; each record retains its own checksum. Later evidence-index and documentation updates change package bytes, while the checked production runtime inventory remains identical. The observed Pi host uses Node 24.18.0 and its installed Hapsland command uses the verified Node 24.20.0 runtime. These are separate runtime facts.

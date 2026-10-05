@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "frozenAt": "2026-10-02T22:28:46.834Z",
+  "scoreDigests": {
+    "repeat-1": "814a74a96627d46121fc7b8e7126b9f4eb6308953a303ec2b1a0e5063d5a814c",
+    "repeat-2": "84f82b039e898c44144ed4510b4c9a01ab81fe7b4f0b5bf018ba86d4e8014910",
+    "repeat-3": "6ce0ee4aceb5e91686ea31a576d2767764252df0b423381cbefc1ec5de25b15a"
+  },
+  "controlAdjudicationSha256": "2772ad21c17f5ee8647bd7d829212747332369275bfc2229c60167699641ffc4",
+  "ordering": "All 54 anonymous artifact scores existed and were hashed before this arm join."
+}

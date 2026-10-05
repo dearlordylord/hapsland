@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "attachment-manifest-large-adjacent-defect",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "cf1c9e2383b802f8c7fb96d2a93df40364aef3c76587bd56c175b0ed2c7b1c20",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r4_duplicate_encoding"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r4_duplicate_encoding"
+        ],
+        "findingIds": [
+          "r4_duplicate_encoding"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "c2c172d8-a590-42fa-8bd7-2fae006d1177",
+      "at": 1790989778847,
+      "candidate": "hapsland",
+      "caseId": "attachment-manifest-large-adjacent-defect",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 2110,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r4_duplicate_encoding"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "c2c172d8-a590-42fa-8bd7-2fae006d1177",
+      "at": 1790989778847,
+      "candidate": "hapsland",
+      "caseId": "attachment-manifest-large-adjacent-defect",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 165,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 925,
+        "output_tokens": 23
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

@@ -1,6 +1,8 @@
 node_modules
 .env
+.env.local
 coverage
+crap-report.json
 dist
 *.tsbuildinfo
 .cleanup/
@@ -8,3 +10,7 @@ dist
 
 .tools/bend/
 .tools/lean/
+
+.test-runs/
+
+.husky/_/

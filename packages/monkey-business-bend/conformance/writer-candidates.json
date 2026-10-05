@@ -1,0 +1,9 @@
+{
+ "imports": ["../WriterScenario.bend as W", "../CollectionScenario.bend as R", "../../agent-flow-bend/Canonical.bend as C"],
+ "instances": [
+  {"name":"original_clock_before","claim":"{W.expire_capture(Some{W.Capture{W.Target{1n,3n,5n,7n},17n,10n,2n,41n,R.Response{1n,3n,5n,17n,40n,False{}}}},26n) == [C.CollectionExpireBackground{1n,7n,9n,10n}] : List<&2,C.CanonicalEvent>}"},
+  {"name":"original_clock_equality","claim":"{W.expire_capture(Some{W.Capture{W.Target{1n,3n,5n,7n},17n,10n,2n,41n,R.Response{1n,3n,5n,17n,40n,False{}}}},27n) == [C.CollectionExpireBackground{1n,7n,10n,10n}] : List<&2,C.CanonicalEvent>}"},
+  {"name":"original_clock_after","claim":"{W.expire_capture(Some{W.Capture{W.Target{1n,3n,5n,7n},17n,10n,2n,41n,R.Response{1n,3n,5n,17n,40n,False{}}}},28n) == [C.CollectionExpireBackground{1n,7n,11n,10n}] : List<&2,C.CanonicalEvent>}"},
+  {"name":"unknown_release_no_fact","claim":"{W.release(W.State{[],[]},W.Target{1n,3n,5n,7n}) == [] : List<&2,C.CanonicalEvent>}"}
+ ]
+}

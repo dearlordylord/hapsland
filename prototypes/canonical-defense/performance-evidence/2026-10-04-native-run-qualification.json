@@ -1,0 +1,67 @@
+{
+  "sourceCommit": "8f68a216ef0c28bd599ffcdfd946e6a3a32cedd3",
+  "implementationCommit": "7c67e28b01b38893dcc56d390580e7ab3dee6ce8",
+  "testRun": {
+    "id": "20261004224605478-1821000-62db02",
+    "command": "npm run test:focused -- packages/monkey-business/src/native-run-conformance.test.ts --timeout-ms=300000",
+    "state": "passed",
+    "testFile": "packages/monkey-business/src/native-run-conformance.test.ts",
+    "testFilesPassed": 1,
+    "testFilesTotal": 1,
+    "testsPassed": 7,
+    "testsTotal": 7,
+    "failedTests": 0,
+    "elapsedMs": 56760,
+    "vitestElapsedMs": 56689,
+    "beforeAllElapsedMs": 53848,
+    "startedAt": "2026-10-04T22:46:05.482Z",
+    "finishedAt": "2026-10-04T22:47:02.242Z"
+  },
+  "sourceHashes": {
+    "fixturePath": "packages/monkey-business-bend/conformance/native-run-original-scenarios.bend",
+    "fixtureSha256": "ba4869f042d3e825a549a5e8c971d321df99e9c50c57efa032d94d6cf02ed3c1",
+    "fixtureGraphSha256": "6bcc9789aafea560b75c3e90c1a4eab7cc3352fe118a7695bdf23f0d59c51ea9",
+    "implementationFiles": [
+      {
+        "path": "packages/monkey-business-bend/conformance/native-run-runner.mjs",
+        "sha256": "368bf0335a65d2cec021c613f2ca78d2b7272c940d61972117c71ade9a8d410d"
+      },
+      {
+        "path": "packages/monkey-business-bend/conformance/workload-native-runner.mjs",
+        "sha256": "78b0a1ad60292b5d134a2430b5fe700fb8124f78edf0baec78b6d366f706fb60"
+      }
+    ]
+  },
+  "producerReceipts": [
+    {
+      "lane": "emitted-js",
+      "receiptFile": ".test-runs/20261004224605478-1821000-62db02/workload-outputs/emitted-js-1821166-Ikv4pL/receipt.json",
+      "receiptSha256": "2a50bf7b3b67d1790e4ec8a27e23a67b0d8c9bc8fd1fc90728a4ac204fb6e260",
+      "outputBytes": 14531,
+      "outputSha256": "b016616a3d89d2aa65d1b35d24119ac9365235e3fb361d46ed1fdda7e95ea2a7",
+      "timeoutsMs": {
+        "emission": 30000,
+        "execution": 5000
+      },
+      "resumed": false
+    },
+    {
+      "lane": "fresh-native",
+      "receiptFile": ".test-runs/20261004224605478-1821000-62db02/workload-outputs/fresh-native-1821166-PtFOVc/receipt.json",
+      "receiptSha256": "048a0341012194b6edf8f7691dc67bb7ca6464a9c1053a6a838809c5bb04fa80",
+      "outputBytes": 14531,
+      "outputSha256": "b016616a3d89d2aa65d1b35d24119ac9365235e3fb361d46ed1fdda7e95ea2a7",
+      "timeoutsMs": {
+        "emission": 90000,
+        "clang": 120000,
+        "execution": 15000
+      },
+      "resumed": false
+    }
+  ],
+  "sourceIdentity": {
+    "fixtureSha256": "ba4869f042d3e825a549a5e8c971d321df99e9c50c57efa032d94d6cf02ed3c1",
+    "sourceGraphSha256": "6bcc9789aafea560b75c3e90c1a4eab7cc3352fe118a7695bdf23f0d59c51ea9",
+    "nativeEmittedOutputsMatch": true
+  }
+}

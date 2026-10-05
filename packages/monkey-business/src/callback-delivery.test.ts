@@ -1,0 +1,183 @@
+import { expect, it } from "vitest";
+import { createRun, restoreReplay, type Run, DEFAULT_FILE_TREE_PROFILE } from "./index.ts";
+import type { CallbackControl, CallbackReport, CallbackTarget } from "./callback-controls.ts";
+
+// TDD seam awaiting the integrator-owned public control/observe union. These
+// exercise actual public transitions, never mutate Canonical or its projection.
+const callbacks = (run: Run) => run.observe() as ReturnType<Run["observe"]> & {
+  readonly callbackTargets: readonly CallbackTarget[]; readonly callbackReports: readonly CallbackReport[];
+};
+const apply = (run: Run, target: CallbackTarget, action: CallbackControl["action"]) =>
+  run.applyControl({ kind: "callback", target, action });
+const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], outcome: "clear" as const };
+const reach = (run: Run, condition: () => boolean) => {
+  for (let fuel = 0; fuel < 100 && !condition(); fuel++) run.step();
+  expect(condition()).toBe(true);
+};
+const issued = (run: Run): CallbackTarget => {
+  reach(run, () => callbacks(run).callbackTargets.some(target => target.effect.kind === "jevSettled"));
+  return callbacks(run).callbackTargets.find(target => target.effect.kind === "jevSettled")!;
+};
+const replay = (run: Run) => expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
+
+it("repeats a settled original after the queue drains and reaches the Canonical stale fence", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const target = issued(run);
+  run.advance({ untilTime: 30 });
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  const settled = run.projection;
+  apply(run, target, "duplicate");
+  run.advance({ untilTime: run.now });
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied");
+  const duplicate = run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)!;
+  expect(duplicate.rejection).toBe("StaleOperation");
+  expect(duplicate.commands).toEqual([]);
+  expect(run.projection).toEqual(settled);
+  replay(run);
+});
+
+it("held physical completion survives cancellation, then releases exactly once and repeats as stale", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const target = issued(run);
+  apply(run, target, "hold");
+  run.schedule({ kind: "canonical", at: 5, event: { kind: "stopPolled", partition: target.owner.partition,
+    lifetime: target.owner.lifetime, round: target.owner.round, deadline: true } });
+  run.advance({ untilTime: 30 });
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.projection.dispatch.requests).toHaveLength(1);
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled")).toEqual([]);
+  apply(run, target, "release");
+  run.advance({ untilTime: run.now });
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)?.commands.map(command => command.kind)).toEqual(["jevObservationIgnored"]);
+  expect(run.projection.dispatch.requests).toEqual([]);
+  const released = run.projection;
+  apply(run, target, "duplicate");
+  run.advance({ untilTime: run.now });
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBe("StaleOperation");
+  expect(run.projection).toEqual(released);
+  replay(run);
+});
+
+it("refuses an invented target atomically, and dropping delivery does not fabricate settlement", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const target = issued(run);
+  const before = run.projection;
+  apply(run, { ...target, originalOrder: target.originalOrder + 1000 }, "duplicate");
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("missing");
+  expect(run.projection).toEqual(before);
+  apply(run, target, "drop");
+  run.advance({ untilTime: 30 });
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled")).toEqual([]);
+  expect(run.projection.dispatch.requests).toHaveLength(1);
+  expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
+  replay(run);
+});
+
+it("reorders the original completion ahead of a held start, exposes WrongStage, then recovers using the same receipts", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const target = issued(run);
+  const started = callbacks(run).callbackTargets.find(value => value.effect.kind === "jevStarted")!;
+  expect(started).toBeDefined();
+  apply(run, started, "hold");
+  apply(run, target, "reorder");
+  run.advance({ untilTime: run.now });
+  const early = run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)!;
+  expect(early.rejection).toBe("WrongStage");
+  expect(early.commands).toEqual([]);
+  expect(run.projection.dispatch.requests).toHaveLength(1);
+  expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
+  apply(run, started, "release");
+  run.advance({ untilTime: run.now });
+  apply(run, target, "duplicate");
+  run.advance({ untilTime: run.now });
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBeUndefined();
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.observations.filter(frame => frame.commands.some(command => command.kind === "reservationReleased"))).toHaveLength(1);
+  replay(run);
+});
+
+
+it("retires replaced queued provenance after the actual replacement settles while retaining delivered history", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const original = issued(run);
+  if (original.effect.kind !== "jevSettled") throw new Error("missing original completion");
+  const started = run.observe().callbackTargets.find(target => target.effect.kind === "jevStarted")!;
+  run.advance({ untilTime: run.now });
+  const request = { ...original.owner, request: original.effect.request };
+  run.applyControl({ kind: "jevRequest", target: request, outcome: "backendFailure" });
+  expect(run.observe().interventions.at(-1)?.result).toBe("applied");
+  // The old receipt remains while its exact physical authority is still live.
+  expect(run.observe().callbackTargets).toContainEqual(original);
+  run.advance({ untilTime: 30 });
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.observe().callbackTargets).not.toContainEqual(original);
+  expect(run.observe().callbackTargets).toContainEqual(started);
+  const replacement = run.observations.find(frame => frame.event.kind === "jevRequestSettled")!;
+  expect(replacement.callbackReceipt).toBeDefined();
+  expect(run.observe().callbackTargets).toContainEqual(replacement.callbackReceipt!.target);
+  replay(run);
+});
+
+
+it("consumes a rejected physical preparation receipt even without commands and evicts only its bounded history", () => {
+  const run = createRun({ retention: 2, preparationDelay: 2,
+    sessions: [{ agent: "departing", editIntervalMs: 1000000, variationMs: 0, editsPerTask: 1000 }],
+    fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 1, maxFiles: 1, maxImports: 0 },
+    inputs: [{ ...edit, agent: "departing", generation: 0, recurring: false }],
+  });
+  run.advance({ untilTime: 0, maxEvents: 100 });
+  const target = run.observe().callbackTargets.find(target => target.effect.kind === "preparationCompleted")!;
+  expect(target).toBeDefined();
+  run.applyControl({ kind: "adviceeLifecycle", agent: "departing", action: "disconnect" });
+  run.advance({ untilTime: 2, maxEvents: 100 });
+  const rejected = run.observations.find(frame => frame.event.kind === "preparationCompleted")!;
+  expect(rejected.rejection).toBeDefined();
+  expect(rejected.commands).toEqual([]);
+  expect(rejected.callbackReceipt?.target).toEqual(target);
+  expect(run.projection.dispatch.running).toEqual([]);
+  apply(run, target, "hold");
+  expect(run.observe().callbackReports.at(-1)?.result).toBe("missing");
+  for (const at of [3,4,5]) run.schedule({ at, kind: "canonical", event: { kind: "collectionFitCheck", items: 1, bytes: 1 } });
+  run.advance({ untilTime: 5, maxEvents: 10 });
+  expect(run.observe().callbackTargets).not.toContainEqual(target);
+  const before = run.projection;
+  apply(run, target, "duplicate");
+  expect(run.observe().callbackReports.at(-1)?.result).toBe("missing");
+  expect(run.projection).toEqual(before);
+  replay(run);
+});
+
+it.each([false, true])("applies a targeted backend override with an authentic queued copy (held original=%s)", held => {
+  const run = createRun({ inputs: [edit], jevDelay: 20 });
+  const original = issued(run);
+  if (original.effect.kind !== "jevSettled") throw new Error("missing original completion");
+  if (held) apply(run, original, "hold");
+  apply(run, original, "duplicate");
+  run.applyControl({ kind: "jevRequest", target: { ...original.owner, request: original.effect.request }, outcome: "backendFailure" });
+  expect(run.observe().interventions.at(-1)?.result).toBe("applied");
+  run.advance({ untilTime: 30, maxEvents: 100 });
+  const completed = run.observations.filter(frame => frame.event.kind === "jevRequestSettled");
+  expect(completed).toHaveLength(1);
+  expect(completed[0]!.event).toMatchObject({ ...original.owner, request: original.effect.request, outcome: "backendFailure" });
+  expect(completed[0]!.rejection).toBeUndefined();
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.dispatch.running).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.exportReplay().controls.filter(record => record.control.kind === "jevRequest")).toHaveLength(1);
+  if (held) {
+    expect(run.observe().callbackTargets).toContainEqual(original);
+    apply(run, original, "release");
+    expect(run.observe().callbackReports.at(-1)?.result).toBe("applied");
+    run.advance({ untilTime: run.now, maxEvents: 10 });
+    const late = run.observations.filter(frame => frame.event.kind === "jevRequestSettled").at(-1)!;
+    expect(late.event).toMatchObject({ ...original.owner, request: original.effect.request, outcome: "clear" });
+    expect(late.rejection).toBe("StaleOperation");
+    expect(late.commands).toEqual([]);
+  } else expect(run.observe().callbackTargets).not.toContainEqual(original);
+  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "reservationReleased")).toHaveLength(1);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  replay(run);
+});

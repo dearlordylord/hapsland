@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-02T23:13:13.579Z",
+  "mode": "live",
+  "fixturesSha256": "230d14937687a7c3a398588a425e2d3ec1b94001c55d35f6b7e16c107d2d777a",
+  "fixtureModuleSha256": "a1c23a372f5c86e0e412ad615e16e7b9c6870f6630612f67504e4ecc2b762ba2",
+  "scripts": {
+    "run-abide-quality.mjs": "594bf85071bb5f91866f680aace52ea6f4d043b5dad4eaaebfb717aaf50d4cdf",
+    "abide-quality-capture.mjs": "f5275f9d5f6dd79a102bfc5116fc738714093f9dfe9a38eca821df8eb53e4dd8",
+    "abide-quality-observer.mjs": "1a4dbf7acc4ebec90009eb63570624a1fcbe052aef9a78fc67a390e915e4ee7f"
+  },
+  "hapslandCommit": "e10eafdecdb91a6d5e53ea6eac4c395f87a2a7a1",
+  "codexVersion": "codex-cli 0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "abideVersion": "0.0.7",
+  "abideHookSha256": "77626436f4e84a18b1907181c6b970a345b86b03381a9325947dcdb00accc0b1",
+  "requestCap": 336,
+  "sharedAttemptLog": "/workspace/typescript/jev-worktrees/contextual-review-study/evidence/abide-rule-coverage-current/attempts.jsonl",
+  "stageACells": 18,
+  "stageBSessions": 0,
+  "deliveryDebug": true,
+  "debugEditDelayMs": 0,
+  "debugStopDelayMs": 0,
+  "productionAdapterSha256": "f4a0dd7e4e79bd2cecce05725797a5a0a9584f0f30dc4d007cac2907b943c9dc",
+  "feedbackReceiptProbe": true,
+  "onlyCandidate": null,
+  "selectedTaskIds": [
+    "cache-retention",
+    "document-signature",
+    "clean-cache-variant"
+  ],
+  "taskProfile": "ordinary-maintenance",
+  "sourceCheckoutHapsland": true,
+  "manuallyActiveAbideNoulRubric": true,
+  "nativeTrustBypassed": true,
+  "hostSandboxBypassed": true,
+  "automaticRetries": 0,
+  "maximumHostMs": 300000,
+  "tokenCaps": {
+    "perSession": 100000,
+    "cumulative": 1000000,
+    "observedAtCompletionOnly": true
+  },
+  "amendment": "Fixed all-remaining-Noul-rule study. Parent declaration owns the cases, expert review, independent scoring, bounded matrix and all outcomes. Same ordinary-maintenance task and instrumented receipt across products; no outcome-selected replacements or retries. Type and function roots use their declared input contracts. Model gpt-6-luna/max under Codex CLI0.155.1."
+}

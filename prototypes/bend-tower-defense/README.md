@@ -12,7 +12,7 @@ Run `./run-road.sh` for the native game. All authored mechanics, input, timing a
 
 Approach roads are finite safe space belonging to the same queue as their building. Inside enemies cause recurring pressure while waiting, processing, blocked by sibling work, or reserved for output. A full ordinary building makes newcomers wait on its road; an immediate-refusal policy records a refusal. A full downstream road retains the source reservation. Construction, placement, upgrades and pacing are player decisions. Optional auto mode starts waves only; it never constructs or upgrades towers. Tower targeting, processing, output batching and Stop progression operate automatically; there is no tower activation action.
 
-`RoadModel.bend` owns generic configuration and state. `RoadGame.bend` owns transitions and construction. `RoadScenario.bend` maps service/release rules to Capture, Review, Advice and Output. `RoadRender.bend` draws the map and semantic dashboard; `RoadMain.bend` drives native input and fixed twenty-millisecond ticks. `RoadAuto.bend` adapts the shared `../../packages/session-bend/Session.bend` task scheduler to wave starts; Monkey Business calls a JavaScript module compiled from that same source. The native window is 1024 by 768; construction retains the original map coordinates.
+`RoadModel.bend` owns generic configuration and state. `RoadGame.bend` owns transitions and construction. `RoadScenario.bend` maps service/release rules to Capture, Review, Advice and Output. `RoadRender.bend` draws the map and semantic dashboard; `RoadMain.bend` drives native input and fixed twenty-millisecond ticks. `RoadAuto.bend` adapts the shared `../../packages/monkey-business-bend/Session.bend` task scheduler to wave starts; Monkey Business calls a JavaScript module compiled from that same source. The native window is 1024 by 768; construction retains the original map coordinates.
 
 ## Play architecture tower defense
 
@@ -28,13 +28,13 @@ Six waves author 24, 30, 36, 42, 48 and 54 review-unit identities: 234 total. Gr
 
 ## Shared session scheduling and auto waves
 
-Auto mode consumes recurring task starts from `packages/session-bend/Session.bend`. Completing a wave asks the shared scheduler for its next task, using a three-second task pause. The initial activation and reactivation grace are provided by the game adapter; later intermission delays come from the shared task scheduler. A manual start consumes the pending task once. Switching auto off leaves the current wave running; switching it on provides preparation time. Victory and defeat remain terminal, and automatic scheduling never bypasses the engine’s Stop and retained-work checks.
+Auto mode consumes recurring task starts from `packages/monkey-business-bend/Session.bend`. Completing a wave asks the shared scheduler for its next task, using a three-second task pause. The initial activation and reactivation grace are provided by the game adapter; later intermission delays come from the shared task scheduler. A manual start consumes the pending task once. Switching auto off leaves the current wave running; switching it on provides preparation time. Victory and defeat remain terminal, and automatic scheduling never bypasses the engine’s Stop and retained-work checks.
 
 The reuse is executable code: the native Bend game imports `Session.bend`, while Monkey Business uses its compiler-emitted JavaScript through a thin TypeScript boundary. The shared source owns seeded timing, task/edit/finish progression, generation invalidation and repair scheduling. The game uses the task timing portion only. Its finite wave sizes, unit identities, outcomes and within-wave arrivals remain scenario mechanics; auto waves do not claim to replay Monkey Business’s complete edit/review workload or the production reducer.
 
 This is a scheduling convenience rather than an automated player. Architectural choices still come from your placements and upgrades. The auto indicator distinguishes waiting for preparation from an active wave, pause and terminal state. The teaching criterion is that automation changes when another task begins while preserving service, output ownership and Stop obligations.
 
-For a portable source bundle, retain the repository-relative layout: `prototypes/bend-tower-defense` and `packages/session-bend` must remain at those paths. From the extracted bundle root, run `./prototypes/bend-tower-defense/run-road.sh`. No Node.js runtime is needed to play the native game. Run `sha256sum -c source-sha256.txt` from this game directory to verify packaged source; macOS provides `shasum -a 256 -c source-sha256.txt`.
+For a portable source bundle, retain the repository-relative layout: `prototypes/bend-tower-defense` and `packages/monkey-business-bend` must remain at those paths. From the extracted bundle root, run `./prototypes/bend-tower-defense/run-road.sh`. No Node.js runtime is needed to play the native game. Run `sha256sum -c source-sha256.txt` from this game directory to verify packaged source; macOS provides `shasum -a 256 -c source-sha256.txt`.
 
 ## Placement stat previews
 
@@ -146,7 +146,7 @@ bend RoadAutoHeadless.bend -o /tmp/hapsland-auto-checks
 /tmp/hapsland-auto-checks --threads 4
 ```
 
-The portable bundle runs the native game. Monkey Business tests additionally require the full Hapsland checkout and its existing dependencies. From that checkout, run `npm test --prefix packages/monkey-business` and `node packages/session-bend/build.mjs --check`.
+The portable bundle runs the native game. Monkey Business tests additionally require the full Hapsland checkout and its existing dependencies. From that checkout, run `npm test --prefix packages/monkey-business` and `node packages/monkey-business-bend/build-session.mjs --check`.
 
 ## Current tower validation
 

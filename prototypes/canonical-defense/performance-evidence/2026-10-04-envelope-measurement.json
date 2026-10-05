@@ -1,0 +1,2507 @@
+{
+  "input_dir": "/tmp/hapsland-e2-comparison/baseline",
+  "codec_path": "/workspace/typescript/jev-worktrees/monkey-bool-pick-experiment/prototypes/canonical-defense/DefenseConsumerCodec.bend",
+  "codec_sha256": "de673242ee1fda33de5e85db6e176d6b138147615a095496c452ee5590fd63a5",
+  "measurement": "exact typed word spans and compact-JSON byte contributions; baseline retained prefix only",
+  "files": [
+    {
+      "name": "batch-000.json",
+      "sha256": "ec19f958aca90c6119c8317c388cd19b66f5d55d5bdd38393376ab86f131f98e",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 6777,
+      "words": 2697,
+      "whole_seconds": 0.032782,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 4,
+          "comma_bytes": 2,
+          "json_bytes": 6
+        },
+        "before": {
+          "start": 168,
+          "end": 426,
+          "words": 258,
+          "digit_bytes": 381,
+          "comma_bytes": 258,
+          "json_bytes": 639
+        },
+        "after": {
+          "start": 426,
+          "end": 704,
+          "words": 278,
+          "digit_bytes": 405,
+          "comma_bytes": 278,
+          "json_bytes": 683
+        },
+        "offset": {
+          "start": 704,
+          "end": 705,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 705,
+          "end": 706,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 706,
+          "end": 707,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 707,
+          "end": 2697,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-001.json",
+      "sha256": "87a0bcb4d613fca62b03341989b9a2cf73cfae2bf392dac0081557c0a4578da5",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 1214991,
+      "words": 485372,
+      "whole_seconds": 6.453703,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 4,
+          "comma_bytes": 2,
+          "json_bytes": 6
+        },
+        "before": {
+          "start": 168,
+          "end": 446,
+          "words": 278,
+          "digit_bytes": 405,
+          "comma_bytes": 278,
+          "json_bytes": 683
+        },
+        "after": {
+          "start": 446,
+          "end": 8363,
+          "words": 7917,
+          "digit_bytes": 11834,
+          "comma_bytes": 7917,
+          "json_bytes": 19751
+        },
+        "offset": {
+          "start": 8363,
+          "end": 8364,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 8364,
+          "end": 483381,
+          "words": 475017,
+          "digit_bytes": 714087,
+          "comma_bytes": 475017,
+          "json_bytes": 1189104
+        },
+        "checkpoint_end": {
+          "start": 483381,
+          "end": 483382,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 483382,
+          "end": 485372,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-002.json",
+      "sha256": "cf7e4baf67878c93061358c096164b5db5c9ab690f1522d5001f8401689cd901",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 1090715,
+      "words": 435160,
+      "whole_seconds": 6.843935,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 4,
+          "comma_bytes": 2,
+          "json_bytes": 6
+        },
+        "before": {
+          "start": 168,
+          "end": 446,
+          "words": 278,
+          "digit_bytes": 405,
+          "comma_bytes": 278,
+          "json_bytes": 683
+        },
+        "after": {
+          "start": 446,
+          "end": 8363,
+          "words": 7917,
+          "digit_bytes": 11834,
+          "comma_bytes": 7917,
+          "json_bytes": 19751
+        },
+        "offset": {
+          "start": 8363,
+          "end": 8364,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "ticks": {
+          "start": 8364,
+          "end": 433169,
+          "words": 424805,
+          "digit_bytes": 640022,
+          "comma_bytes": 424805,
+          "json_bytes": 1064827
+        },
+        "checkpoint_end": {
+          "start": 433169,
+          "end": 433170,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 433170,
+          "end": 435160,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-003.json",
+      "sha256": "d0ec6bae67d57d8612293673048cef2d3b9053e9a4b6016b4d7dd1af00bf244f",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 44956,
+      "words": 17995,
+      "whole_seconds": 0.178252,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8085,
+          "words": 7917,
+          "digit_bytes": 11834,
+          "comma_bytes": 7917,
+          "json_bytes": 19751
+        },
+        "after": {
+          "start": 8085,
+          "end": 16002,
+          "words": 7917,
+          "digit_bytes": 11834,
+          "comma_bytes": 7917,
+          "json_bytes": 19751
+        },
+        "offset": {
+          "start": 16002,
+          "end": 16003,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16003,
+          "end": 16004,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16004,
+          "end": 16005,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16005,
+          "end": 17995,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-004.json",
+      "sha256": "e6d587e6fd83dba688e72cb478bdf1e3e05311c9598696947ea354cbb376c5b4",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 436695,
+      "words": 174965,
+      "whole_seconds": 1.93783,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8085,
+          "words": 7917,
+          "digit_bytes": 11834,
+          "comma_bytes": 7917,
+          "json_bytes": 19751
+        },
+        "after": {
+          "start": 8085,
+          "end": 15982,
+          "words": 7897,
+          "digit_bytes": 11804,
+          "comma_bytes": 7897,
+          "json_bytes": 19701
+        },
+        "offset": {
+          "start": 15982,
+          "end": 15983,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 15983,
+          "end": 172974,
+          "words": 156991,
+          "digit_bytes": 234800,
+          "comma_bytes": 156991,
+          "json_bytes": 391791
+        },
+        "checkpoint_end": {
+          "start": 172974,
+          "end": 172975,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 172975,
+          "end": 174965,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-005.json",
+      "sha256": "acdadbcbf370d2b320297a813a96c4991548dd6760cb1d79e547b0a7ed984e51",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 44908,
+      "words": 17975,
+      "whole_seconds": 0.157827,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8065,
+          "words": 7897,
+          "digit_bytes": 11804,
+          "comma_bytes": 7897,
+          "json_bytes": 19701
+        },
+        "after": {
+          "start": 8065,
+          "end": 15982,
+          "words": 7917,
+          "digit_bytes": 11836,
+          "comma_bytes": 7917,
+          "json_bytes": 19753
+        },
+        "offset": {
+          "start": 15982,
+          "end": 15983,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 15983,
+          "end": 15984,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 15984,
+          "end": 15985,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 15985,
+          "end": 17975,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-006.json",
+      "sha256": "30ec32dd505e0f4936a138dde8f15a26b74ad46a25fd03910c116688b9100aa4",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45012,
+      "words": 18015,
+      "whole_seconds": 0.179292,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8085,
+          "words": 7917,
+          "digit_bytes": 11836,
+          "comma_bytes": 7917,
+          "json_bytes": 19753
+        },
+        "after": {
+          "start": 8085,
+          "end": 16022,
+          "words": 7937,
+          "digit_bytes": 11868,
+          "comma_bytes": 7937,
+          "json_bytes": 19805
+        },
+        "offset": {
+          "start": 16022,
+          "end": 16023,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16023,
+          "end": 16024,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16024,
+          "end": 16025,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16025,
+          "end": 18015,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-007.json",
+      "sha256": "905a04363f5a8a302c4bd7df5bbcc2f009caa65442d83fedb5e4d14254919304",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45116,
+      "words": 18055,
+      "whole_seconds": 0.231586,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8105,
+          "words": 7937,
+          "digit_bytes": 11868,
+          "comma_bytes": 7937,
+          "json_bytes": 19805
+        },
+        "after": {
+          "start": 8105,
+          "end": 16062,
+          "words": 7957,
+          "digit_bytes": 11900,
+          "comma_bytes": 7957,
+          "json_bytes": 19857
+        },
+        "offset": {
+          "start": 16062,
+          "end": 16063,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16063,
+          "end": 16064,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16064,
+          "end": 16065,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16065,
+          "end": 18055,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-008.json",
+      "sha256": "0d743f204f20eb90e3242582d290adb9eb504520712c7168cf0305077b1006b3",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45218,
+      "words": 18095,
+      "whole_seconds": 0.230026,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8125,
+          "words": 7957,
+          "digit_bytes": 11900,
+          "comma_bytes": 7957,
+          "json_bytes": 19857
+        },
+        "after": {
+          "start": 8125,
+          "end": 16102,
+          "words": 7977,
+          "digit_bytes": 11930,
+          "comma_bytes": 7977,
+          "json_bytes": 19907
+        },
+        "offset": {
+          "start": 16102,
+          "end": 16103,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16103,
+          "end": 16104,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16104,
+          "end": 16105,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16105,
+          "end": 18095,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-009.json",
+      "sha256": "2440829a16e68af9126a731a52a9438b7648f8e801da8174f135e32b35d3df1d",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45320,
+      "words": 18135,
+      "whole_seconds": 0.236348,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8145,
+          "words": 7977,
+          "digit_bytes": 11930,
+          "comma_bytes": 7977,
+          "json_bytes": 19907
+        },
+        "after": {
+          "start": 8145,
+          "end": 16142,
+          "words": 7997,
+          "digit_bytes": 11962,
+          "comma_bytes": 7997,
+          "json_bytes": 19959
+        },
+        "offset": {
+          "start": 16142,
+          "end": 16143,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16143,
+          "end": 16144,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16144,
+          "end": 16145,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16145,
+          "end": 18135,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-010.json",
+      "sha256": "171a5658bc117b68c0d5ac3bd0c4361d28d5c8d8f3b7bc1f61a12937ac85d880",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45426,
+      "words": 18175,
+      "whole_seconds": 0.28387,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8165,
+          "words": 7997,
+          "digit_bytes": 11962,
+          "comma_bytes": 7997,
+          "json_bytes": 19959
+        },
+        "after": {
+          "start": 8165,
+          "end": 16182,
+          "words": 8017,
+          "digit_bytes": 11996,
+          "comma_bytes": 8017,
+          "json_bytes": 20013
+        },
+        "offset": {
+          "start": 16182,
+          "end": 16183,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16183,
+          "end": 16184,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16184,
+          "end": 16185,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16185,
+          "end": 18175,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-011.json",
+      "sha256": "67a9ac45c30df928efdd3fbb3a0a0cc8f093eb7073bd73673627aa44a0dc7126",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45534,
+      "words": 18215,
+      "whole_seconds": 0.193717,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8185,
+          "words": 8017,
+          "digit_bytes": 11996,
+          "comma_bytes": 8017,
+          "json_bytes": 20013
+        },
+        "after": {
+          "start": 8185,
+          "end": 16222,
+          "words": 8037,
+          "digit_bytes": 12029,
+          "comma_bytes": 8037,
+          "json_bytes": 20066
+        },
+        "offset": {
+          "start": 16222,
+          "end": 16223,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16223,
+          "end": 16224,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16224,
+          "end": 16225,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16225,
+          "end": 18215,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-012.json",
+      "sha256": "a86558429c950812a8a40b58c5a58802b238bbd85e344a056f7daba32cbc065e",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45641,
+      "words": 18255,
+      "whole_seconds": 0.16661,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8205,
+          "words": 8037,
+          "digit_bytes": 12029,
+          "comma_bytes": 8037,
+          "json_bytes": 20066
+        },
+        "after": {
+          "start": 8205,
+          "end": 16262,
+          "words": 8057,
+          "digit_bytes": 12063,
+          "comma_bytes": 8057,
+          "json_bytes": 20120
+        },
+        "offset": {
+          "start": 16262,
+          "end": 16263,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16263,
+          "end": 16264,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16264,
+          "end": 16265,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16265,
+          "end": 18255,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-013.json",
+      "sha256": "67d892e7fd951d553613d5441459fcb1770f2687df6afd0619cdc506df913e2d",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45749,
+      "words": 18295,
+      "whole_seconds": 0.207886,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8225,
+          "words": 8057,
+          "digit_bytes": 12063,
+          "comma_bytes": 8057,
+          "json_bytes": 20120
+        },
+        "after": {
+          "start": 8225,
+          "end": 16302,
+          "words": 8077,
+          "digit_bytes": 12097,
+          "comma_bytes": 8077,
+          "json_bytes": 20174
+        },
+        "offset": {
+          "start": 16302,
+          "end": 16303,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16303,
+          "end": 16304,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16304,
+          "end": 16305,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16305,
+          "end": 18295,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-014.json",
+      "sha256": "effe99daea2ba5993be3e07079568961c29f539b6417fa117c4607df65e7f72e",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45858,
+      "words": 18335,
+      "whole_seconds": 0.256119,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8245,
+          "words": 8077,
+          "digit_bytes": 12097,
+          "comma_bytes": 8077,
+          "json_bytes": 20174
+        },
+        "after": {
+          "start": 8245,
+          "end": 16342,
+          "words": 8097,
+          "digit_bytes": 12132,
+          "comma_bytes": 8097,
+          "json_bytes": 20229
+        },
+        "offset": {
+          "start": 16342,
+          "end": 16343,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16343,
+          "end": 16344,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16344,
+          "end": 16345,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16345,
+          "end": 18335,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-015.json",
+      "sha256": "fda167c40df5b107a2c2ccf68ee23ace38c1954108289a6b75f377f3ac59cc32",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 45967,
+      "words": 18375,
+      "whole_seconds": 0.277872,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8265,
+          "words": 8097,
+          "digit_bytes": 12132,
+          "comma_bytes": 8097,
+          "json_bytes": 20229
+        },
+        "after": {
+          "start": 8265,
+          "end": 16382,
+          "words": 8117,
+          "digit_bytes": 12166,
+          "comma_bytes": 8117,
+          "json_bytes": 20283
+        },
+        "offset": {
+          "start": 16382,
+          "end": 16383,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16383,
+          "end": 16384,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16384,
+          "end": 16385,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16385,
+          "end": 18375,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-016.json",
+      "sha256": "ced566b2936d5ea74e55ad18e0fa093aebe6ce04cc330b482e1a42cc901eb64f",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 46074,
+      "words": 18415,
+      "whole_seconds": 0.145156,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8285,
+          "words": 8117,
+          "digit_bytes": 12166,
+          "comma_bytes": 8117,
+          "json_bytes": 20283
+        },
+        "after": {
+          "start": 8285,
+          "end": 16422,
+          "words": 8137,
+          "digit_bytes": 12199,
+          "comma_bytes": 8137,
+          "json_bytes": 20336
+        },
+        "offset": {
+          "start": 16422,
+          "end": 16423,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16423,
+          "end": 16424,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16424,
+          "end": 16425,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16425,
+          "end": 18415,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-017.json",
+      "sha256": "ce751ef46120d15f5e501fbff93c7c5c3539e7c10f9d1fa998654326cd51f217",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 46180,
+      "words": 18455,
+      "whole_seconds": 0.206502,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8305,
+          "words": 8137,
+          "digit_bytes": 12199,
+          "comma_bytes": 8137,
+          "json_bytes": 20336
+        },
+        "after": {
+          "start": 8305,
+          "end": 16462,
+          "words": 8157,
+          "digit_bytes": 12232,
+          "comma_bytes": 8157,
+          "json_bytes": 20389
+        },
+        "offset": {
+          "start": 16462,
+          "end": 16463,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16463,
+          "end": 16464,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16464,
+          "end": 16465,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16465,
+          "end": 18455,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-018.json",
+      "sha256": "19e6edb263386f8c0f29a39817d396ded57ac3fc39ee59b8607c7c9f7f550737",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 924490,
+      "words": 358514,
+      "whole_seconds": 6.284162,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 168,
+          "words": 2,
+          "digit_bytes": 3,
+          "comma_bytes": 2,
+          "json_bytes": 5
+        },
+        "before": {
+          "start": 168,
+          "end": 8325,
+          "words": 8157,
+          "digit_bytes": 12232,
+          "comma_bytes": 8157,
+          "json_bytes": 20389
+        },
+        "after": {
+          "start": 8325,
+          "end": 16715,
+          "words": 8390,
+          "digit_bytes": 13359,
+          "comma_bytes": 8390,
+          "json_bytes": 21749
+        },
+        "offset": {
+          "start": 16715,
+          "end": 16716,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16716,
+          "end": 356523,
+          "words": 339807,
+          "digit_bytes": 537092,
+          "comma_bytes": 339807,
+          "json_bytes": 876899
+        },
+        "checkpoint_end": {
+          "start": 356523,
+          "end": 356524,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 356524,
+          "end": 358514,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    },
+    {
+      "name": "batch-019.json",
+      "sha256": "bd422e401ad0f7563a2f0b64cb14d37e0ec79ffb6e9f0401ca4bcb909045d2e4",
+      "creation_seed": 152,
+      "campaign_seed": 0,
+      "file_bytes": 49011,
+      "words": 18960,
+      "whole_seconds": 0.186745,
+      "fields": {
+        "batch_tag": {
+          "start": 1,
+          "end": 2,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "config": {
+          "start": 2,
+          "end": 95,
+          "words": 93,
+          "sha256": "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd",
+          "digit_bytes": 179,
+          "comma_bytes": 93,
+          "json_bytes": 272
+        },
+        "creation_seed": {
+          "start": 95,
+          "end": 96,
+          "words": 1,
+          "digit_bytes": 3,
+          "comma_bytes": 1,
+          "json_bytes": 4
+        },
+        "campaign_seed": {
+          "start": 96,
+          "end": 97,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "original": {
+          "start": 97,
+          "end": 165,
+          "words": 68,
+          "sha256": "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c",
+          "digit_bytes": 116,
+          "comma_bytes": 68,
+          "json_bytes": 184
+        },
+        "checkpoint": {
+          "start": 165,
+          "end": 166,
+          "words": 1,
+          "digit_bytes": 2,
+          "comma_bytes": 1,
+          "json_bytes": 3
+        },
+        "input": {
+          "start": 166,
+          "end": 187,
+          "words": 21,
+          "digit_bytes": 42,
+          "comma_bytes": 21,
+          "json_bytes": 63
+        },
+        "before": {
+          "start": 187,
+          "end": 8577,
+          "words": 8390,
+          "digit_bytes": 13359,
+          "comma_bytes": 8390,
+          "json_bytes": 21749
+        },
+        "after": {
+          "start": 8577,
+          "end": 16967,
+          "words": 8390,
+          "digit_bytes": 13359,
+          "comma_bytes": 8390,
+          "json_bytes": 21749
+        },
+        "offset": {
+          "start": 16967,
+          "end": 16968,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "ticks": {
+          "start": 16968,
+          "end": 16969,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "checkpoint_end": {
+          "start": 16969,
+          "end": 16970,
+          "words": 1,
+          "digit_bytes": 1,
+          "comma_bytes": 1,
+          "json_bytes": 2
+        },
+        "final_world": {
+          "start": 16970,
+          "end": 18960,
+          "words": 1990,
+          "sha256": "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e",
+          "digit_bytes": 2984,
+          "comma_bytes": 1989,
+          "json_bytes": 4973
+        }
+      }
+    }
+  ],
+  "totals": {
+    "repeated_envelope": {
+      "words": 43020,
+      "digit_bytes": 65580,
+      "comma_bytes": 43000,
+      "json_bytes": 108580
+    },
+    "observations": {
+      "words": 1687358,
+      "digit_bytes": 2563460,
+      "comma_bytes": 1687358,
+      "json_bytes": 4250818
+    },
+    "scenario_metadata": {
+      "words": 40,
+      "digit_bytes": 80,
+      "comma_bytes": 40,
+      "json_bytes": 120
+    },
+    "codec_framing": {
+      "words": 20,
+      "digit_bytes": 20,
+      "comma_bytes": 20,
+      "json_bytes": 40
+    },
+    "fields": {
+      "batch_tag": {
+        "words": 20,
+        "digit_bytes": 20,
+        "comma_bytes": 20,
+        "json_bytes": 40
+      },
+      "config": {
+        "words": 1860,
+        "digit_bytes": 3580,
+        "comma_bytes": 1860,
+        "json_bytes": 5440
+      },
+      "creation_seed": {
+        "words": 20,
+        "digit_bytes": 60,
+        "comma_bytes": 20,
+        "json_bytes": 80
+      },
+      "campaign_seed": {
+        "words": 20,
+        "digit_bytes": 20,
+        "comma_bytes": 20,
+        "json_bytes": 40
+      },
+      "original": {
+        "words": 1360,
+        "digit_bytes": 2320,
+        "comma_bytes": 1360,
+        "json_bytes": 3680
+      },
+      "checkpoint": {
+        "words": 20,
+        "digit_bytes": 29,
+        "comma_bytes": 20,
+        "json_bytes": 49
+      },
+      "input": {
+        "words": 59,
+        "digit_bytes": 102,
+        "comma_bytes": 59,
+        "json_bytes": 161
+      },
+      "before": {
+        "words": 137416,
+        "digit_bytes": 206432,
+        "comma_bytes": 137416,
+        "json_bytes": 343848
+      },
+      "after": {
+        "words": 153187,
+        "digit_bytes": 230839,
+        "comma_bytes": 153187,
+        "json_bytes": 384026
+      },
+      "offset": {
+        "words": 20,
+        "digit_bytes": 21,
+        "comma_bytes": 20,
+        "json_bytes": 41
+      },
+      "ticks": {
+        "words": 1396636,
+        "digit_bytes": 2126017,
+        "comma_bytes": 1396636,
+        "json_bytes": 3522653
+      },
+      "checkpoint_end": {
+        "words": 20,
+        "digit_bytes": 20,
+        "comma_bytes": 20,
+        "json_bytes": 40
+      },
+      "final_world": {
+        "words": 39800,
+        "digit_bytes": 59680,
+        "comma_bytes": 39780,
+        "json_bytes": 99460
+      }
+    },
+    "outer_list_count": {
+      "words": 20,
+      "digit_bytes": 20,
+      "comma_bytes": 20,
+      "json_bytes": 40
+    },
+    "all_words": 1730458,
+    "all_word_json_bytes": 4359598,
+    "all_file_bytes": 4359638,
+    "json_nonword_bytes": 40,
+    "first20_only": true
+  },
+  "repetition_check": {
+    "152:0": {
+      "batches": 20,
+      "unique_serializations": {
+        "config": 1,
+        "original": 1,
+        "final_world": 1
+      },
+      "hashes": {
+        "config": [
+          "bcf6449089bb78c947d61e699515f206158c82d12fe9ffd1c6669ccb7a61fdfd"
+        ],
+        "original": [
+          "c9c65727749bd17536f7254548fd57274ddc9c37c6846a665758d343651ef79c"
+        ],
+        "final_world": [
+          "e54cd984dd06a44ed94b231d2112ff6ecbd9d3b05843498aa2e7d280f624935e"
+        ]
+      }
+    }
+  },
+  "max_file_decode_seconds": 6.843935
+}

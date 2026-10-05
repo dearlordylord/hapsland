@@ -1,0 +1,11 @@
+{
+  "roots": {
+    "game_consumer": {
+      "module": "prototypes/canonical-defense/DefenseConsumerBatches.bend",
+      "type": "Batch",
+      "vector": true
+    }
+  },
+  "codec": "prototypes/canonical-defense/DefenseConsumerCodec.bend",
+  "metadata": "prototypes/canonical-defense/defense-consumer-metadata.ts"
+}

@@ -1,67 +1,84 @@
 #!/usr/bin/env node
-import * as Config from "effect/Config";
-import * as ConfigProvider from "effect/ConfigProvider";
-import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
-import { join } from "node:path";
-import { readFileSync } from "node:fs";
-import { mkdir, rm } from "node:fs/promises";
-import { acquireResidentOwnership, releaseResidentOwnership, ownershipControlsLayer } from "./ownership.ts";
+import { machineClockLayer } from "../runtime/machine-clock.ts"
+import * as Config from "effect/Config"
+import * as ConfigProvider from "effect/ConfigProvider"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
+import { join } from "node:path"
+import { readFileSync } from "node:fs"
+import { mkdir, rm } from "node:fs/promises"
+import { acquireResidentOwnership, releaseResidentOwnership, ownershipControlsLayer } from "./ownership.ts"
 
-class ResidentProcessError extends Schema.TaggedError<ResidentProcessError>()(
-  "ResidentProcessError", { operation: Schema.String },
-) {}
-const processEffect = <A>(operation: string, run: () => Promise<A>) => Effect.tryPromise({
-  try: run, catch: () => new ResidentProcessError({ operation }),
-});
+class ResidentProcessError extends Schema.TaggedError<ResidentProcessError>()("ResidentProcessError", {
+  operation: Schema.String
+}) {}
+const processEffect = <A>(operation: string, run: () => Promise<A>) =>
+  Effect.tryPromise({ try: run, catch: () => new ResidentProcessError({ operation }) })
 
 // Signal callbacks are a process boundary. Cancellation removes the handlers;
 // the resident scope owns every resource released after a signal or idle exit.
 const stopped = Effect.callback<void>((resume) => {
-  const stop = () => resume(Effect.void);
-  process.once("SIGTERM", stop);
-  process.once("SIGINT", stop);
-  process.once("beforeExit", stop);
+  const stop = () => resume(Effect.void)
+  process.once("SIGTERM", stop)
+  process.once("SIGINT", stop)
   return Effect.sync(() => {
-    process.removeListener("SIGTERM", stop);
-    process.removeListener("SIGINT", stop);
-    process.removeListener("beforeExit", stop);
-  });
-});
+    process.removeListener("SIGTERM", stop)
+    process.removeListener("SIGINT", stop)
+  })
+})
 
 const run = Effect.fn("ResidentProcess.run")(function* () {
-  const directory = process.argv[2];
-  if (directory === undefined) return yield* Effect.fail(new ResidentProcessError({ operation: "runtime directory is required" }));
-  yield* processEffect("create runtime directory", () => mkdir(directory, { recursive: true, mode: 0o700 }));
-  const lock = join(directory, "owner.lock");
+  const directory = process.argv[2]
+  if (directory === undefined)
+    return yield* Effect.fail(new ResidentProcessError({ operation: "runtime directory is required" }))
+  yield* processEffect("create runtime directory", () => mkdir(directory, { recursive: true, mode: 0o700 }))
+  const lock = join(directory, "owner.lock")
   const acquired = yield* Effect.acquireRelease(
     acquireResidentOwnership(lock).pipe(
-      Effect.mapError(() => new ResidentProcessError({ operation: "acquire resident ownership" }))),
-    (owned) => owned ? releaseResidentOwnership(lock).pipe(Effect.orDie) : Effect.void,
-  );
-  if (!acquired) return;
+      Effect.mapError(() => new ResidentProcessError({ operation: "acquire resident ownership" }))
+    ),
+    (owned) => (owned ? releaseResidentOwnership(lock).pipe(Effect.orDie) : Effect.void)
+  )
+  if (!acquired) return
 
   // Only the winner loads the review runtime. Competing hook clients never
   // acquire resident state, a command executor or provider services.
-  const { residentRuntimeLayer, ResidentRuntimeService } = yield* processEffect("load resident runtime", () => import("./server.ts"));
-  const clockPath = yield* Config.option(Config.String("REVIEW_RESIDENT_CLOCK_PATH"));
-  const now = Option.isNone(clockPath) ? () => performance.now() : () => Number(readFileSync(clockPath.value, "utf8"));
-  const runtimeLayer = residentRuntimeLayer({ directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") }, now);
+  const { residentRuntimeLayer, ResidentRuntimeService } = yield* processEffect(
+    "load resident runtime",
+    () => import("./server.ts")
+  )
+  const clockPath = yield* Config.option(Config.String("REVIEW_RESIDENT_CLOCK_PATH"))
+  const now = Option.isNone(clockPath) ? () => performance.now() : () => Number(readFileSync(clockPath.value, "utf8"))
+  const runtimeLayer = residentRuntimeLayer(
+    { directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") },
+    now
+  )
   yield* Effect.gen(function* () {
-    const server = yield* ResidentRuntimeService;
-    yield* server.listen().pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })));
-    yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }));
-    yield* Effect.never;
-  }).pipe(Effect.provide(runtimeLayer));
-});
+    const server = yield* ResidentRuntimeService
+    yield* server
+      .listen()
+      .pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })))
+    yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }))
+    yield* server.whenClosed
+  }).pipe(Effect.provide(runtimeLayer))
+})
 
-await Effect.runPromise(Effect.scoped(run().pipe(Effect.provide(ownershipControlsLayer), Effect.raceFirst(stopped))).pipe(
-  Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
-  Effect.catch((error) => Effect.sync(() => {
-    // Launcher diagnostics contain operation labels, never captured source,
-    // provider responses or credentials from an infrastructure error.
-    console.error(error._tag === "ResidentProcessError" ? `resident startup failed: ${error.operation}` : "resident configuration failed");
-    process.exitCode = 1;
-  })),
-));
+await Effect.runPromise(
+  Effect.scoped(run().pipe(Effect.provide(ownershipControlsLayer), Effect.raceFirst(stopped))).pipe(
+    Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
+    Effect.provide(machineClockLayer),
+    Effect.catch((error) =>
+      Effect.sync(() => {
+        // Launcher diagnostics contain operation labels, never captured source,
+        // provider responses or credentials from an infrastructure error.
+        console.error(
+          error._tag === "ResidentProcessError"
+            ? `resident startup failed: ${error.operation}`
+            : "resident configuration failed"
+        )
+        process.exitCode = 1
+      })
+    )
+  )
+)

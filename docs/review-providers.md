@@ -8,6 +8,11 @@
 
 ## Boundary
 
+The [review resources guide](review-resources.md) explains the separate resident
+preparation and classifier pools, logical capacity, source collection, and
+delivery bounds. This page owns provider-specific declarations and transport
+checks; those checks do not expand the resident's resources.
+
 A review backend evaluates a prepared review unit. A provider adapter turns its
 probability decisions into a transport request and validated answers. Source
 collection, graph exploration, scheduling, capacity, and advice delivery retain
@@ -87,7 +92,7 @@ Use `clef-flash` to select the other Cloudflare model. Make
 `CLOUDFLARE_API_TOKEN` available to the installed runtime's hook environment.
 An explicit user `credentialEnvVar` can name another variable. Configuration
 contains the account ID and variable reference, never the token value.
-Cloudflare's derived credential reference is user-owned and environment-only:
+Cloudflare's derived credential reference is user-owned and uses environment/file lookup without native fallback:
 a project cannot override it, and missing Cloudflare credentials cannot fall
 back to Hapsland's saved Jev key. `hapsland --login` still manages the Jev key.
 Cloudflare uses a validated 32-character hexadecimal account ID and the fixed

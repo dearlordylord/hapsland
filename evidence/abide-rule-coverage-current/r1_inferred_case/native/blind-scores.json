@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "blinded": true,
+  "scorerDigest": "810c6e87536e324a0a35a2f42959762c9ce718ebb5f2ef4a19d691ae39053990",
+  "fixtureDigest": "829d471819121b812ac298c73482a5d941d6227ed274b564b2a24c82b82a1ac0",
+  "typescriptVersion": "5.9.3",
+  "scores": [
+    {
+      "blindId": "2628740d2964",
+      "caseId": "clean-profile-attributes",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "19b93317cc6602ca07c37b4c0d8d3104bf72a7b33444cbd205b0b361b27886d1",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "biography",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "pronouns",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"biography\":\"writer\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"pronouns\":\"they/them\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"biography\":\"writer\",\"pronouns\":\"they/them\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "2da67f61e60a",
+      "caseId": "clean-profile-attributes",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "19b93317cc6602ca07c37b4c0d8d3104bf72a7b33444cbd205b0b361b27886d1",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "biography",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "pronouns",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"biography\":\"writer\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"pronouns\":\"they/them\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"biography\":\"writer\",\"pronouns\":\"they/them\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "39b4c6e4a8b4",
+      "caseId": "clean-profile-attributes",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "19b93317cc6602ca07c37b4c0d8d3104bf72a7b33444cbd205b0b361b27886d1",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": [
+          {
+            "path": "biography",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          },
+          {
+            "path": "pronouns",
+            "present": true,
+            "optionalExpected": true,
+            "optional": true,
+            "typePreserved": true,
+            "passed": true
+          }
+        ]
+      },
+      "underlyingGold": false,
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "{}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"biography\":\"writer\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"pronouns\":\"they/them\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "{\"biography\":\"writer\",\"pronouns\":\"they/them\"}",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite semantic assignment witnesses; unknown exports/shapes are unassessed. Rejected valid cases never receive repair credit. No reviewer wording or superficial source-string credit."
+    },
+    {
+      "blindId": "412d958dc26d",
+      "caseId": "render-destination",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "8ae4d04104a8a2330959041a457e1a6f0023d22ef22f29e5df4b95701a2071dd",
+      "supportingDigest": "11f15303f142c3cc790142637fc4940a1894e5f1e17008bc4983ebcd71994124",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "4c16d62de7b8",
+      "caseId": "render-destination",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "acd905409cf7cc7a4345a4876d6aa43e7a5240c04a6d3ddbf6037e103a78fd4a",
+      "supportingDigest": "11f15303f142c3cc790142637fc4940a1894e5f1e17008bc4983ebcd71994124",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "5ea9a71f91ef",
+      "caseId": "retention-action",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "e26ab7d55400c7cc84a1833c914ee56a5112d5861ac0736a2e103e642e565d70",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "685685bd1c50",
+      "caseId": "retention-action",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "e26ab7d55400c7cc84a1833c914ee56a5112d5861ac0736a2e103e642e565d70",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "bdf1c1b346aa",
+      "caseId": "retention-action",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "e26ab7d55400c7cc84a1833c914ee56a5112d5861ac0736a2e103e642e565d70",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    },
+    {
+      "blindId": "d66ea6e933fc",
+      "caseId": "render-destination",
+      "ruleId": "r1_inferred_case",
+      "sourceDigest": "8ae4d04104a8a2330959041a457e1a6f0023d22ef22f29e5df4b95701a2071dd",
+      "supportingDigest": "11f15303f142c3cc790142637fc4940a1894e5f1e17008bc4983ebcd71994124",
+      "compiles": true,
+      "presentationRename": true,
+      "publicShape": {
+        "known": true,
+        "checks": []
+      },
+      "underlyingGold": true,
+      "status": "manual-adjudication-required",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [],
+      "limitations": "Requires predeclared blinded semantic/manual adjudication. Arbitrary case tags, nominal constructors, DI and Effect return requirements cannot be established by assignment witnesses alone; no automated repair credit."
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "experiment": "E6 selective saved-C optimization",
+  "original_c_sha256": "2ba171a706e39c72fe4a3064a9a50eba503a465e7eea87d508dd9680cdb68eb8",
+  "derived_c_sha256": "7d2419ca9650a70d3d32b89520d97dd27a38f04d0d48df19251424a1962d5fe7",
+  "reversible_pragma_only": true,
+  "hot_segments": [
+    "FID_DEFENSECONSUMERCODEC_NUMBER_FOLD",
+    "FID_DEFENSECONSUMERCODEC_NUMBER_FOLD_K6063",
+    "FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX",
+    "FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX_K6041",
+    "FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX_K6042",
+    "FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX_K6043",
+    "FID_DEFENSECONSUMERCODEC_RENDER",
+    "FID_DEFENSECONSUMERCODEC_RENDER_K6077",
+    "FID_NAT_SHOW",
+    "FID_NAT_SHOW_FIN",
+    "FID_STRING_APPEND",
+    "FID_STRING_APPEND_K6065"
+  ],
+  "hot_spins": [
+    1264,
+    1272,
+    1273
+  ],
+  "segment_count": 3303,
+  "spin_count": 1271,
+  "compile_limit_s": 120,
+  "execution_limit_s": 10,
+  "compile": {
+    "seconds": 120.19426254788414,
+    "exit_code": -9,
+    "timed_out": true,
+    "stderr_tail": ""
+  },
+  "decision": "inconclusive: selective preparation failed; stop compiler-flag experiments"
+}

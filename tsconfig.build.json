@@ -9,12 +9,15 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "exclude": [
     "src/**/*.test.ts",
     "src/test-support/**",
     "src/conformance/**",
     "src/direct-event/test-fixtures.ts",
-    "src/resident/runtime-fixture.ts"
+    "src/resident/runtime-fixture.ts",
+    "src/canonical/simulation-adapter.ts"
   ]
 }

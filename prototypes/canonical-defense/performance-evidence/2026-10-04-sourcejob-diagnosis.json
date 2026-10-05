@@ -1,0 +1,101 @@
+{
+  "task": "E7 native game source binding diagnosis",
+  "sourceCommit": "9ef8a0c78dbdf348674a213f2b1e7fa26c8731bf",
+  "qualificationRunId": "20261004230027672-1877539-a716e9",
+  "qualificationCommand": "node --experimental-strip-types prototypes/canonical-defense/verify-consumer.mjs",
+  "qualificationEvidence": {
+    "phase": "game consumer verification",
+    "result": "failed at source binding 133",
+    "log": "/workspace/typescript/jev-worktrees/game-numeric-output/.test-runs/20261004230027672-1877539-a716e9/1877539-001-game-consumer.log",
+    "reusedOutputs": "retained native and emitted-JS outputs; no compiler or runtime rerun in this diagnosis"
+  },
+  "retainedOutputReceipt": {
+    "path": "/workspace/typescript/jev-worktrees/game-numeric-output/.test-runs/20261004230027672-1877539-a716e9/workload-outputs/game-output-1877553-BxC9BN/receipt.json",
+    "identityValidation": "gameCompilerIdentity plus explicit restoreGameOutputs passed",
+    "batchIndex": 21,
+    "nativeSha256": "216222acedfac605fcfd1d8b2c4c758b6eb17dfdedd3c72938f7480db7f4489b",
+    "emittedSha256": "216222acedfac605fcfd1d8b2c4c758b6eb17dfdedd3c72938f7480db7f4489b"
+  },
+  "failureCoordinate": {
+    "campaignSeed": 0,
+    "checkpoint": 19,
+    "chunkOffset": 64,
+    "localTickRow": 15,
+    "activeTick": 200,
+    "virtualTime": 4000,
+    "physicalDeliveryIndex": 1,
+    "queueOrder": 133
+  },
+  "nativeSourceEvent": {
+    "frameSequence": 89,
+    "time": 4000,
+    "consumedOrder": 27,
+    "event": "JevRequestSettled",
+    "partition": 1,
+    "lifetime": 1,
+    "round": 1,
+    "operation": 3,
+    "request": 5,
+    "outcome": "RequestClear",
+    "activeJob": null,
+    "sourceJob": {
+      "partition": 1,
+      "lifetime": 1,
+      "bytes": 100,
+      "units": [
+        10,
+        20
+      ],
+      "outcome": null
+    },
+    "commands": [
+      "JevObservationIgnored"
+    ],
+    "providedPartition": 1,
+    "commandScopes": [
+      1
+    ]
+  },
+  "derivedQueuedEvent": {
+    "order": 133,
+    "event": "DispatchSettled",
+    "partition": 1,
+    "lifetime": 1,
+    "round": 1,
+    "operation": 3,
+    "actionJob": false,
+    "nativeInputJob": null,
+    "nativeSourceJob": null,
+    "typescriptDriverSourceJob": {
+      "partition": 1,
+      "lifetime": 1,
+      "bytes": 100,
+      "units": [
+        10,
+        20
+      ],
+      "outcome": null
+    },
+    "typescriptActionJob": false,
+    "typescriptPartition": 1,
+    "typescriptActivityScope": 1,
+    "nativeContextTag": "Some EmissionContext"
+  },
+  "sourceOwnerPath": {
+    "native": "NativeRun.product_post -> issue_context -> capsule_actions -> queued_action; product_post ignores ProductCarry.source_job and queued_action derives source_job only from original_source(job)",
+    "typescript": "Run.drive emits Engine.after actions with emitDriver(action, item.job, afterSourceJob), preserving source_job independently of action.job",
+    "callbackRetention": "Thread source_job into scheduling before callback_register/retain_callback; retained callback payload is copied from the already-enqueued input. Post-hoc queue mutation would leave the retained payload stale.",
+    "specificEventHasCallbackFact": false
+  },
+  "sourceJobEvidence": [
+    "packages/monkey-business/src/source-job-public.test.ts: retains the original SourceJob on collector-after public emissions",
+    "packages/monkey-business-bend/Driver.bend: SourceJob is a separate immutable scope"
+  ],
+  "secondaryComparatorRisk": "Native order 133 carries an EmissionContext while matching TypeScript emitDriver supplies no context; compareContext may be the next mismatch after source_job. Separate from confirmed source loss.",
+  "validation": {
+    "performed": "host-only decode of retained batch 21 using identity-checked maintained reader; host-only TypeScript reproduction through tick 200",
+    "checksRun": [],
+    "compilerOrNativeExecutions": 0,
+    "trackedEdits": 0
+  }
+}

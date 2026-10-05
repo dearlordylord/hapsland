@@ -1,0 +1,1569 @@
+{
+  "version": 1,
+  "blinded": true,
+  "scorerDigest": "0f808c7528e5a7368e3c75d0c0d69aeeb5c9b86bf94bf80a93a59b10f0bd8fe0",
+  "fixtureDigest": "711d911518be3be929f7b0178f7c6ffc41b1cd18f1eeb0939bb6bda4626aaea3",
+  "typescriptVersion": "5.9.3",
+  "scores": [
+    {
+      "blindId": "0f671dd507ad",
+      "caseId": "render-pool-large-separated-defect",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "large-separated",
+      "sourceDigest": "9f3e9a9df05d2aba70eefc4a2c12769b6444b534e95b6f427c3edb1d803163ee",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": true,
+      "diagnosticCodes": [],
+      "status": "repaired",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "2001df7f54cb",
+      "caseId": "render-pool-small-defect",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "small",
+      "sourceDigest": "d43c6e19d45e4faaca0e9882d31e67a94a091ddb2151c8d858dad0ca835acf17",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": true,
+      "diagnosticCodes": [],
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 6,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "37ea5002bc37",
+      "caseId": "render-pool-large-separated-clean",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "large-separated",
+      "sourceDigest": "9f3e9a9df05d2aba70eefc4a2c12769b6444b534e95b6f427c3edb1d803163ee",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": false,
+      "diagnosticCodes": [],
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "6900c343349e",
+      "caseId": "render-pool-large-separated-defect",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "large-separated",
+      "sourceDigest": "65490f25911b60b2b0373342e9bfb37d8796005fc887c0514048b0f394f5294b",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": true,
+      "diagnosticCodes": [],
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 6,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "7a9ff8a5b5e4",
+      "caseId": "render-pool-large-separated-clean",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "large-separated",
+      "sourceDigest": "9f3e9a9df05d2aba70eefc4a2c12769b6444b534e95b6f427c3edb1d803163ee",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": false,
+      "diagnosticCodes": [],
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "8e2039fa640a",
+      "caseId": "render-pool-large-separated-defect",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "large-separated",
+      "sourceDigest": "65490f25911b60b2b0373342e9bfb37d8796005fc887c0514048b0f394f5294b",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": true,
+      "diagnosticCodes": [],
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 6,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "982c8d2ea523",
+      "caseId": "render-pool-small-clean",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "small",
+      "sourceDigest": "843a13030188d6bc4ac7fbd5357f73bb332c311e433245446a94225d9dbc7d51",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": false,
+      "diagnosticCodes": [],
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "a73c9b034252",
+      "caseId": "render-pool-small-clean",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "small",
+      "sourceDigest": "843a13030188d6bc4ac7fbd5357f73bb332c311e433245446a94225d9dbc7d51",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": false,
+      "diagnosticCodes": [],
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "aea546dad811",
+      "caseId": "render-pool-small-defect",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "small",
+      "sourceDigest": "843a13030188d6bc4ac7fbd5357f73bb332c311e433245446a94225d9dbc7d51",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": true,
+      "diagnosticCodes": [],
+      "status": "repaired",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "bf03f5a571ab",
+      "caseId": "render-pool-small-clean",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "small",
+      "sourceDigest": "843a13030188d6bc4ac7fbd5357f73bb332c311e433245446a94225d9dbc7d51",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": false,
+      "diagnosticCodes": [],
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "cc0beda5c11c",
+      "caseId": "render-pool-large-separated-clean",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "large-separated",
+      "sourceDigest": "9f3e9a9df05d2aba70eefc4a2c12769b6444b534e95b6f427c3edb1d803163ee",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": false,
+      "diagnosticCodes": [],
+      "status": "clean-preserved",
+      "validFailures": 0,
+      "invalidAccepted": 0,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": false,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": [
+            2322
+          ]
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    },
+    {
+      "blindId": "edb89917c2b2",
+      "caseId": "render-pool-small-defect",
+      "candidateId": "render-pool",
+      "ruleId": "r7_name_wider_than_type",
+      "layout": "small",
+      "sourceDigest": "d43c6e19d45e4faaca0e9882d31e67a94a091ddb2151c8d858dad0ca835acf17",
+      "supportingDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compiles": true,
+      "presentationRename": true,
+      "underlyingGold": true,
+      "diagnosticCodes": [],
+      "status": "remaining",
+      "validFailures": 0,
+      "invalidAccepted": 6,
+      "checks": [
+        {
+          "label": "all-independent-facts-preserved",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-initial",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-initial",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-1-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-2-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-4-alternate",
+          "expected": true,
+          "accepted": true,
+          "passed": true,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-0-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers--1.5-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        },
+        {
+          "label": "workers-8-alternate",
+          "expected": false,
+          "accepted": true,
+          "passed": false,
+          "structuralError": false,
+          "diagnosticCodes": []
+        }
+      ],
+      "limitations": "Finite assignment witnesses plus exact independent-field preservation. Dynamic strings/numbers prevent witness-literal narrowing; unknown public representations remain unassessed. No superficial source text or reviewer wording credit."
+    }
+  ]
+}

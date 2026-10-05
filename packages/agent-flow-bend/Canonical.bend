@@ -110,6 +110,7 @@ type CanonicalEvent is Data:
   ReviewCompleted{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: Outcome}
   RetireReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
+  CancelReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
   ReviewObserved{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: Outcome, current_work: Bool}
   FindingCountUpdated{partition: Nat, lifetime: Nat, round: Nat,
@@ -1877,6 +1878,42 @@ def cancel_scoped_dispatch(dispatch: Dispatch.State, +work: List<&2, Work>, +lif
       List.append(&2, Command, cancel_dispatch_entries(queued, work, lifetime, scopes),
         cancel_dispatch_entries(running, work, lifetime, scopes))
 
+# Both Stop routes see the actual output owner. Scope membership comes from
+# the retained finding, and only its original authorized token lease can wait.
+def stop_output_work(work: List<&2,Work>, +advice: Nat, +lifetime: Nat, +scopes: List<&2,StopScope>) -> Bool:
+  match work:
+    case Nil{}: False{}
+    case Work{p,l,r,o,_,PendingFinding{_},_} <> tail:
+      (Nat.is_eq(o,advice) && Nat.is_eq(l,lifetime) && scope_contains(scopes,p,r)) ||
+        stop_output_work(tail,advice,lifetime,scopes)
+    case _ <> tail: stop_output_work(tail,advice,lifetime,scopes)
+
+def stop_output_batch(batch: SubmissionState.Batch, work: List<&2,Work>, leases: List<&2,CollectionState.Lease>, +group: Nat, lifetime: Nat, +round: Nat, scopes: List<&2,StopScope>) -> Bool:
+  match batch:
+    case SubmissionState.Batch{+advice,owner,current,+token,_,Delivery.Authorized{},_,_}:
+      Nat.is_eq(owner,group) && Nat.is_eq(current,round) &&
+        CollectionState.lease_owned(advice,token,leases) && stop_output_work(work,advice,lifetime,scopes)
+    case _: False{}
+
+def stop_output_batches(batches: List<&2,SubmissionState.Batch>, +work: List<&2,Work>, +leases: List<&2,CollectionState.Lease>, +group: Nat, +lifetime: Nat, +round: Nat, +scopes: List<&2,StopScope>) -> Bool:
+  match batches:
+    case Nil{}: False{}
+    case batch <> tail:
+      stop_output_batch(batch,work,leases,group,lifetime,round,scopes) ||
+        stop_output_batches(tail,work,leases,group,lifetime,round,scopes)
+
+def stop_group_authorized_output(state: State, group: Nat, lifetime: Nat, round: Nat, scopes: List<&2,StopScope>, continuations: Nat) -> Bool:
+  match state:
+    case State{_,_,work,_,_,_,_,CollectionState.State{_,leases,_,DeliveryState.State{_,_,SubmissionState.State{_,batches}},_,_,_},_}:
+      Nat.is_lt(continuations,RoundPolicy.max_continuations()) &&
+        stop_output_batches(batches,work,leases,group,lifetime,round,scopes)
+
+def stop_authorized_output(state: State, +p: Nat, l: Nat, +r: Nat) -> Bool:
+  match state:
+    case State{_,_,work,_,_,_,_,CollectionState.State{_,leases,_,DeliveryState.State{_,counters,SubmissionState.State{_,batches}},_,_,_},_}:
+      Nat.is_lt(DeliveryState.count(p,r,counters),RoundPolicy.max_continuations()) &&
+        stop_output_batches(batches,work,leases,p,l,r,[StopScope{p,r}])
+
 def stop_group_wait(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, scopes: List<&2, StopScope>) -> Step:
   match state:
@@ -1900,7 +1937,7 @@ def stop_group_ready(+state: State, +group: Nat, +lifetime: Nat,
 
 def stop_group_checked(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, +scopes: List<&2, StopScope>, deadline: Bool,
-    extra_pending: Bool, continuations: Nat, found: Maybe<&2, Round>) -> Step:
+    extra_pending: Bool, +continuations: Nat, found: Maybe<&2, Round>) -> Step:
   match state found:
     case State{_, rounds, work, _, _, _, _, +collection, +history} Some{+current}:
       Bool.pick(Step,
@@ -1909,7 +1946,8 @@ def stop_group_checked(+state: State, +group: Nat, +lifetime: Nat,
             valid_stop_scopes(rounds, lifetime, scopes))),
         Bool.pick(Step,
           Bool.and(Bool.not(deadline),
-            Bool.or(extra_pending, scoped_pending(work, lifetime, scopes))),
+            Bool.or(extra_pending, Bool.or(scoped_pending(work,lifetime,scopes),
+              stop_group_authorized_output(state,group,lifetime,round,scopes,continuations)))),
           stop_group_wait(state, group, lifetime, round, scopes),
           stop_group_ready(state, group, lifetime, round, scopes, continuations)),
         Rejected{state, StaleRound{}})
@@ -1969,13 +2007,16 @@ def stop_ready(+state: State, +partition: Nat, +lifetime: Nat,
           Bool.pick(Command, Bool.and(uncertain, Bool.not(deadline)),
             ReofferAtStop{}, FinishReady{}) <> Nil{}))}
 
-def stop_output(+state: State, partition: Nat, lifetime: Nat, round: Nat,
-    deadline: Bool, write: Maybe<&2, Nat>, uncertain: Bool) -> Step:
-  match deadline write:
-    case False{} Some{_}:
-      Advanced{state, WaitForOutput{} <> Nil{}}
-    case _ _:
-      stop_ready(state, partition, lifetime, round, deadline, uncertain)
+def stop_output_decision(wait: Bool, +state: State, p: Nat, l: Nat, r: Nat, deadline: Bool, uncertain: Bool) -> Step:
+  match wait:
+    case True{}: Advanced{state,WaitForOutput{} <> Nil{}}
+    case False{}: stop_ready(state,p,l,r,deadline,uncertain)
+
+def stop_output(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
+    +deadline: Bool, write: Maybe<&2,Nat>, +uncertain: Bool) -> Step:
+  stop_output_decision(Bool.not(deadline) &&
+    (Bool.not(Maybe.is_none(&2,Nat,write)) || stop_authorized_output(state,partition,lifetime,round)),
+    state,partition,lifetime,round,deadline,uncertain)
 
 def stop_current(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
     +deadline: Bool, has_pending: Bool, +write: Maybe<&2, Nat>, +uncertain: Bool) -> Step:
@@ -2243,6 +2284,40 @@ def dispatch_commands(items: List<&2, Dispatch.Command>) -> List<&2, Command>:
       DispatchStarted{operation, sequence} <> dispatch_commands(rest)
     case Dispatch.Discarded{operation, running} <> rest:
       DispatchDiscarded{operation, running} <> dispatch_commands(rest)
+
+# Genuine scoped logical cancellation, independent of physical Jev outcome.
+# Dispatch.discard preserves issued requests and marks only this running owner
+# canceled; a real original terminal will later release the physical request.
+def cancel_review_dispatched(original: State, updated: State, +operation: Nat, charge: Nat, result: Dispatch.DispatchResult) -> Step:
+  match updated result:
+    case State{ledger,rounds,work,next_round,next_operation,admissions,_,collection,history} Dispatch.Advanced{dispatch,commands}:
+      Advanced{State{ledger,rounds,work,next_round,next_operation,admissions,dispatch,collection,history},
+        ReservationReleased{charge} <> CancelWork{operation} <> dispatch_commands(commands)}
+    case _ Dispatch.Denied{_}: Rejected{original,StaleOperation{}}
+
+def cancel_review_released(+state: State, +operation: Nat, charge: Nat, result: Ledger.LedgerResult) -> Step:
+  match state result:
+    case State{_,+rounds,work,+next_round,+next_operation,+admissions,+dispatch,+collection,+history} Ledger.Granted{ledger,_}:
+      cancel_review_dispatched(state,State{ledger,rounds,remove_work(operation,work),next_round,next_operation,admissions,dispatch,collection,history},operation,charge,Dispatch.discard(dispatch,[operation]))
+    case _ Ledger.Rejected{_}: Rejected{state,InconsistentLedger{}}
+
+def cancel_review_kind(+state: State, operation: Nat, +charge: Nat, kind: WorkKind) -> Step:
+  match state kind:
+    case State{ledger,_,_,_,_,_,_,_,_} Reviewing{}:
+      cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
+    case State{ledger,_,_,_,_,_,_,_,_} AtJev{}:
+      cancel_review_released(state,operation,charge,Ledger.release(ledger,charge))
+    case _ _: Rejected{state,StaleOperation{}}
+
+def cancel_review_found(state: State, operation: Nat, found: Maybe<&2,Work>) -> Step:
+  match found:
+    case Some{Work{_,_,_,_,charge,kind,_}}: cancel_review_kind(state,operation,charge,kind)
+    case None{}: Rejected{state,StaleOperation{}}
+
+def cancel_review(+state: State, partition: Nat, lifetime: Nat, round: Nat, +operation: Nat) -> Step:
+  match state:
+    case State{_,_,work,_,_,_,_,_,_}:
+      cancel_review_found(state,operation,find_work(partition,lifetime,round,operation,work))
 
 def dispatch_result(state: State, result: Dispatch.DispatchResult) -> Step:
   match state result:
@@ -3019,6 +3094,8 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       reviewed(state, partition, lifetime, round, operation, outcome)
     case RetireReview{partition, lifetime, round, operation}:
       retire_review(state, partition, lifetime, round, operation)
+    case CancelReview{partition, lifetime, round, operation}:
+      cancel_review(state, partition, lifetime, round, operation)
     case ReviewObserved{partition, lifetime, round, operation, outcome, current_work}:
       review_observed(state, partition, lifetime, round, operation, outcome, current_work)
     case FindingCountUpdated{partition, lifetime, round, operation, count}:

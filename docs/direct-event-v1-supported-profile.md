@@ -17,14 +17,16 @@ exception; they do not retroactively validate the earlier host run.
 This document records the previously measured support boundary. Jev is the external
 review backend. The measured v1 adapter profile was **Codex CLI 0.155.1 / Linux arm64 /
 headless command hooks / controlled writer**. Node `v24.20.0` and Git `2.39.5` are the
-recorded conformance environment, not broader runtime guarantees. The installed package
-profile is narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
+recorded conformance environment, not broader runtime guarantees. The historical installed package
+profile was narrower and exact: Node `v24.20.0`, Linux arm64, Git on `PATH`, and procfs mounted
 at `/proc`, and Node `v24.20.0` on macOS arm64 with Git, `/dev/fd`, and the packaged
 `openat` capture helper. The macOS controlled installed-package path is tested. The real
 Codex-host path is verified on macOS arm64 with Codex CLI 0.156.0 and a controlled offline
 backend, including native interactive trust review. This does not establish a real-host run
-for Codex CLI 0.155.1 or other platform profiles. Package metadata and `hapsland-doctor`
-reject undeclared versions and other platform profiles rather than inferring support.
+for Codex CLI 0.155.1 or other platform profiles. At that validation point, package metadata and `hapsland-doctor`
+rejected undeclared versions and other platform profiles. These observations do not
+validate the current standalone Bun distribution; see
+[installed release compatibility](installed-release-compatibility.md).
 
 The accepted [review specification](type-function-review-proposal.md)
 now requires checked cross-file supporting evidence, a 256 KiB per-source-file
@@ -56,7 +58,7 @@ secret- or source-bearing fields in the new evidence records.
 | 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 3 obligations |
 | 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
 | 7 | Resident dispatch and collection | FIFO preparation fills up to 8 slots; review jobs use the separate Jev gate; ordinary advice waits for its edit's work to settle; Stop may use ready partial findings at its deadline; deterministic 10 KiB response with no separate finding-count cap; overflow retained; expiry at 600,000 ms equality | 4 obligations |
-| 8 | Logical capacity and transport | Global 512 items/64 MiB; partition 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
+| 8 | Logical capacity and transport | Global 512 items/256 MiB; partition 16 items/32 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 bounded keys; restart reset; never included in agent output | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
 | 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
@@ -106,7 +108,7 @@ unverified rather than inferred from the packaged hook run.
 | --- | --- |
 | Native patch command / named candidates | 64 KiB / 1–16 |
 | Source capture / declarations / referenced names | 32 KiB per file / 64 / 16 excluding the root |
-| Logical capacity | 512 items and 64 MiB per resident; 16 items and 2 MiB per partition. Children have separate partitions. Claude partitions also separate tool calls; composed rounds separate generations. All partitions share the resident limit. |
+| Logical capacity | 512 items and 256 MiB per resident; 16 items and 32 MiB per partition. Children have separate partitions. Claude partitions also separate tool calls; composed rounds separate generations. All partitions share the resident limit. |
 | Successful cache | 8 entries and 128 KiB, charged to capacity |
 | Resident job concurrency | 8 shared preparation/evaluation slots; at most 8 Jev calls if every running job is evaluating |
 | Host handoff | 10 KiB encoded response, with no separate finding-count cap; Hapsland's own budget |

@@ -160,7 +160,7 @@ function io_eff(k, run, need) {
 // =======
 
 function $main$() {
-  return $Bool$pick$(($ImportGraph$local_budget$({$: "ImportGraph.Limits", "version": 1, "source_bytes": 262144, "tree_bytes": 20480, "files": 8, "read_bytes": 1572864, "outgoing_edges": 16, "depth": 4, "work": 128}, 1, 1, 1, 1)), ($ImportGraph$bounded_step$(($ImportGraph$bounded_initial$({$: "ImportGraph.Limits", "version": 1, "source_bytes": 262144, "tree_bytes": 20480, "files": 8, "read_bytes": 1572864, "outgoing_edges": 16, "depth": 4, "work": 128})), {$: "ImportGraph.Root", "target": 1, "source_bytes": 100, "tree_bytes": 100, "local_work": 0, "edges": {$: "Con", "head": 2, "tail": {$: "Nil"}}})), ($ImportGraph$bounded_step$(($ImportGraph$bounded_initial$({$: "ImportGraph.Limits", "version": 1, "source_bytes": 262144, "tree_bytes": 20480, "files": 8, "read_bytes": 1572864, "outgoing_edges": 16, "depth": 4, "work": 128})), {$: "ImportGraph.Next"})));
+  return $Bool$pick$(($ImportGraph$058local_budget$({$: "ImportGraph.Limits", "version": 1, "source_bytes": 262144, "tree_bytes": 20480, "files": 8, "read_bytes": 1572864, "outgoing_edges": 16, "depth": 4, "work": 128}, 1, 1, 1, 1)), ($ImportGraph$058bounded_step$(($ImportGraph$058bounded_initial$({$: "ImportGraph.Limits", "version": 1, "source_bytes": 262144, "tree_bytes": 20480, "files": 8, "read_bytes": 1572864, "outgoing_edges": 16, "depth": 4, "work": 128})), {$: "ImportGraph.Root", "target": 1, "source_bytes": 100, "tree_bytes": 100, "local_work": 0, "edges": {$: "Con", "head": 2, "tail": {$: "Nil"}}})), ($ImportGraph$058bounded_step$(($ImportGraph$058bounded_initial$({$: "ImportGraph.Limits", "version": 1, "source_bytes": 262144, "tree_bytes": 20480, "files": 8, "read_bytes": 1572864, "outgoing_edges": 16, "depth": 4, "work": 128})), {$: "ImportGraph.Next"})));
 }
 
 function $Bool$pick$(_c_0, _a_0, _b_0) {
@@ -171,18 +171,18 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
   }
 }
 
-function $ImportGraph$local_budget$(_limits_0, _local_work_0, _local_depth_0, _distinct_targets_0, _graph_work_0) {
-  return $Bool$and$(($Bool$not$(($Nat$is_gt$(_local_depth_0, ($ImportGraph$depth_cap$(_limits_0)))))), ($Bool$and$(($Bool$not$(($Nat$is_gt$(_distinct_targets_0, ($ImportGraph$edge_cap$(_limits_0)))))), ($Bool$not$(($Nat$is_gt$(nat_chk(_local_work_0 + _graph_work_0), ($ImportGraph$work_cap$(_limits_0)))))))));
+function $ImportGraph$058local_budget$(_limits_0, _local_work_0, _local_depth_0, _distinct_targets_0, _graph_work_0) {
+  return $Bool$and$(($Bool$not$(($Nat$is_gt$(_local_depth_0, ($ImportGraph$058depth_cap$(_limits_0)))))), ($Bool$and$(($Bool$not$(($Nat$is_gt$(_distinct_targets_0, ($ImportGraph$058edge_cap$(_limits_0)))))), ($Bool$not$(($Nat$is_gt$(nat_chk(_local_work_0 + _graph_work_0), ($ImportGraph$058work_cap$(_limits_0)))))))));
 }
 
-function $ImportGraph$bounded_step$(_state_0, _event_0) {
+function $ImportGraph$058bounded_step$(_state_0, _event_0) {
   const _graph_0 = _state_0["graph"];
   const _remaining_0 = _state_0["remaining"];
-  return $ImportGraph$bounded_step_go$(_graph_0, _event_0, _remaining_0);
+  return $ImportGraph$058bounded_step_go$(_graph_0, _event_0, _remaining_0);
 }
 
-function $ImportGraph$bounded_initial$(_limits_0) {
-  return {$: "ImportGraph.Bounded", "graph": ($ImportGraph$initial$(_limits_0)), "remaining": ($ImportGraph$event_budget$(_limits_0))};
+function $ImportGraph$058bounded_initial$(_limits_0) {
+  return {$: "ImportGraph.Bounded", "graph": ($ImportGraph$058initial$(_limits_0)), "remaining": ($ImportGraph$058event_budget$(_limits_0))};
 }
 
 function $Bool$and$(_a_0, _b_0) {
@@ -205,36 +205,36 @@ function $Nat$is_gt$(_a_0, _b_0) {
   return $Cmp$is_gt$(cmp_new(_a_0, _b_0));
 }
 
-function $ImportGraph$depth_cap$(_limits_0) {
+function $ImportGraph$058depth_cap$(_limits_0) {
   const _depth_0 = _limits_0["depth"];
   return _depth_0;
 }
 
-function $ImportGraph$edge_cap$(_limits_0) {
+function $ImportGraph$058edge_cap$(_limits_0) {
   const _outgoing_edges_0 = _limits_0["outgoing_edges"];
   return _outgoing_edges_0;
 }
 
-function $ImportGraph$work_cap$(_limits_0) {
+function $ImportGraph$058work_cap$(_limits_0) {
   const _work_0 = _limits_0["work"];
   return _work_0;
 }
 
-function $ImportGraph$bounded_step_go$(_graph_0, _event_0, _remaining_0) {
+function $ImportGraph$058bounded_step_go$(_graph_0, _event_0, _remaining_0) {
   if (_remaining_0 === 0) {
-    return $ImportGraph$wrap$(($ImportGraph$exhausted$(_graph_0)), 0);
+    return $ImportGraph$058wrap$(($ImportGraph$058exhausted$(_graph_0)), 0);
   } else {
     const _rest_0 = (_remaining_0 - 1);
-    return $ImportGraph$wrap$(($ImportGraph$step$(_graph_0, _event_0)), _rest_0);
+    return $ImportGraph$058wrap$(($ImportGraph$058step$(_graph_0, _event_0)), _rest_0);
   }
 }
 
-function $ImportGraph$initial$(_limits_0) {
+function $ImportGraph$058initial$(_limits_0) {
   return {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Idle"}, "pending": {$: "Nil"}, "visited": {$: "Nil"}, "files": 0, "read_bytes": 0, "tree_bytes": 0, "work": 0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0};
 }
 
-function $ImportGraph$event_budget$(_limits_0) {
-  const _x_0 = ($ImportGraph$work_cap$(_limits_0));
+function $ImportGraph$058event_budget$(_limits_0) {
+  const _x_0 = ($ImportGraph$058work_cap$(_limits_0));
   const _x_1 = nat_chk(4 * _x_0);
   return nat_chk(2 + _x_1);
 }
@@ -247,13 +247,13 @@ function $Cmp$is_gt$(_c_0) {
   }
 }
 
-function $ImportGraph$wrap$(_result_0, _remaining_0) {
+function $ImportGraph$058wrap$(_result_0, _remaining_0) {
   const _graph_0 = _result_0["state"];
   const _command_0 = _result_0["command"];
   return {$: "ImportGraph.BoundedStep", "state": {$: "ImportGraph.Bounded", "graph": _graph_0, "remaining": _remaining_0}, "command": _command_0};
 }
 
-function $ImportGraph$exhausted$(_graph_0) {
+function $ImportGraph$058exhausted$(_graph_0) {
   const _t_0 = _graph_0["phase"];
   if (_t_0.$ === "ImportGraph.Complete") {
     const _pending_0 = _graph_0["pending"];
@@ -291,23 +291,23 @@ function $ImportGraph$exhausted$(_graph_0) {
     const _skipped_excluded_2 = _graph_0["skipped_excluded"];
     const _skipped_other_2 = _graph_0["skipped_other"];
     const _limits_2 = _graph_0["limits"];
-    return $ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.WorkLimit"});
+    return $ImportGraph$058fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.WorkLimit"});
   }
 }
 
-function $ImportGraph$step$(_state_0, _event_0) {
+function $ImportGraph$058step$(_state_0, _event_0) {
   if (_event_0.$ === "ImportGraph.DeadlineReached") {
-    return $ImportGraph$deadline$(_state_0);
+    return $ImportGraph$058deadline$(_state_0);
   } else {
-    return $ImportGraph$apply$(_state_0, _event_0);
+    return $ImportGraph$058apply$(_state_0, _event_0);
   }
 }
 
-function $ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, _reason_0) {
+function $ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, _reason_0) {
   return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": _reason_0}};
 }
 
-function $ImportGraph$deadline$(_state_0) {
+function $ImportGraph$058deadline$(_state_0) {
   const _t_0 = _state_0["phase"];
   if (_t_0.$ === "ImportGraph.Complete") {
     const _pending_0 = _state_0["pending"];
@@ -345,11 +345,11 @@ function $ImportGraph$deadline$(_state_0) {
     const _skipped_excluded_2 = _state_0["skipped_excluded"];
     const _skipped_other_2 = _state_0["skipped_other"];
     const _limits_2 = _state_0["limits"];
-    return $ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.Deadline"});
+    return $ImportGraph$058fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.Deadline"});
   }
 }
 
-function $ImportGraph$apply$(_state_0, _event_0) {
+function $ImportGraph$058apply$(_state_0, _event_0) {
   const _t_0 = _state_0["phase"];
   if (_t_0.$ === "ImportGraph.Idle") {
     const _pending_0 = _state_0["pending"];
@@ -368,9 +368,9 @@ function $ImportGraph$apply$(_state_0, _event_0) {
       const _tree_bytes_1 = _event_0["tree_bytes"];
       const _local_work_0 = _event_0["local_work"];
       const _edges_0 = _event_0["edges"];
-      return $ImportGraph$root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_1, _local_work_0, _edges_0);
+      return $ImportGraph$058root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_1, _local_work_0, _edges_0);
     } else {
-      return $ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ProtocolViolation"});
+      return $ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ProtocolViolation"});
     }
   } else if (_t_0.$ === "ImportGraph.Ready") {
     const _pending_1 = _state_0["pending"];
@@ -384,9 +384,9 @@ function $ImportGraph$apply$(_state_0, _event_0) {
     const _skipped_other_1 = _state_0["skipped_other"];
     const _limits_1 = _state_0["limits"];
     if (_event_0.$ === "ImportGraph.Next") {
-      return $ImportGraph$next$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1);
+      return $ImportGraph$058next$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1);
     } else {
-      return $ImportGraph$fail$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1, {$: "ImportGraph.ProtocolViolation"});
+      return $ImportGraph$058fail$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1, {$: "ImportGraph.ProtocolViolation"});
     }
   } else if (_t_0.$ === "ImportGraph.Resolving") {
     const _edge_0 = _t_0["edge"];
@@ -403,9 +403,9 @@ function $ImportGraph$apply$(_state_0, _event_0) {
     if (_event_0.$ === "ImportGraph.Resolved") {
       const _target_1 = _event_0["target"];
       const _result_0 = _event_0["result"];
-      return $ImportGraph$resolved$(_limits_2, _edge_0, _target_1, _result_0, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2);
+      return $ImportGraph$058resolved$(_limits_2, _edge_0, _target_1, _result_0, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2);
     } else {
-      return $ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.ProtocolViolation"});
+      return $ImportGraph$058fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.ProtocolViolation"});
     }
   } else if (_t_0.$ === "ImportGraph.Checking") {
     const _edge_1 = _t_0["edge"];
@@ -422,9 +422,9 @@ function $ImportGraph$apply$(_state_0, _event_0) {
     const _limits_3 = _state_0["limits"];
     if (_event_0.$ === "ImportGraph.PathChecked") {
       const _allowed_0 = _event_0["allowed"];
-      return $ImportGraph$checked$(_limits_3, _edge_1, _target_2, _allowed_0, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3);
+      return $ImportGraph$058checked$(_limits_3, _edge_1, _target_2, _allowed_0, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3);
     } else {
-      return $ImportGraph$fail$(_limits_3, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3, {$: "ImportGraph.ProtocolViolation"});
+      return $ImportGraph$058fail$(_limits_3, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3, {$: "ImportGraph.ProtocolViolation"});
     }
   } else if (_t_0.$ === "ImportGraph.Capturing") {
     const _edge_2 = _t_0["edge"];
@@ -444,11 +444,11 @@ function $ImportGraph$apply$(_state_0, _event_0) {
       const _node_bytes_0 = _event_0["node_bytes"];
       const _local_work_1 = _event_0["local_work"];
       const _edges_1 = _event_0["edges"];
-      return $ImportGraph$captured$(_limits_4, _edge_2, _target_3, _source_bytes_1, _node_bytes_0, _local_work_1, _edges_1, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4);
+      return $ImportGraph$058captured$(_limits_4, _edge_2, _target_3, _source_bytes_1, _node_bytes_0, _local_work_1, _edges_1, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4);
     } else if (_event_0.$ === "ImportGraph.CaptureFailed") {
       return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_4, "visited": {$: "Con", "head": _target_3, "tail": _visited_4}, "files": _files_4, "read_bytes": _read_bytes_4, "tree_bytes": _tree_bytes_5, "work": _work_4, "skipped_tree": _skipped_tree_4, "skipped_excluded": _skipped_excluded_4, "skipped_other": true, "limits": _limits_4}, "command": {$: "ImportGraph.SkipImport", "target": _target_3, "reason": {$: "ImportGraph.CaptureUnavailable"}}};
     } else {
-      return $ImportGraph$fail$(_limits_4, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4, {$: "ImportGraph.ProtocolViolation"});
+      return $ImportGraph$058fail$(_limits_4, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4, {$: "ImportGraph.ProtocolViolation"});
     }
   } else if (_t_0.$ === "ImportGraph.Complete") {
     const _pending_5 = _state_0["pending"];
@@ -478,15 +478,15 @@ function $ImportGraph$apply$(_state_0, _event_0) {
   }
 }
 
-function $ImportGraph$root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_0, _local_work_0, _edges_0) {
-  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($ImportGraph$source_cap$(_limits_0))));
-  const _x_1 = ($Nat$is_gt$(_source_bytes_0, ($ImportGraph$read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($ImportGraph$edge_count$(_edges_0)), ($ImportGraph$edge_cap$(_limits_0))));
-  const _x_3 = ($Nat$is_gt$(_local_work_0, ($ImportGraph$work_cap$(_limits_0))));
-  return $Bool$pick$((_x_0 || _x_1), ($ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($ImportGraph$tree_cap$(_limits_0)))), ($ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.WorkLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($ImportGraph$with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
+function $ImportGraph$058root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_0, _local_work_0, _edges_0) {
+  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($ImportGraph$058source_cap$(_limits_0))));
+  const _x_1 = ($Nat$is_gt$(_source_bytes_0, ($ImportGraph$058read_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($ImportGraph$058edge_count$(_edges_0)), ($ImportGraph$058edge_cap$(_limits_0))));
+  const _x_3 = ($Nat$is_gt$(_local_work_0, ($ImportGraph$058work_cap$(_limits_0))));
+  return $Bool$pick$((_x_0 || _x_1), ($ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($ImportGraph$058tree_cap$(_limits_0)))), ($ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($ImportGraph$058fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.WorkLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($ImportGraph$058with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
 }
 
-function $ImportGraph$next$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+function $ImportGraph$058next$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
   if (_pending_0.$ === "Nil") {
     return $Bool$pick$(_skipped_tree_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.TreeLimit"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.TreeLimit"}}}, ($Bool$pick$(_skipped_excluded_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.Excluded"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.Excluded"}}}, ($Bool$pick$(_skipped_other_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.Omitted"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.Omitted"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.UnitComplete"}})))));
   } else {
@@ -494,11 +494,11 @@ function $ImportGraph$next$(_limits_0, _pending_0, _visited_0, _files_0, _read_b
     const _id_0 = _t_0["id"];
     const _depth_0 = _t_0["depth"];
     const _rest_0 = _pending_0["tail"];
-    return $Bool$pick$(($Nat$is_ge$(_work_0, ($ImportGraph$work_cap$(_limits_0)))), ($ImportGraph$fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(_depth_0, ($ImportGraph$depth_cap$(_limits_0)))), ($ImportGraph$fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.DepthLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Resolving", "edge": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}}, "pending": _rest_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + 1), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ResolveEdge", "edge": _id_0}})));
+    return $Bool$pick$(($Nat$is_ge$(_work_0, ($ImportGraph$058work_cap$(_limits_0)))), ($ImportGraph$058fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(_depth_0, ($ImportGraph$058depth_cap$(_limits_0)))), ($ImportGraph$058fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.DepthLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Resolving", "edge": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}}, "pending": _rest_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + 1), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ResolveEdge", "edge": _id_0}})));
   }
 }
 
-function $ImportGraph$resolved$(_limits_0, _edge_0, _target_0, _result_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+function $ImportGraph$058resolved$(_limits_0, _edge_0, _target_0, _result_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
   if (_result_0.$ === "ImportGraph.NotFound") {
     return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Missing"}}};
   } else if (_result_0.$ === "ImportGraph.Many") {
@@ -506,60 +506,60 @@ function $ImportGraph$resolved$(_limits_0, _edge_0, _target_0, _result_0, _pendi
   } else if (_result_0.$ === "ImportGraph.Unhandled") {
     return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Unsupported"}}};
   } else {
-    return $Bool$pick$(($ImportGraph$contains$(_target_0, _visited_0)), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Checking", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.CheckPath", "target": _target_0}});
+    return $Bool$pick$(($ImportGraph$058contains$(_target_0, _visited_0)), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Checking", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.CheckPath", "target": _target_0}});
   }
 }
 
-function $ImportGraph$checked$(_limits_0, _edge_0, _target_0, _allowed_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+function $ImportGraph$058checked$(_limits_0, _edge_0, _target_0, _allowed_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
   if (!_allowed_0) {
     return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Excluded"}}};
   } else {
-    const _x_0 = ($ImportGraph$source_cap$(_limits_0));
-    return $Bool$pick$(($Nat$is_ge$(_files_0, ($ImportGraph$file_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.FileLimit"}}}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_read_bytes_0 + _x_0), ($ImportGraph$read_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.ReadLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Capturing", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ReadSource", "target": _target_0}})));
+    const _x_0 = ($ImportGraph$058source_cap$(_limits_0));
+    return $Bool$pick$(($Nat$is_ge$(_files_0, ($ImportGraph$058file_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.FileLimit"}}}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_read_bytes_0 + _x_0), ($ImportGraph$058read_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.ReadLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Capturing", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ReadSource", "target": _target_0}})));
   }
 }
 
-function $ImportGraph$captured$(_limits_0, _edge_0, _target_0, _source_bytes_0, _node_bytes_0, _local_work_0, _edges_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+function $ImportGraph$058captured$(_limits_0, _edge_0, _target_0, _source_bytes_0, _node_bytes_0, _local_work_0, _edges_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
   const _depth_0 = _edge_0["depth"];
-  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($ImportGraph$source_cap$(_limits_0))));
-  const _x_1 = ($Nat$is_gt$(nat_chk(_read_bytes_0 + _source_bytes_0), ($ImportGraph$read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($ImportGraph$edge_count$(_edges_0)), ($ImportGraph$edge_cap$(_limits_0))));
-  const _x_3 = ($Nat$is_gt$(nat_chk(_work_0 + _local_work_0), ($ImportGraph$work_cap$(_limits_0))));
-  return $Bool$pick$((_x_0 || _x_1), ($ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($ImportGraph$tree_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($ImportGraph$read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.TreeLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($ImportGraph$read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($ImportGraph$tree_after$(_tree_bytes_0, _node_bytes_0, ($ImportGraph$tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
+  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($ImportGraph$058source_cap$(_limits_0))));
+  const _x_1 = ($Nat$is_gt$(nat_chk(_read_bytes_0 + _source_bytes_0), ($ImportGraph$058read_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($ImportGraph$058edge_count$(_edges_0)), ($ImportGraph$058edge_cap$(_limits_0))));
+  const _x_3 = ($Nat$is_gt$(nat_chk(_work_0 + _local_work_0), ($ImportGraph$058work_cap$(_limits_0))));
+  return $Bool$pick$((_x_0 || _x_1), ($ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($ImportGraph$058fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($ImportGraph$058tree_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.TreeLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($ImportGraph$058read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($ImportGraph$058tree_after$(_tree_bytes_0, _node_bytes_0, ($ImportGraph$058tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
 }
 
-function $ImportGraph$source_cap$(_limits_0) {
+function $ImportGraph$058source_cap$(_limits_0) {
   const _source_bytes_0 = _limits_0["source_bytes"];
   return _source_bytes_0;
 }
 
-function $ImportGraph$read_cap$(_limits_0) {
+function $ImportGraph$058read_cap$(_limits_0) {
   const _read_bytes_0 = _limits_0["read_bytes"];
   return _read_bytes_0;
 }
 
-function $ImportGraph$tree_cap$(_limits_0) {
+function $ImportGraph$058tree_cap$(_limits_0) {
   const _tree_bytes_0 = _limits_0["tree_bytes"];
   return _tree_bytes_0;
 }
 
-function $ImportGraph$edge_count$(_edges_0) {
+function $ImportGraph$058edge_count$(_edges_0) {
   if (_edges_0.$ === "Nil") {
     return 0;
   } else {
     const _rest_0 = _edges_0["tail"];
-    const _x_0 = ($ImportGraph$edge_count$(_rest_0));
+    const _x_0 = ($ImportGraph$058edge_count$(_rest_0));
     return nat_chk(1 + _x_0);
   }
 }
 
-function $ImportGraph$with_depth$(_edges_0, _depth_0) {
+function $ImportGraph$058with_depth$(_edges_0, _depth_0) {
   if (_edges_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _id_0 = _edges_0["head"];
     const _rest_0 = _edges_0["tail"];
-    return {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": ($ImportGraph$with_depth$(_rest_0, _depth_0))};
+    return {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": ($ImportGraph$058with_depth$(_rest_0, _depth_0))};
   }
 }
 
@@ -567,32 +567,32 @@ function $Nat$is_ge$(_a_0, _b_0) {
   return $Cmp$is_ge$(cmp_new(_a_0, _b_0));
 }
 
-function $ImportGraph$contains$(_target_0, _visited_0) {
+function $ImportGraph$058contains$(_target_0, _visited_0) {
   if (_visited_0.$ === "Nil") {
     return false;
   } else {
     const _head_0 = _visited_0["head"];
     const _rest_0 = _visited_0["tail"];
     const _x_0 = ($Nat$is_eq$(_target_0, _head_0));
-    const _x_1 = ($ImportGraph$contains$(_target_0, _rest_0));
+    const _x_1 = ($ImportGraph$058contains$(_target_0, _rest_0));
     return (_x_0 || _x_1);
   }
 }
 
-function $ImportGraph$file_cap$(_limits_0) {
+function $ImportGraph$058file_cap$(_limits_0) {
   const _files_0 = _limits_0["files"];
   return _files_0;
 }
 
-function $ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, _overflow_0) {
-  return $Bool$pick$(_overflow_0, _pending_0, ($List$append$(_pending_0, ($ImportGraph$with_depth$(_edges_0, nat_chk(_depth_0 + 1))))));
+function $ImportGraph$058pending_after$(_pending_0, _edges_0, _depth_0, _overflow_0) {
+  return $Bool$pick$(_overflow_0, _pending_0, ($List$append$(_pending_0, ($ImportGraph$058with_depth$(_edges_0, nat_chk(_depth_0 + 1))))));
 }
 
-function $ImportGraph$read_after$(_total_0, _contribution_0) {
+function $ImportGraph$058read_after$(_total_0, _contribution_0) {
   return nat_chk(_total_0 + _contribution_0);
 }
 
-function $ImportGraph$tree_after$(_total_0, _contribution_0, _cap_0) {
+function $ImportGraph$058tree_after$(_total_0, _contribution_0, _cap_0) {
   return $Bool$pick$(($Nat$is_gt$(nat_chk(_total_0 + _contribution_0), _cap_0)), _total_0, nat_chk(_total_0 + _contribution_0));
 }
 
@@ -763,9 +763,18 @@ function io_sys() {
   return globalThis.BEND_SYS;
 }
 
+// strerror needs bun:ffi; a host without it (node) gets the bare errno.
+function io_strerror(code) {
+  try {
+    return String(io_sys().strerror(code));
+  } catch (_) {
+    return "errno " + code;
+  }
+}
+
 function io_fail(code) {
   return { $: "Fail",
-    error: io_tup(code >>> 0, String(io_sys().strerror(code))) };
+    error: io_tup(code >>> 0, io_strerror(code)) };
 }
 
 function io_done(value) {
@@ -820,9 +829,9 @@ function io_push(fun, arg, fresh) {
   io.live += fresh ? 1 : 0;
 }
 
-function io_wait(io) {
+function io_wait(io, block) {
   const soon = io.waits[0]?.at ?? Infinity;
-  const ms = soon === Infinity ? -1
+  const ms = !block ? 0 : soon === Infinity ? -1
     : Math.max(0, Math.ceil(soon - performance.now()));
   const fds = io.waits.filter((w) => w.fd !== undefined);
   const top = fds.reduce((m, w) => Math.max(m, w.fd), 0);
@@ -869,7 +878,8 @@ function io_run(m) {
   globalThis.BEND_IO = io;
   try {
     io_push(run_loop(m()), (x) => ({ $: "Emit", value: x }), true);
-    for (;;) {
+    let look = 0;
+    for (let n = 0;; n += 1) {
       if (io.runs.length === 0) {
         if (io.live === 0) {
           return 0;
@@ -878,8 +888,15 @@ function io_run(m) {
           io_errs("bend: deadlock: every computation waits on a channel");
           return 1;
         }
-        io_wait(io);
+        io_wait(io, true);
         continue;
+      }
+      if ((n & 63) === 0 && io.waits.length > 0) {
+        const now = performance.now();
+        if (now >= look || io.waits[0].at <= now) {
+          look = now + 10;
+          io_wait(io, false);
+        }
       }
       const s = io.runs.shift();
       let op = s.fun(s.arg);
@@ -940,8 +957,8 @@ const normalize = (value) => {
   }
   return value;
 };
-export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$bounded_initial$(normalize(limits)));
+export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$058bounded_initial$(normalize(limits)));
 export const bendImportGraphStep = (state, event) =>
-  run_loop($ImportGraph$bounded_step$(state, normalize(event)));
+  run_loop($ImportGraph$058bounded_step$(state, normalize(event)));
 export const bendImportGraphLocalBudget = (limits, localWork, localDepth, distinctTargets, graphWork) =>
-  run_loop($ImportGraph$local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
+  run_loop($ImportGraph$058local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));

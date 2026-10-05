@@ -1,0 +1,2827 @@
+{
+  "purpose": "Sanitized acceptance-evidence reconciliation for issues 178-200",
+  "authority": "Implementation/validation evidence only; issue acceptance criteria remain authoritative.",
+  "assessment_head": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
+  "latest_main_reported_by_parent": {
+    "primary_master": "a783ce951082d855b5e1d3d02568954b3e7a1913",
+    "integration_head": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
+    "native_recovery_181": "PASS 21.021s at b0e5f1b2; four original 12-cycle native/emitted/public/replay cases.",
+    "collection_response_192": "PASS 81.898s at cebad2b0; five original native/emitted/public/intermediate/replay cases.",
+    "native_run_197": "PASS7/7 fresh Bend2.0.35 in44.593s at11ac",
+    "output_191": "PASS58.576s at e823; original5 fresh native/emitted/public/literal/replay on Bend2.0.35",
+    "full_game_199": "PASS138.673s fresh Bend2.0.35 at e823; all145 pairs and fullpublic/replay",
+    "issue_200": "Maintained coverage map updated and reconciled in 3c998eff; no CI or full-project gate claimed.",
+    "remaining": "none in required local scope"
+  },
+  "sources": [
+    "/tmp/hapsland-issues.json",
+    "/tmp/hapsland-implementation-ledger.json",
+    "/tmp/hapsland-current-completion-audit.json",
+    "integration worktree .test-runs and prototypes/canonical-defense/performance-evidence/*.json",
+    "primary master committed ancestry and path diff: 6271585..a783ce95",
+    "integration committed ancestry and source-pinned receipts through 20787242"
+  ],
+  "limits": [
+    "Read-only consistency check; only this /tmp audit JSON was edited. No compiler, tests, repository files, merge, or rebase was run.",
+    "Evidence is qualified by producer source pin and selected owner scope; no all-owner acceptance claim is inferred.",
+    "No full-project gate, exhaustive cross-product, or exhaustive theorem inventory inferred.",
+    "Primary master contains uncommitted user files; only prior git status/path information was observed, and those files were not read or modified."
+  ],
+  "evidence_index": {
+    "native_run_7": {
+      "kind": "focused current NativeRun owner run",
+      "issue_scope": [
+        197
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-native-run-final-qualified.json",
+      "receipt": ".test-runs/20261005002207757-2119570-b85cbe",
+      "source_pin": "11ac3f03",
+      "result": "PASS7/7 fresh native/emitted/public/replay in44.593s on Bend2.0.35",
+      "qualification": "Game-only foreign effect fix does not change NativeRun fixture closure."
+    },
+    "gap_191_192_195_public": {
+      "kind": "focused public/headless test run",
+      "issue_scope": [
+        191,
+        192,
+        195
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-public-browser-qualification.json",
+      "receipt": ".test-runs/20261004224027844-1789574-525b25",
+      "result": "7 files, 53 tests passed; 2 native tests skipped; 23.694s. Selected output-attempt, output-controls, collection-scenario, collection-response, resource-scenarios, stop-output-scope, seeded-stop-budget-campaigns, and two dashboard control owners.",
+      "qualification": "The recorded filter explicitly excludes tests with native in their names. This receipt closes only the selected public/headless layer."
+    },
+    "dashboard_controls_3": {
+      "kind": "dashboard package focused test run",
+      "issue_scope": [
+        191,
+        192,
+        195
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-public-browser-qualification.json",
+      "result": "2 files; 3 tests passed; 3.13s; package-cwd run."
+    },
+    "browser_controls_3": {
+      "kind": "selected browser execution",
+      "issue_scope": [
+        182,
+        192,
+        195
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-public-browser-qualification.json",
+      "source_pin": "7a0d0535cae7c6cc781fc33f436efb337a588054",
+      "result": "Three selected scripts passed: collectors, Stop slot, and callback controls. Callback browser specifically confirms actual issued completion and Hold/Release applicability/original identity; collector and Stop scripts confirm selected-frame meters/slots.",
+      "qualification": "Selected cases only; no full browser suite. Browser scripts were unchanged between this pin and current 77d54c38."
+    },
+    "no_game_build": {
+      "kind": "game-absent application build",
+      "issue_scope": [
+        200
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-no-game-build.json",
+      "source_pin": "e823083a",
+      "result": "PASS14.722s; game directory physically absent and restored.",
+      "qualification": "Current tree 77d54c38 adds only this evidence and prose after a495fd90. This proves the build boundary, not a full game-absent business test gate."
+    },
+    "full_game_producers_prior": {
+      "kind": "full native/emitted-JS producer comparison",
+      "issue_scope": [
+        199,
+        200
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-producers.json",
+      "receipt": "/workspace/typescript/jev-worktrees/game-numeric-output/.test-runs/20261004230027672-1877539-a716e9/workload-outputs/game-output-1877553-BxC9BN/receipt.json",
+      "result": "All 145 native and JS batch hashes match; gzip and uncompressed hashes verified; 82,303,930 bytes per lane. Public verdict failed at campaign 0 tick 200 SourceJob binding; no public/replay acceptance.",
+      "qualification": "Useful producer parity evidence only; not a full 4-campaign/3,222-tick public qualification."
+    },
+    "full_game_latest_parent_report": {
+      "kind": "superseded parent-reported full producer/public run; now resolved by durable current-source receipt",
+      "issue_scope": [
+        199,
+        200
+      ],
+      "source_pin": "cdb2b8c9 (earlier report)",
+      "result": "Historical producer parity did not resolve later SourceJob failure; superseded for current acceptance by evidence:full_game_current at e823083a.",
+      "qualification": "Historical diagnostic retained; current-source durable receipt is authoritative for issue199 game-run qualification."
+    },
+    "current_sourcejob_fix": {
+      "kind": "source change, not validation",
+      "issue_scope": [
+        197,
+        199,
+        200
+      ],
+      "path": "packages/monkey-business-bend/NativeRun.bend",
+      "source_pin": "bcfd6fbe6dff37679c74b83ec7de6da16e4b0dd3",
+      "result": "Changed queued NativeRun post actions to preserve the original SourceJob independently from active binding.",
+      "qualification": "No producer/public/replay result after this change was included in the available durable evidence. A separate campaign-3 selected-source omission is also still being fixed per parent report."
+    },
+    "full_game_current": {
+      "kind": "final full-game native/emitted-JS/public/replay qualification",
+      "issue_scope": [
+        199,
+        200
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
+      "receipt": ".test-runs/20261005002505744-2134577-de8a96",
+      "source_pin": "e823083a",
+      "result": "PASS138.673s; all145 native/emitted hash pairs, 3222ticks, public histories, independent midpoints and replay.",
+      "qualification": "Fresh producers on Bend2.0.35 after master integration and foreign effect name correction."
+    },
+    "full_stop_output_12": {
+      "kind": "focused original Stop output native/emitted/public/replay run",
+      "issue_scope": [
+        191,
+        195
+      ],
+      "path": ".test-runs/20261004172750115-965877-86f98d",
+      "source_pin": "773a9a76",
+      "result": "12 original Stop output scenarios passed; retained fresh-native and emitted-JS receipt outputs were compared with public, frozen, and replay oracles. Scenarios include 10,239/10,240/10,241-byte output boundaries, failed/uncertain/mismatched terminal outcomes, profile changes, captured lease/delay boundaries, and repeated attempts.",
+      "qualification": "Retained fixture uses no collectors; this is not an explicit collector-response/output intersection or current-source requalification."
+    },
+    "current_output_collection_native_run": {
+      "kind": "focused output/collection owner run; terminal with one compiler-timeout failure",
+      "issue_scope": [
+        191,
+        192
+      ],
+      "path": ".test-runs/20261004233818872-1981242-378997",
+      "source_pin": "a5be2481",
+      "result": "Vitest failed in 69.867s: collection-scenario passed 12/12; output-attempt had 10 public tests pass and one native/emitted case fail before C output because Bend C emission timed out at 30s (ETIMEDOUT, 30.392s). No product mismatch was observed.",
+      "receipts": {
+        "collection_native": ".test-runs/20261004233818872-1981242-378997/workload-outputs/fresh-native-1982799-H2CQzV/receipt.json",
+        "collection_native_result": "collection-decisions.bend fresh-native output: 42 bytes, SHA-256 4f690f95e8b16c481e02c95f74676f93dd5f8c61a9a6673512418fbbf39c9c9f.",
+        "output_native_failure": ".test-runs/20261004233818872-1981242-378997/workload-outputs/fresh-native-failure-1981301-zhCnLw/receipt.json"
+      },
+      "qualification": "Collection native receipt covers ten literal decision rows compared to public event observations; adjacent public replay test passes. It neither invokes emitted JS nor covers the full collection-response/output lifecycle. Output attempt public boundary tests pass, but its native emission was not completed."
+    },
+    "native_recovery_four_12": {
+      "kind": "focused native/emitted recovery owner run",
+      "issue_scope": [
+        181
+      ],
+      "path": ".test-runs/20261004234954827-2007911-43db86",
+      "source_pin": "b0e5f1b2f1af0c82027ecf080eeec1611a0e1101",
+      "selector": "compares four original twelve-cycle recovery scripts with the stateful native driver and public replay",
+      "result": "PASS 1/1 selected test, 9 skipped; 21.021s. Fresh-native and emitted-JS workload receipts retained; all four fault profiles exercised across 12 cycles and compared to public traces/replay."
+    },
+    "collection_response_five": {
+      "kind": "focused original collection response native/emitted/public/replay run",
+      "issue_scope": [
+        192
+      ],
+      "path": ".test-runs/20261004235406734-2015465-4a40aa",
+      "source_pin": "cebad2b0b09765b58c6eed52571e37cc8c2b0502",
+      "selector": "compares all five original collection response full native/emitted/public/replay boundaries",
+      "result": "PASS 1/1 selected test, 6 skipped; 81.898s. Fresh-native and emitted-JS receipts retained; five original response cases checked against public boundary and replay/intermediate expectations."
+    },
+    "output_authorized_five": {
+      "kind": "focused original authorized output native/emitted/public/literal/replay run",
+      "issue_scope": [
+        191
+      ],
+      "path": ".test-runs/20261004235655112-2033989-4232c2",
+      "source_pin": "e823083a",
+      "selector": "compares original authorized output scripts with native Bend and preserves early/mid/late ownership",
+      "result": "PASS58.576s; originalfive fresh native/emitted/public/literal/replay on Bend2.0.35",
+      "receipt": ".test-runs/20261005002958506-2152819-25e89a"
+    },
+    "master_committed_delta": {
+      "kind": "read-only primary-master ancestry and owner-path comparison",
+      "primary_head": "a783ce951082d855b5e1d3d02568954b3e7a1913",
+      "integration_head": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
+      "merge_base": "62715850212f444fb33e2f39dd72861838df396d",
+      "result": "Primary mastera783 is an ancestor of integrated candidate; no primary user edits copied or mutated.",
+      "relevant_commits": [
+        {
+          "commit": "48b6ad5316a374be6fc042d3725909a83c2e4f7d",
+          "subject": "Adopt Oxlint and dprint with staged checks and format authored code",
+          "owner_paths": "Touches 92 integration-owner paths: 26 monkey-business, 10 agent-flow-bend, 51 agent-flow-viz, 1 agent-flow-projection, 4 session-bend; zero canonical-defense paths. Sampled diff is formatting-only; path reconciliation is needed when landing over current implementation."
+        },
+        {
+          "commit": "dbbcaa5000fbc38715384025f01373894d4426e3",
+          "subject": "Share credential lookup across setup and hooks and fix native resident retirement",
+          "owner_paths": "Semantic product changes in credentials/setup/resident lifecycle; within #178-200 file paths it updates packages/monkey-business/src/index.ts identity literals and packages/session-bend/generated.json. Current integration instead derives identities from the Bend engine and deletes packages/session-bend under #200; preserve final generated identities and the package deletion."
+        }
+      ],
+      "unrelated_commits": [
+        {
+          "commit": "d81a28f17e1c46092ab7dd2784238fdd568def5d",
+          "subject": "Centralize installed hooks and retire Codex prompt registration",
+          "scope": "Hook/installation product files; no issue-owner paths."
+        },
+        {
+          "commit": "a783ce951082d855b5e1d3d02568954b3e7a1913",
+          "subject": "Make doctor and installer outcomes readable and explicit",
+          "scope": "CLI/onboarding/doctor product files; no issue-owner paths."
+        }
+      ],
+      "landing_implication": "Another integration reconciliation is needed against current master before landing: retain current-master resident/product changes where still applicable, reconcile the format-only owner edits with current issue code, retain #200 package/session-bend deletion, and keep/recompute engine-derived logic/preparation identities. The paused master-48b-reconciled candidate is not current ancestry.",
+      "primary_worktree": "`git status --short` reported uncommitted user changes; only paths/status were observed, no contents were read or changed."
+    },
+    "full_game_prior_dfd": {
+      "kind": "prior full-game qualification, superseded by final source qualification",
+      "issue_scope": [
+        199,
+        200
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
+      "receipt": ".test-runs/20261004233103378-1957579-6010f7",
+      "source_pin": "dfd4266b",
+      "result": "PASS 131.373s; 145 native/emitted batches, 3,222 Host ticks, public/replay acceptance.",
+      "qualification": "Retained chronology; final run at e823083a is current qualified evidence."
+    },
+    "coverage_map_final": {
+      "kind": "maintained coverage guidance reconciled with task evidence",
+      "issue_scope": [
+        200
+      ],
+      "path": "packages/monkey-business/README.md",
+      "commit": "3c998eff",
+      "result": "Coverage section updated against current game-absent build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser receipts; no CI or full-project gate claimed.",
+      "qualification": "Maintained guidance maps evidence and limitations; it does not replace issue-owner acceptance."
+    },
+    "final_master_validation": {
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-toolchain-integration.json",
+      "result": "Complete: mastera783 is an ancestor; actual Engine regenerated11ac; structural12, harness15, typecheck/config, authority, docs, freshNativeRun7, fullgame and game-absent dashboard build passed."
+    },
+    "fresh_engine_public_oracles": {
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-toolchain-integration.json",
+      "result": "19 selected output/recovery/collection public intermediate and replay assertions passed against freshly regenerated current Engine; no native recompilation."
+    }
+  },
+  "issues": [
+    {
+      "issue": 178,
+      "title": "Prefactor the shared simulation interface without changing behavior",
+      "prior_audit_status": "prior signed off",
+      "recorded_owner_evidence": [
+        "Prior signoff"
+      ],
+      "owner_files": [],
+      "required_clause_map": [
+        {
+          "clause_id": "178.1",
+          "text": "Existing representative scenarios and independently expected traces remain unchanged through the public seam.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "178.2",
+          "text": "Preserve genuinely supported public numeric inputs; establish consistent native/JavaScript representation before migration without silently narrowing time values.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "178.3",
+          "text": "Record the initial coverage map: actual production decisions, modeled host orchestration and unexercised native boundaries. Preserve v1 formats in place; no compatibility shim or parallel maintained API.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "178.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "178.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "178.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "178.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 179,
+      "title": "Run one complete review and authorized delivery through Bend Monkey Business",
+      "prior_audit_status": "prior signed off",
+      "recorded_owner_evidence": [
+        "Prior signoff"
+      ],
+      "owner_files": [],
+      "required_clause_map": [
+        {
+          "clause_id": "179.1",
+          "text": "Invoke actual Canonical and ImportGraph decisions; workload/environment facts do not implement a second policy.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "179.2",
+          "text": "Verify both finding and clear outcomes and basic output eligibility/authorization; do not defer base authorization to later collector work.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "179.3",
+          "text": "Keep scope to a minimal complete path, excluding expanded graphs, full Stop and collector/runtime-profile matrices.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "179.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "179.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "179.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "179.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 180,
+      "title": "Generate continuous workload and advance virtual time in Bend",
+      "prior_audit_status": "prior signed off",
+      "recorded_owner_evidence": [
+        "Prior signoff"
+      ],
+      "owner_files": [],
+      "required_clause_map": [
+        {
+          "clause_id": "180.1",
+          "text": "Move useful Session scheduling into the shared engine; suspension preserves previously issued finite work.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.2",
+          "text": "Independent workload/outcome/preparation/fault random streams and explicit equal-time ordering make rendering, play speed and matching step/batch boundaries irrelevant to business results.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.3",
+          "text": "Replay reproduces the exact endpoint, including controls without a subsequent product event. Ordinary profile changes preserve issued results/deadlines and committed batches.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.4",
+          "text": "Use finite advancement budgets without introducing a new configurable storage-budget catalogue.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.5",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.6",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.7",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [],
+          "scope_note": "Prior signoff retained; no affected owner identified in this bounded audit."
+        },
+        {
+          "clause_id": "180.8",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 181,
+      "title": "Inject Jev failures and restore advice without resetting the resident",
+      "prior_audit_status": "current four-case native/emitted/public/replay recovery owner passed",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "pin": "84f80a9ee6863d335e9b065864f62cb5a670d3f7",
+          "run": "20261004170434157-913519-eb4989",
+          "scope": "issue-181-never-sent-recovery; exact neverSent parameter only",
+          "selector": "^releases each request and restores delivery through twelve neverSent cycles without reset$",
+          "result": "1 passed, 9 skipped; 12.321s; focused harness exit 0",
+          "worktree_head": "84f80a9ee6863d335e9b065864f62cb5a670d3f7",
+          "limitation": "One targeted recovery owner case only; issue-181 acceptance remains pending."
+        },
+        {
+          "run": "20261004170434157-913519-eb4989",
+          "source_pin": "84f80a9ee6863d335e9b065864f62cb5a670d3f7",
+          "selector": "^releases each request and restores delivery through twelve neverSent cycles without reset$",
+          "result": "1 passed, 9 skipped; 12.321s. Source test uses public createRun and replay only; it is not native or emitted-JS evidence."
+        },
+        {
+          "receipt_lookup": "Scoped all-worktree .test-runs receipt/log lookup found no retained run for `compares four original twelve-cycle recovery scripts with the stateful native driver and public replay` or `jev-recovery-native.bend`.",
+          "result": "The earlier combined 180-second run retained eight jev-targeted-controls public tests, then aborted before any jev-recovery test result."
+        },
+        {
+          "run": "20261004234954827-2007911-43db86",
+          "source_pin": "b0e5f1b2f1af0c82027ecf080eeec1611a0e1101",
+          "selector": "compares four original twelve-cycle recovery scripts with the stateful native driver and public replay",
+          "result": "PASS 1 selected, 9 skipped, 21.021s; fresh-native and emitted-JS receipts retained; all four fault profiles covered for twelve no-reset cycles and checked against public/replay traces."
+        }
+      ],
+      "owner_files": [
+        "jev-recovery.test.ts",
+        "jev-targeted-controls.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "181.1",
+          "text": "Exercise never-sent, backend failure, timeout and interruption with valid production lifecycle facts; never-sent emits no Started event.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.2",
+          "text": "Model credential unavailability, restoration and rotation at their existing authority boundaries.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.3",
+          "text": "Scripted and live interventions identify the intended target and visibly report application or refusal.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.4",
+          "text": "Repeated fault-to-finding cycles restore admission, collection readiness and output without reset or swallowed rejection; independent assertions detect the historical lifecycle/slot-leak defect.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.5",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.6",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.7",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:jev-recovery.test.ts",
+            "owner:jev-targeted-controls.test.ts",
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "Four original no-reset recovery scripts (never-sent, backend failure, timeout, interruption) passed the current native/emitted/public/replay owner comparison; targeted intervention and dashboard evidence remains separately scoped."
+        },
+        {
+          "clause_id": "181.8",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [
+            "evidence:native_recovery_four_12"
+          ],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": {
+        "kind": "qualified for recorded recovery owner scope",
+        "clauses": [],
+        "current_evidence": "The four original twelve-cycle recovery scripts passed native/emitted/public/replay comparison at source b0e5f1b2. Existing targeted controls/public and dashboard/browser receipts remain indexed separately.",
+        "next": "No further native recovery selector is needed for this recorded owner scope."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 182,
+      "title": "Hold, release, drop, duplicate and reorder simulated callbacks",
+      "prior_audit_status": "local six-original native/emitted/public/replay owner check complete; broader issue acceptance not asserted",
+      "recorded_owner_evidence": [
+        "Six original native/JS/public/replay cases PASS in mixed failed run20261004191429722; browser controls remain environment-blocked (libatk), separate boundary.",
+        {
+          "pin": "worktree HEAD 84f80a9ee6863d335e9b065864f62cb5a670d3f7; focused source fingerprint 486d1471a83e3b0374a182df0640f66d765783f8",
+          "run": "20261004170824812-921630-c8cd05",
+          "scope": "issue-182 public callback model; forged-target refusal plus dropped delivery only",
+          "selector": "^refuses an invented target atomically, and dropping delivery does not fabricate settlement$",
+          "result": "1 passed, 7 skipped; 5.356s; focused harness exit 0",
+          "limitation": "No compiler/native execution; one targeted public-model case only; issue-182 acceptance remains pending."
+        },
+        {
+          "pin": "worktree HEAD 84f80a9ee6863d335e9b065864f62cb5a670d3f7; focused source fingerprint 8620aa27dfaf1b42621728dc76c53d30c482cbdf",
+          "run": "20261004171257270-924923-0b306d",
+          "scope": "issue-182 remaining public callback-delivery cases; forged-target/drop case excluded because separately passed",
+          "selector": "^(?!refuses an invented target atomically, and dropping delivery does not fabricate settlement$).+",
+          "result": "7 passed, 1 skipped; 5.041s; focused harness exit 0",
+          "limitation": "Public model only; no compiler/native boundary. Together with run 20261004170824812-921630-c8cd05, all 8 expanded cases have pass evidence across distinct source fingerprints; issue-182 acceptance remains pending."
+        },
+        {
+          "pin": "focused harness source fingerprint 8620aa27dfaf1b42621728dc76c53d30c482cbdf; decoder run at HEAD 5aa1572a8a3b4ba92c334c661b93bcd3a32a2317",
+          "scope": "issue-182 dashboard callback owner; focused dispatch, package browser, isolated decoder",
+          "focused_dispatch": {
+            "run": "20261004171637832-936559-14c24d",
+            "result": "failed selection only; 0 tests executed, 0 skipped; 0.639s",
+            "reason": "Root Vitest include excludes packages/agent-flow-viz/src/**/*.test.ts; no product test ran."
+          },
+          "package_browser": [
+            {
+              "command": "HAPSLAND_SHARED_CONTROL_BROWSER_ONLY=1 npm --prefix packages/agent-flow-viz run test:simulation-browser",
+              "result": "failed before browser/page assertions: target worktree lacked playwright; no UI assertions executed"
+            },
+            {
+              "command": "same package-owned browser check after temporary target-only Playwright 1.63.0 link",
+              "result": "failed before browser/page assertions: Chromium exit 127 because libatk-1.0.so.0 is absent; 0 UI assertions executed",
+              "cleanup": "temporary link removed; primary checkout not changed; no further UI environment provisioning attempted"
+            }
+          ],
+          "isolated_decoder_test": {
+            "command": "./node_modules/.bin/vitest run --config /tmp/hapsland-viz-callback-controls-vitest.config.mjs packages/agent-flow-viz/src/callback-controls.test.ts --testNamePattern=^decodes completion delivery actions without changing original identity$ --maxWorkers=1",
+            "worktree_head": "5aa1572a8a3b4ba92c334c661b93bcd3a32a2317",
+            "result": "1 test passed; 4 expectations; 1.51s",
+            "temporary_config": "/tmp/hapsland-viz-callback-controls-vitest.config.mjs",
+            "file_sha256": {
+              "packages/agent-flow-viz/src/callback-controls.test.ts": "87a4fd78da5802e28f2a47b877a6a71bd5ee7fe60af1d0cb6aafc022847ad9ae",
+              "packages/agent-flow-viz/src/callback-controls.ts": "27af63335264aa293dafa6b802b430be105cf7604c9a623af8f86798e20ade15",
+              "packages/monkey-business/src/callback-controls.ts": "d7f72124dd4b6083cfae33df33b5baed1411c27137a2feb3c582b7adc1f7d7dc"
+            },
+            "limitation": "Validates action decoding, identity preservation and malformed/extra-field rejection; no rendered DOM click/application assertion."
+          },
+          "limitation": "The eight public callback-delivery model cases have pass evidence across two source fingerprints, and the dashboard decoder test passed. The dashboard browser path remains unverified due host library absence; native/replay owner gate also remains pending. These issue-182 gaps are not prerequisites for Stop native validation."
+        },
+        {
+          "assessment_head": "b9285ef7",
+          "run": "20261004191429722-1213543-a56326",
+          "scope": "original callback six-case aggregate",
+          "result": "Fresh native + fresh emitted JS complete family equality and original public/replay PASS; callback file2 passed; aggregate test111.524s. Overall mixed run FAILED with3 unrelated failed tests;354.251s.",
+          "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004191429722-1213543-a56326/status.json",
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
+        }
+      ],
+      "owner_files": [
+        "callback-original-native.test.ts",
+        "callback-controls.test.ts",
+        "callback-delivery.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "182.1",
+          "text": "Support hold/release/drop/duplicate/reorder and post-cancellation callbacks with deterministic ordering and recorded applicability.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.2",
+          "text": "Retain sufficient issued-effect identity after settlement to let valid late/duplicate events reach Canonical fences rather than disappear in the harness.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.3",
+          "text": "Verify intended fault reachability and exact resource releases using independent expectations; a planted double-release or lifecycle error is detected.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.4",
+          "text": "Do not mutate Canonical state directly or require a new diagnostic taxonomy/UI.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.5",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.6",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.7",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:callback-original-native.test.ts",
+            "owner:callback-controls.test.ts",
+            "owner:callback-delivery.test.ts",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Six original callback scenarios have scoped fresh native/emitted/public/replay evidence; eight expanded public callback model cases and dashboard decoder evidence are recorded; callback browser execution now passes. Scope is owner evidence only."
+        },
+        {
+          "clause_id": "182.8",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 183,
+      "title": "Generate preparation and import traversal scenarios with production graph settings",
+      "prior_audit_status": "local owner check complete; broader issue acceptance pending",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete for retained applicable local owner scope",
+          "receipt": "20261004154129165-734313-c27baa",
+          "source_pin": "231194c74bc0fbeb79b48287cb97acf529d153aa",
+          "selected_file": "packages/monkey-business/src/expanded-preparation.test.ts",
+          "result": "24/24 passed, including the compiled native original-input/intermediate-graph comparison",
+          "composite_run_status": "aborted at 180.043s by deadline after unrelated advicee-lifecycle failures; only this file-level retained pass is claimed",
+          "applicability": "expanded-preparation test and graph owners unchanged since receipt; later minimal-scenario CacheDiscard tag addition does not affect these graph-only inputs",
+          "broader_acceptance": "pending; this local receipt does not establish dashboard or full issue acceptance"
+        }
+      ],
+      "owner_files": [
+        "expanded-preparation.test.ts",
+        "preparation.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "183.1",
+          "text": "Cover exclusions, missing/unsupported targets and incomplete evidence through actual ImportGraph commands.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expanded-preparation.test.ts",
+            "owner:preparation.test.ts"
+          ],
+          "scope_note": "24/24 expanded-preparation owner tests passed, including compiled native original/intermediate graph comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "183.2",
+          "text": "Expose only existing production graphLimit settings with accepted validation/capture rules; exercise relevant file/tree/read/work/depth/deadline boundaries.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expanded-preparation.test.ts",
+            "owner:preparation.test.ts"
+          ],
+          "scope_note": "24/24 expanded-preparation owner tests passed, including compiled native original/intermediate graph comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "183.3",
+          "text": "Preserve separate inner traversal observations. Extend scenario/campaign coverage and check overlapping edits during expanded preparation when the corresponding slice is available.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expanded-preparation.test.ts",
+            "owner:preparation.test.ts"
+          ],
+          "scope_note": "24/24 expanded-preparation owner tests passed, including compiled native original/intermediate graph comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "183.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expanded-preparation.test.ts",
+            "owner:preparation.test.ts"
+          ],
+          "scope_note": "24/24 expanded-preparation owner tests passed, including compiled native original/intermediate graph comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "183.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expanded-preparation.test.ts",
+            "owner:preparation.test.ts"
+          ],
+          "scope_note": "24/24 expanded-preparation owner tests passed, including compiled native original/intermediate graph comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "183.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expanded-preparation.test.ts",
+            "owner:preparation.test.ts"
+          ],
+          "scope_note": "24/24 expanded-preparation owner tests passed, including compiled native original/intermediate graph comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "183.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 184,
+      "title": "Compete multiple advicees for shared resident resources",
+      "prior_audit_status": "local owner check complete; broader issue acceptance pending",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete for retained applicable local owner scope",
+          "receipt": "20261004154129165-734313-c27baa",
+          "source_pin": "231194c74bc0fbeb79b48287cb97acf529d153aa",
+          "selected_file": "packages/monkey-business/src/shared-resident.test.ts",
+          "result": "6/6 passed, including compiled native contention/recovery and cancellation comparisons against the public Run with replay",
+          "composite_run_status": "aborted at 180.043s by deadline after unrelated advicee-lifecycle failures; only this file-level retained pass is claimed",
+          "applicability": "shared-resident test and fixture owners unchanged since receipt; later minimal-scenario CacheDiscard tags are input-specific and not a broad rerun prerequisite",
+          "separate_scope": "Sharing issue 188 remains separately pending; this receipt neither covers nor blocks that owner path",
+          "broader_acceptance": "pending; this local receipt does not establish dashboard or full issue acceptance"
+        }
+      ],
+      "owner_files": [
+        "shared-resident.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "184.1",
+          "text": "Admission, settlement, cancellation and resource release remain attributed to the correct advicee.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:shared-resident.test.ts"
+          ],
+          "scope_note": "6/6 shared-resident tests passed, including native contention/recovery/cancellation and public Run/replay comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "184.2",
+          "text": "Use fixed production execution slots/capacity in the production profile; label any retained synthetic test overrides explicitly rather than adding production configurability.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:shared-resident.test.ts"
+          ],
+          "scope_note": "6/6 shared-resident tests passed, including native contention/recovery/cancellation and public Run/replay comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "184.3",
+          "text": "Verify conditional progress under available capacity and scheduling opportunities; runtime sessions/subagents map at adapters without a core hierarchy.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:shared-resident.test.ts"
+          ],
+          "scope_note": "6/6 shared-resident tests passed, including native contention/recovery/cancellation and public Run/replay comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "184.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:shared-resident.test.ts"
+          ],
+          "scope_note": "6/6 shared-resident tests passed, including native contention/recovery/cancellation and public Run/replay comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "184.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:shared-resident.test.ts"
+          ],
+          "scope_note": "6/6 shared-resident tests passed, including native contention/recovery/cancellation and public Run/replay comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "184.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:shared-resident.test.ts"
+          ],
+          "scope_note": "6/6 shared-resident tests passed, including native contention/recovery/cancellation and public Run/replay comparison; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "184.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 185,
+      "title": "Model advicee departure and fresh resumed activity",
+      "prior_audit_status": "individual required verification pending",
+      "recorded_owner_evidence": [
+        "Three original casewise emitted/public and native departure/removal/preparation passes recorded; initial aggregate failure does not erase individual passes.",
+        {
+          "casewise_owner_checks": {
+            "fresh_emitted_js": {
+              "run": "20261004161149804-792113-f3d742",
+              "source_pin": "acbda0437f51c21736deb2a0cdf81a9f9c73f95a",
+              "result": "3 passed, 10 skipped; 24.450s",
+              "scope": "three original lifecycle scenarios; complete emitted-JS/public outputs retained"
+            },
+            "native_departure_and_removal": {
+              "run": "20261004164234782-844560-bad386",
+              "source_pin": "0e1cc3e47048e07a2676708ab1b2887af2b68082",
+              "result": "departure and removal native cases passed; overall 3-case run failed only on preparation clang 30s timeout",
+              "comparison": "/tmp/hapsland-185-native-js-retained-comparison.json",
+              "cases": [
+                {
+                  "fixture": "advicee-departure.bend",
+                  "rows": 69,
+                  "identity_equal": true,
+                  "complete_vectors_equal": true
+                },
+                {
+                  "fixture": "advicee-removal.bend",
+                  "rows": 69,
+                  "identity_equal": true,
+                  "complete_vectors_equal": true
+                }
+              ]
+            },
+            "native_preparation": {
+              "run": "20261004164922767-854054-67aedb",
+              "source_pin": "c32b031ce8ba900b5d1f9d21a415486510593863",
+              "result": "1 passed, 12 skipped; 35.468s; fixture clang budget 45s",
+              "comparison": "/tmp/hapsland-185-preparation-retained-comparison.json",
+              "rows": 61,
+              "identity_equal": true,
+              "complete_encoded_output_equal": true
+            }
+          },
+          "qualification_limit": "All three selected native cases have retained equal public vectors/identity against emitted JS, across their recorded run pins. This is casewise owner evidence, not whole issue-185 acceptance or post-Stop-refactor validation; broader issue scope remains pending."
+        }
+      ],
+      "owner_files": [
+        "advicee-lifecycle.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "185.1",
+          "text": "Departure releases the ownership required by production rules without damaging remaining advicees.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:advicee-lifecycle.test.ts"
+          ],
+          "scope_note": "Three original lifecycle scenarios have casewise emitted/public plus retained native comparisons; casewise scope only."
+        },
+        {
+          "clause_id": "185.2",
+          "text": "Old lifetime/round callbacks cannot re-enter fresh ownership or become another participant\u2019s advice.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:advicee-lifecycle.test.ts"
+          ],
+          "scope_note": "Three original lifecycle scenarios have casewise emitted/public plus retained native comparisons; casewise scope only."
+        },
+        {
+          "clause_id": "185.3",
+          "text": "Extend directed and campaign scenarios for unaffected eligible work progressing under stated healthy conditions.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:advicee-lifecycle.test.ts"
+          ],
+          "scope_note": "Three original lifecycle scenarios have casewise emitted/public plus retained native comparisons; casewise scope only."
+        },
+        {
+          "clause_id": "185.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:advicee-lifecycle.test.ts"
+          ],
+          "scope_note": "Three original lifecycle scenarios have casewise emitted/public plus retained native comparisons; casewise scope only."
+        },
+        {
+          "clause_id": "185.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:advicee-lifecycle.test.ts"
+          ],
+          "scope_note": "Three original lifecycle scenarios have casewise emitted/public plus retained native comparisons; casewise scope only."
+        },
+        {
+          "clause_id": "185.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:advicee-lifecycle.test.ts"
+          ],
+          "scope_note": "Three original lifecycle scenarios have casewise emitted/public plus retained native comparisons; casewise scope only."
+        },
+        {
+          "clause_id": "185.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 186,
+      "title": "Exercise pre-edit permits and configurable production permit limits",
+      "prior_audit_status": "individual required verification pending",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete for retained applicable local owner scope; broader issue acceptance pending",
+          "evidence": "Parent-confirmed retained original generated-PRE/native and public/dashboard permit owner checks; five PRE native cases, permit-boundary assertions, and permit dashboard action passed.",
+          "selectors": [
+            "packages/monkey-business/src/permit-generated-native.test.ts",
+            "packages/monkey-business/src/permit-public-conformance.test.ts",
+            "packages/monkey-business/src/permit-dashboard.test.ts"
+          ],
+          "limitation": "This records the existing applicable local evidence only; it does not certify every issue-186 product or project-wide gate."
+        }
+      ],
+      "owner_files": [
+        "permit-generated-native.test.ts",
+        "permit-public-conformance.test.ts",
+        "permit-dashboard.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "186.1",
+          "text": "Preserve production bounds, validation and configuration capture for both edit-permit limits.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:permit-generated-native.test.ts",
+            "owner:permit-public-conformance.test.ts",
+            "owner:permit-dashboard.test.ts"
+          ],
+          "scope_note": "Five PRE native cases and permit-boundary/public/dashboard owner checks are recorded; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "186.2",
+          "text": "Exercise unused and expired permits, equality boundaries, round creation and exact reservation release.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:permit-generated-native.test.ts",
+            "owner:permit-public-conformance.test.ts",
+            "owner:permit-dashboard.test.ts"
+          ],
+          "scope_note": "Five PRE native cases and permit-boundary/public/dashboard owner checks are recorded; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "186.3",
+          "text": "No new slot/capacity settings or admission/backpressure policies are introduced.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:permit-generated-native.test.ts",
+            "owner:permit-public-conformance.test.ts",
+            "owner:permit-dashboard.test.ts"
+          ],
+          "scope_note": "Five PRE native cases and permit-boundary/public/dashboard owner checks are recorded; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "186.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:permit-generated-native.test.ts",
+            "owner:permit-public-conformance.test.ts",
+            "owner:permit-dashboard.test.ts"
+          ],
+          "scope_note": "Five PRE native cases and permit-boundary/public/dashboard owner checks are recorded; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "186.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:permit-generated-native.test.ts",
+            "owner:permit-public-conformance.test.ts",
+            "owner:permit-dashboard.test.ts"
+          ],
+          "scope_note": "Five PRE native cases and permit-boundary/public/dashboard owner checks are recorded; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "186.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:permit-generated-native.test.ts",
+            "owner:permit-public-conformance.test.ts",
+            "owner:permit-dashboard.test.ts"
+          ],
+          "scope_note": "Five PRE native cases and permit-boundary/public/dashboard owner checks are recorded; wider issue acceptance is not asserted."
+        },
+        {
+          "clause_id": "186.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 187,
+      "title": "Supersede in-flight work and fence stale advice at real freshness boundaries",
+      "prior_audit_status": "local both-original retained-native/fresh-JS/public/replay owner check complete; broader issue acceptance not asserted",
+      "recorded_owner_evidence": [
+        "Both variants PASS20261004200712529: retained native + fresh JS + current public/replay,29.133s; no fresh C.",
+        {
+          "assessment_head": "b9285ef7",
+          "run": "20261004200712529-1338942-d01851",
+          "scope": "both original freshness changed/same variants",
+          "result": "PASS2 tests: verified retained native vectors + fresh emitted JS + current independent public milestones/replay. Run exit0;29.133s. No fresh C compilation.",
+          "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004200712529-1338942-d01851/status.json",
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
+        }
+      ],
+      "owner_files": [
+        "freshness-native.test.ts",
+        "freshness-captured-callback.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "187.1",
+          "text": "Stale results remain accounted for as required but cannot become unauthorized current advice.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:freshness-native.test.ts",
+            "owner:freshness-captured-callback.test.ts"
+          ],
+          "scope_note": "Both original freshness variants passed at the recorded pin with retained native, fresh JS, public milestones and replay; no fresh C in that run."
+        },
+        {
+          "clause_id": "187.2",
+          "text": "Cover same/changed input, overlapping preparation/review and final handoff freshness without requiring multi-advicee concurrency first.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:freshness-native.test.ts",
+            "owner:freshness-captured-callback.test.ts"
+          ],
+          "scope_note": "Both original freshness variants passed at the recorded pin with retained native, fresh JS, public milestones and replay; no fresh C in that run."
+        },
+        {
+          "clause_id": "187.3",
+          "text": "Independent intermediate assertions detect a planted stale-delivery error; expand import-graph and cross-advicee intersections as those slices become available.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:freshness-native.test.ts",
+            "owner:freshness-captured-callback.test.ts"
+          ],
+          "scope_note": "Both original freshness variants passed at the recorded pin with retained native, fresh JS, public milestones and replay; no fresh C in that run."
+        },
+        {
+          "clause_id": "187.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:freshness-native.test.ts",
+            "owner:freshness-captured-callback.test.ts"
+          ],
+          "scope_note": "Both original freshness variants passed at the recorded pin with retained native, fresh JS, public milestones and replay; no fresh C in that run."
+        },
+        {
+          "clause_id": "187.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:freshness-native.test.ts",
+            "owner:freshness-captured-callback.test.ts"
+          ],
+          "scope_note": "Both original freshness variants passed at the recorded pin with retained native, fresh JS, public milestones and replay; no fresh C in that run."
+        },
+        {
+          "clause_id": "187.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:freshness-native.test.ts",
+            "owner:freshness-captured-callback.test.ts"
+          ],
+          "scope_note": "Both original freshness variants passed at the recorded pin with retained native, fresh JS, public milestones and replay; no fresh C in that run."
+        },
+        {
+          "clause_id": "187.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 188,
+      "title": "Join shared evaluations and release departing members correctly",
+      "prior_audit_status": "local seven-original retained-native/JS/public/frozen/replay owner check complete; broader issue acceptance not asserted",
+      "recorded_owner_evidence": [
+        "Seven original cases PASS20261004193404858 with guarded retained native/JS + frozen/public/replay; no new compilation.",
+        {
+          "assessment_head": "b9285ef7",
+          "run": "20261004193404858-1267492-d68a3e",
+          "scope": "original sharing seven-case aggregate",
+          "result": "PASS all7 original cases via explicitly verified retained native and retained emitted-JS vectors plus current frozen inputs/public/replay;1 family test37.694s. Run exit0;47 tests including46 runner units;82.178s. No fresh C/JS emission in sharing comparison.",
+          "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004193404858-1267492-d68a3e/status.json",
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
+        }
+      ],
+      "owner_files": [
+        "sharing-native.test.ts",
+        "sharing-controls.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "188.1",
+          "text": "Valid join/claim/release preserves remaining work; last-member departure settles ownership correctly.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:sharing-native.test.ts",
+            "owner:sharing-controls.test.ts"
+          ],
+          "scope_note": "Seven original sharing cases passed against retained native/JS with frozen/public/replay checks; no fresh C/JS in that run."
+        },
+        {
+          "clause_id": "188.2",
+          "text": "Inputs across forbidden partitions remain isolated; no new cross-partition sharing policy is invented.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:sharing-native.test.ts",
+            "owner:sharing-controls.test.ts"
+          ],
+          "scope_note": "Seven original sharing cases passed against retained native/JS with frozen/public/replay checks; no fresh C/JS in that run."
+        },
+        {
+          "clause_id": "188.3",
+          "text": "Check supersession and lifetime fences for members and extend replayable fault campaigns for this behavior.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:sharing-native.test.ts",
+            "owner:sharing-controls.test.ts"
+          ],
+          "scope_note": "Seven original sharing cases passed against retained native/JS with frozen/public/replay checks; no fresh C/JS in that run."
+        },
+        {
+          "clause_id": "188.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:sharing-native.test.ts",
+            "owner:sharing-controls.test.ts"
+          ],
+          "scope_note": "Seven original sharing cases passed against retained native/JS with frozen/public/replay checks; no fresh C/JS in that run."
+        },
+        {
+          "clause_id": "188.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:sharing-native.test.ts",
+            "owner:sharing-controls.test.ts"
+          ],
+          "scope_note": "Seven original sharing cases passed against retained native/JS with frozen/public/replay checks; no fresh C/JS in that run."
+        },
+        {
+          "clause_id": "188.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:sharing-native.test.ts",
+            "owner:sharing-controls.test.ts"
+          ],
+          "scope_note": "Seven original sharing cases passed against retained native/JS with frozen/public/replay checks; no fresh C/JS in that run."
+        },
+        {
+          "clause_id": "188.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 189,
+      "title": "Exercise cache reuse, pressure, eviction and invalidation",
+      "prior_audit_status": "local cache native/emitted/public owner check complete; broader issue acceptance not asserted",
+      "recorded_owner_evidence": [
+        "Cache pressure/refusal native/JS/public PASS in mixed run20261004191429722; existing public namespace evidence jointly supports observable criteria.",
+        {
+          "assessment_head": "b9285ef7",
+          "run": "20261004191429722-1213543-a56326",
+          "scope": "original cache pressure/refusal owner",
+          "result": "Fresh native + fresh emitted JS/public Canonical owners PASS1 test12.411s. Overall mixed run FAILED with3 unrelated failed tests;354.251s.",
+          "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004191429722-1213543-a56326/status.json",
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
+        }
+      ],
+      "owner_files": [
+        "cache-native.test.ts",
+        "cache-namespace.test.ts",
+        "cache-composition.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "189.1",
+          "text": "Existing input/configuration/credential/partition identity rules govern reuse and invalidation.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:cache-native.test.ts",
+            "owner:cache-namespace.test.ts",
+            "owner:cache-composition.test.ts"
+          ],
+          "scope_note": "Cache pressure/refusal owner passed fresh native, emitted JS and public checks; mixed aggregate run failed on unrelated tests."
+        },
+        {
+          "clause_id": "189.2",
+          "text": "Cache pressure and eviction preserve payload ownership and logical accounting.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:cache-native.test.ts",
+            "owner:cache-namespace.test.ts",
+            "owner:cache-composition.test.ts"
+          ],
+          "scope_note": "Cache pressure/refusal owner passed fresh native, emitted JS and public checks; mixed aggregate run failed on unrelated tests."
+        },
+        {
+          "clause_id": "189.3",
+          "text": "Directed boundary scenarios and seeded campaign extensions check both permitted reuse and expected isolation.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:cache-native.test.ts",
+            "owner:cache-namespace.test.ts",
+            "owner:cache-composition.test.ts"
+          ],
+          "scope_note": "Cache pressure/refusal owner passed fresh native, emitted JS and public checks; mixed aggregate run failed on unrelated tests."
+        },
+        {
+          "clause_id": "189.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:cache-native.test.ts",
+            "owner:cache-namespace.test.ts",
+            "owner:cache-composition.test.ts"
+          ],
+          "scope_note": "Cache pressure/refusal owner passed fresh native, emitted JS and public checks; mixed aggregate run failed on unrelated tests."
+        },
+        {
+          "clause_id": "189.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:cache-native.test.ts",
+            "owner:cache-namespace.test.ts",
+            "owner:cache-composition.test.ts"
+          ],
+          "scope_note": "Cache pressure/refusal owner passed fresh native, emitted JS and public checks; mixed aggregate run failed on unrelated tests."
+        },
+        {
+          "clause_id": "189.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:cache-native.test.ts",
+            "owner:cache-namespace.test.ts",
+            "owner:cache-composition.test.ts"
+          ],
+          "scope_note": "Cache pressure/refusal owner passed fresh native, emitted JS and public checks; mixed aggregate run failed on unrelated tests."
+        },
+        {
+          "clause_id": "189.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 190,
+      "title": "Generate notices, cooldown and ordinary collection",
+      "prior_audit_status": "individual required verification pending",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete for retained original-notice owner scope; broader issue acceptance pending",
+          "receipt": "20261004154933399-741105-e0a019",
+          "source_pin": "4b9e00f099a5801015ec6f2888eda7bd27228c09",
+          "selected_file": "packages/monkey-business/src/notice-scenarios.test.ts",
+          "selector": "matches native",
+          "result": "Passed; parent confirms all twelve original notice cases are covered by this owner result.",
+          "limitation": "The expiry twelve-case receipt for issue 196 is separate evidence; neither receipt creates a Cartesian-combination requirement."
+        }
+      ],
+      "owner_files": [
+        "notice-controls.test.ts",
+        "notice-scenarios.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "190.1",
+          "text": "Notice generation and collection follow current product rules without fabricating findings.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:notice-controls.test.ts",
+            "owner:notice-scenarios.test.ts"
+          ],
+          "scope_note": "All twelve original notice cases passed the recorded native owner check."
+        },
+        {
+          "clause_id": "190.2",
+          "text": "Cooldown and suppression scenarios retain correct advicee attribution under concurrent workload.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:notice-controls.test.ts",
+            "owner:notice-scenarios.test.ts"
+          ],
+          "scope_note": "All twelve original notice cases passed the recorded native owner check."
+        },
+        {
+          "clause_id": "190.3",
+          "text": "Extend replay and campaign scenarios for notice behavior; expiry is covered by its separate slice.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:notice-controls.test.ts",
+            "owner:notice-scenarios.test.ts"
+          ],
+          "scope_note": "All twelve original notice cases passed the recorded native owner check."
+        },
+        {
+          "clause_id": "190.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:notice-controls.test.ts",
+            "owner:notice-scenarios.test.ts"
+          ],
+          "scope_note": "All twelve original notice cases passed the recorded native owner check."
+        },
+        {
+          "clause_id": "190.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:notice-controls.test.ts",
+            "owner:notice-scenarios.test.ts"
+          ],
+          "scope_note": "All twelve original notice cases passed the recorded native owner check."
+        },
+        {
+          "clause_id": "190.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:notice-controls.test.ts",
+            "owner:notice-scenarios.test.ts"
+          ],
+          "scope_note": "All twelve original notice cases passed the recorded native owner check."
+        },
+        {
+          "clause_id": "190.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 191,
+      "title": "Inject failed or uncertain output, lease expiry and late acknowledgments",
+      "prior_audit_status": "current original authorized output native/emitted/public/literal/replay owner passed; combined with retained Stop cases closes the audited acceptance intersections",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete for the three existing output-native owner cases using retained actual output plus the corrected independent oracle; broader issue acceptance pending",
+          "receipt": "20261004185812215-1160763-1b9866",
+          "source_pin": "73653d3124a110f3fac8430b1c9f13961d3b9bcb",
+          "selected_files": [
+            "packages/monkey-business/src/output-batch-native.test.ts",
+            "packages/monkey-business/src/output-completion-native.test.ts"
+          ],
+          "result": "Both output-batch tests passed. The completion test failed against the pre-correction expected row; retained actual 14-row native vector from results.json exactly equals corrected expected rows at be0b03f8, including row 8 [5,2,7,9,11,10].",
+          "method": "Pure comparison of retained failure actual vector to the corrected owner expectation; no fresh C/native run.",
+          "limitation": "The broader output/failure/uncertainty intersections beyond these three owner cases remain distinct."
+        },
+        {
+          "run": "20261004172750115-965877-86f98d",
+          "source_pin": "773a9a76",
+          "selector": "compares all twelve original output Stop full native/emitted/public/replay scenarios",
+          "result": "12 original Stop output scenarios passed with retained fresh-native and emitted-JS outputs checked against public/frozen/replay oracles. Includes byte-limit, failed/uncertain/mismatched-terminal, lease/deadline/profile and repeated-attempt boundaries.",
+          "limitation": "Fixture has no collectors; not the explicit collector-response/output intersection."
+        },
+        {
+          "run": "20261004233818872-1981242-378997",
+          "source_pin": "a5be2481",
+          "selected_file": "packages/monkey-business/src/output-attempt.test.ts",
+          "result": "The selected test file completed its ten public tests, but its sole native/emitted output comparison failed before C output: Bend C emission exceeded the declared 30s deadline (ETIMEDOUT at 30.392s). This is not a product-behavior failure and supplies no native result.",
+          "failure_receipt": ".test-runs/20261004233818872-1981242-378997/workload-outputs/fresh-native-failure-1981301-zhCnLw/receipt.json"
+        },
+        {
+          "run": "20261004235655112-2033989-4232c2",
+          "source_pin": "2078724219c000615704497b30e0978cfe8865e9",
+          "selector": "compares original authorized output scripts with native Bend and preserves early/mid/late ownership",
+          "result": "PASS 1 selected, 10 skipped, 64.283s; five original scenario outputs compared across fresh native, emitted JS, literal expectations, public boundary and replay."
+        }
+      ],
+      "owner_files": [
+        "packages/monkey-business/src/output-attempt.test.ts",
+        "output-controls.test.ts",
+        "output-batch-native.test.ts",
+        "output-completion-native.test.ts",
+        "packages/agent-flow-viz/src/output-attempt-controls.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "191.1",
+          "text": "Committed output membership stays exact; ordinary controls do not rewrite an issued batch.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/output-attempt.test.ts",
+            "owner:output-controls.test.ts",
+            "owner:output-batch-native.test.ts",
+            "owner:output-completion-native.test.ts",
+            "owner:packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current five-case original output native/emitted/public/literal/replay owner passed, and the retained twelve-case Stop owner plus public controls covers membership, outcomes, late deadline/lease and allowed reoffer boundaries."
+        },
+        {
+          "clause_id": "191.2",
+          "text": "Successful/failed/uncertain attempts, lease boundaries and late acknowledgment preserve correct transient ownership.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/output-attempt.test.ts",
+            "owner:output-controls.test.ts",
+            "owner:output-batch-native.test.ts",
+            "owner:output-completion-native.test.ts",
+            "owner:packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current five-case original output native/emitted/public/literal/replay owner passed, and the retained twelve-case Stop owner plus public controls covers membership, outcomes, late deadline/lease and allowed reoffer boundaries."
+        },
+        {
+          "clause_id": "191.3",
+          "text": "Certain delivery is not duplicated; uncertain reoffer follows the existing contract rather than an invented universal duplicate ban.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/output-attempt.test.ts",
+            "owner:output-controls.test.ts",
+            "owner:output-batch-native.test.ts",
+            "owner:output-completion-native.test.ts",
+            "owner:packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current five-case original output native/emitted/public/literal/replay owner passed, and the retained twelve-case Stop owner plus public controls covers membership, outcomes, late deadline/lease and allowed reoffer boundaries."
+        },
+        {
+          "clause_id": "191.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/output-attempt.test.ts",
+            "owner:output-controls.test.ts",
+            "owner:output-batch-native.test.ts",
+            "owner:output-completion-native.test.ts",
+            "owner:packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current five-case original output native/emitted/public/literal/replay owner passed, and the retained twelve-case Stop owner plus public controls covers membership, outcomes, late deadline/lease and allowed reoffer boundaries."
+        },
+        {
+          "clause_id": "191.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/output-attempt.test.ts",
+            "owner:output-controls.test.ts",
+            "owner:output-batch-native.test.ts",
+            "owner:output-completion-native.test.ts",
+            "owner:packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current five-case original output native/emitted/public/literal/replay owner passed, and the retained twelve-case Stop owner plus public controls covers membership, outcomes, late deadline/lease and allowed reoffer boundaries."
+        },
+        {
+          "clause_id": "191.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/output-attempt.test.ts",
+            "owner:output-controls.test.ts",
+            "owner:output-batch-native.test.ts",
+            "owner:output-completion-native.test.ts",
+            "owner:packages/agent-flow-viz/src/output-attempt-controls.test.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current five-case original output native/emitted/public/literal/replay owner passed, and the retained twelve-case Stop owner plus public controls covers membership, outcomes, late deadline/lease and allowed reoffer boundaries."
+        },
+        {
+          "clause_id": "191.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [
+            "evidence:full_stop_output_12",
+            "evidence:current_output_collection_native_run",
+            "evidence:output_authorized_five"
+          ],
+          "scope_note": "Current public output-attempt assertions passed, but its native/emitted case timed out during C emission before a verdict. Retained 12-case Stop native/emitted evidence and three output owner results cover useful separate intersections but not collector intersection or every late-ack/reoffer case."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": {
+        "kind": "qualified for audited output acceptance scope",
+        "clauses": [],
+        "current_evidence": "Current five-case output owner passed native/emitted/public/literal/replay. Combined with retained twelve original Stop output scenarios, three corrected-oracle output owner cases, public controls, dashboard and browser evidence, closes the specific failed/uncertain/lease/late-ack/reoffer/exact-membership intersections enumerated in this audit.",
+        "next": "No further output-owner selector is required for the audited scope."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 192,
+      "title": "Exercise collector eligibility and response-authority lifetime fences",
+      "prior_audit_status": "five original collection response native/emitted/public/intermediate/replay boundaries passed; decision-level collection fixture retained as narrower supplemental evidence",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "run": "20261004233818872-1981242-378997",
+          "source_pin": "a5be2481",
+          "selected_file": "packages/monkey-business/src/collection-scenario.test.ts",
+          "result": "Terminal PASS: collection-scenario.test.ts 12/12 in 26.967s. Its sole native owner receipt is fresh-native `collection-decisions.bend`, 42 bytes, SHA-256 4f690f95e8b16c481e02c95f74676f93dd5f8c61a9a6673512418fbbf39c9c9f; ten literal command rows matched public observations and adjacent public replay tests passed.",
+          "limitation": "That native test does not invoke emitted JS or model full response-authority lifetime, selection-frame, and output orchestration. No retained native receipt for collection-response.test.ts or resource-scenarios.test.ts was found in all-worktree .test-runs receipts."
+        },
+        {
+          "run": "20261004235406734-2015465-4a40aa",
+          "source_pin": "cebad2b0b09765b58c6eed52571e37cc8c2b0502",
+          "selector": "compares all five original collection response full native/emitted/public/replay boundaries",
+          "result": "PASS 1 selected, 6 skipped, 81.898s; native and emitted lanes compared all five original response cases against public histories and replay/intermediate expectations."
+        }
+      ],
+      "owner_files": [
+        "packages/monkey-business/src/collection-scenario.test.ts",
+        "collection-response.test.ts",
+        "resource-scenarios.test.ts",
+        "packages/agent-flow-viz/src/production-flow-view.ts:366"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "192.1",
+          "text": "Cover existing Edit/Background/Stop selection semantics without implementing raw native event parsing.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/collection-scenario.test.ts",
+            "owner:collection-response.test.ts",
+            "owner:resource-scenarios.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts:366",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Five original collection-response scenarios passed native/emitted/public/intermediate/replay comparison, covering the selected response/authority lifetime owner boundary; public, dashboard/browser, and decision-level fixture evidence remains separately recorded."
+        },
+        {
+          "clause_id": "192.2",
+          "text": "Only current eligible authorized selections reach output; stale collectors and ended response lifetimes cannot gain authority.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/collection-scenario.test.ts",
+            "owner:collection-response.test.ts",
+            "owner:resource-scenarios.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts:366",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Five original collection-response scenarios passed native/emitted/public/intermediate/replay comparison, covering the selected response/authority lifetime owner boundary; public, dashboard/browser, and decision-level fixture evidence remains separately recorded."
+        },
+        {
+          "clause_id": "192.3",
+          "text": "Check ordering, suppression and round fences through the existing successful output path. Extend intersections with output uncertainty when both slices are available.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/collection-scenario.test.ts",
+            "owner:collection-response.test.ts",
+            "owner:resource-scenarios.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts:366",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Five original collection-response scenarios passed native/emitted/public/intermediate/replay comparison, covering the selected response/authority lifetime owner boundary; public, dashboard/browser, and decision-level fixture evidence remains separately recorded."
+        },
+        {
+          "clause_id": "192.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/collection-scenario.test.ts",
+            "owner:collection-response.test.ts",
+            "owner:resource-scenarios.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts:366",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Five original collection-response scenarios passed native/emitted/public/intermediate/replay comparison, covering the selected response/authority lifetime owner boundary; public, dashboard/browser, and decision-level fixture evidence remains separately recorded."
+        },
+        {
+          "clause_id": "192.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/collection-scenario.test.ts",
+            "owner:collection-response.test.ts",
+            "owner:resource-scenarios.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts:366",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Five original collection-response scenarios passed native/emitted/public/intermediate/replay comparison, covering the selected response/authority lifetime owner boundary; public, dashboard/browser, and decision-level fixture evidence remains separately recorded."
+        },
+        {
+          "clause_id": "192.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/collection-scenario.test.ts",
+            "owner:collection-response.test.ts",
+            "owner:resource-scenarios.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts:366",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3",
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Five original collection-response scenarios passed native/emitted/public/intermediate/replay comparison, covering the selected response/authority lifetime owner boundary; public, dashboard/browser, and decision-level fixture evidence remains separately recorded."
+        },
+        {
+          "clause_id": "192.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [
+            "evidence:current_output_collection_native_run",
+            "evidence:collection_response_five"
+          ],
+          "scope_note": "Current collection-scenario native decision owner passed ten literal rows against public observations, with adjacent public replay checks. This does not establish emitted-JS parity or the full response-authority/selected-frame/output lifecycle; no native collection-response/resource receipt was found."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": {
+        "kind": "qualified for recorded collector/response authority owner scope",
+        "clauses": [],
+        "current_evidence": "Five original collection-response cases passed native/emitted/public/intermediate/replay comparison at cebad2b0. Current public/browser/dashboard owner evidence and prior ten-row decision fixture remain complementary, separately scoped evidence.",
+        "next": "No further collection-response native selector is required for this recorded owner scope."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 193,
+      "title": "Model background writer claims, waiters and expiry",
+      "prior_audit_status": "fresh emitted-JS/public owner check complete; native original-thirteen qualification pending; latest fresh native attempt timed out in clang.",
+      "recorded_owner_evidence": [
+        "All13 Writer native/JS/public/replay PASS20261004190858267 using explicitly verified retained C plus actual clang/execution; no fresh C claim."
+      ],
+      "owner_files": [
+        "writer-native.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "193.1",
+          "text": "Waiter membership and release obey current contract; one participant\u2019s departure does not incorrectly cancel another\u2019s work.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:writer-native.test.ts"
+          ],
+          "scope_note": "All thirteen writer original cases have recorded native/emitted/public/replay PASS in the later successful writer receipt; preserve that exact owner scope."
+        },
+        {
+          "clause_id": "193.2",
+          "text": "Expired or stale writers cannot acquire response authority or emit current advice.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:writer-native.test.ts"
+          ],
+          "scope_note": "All thirteen writer original cases have recorded native/emitted/public/replay PASS in the later successful writer receipt; preserve that exact owner scope."
+        },
+        {
+          "clause_id": "193.3",
+          "text": "Extend directed and seeded scenarios with exact ownership accounting and available-progress premises.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:writer-native.test.ts"
+          ],
+          "scope_note": "All thirteen writer original cases have recorded native/emitted/public/replay PASS in the later successful writer receipt; preserve that exact owner scope."
+        },
+        {
+          "clause_id": "193.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:writer-native.test.ts"
+          ],
+          "scope_note": "All thirteen writer original cases have recorded native/emitted/public/replay PASS in the later successful writer receipt; preserve that exact owner scope."
+        },
+        {
+          "clause_id": "193.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:writer-native.test.ts"
+          ],
+          "scope_note": "All thirteen writer original cases have recorded native/emitted/public/replay PASS in the later successful writer receipt; preserve that exact owner scope."
+        },
+        {
+          "clause_id": "193.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:writer-native.test.ts"
+          ],
+          "scope_note": "All thirteen writer original cases have recorded native/emitted/public/replay PASS in the later successful writer receipt; preserve that exact owner scope."
+        },
+        {
+          "clause_id": "193.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits",
+      "current_acceptance_evidence": "All13 original Writer cases passed via retained actual C plus fresh clang/execution and emitted/public/replay; no fresh C-emission claim."
+    },
+    {
+      "issue": 194,
+      "title": "Wait for pending work at Stop and terminate correctly at cutoff",
+      "prior_audit_status": "individual required verification pending",
+      "recorded_owner_evidence": [
+        "Original waiting and11 Stop native/JS/public/replay PASS20261004173457945; original output12 PASS20261004172750115.",
+        {
+          "status": "complete for retained original waiting/Stop owner scope; broader issue acceptance pending",
+          "receipt": "20261004173457945-975811-94d004",
+          "source_pin": "6eb39163f221f7d0dd67dfb222c3241aa306ffd7",
+          "selected_file": "packages/monkey-business/src/stop-original-native.test.ts",
+          "result": "The waiting family passed with fresh native/emitted equality and all original public/frozen/replay comparisons; part of a 2-test terminal PASS."
+        },
+        {
+          "pin": "9a642ddf",
+          "scope": "retained all12 vs integrated public/frozen/replay PASS4.6s afteroriginaledit aliasfix; supersedes case11 openSourceJob gap atce35; freshnative run live scopedissue195, no acceptanceyet"
+        }
+      ],
+      "owner_files": [
+        "stop-original-native.test.ts",
+        "stop-output-scope.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "194.1",
+          "text": "Cover waiting, cutoff boundaries and cancellation on a complete single-advicee path; no arbitrary new product deadline.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts"
+          ],
+          "scope_note": "Original waiting plus Stop owner scenarios have recorded fresh native/emitted/public/frozen/replay passes; owner scope only."
+        },
+        {
+          "clause_id": "194.2",
+          "text": "Terminal results and ownership release follow the existing contract, including delayed or uncertain output where applicable.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts"
+          ],
+          "scope_note": "Original waiting plus Stop owner scenarios have recorded fresh native/emitted/public/frozen/replay passes; owner scope only."
+        },
+        {
+          "clause_id": "194.3",
+          "text": "Expired/stale/canceled work may terminate without delivery; finite tests state scheduling and response premises.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts"
+          ],
+          "scope_note": "Original waiting plus Stop owner scenarios have recorded fresh native/emitted/public/frozen/replay passes; owner scope only."
+        },
+        {
+          "clause_id": "194.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts"
+          ],
+          "scope_note": "Original waiting plus Stop owner scenarios have recorded fresh native/emitted/public/frozen/replay passes; owner scope only."
+        },
+        {
+          "clause_id": "194.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts"
+          ],
+          "scope_note": "Original waiting plus Stop owner scenarios have recorded fresh native/emitted/public/frozen/replay passes; owner scope only."
+        },
+        {
+          "clause_id": "194.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts"
+          ],
+          "scope_note": "Original waiting plus Stop owner scenarios have recorded fresh native/emitted/public/frozen/replay passes; owner scope only."
+        },
+        {
+          "clause_id": "194.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 195,
+      "title": "Exercise Stop output limits, continuation budget and provisional release",
+      "prior_audit_status": "individual required verification pending",
+      "recorded_owner_evidence": [
+        "Original output12 native/JS/public/frozen/replay PASS20261004172750115; exclusive dashboard meter remains separately assessable.",
+        {
+          "status": "complete for retained original Stop owner families; broader issue acceptance pending",
+          "receipts": [
+            {
+              "receipt": "20261004172750115-965877-86f98d",
+              "source_pin": "773a9a76ac106e9fc8a9d0634ac4ae46ddaed8ed",
+              "result": "Original twelve-case Stop output family: native case plus complete fresh-JS equality and all twelve public/frozen/replay comparisons passed."
+            },
+            {
+              "receipt": "20261004173457945-975811-94d004",
+              "source_pin": "6eb39163f221f7d0dd67dfb222c3241aa306ffd7",
+              "result": "Original eleven-case Stop family passed with fresh native/emitted equality and all public/frozen/replay comparisons."
+            }
+          ],
+          "selected_file": "packages/monkey-business/src/stop-original-native.test.ts",
+          "limitation": "The selected-group dashboard indicator/current-round inspection remains separate; synthetic encoded-byte inputs are not measured native serialization."
+        },
+        {
+          "pin": "9a642ddf",
+          "scope": "retained all12 vs integrated public/frozen/replay PASS4.6s afteroriginaledit aliasfix; supersedes case11 openSourceJob gap atce35; freshnative run live scopedissue195, no acceptanceyet"
+        }
+      ],
+      "owner_files": [
+        "packages/monkey-business/src/stop-original-native.test.ts",
+        "stop-output-scope.test.ts",
+        "seeded-stop-budget-campaigns.test.ts",
+        "packages/agent-flow-viz/src/production-flow-view.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "195.1",
+          "text": "Use existing runtime/behavior profiles and production output authority rather than new simulator policy.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts",
+            "owner:seeded-stop-budget-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Original twelve and eleven Stop families have recorded fresh native/emitted/public/frozen/replay passes. Public 53, dashboard 3, and selected Stop-slot browser evidence pass. Synthetic bytes remain supplied facts, not measured native serialization."
+        },
+        {
+          "clause_id": "195.2",
+          "text": "Check before/equality/after limit boundaries, continuation budget consumption and provisional release.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts",
+            "owner:seeded-stop-budget-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Original twelve and eleven Stop families have recorded fresh native/emitted/public/frozen/replay passes. Public 53, dashboard 3, and selected Stop-slot browser evidence pass. Synthetic bytes remain supplied facts, not measured native serialization."
+        },
+        {
+          "clause_id": "195.3",
+          "text": "Preserve exact output membership and extend replayable fault campaigns for these behaviors.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts",
+            "owner:seeded-stop-budget-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Original twelve and eleven Stop families have recorded fresh native/emitted/public/frozen/replay passes. Public 53, dashboard 3, and selected Stop-slot browser evidence pass. Synthetic bytes remain supplied facts, not measured native serialization."
+        },
+        {
+          "clause_id": "195.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts",
+            "owner:seeded-stop-budget-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Original twelve and eleven Stop families have recorded fresh native/emitted/public/frozen/replay passes. Public 53, dashboard 3, and selected Stop-slot browser evidence pass. Synthetic bytes remain supplied facts, not measured native serialization."
+        },
+        {
+          "clause_id": "195.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts",
+            "owner:seeded-stop-budget-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Original twelve and eleven Stop families have recorded fresh native/emitted/public/frozen/replay passes. Public 53, dashboard 3, and selected Stop-slot browser evidence pass. Synthetic bytes remain supplied facts, not measured native serialization."
+        },
+        {
+          "clause_id": "195.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/stop-original-native.test.ts",
+            "owner:stop-output-scope.test.ts",
+            "owner:seeded-stop-budget-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/production-flow-view.ts",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Original twelve and eleven Stop families have recorded fresh native/emitted/public/frozen/replay passes. Public 53, dashboard 3, and selected Stop-slot browser evidence pass. Synthetic bytes remain supplied facts, not measured native serialization."
+        },
+        {
+          "clause_id": "195.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 196,
+      "title": "Expire findings and notices at exact collection boundaries",
+      "prior_audit_status": "local original-twelve native/public/frozen/replay owner check complete; broader issue acceptance pending",
+      "recorded_owner_evidence": [
+        "Ledger reports local original12 native/public/frozen/replay complete; final broader acceptance not inferred.",
+        {
+          "status": "complete for original twelve-case owner scope",
+          "receipt": "20261004182631897-1051619-6273c7",
+          "source_pin": "9f0c485c5005513cf61915b59380f597ba23bfcd",
+          "selected_file": "packages/monkey-business/src/expiry-native.test.ts",
+          "result": "1 passed / 1 skipped; 100.335s; complete native/emitted encoded equality and all twelve public/frozen/replay comparisons",
+          "retained_receipts": 2,
+          "limitation": "The composite batch separately failed Writer C emission; no Writer qualification is claimed."
+        }
+      ],
+      "owner_files": [
+        "expiry-native.test.ts",
+        "expiry-public.test.ts",
+        "expiry-controls.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "196.1",
+          "text": "Expired material cannot be collected; equality behavior follows the production contract.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expiry-native.test.ts",
+            "owner:expiry-public.test.ts",
+            "owner:expiry-controls.test.ts"
+          ],
+          "scope_note": "Original twelve expiry cases have recorded native/emitted/public/frozen/replay pass; composite writer failure is separate and does not negate expiry evidence."
+        },
+        {
+          "clause_id": "196.2",
+          "text": "Cleanup releases required logical ownership without interfering with another advicee.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expiry-native.test.ts",
+            "owner:expiry-public.test.ts",
+            "owner:expiry-controls.test.ts"
+          ],
+          "scope_note": "Original twelve expiry cases have recorded native/emitted/public/frozen/replay pass; composite writer failure is separate and does not negate expiry evidence."
+        },
+        {
+          "clause_id": "196.3",
+          "text": "Extend independent directed assertions and campaign coverage; comprehensive collector-authority work is not a prerequisite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expiry-native.test.ts",
+            "owner:expiry-public.test.ts",
+            "owner:expiry-controls.test.ts"
+          ],
+          "scope_note": "Original twelve expiry cases have recorded native/emitted/public/frozen/replay pass; composite writer failure is separate and does not negate expiry evidence."
+        },
+        {
+          "clause_id": "196.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expiry-native.test.ts",
+            "owner:expiry-public.test.ts",
+            "owner:expiry-controls.test.ts"
+          ],
+          "scope_note": "Original twelve expiry cases have recorded native/emitted/public/frozen/replay pass; composite writer failure is separate and does not negate expiry evidence."
+        },
+        {
+          "clause_id": "196.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expiry-native.test.ts",
+            "owner:expiry-public.test.ts",
+            "owner:expiry-controls.test.ts"
+          ],
+          "scope_note": "Original twelve expiry cases have recorded native/emitted/public/frozen/replay pass; composite writer failure is separate and does not negate expiry evidence."
+        },
+        {
+          "clause_id": "196.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:expiry-native.test.ts",
+            "owner:expiry-public.test.ts",
+            "owner:expiry-controls.test.ts"
+          ],
+          "scope_note": "Original twelve expiry cases have recorded native/emitted/public/frozen/replay pass; composite writer failure is separate and does not negate expiry evidence."
+        },
+        {
+          "clause_id": "196.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 197,
+      "title": "Exercise quiet-round and inactivity cleanup across introduced owners",
+      "prior_audit_status": "current-source seven-case NativeRun qualification passed",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete through applicable joint retained evidence; broader issue acceptance pending",
+          "evidence": [
+            "The public quiet inactivity regression passed 1/1 at source pin 6eb39163; 27 skipped.",
+            "Parent confirms relevant retained native/public evidence across the original lifecycle (#185), Stop (#194/#195), expiry (#196), and seeded recovery (#198) owners satisfies the applicable quiet-cleanup intersections."
+          ],
+          "limitation": "No standalone Cartesian campaign, private Engine snapshot comparison, or isolated native receipt is required beyond those accepted owner cases."
+        },
+        {
+          "run": "20261004233321843-1962803-38f541",
+          "source_pin": "dfd4266b",
+          "result": "7/7 original NativeRun scenarios passed in 39.297s with fresh native/emitted-JS matching outputs; public/replay owner assertions passed."
+        },
+        {
+          "run": "20261004235156892-2012019-c70aa9",
+          "source_pin": "284da3f1d3b7af1809f0922d11e26c012f745d4f",
+          "result": "PASS 7/7 in 37.724s with fresh native/emitted/public/replay checks; NativeRun source unchanged from receipt pin through integration head 20787242."
+        }
+      ],
+      "owner_files": [
+        "lifecycles.test.ts",
+        "native-run-conformance.test.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "197.1",
+          "text": "Quiet-round/inactivity settings and fences follow existing production behavior.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:lifecycles.test.ts",
+            "owner:native-run-conformance.test.ts",
+            "evidence:native_run_7",
+            "evidence:current_sourcejob_fix"
+          ],
+          "scope_note": "Joint retained lifecycle evidence and the current-source seven-case NativeRun native/emitted/public/replay run pass for this owner scope."
+        },
+        {
+          "clause_id": "197.2",
+          "text": "Late callbacks cannot restore obsolete ownership; cleanup preserves other participants and does not force expiry merely to make recovery pass.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:lifecycles.test.ts",
+            "owner:native-run-conformance.test.ts",
+            "evidence:native_run_7",
+            "evidence:current_sourcejob_fix"
+          ],
+          "scope_note": "Joint retained lifecycle evidence and the current-source seven-case NativeRun native/emitted/public/replay run pass for this owner scope."
+        },
+        {
+          "clause_id": "197.3",
+          "text": "Verify lifecycle/resource conservation across the introduced ownership families and extend recovery campaigns.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:lifecycles.test.ts",
+            "owner:native-run-conformance.test.ts",
+            "evidence:native_run_7",
+            "evidence:current_sourcejob_fix"
+          ],
+          "scope_note": "Joint retained lifecycle evidence and the current-source seven-case NativeRun native/emitted/public/replay run pass for this owner scope."
+        },
+        {
+          "clause_id": "197.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:lifecycles.test.ts",
+            "owner:native-run-conformance.test.ts",
+            "evidence:native_run_7",
+            "evidence:current_sourcejob_fix"
+          ],
+          "scope_note": "Joint retained lifecycle evidence and the current-source seven-case NativeRun native/emitted/public/replay run pass for this owner scope."
+        },
+        {
+          "clause_id": "197.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:lifecycles.test.ts",
+            "owner:native-run-conformance.test.ts",
+            "evidence:native_run_7",
+            "evidence:current_sourcejob_fix"
+          ],
+          "scope_note": "Joint retained lifecycle evidence and the current-source seven-case NativeRun native/emitted/public/replay run pass for this owner scope."
+        },
+        {
+          "clause_id": "197.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:lifecycles.test.ts",
+            "owner:native-run-conformance.test.ts",
+            "evidence:native_run_7",
+            "evidence:current_sourcejob_fix"
+          ],
+          "scope_note": "Joint retained lifecycle evidence and the current-source seven-case NativeRun native/emitted/public/replay run pass for this owner scope."
+        },
+        {
+          "clause_id": "197.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [
+            "evidence:native_run_7"
+          ],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": {
+        "kind": "required owner scope qualified",
+        "clauses": [],
+        "current_evidence": "PASS7/7 fresh native/emitted/public/replay in44.593s on Bend2.0.35",
+        "next": "No remaining required local gate; recorded evidence limits apply."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 198,
+      "title": "Run first seeded fault campaigns with recovery on existing state",
+      "prior_audit_status": "individual required verification pending",
+      "recorded_owner_evidence": [
+        "Recorded owner/historical evidence; current ledger does not establish complete checklist acceptance.",
+        {
+          "status": "complete through retained seeded-campaign and cross-owner evidence; broader issue acceptance pending",
+          "receipt": "20261004160507594-782625-2b1c13",
+          "source_pin": "f32f8233c46b3e29a4d3f3c8c39e423fc03bf680",
+          "selected_files": [
+            "packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "packages/monkey-business/src/seeded-callback-campaigns.test.ts"
+          ],
+          "result": "The twelve original public seeded campaigns passed; parent confirms the accepted recovery/cleanup intersections are also covered by retained #185/#194\u2013196 owner results.",
+          "limitation": "This does not assert a standalone native seeded campaign or add a new cross-product requirement."
+        }
+      ],
+      "owner_files": [
+        "packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+        "seeded-callback-campaigns.test.ts",
+        "packages/agent-flow-viz/src/simulation.ts"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "198.1",
+          "text": "Support both suspension-and-drain of finite obligations and continued fresh healthy work; healthy advicees can progress while others stay faulty when capacity/scheduling premises hold.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.2",
+          "text": "Independent expected intermediate observations detect forbidden behavior; queue emptiness alone is not success.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.3",
+          "text": "State finite campaign budgets and recovery prerequisites; unavailable premises or exhausted budgets are not passes.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.4",
+          "text": "Replay export/reproduction includes seed, controls, injections and ordering. Later functional slices extend these campaigns; no comprehensive runtime checker, witness artifact or special UI is required.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.5",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.6",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.7",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:packages/monkey-business/src/seeded-fault-campaigns.test.ts",
+            "owner:seeded-callback-campaigns.test.ts",
+            "owner:packages/agent-flow-viz/src/simulation.ts"
+          ],
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
+        },
+        {
+          "clause_id": "198.8",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 199,
+      "title": "Make the optional game consume continuous Monkey Business and remove waves",
+      "prior_audit_status": "final current-source game consumer qualification passed",
+      "recorded_owner_evidence": [
+        "Source separation reviewed; full continuous game execution remains incomplete; latest380s run aborted20261004201146848.",
+        {
+          "run": "20261004233103378-1957579-6010f7",
+          "source_pin": "dfd4266b",
+          "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
+          "result": "PASS 131.373s; 145 native and emitted-JS batches per lane (82,121,538 bytes each), all lane pairs byte-equal with compressed/decoded hashes verified; original four campaigns, 3,222 Host ticks, public histories, independent midpoint expectations, and ordinary replay passed."
+        },
+        {
+          "run": "20261004234018581-1985305-ef813d",
+          "source_pin": "6cdea592",
+          "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
+          "result": "PASS 207.606s; all 145 native/emitted batch hash pairs verified; four campaigns/3,222 Host ticks, public histories, independently expected midpoints and ordinary replay passed."
+        }
+      ],
+      "owner_files": [
+        "prototypes/canonical-defense/verify-consumer.mjs"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "199.1",
+          "text": "Remove authored waves and redundant game-side business simulation; geometry, combat, towers and economy remain game-owned.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:prototypes/canonical-defense/verify-consumer.mjs",
+            "evidence:full_game_producers_prior",
+            "evidence:full_game_latest_parent_report",
+            "evidence:current_sourcejob_fix",
+            "evidence:full_game_current"
+          ],
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "199.2",
+          "text": "Game and dashboard use independent engine instances; shared core and dashboard contain no game concepts or dependencies.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:prototypes/canonical-defense/verify-consumer.mjs",
+            "evidence:full_game_producers_prior",
+            "evidence:full_game_latest_parent_report",
+            "evidence:current_sourcejob_fix",
+            "evidence:full_game_current"
+          ],
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "199.3",
+          "text": "After transferring the remaining consumers, remove the obsolete separate Session scheduler package. Do not automatically delete earlier prototypes before owner selection of useful mechanics.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:prototypes/canonical-defense/verify-consumer.mjs",
+            "evidence:full_game_producers_prior",
+            "evidence:full_game_latest_parent_report",
+            "evidence:current_sourcejob_fix",
+            "evidence:full_game_current"
+          ],
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "199.4",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:prototypes/canonical-defense/verify-consumer.mjs",
+            "evidence:full_game_producers_prior",
+            "evidence:full_game_latest_parent_report",
+            "evidence:current_sourcejob_fix",
+            "evidence:full_game_current"
+          ],
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "199.5",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:prototypes/canonical-defense/verify-consumer.mjs",
+            "evidence:full_game_producers_prior",
+            "evidence:full_game_latest_parent_report",
+            "evidence:current_sourcejob_fix",
+            "evidence:full_game_current"
+          ],
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "199.6",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:prototypes/canonical-defense/verify-consumer.mjs",
+            "evidence:full_game_producers_prior",
+            "evidence:full_game_latest_parent_report",
+            "evidence:current_sourcejob_fix",
+            "evidence:full_game_current"
+          ],
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "199.7",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [
+            "evidence:full_game_current"
+          ],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": {
+        "kind": "required owner scope qualified",
+        "clauses": [],
+        "current_evidence": "PASS138.673s; all145 native/emitted hash pairs, 3222ticks, public histories, independent midpoints and replay.",
+        "next": "No remaining required local gate; recorded evidence limits apply."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    },
+    {
+      "issue": 200,
+      "title": "Verify scenario coverage, consumer independence and removal of superseded paths",
+      "prior_audit_status": "maintained coverage map reconciled against final evidence at 3c998eff; owner evidence remains explicitly scoped",
+      "recorded_owner_evidence": [
+        "Historical game-absent dashboard build PASS; final current coverage-map/evidence reconciliation remains.",
+        {
+          "pin": "ce35b138",
+          "scope": "gameabsentdashboardbuildPASS in disposablecheckout; source/game/nativebusinessgatesnotallcomplete"
+        },
+        {
+          "commit": "3c998eff",
+          "path": "packages/monkey-business/README.md",
+          "scope": "Updated maintained coverage section against the final actual evidence receipts and boundaries.",
+          "result": "Coverage map now distinguishes actual production functions, modeled orchestration and remaining unexercised native boundaries. It records the no-game dashboard build, final full game qualification, NativeRun7, recovery, output, collection-response and dashboard/browser passes; no CI/full-project gate is claimed."
+        }
+      ],
+      "owner_files": [
+        "docs/testing-matrix.md",
+        "docs/agents/navigation.md"
+      ],
+      "required_clause_map": [
+        {
+          "clause_id": "200.1",
+          "text": "Review the final coverage map distinguishing actual production functions, modeled orchestration and unexercised native boundaries; reconcile enduring guidance with its maintained owner.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
+        },
+        {
+          "clause_id": "200.2",
+          "text": "Confirm generated orchestration, directed boundary expectations, replay/native-JavaScript agreement and campaign extensions across every agreed family; missing features belong in their slices rather than being first built here.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
+        },
+        {
+          "clause_id": "200.3",
+          "text": "Use a disposable verification checkout with the game removed; validate the native continuous game separately.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "Disposable game-absent dashboard build passed; the separate final full-game native/emitted/public/replay run passed at 6cdea592 and its 154-source game compiler identity is unchanged through 20787242."
+        },
+        {
+          "clause_id": "200.4",
+          "text": "Remove superseded production simulation paths and wrappers; report empirical scope/native gaps without claiming compiler proof or installed-runtime support.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
+        },
+        {
+          "clause_id": "200.5",
+          "text": "Deliver the stated behavior through the shared public headless API and the relevant existing dashboard path; keep dashboard vocabulary entirely business-oriented. The optional game slice uses its own consumer path.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
+        },
+        {
+          "clause_id": "200.6",
+          "text": "Reproduce the applicable scenario with ordinary replay export/import and compare native Bend against compiler-emitted JavaScript at the public boundary. Checks remain deterministic, offline and finite.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
+        },
+        {
+          "clause_id": "200.7",
+          "text": "Use independently expected observations from accepted contracts, including relevant intermediate behavior. Extend campaigns as behavior becomes available and remove replaced code in the slice that replaces it.",
+          "evidence_status": "scoped_evidence_only",
+          "evidence_refs": [
+            "owner:docs/testing-matrix.md",
+            "owner:docs/agents/navigation.md",
+            "evidence:no_game_build",
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
+          ],
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
+        },
+        {
+          "clause_id": "200.8",
+          "text": "Useful exact law statements, implementation and checked proofs may be prepared as proposals for owner review, with explicit quantifiers/premises and relevant falsification evidence. Do not impose an exhaustive theorem inventory or weaken accepted laws.",
+          "evidence_status": "optional_non_gate",
+          "evidence_refs": [],
+          "scope_note": "The criterion explicitly allows proposals; it is not an exhaustive proof or theorem-inventory gate."
+        }
+      ],
+      "confirmed_missing_product_behavior": [],
+      "concrete_remaining_or_applicability": {
+        "kind": "required owner scope qualified",
+        "clauses": [],
+        "current_evidence": "PASS138.673s; all145 native/emitted hash pairs, 3222ticks, public histories, independent midpoints and replay.",
+        "next": "No remaining required local gate; recorded evidence limits apply."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
+    }
+  ],
+  "remaining_checklist": [],
+  "completion": "complete for the required local acceptance scopes of issues178-200; optional proposal proofs remain non-gates; recorded qualifications retain their source/tool limits.",
+  "coverage_map_reconciled_at": "3c998eff",
+  "master_integration": "Complete: mastera783 is an ancestor; actual Engine regenerated11ac; structural12, harness15, typecheck/config, authority, docs, freshNativeRun7, fullgame and game-absent dashboard build passed.",
+  "clause_status_semantics": {
+    "count": 166,
+    "distribution": {
+      "scoped_evidence_only": 143,
+      "optional_non_gate": 23
+    },
+    "meaning": "These statuses describe evidence scope, not final issue acceptance. Newly passed owner receipts are linked in the applicable clause refs/scope notes; optional proof proposals remain non-gates."
+  },
+  "historical_status_semantics": "prior_audit_status and limitations inside historical receipts describe that earlier attempt; current_acceptance_status and later owner evidence supersede them without rewriting chronology."
+}

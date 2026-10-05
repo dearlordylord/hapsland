@@ -1,0 +1,12 @@
+{
+  "equal": true,
+  "lines": 4,
+  "bytes": 561,
+  "sha256": "e7a033f94b80b0665266dbff4afda28abdcf9eb57f75ad72c1581673c7a31ac0",
+  "emissionSeconds": 0.15458178194239736,
+  "executionSeconds": 0.020961543079465628,
+  "chunkWords": 256,
+  "source_commit": "749acf78",
+  "scope": "Small emitted-JS writer canary only; full game and native performance separately measured",
+  "source_review": "0 findings; read-only review fd302b22..749acf78; no checks run by reviewer"
+}

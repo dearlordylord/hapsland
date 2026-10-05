@@ -26,7 +26,8 @@ The animation starts with a small edit, expands to the declaration and related
 code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
 undo it or guarantee a repair. Delivery and optional blocking feedback depend on
 the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
-for the flow and its boundaries.
+for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
+shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose what leaves your repository
 
@@ -69,6 +70,12 @@ where documented, including Clef's 64-question limit. Token limits are recorded
 but require a tokenizer before they can be enforced. See
 [provider configuration and limits](./docs/review-providers.md) for details.
 
+Hapsland also manages review resources: each resident has separate pools for
+eight preparation jobs and eight concurrent classifier request permits, plus
+bounded retained state and advice output. See
+[review resources and limits](./docs/review-resources.md) for saturation behavior,
+configuration controls, and the distinction between collection and model limits.
+
 ## A formally checked core
 
 The review request must fit the model’s context, including the rule questions.
@@ -95,6 +102,24 @@ questions about the supplied type or function and its related code. See [custom 
 and the [type-design rules](./TYPE-DESIGN-RULES.md).
 
 See [supported languages and limits](#supported-languages) before setup.
+
+## A contextual comparison with Abide
+
+[Explore the studies, examples and evidence](./docs/review-studies.md).
+Our larger-declaration comparison covers **six scenarios: four types and two
+functions**, using **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning `max`**.
+Both reviewers used Jev and the same target Noul concerns; Abide 0.0.7 used an
+active custom rubric. All conditions included equal diagnostic feedback reporting.
+
+With **one larger defective input per scenario**, Hapsland sessions produced
+**6/6 independently checked repairs**, versus **0/6 in Abide sessions**. Including
+one compact input per scenario, the counts were **11/12 and 2/12**. Hapsland also
+produced one false warning in 36 clean detection observations, versus zero for
+Abide. Each native cell was one session.
+
+The overview links readable scenario pages, starting and final code, methodology
+and detailed checks. Gaps also appeared on compact inputs; these results do not
+establish that size caused the difference or general review superiority.
 
 ## Installation
 
@@ -135,7 +160,7 @@ private code. Installation and setup do not send code to Jev.
 The npm command uses your configured global prefix and assumes its `bin`
 directory is on PATH. If installation fails on permissions or the command is
 missing, use the [user-owned prefix alternative](./docs/installation-workflows.md#user-owned-prefix-alternative).
-Keep optional dependencies enabled: they supply Hapsland's Node runtime.
+The package includes its Bun runtime in the standalone executables.
 
 Public registry availability is not established by this guide. See the
 [installation lanes](./docs/installation-workflows.md#stable-installation-and-ordinary-use)
@@ -194,7 +219,7 @@ review activity.
 
 ## Development
 
-See the [draft comparison with Abide](./docs/abide-comparison-draft.md)
+See the [comparison with Abide](./docs/abide-comparison.md)
 for the main architectural differences and the rationale for a separate product.
 
 Use the [repository map](./docs/agents/navigation.md) to locate contracts,
@@ -203,13 +228,18 @@ implementation entry points, tests, the website, and research assets.
 Install a fresh local snapshot on your own client without publishing:
 
 ```sh
-npm run dev-install -- --host=claude
-npm run dev-install -- --host=codex
-# Add --update when the selected profile already has Hapsland.
+mise install bun@1.3.14
+mise exec bun@1.3.14 -- npm run dev-install -- --host=claude
+mise exec bun@1.3.14 -- npm run dev-install -- --host=codex
+# Rerun the same command after source changes; --update optionally selects the update flow.
 ```
 
 For installing a freshly packed snapshot into your own Claude Code or Codex profile,
 see [installation and development workflows](./docs/installation-workflows.md#personal-development-on-your-own-clients).
+
+This installs a fixed snapshot; source edits require rebuilding and updating it.
+The script handles building, packing and activation; no manual archive handling
+or publication is needed. See [repeated installation](./docs/installation-workflows.md#source-changes-and-repeated-installation).
 
 
 ```sh
@@ -221,18 +251,18 @@ npm test
 npm run conformance:package
 ```
 
-`npm pack` builds JavaScript release entry points for the review CLI, source parsers,
-resident process, and offline package doctor. The tested installed profile is exactly Node
-24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
-Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated
-Codex CLI 0.156.0 host cell are verified. Other operating systems and architectures are
-unsupported. After installing the tarball, run
-`hapsland-doctor` for source-free compatibility checks and recovery actions. The public commands
-use an installed, platform-specific Node 24.20.0 runtime, so the shell's Node version does not
-select the review runtime. Installation may fetch production dependencies, including that runtime,
-once; keep optional dependencies enabled. The no-script installation does not compile native code.
-Hook invocations use the installed CLI
-and resident and do not download packages per edit.
+`npm pack` builds standalone executables containing Hapsland and pinned Bun 1.3.14
+for the CLI, parser, resident, and package doctor. Agent-loaded Pi extension JavaScript
+remains a separate integration asset. The declared build targets are Linux arm64 and
+macOS arm64; cross-compilation alone does not establish execution compatibility.
+The [installed compatibility record](./docs/installed-release-compatibility.md)
+distinguishes current validation from earlier Node-based observations.
+
+Public commands use the package's executables and physical native assets. They do not
+require Node or Bun on PATH and do not acquire packages per edit. Run `hapsland-doctor`
+after installation for source-free compatibility checks. Source development and package
+assembly still require the pinned development toolchain; installing the tarball with
+scripts disabled does not compile native code.
 
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
@@ -278,8 +308,8 @@ whether the resolved source is present. On Linux and macOS, `hapsland --login` u
 terminal input with the platform's native credential store;
 `hapsland --login --credential-stdin` is the explicit headless form, and
 `hapsland --logout` removes the owned saved item. Project configuration refers to a
-credential environment-variable name; secret values and environment files are never
-stored in project files or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
+credential environment-variable name; secret values are never stored in review
+configuration or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
 [provider selection and limits](docs/review-providers.md). Arbitrary endpoint routing is not supported. Hooks do not prompt.
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
@@ -288,8 +318,15 @@ The supported Codex event boundary is documented in the
 [direct-event profile](./docs/direct-event-v1-supported-profile.md). The installed Codex
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
-hooks invoke the packed `dist/cli.js` entry and never depend on this source path.
-Live use reads `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
+hooks invoke the packed standalone CLI and never depend on this source path.
+Setup and hooks read the selected key from environment → project `.env.local` →
+project `.env` → user `~/.config/hapsland/.env` (or `$XDG_CONFIG_HOME/hapsland/.env`).
+An explicit environment value takes priority, including empty. The default key reference
+then falls back to native saved login. File keys need no special agent launcher;
+[credential lookup](docs/installation-workflows.md#personal-development-on-your-own-clients)
+describes file limits and diagnostics.
+
+Live use selects `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
 through the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`.
 The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
@@ -309,3 +346,46 @@ The maintainer-only semantic evaluation protocol and its sanitized offline miles
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
 [`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
 the review hook never run the maintainer evaluation suite against Jev.
+
+## Code style
+
+Run `npm run format` to apply Oxlint fixes and dprint/OXC formatting.
+`npm run lint:code` checks all authored code; `npm run lint:changed` checks staged,
+unstaged and untracked code against `HEAD`. For a branch comparison, use
+`npm run lint:changed -- --base=origin/master`. `check:fast` includes changed-file
+checks, and CI checks all authored code.
+
+`npm run prepare` installs the Husky Git hook (also run during dependency
+installation). Pre-commit runs lint-staged: it fixes and restages selected code,
+and rejects remaining lint errors. Generated, vendor, fixture and evidence files
+are excluded. [The formatter configuration](./dprint.json) and
+[lint rules](./.oxlintrc.json) own the exact settings. The imported Dalph setup uses
+two-space indentation and 120-column formatting. Hapsland keeps Effect generators
+without `yield` and inline import types; namespace type resolution is checked by
+TypeScript because Oxlint's import namespace check reports false positives for Effect.
+
+<!-- hapsland-hooks:start -->
+## Agent hooks
+
+Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.
+
+| Runtime | Event | Selection | Mode | Limit | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| Codex | `PreToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 10 s | Report the edit and collect ready advice |
+| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Async command | 25 s | Deliver advice that finishes after the edit response |
+| Codex | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Codex | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Claude Code | `PreToolUse` | `Edit\|Write` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
+| Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify the resident of the user prompt; does not open a review round |
+| Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
+| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register a supported edit attempt |
+| Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
+| Pi | `agent_before_settle` | All | Extension callback | 7 s per IPC call | Offer review advice before the agent settles |
+| Pi | `session_before_switch` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
+| Pi | `session_shutdown` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
+| Pi | `agent_settled` | All | Extension callback | 7 s per IPC call | Close the originating agent partition |
+<!-- hapsland-hooks:end -->

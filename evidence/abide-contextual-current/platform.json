@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "capturedAt": "2026-10-02T21:50:58.225Z",
+  "captureTiming": "During execution; identities and source hashes frozen in the pre-execution declaration.",
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "arm64",
+  "packages": {
+    "effect": "4.0.0",
+    "typescript": "7.0.2",
+    "@effect/ai-typesafe": "4.0.0"
+  },
+  "codexVersion": "codex-cli 0.155.1",
+  "abideVersion": "0.0.7",
+  "abideHookSha256": "77626436f4e84a18b1907181c6b970a345b86b03381a9325947dcdb00accc0b1",
+  "hapslandCommit": "6c36462dd846c66fff95f8fce2453e63216b017a",
+  "productionAdapterSha256": "f4a0dd7e4e79bd2cecce05725797a5a0a9584f0f30dc4d007cac2907b943c9dc",
+  "feedbackFormatterSha256": "20c44eeeb3212a9e6f7f48d6d6c9657771a33573e058088b16f1f1559150efca",
+  "sourceClass": "META",
+  "verificationState": "SOURCE-INSPECTED"
+}

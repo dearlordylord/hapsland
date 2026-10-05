@@ -28,6 +28,10 @@ capabilities. A rule shared by type and function review names both targets.
 Unknown versions, targets, capabilities, or fields fail the selected pack.
 Invalid or unsupported pack versions fail configuration before source capture.
 Bundled Noul rules target type review; its body rule also targets function review.
+The function target of the body rule requires the exact signature and body, not
+complete call/type closure. It reviews resource use visible in included source
+with omissions retained explicitly; missing references alone are not findings.
+Other targets retain their declared closure requirements.
 Rule IDs, enablement,
 path filters, probability thresholds, and authored messages retain their
 configured meanings. Choice and Score result forms remain separate decisions.
@@ -38,7 +42,12 @@ The active input contracts are direct-event/type-shape/v1 and
 direct-event/function/v1. Each request carries one changed root and its
 bounded evidence tree with marked omissions. Supporting declarations can come from other
 selected files through supported local imports. They do not become separate
-edited roots. The request contains neither a whole file nor an edit diff,
+edited roots. Omitted reference sites may contain opaque expression text, such
+as an anonymous callback or dynamic call, rather than a named binding. This
+text remains a bounded JSON string with its omission reason; it neither adds
+a resolved node nor makes the graph complete. Resolved edges retain their
+named-reference grammar, and the aggregate evidence-size limit still applies.
+The request contains neither a whole file nor an edit diff,
 agent transcript, absolute path, or unrelated source.
 
 Hapsland selects each rule only when its declared evidence needs are met. A
@@ -56,10 +65,23 @@ destination; a change to any of these invalidates reuse. See the
 [provider boundary](review-providers.md) for transport validation and declared limits.
 
 Update attribution currently requires an exact verified post-edit span. Codex
-`apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply
-one. Source containing non-ASCII characters currently fails this coordinate
-check closed for both Add and Update, so the path produces no review unit.
-[#151](https://github.com/dearlordylord/hapsland/issues/151) tracks this limit.
+`apply_patch` hunks, Claude `Edit`/`Write` native content evidence, and Pi 1.0.0
+native `edit` unified-result patches can supply one. Codex and Pi share post-edit
+patch verification with explicit placement rules: Codex requires a unique text
+match; Pi verifies native line coordinates against bounded current source without
+a text-search fallback or a separate pre-edit image. Pi derives ranges from the
+successful result patch independently of how `oldText`/`newText` replacements are
+grouped, including replacements spanning omitted context across hunks. Claude
+derives spans directly from its native content evidence.
+
+Attribution compares one-based UTF-16 code-unit columns from the pinned
+Node parser binding and verified edit spans. Unicode comments and strings do
+not prevent Add or verified Update selection. Missing or uncertain spans still
+produce no Update review unit; OpenCode Update currently supplies no verified
+span, while its Add path selects eligible declarations. Runtime-specific limits
+still apply: the [Pi profile](pi-installation.md) currently requires ASCII input
+and source. Native Pi `write`, nested/child mutations, shell mutations, and custom
+tools are unsupported/incomplete rather than inferred Add or Update observations.
 
 The previous compatibility assessment for the one-file input remains in Git
 history. Its old prospective gates do not govern the 2026-09-29 decision.

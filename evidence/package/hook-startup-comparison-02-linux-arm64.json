@@ -1,0 +1,1096 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-03T22:16:58.975Z",
+  "declaration": {
+    "samples": 15,
+    "coldSamples": 3,
+    "healthyResidentVariant": "bun",
+    "output": "/tmp/hapsland-runtime-comparison/comparison-02.json",
+    "variants": [
+      {
+        "name": "node-baseline",
+        "prefix": "/tmp/hapsland-runtime-comparison/node-baseline/installed",
+        "archive": "/tmp/hapsland-runtime-comparison/node-baseline/hapsland-hapsland-0.1.0.tgz",
+        "archiveSha256": "6a745d9136a47a2221e8b5a376e1b273d081c5957924ec2890cce3c65edb2407"
+      },
+      {
+        "name": "node-light",
+        "prefix": "/tmp/hapsland-runtime-comparison/node-light/installed",
+        "archive": "/tmp/hapsland-runtime-comparison/node-light/hapsland-hapsland-0.1.0.tgz",
+        "archiveSha256": "9998740e5116e03f56956a5363cbbd5026b577b3c366002017e5d712920dbe41"
+      },
+      {
+        "name": "bun",
+        "prefix": "/tmp/hapsland-runtime-comparison/bun-clock/installed",
+        "archive": "/tmp/hapsland-runtime-comparison/bun-clock/hapsland-hapsland-0.1.0.tgz",
+        "archiveSha256": "8a68782fd576e49ad74976520fd3e68aa50ea83f9eca6a653625308f0ce2e4af"
+      }
+    ],
+    "scope": "Uninstrumented installed Pi before registration; no edits, model calls or reviewer calls. Light Node archive predates additional Effect CLI subpath cuts in Bun candidate. OS file cache uncontrolled. Bun candidate includes explicit OS-monotonic clock adapter, preserving admission deadline. Measurement runs after build/pack/install finish; OS scheduling and file cache remain uncontrolled."
+  },
+  "declarationSha256": "1ef3f050e1103c51a662187f64b0e016a869163068759733d704554b57490f03",
+  "runnerSha256": "0cafc2d30a70575f54bbd6087812abd603fc3eb14a8335e05062d7ebb0b2dead",
+  "platform": "linux",
+  "architecture": "arm64",
+  "availableParallelism": 12,
+  "coverage": false,
+  "fileCache": "uncontrolled OS cache; new client process for every sample",
+  "measurement": "full before-command wall time; registration outcome retained even on failure",
+  "samples": [
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 540.5477970000002,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 447.4413629999999,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 550.8372509999999,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 639.2972819999995,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 619.9475700000003,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 654.1380129999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 458.6190459999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 396.65377400000034,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 495.87256200000047,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 3,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 472.7830099999992,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 3,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 667.136281000001,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 3,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 594.3902930000004,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 4,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 470.11773899999935,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 4,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 387.1561720000009,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 4,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 504.2514709999996,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 5,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 456.4433280000012,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 5,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 429.07784000000174,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 5,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 415.24371800000154,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 6,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 525.7614849999991,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 6,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 473.9871220000023,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 6,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 549.0583750000005,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 7,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 501.37519399999655,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 7,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 400.37173800000164,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 7,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 860.1247699999985,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 8,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 652.6668520000021,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 8,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 445.95474399999875,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 8,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 508.12198100000023,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 9,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 506.03259700000126,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 9,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 619.138801000001,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 9,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 525.2288479999988,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 10,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 540.0598680000039,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 10,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 500.73755399999936,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 10,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 478.49777199999517,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 11,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 729.0113860000056,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 11,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 504.24359600000025,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 11,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 521.0726649999997,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 12,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 522.9450429999997,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 12,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 342.0570930000031,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 12,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 822.6219990000027,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 13,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 363.26455899999564,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 13,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 334.07094399999914,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 13,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 329.3515810000026,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "healthy-resident",
+      "index": 14,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 322.40358299999934,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "healthy-resident",
+      "index": 14,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 316.5316920000041,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "healthy-resident",
+      "index": 14,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 330.6882809999952,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "cold-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 733.0321480000057,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "cold-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 693.6731240000008,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "cold-resident",
+      "index": 0,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 772.6370539999989,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "cold-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 664.3763820000022,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "cold-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 642.9966629999981,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "cold-resident",
+      "index": 1,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 690.4790480000011,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "mode": "cold-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 689.2951029999967,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "mode": "cold-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 633.3825159999978,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "mode": "cold-resident",
+      "index": 2,
+      "status": "registered",
+      "responseStatus": "registered",
+      "elapsedMs": 718.3777980000013,
+      "exitCode": 0
+    }
+  ],
+  "retirements": [
+    {
+      "variant": "node-baseline",
+      "index": 0,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 419.23156400000016,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 0,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 479.61575800000037,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 0,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 517.920298,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 1,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 814.9887749999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 1,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 646.8309210000007,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 1,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 550.1884440000003,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 2,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 534.7367840000006,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 2,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 968.699783,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 2,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 548.9887070000004,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 3,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 485.4723550000017,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 3,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 428.12527600000067,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 3,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 561.5500069999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 4,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 543.5967450000007,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 4,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 367.0687340000004,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 4,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 509.7557280000001,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 5,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 545.5416669999977,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 5,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 420.60017900000094,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 5,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 475.6176200000009,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 6,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 594.0640349999994,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 6,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 413.23646200000076,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 6,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 465.703550000002,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 7,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 441.107168999999,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 7,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 514.2307929999988,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 7,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 813.2841509999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 8,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 545.163074,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 8,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 482.5751199999977,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 8,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 583.7059950000003,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 9,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 702.7433409999976,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 9,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 445.660778999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 9,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 494.4858630000017,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 10,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 571.3346999999994,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 10,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 456.3473679999952,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 10,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 585.0455690000017,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 11,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 627.3218720000004,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 11,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 636.5904679999949,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 11,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 451.25474499999837,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 12,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 388.77946099999826,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 12,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 811.6024439999965,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 12,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 432.1256629999989,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 13,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 365.2868159999998,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 13,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 306.08989999999903,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 13,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 332.74932999999874,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-baseline",
+      "index": 14,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 328.9984899999981,
+      "exitCode": 0
+    },
+    {
+      "variant": "node-light",
+      "index": 14,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 336.4523760000011,
+      "exitCode": 0
+    },
+    {
+      "variant": "bun",
+      "index": 14,
+      "status": "retired",
+      "responseStatus": "retired",
+      "elapsedMs": 323.13147500000196,
+      "exitCode": 0
+    }
+  ],
+  "variants": [
+    {
+      "name": "node-baseline",
+      "archiveSha256": "6a745d9136a47a2221e8b5a376e1b273d081c5957924ec2890cce3c65edb2407",
+      "launcherSha256": "04c0c5144ee22ce5cac081d274a42e15bfc0a202a29797bc64b993d823d4a24a",
+      "runtimeDeclaration": {
+        "schemaVersion": 1,
+        "runtime": {
+          "name": "node",
+          "version": "24.20.0"
+        },
+        "codex": {
+          "compatibleVersions": [
+            "0.155.1",
+            "0.156.0"
+          ]
+        },
+        "profiles": [
+          {
+            "operatingSystem": "linux",
+            "architecture": "arm64",
+            "descriptorFacility": "/proc/self/fd",
+            "verification": "tested"
+          },
+          {
+            "operatingSystem": "darwin",
+            "architecture": "arm64",
+            "descriptorFacility": "/dev/fd",
+            "verification": "tested-controlled-package"
+          }
+        ],
+        "requiredCommands": [
+          "git"
+        ],
+        "linuxCredentialStore": {
+          "implementation": "Secret Service through libsecret",
+          "releaseBuildDependency": "C compiler, pkg-config, and libsecret-1 development files",
+          "lookupDeadlineMs": 750,
+          "backgroundUnlockPrompts": false
+        },
+        "macOSCredentialStore": {
+          "implementation": "Keychain generic password through Security.framework",
+          "releaseBuildDependency": "Xcode Command Line Tools (cc)",
+          "service": "dev.typesafe.realtime-review-tool",
+          "account": "default",
+          "lookupDeadlineMs": 750,
+          "backgroundAuthenticationUI": "fail-without-prompt"
+        },
+        "parser": {
+          "implementation": "tree-sitter",
+          "languages": [
+            "typescript",
+            "tsx"
+          ]
+        },
+        "residentProtocol": 1
+      },
+      "commands": {
+        "cli": {
+          "executableSha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+          "entrypointSha256": "ec3bea1b7ccc146d99a8e07cd615039b451d256e740e386f17e2d19b1c33aab4"
+        },
+        "resident": {
+          "executableSha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+          "entrypointSha256": "f56571b6cb97aa555c0bf1c9de182ccafa01e417cfadfad8f5bec24fdc744fd4"
+        }
+      }
+    },
+    {
+      "name": "node-light",
+      "archiveSha256": "9998740e5116e03f56956a5363cbbd5026b577b3c366002017e5d712920dbe41",
+      "launcherSha256": "04c0c5144ee22ce5cac081d274a42e15bfc0a202a29797bc64b993d823d4a24a",
+      "runtimeDeclaration": {
+        "schemaVersion": 1,
+        "runtime": {
+          "name": "node",
+          "version": "24.20.0"
+        },
+        "codex": {
+          "compatibleVersions": [
+            "0.155.1",
+            "0.156.0"
+          ]
+        },
+        "profiles": [
+          {
+            "operatingSystem": "linux",
+            "architecture": "arm64",
+            "descriptorFacility": "/proc/self/fd",
+            "verification": "tested"
+          },
+          {
+            "operatingSystem": "darwin",
+            "architecture": "arm64",
+            "descriptorFacility": "/dev/fd",
+            "verification": "tested-controlled-package"
+          }
+        ],
+        "requiredCommands": [
+          "git"
+        ],
+        "linuxCredentialStore": {
+          "implementation": "Secret Service through libsecret",
+          "releaseBuildDependency": "C compiler, pkg-config, and libsecret-1 development files",
+          "lookupDeadlineMs": 750,
+          "backgroundUnlockPrompts": false
+        },
+        "macOSCredentialStore": {
+          "implementation": "Keychain generic password through Security.framework",
+          "releaseBuildDependency": "Xcode Command Line Tools (cc)",
+          "service": "dev.typesafe.realtime-review-tool",
+          "account": "default",
+          "lookupDeadlineMs": 750,
+          "backgroundAuthenticationUI": "fail-without-prompt"
+        },
+        "parser": {
+          "implementation": "tree-sitter",
+          "languages": [
+            "typescript",
+            "tsx"
+          ]
+        },
+        "residentProtocol": 1
+      },
+      "commands": {
+        "cli": {
+          "executableSha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+          "entrypointSha256": "78837543ad640604376e719810e1df8b9f88663820cc95bfc753fc795bd5b4fd"
+        },
+        "resident": {
+          "executableSha256": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477",
+          "entrypointSha256": "f56571b6cb97aa555c0bf1c9de182ccafa01e417cfadfad8f5bec24fdc744fd4"
+        }
+      }
+    },
+    {
+      "name": "bun",
+      "archiveSha256": "8a68782fd576e49ad74976520fd3e68aa50ea83f9eca6a653625308f0ce2e4af",
+      "launcherSha256": "29f1354dc0d4fcd68294695391becbf960cb5d2027d5259574e905f74247f82f",
+      "runtimeDeclaration": {
+        "schemaVersion": 1,
+        "runtime": {
+          "name": "bun",
+          "version": "1.3.14",
+          "distribution": "standalone-executables"
+        },
+        "codex": {
+          "compatibleVersions": [
+            "0.155.1",
+            "0.156.0"
+          ]
+        },
+        "profiles": [
+          {
+            "operatingSystem": "linux",
+            "architecture": "arm64",
+            "descriptorFacility": "/proc/self/fd",
+            "verification": "pending-standalone-validation"
+          },
+          {
+            "operatingSystem": "darwin",
+            "architecture": "arm64",
+            "descriptorFacility": "/dev/fd",
+            "verification": "cross-built-format-only"
+          }
+        ],
+        "requiredCommands": [
+          "git"
+        ],
+        "linuxCredentialStore": {
+          "implementation": "Secret Service through libsecret",
+          "releaseBuildDependency": "C compiler, pkg-config, and libsecret-1 development files",
+          "lookupDeadlineMs": 750,
+          "backgroundUnlockPrompts": false
+        },
+        "macOSCredentialStore": {
+          "implementation": "Keychain generic password through Security.framework",
+          "releaseBuildDependency": "Xcode Command Line Tools (cc)",
+          "service": "dev.typesafe.realtime-review-tool",
+          "account": "default",
+          "lookupDeadlineMs": 750,
+          "backgroundAuthenticationUI": "fail-without-prompt"
+        },
+        "parser": {
+          "implementation": "tree-sitter",
+          "languages": [
+            "typescript",
+            "tsx"
+          ]
+        },
+        "residentProtocol": 1
+      },
+      "commands": {
+        "cli": {
+          "executableSha256": "fdf2cb73e4437d2df7554714504f9998ac90dda350aa0263c0d548ceeaa2a847"
+        },
+        "resident": {
+          "executableSha256": "7c171251cf6f16e66c400ae93f945b3934d5f6c7d661c7c40ed05d3db70ec594"
+        }
+      }
+    }
+  ],
+  "completed": true,
+  "cleanup": {
+    "status": "complete",
+    "retainedFixtures": 0
+  }
+}

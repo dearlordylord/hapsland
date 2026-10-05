@@ -1,4 +1,5 @@
-import { initialImportGraph, projectImportGraph, stepImportGraph, type ImportGraphEvent, type ImportGraphProjection, type ImportGraphCommand } from "../../../src/canonical/graph-adapter.ts";
+import { SharedCore } from "./shared-core.ts";
+import { type ImportGraphEvent, type ImportGraphProjection, type ImportGraphCommand, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 
 /** Source-free native facts for one synthetic A → B review artifact. */
 export const preparationFacts = (): readonly ImportGraphEvent[] => [
@@ -44,7 +45,9 @@ export type PreparationEvent = Readonly<{
   unit: number;
   step: number;
   fact: ImportGraphEvent;
-  generatedTree?: Readonly<{ targetNames: Readonly<Record<number, string>>; files: number; depth: number }>;
+  /** Effective production graph profile captured when this unit is prepared. */
+  graphLimits?: GraphLimits;
+  generatedTree?: Readonly<{ targetNames: Readonly<Record<number, string>>; files: number; depth: number; rootEligible?: boolean; closureEligible?: boolean }>;
 }>;
 export type PreparationFrame = Readonly<{
   event: PreparationEvent;
@@ -53,19 +56,8 @@ export type PreparationFrame = Readonly<{
   command: ImportGraphCommand;
 }>;
 
-/** Separate reducer state, keyed by the enclosing canonical operation and artifact. */
+/** Standalone graph views use the same Bend-owned preparation state as Run. */
 export class PreparationReplay {
-  private graphs = new Map<string, { state: unknown; step: number }>();
-  step(event: PreparationEvent): PreparationFrame {
-    const key = `${event.partition}:${event.lifetime}:${event.round}:${event.operation}:${event.unit}`;
-    const graph = this.graphs.get(key) ?? { state: initialImportGraph(), step: 0 };
-    if (event.step !== graph.step) throw new Error("preparation graph step is out of order");
-    const before = projectImportGraph(graph.state);
-    const result = stepImportGraph(graph.state, event.fact);
-    this.graphs.set(key, { state: result.state, step: graph.step + 1 });
-    return { event, before, after: projectImportGraph(result.state), command: result.command };
-  }
-  retire(operation: number) {
-    for (const key of this.graphs.keys()) if (Number(key.split(":")[3]) === operation) this.graphs.delete(key);
-  }
+  private core = new SharedCore({ globalItems: 32, globalBytes: 100000, partitionItems: 16, partitionBytes: 50000 });
+  step(event: PreparationEvent): PreparationFrame { return this.core.graphStep(event); }
 }

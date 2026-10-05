@@ -23,8 +23,12 @@ submission to an agent runtime, model visibility, and a repair edit must never b
 inferred from one another. A completed output write establishes submission only.
 An unavailable, interrupted, or discarded evaluation is never reported as clear.
 
-The installed composed path uses the same resident delivery module for Codex CLI
-and Claude Code. Native hooks translate runtime events and response formats; they
+For every agent runtime, the normal delivery boundary is Hapsland's submission;
+Hapsland does not wait for an acknowledgment or reply from the agent. Internal
+delivery acknowledgments are Hapsland bookkeeping, not agent replies.
+
+The installed composed path uses the same resident delivery module for Codex CLI,
+Claude Code, and Pi. Native hooks translate runtime events and response formats; they
 do not own another review queue, reconstruct reviews from the filesystem, or call
 Jev to produce delivery output. The resident owns admitted work, pending advice,
 leases, source-free operational failure records, expiry, finish decisions, and virtual-round resources. There is
@@ -59,6 +63,16 @@ its governing instructions. A user can instruct it to follow reviews or to
 ignore them. Hapsland does not override that choice. An agent's decision not to
 repair is not, by itself, a delivery failure; nor does submission prove that the
 agent saw the advice and chose to ignore it.
+
+The human-readable finding message has one runtime-neutral owner. All supported
+runtime envelopes carry the same heading and response instructions: check the
+findings, fix valid issues and verify, or explain a disagreement. Each finding
+names its file and declaration and carries its configured message; rule IDs
+and classification probabilities are internal metadata. These instructions request a
+response; they do not override governing agent instructions or turn a positive
+classification into mandatory acceptance. Messages containing only operational
+notices do not request repairs. Runtime adapters own transport and the existing
+blocking decision, not alternative response wording.
 
 Native delivery-and-repair tests must explicitly instruct the fixture agent to
 act on every actionable Hapsland finding it receives. Apply the same policy to
@@ -303,6 +317,14 @@ has begun. This is acceptable timely delivery to the same advicee. Closing a
 round cannot recall text already in a running hook. The current flow selects no
 additional advice from that closed round. Whether a later virtual round may
 deliberately select earlier advice is a separate, undecided behavior.
+
+## Pi native handoff boundary
+
+Pi 1.0.0 uses its awaited `tool_call`/`tool_result` boundaries for source-free admission and matching successful native `edit` observation. Missing admission is an incomplete review observation and does not block the user's edit. `write`, nested calls, and child identities are unsupported in the initial profile. Review scheduling, freshness, collection, permits, and continuation limits remain resident policy.
+
+At native `agent_before_settle`, the extension requests the shared finish decision with the existing four-second safe wait. Actionable current advice is offered as a native `custom_message`; continuation is requested only when the shared decision permits it and the resulting native context admits continuation. The initial preview can end in an assistant message and report `canContinue: false`; the proposed custom message changes that projection before Pi performs its final continuation check. A cancelled or otherwise failed outcome closes work instead of requesting continuation.
+
+The extension acknowledgement establishes its handler's submission attempt. Later extension handlers can replace result content or settlement entries, and final native continuation constraints or cancellation can prevent another request. Acknowledgement therefore proves neither model visibility nor repair. There is no automatic replay after acknowledged submission. Native validation must observe model-visible request input, subsequent repair, and correlated follow-up evaluation separately. This Pi translation does not amend Claude's blocking authority or Codex's background reoffer rule.
 
 ## Conditional progress
 

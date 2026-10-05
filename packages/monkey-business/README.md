@@ -2,7 +2,7 @@
 
 **Purpose:** Explain the supported source-free deterministic simulator API.
 **Status:** Maintained package guidance.
-**Authority:** Implementation guidance and validation scope; issues #152–#157 own requirements, and accepted Hapsland contracts own product behavior.
+**Authority:** Implementation guidance and validation scope; issues #176–#200 and #152–#157 own requirements, and accepted Hapsland contracts own product behavior.
 **Expected use:** Run headless experiments or consume checked frames in a dashboard.
 **Lifecycle:** Keep current with public API and tests; review whenever supported simulation boundaries or replay identity change.
 
@@ -16,6 +16,16 @@ while (replay.step()) {}
 ```
 
 Run `node --experimental-strip-types packages/monkey-business/src/example.ts` from the repository root. Run `npm run typecheck --prefix packages/monkey-business` and `npx vitest run packages/monkey-business/src` for package checks. The core has no UI dependency, credentials, private source, real transport or wall-clock timers.
+
+The shared [Bend engine](../monkey-business-bend/README.md) owns Canonical and
+bounded ImportGraph state, virtual queue selection, and the complete base
+observation → preparation → Jev → authorized output driver. TypeScript validates
+source-free facts, projects checked output, retains observations, and invokes the shared Stop, reuse, collector, writer,
+expiry and quiet owners through their maintained codecs. All variants use
+the same reducer owner and queue; the dashboard consumes this public Run API.
+The base driver invokes the production decisions directly, including final
+freshness/credential checks, suppression, lease reservation and submission
+authorization. Finding and clear paths use the ordinary replay endpoint.
 
 Preparation generates a seeded source-free import tree for every synthetic
 review artifact. `fileTrees` configures candidate file count, branching, depth,
@@ -66,7 +76,7 @@ checked rule decision, rather than treating every incomplete graph as unusable.
 
 `step()` processes the next checked canonical or inner preparation transition, following workload metadata as necessary. `advance({untilTime,maxEvents})` advances the same ongoing run and returns `timeLimit`, `eventLimit` or `idle`, the number of canonical events and current virtual time. A bound never invents a finish attempt or closes a round. Time is one nonnegative integer clock; equal-time scheduled items follow insertion order, including effects added by transitions. Time bounds do not force the clock to a boundary with no activity. Driver playback speed and pauses do not enter the core.
 
-`applyControl` validates built-in controls at a step boundary and records their time, canonical-event boundary and a shared sequence across controls and explicitly scheduled inputs. Edit pace and arrival suspension replace obsolete recurring arrivals; finite bursts and delayed repairs survive changes. `jevProfile` changes new requests; requests already scheduled keep their due time. Replay stores initial config/inputs, seed, random algorithms, outcome-stream identity and ordered distribution, consumed Bend source identity, explicit outcomes and the complete control timeline. `replayRun` reconstructs initial state and rejects incompatible identities; it does not hydrate opaque Bend state. Exported replay is input-oriented: advance the reconstructed run to the desired boundary.
+`applyControl` validates built-in controls at a step boundary and records their time, canonical-event boundary and a shared sequence across controls and explicitly scheduled inputs. Edit pace and arrival suspension replace obsolete recurring arrivals; finite bursts and delayed repairs survive changes. `jevProfile` changes new requests; requests already scheduled keep their due time. Replay stores initial config/inputs, seed, random algorithms, outcome-stream identity and ordered distribution, transitive shared-engine Bend source identity, explicit outcomes and the complete control timeline. `replayRun` reconstructs initial state and rejects incompatible identities; it does not hydrate opaque Bend state. Exported replay is input-oriented: advance the reconstructed run to the desired boundary.
 
 Every observation has ordered `event`, `commands`, checked canonical `before`/`after` projections, optional product `rejection`, integer `time`, `sequence` and separate synthetic `effects`. Frames are compatible with the UI-independent semantic flow projection. Bend owns product decisions. The environment follows preparation, unit, Jev and submission identities; identity mismatches and missing required preparation inputs fail explicitly. Ordinary capacity or product refusals remain observations. Canonical facts supplied directly must correctly describe the synthetic scenario; this interface is not a native-host security boundary.
 
@@ -97,7 +107,7 @@ Records without an ownership binding are omitted from that local lens.
 
 An ongoing example is `createRun({seed:7,session:{editIntervalMs:100,variationMs:15,editsPerTask:5,taskPauseMs:500,adviceResponse:'delayedRepair',repairDelayMs:300}})`. Advance to a finite boundary, suspend arrivals with `{kind:'suspendArrivals',suspended:true}`, drain finite effects, then resume with `suspended:false`. Suspension emits no Stop and preserves started effects, bursts and repairs. Advice responses are `ignore`, `noAction`, `promptRepair` and `delayedRepair`; attempted repair carries a changed synthetic revision, and its Jev outcome remains a separate supplied fact. Session submissions use the background surface. `workload` metadata exposes revision and repair identity on preparation frames. Size changes affect newly generated arrivals; already scheduled arrival facts remain fixed.
 
-Replay exports `endpoint:{eventCount,now}` for consumers that want to restore the recorded viewing boundary. `restoreReplay(replay)` reconstructs that exact viewing boundary, including metadata-only clock advancement and controls applied there, without emitting another canonical transition. `replayRun` continues to reconstruct initial inputs for independent stepping. Bounded `advance` still stops at its declared canonical-event limit; it does not restore later metadata automatically.
+Replay exports `endpoint:{eventCount,queueTakes,now}` for consumers that want to restore the recorded viewing boundary. `queueTakes` counts actual successful shared scheduler takes, including metadata that emits no observation; it does not consume the product event budget. Controls and explicitly scheduled inputs retain their original action sequence and also record their actual take boundary and checkpoint sequence. Each actual public advance normalization invocation records its own time and checkpoint sequence in the same ordered replay timeline, so repeated normalization and equal-time controls remain distinct. `restoreReplay(replay)` reconstructs the exact settled public viewing boundary, including metadata-only advancement, completed observation-listener controls, and the recorded normalization calls, without emitting another canonical transition. Replay uses the existing normalization owner and does not infer progress from queue length or add an unrecorded cleanup call. Required progress fields are updated in place at format 1; incompatible or unreachable coordinates are rejected. `replayRun` continues to reconstruct initial inputs for independent stepping. Bounded `advance` still stops at its declared canonical-event limit; it does not restore later metadata automatically.
 
 Synthetic edits use issued observation identities through admission, source start and observed preparation, so retained findings remain available to checked finish selection. A synthetic finish attempt owns a virtual `finishDeadline` (default 200). `waitForWork` suspends the task generator; relevant effect/output completion wakes the same attempt, while the deadline polls with its integer clock fact. `finishReady` supplies a checked finish reservation. Unsubmitted retained findings use Stop leases, submission authorization, acknowledged output and checked continuation consumption. Allowance ends Stop and retires the round before the next task. Continuation ends the output attempt and resumes the current round; later fresh work uses existing admission. A refusal grants no finish permission and remains an observed product outcome. Explicit canonical fixtures do not automatically acquire this synthetic finish driver.
 
@@ -109,11 +119,12 @@ The environment follows issued source admission, checked preparation and review 
 
 `outputProfile` configuration and `{kind:'outputProfile',outcome,delayMs,leaseMs}` controls set new output attempts. `outcome` is `certain`, `uncertain`, or `failed`; failure is a known preauthorization failure and releases its provisional reservation without a submission claim. Profile timing is captured at authorization. An attempt whose output delay reaches its lease lifetime supplies checked submission expiry and records uncertainty; the original delayed callback still occurs at its original due time as a checked expired acknowledgment, without authorizing a stale writer. Stop revalidates candidate source/credentials and checked suppression before reservation: uncertain background output can be reoffered once in its active round with the existing advice identity and no additional Jev call. Uncertain Stop output consumes that reoffer. Later fresh edits continue independently. These virtual host-output/lease facts model the accepted outcomes; no IPC writer, partial byte stream or model-visible acknowledgment is executed.
 
-`lifecycles` enables additional checked generated orchestration. `permits` takes
-`adviceeLimit`, `residentLimit`, optional `holdMs`, `lifetimeMs` and terminal
-`consume`, `release` or `expire`. Prospective invocations acquire a checked permit
-before synthetic admission; late invocations expire and release capacity, while
-consumption at the inclusive deadline remains valid. `collectors` takes
+`editPermitLimits` supplies per-advicee and resident limits (production defaults
+32 and 4096). `permitProfile` supplies `outcome` (`success`, `failure`,
+`duplicate` or `absent`), `durationMs` and `lifetimeMs`. Original PRE captures
+retain these facts; late POST reaches the checked expiry fence, and consumption
+at the inclusive deadline remains valid. `lifecycles` enables additional checked
+generated orchestration. `collectors` takes
 `capacity` and optional `lifetimeMs`; generated background candidates acquire
 resident writer claims and follow checked release/expiry. Shared limits are
 resident-wide across agent partitions.
@@ -131,9 +142,9 @@ supply `liveAdvice:false`; joining an already-live advice record through
 late owner and reused-member outcomes. Checked cache evictions release the
 stored-result reservation through the common ledger. A fulfilled native result
 remains available to pending/claimed joiners until checked ownership release;
-unavailable owner results terminate joined work as well. Bounded two-agent timing
-tests cover suspension draining work/dispatch/requests/reuse claims and exact
-replay, including the default 1,000-frame retention. Explicit identity facts
+unavailable owner results terminate joined work as well. The two-agent late-join
+regression covers suspension draining work/dispatch/requests/reuse claims,
+resource accounting, and exact replay with the default 1,000-frame retention. Explicit identity facts
 are assumed native observations, not a validation of real source equivalence.
 
 `quietWindowMs` enables inactivity ticks and checked round retirement after work
@@ -170,7 +181,7 @@ checked adapters and bounded scenarios, not full native resident orchestration.
 
 Unspecified review outcomes use `DEFAULT_OUTCOME_WEIGHTS`: finding 50, clear 50, all failures zero. `RunConfig.outcomeWeights` and `{kind:'jevProfile',delayMs,outcomeWeights}` accept six finite weights in [0,100]; their positive total is normalized for sampling. An all-zero mix is rejected before a control is recorded. An explicit edit/config/control `outcome` remains a deterministic single-outcome override and is mutually exclusive with weights at that boundary. Already issued requests keep their sampled result and due time. The dedicated `jev-outcomes` xorshift32 stream uses the run seed and is independent of workload variation/rendering; only sampled request issuance consumes a draw, explicit overrides do not. Replay persists the initial weights, all later raw weights, algorithm, stream and stable outcome order. The distribution describes synthetic inputs, not empirical Jev rates.
 
-The ongoing session generator now delegates scheduling to the shared [Bend session core](../session-bend/README.md), compiled to an ES module. Its TypeScript adapter keeps the existing public API, validation and absolute clocks; the pre-port implementation survives only as an independent test fixture. Regenerate the module with `node packages/session-bend/build.mjs` after changing the Bend source.
+The ongoing session generator delegates workload transitions to the shared [Bend engine](../monkey-business-bend/README.md). Its TypeScript adapter keeps the public API and validation; the pre-port implementation survives only as an independent test fixture. The sole `Session.bend` source and standalone projection now live in that shared core. Regenerate the engine with `node packages/monkey-business-bend/build.mjs` and its projection manifest with `node packages/monkey-business-bend/build-session.mjs` after changing the source.
 
 
 Generated sessions may supply `editDurationMs` (0–1,000,000,000 virtual ms).
@@ -179,9 +190,114 @@ Jev delay; it does not serialize a native agent's tools or measure native work.
 `applyControl({ kind: "editDuration", agent, durationMs })` changes future edits
 for that agent; omitting `agent` targets all generators. The duration is captured
 at PRE issuance, so in-flight POST timing and the original permit deadline stay
-unchanged. Scripted edits retain the shared lifecycle `holdMs` default unless an
+unchanged. Scripted edits retain the captured `permitProfile.durationMs` unless an
 explicit edit duration is supplied. Bend still decides admission/expiry; a
 late POST cannot revive an expired permit. Replay remains format 1 and records
 session duration and targeted controls. The dashboard starts at 1 ms and places
 this setting beside Edit interval; Start seeds all agents, Apply targets the
 selected agent.
+
+## Shared public scenario boundary and migration coverage
+
+`createRun(config)` creates one resident. Its `step`, bounded `advance`,
+`applyControl`, `schedule`, `observe`, `subscribe` and `exportReplay` operations
+are the shared headless boundary used by dashboard consumers. `observe()`
+returns one synchronous immutable snapshot of virtual time, event count,
+resident projection, retained frames, capacity metadata and advicee scopes.
+Earlier snapshots cannot change when the run advances; retention still limits
+only observations. `replayRun` reconstructs inputs; `restoreReplay` restores
+the recorded endpoint. These are the same version-one API and replay format,
+not a parallel migration facade. Advance options use the existing exact
+synchronous Effect Schema decoding convention and reject excess fields before
+any advancement. UI cameras, layout, playback speed and unapplied form drafts
+remain presentation-owned. The dashboard's retained history reads this boundary;
+there is no visual layout change in this prefactor.
+
+The numeric migration contract preserves actual Run support: nonnegative
+integer scripted absolute times, preparation/Jev delays, replay endpoint time,
+seed and advance bounds reach **2^48−1**. Canonical identities use the same
+immediate Nat domain; byte facts are bounded by **2^47−1**. JS numbers represent
+these integers exactly; the Bend lane uses **Nat**, never U32 for absolute
+clocks. Native probes construct values above U32 with Nat arithmetic because
+Bend's literal syntax accepts at most 2^32−1. Existing live/session profile
+ranges remain unchanged: timing profiles reach 1,000,000,000, session seeds
+reach 2^32−1, and standalone SessionGenerator host clocks accept safe JS
+integers; resident enqueue still requires u48. This does not grant support for
+an effect due beyond u48. Migration must check derived clock arithmetic before
+publishing an effect; it must not truncate clocks to fit a smaller machine
+word. Fractional, negative, nonfinite and adjacent out-of-domain values remain
+invalid. Outcome weights retain finite fractional values in [0,100].
+
+Current coverage map for #178–#200. The named owners implement synthetic
+business behavior; recorded local checks qualify their stated scenarios, not
+real transport, installed agent runtimes or every possible interleaving.
+
+| Family | Shared Bend owner and public/dashboard path | Recorded local acceptance evidence | Boundary still outside that evidence |
+| --- | --- | --- | --- |
+| Admission, preparation and multi-advicee lifecycle (#178–186) | Canonical, Driver, Workload, PermitScenario and PreparationScenario; public Run and dashboard edit/PRE/completion controls | Original lifecycle native/emitted/public cases, four twelve-cycle fault/finding native/emitted/public/replay scripts, generated PRE and permit public/dashboard checks, and callback six-case native/emitted/public/replay family | Actual filesystem capture, native IPC, runtime hooks and real Jev transport |
+| Freshness (#187) | FreshnessScenario and production output freshness decisions; captured callbacks through Run | Both original freshness variants: retained native output, fresh emitted JavaScript, independent public milestones and replay | Actual source capture and credential transport |
+| Reuse and cache (#188–189) | SharingScenario and CacheScenario; shared reuse controls and advicee lifecycle | Seven original sharing cases and cache-pressure/refusal case: native/emitted equality, independent public expectations and replay (sharing uses guarded retained outputs) | Native identity verification and real cache/storage IO |
+| Notices and exact expiry (#190, #196) | NoticeScenario, ExpiryScenario, Collection and Notice clocks; public resource/notice controls | Original notice owner cases and twelve expiry cases: native/emitted/public/frozen-input/replay agreement | Real-time clocks and native notice delivery |
+| Output attempts (#191) | OutputScenario and OutputCompletion; public attempt controls and dashboard delivery controls | Five original output native/emitted/public/literal/replay cases, native batch/completion owner rows, public output/control assertions and dashboard control tests | Native serialization size and external acknowledgment transport |
+| Collection and writers (#192–193) | Collector, CollectionResponseScenario and WriterScenario; public response/writer controls | Five original response-authority native/emitted/public/intermediate/replay cases; ten native decision rows, collection/resource assertions, thirteen original writer native/emitted/public/replay cases and collector-meter browser check | Real background writer processes and resident IPC |
+| Stop and continuation (#194–195) | StopScenario and production fit/output authority; public Finish and dashboard selected-group inspection | Waiting, eleven original Stop cases and twelve output cases: native/emitted/public/frozen/replay agreement; seeded continuation tests and exclusive Stop-slot browser check | Supplied encoded-byte facts are synthetic, not measured serialization |
+| Quiet and recovery campaigns (#197–198) | QuietScenario plus existing lifecycle cleanup owners; shared Run controls | Quiet inactivity regression, twelve seeded public campaigns and applicable lifecycle/Stop/expiry owner evidence | No Cartesian campaign or special campaign UI is implied; unavailable scheduling premises are not passes |
+| Shared outcome/context execution | Engine.prepare_command_context and authentic source-job/receipt carriers | Seven original NativeRun native/emitted/public/replay cases passed against the final source, including initial u48 expiry and authentic SourceJob continuation | Synthetic schedules and offline observations do not establish live transport behavior |
+| Optional game and consumer independence (#199–200) | Independent game consumer; dashboard/headless core has no game dependency | Current game-absent dashboard build and removal audit; all 145 game batches across 3,222 ticks agree in native/emitted/public history and midpoint replay | Interactive game window/input-device validation remains separate from the qualified headless consumer |
+
+The public headless boundary and ordinary version-one replay are shared across
+these families. Complete native/emitted comparisons use each family's accepted
+observable wire, with independently expected intermediate business facts; recursive
+private Engine/Runtime layouts are not a required oracle. Retained-output checks
+are explicit, source/tool guarded and reported as retained evidence, not fresh
+compilation. Mixed failed runs preserve their passing owner results.
+
+The current game-absent dashboard build passed at `e823083a` in 14.722 seconds with the game directory physically removed and restored afterward. Current master is integrated through `11ac3f03`, with fresh Engine artifacts. Seven fresh NativeRun cases passed in 44.593 seconds, and the complete game native/emitted/public/replay comparison passed at `e823083a` in 138.673 seconds with Bend 2.0.35. Recovery, output and collection-response checks retain their recorded source/tool scopes. The global compiler update correctly invalidated old-output reuse; a minimal importer-local foreign effect name fix preserves identical numeric output.
+See [qualified game and runner evidence](../../prototypes/canonical-defense/README.md#completed-performance-investigation).
+These recorded scopes do not impose an exhaustive theorem inventory, CI wait or
+another native compilation of already qualified unchanged families. Accepted
+laws remain in their existing owners.
+
+Continuous tasks, task pause, edit interval/jitter, edits per task and advice
+responses are configurable at dashboard Start alongside existing per-advicee
+pace, burst, sizes and duration controls. Advice responses remain ignore,
+no-action, prompt repair and delayed repair; their original generated revision
+and timing behavior is shared with headless/native consumers. Playback controls
+never consume a business random draw. The #180 public/native conformance cases
+start from original configuration and ordered controls, including endpoint-only
+controls, captured PRE9/10/11 deadline cases, finite draining after suspension,
+wide clocks, equal-time advicees and raw fractional/subnormal outcome weights.
+Native claims remain limited to the fixtures actually exercised.
+
+
+Live `{kind:"jevRequest",target:{partition,lifetime,round,operation,request},outcome}`
+controls intervene on one actual issued request. The shared Bend owner checks the
+full identity and its recorded lifecycle: a started request cannot become never
+sent, and an interrupted request cannot settle as a different outcome. Applied
+interventions replace only that request's pending generated callbacks and keep its
+captured settlement time. Refused interventions leave the original callbacks
+intact. `run.interventions` and `run.observe().interventions` report the ordered
+application or refusal; ordinary version-one controls reproduce the reports in
+replay. `{kind:"credentials",action:"unavailable"|"restore"|"rotate"}` changes
+availability or authority at the same boundary. Bend captures credential generation
+once from actual accepted request issuance; temporary restoration preserves that
+generation, and rotation fences old findings. Explicit raw review fixtures without
+backend issuance retain their stated initial-generation assumption.
+
+`graphLimits` in initial configuration and `{kind:"graphLimits",limits}` expose
+only the seven production-configurable graph settings, using production validation.
+Each generated unit captures its limits alongside its tree facts; later controls
+cannot rewrite that unit's traversal. Bend `TreeFacts` generates source-free trees,
+and `PreparationScenario` responds to actual ImportGraph commands. Root and closure
+rule gates are evidence observations; they do not discard explicitly supplied
+`unitBytes`. The dashboard exposes these settings, omission/deadline/work profiles,
+active request targets, credential interventions and their recorded results.
+
+Opaque advicee registration and callback/command attribution now use the shared
+Bend registry and retained production identities. `Observation.commandScopes`
+aligns with its commands; an unattributed resident-wide command has no advicee
+scope. Display projection preserves global capacity and the fixed eight preparation
+and eight Jev execution slots. Internally duplicated retirement batches coalesce
+while their original effect remains pending; external facts still reach Canonical
+and refusals remain observable. Native/public directed fixtures and finite recovery
+experiments establish their stated synthetic paths, not native runtime support.

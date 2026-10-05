@@ -13,6 +13,11 @@ def py(point:Point)->U32:
   match point:
     case Point{_,y}:y
 
+def pick_point(first: Bool, yes: Point, no: Point) -> Point:
+  match first:
+    case True{}: yes
+    case False{}: no
+
 def center(layout: U32,phase: U32,side: U32)->Point:
   match layout phase:
     case 0 0: Point{116,174}
@@ -24,7 +29,7 @@ def center(layout: U32,phase: U32,side: U32)->Point:
     case 1 0: Point{96,166}
     case 1 1: Point{256,166}
     case 1 2: Point{448,166}
-    case 1 3: Bool.pick(Point,U32.is_eq(side,0),Point{168,348},Point{640,348})
+    case 1 3: pick_point(U32.is_eq(side,0),Point{168,348},Point{640,348})
     case 1 4: Point{404,496}
     case 1 _: Point{152,572}
     case _ 0: Point{132,172}
@@ -181,13 +186,18 @@ def travel_coordinate(+a: U32,+b: U32,pixels: U32) -> U32:
 def travel_segment(+a: Point,+b: Point,+pixels: U32) -> Point:
   Point{travel_coordinate(px(a),px(b),pixels),travel_coordinate(py(a),py(b),pixels)}
 
+def path_position.pick(within: Bool, current: Point, next: Point) -> Point:
+  match within:
+    case True{}: current
+    case False{}: next
+
 def path_position(points: List<&2,Point>, +pixels: U32) -> Point:
   match points:
     case Nil{}: Point{24,120}
     case Con{a,Nil{}}: a
     case Con{+a,Con{+b,tail}}:
       +length = segment_length(a,b)
-      Bool.pick(Point,(pixels <= length : U32),travel_segment(a,b,U32.min(pixels,length)),path_position(Con{b,tail},U32.sub(U32.max(pixels,length),length)))
+      path_position.pick((pixels <= length : U32),travel_segment(a,b,U32.min(pixels,length)),path_position(Con{b,tail},U32.sub(U32.max(pixels,length),length)))
 
 def in_range(+a: Point,+b: Point,+radius: U32) -> Bool:
   +dx = distance(px(a),px(b))

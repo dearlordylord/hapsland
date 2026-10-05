@@ -1,12 +1,9 @@
-import type { CodexDirectEventOutput } from "./pipeline.ts";
+import type { CodexDirectEventOutput } from "./output.ts"
 
 export const encodedCodexHostOutputBytes = (output: CodexDirectEventOutput): number =>
-  Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8");
+  Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")
 
-export type HostOutputAttempt = {
-  readonly status: "attempted-unacknowledged";
-  readonly encodedBytes: number;
-};
+export type HostOutputAttempt = { readonly status: "attempted-unacknowledged"; readonly encodedBytes: number }
 
 /**
  * The attempted state is constructed only after invoking the controlled host
@@ -17,12 +14,9 @@ export type HostOutputAttempt = {
  */
 export const attemptCodexHostOutput = (
   output: CodexDirectEventOutput,
-  write: (encoded: string) => void,
+  write: (encoded: string) => void
 ): HostOutputAttempt => {
-  const encoded = `${JSON.stringify(output)}\n`;
-  write(encoded);
-  return {
-    status: "attempted-unacknowledged",
-    encodedBytes: encodedCodexHostOutputBytes(output),
-  };
-};
+  const encoded = `${JSON.stringify(output)}\n`
+  write(encoded)
+  return { status: "attempted-unacknowledged", encodedBytes: encodedCodexHostOutputBytes(output) }
+}
