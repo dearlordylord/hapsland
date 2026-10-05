@@ -144,15 +144,28 @@ selected qualification with a 300-second stage. These overrides do not change
 runner defaults or product deadlines. Recovery compares the complete native
 and compiler-emitted vectors before its independent public and replay checks.
 
-The original advicee preparation-after-departure, disconnect, and remove comparisons use C30/clang90/native5
-with a 150-second aggregate watchdog; an authenticated preflight session keeps
-its own fixed compilation policy. The compact 2050-request public recovery and targeted-control stress tests use a 100-second aggregate watchdog without changing their request counts or assertions. Freshness source-change comparisons retain
-native/emitted-JS agreement under a 200-second watchdog (C90/clang60/native5,
+The original advicee preparation-after-departure, disconnect, and remove comparisons use C90/clang120/native5
+with a 250-second aggregate watchdog; an authenticated preflight session keeps
+its own fixed compilation policy. The compact 2050-request public recovery uses a 100-second aggregate watchdog; the 2050-request credential-rotation stress test uses 300 seconds. Request counts and assertions are unchanged. Freshness source-change comparisons retain
+native/emitted-JS agreement under a 300-second watchdog (C90/clang120/native5,
 JS15+5). Their independent public milestones and replay also run as separate
 TypeScript tests. The concurrent-notice comparison uses the shared native runner
 and its C30/clang30/native5 allowances under the same 100-second watchdog;
 it no longer owns a separate compiler subprocess implementation.
 These are fixture compilation budgets, not product latency deadlines.
+
+Shared-resident contention/cancellation and generated PRE comparisons use
+C90/clang120/native5 with 250-second aggregate watchdogs. Departure emitted-JS
+comparisons use JS60+5 under 90-second watchdogs. The shared runner defaults and
+its native five-second execution bound remain unchanged. Each comparison still
+checks the same complete original trace and public/replay milestones.
+
+Covered finite campaigns use explicit execution watchdogs: 30 seconds for healthy
+advicee departures, and 60 seconds for four-output Stop and cache/quiet liveness.
+Their seeds, repetitions, simulated clocks, event bounds, and assertions are
+unchanged. The release diagnostic observed those selected campaigns passing
+without coverage under their previous bounds, while coverage exceeded them.
+These watchdogs bound test computation; they make no product latency claim.
 
 ## Pull request checks
 

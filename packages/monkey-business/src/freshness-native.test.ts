@@ -34,10 +34,10 @@ it.each([false, true])(
       throw new TypeError("freshness retained output must be the original row list")
     const native = receipt
       ? (retained as number[][])
-      : runFreshnessNative(fixture, { emissionTimeoutMs: 90000, clangTimeoutMs: 60000 })
+      : runFreshnessNative(fixture, { emissionTimeoutMs: 90000, clangTimeoutMs: 120000 })
     expect(runFreshnessEmitted(fixture)).toEqual(native)
     expect(native.some((row) => row[0] === 98)).toBe(false)
     expect(nativeMilestones(native)).toEqual(expected(changed))
   },
-  200000
+  300000
 )

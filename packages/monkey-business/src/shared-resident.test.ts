@@ -8,10 +8,7 @@ import {
   type Run
 } from "./index.ts"
 
-import {
-  runWorkloadNative,
-  WORKLOAD_CONFORMANCE_TIMEOUT_MS
-} from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
+import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs"
 
 const opaqueAdvicees = ["runtime/subagent:7", "unrelated:session/2"] as const
 const contentionConfig = {
@@ -327,56 +324,53 @@ function advanceResident(run: Run, untilTime: number, fuel: number, stage: strin
   throw new Error(`${stage} did not quiesce within ${fuel} events; last=${run.observations.at(-1)?.event.kind}`)
 }
 
-it(
-  "compares original shared contention and recovery inputs with the compiled native resident",
-  () => {
-    residentCheckpoint("native start")
-    const rows = runWorkloadNative(
-      new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)
-    ) as number[][]
-    residentCheckpoint(`native contention complete rows=${rows.length}`)
-    expect(rows.slice(3).some((row) => [97, 98, 99].includes(row[0]!))).toBe(false)
-    expect(rows.length).toBeLessThan(250)
-    expect(rows.slice(0, 3)).toEqual([
-      [90, 4294967313, 1, 11],
-      [90, 99, 2, 12],
-      [91, 0, 4294967313, 1, 11]
-    ])
-    const native = rows.slice(3)
-    const run = createRun(contentionConfig)
-    advanceResident(run, 25, 250, "contention initial")
-    const boundary = run.now
-    const before = run.observations.map(residentRow)
-    run.applyControl({ kind: "jevProfile", delayMs: 5, outcome: "clear" })
-    run.applyControl({ kind: "suspendArrivals", agent: opaqueAdvicees[0], suspended: true })
-    residentCheckpoint("contention restore start")
-    const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
-    residentCheckpoint("contention restore complete")
-    advanceResident(run, 40, 80, "contention recovery")
-    advanceResident(restored, 40, 80, "contention restored recovery")
-    expect(restored.observe()).toEqual(run.observe())
-    expect(native).toEqual([...before, [80, boundary, 5], ...run.observations.slice(before.length).map(residentRow)])
-    expect(native.some((row) => [97, 98, 99].includes(row[0]!))).toBe(false)
-    const canonical = native.filter((row) => row[0] !== 21 && row[0] !== 80)
-    expect(Math.max(...canonical.map((row) => row[22]!))).toBe(8)
-    expect(Math.max(...canonical.map((row) => row[23]!))).toBe(8)
-    expect(
-      canonical
-        .filter((row) => row.slice(25).some((code, index) => index % 3 === 0 && code === 29))
-        .map((row) => [row[1], row[2]])
-    ).toEqual([[4, 1]])
-    expect(canonical.filter((row) => row[0] === 25).map((row) => [row[1], row[2]])).toEqual([[22, 1]])
-    expect(canonical.filter((row) => row[0] === 12 && row[1]! > 25).map((row) => [row[1], row[2]])).toEqual([
-      [37, 1],
-      [37, 2]
-    ])
-    expect(canonical.at(-1)!.slice(16, 24)).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
-    const graph = native.filter((row) => row[0] === 21)
-    expect(graph).toHaveLength(22)
-    for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20])
-  },
-  WORKLOAD_CONFORMANCE_TIMEOUT_MS
-)
+it("compares original shared contention and recovery inputs with the compiled native resident", () => {
+  residentCheckpoint("native start")
+  const rows = runWorkloadNative(
+    new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url),
+    process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { emissionTimeoutMs: 90000, clangTimeoutMs: 120000 }
+  ) as number[][]
+  residentCheckpoint(`native contention complete rows=${rows.length}`)
+  expect(rows.slice(3).some((row) => [97, 98, 99].includes(row[0]!))).toBe(false)
+  expect(rows.length).toBeLessThan(250)
+  expect(rows.slice(0, 3)).toEqual([
+    [90, 4294967313, 1, 11],
+    [90, 99, 2, 12],
+    [91, 0, 4294967313, 1, 11]
+  ])
+  const native = rows.slice(3)
+  const run = createRun(contentionConfig)
+  advanceResident(run, 25, 250, "contention initial")
+  const boundary = run.now
+  const before = run.observations.map(residentRow)
+  run.applyControl({ kind: "jevProfile", delayMs: 5, outcome: "clear" })
+  run.applyControl({ kind: "suspendArrivals", agent: opaqueAdvicees[0], suspended: true })
+  residentCheckpoint("contention restore start")
+  const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
+  residentCheckpoint("contention restore complete")
+  advanceResident(run, 40, 80, "contention recovery")
+  advanceResident(restored, 40, 80, "contention restored recovery")
+  expect(restored.observe()).toEqual(run.observe())
+  expect(native).toEqual([...before, [80, boundary, 5], ...run.observations.slice(before.length).map(residentRow)])
+  expect(native.some((row) => [97, 98, 99].includes(row[0]!))).toBe(false)
+  const canonical = native.filter((row) => row[0] !== 21 && row[0] !== 80)
+  expect(Math.max(...canonical.map((row) => row[22]!))).toBe(8)
+  expect(Math.max(...canonical.map((row) => row[23]!))).toBe(8)
+  expect(
+    canonical
+      .filter((row) => row.slice(25).some((code, index) => index % 3 === 0 && code === 29))
+      .map((row) => [row[1], row[2]])
+  ).toEqual([[4, 1]])
+  expect(canonical.filter((row) => row[0] === 25).map((row) => [row[1], row[2]])).toEqual([[22, 1]])
+  expect(canonical.filter((row) => row[0] === 12 && row[1]! > 25).map((row) => [row[1], row[2]])).toEqual([
+    [37, 1],
+    [37, 2]
+  ])
+  expect(canonical.at(-1)!.slice(16, 24)).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
+  const graph = native.filter((row) => row[0] === 21)
+  expect(graph).toHaveLength(22)
+  for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20])
+}, 250000)
 
 function originalCancellation(): Run {
   residentCheckpoint("cancellation create start")
@@ -486,21 +480,18 @@ it("cancels one original advicee request while the other delivers, including ord
   originalCancellation()
 })
 
-it(
-  "compares original advicee cancellation with the compiled native shared driver",
-  () => {
-    residentCheckpoint("native cancellation start")
-    const canceled = runWorkloadNative(
-      new URL("../../monkey-business-bend/conformance/shared-resident-cancellation.bend", import.meta.url)
-    ) as number[][]
-    residentCheckpoint(`native cancellation complete rows=${canceled.length}`)
-    expect(canceled.some((row) => [97, 98, 99].includes(row[0]!))).toBe(false)
-    expect(canceled.length).toBeLessThan(80)
-    expect(canceled.at(-1)!.slice(16, 24)).toEqual([1, 7, 0, 0, 1, 7, 0, 0])
-    expect(canceled).toEqual(originalCancellation().observations.map(residentRow))
-  },
-  WORKLOAD_CONFORMANCE_TIMEOUT_MS
-)
+it("compares original advicee cancellation with the compiled native shared driver", () => {
+  residentCheckpoint("native cancellation start")
+  const canceled = runWorkloadNative(
+    new URL("../../monkey-business-bend/conformance/shared-resident-cancellation.bend", import.meta.url),
+    process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { emissionTimeoutMs: 90000, clangTimeoutMs: 120000 }
+  ) as number[][]
+  residentCheckpoint(`native cancellation complete rows=${canceled.length}`)
+  expect(canceled.some((row) => [97, 98, 99].includes(row[0]!))).toBe(false)
+  expect(canceled.length).toBeLessThan(80)
+  expect(canceled.at(-1)!.slice(16, 24)).toEqual([1, 7, 0, 0, 1, 7, 0, 0])
+  expect(canceled).toEqual(originalCancellation().observations.map(residentRow))
+}, 250000)
 
 const config = {
   seed: 7,

@@ -161,4 +161,4 @@ it("uses four actual same-round outputs then permits Stop without a fifth contin
         frame.commands.some((command) => command.kind === "finishAllowedNoAdvice") && frame.time === 4 * 40 + 2 + 5
     )
   ).toBe(true)
-})
+}, 60000)

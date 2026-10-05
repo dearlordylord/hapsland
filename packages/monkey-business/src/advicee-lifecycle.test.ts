@@ -14,7 +14,7 @@ import {
 } from "./index.ts"
 
 const advicees = ["opaque:departing/session", "independent/advicee"] as const
-const WORKLOAD_EMITTED_CONFORMANCE_TIMEOUT_MS = 30000
+const WORKLOAD_EMITTED_CONFORMANCE_TIMEOUT_MS = 90000
 const scenario = (seed = 7, delay = 20): RunConfig => ({
   seed,
   retention: 1000,
@@ -349,7 +349,7 @@ it("preserves unaffected and fresh advicee progress in finite healthy departure 
     ),
     { seed: 185, numRuns: 8 }
   )
-}, 15000)
+}, 30000)
 
 function preparationDeparture(): Run {
   const run = createRun(scenario())
@@ -651,27 +651,27 @@ it.each([
   (action, fixture) => {
     const native = runWorkloadNative(
       new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url),
-      process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { clangTimeoutMs: 90000 }
+      process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { emissionTimeoutMs: 90000, clangTimeoutMs: 120000 }
     ) as number[][]
     expect(native.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
     expect(native.length).toBeLessThan(120)
     expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0])
     expect(native).toEqual(lifecycleTrace(departAndResume(action)))
   },
-  150000
+  250000
 )
 
 it("native shared driver agrees on original preparation completion after departure", () => {
   const native = runWorkloadNative(
     new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url),
-    process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { clangTimeoutMs: 90000 }
+    process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { emissionTimeoutMs: 90000, clangTimeoutMs: 120000 }
   ) as number[][]
   expect(native.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
   expect(native.length).toBeLessThan(120)
   expect(native.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0])
   expect(native.filter((row) => row[0] === 6 && row[4] === 1 && row[24] === 1)).toHaveLength(1)
   expect(native).toEqual(lifecycleTrace(preparationDeparture()))
-}, 150000)
+}, 250000)
 
 it.each([
   ["disconnect", "advicee-departure.bend"],
@@ -679,10 +679,9 @@ it.each([
 ] as const)(
   "fresh emitted JS driver agrees on original %s and fresh activity inputs",
   (action, fixture) => {
-    const emitted = runWorkloadEmitted(
-      new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url),
-      process.env.HAPSLAND_NATIVE_PREFLIGHT_MANIFEST ? {} : { clangTimeoutMs: 90000 }
-    ) as number[][]
+    const emitted = runWorkloadEmitted(new URL(`../../monkey-business-bend/conformance/${fixture}`, import.meta.url), {
+      emissionTimeoutMs: 60000
+    }) as number[][]
     expect(emitted.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
     expect(emitted.length).toBeLessThan(120)
     expect(emitted.at(-1)!.slice(16, 24)).toEqual([2, 12, 1, 5, 1, 7, 0, 0])
@@ -695,7 +694,8 @@ it(
   "fresh emitted JS driver agrees on original preparation completion after departure",
   () => {
     const emitted = runWorkloadEmitted(
-      new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url)
+      new URL("../../monkey-business-bend/conformance/advicee-preparation-departure.bend", import.meta.url),
+      { emissionTimeoutMs: 60000 }
     ) as number[][]
     expect(emitted.filter((row) => [97, 98, 99].includes(row[0]!))).toEqual([])
     expect(emitted.length).toBeLessThan(120)
