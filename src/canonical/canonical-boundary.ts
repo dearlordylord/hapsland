@@ -1,5 +1,6 @@
-import * as Schema from "effect/Schema";
+import * as Schema from "effect/Schema"
 import {
+  type ProbabilityWordsSchema,
   decoder,
   readRecord,
   readTag,
@@ -8,29 +9,37 @@ import {
   readBytes,
   readBool,
   readBendList,
-  Probability,
-  ProbabilityWordsSchema,
-} from "./boundary-schema.ts";
-import { decodeCanonicalConstructor, decodeCanonicalRejection } from "./constructors.ts";
+  Probability
+} from "./boundary-schema.ts"
+import { decodeCanonicalConstructor, decodeCanonicalRejection } from "./constructors.ts"
 import {
   CanonicalEventSchema,
   CanonicalLimitsSchema,
   type JevRequestOutcome,
   type CompletedEditReason,
-  type QuietRoundFacts,
   type CapacityPurpose,
   type CollectorReason,
   type ReuseMemberState,
   type ProspectiveFacts,
-  type CleanupFacts,
   type CapacityRefusal,
   type CapacityCharge,
   type CapacityView,
   type DispatchEntry,
   type CanonicalProjection,
   type CanonicalCommand,
-  type CanonicalEvent,
-} from "./models.ts";
+  type CanonicalEvent
+} from "./models.ts"
+import { freezeCanonicalData } from "./immutable.ts"
+import {
+  bendCanonicalInitial,
+  bendCanonicalInventory,
+  bendCanonicalPartitionUsage,
+  bendCanonicalStep,
+  bendCanonicalTotal,
+  bendPreparationLimit,
+  bendJevRequestLimit
+} from "./canonical.generated.js"
+
 export type {
   JevRequestOutcome,
   CompletedEditReason,
@@ -45,77 +54,63 @@ export type {
   CapacityView,
   CanonicalProjection,
   CanonicalCommand,
-  CanonicalEvent,
-} from "./models.ts";
-import { freezeCanonicalData } from "./immutable.ts";
-import {
-  bendCanonicalInitial,
-  bendCanonicalInventory,
-  bendCanonicalPartitionUsage,
-  bendCanonicalStep,
-  bendCanonicalTotal,
-  bendPreparationLimit,
-  bendJevRequestLimit,
-} from "./canonical.generated.js";
+  CanonicalEvent
+} from "./models.ts"
 
 // Keep reserved + requested bytes within Bend's 48-bit immediate Nat range.
-export const CANONICAL_MAX_BYTES = 2 ** 47 - 1;
-export const CANONICAL_MAX_UNITS = 1024;
+export const CANONICAL_MAX_BYTES = 2 ** 47 - 1
+export const CANONICAL_MAX_UNITS = 1024
 
 const completedEditTags: Record<CompletedEditReason, string> = {
   consumed: "Consumed",
   released: "Released",
   expired: "Expired",
-  closed: "Closed",
-};
+  closed: "Closed"
+}
 const encodeCompletedEditReason = (reason: CompletedEditReason): unknown => ({
-  $: `EditHistory.${completedEditTags[reason]}`,
-});
+  $: `EditHistory.${completedEditTags[reason]}`
+})
 const decodeCompletedEditReason = (value: unknown): CompletedEditReason => {
   const entry = (Object.entries(completedEditTags) as [CompletedEditReason, string][]).find(
-    ([, name]) => tag(value) === `EditHistory.${name}`,
-  );
-  if (entry === undefined) throw new TypeError("invalid completed edit reason");
-  decodeCanonicalConstructor(value, `EditHistory.${entry[1]}`);
-  return entry[0];
-};
-const object = readRecord;
+    ([, name]) => tag(value) === `EditHistory.${name}`
+  )
+  if (entry === undefined) throw new TypeError("invalid completed edit reason")
+  decodeCanonicalConstructor(value, `EditHistory.${entry[1]}`)
+  return entry[0]
+}
+const object = readRecord
 const tag = (value: unknown): string => {
   try {
-    return readTag(value).$;
+    return readTag(value).$
   } catch (cause) {
-    throw new TypeError("missing canonical constructor", { cause });
+    throw new TypeError("missing canonical constructor", { cause })
   }
-};
-const nat = (value: unknown, positive = false): number => (positive ? readPositiveNat(value) : readNat(value));
-const bytes = readBytes;
-const bool = readBool;
+}
+const nat = (value: unknown, positive = false): number => (positive ? readPositiveNat(value) : readNat(value))
+const bytes = readBytes
+const bool = readBool
 const ruleOrderTag = (value: "before" | "equal" | "after"): string => {
-  return `RulePolicy.${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-};
-declare const probabilityWordsBrand: unique symbol;
-export type ProbabilityWords = Readonly<{
-  high: number;
-  low: number;
-  [probabilityWordsBrand]: true;
-}>;
+  return `RulePolicy.${value.slice(0, 1).toUpperCase()}${value.slice(1)}`
+}
+declare const probabilityWordsBrand: unique symbol
+export type ProbabilityWords = Readonly<{ high: number; low: number; [probabilityWordsBrand]: true }>
 export const probabilityWords = (value: number): ProbabilityWords => {
   if (!Schema.is(Probability)(value)) {
-    throw new RangeError("probability must be finite in [0, 1]");
+    throw new RangeError("probability must be finite in [0, 1]")
   }
-  const bytes = new DataView(new ArrayBuffer(8));
-  bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false);
-  return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) } as ProbabilityWords;
-};
+  const bytes = new DataView(new ArrayBuffer(8))
+  bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false)
+  return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) } as ProbabilityWords
+}
 const encodedProbabilityWords = (value: typeof ProbabilityWordsSchema.Type): unknown => ({
   $: "RulePolicy.Words",
   high: value.high,
-  low: value.low,
-});
+  low: value.low
+})
 const list = (values: readonly number[]): unknown =>
-  values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
+  values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
 const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 2048): T[] =>
-  readBendList(value, decode, limit);
+  readBendList(value, decode, limit)
 
 const encodeFacts = (facts: ProspectiveFacts): unknown => {
   return {
@@ -125,9 +120,9 @@ const encodeFacts = (facts: ProspectiveFacts): unknown => {
     started_upper: facts.startedUpper,
     now_lower: facts.nowLower,
     advicee_permit_limit: facts.adviceePermitLimit,
-    resident_permit_limit: facts.residentPermitLimit,
-  };
-};
+    resident_permit_limit: facts.residentPermitLimit
+  }
+}
 
 const encodePurpose = (value: CapacityPurpose): unknown => {
   const names: Record<CapacityPurpose, string> = {
@@ -136,87 +131,87 @@ const encodePurpose = (value: CapacityPurpose): unknown => {
     reviewUnit: "Ledger.ReviewUnit",
     storedResult: "Ledger.StoredResult",
     operationalNotice: "Ledger.OperationalNotice",
-    adviceRecheck: "Ledger.AdviceRecheck",
-  };
-  const name = names[value];
-  return { $: name };
-};
+    adviceRecheck: "Ledger.AdviceRecheck"
+  }
+  const name = names[value]
+  return { $: name }
+}
 const identity = (event: Extract<CanonicalEvent, { readonly partition: number; readonly lifetime: number }>) => ({
   partition: event.partition,
-  lifetime: event.lifetime,
-});
+  lifetime: event.lifetime
+})
 const submissionSurface = (surface: "edit" | "background" | "stop"): unknown => {
-  const name = { edit: "Handoff.Edit", background: "Handoff.Background", stop: "Handoff.Stop" }[surface];
-  return { $: name };
-};
+  const name = { edit: "Handoff.Edit", background: "Handoff.Background", stop: "Handoff.Stop" }[surface]
+  return { $: name }
+}
 const deliverySurface = (surface: "edit" | "background" | "stop"): unknown => {
-  const name = { edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" }[surface];
-  return { $: name };
-};
-const collectorReason = (reason: CollectorReason): unknown => {
+  const name = { edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" }[surface]
+  return { $: name }
+}
+const _collectorReason = (reason: CollectorReason): unknown => {
   const name = {
     backend: "Backend",
     credential: "Credential",
     capacity: "Capacity",
     stale: "Stale",
     lost: "Lost",
-    expired: "Expired",
-  }[reason];
-  return { $: `CollectorAuthority.${name}` };
-};
+    expired: "Expired"
+  }[reason]
+  return { $: `CollectorAuthority.${name}` }
+}
 const reuseMemberState = (state: ReuseMemberState): unknown => {
   const name = {
     pending: "JoinedPending",
     clear: "JoinedClear",
     finding: "JoinedFinding",
-    unavailable: "JoinedUnavailable",
-  }[state];
-  return { $: `Reuse.${name}` };
-};
+    unavailable: "JoinedUnavailable"
+  }[state]
+  return { $: `Reuse.${name}` }
+}
 const jevOutcomeTags: Record<JevRequestOutcome, string> = {
   neverSent: "NeverSent",
   finding: "RequestFinding",
   clear: "RequestClear",
   backendFailure: "RequestBackendFailure",
   timeout: "RequestTimeout",
-  interrupted: "RequestInterrupted",
-};
+  interrupted: "RequestInterrupted"
+}
 const encodeJevRequestOutcome = (outcome: JevRequestOutcome): unknown => {
-  const name = jevOutcomeTags[outcome];
-  return { $: `Canonical.${name}` };
-};
+  const name = jevOutcomeTags[outcome]
+  return { $: `Canonical.${name}` }
+}
 const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
-  const name = tag(value);
+  const name = tag(value)
   const outcome = (Object.entries(jevOutcomeTags) as [JevRequestOutcome, string][]).find(
-    ([, variant]) => name === `Canonical.${variant}`,
-  )?.[0];
-  if (outcome === undefined) throw new TypeError("invalid Jev request outcome");
-  decodeCanonicalConstructor(value, name);
-  return outcome;
-};
-const decodeEvent = decoder(CanonicalEventSchema);
+    ([, variant]) => name === `Canonical.${variant}`
+  )?.[0]
+  if (outcome === undefined) throw new TypeError("invalid Jev request outcome")
+  decodeCanonicalConstructor(value, name)
+  return outcome
+}
+const decodeEvent = decoder(CanonicalEventSchema)
 const encodeReserveCapacity = (event: Extract<CanonicalEvent, { kind: "reserveCapacity" }>): unknown => {
   return {
     $: "Canonical.ReserveCapacity",
     partition: event.partition,
     bytes: event.bytes,
-    purpose: encodePurpose(event.purpose),
-  };
-};
+    purpose: encodePurpose(event.purpose)
+  }
+}
 const encodeResizeCapacity = (event: Extract<CanonicalEvent, { kind: "resizeCapacity" }>): unknown => {
   return {
     $: "Canonical.ResizeCapacity",
     reservation: event.reservation,
     bytes: event.bytes,
-    purpose: encodePurpose(event.purpose),
-  };
-};
+    purpose: encodePurpose(event.purpose)
+  }
+}
 const encodeReleaseCapacity = (event: Extract<CanonicalEvent, { kind: "releaseCapacity" }>): unknown => {
-  return { $: "Canonical.ReleaseCapacity", reservation: event.reservation };
-};
+  return { $: "Canonical.ReleaseCapacity", reservation: event.reservation }
+}
 const encodeReplaceCapacity = (event: Extract<CanonicalEvent, { kind: "replaceCapacity" }>): unknown => {
-  return { $: "Canonical.ReplaceCapacity", reservation: event.reservation, unit_bytes: list(event.unitBytes) };
-};
+  return { $: "Canonical.ReplaceCapacity", reservation: event.reservation, unit_bytes: list(event.unitBytes) }
+}
 const encodeIssuePermit = (event: Extract<CanonicalEvent, { kind: "issuePermit" }>): unknown => {
   return {
     $: "Canonical.IssuePermit",
@@ -226,15 +221,15 @@ const encodeIssuePermit = (event: Extract<CanonicalEvent, { kind: "issuePermit" 
     deadline: event.deadline,
     now: event.now,
     minimum_started: event.minimumStarted,
-    facts: encodeFacts(event.facts),
-  };
-};
+    facts: encodeFacts(event.facts)
+  }
+}
 const encodeCheckCompletedEdit = (event: Extract<CanonicalEvent, { kind: "checkCompletedEdit" }>): unknown => {
-  return { $: "Canonical.CheckCompletedEdit", tool: event.tool };
-};
+  return { $: "Canonical.CheckCompletedEdit", tool: event.tool }
+}
 const encodeRememberCompletedEdit = (event: Extract<CanonicalEvent, { kind: "rememberCompletedEdit" }>): unknown => {
-  return { $: "Canonical.RememberCompletedEdit", tool: event.tool, reason: encodeCompletedEditReason(event.reason) };
-};
+  return { $: "Canonical.RememberCompletedEdit", tool: event.tool, reason: encodeCompletedEditReason(event.reason) }
+}
 const encodeQuietRoundTick = (event: Extract<CanonicalEvent, { kind: "quietRoundTick" }>): unknown => {
   return {
     $: "Canonical.QuietRoundTick",
@@ -247,83 +242,89 @@ const encodeQuietRoundTick = (event: Extract<CanonicalEvent, { kind: "quietRound
       native_work_idle: event.facts.nativeWorkIdle,
       advice_empty: event.facts.adviceEmpty,
       handoff_idle: event.facts.handoffIdle,
-      stop_absent: event.facts.stopAbsent,
-    },
-  };
-};
+      stop_absent: event.facts.stopAbsent
+    }
+  }
+}
 const encodeQuietRoundReset = (event: Extract<CanonicalEvent, { kind: "quietRoundReset" }>): unknown => {
-  return { $: "Canonical.QuietRoundReset", ...identity(event), round: event.round };
-};
+  return { $: "Canonical.QuietRoundReset", ...identity(event), round: event.round }
+}
 const encodeConsumePermit = (event: Extract<CanonicalEvent, { kind: "consumePermit" }>): unknown => {
-  return { $: "Canonical.ConsumePermit", ...identity(event), token: event.token, tool: event.tool, now: event.now };
-};
+  return { $: "Canonical.ConsumePermit", ...identity(event), token: event.token, tool: event.tool, now: event.now }
+}
 const encodeReleasePermit = (event: Extract<CanonicalEvent, { kind: "releasePermit" }>): unknown => {
-  return { $: "Canonical.ReleasePermit", ...identity(event), token: event.token };
-};
+  return { $: "Canonical.ReleasePermit", ...identity(event), token: event.token }
+}
 const encodeExpirePermit = (event: Extract<CanonicalEvent, { kind: "expirePermit" }>): unknown => {
   return {
     $: "Canonical.ExpirePermit",
     ...identity(event),
     token: event.token,
-    deadline_reached: event.deadlineReached,
-  };
-};
+    deadline_reached: event.deadlineReached
+  }
+}
 const encodeClosePermitRound = (event: Extract<CanonicalEvent, { kind: "closePermitRound" }>): unknown => {
-  return { $: "Canonical.ClosePermitRound", ...identity(event), round: event.round, at: event.at };
-};
+  return { $: "Canonical.ClosePermitRound", ...identity(event), round: event.round, at: event.at }
+}
 const encodeForgetAdmission = (event: Extract<CanonicalEvent, { kind: "forgetAdmission" }>): unknown => {
-  return { $: "Canonical.ForgetAdmission", ...identity(event) };
-};
+  return { $: "Canonical.ForgetAdmission", ...identity(event) }
+}
 const encodeOpenRound = (event: Extract<CanonicalEvent, { kind: "openRound" }>): unknown => {
-  return { $: "Canonical.OpenRound", ...identity(event) };
-};
+  return { $: "Canonical.OpenRound", ...identity(event) }
+}
 const encodeAdmitObservation = (event: Extract<CanonicalEvent, { kind: "admitObservation" }>): unknown => {
-  return { $: "Canonical.AdmitObservation", ...identity(event), round: event.round };
-};
+  return { $: "Canonical.AdmitObservation", ...identity(event), round: event.round }
+}
 const encodeStartObservation = (
-  event: Extract<CanonicalEvent, { kind: "startObservation" | "completeObservation" | "interruptObservation" }>,
+  event: Extract<CanonicalEvent, { kind: "startObservation" | "completeObservation" | "interruptObservation" }>
 ): unknown => {
   const name = {
     startObservation: "StartObservation",
     completeObservation: "CompleteObservation",
-    interruptObservation: "InterruptObservation",
-  }[event.kind];
-  return { $: `Canonical.${name}`, ...identity(event), round: event.round, observation: event.observation };
-};
+    interruptObservation: "InterruptObservation"
+  }[event.kind]
+  return { $: `Canonical.${name}`, ...identity(event), round: event.round, observation: event.observation }
+}
 const encodeBeginPreparation = (event: Extract<CanonicalEvent, { kind: "beginPreparation" }>): unknown => {
-  return { $: "Canonical.BeginPreparation", ...identity(event), round: event.round, bytes: event.bytes };
-};
+  return { $: "Canonical.BeginPreparation", ...identity(event), round: event.round, bytes: event.bytes }
+}
 const encodeBeginObservedPreparation = (
-  event: Extract<CanonicalEvent, { kind: "beginObservedPreparation" }>,
+  event: Extract<CanonicalEvent, { kind: "beginObservedPreparation" }>
 ): unknown => {
   return {
     $: "Canonical.BeginObservedPreparation",
     ...identity(event),
     round: event.round,
     observation: event.observation,
-    bytes: event.bytes,
-  };
-};
+    bytes: event.bytes
+  }
+}
 const encodeInterruptPreparation = (event: Extract<CanonicalEvent, { kind: "interruptPreparation" }>): unknown => {
-  return { $: "Canonical.InterruptPreparation", ...identity(event), round: event.round, operation: event.operation };
-};
+  return { $: "Canonical.InterruptPreparation", ...identity(event), round: event.round, operation: event.operation }
+}
 const encodePreparationCompleted = (event: Extract<CanonicalEvent, { kind: "preparationCompleted" }>): unknown => {
   return {
     $: "Canonical.PreparationCompleted",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    unit_bytes: list(event.unitBytes),
-  };
-};
-const encodeStartReview = (event: Extract<CanonicalEvent, { kind: "startReview" | "retireReview" | "cancelReview" }>): unknown => {
+    unit_bytes: list(event.unitBytes)
+  }
+}
+const encodeStartReview = (
+  event: Extract<CanonicalEvent, { kind: "startReview" | "retireReview" | "cancelReview" }>
+): unknown => {
   return {
-    $: { startReview: "Canonical.StartReview", retireReview: "Canonical.RetireReview", cancelReview: "Canonical.CancelReview" }[event.kind],
+    $: {
+      startReview: "Canonical.StartReview",
+      retireReview: "Canonical.RetireReview",
+      cancelReview: "Canonical.CancelReview"
+    }[event.kind],
     ...identity(event),
     round: event.round,
-    operation: event.operation,
-  };
-};
+    operation: event.operation
+  }
+}
 const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevRequestReady" }>): unknown => {
   return {
     $: "Canonical.JevRequestReady",
@@ -335,20 +336,20 @@ const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevReques
     credential_ready: event.credentialReady,
     selected: event.selected,
     current_work: event.currentWork,
-    physical_available: event.physicalAvailable,
-  };
-};
+    physical_available: event.physicalAvailable
+  }
+}
 const encodeJevRequestStarted = (
-  event: Extract<CanonicalEvent, { kind: "jevRequestStarted" | "jevRequestInterrupted" }>,
+  event: Extract<CanonicalEvent, { kind: "jevRequestStarted" | "jevRequestInterrupted" }>
 ): unknown => {
   return {
     $: event.kind === "jevRequestStarted" ? "Canonical.JevRequestStarted" : "Canonical.JevRequestInterrupted",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    request: event.request,
-  };
-};
+    request: event.request
+  }
+}
 const encodeJevRequestSettled = (event: Extract<CanonicalEvent, { kind: "jevRequestSettled" }>): unknown => {
   return {
     $: "Canonical.JevRequestSettled",
@@ -357,25 +358,25 @@ const encodeJevRequestSettled = (event: Extract<CanonicalEvent, { kind: "jevRequ
     operation: event.operation,
     request: event.request,
     outcome: encodeJevRequestOutcome(event.outcome),
-    current_work: event.currentWork,
-  };
-};
+    current_work: event.currentWork
+  }
+}
 const encodeReviewCompleted = (event: Extract<CanonicalEvent, { kind: "reviewCompleted" }>): unknown => {
   const outcome = {
     finding: "Canonical.Finding",
     clear: "Canonical.Clear",
     unavailable: "Canonical.Unavailable",
     interrupted: "Canonical.Interrupted",
-    discarded: "Canonical.Discarded",
-  }[event.outcome];
+    discarded: "Canonical.Discarded"
+  }[event.outcome]
   return {
     $: "Canonical.ReviewCompleted",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    outcome: { $: outcome },
-  };
-};
+    outcome: { $: outcome }
+  }
+}
 const encodeReviewObserved = (event: Extract<CanonicalEvent, { kind: "reviewObserved" }>): unknown => {
   return {
     $: "Canonical.ReviewObserved",
@@ -383,86 +384,86 @@ const encodeReviewObserved = (event: Extract<CanonicalEvent, { kind: "reviewObse
     round: event.round,
     operation: event.operation,
     outcome: { $: event.outcome === "finding" ? "Canonical.Finding" : "Canonical.Clear" },
-    current_work: event.currentWork,
-  };
-};
+    current_work: event.currentWork
+  }
+}
 const encodeFindingCountUpdated = (event: Extract<CanonicalEvent, { kind: "findingCountUpdated" }>): unknown => {
   return {
     $: "Canonical.FindingCountUpdated",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    count: event.count,
-  };
-};
+    count: event.count
+  }
+}
 const encodeQueueDispatch = (
-  event: Extract<CanonicalEvent, { kind: "queueDispatch" | "dispatchSettled" }>,
+  event: Extract<CanonicalEvent, { kind: "queueDispatch" | "dispatchSettled" }>
 ): unknown => {
   return {
     $: event.kind === "queueDispatch" ? "Canonical.QueueDispatch" : "Canonical.DispatchSettled",
     ...identity(event),
     round: event.round,
-    operation: event.operation,
-  };
-};
+    operation: event.operation
+  }
+}
 const encodeDiscardDispatch = (event: Extract<CanonicalEvent, { kind: "discardDispatch" }>): unknown => {
-  return { $: "Canonical.DiscardDispatch", operations: list(event.operations) };
-};
+  return { $: "Canonical.DiscardDispatch", operations: list(event.operations) }
+}
 const encodeDispatchScopeCheck = (event: Extract<CanonicalEvent, { kind: "dispatchScopeCheck" }>): unknown => {
   return {
     $: "Canonical.DispatchScopeCheck",
     named_count: event.namedCount,
     cancelled_count: event.cancelledCount,
-    has_unnamed: event.hasUnnamed,
-  };
-};
-const encodeCloseDispatch = (event: Extract<CanonicalEvent, { kind: "closeDispatch" }>): unknown => {
-  return { $: "Canonical.CloseDispatch" };
-};
+    has_unnamed: event.hasUnnamed
+  }
+}
+const encodeCloseDispatch = (_event: Extract<CanonicalEvent, { kind: "closeDispatch" }>): unknown => {
+  return { $: "Canonical.CloseDispatch" }
+}
 const encodePreparedOfferCheck = (event: Extract<CanonicalEvent, { kind: "preparedOfferCheck" }>): unknown => {
-  return { $: "Canonical.PreparedOfferCheck", ready: event.ready, within_frame: event.withinFrame };
-};
+  return { $: "Canonical.PreparedOfferCheck", ready: event.ready, within_frame: event.withinFrame }
+}
 const encodeEmptyPreparedCheck = (event: Extract<CanonicalEvent, { kind: "emptyPreparedCheck" }>): unknown => {
   return {
     $: "Canonical.EmptyPreparedCheck",
     ready_count: event.readyCount,
     has_non_skipped: event.hasNonSkipped,
-    authority_bound: event.authorityBound,
-  };
-};
+    authority_bound: event.authorityBound
+  }
+}
 const encodeReviewFailureCheck = (event: Extract<CanonicalEvent, { kind: "reviewFailureCheck" }>): unknown => {
   return {
     $: "Canonical.ReviewFailureCheck",
     backend_or_timeout: event.backendOrTimeout,
     credential: event.credential,
-    missing: event.missing,
-  };
-};
+    missing: event.missing
+  }
+}
 const encodeStopPolled = (event: Extract<CanonicalEvent, { kind: "stopPolled" }>): unknown => {
-  return { $: "Canonical.StopPolled", ...identity(event), round: event.round, deadline: event.deadline };
-};
+  return { $: "Canonical.StopPolled", ...identity(event), round: event.round, deadline: event.deadline }
+}
 const encodeStopGroupPolled = (
-  event: Extract<CanonicalEvent, { kind: "stopGroupPolled" | "stopGroupEnded" }>,
+  event: Extract<CanonicalEvent, { kind: "stopGroupPolled" | "stopGroupEnded" }>
 ): unknown => {
-  const polled = event.kind === "stopGroupPolled";
+  const polled = event.kind === "stopGroupPolled"
 
   const scopes = event.scopes.reduceRight<unknown>(
     (tail, scope) => {
-      return { $: "Con", head: { $: "Canonical.StopScope", partition: scope.partition, round: scope.round }, tail };
+      return { $: "Con", head: { $: "Canonical.StopScope", partition: scope.partition, round: scope.round }, tail }
     },
-    { $: "Nil" },
-  );
-  const common = { group: event.group, lifetime: event.lifetime, round: event.round, scopes };
+    { $: "Nil" }
+  )
+  const common = { group: event.group, lifetime: event.lifetime, round: event.round, scopes }
   return polled
     ? {
         $: "Canonical.StopGroupPolled",
         ...common,
         deadline: event.deadline,
         extra_pending: event.extraPending,
-        continuations: event.continuations,
+        continuations: event.continuations
       }
-    : { $: "Canonical.StopGroupEnded", ...common };
-};
+    : { $: "Canonical.StopGroupEnded", ...common }
+}
 const encodeCollectionReady = (event: Extract<CanonicalEvent, { kind: "collectionReady" }>): unknown => {
   return {
     $: "Canonical.CollectionReady",
@@ -471,42 +472,38 @@ const encodeCollectionReady = (event: Extract<CanonicalEvent, { kind: "collectio
     lifetime: event.lifetime,
     round: event.round,
     observation: event.observation,
-    joined_pending: event.joinedPending,
-  };
-};
+    joined_pending: event.joinedPending
+  }
+}
 const encodeCollectionCredentialCheck = (
-  event: Extract<CanonicalEvent, { kind: "collectionCredentialCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "collectionCredentialCheck" }>
 ): unknown => {
   return {
     $: "Canonical.CollectionCredentialCheck",
     same_scope: event.sameScope,
-    generation_valid: event.generationValid,
-  };
-};
+    generation_valid: event.generationValid
+  }
+}
 const encodeCollectionCandidateCheck = (
-  event: Extract<CanonicalEvent, { kind: "collectionCandidateCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "collectionCandidateCheck" }>
 ): unknown => {
   return {
     $: "Canonical.CollectionCandidateCheck",
     same_partition: event.samePartition,
     unleased: event.unleased,
     has_unsuppressed: event.hasUnsuppressed,
-    authority_owns: event.authorityOwns,
-  };
-};
+    authority_owns: event.authorityOwns
+  }
+}
 const encodeCollectionOrderCheck = (event: Extract<CanonicalEvent, { kind: "collectionOrderCheck" }>): unknown => {
-  return {
-    $: "Canonical.CollectionOrderCheck",
-    left_sequence: event.leftSequence,
-    right_sequence: event.rightSequence,
-  };
-};
+  return { $: "Canonical.CollectionOrderCheck", left_sequence: event.leftSequence, right_sequence: event.rightSequence }
+}
 const encodeCollectionExpiryCheck = (event: Extract<CanonicalEvent, { kind: "collectionExpiryCheck" }>): unknown => {
-  return { $: "Canonical.CollectionExpiryCheck", elapsed: event.elapsed, lifetime: event.lifetime };
-};
+  return { $: "Canonical.CollectionExpiryCheck", elapsed: event.elapsed, lifetime: event.lifetime }
+}
 const encodeCollectionFitCheck = (event: Extract<CanonicalEvent, { kind: "collectionFitCheck" }>): unknown => {
-  return { $: "Canonical.CollectionFitCheck", items: event.items, bytes: event.bytes };
-};
+  return { $: "Canonical.CollectionFitCheck", items: event.items, bytes: event.bytes }
+}
 const encodeCollectionFindingCheck = (event: Extract<CanonicalEvent, { kind: "collectionFindingCheck" }>): unknown => {
   return {
     $: "Canonical.CollectionFindingCheck",
@@ -523,27 +520,27 @@ const encodeCollectionFindingCheck = (event: Extract<CanonicalEvent, { kind: "co
     solo_bytes: event.soloBytes,
     collection_ready: event.collectionReady,
     selected_count: event.selectedCount,
-    prospective_bytes: event.prospectiveBytes,
-  };
-};
+    prospective_bytes: event.prospectiveBytes
+  }
+}
 const encodeCollectionNoticeCheck = (event: Extract<CanonicalEvent, { kind: "collectionNoticeCheck" }>): unknown => {
   return {
     $: "Canonical.CollectionNoticeCheck",
     items: event.items,
     bytes: event.bytes,
-    skip_unfitting: event.skipUnfitting,
-  };
-};
+    skip_unfitting: event.skipUnfitting
+  }
+}
 const encodeCollectionReserveLease = (
-  event: Extract<CanonicalEvent, { kind: "collectionReserveLease" | "collectionReleaseLease" }>,
+  event: Extract<CanonicalEvent, { kind: "collectionReserveLease" | "collectionReleaseLease" }>
 ): unknown => {
   return {
     $:
       event.kind === "collectionReserveLease" ? "Canonical.CollectionReserveLease" : "Canonical.CollectionReleaseLease",
     advice: event.advice,
-    token: event.token,
-  };
-};
+    token: event.token
+  }
+}
 const encodeCollectionLeaseCheck = (event: Extract<CanonicalEvent, { kind: "collectionLeaseCheck" }>): unknown => {
   return {
     $: "Canonical.CollectionLeaseCheck",
@@ -552,39 +549,39 @@ const encodeCollectionLeaseCheck = (event: Extract<CanonicalEvent, { kind: "coll
     expired: event.expired,
     stop_collector: event.stopCollector,
     same_group: event.sameGroup,
-    reofferable: event.reofferable,
-  };
-};
+    reofferable: event.reofferable
+  }
+}
 const encodeCollectionRetireAdvice = (event: Extract<CanonicalEvent, { kind: "collectionRetireAdvice" }>): unknown => {
-  return { $: "Canonical.CollectionRetireAdvice", advice: event.advice };
-};
+  return { $: "Canonical.CollectionRetireAdvice", advice: event.advice }
+}
 const encodeCollectionClaimBackground = (
-  event: Extract<CanonicalEvent, { kind: "collectionClaimBackground" }>,
+  event: Extract<CanonicalEvent, { kind: "collectionClaimBackground" }>
 ): unknown => {
   return {
     $: "Canonical.CollectionClaimBackground",
     group: event.group,
     token: event.token,
     active: event.active,
-    capacity: event.capacity,
-  };
-};
+    capacity: event.capacity
+  }
+}
 const encodeCollectionReleaseBackground = (
-  event: Extract<CanonicalEvent, { kind: "collectionReleaseBackground" }>,
+  event: Extract<CanonicalEvent, { kind: "collectionReleaseBackground" }>
 ): unknown => {
-  return { $: "Canonical.CollectionReleaseBackground", group: event.group, token: event.token };
-};
+  return { $: "Canonical.CollectionReleaseBackground", group: event.group, token: event.token }
+}
 const encodeCollectionExpireBackground = (
-  event: Extract<CanonicalEvent, { kind: "collectionExpireBackground" }>,
+  event: Extract<CanonicalEvent, { kind: "collectionExpireBackground" }>
 ): unknown => {
   return {
     $: "Canonical.CollectionExpireBackground",
     group: event.group,
     token: event.token,
     elapsed: event.elapsed,
-    lifetime: event.lifetime,
-  };
-};
+    lifetime: event.lifetime
+  }
+}
 const encodeFinishReserve = (event: Extract<CanonicalEvent, { kind: "finishReserve" }>): unknown => {
   return {
     $: "Canonical.FinishReserve",
@@ -598,18 +595,18 @@ const encodeFinishReserve = (event: Extract<CanonicalEvent, { kind: "finishReser
     pass_notices: event.passNotices,
     can_write: event.canWrite,
     binding_valid: event.bindingValid,
-    deadline_reached: event.deadlineReached,
-  };
-};
+    deadline_reached: event.deadlineReached
+  }
+}
 const encodeFinishRelease = (event: Extract<CanonicalEvent, { kind: "finishRelease" }>): unknown => {
   return {
     $: "Canonical.FinishRelease",
     group: event.group,
     round: event.round,
     attempt: event.attempt,
-    token: event.token,
-  };
-};
+    token: event.token
+  }
+}
 const encodeFinishAuthorize = (event: Extract<CanonicalEvent, { kind: "finishAuthorize" }>): unknown => {
   return {
     $: "Canonical.FinishAuthorize",
@@ -617,13 +614,13 @@ const encodeFinishAuthorize = (event: Extract<CanonicalEvent, { kind: "finishAut
     round: event.round,
     attempt: event.attempt,
     token: event.token,
-    selected: list(event.selected),
-  };
-};
+    selected: list(event.selected)
+  }
+}
 const encodeFinishTerminal = (event: Extract<CanonicalEvent, { kind: "finishTerminal" }>): unknown => {
   const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[
     event.outcome
-  ];
+  ]
   return {
     $: "Canonical.FinishTerminal",
     group: event.group,
@@ -631,21 +628,21 @@ const encodeFinishTerminal = (event: Extract<CanonicalEvent, { kind: "finishTerm
     attempt: event.attempt,
     token: event.token,
     selected: list(event.selected),
-    outcome: { $: outcome },
-  };
-};
+    outcome: { $: outcome }
+  }
+}
 const encodeFinishEnd = (event: Extract<CanonicalEvent, { kind: "finishEnd" }>): unknown => {
   return {
     $: "Canonical.FinishEnd",
     group: event.group,
     round: event.round,
     attempt: event.attempt,
-    token: event.token,
-  };
-};
+    token: event.token
+  }
+}
 const encodeContinuationConsume = (event: Extract<CanonicalEvent, { kind: "continuationConsume" }>): unknown => {
-  return { $: "Canonical.ContinuationConsume", group: event.group, round: event.round };
-};
+  return { $: "Canonical.ContinuationConsume", group: event.group, round: event.round }
+}
 const encodeSubmissionBegin = (event: Extract<CanonicalEvent, { kind: "submissionBegin" }>): unknown => {
   return {
     $: "Canonical.SubmissionBegin",
@@ -656,99 +653,99 @@ const encodeSubmissionBegin = (event: Extract<CanonicalEvent, { kind: "submissio
     surface: submissionSurface(event.surface),
     authorize_now: event.authorizeNow,
     fingerprints: list(event.fingerprints),
-    units: list(event.units),
-  };
-};
+    units: list(event.units)
+  }
+}
 const encodeSubmissionAuthorize = (
-  event: Extract<CanonicalEvent, { kind: "submissionAuthorize" | "submissionRelease" | "submissionReofferCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "submissionAuthorize" | "submissionRelease" | "submissionReofferCheck" }>
 ): unknown => {
   return {
     $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`,
     advice: event.advice,
-    token: event.token,
-  };
-};
+    token: event.token
+  }
+}
 const encodeSubmissionTerminal = (event: Extract<CanonicalEvent, { kind: "submissionTerminal" }>): unknown => {
-  return { $: "Canonical.SubmissionTerminal", advice: event.advice, token: event.token, certain: event.certain };
-};
+  return { $: "Canonical.SubmissionTerminal", advice: event.advice, token: event.token, certain: event.certain }
+}
 const encodeSubmissionForget = (event: Extract<CanonicalEvent, { kind: "submissionForget" }>): unknown => {
-  return { $: "Canonical.SubmissionForget", advice: event.advice };
-};
+  return { $: "Canonical.SubmissionForget", advice: event.advice }
+}
 const encodeSubmissionSuppressCheck = (
-  event: Extract<CanonicalEvent, { kind: "submissionSuppressCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "submissionSuppressCheck" }>
 ): unknown => {
   return {
     $: "Canonical.SubmissionSuppressCheck",
     advice: event.advice,
     fingerprint: event.fingerprint,
     round: event.round,
-    surface: submissionSurface(event.surface),
-  };
-};
+    surface: submissionSurface(event.surface)
+  }
+}
 const encodeSubmissionExpiryCheck = (event: Extract<CanonicalEvent, { kind: "submissionExpiryCheck" }>): unknown => {
   return {
     $: "Canonical.SubmissionExpiryCheck",
     advice: event.advice,
     token: event.token,
     elapsed: event.elapsed,
-    lifetime: event.lifetime,
-  };
-};
+    lifetime: event.lifetime
+  }
+}
 const encodeRevisionRegister = (event: Extract<CanonicalEvent, { kind: "revisionRegister" }>): unknown => {
-  return { $: "Canonical.RevisionRegister", subject: event.subject, input: event.input, add_member: event.addMember };
-};
+  return { $: "Canonical.RevisionRegister", subject: event.subject, input: event.input, add_member: event.addMember }
+}
 const encodeRevisionRelease = (event: Extract<CanonicalEvent, { kind: "revisionRelease" }>): unknown => {
-  return { $: "Canonical.RevisionRelease", subject: event.subject, generation: event.generation };
-};
+  return { $: "Canonical.RevisionRelease", subject: event.subject, generation: event.generation }
+}
 const encodeRevisionSupersededCheck = (
-  event: Extract<CanonicalEvent, { kind: "revisionSupersededCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "revisionSupersededCheck" }>
 ): unknown => {
   return {
     $: "Canonical.RevisionSupersededCheck",
     subject: event.subject,
     candidate_subject: event.candidateSubject,
-    generation: event.generation,
-  };
-};
+    generation: event.generation
+  }
+}
 const encodeRevisionCurrentCheck = (event: Extract<CanonicalEvent, { kind: "revisionCurrentCheck" }>): unknown => {
   return {
     $: "Canonical.RevisionCurrentCheck",
     subject: event.subject,
     input: event.input,
-    generation: event.generation,
-  };
-};
+    generation: event.generation
+  }
+}
 const encodeRevisionGenerationCheck = (
-  event: Extract<CanonicalEvent, { kind: "revisionGenerationCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "revisionGenerationCheck" }>
 ): unknown => {
-  return { $: "Canonical.RevisionGenerationCheck", subject: event.subject };
-};
-const encodeRevisionCountCheck = (event: Extract<CanonicalEvent, { kind: "revisionCountCheck" }>): unknown => {
-  return { $: "Canonical.RevisionCountCheck" };
-};
+  return { $: "Canonical.RevisionGenerationCheck", subject: event.subject }
+}
+const encodeRevisionCountCheck = (_event: Extract<CanonicalEvent, { kind: "revisionCountCheck" }>): unknown => {
+  return { $: "Canonical.RevisionCountCheck" }
+}
 const encodeCollectorGateCheck = (event: Extract<CanonicalEvent, { kind: "collectorGateCheck" }>): unknown => {
-  return { $: "Canonical.CollectorGateCheck", expired: event.expired, credential_valid: event.credentialValid };
-};
+  return { $: "Canonical.CollectorGateCheck", expired: event.expired, credential_valid: event.credentialValid }
+}
 const encodeCollectorFinalAuthorityCheck = (
-  event: Extract<CanonicalEvent, { kind: "collectorFinalAuthorityCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "collectorFinalAuthorityCheck" }>
 ): unknown => {
   return {
     $: "Canonical.CollectorFinalAuthorityCheck",
     admitted_block: event.admittedBlock,
-    current_block: event.currentBlock,
-  };
-};
+    current_block: event.currentBlock
+  }
+}
 const encodeReuseMemberCheck = (event: Extract<CanonicalEvent, { kind: "reuseMemberCheck" }>): unknown => {
   return {
     $: "Canonical.ReuseMemberCheck",
     joined_state: reuseMemberState(event.state),
     stale_unavailable: event.staleUnavailable,
     has_revision: event.hasRevision,
-    has_advice_id: event.hasAdviceId,
-  };
-};
+    has_advice_id: event.hasAdviceId
+  }
+}
 const encodeCleanupCheck = (event: Extract<CanonicalEvent, { kind: "cleanupCheck" }>): unknown => {
-  const facts = event.facts;
+  const facts = event.facts
 
   return {
     $: "Canonical.CleanupCheck",
@@ -762,38 +759,38 @@ const encodeCleanupCheck = (event: Extract<CanonicalEvent, { kind: "cleanupCheck
       no_current_work: facts.noCurrentWork,
       no_cooldowns: facts.noCooldowns,
       connection_count_ok: facts.connectionCountOk,
-      cache_matches_ledger: facts.cacheMatchesLedger,
-    },
-  };
-};
-const encodeCleanupCommit = (event: Extract<CanonicalEvent, { kind: "cleanupCommit" }>): unknown => {
-  return { $: "Canonical.CleanupCommit" };
-};
+      cache_matches_ledger: facts.cacheMatchesLedger
+    }
+  }
+}
+const encodeCleanupCommit = (_event: Extract<CanonicalEvent, { kind: "cleanupCommit" }>): unknown => {
+  return { $: "Canonical.CleanupCommit" }
+}
 const encodeDeliveryReleaseCheck = (event: Extract<CanonicalEvent, { kind: "deliveryReleaseCheck" }>): unknown => {
-  return { $: "Canonical.DeliveryReleaseCheck", acknowledged: event.acknowledged };
-};
+  return { $: "Canonical.DeliveryReleaseCheck", acknowledged: event.acknowledged }
+}
 const encodeDeliveryAcknowledgeCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliveryAcknowledgeCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliveryAcknowledgeCheck" }>
 ): unknown => {
-  return { $: "Canonical.DeliveryAcknowledgeCheck", items: event.items, any_expired: event.anyExpired };
-};
+  return { $: "Canonical.DeliveryAcknowledgeCheck", items: event.items, any_expired: event.anyExpired }
+}
 const encodeDeliveryFinalizeCheck = (event: Extract<CanonicalEvent, { kind: "deliveryFinalizeCheck" }>): unknown => {
   return {
     $: "Canonical.DeliveryFinalizeCheck",
     items: event.items,
     all_acknowledged: event.allAcknowledged,
-    any_expired: event.anyExpired,
-  };
-};
+    any_expired: event.anyExpired
+  }
+}
 const encodeDeliveryFindingDispositionCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliveryFindingDispositionCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliveryFindingDispositionCheck" }>
 ): unknown => {
-  return { $: "Canonical.DeliveryFindingDispositionCheck", composed: event.composed, remaining: event.remaining };
-};
+  return { $: "Canonical.DeliveryFindingDispositionCheck", composed: event.composed, remaining: event.remaining }
+}
 const encodeDeliverySubmissionCandidateCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliverySubmissionCandidateCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliverySubmissionCandidateCheck" }>
 ): unknown => {
-  const facts = event.facts;
+  const facts = event.facts
 
   return {
     $: "Canonical.DeliverySubmissionCandidateCheck",
@@ -806,49 +803,49 @@ const encodeDeliverySubmissionCandidateCheck = (
       pending_capacity: facts.pendingCapacity,
       submission_allowed: facts.submissionAllowed,
       current_work: facts.currentWork,
-      credential_authorized: facts.credentialAuthorized,
-    },
-  };
-};
+      credential_authorized: facts.credentialAuthorized
+    }
+  }
+}
 const encodeDeliverySubmissionBatchCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliverySubmissionBatchCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliverySubmissionBatchCheck" }>
 ): unknown => {
-  return { $: "Canonical.DeliverySubmissionBatchCheck", count: event.count, all_valid: event.allValid };
-};
+  return { $: "Canonical.DeliverySubmissionBatchCheck", count: event.count, all_valid: event.allValid }
+}
 const encodeDeliveryCredentialObserveCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliveryCredentialObserveCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliveryCredentialObserveCheck" }>
 ): unknown => {
   return {
     $: "Canonical.DeliveryCredentialObserveCheck",
     invalid_seen: event.invalidSeen,
     generation_valid: event.generationValid,
-    authorized: event.authorized,
-  };
-};
+    authorized: event.authorized
+  }
+}
 const encodeDeliveryFinalCredentialCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliveryFinalCredentialCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliveryFinalCredentialCheck" }>
 ): unknown => {
   return {
     $: "Canonical.DeliveryFinalCredentialCheck",
     shared_collect: event.sharedCollect,
-    invalid_seen: event.invalidSeen,
-  };
-};
+    invalid_seen: event.invalidSeen
+  }
+}
 const encodeValidationRouteCheck = (event: Extract<CanonicalEvent, { kind: "validationRouteCheck" }>): unknown => {
   return {
     $: "Canonical.ValidationRouteCheck",
     owner_current: event.ownerCurrent,
-    status: { $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` },
-  };
-};
+    status: { $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` }
+  }
+}
 const encodePostValidationCheck = (event: Extract<CanonicalEvent, { kind: "postValidationCheck" }>): unknown => {
   return {
     $: "Canonical.PostValidationCheck",
     work_accepted: event.workAccepted,
     expired: event.expired,
-    has_fitting: event.hasFitting,
-  };
-};
+    has_fitting: event.hasFitting
+  }
+}
 const encodeFinalCandidateCheck = (event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" }>): unknown => {
   return {
     $: "Canonical.FinalCandidateCheck",
@@ -857,12 +854,12 @@ const encodeFinalCandidateCheck = (event: Extract<CanonicalEvent, { kind: "final
     credential_authorized: event.credentialAuthorized,
     expired: event.expired,
     work_current: event.workCurrent,
-    has_findings: event.hasFindings,
-  };
-};
+    has_findings: event.hasFindings
+  }
+}
 const encodeRoundBeginStopCheck = (event: Extract<CanonicalEvent, { kind: "roundBeginStopCheck" }>): unknown => {
-  return { $: "Canonical.RoundBeginStopCheck", active: event.active, has_stop: event.hasStop, token: event.token };
-};
+  return { $: "Canonical.RoundBeginStopCheck", active: event.active, has_stop: event.hasStop, token: event.token }
+}
 const encodeRoundActivityCheck = (event: Extract<CanonicalEvent, { kind: "roundActivityCheck" }>): unknown => {
   return {
     $: "Canonical.RoundActivityCheck",
@@ -871,43 +868,43 @@ const encodeRoundActivityCheck = (event: Extract<CanonicalEvent, { kind: "roundA
     round: event.round,
     active: event.active,
     closed_at: event.closedAt,
-    expected_generation: event.expectedGeneration,
-  };
-};
+    expected_generation: event.expectedGeneration
+  }
+}
 const encodeRoundBarrierCheck = (event: Extract<CanonicalEvent, { kind: "roundBarrierCheck" }>): unknown => {
   return {
     $: "Canonical.RoundBarrierCheck",
     has_stop: event.hasStop,
     used_at_start: event.usedAtStart,
-    used_now: event.usedNow,
-  };
-};
+    used_now: event.usedNow
+  }
+}
 const encodeRoundOwnsStopCheck = (event: Extract<CanonicalEvent, { kind: "roundOwnsStopCheck" }>): unknown => {
   return {
     $: "Canonical.RoundOwnsStopCheck",
     active: event.active,
     token_matches: event.tokenMatches,
-    deciding: event.deciding,
-  };
-};
+    deciding: event.deciding
+  }
+}
 const encodeRoundStopTerminalCheck = (event: Extract<CanonicalEvent, { kind: "roundStopTerminalCheck" }>): unknown => {
   return {
     $: "Canonical.RoundStopTerminalCheck",
     has_output: event.hasOutput,
     authorized: event.authorized,
-    requested_close: event.requestedClose,
-  };
-};
+    requested_close: event.requestedClose
+  }
+}
 const encodeRoundExpireCloseCheck = (event: Extract<CanonicalEvent, { kind: "roundExpireCloseCheck" }>): unknown => {
-  return { $: "Canonical.RoundExpireCloseCheck", barrier: event.barrier, authorized_output: event.authorizedOutput };
-};
+  return { $: "Canonical.RoundExpireCloseCheck", barrier: event.barrier, authorized_output: event.authorizedOutput }
+}
 const encodeRoundContinuationBudgetCheck = (
-  event: Extract<CanonicalEvent, { kind: "roundContinuationBudgetCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "roundContinuationBudgetCheck" }>
 ): unknown => {
-  return { $: "Canonical.RoundContinuationBudgetCheck", active: event.active, count: event.count };
-};
+  return { $: "Canonical.RoundContinuationBudgetCheck", active: event.active, count: event.count }
+}
 const encodeDeliverySubmissionAllowedCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliverySubmissionAllowedCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliverySubmissionAllowedCheck" }>
 ): unknown => {
   return {
     $: "Canonical.DeliverySubmissionAllowedCheck",
@@ -916,72 +913,72 @@ const encodeDeliverySubmissionAllowedCheck = (
     deciding: event.deciding,
     surface: deliverySurface(event.surface),
     existing_token: event.existingToken,
-    finish_permit: event.finishPermit,
-  };
-};
+    finish_permit: event.finishPermit
+  }
+}
 const encodeDeliveryExistingTokenCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliveryExistingTokenCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliveryExistingTokenCheck" }>
 ): unknown => {
   return {
     $: "Canonical.DeliveryExistingTokenCheck",
     surface: deliverySurface(event.surface),
     existing_token: event.existingToken,
-    finish_permit: event.finishPermit,
-  };
-};
+    finish_permit: event.finishPermit
+  }
+}
 const encodeDeliveryUnreservedStopCheck = (
-  event: Extract<CanonicalEvent, { kind: "deliveryUnreservedStopCheck" }>,
+  event: Extract<CanonicalEvent, { kind: "deliveryUnreservedStopCheck" }>
 ): unknown => {
-  return { $: "Canonical.DeliveryUnreservedStopCheck", active: event.active, deciding: event.deciding };
-};
+  return { $: "Canonical.DeliveryUnreservedStopCheck", active: event.active, deciding: event.deciding }
+}
 const encodeIncludeLayerCheck = (event: Extract<CanonicalEvent, { kind: "includeLayerCheck" }>): unknown => {
   return {
     $: "Canonical.IncludeLayerCheck",
     supplied: event.supplied,
     current_rank: event.currentRank,
-    candidate_rank: event.candidateRank,
-  };
-};
+    candidate_rank: event.candidateRank
+  }
+}
 const encodeFileSelectionCheck = (event: Extract<CanonicalEvent, { kind: "fileSelectionCheck" }>): unknown => {
   return {
     $: "Canonical.FileSelectionCheck",
     protected: event.protected,
     excluded: event.excluded,
     includes_empty: event.includesEmpty,
-    included: event.included,
-  };
-};
-const encodeFileProtectionInvalid = (event: Extract<CanonicalEvent, { kind: "fileProtectionInvalid" }>): unknown => {
-  return { $: "Canonical.FileProtectionInvalid" };
-};
+    included: event.included
+  }
+}
+const encodeFileProtectionInvalid = (_event: Extract<CanonicalEvent, { kind: "fileProtectionInvalid" }>): unknown => {
+  return { $: "Canonical.FileProtectionInvalid" }
+}
 const encodeFileProtectionCheck = (event: Extract<CanonicalEvent, { kind: "fileProtectionCheck" }>): unknown => {
   return {
     $: "Canonical.FileProtectionCheck",
     sensitive_name: event.sensitiveName,
     generated_or_vendor: event.generatedOrVendor,
-    allowed_extension: event.allowedExtension,
-  };
-};
+    allowed_extension: event.allowedExtension
+  }
+}
 const encodeCandidateFileCheck = (event: Extract<CanonicalEvent, { kind: "candidateFileCheck" }>): unknown => {
   return {
     $: "Canonical.CandidateFileCheck",
     git_admin: event.gitAdmin,
     physical_safe: event.physicalSafe,
-    git_allowed: event.gitAllowed,
-  };
-};
+    git_allowed: event.gitAllowed
+  }
+}
 const encodeReviewAdmissionCheck = (event: Extract<CanonicalEvent, { kind: "reviewAdmissionCheck" }>): unknown => {
   return {
     $: "Canonical.ReviewAdmissionCheck",
     root_valid: event.rootValid,
     configuration_valid: event.configurationValid,
     credential_ready: event.credentialReady,
-    selected: event.selected,
-  };
-};
+    selected: event.selected
+  }
+}
 const encodeRuleEnableCheck = (event: Extract<CanonicalEvent, { kind: "ruleEnableCheck" }>): unknown => {
-  return { $: "Canonical.RuleEnableCheck", pack_enabled: event.packEnabled, rule_enabled: event.ruleEnabled };
-};
+  return { $: "Canonical.RuleEnableCheck", pack_enabled: event.packEnabled, rule_enabled: event.ruleEnabled }
+}
 const encodeRuleApplicabilityCheck = (event: Extract<CanonicalEvent, { kind: "ruleApplicabilityCheck" }>): unknown => {
   return {
     $: "Canonical.RuleApplicabilityCheck",
@@ -997,54 +994,54 @@ const encodeRuleApplicabilityCheck = (event: Extract<CanonicalEvent, { kind: "ru
     target_declared: event.targetDeclared,
     capabilities_available: event.capabilitiesAvailable,
     source_rung: event.sourceRung,
-    minimum_rung: event.minimumRung,
-  };
-};
+    minimum_rung: event.minimumRung
+  }
+}
 const encodeRuleFindingCheck = (event: Extract<CanonicalEvent, { kind: "ruleFindingCheck" }>): unknown => {
   return {
     $: "Canonical.RuleFindingCheck",
     probability: encodedProbabilityWords(event.probability),
-    threshold: encodedProbabilityWords(event.threshold),
-  };
-};
+    threshold: encodedProbabilityWords(event.threshold)
+  }
+}
 const encodeRuleRankOrderCheck = (event: Extract<CanonicalEvent, { kind: "ruleRankOrderCheck" }>): unknown => {
   return {
     $: "Canonical.RuleRankOrderCheck",
     left: encodedProbabilityWords(event.left),
     right: encodedProbabilityWords(event.right),
     left_rank: event.leftRank,
-    right_rank: event.rightRank,
-  };
-};
+    right_rank: event.rightRank
+  }
+}
 const encodeAdviceOrderCheck = (event: Extract<CanonicalEvent, { kind: "adviceOrderCheck" }>): unknown => {
   return {
     $: "Canonical.AdviceOrderCheck",
     left: encodedProbabilityWords(event.left),
     right: encodedProbabilityWords(event.right),
     path_order: { $: ruleOrderTag(event.pathOrder) },
-    id_order: { $: ruleOrderTag(event.idOrder) },
-  };
-};
+    id_order: { $: ruleOrderTag(event.idOrder) }
+  }
+}
 const encodeRuleBudgetCheck = (event: Extract<CanonicalEvent, { kind: "ruleBudgetCheck" }>): unknown => {
-  return { $: "Canonical.RuleBudgetCheck", position: event.position, limit: event.limit };
-};
+  return { $: "Canonical.RuleBudgetCheck", position: event.position, limit: event.limit }
+}
 const encodeReuseRoute = (event: Extract<CanonicalEvent, { kind: "reuseRoute" }>): unknown => {
-  return { $: "Canonical.ReuseRoute", id: event.id, live_advice: event.liveAdvice };
-};
+  return { $: "Canonical.ReuseRoute", id: event.id, live_advice: event.liveAdvice }
+}
 const encodeReuseClaim = (
-  event: Extract<CanonicalEvent, { kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch" }>,
+  event: Extract<CanonicalEvent, { kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch" }>
 ): unknown => {
-  return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: event.id };
-};
+  return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: event.id }
+}
 const encodeCachePrepare = (event: Extract<CanonicalEvent, { kind: "cachePrepare" }>): unknown => {
   return {
     $: "Canonical.CachePrepare",
     id: event.id,
     bytes: event.bytes,
     entry_limit: event.entryLimit,
-    byte_limit: event.byteLimit,
-  };
-};
+    byte_limit: event.byteLimit
+  }
+}
 const encodeCacheCommit = (event: Extract<CanonicalEvent, { kind: "cacheCommit" }>): unknown => {
   return {
     $: "Canonical.CacheCommit",
@@ -1053,15 +1050,15 @@ const encodeCacheCommit = (event: Extract<CanonicalEvent, { kind: "cacheCommit" 
     bytes: event.bytes,
     reservation: event.reservation,
     entry_limit: event.entryLimit,
-    byte_limit: event.byteLimit,
-  };
-};
+    byte_limit: event.byteLimit
+  }
+}
 const encodeCacheDiscardPartition = (event: Extract<CanonicalEvent, { kind: "cacheDiscardPartition" }>): unknown => {
-  return { $: "Canonical.CacheDiscardPartition", partition: event.partition };
-};
-const encodeCacheClear = (event: Extract<CanonicalEvent, { kind: "cacheClear" }>): unknown => {
-  return { $: "Canonical.CacheClear" };
-};
+  return { $: "Canonical.CacheDiscardPartition", partition: event.partition }
+}
+const encodeCacheClear = (_event: Extract<CanonicalEvent, { kind: "cacheClear" }>): unknown => {
+  return { $: "Canonical.CacheClear" }
+}
 const encodeNoticeAdvance = (event: Extract<CanonicalEvent, { kind: "noticeAdvance" }>): unknown => {
   return {
     $: "Canonical.NoticeAdvance",
@@ -1070,9 +1067,9 @@ const encodeNoticeAdvance = (event: Extract<CanonicalEvent, { kind: "noticeAdvan
     maximum_keys: event.maximumKeys,
     proposed: event.proposed,
     sequence: event.sequence,
-    max_count: event.maxCount,
-  };
-};
+    max_count: event.maxCount
+  }
+}
 const encodeNoticeCommit = (event: Extract<CanonicalEvent, { kind: "noticeCommit" }>): unknown => {
   return {
     $: "Canonical.NoticeCommit",
@@ -1082,9 +1079,9 @@ const encodeNoticeCommit = (event: Extract<CanonicalEvent, { kind: "noticeCommit
     reservation: event.reservation,
     pending: event.pending,
     sequence: event.sequence,
-    maximum_keys: event.maximumKeys,
-  };
-};
+    maximum_keys: event.maximumKeys
+  }
+}
 const encodeNoticePrune = (event: Extract<CanonicalEvent, { kind: "noticePrune" }>): unknown => {
   return {
     $: "Canonical.NoticePrune",
@@ -1092,15 +1089,15 @@ const encodeNoticePrune = (event: Extract<CanonicalEvent, { kind: "noticePrune" 
     lease_expired: event.leaseExpired,
     pending_expired: event.pendingExpired,
     excepted: event.excepted,
-    cooldown_expired: event.cooldownExpired,
-  };
-};
+    cooldown_expired: event.cooldownExpired
+  }
+}
 const encodeNoticeDrop = (event: Extract<CanonicalEvent, { kind: "noticeDrop" | "noticeClearPending" }>): unknown => {
-  return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: event.key };
-};
+  return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: event.key }
+}
 const encodeNoticeLease = (event: Extract<CanonicalEvent, { kind: "noticeLease" }>): unknown => {
-  return { $: "Canonical.NoticeLease", key: event.key, leased: event.leased };
-};
+  return { $: "Canonical.NoticeLease", key: event.key, leased: event.leased }
+}
 const encodeNoticeSelect = (event: Extract<CanonicalEvent, { kind: "noticeSelect" }>): unknown => {
   return {
     $: "Canonical.NoticeSelect",
@@ -1108,37 +1105,37 @@ const encodeNoticeSelect = (event: Extract<CanonicalEvent, { kind: "noticeSelect
     group: event.group,
     composed: event.composed,
     authority_bound: event.authorityBound,
-    allowed: list(event.allowed),
-  };
-};
+    allowed: list(event.allowed)
+  }
+}
 const encodeOutputStarted = (event: Extract<CanonicalEvent, { kind: "outputStarted" }>): unknown => {
-  return { $: "Canonical.OutputStarted", ...identity(event), round: event.round };
-};
+  return { $: "Canonical.OutputStarted", ...identity(event), round: event.round }
+}
 const encodeOutputTerminal = (event: Extract<CanonicalEvent, { kind: "outputTerminal" }>): unknown => {
   const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[
     event.outcome
-  ];
+  ]
   return {
     $: "Canonical.OutputTerminal",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    outcome: { $: outcome },
-  };
-};
+    outcome: { $: outcome }
+  }
+}
 const encodeRetirePartition = (event: Extract<CanonicalEvent, { kind: "retirePartition" }>): unknown => {
-  return { $: "Canonical.RetirePartition", ...identity(event), round: event.round };
-};
+  return { $: "Canonical.RetirePartition", ...identity(event), round: event.round }
+}
 type EventForKind<Kind extends CanonicalEvent["kind"], Event = CanonicalEvent> = Event extends {
-  readonly kind: infer Names;
+  readonly kind: infer Names
 }
   ? Kind extends Names
     ? Event
     : never
-  : never;
+  : never
 type EventByKind = {
-  [Kind in CanonicalEvent["kind"]]: EventForKind<Kind>;
-};
+  [Kind in CanonicalEvent["kind"]]: EventForKind<Kind>
+}
 const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) => unknown } = {
   reserveCapacity: encodeReserveCapacity,
   resizeCapacity: encodeResizeCapacity,
@@ -1275,46 +1272,46 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
   noticeSelect: encodeNoticeSelect,
   outputStarted: encodeOutputStarted,
   outputTerminal: encodeOutputTerminal,
-  retirePartition: encodeRetirePartition,
-};
+  retirePartition: encodeRetirePartition
+}
 
 const encodeVariant = <Kind extends keyof EventByKind>(event: EventByKind[Kind] & { readonly kind: Kind }): unknown =>
-  eventEncoders[event.kind](event);
-export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(decodeEvent(input));
+  eventEncoders[event.kind](event)
+export const encodeCanonicalEvent = (input: CanonicalEvent): unknown => encodeVariant(decodeEvent(input))
 
 const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interrupted" | "discarded" => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
-  if (name === "Canonical.Finding") return "finding";
-  if (name === "Canonical.Clear") return "clear";
-  if (name === "Canonical.Unavailable") return "unavailable";
-  if (name === "Canonical.Interrupted") return "interrupted";
-  if (name === "Canonical.Discarded") return "discarded";
-  throw new TypeError("unknown canonical outcome");
-};
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
+  if (name === "Canonical.Finding") return "finding"
+  if (name === "Canonical.Clear") return "clear"
+  if (name === "Canonical.Unavailable") return "unavailable"
+  if (name === "Canonical.Interrupted") return "interrupted"
+  if (name === "Canonical.Discarded") return "discarded"
+  throw new TypeError("unknown canonical outcome")
+}
 const writeOutcome = (value: unknown): "acknowledged" | "failed" | "unknown" => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
-  if (name === "Canonical.Acknowledged") return "acknowledged";
-  if (name === "Canonical.Failed") return "failed";
-  if (name === "Canonical.Unknown") return "unknown";
-  throw new TypeError("unknown write outcome");
-};
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
+  if (name === "Canonical.Acknowledged") return "acknowledged"
+  if (name === "Canonical.Failed") return "failed"
+  if (name === "Canonical.Unknown") return "unknown"
+  throw new TypeError("unknown write outcome")
+}
 const decodeCollectorReason = (value: unknown): CollectorReason => {
-  const name = tag(value);
+  const name = tag(value)
   const reasons: Record<string, CollectorReason> = {
     "CollectorAuthority.Backend": "backend",
     "CollectorAuthority.Credential": "credential",
     "CollectorAuthority.Capacity": "capacity",
     "CollectorAuthority.Stale": "stale",
     "CollectorAuthority.Lost": "lost",
-    "CollectorAuthority.Expired": "expired",
-  };
-  const reason = reasons[name];
-  if (reason === undefined) throw new TypeError("unknown collector reason");
-  decodeCanonicalConstructor(value, name);
-  return reason;
-};
+    "CollectorAuthority.Expired": "expired"
+  }
+  const reason = reasons[name]
+  if (reason === undefined) throw new TypeError("unknown collector reason")
+  decodeCanonicalConstructor(value, name)
+  return reason
+}
 
 const purpose = (value: unknown): CapacityPurpose => {
   const names: Record<string, CapacityPurpose> = {
@@ -1323,353 +1320,352 @@ const purpose = (value: unknown): CapacityPurpose => {
     "Ledger.ReviewUnit": "reviewUnit",
     "Ledger.StoredResult": "storedResult",
     "Ledger.OperationalNotice": "operationalNotice",
-    "Ledger.AdviceRecheck": "adviceRecheck",
-  };
-  const name = tag(value);
-  const result = names[name];
-  if (!result) throw new TypeError("unknown capacity purpose");
-  decodeCanonicalConstructor(value, name);
-  return result;
-};
+    "Ledger.AdviceRecheck": "adviceRecheck"
+  }
+  const name = tag(value)
+  const result = names[name]
+  if (!result) throw new TypeError("unknown capacity purpose")
+  decodeCanonicalConstructor(value, name)
+  return result
+}
 const charge = (value: unknown): CapacityCharge => {
-  const x = decodeCanonicalConstructor(value, "Ledger.Charge");
-  return { id: nat(x.id, true), partition: nat(x.partition, true), bytes: nat(x.bytes), purpose: purpose(x.purpose) };
-};
+  const x = decodeCanonicalConstructor(value, "Ledger.Charge")
+  return { id: nat(x.id, true), partition: nat(x.partition, true), bytes: nat(x.bytes), purpose: purpose(x.purpose) }
+}
 const usage = (value: unknown): { readonly items: number; readonly bytes: number } => {
-  const x = decodeCanonicalConstructor(value, "Ledger.Usage");
-  return { items: nat(x.items), bytes: nat(x.bytes) };
-};
+  const x = decodeCanonicalConstructor(value, "Ledger.Usage")
+  return { items: nat(x.items), bytes: nat(x.bytes) }
+}
 const capacityView = (value: unknown): CapacityView => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CapacityView");
-  const charges = readList(x.charges, charge);
-  const global = usage(x.global);
-  const local = usage(x.local);
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityView")
+  const charges = readList(x.charges, charge)
+  const global = usage(x.global)
+  const local = usage(x.local)
   if (
     charges.length !== global.items ||
     charges.reduce((sum, charge) => sum + charge.bytes, 0) !== global.bytes ||
     local.items > global.items ||
     local.bytes > global.bytes
   )
-    throw new TypeError("invalid capacity view");
-  return { global, local, charges };
-};
+    throw new TypeError("invalid capacity view")
+  return { global, local, charges }
+}
 const capacityRefusal = (value: unknown): CapacityRefusal => {
   const reasons: Record<string, CapacityRefusal> = {
     "Ledger.GlobalItemLimit": "globalItems",
     "Ledger.GlobalByteLimit": "globalBytes",
     "Ledger.PartitionItemLimit": "partitionItems",
-    "Ledger.PartitionByteLimit": "partitionBytes",
-  };
-  const reason = reasons[tag(value)];
-  if (!reason) throw new TypeError("unknown capacity refusal");
-  decodeCanonicalConstructor(value, tag(value));
-  return reason;
-};
+    "Ledger.PartitionByteLimit": "partitionBytes"
+  }
+  const reason = reasons[tag(value)]
+  if (!reason) throw new TypeError("unknown capacity refusal")
+  decodeCanonicalConstructor(value, tag(value))
+  return reason
+}
 const decodeCapacityGranted = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CapacityGranted");
-  return { kind: "capacityGranted", id: nat(x.id, true), after: capacityView(x.after) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityGranted")
+  return { kind: "capacityGranted", id: nat(x.id, true), after: capacityView(x.after) }
+}
 const decodeCapacityRefused = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CapacityRefused");
-  return { kind: "capacityRefused", reason: capacityRefusal(x.reason), after: capacityView(x.after) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityRefused")
+  return { kind: "capacityRefused", reason: capacityRefusal(x.reason), after: capacityView(x.after) }
+}
 const decodeCapacityResized = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CapacityResized");
-  return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityResized")
+  return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) }
+}
 const decodeCapacityUnitAdmitted = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitAdmitted");
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitAdmitted")
   return {
     kind: "capacityUnitAdmitted",
     reservation: nat(x.reservation, true),
     position: nat(x.position, true),
     bytes: bytes(x.bytes),
-    after: capacityView(x.after),
-  };
-};
+    after: capacityView(x.after)
+  }
+}
 const decodeCapacityUnitRefused = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitRefused");
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitRefused")
   return {
     kind: "capacityUnitRefused",
     position: nat(x.position, true),
     bytes: bytes(x.bytes),
     reason: capacityRefusal(x.reason),
-    after: capacityView(x.after),
-  };
-};
+    after: capacityView(x.after)
+  }
+}
 const decodePermitIssued = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.PermitIssued");
-  return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.PermitIssued")
+  return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) }
+}
 const decodeCompletedEditAbsent = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.CompletedEditAbsent");
-  return { kind: "completedEditAbsent" };
-};
+  decodeCanonicalConstructor(value, "Canonical.CompletedEditAbsent")
+  return { kind: "completedEditAbsent" }
+}
 const decodeCompletedEditSeen = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditSeen");
-  return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditSeen")
+  return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) }
+}
 const decodeCompletedEditRemembered = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditRemembered");
-  const evicted =
-    tag(x.evicted) === "Some" ? nat(decodeCanonicalConstructor(x.evicted, "Some").value, true) : undefined;
-  if (evicted === undefined) decodeCanonicalConstructor(x.evicted, "None");
-  return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditRemembered")
+  const evicted = tag(x.evicted) === "Some" ? nat(decodeCanonicalConstructor(x.evicted, "Some").value, true) : undefined
+  if (evicted === undefined) decodeCanonicalConstructor(x.evicted, "None")
+  return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) }
+}
 const decodeQuietRoundBusy = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.QuietRoundBusy");
-  return { kind: "quietRoundBusy" };
-};
+  decodeCanonicalConstructor(value, "Canonical.QuietRoundBusy")
+  return { kind: "quietRoundBusy" }
+}
 const decodeQuietRoundResetRecorded = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.QuietRoundResetRecorded");
-  return { kind: "quietRoundResetRecorded" };
-};
+  decodeCanonicalConstructor(value, "Canonical.QuietRoundResetRecorded")
+  return { kind: "quietRoundResetRecorded" }
+}
 const decodeQuietRoundWaiting = (value: unknown): CanonicalCommand => {
   return {
     kind: "quietRoundWaiting",
-    since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundWaiting").since),
-  };
-};
+    since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundWaiting").since)
+  }
+}
 const decodeQuietRoundExpired = (value: unknown): CanonicalCommand => {
   return {
     kind: "quietRoundExpired",
-    since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundExpired").since),
-  };
-};
+    since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundExpired").since)
+  }
+}
 const decodePermitConsumed = (value: unknown): CanonicalCommand => {
   return {
     kind: "permitConsumed",
-    round: nat(decodeCanonicalConstructor(value, "Canonical.PermitConsumed").round, true),
-  };
-};
+    round: nat(decodeCanonicalConstructor(value, "Canonical.PermitConsumed").round, true)
+  }
+}
 const decodePermitReleased = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PermitReleased");
-  return { kind: "permitReleased" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PermitReleased")
+  return { kind: "permitReleased" }
+}
 const decodePermitExpired = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PermitExpired");
-  return { kind: "permitExpired" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PermitExpired")
+  return { kind: "permitExpired" }
+}
 const decodePermitKept = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PermitKept");
-  return { kind: "permitKept" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PermitKept")
+  return { kind: "permitKept" }
+}
 const decodePermitRoundClosed = (value: unknown): CanonicalCommand => {
   return {
     kind: "permitRoundClosed",
-    round: nat(decodeCanonicalConstructor(value, "Canonical.PermitRoundClosed").round, true),
-  };
-};
+    round: nat(decodeCanonicalConstructor(value, "Canonical.PermitRoundClosed").round, true)
+  }
+}
 const decodeRoundStarted = (value: unknown): CanonicalCommand => {
-  return { kind: "roundStarted", id: nat(decodeCanonicalConstructor(value, "Canonical.RoundStarted").id, true) };
-};
+  return { kind: "roundStarted", id: nat(decodeCanonicalConstructor(value, "Canonical.RoundStarted").id, true) }
+}
 const decodeObservationAdmitted = (value: unknown): CanonicalCommand => {
   return {
     kind: "observationAdmitted",
-    id: nat(decodeCanonicalConstructor(value, "Canonical.ObservationAdmitted").id, true),
-  };
-};
+    id: nat(decodeCanonicalConstructor(value, "Canonical.ObservationAdmitted").id, true)
+  }
+}
 const decodeObservationStarted = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.ObservationStarted");
-  return { kind: "observationStarted" };
-};
+  decodeCanonicalConstructor(value, "Canonical.ObservationStarted")
+  return { kind: "observationStarted" }
+}
 const decodeObservationCompleted = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.ObservationCompleted");
-  return { kind: "observationCompleted" };
-};
+  decodeCanonicalConstructor(value, "Canonical.ObservationCompleted")
+  return { kind: "observationCompleted" }
+}
 const decodeObservationInterrupted = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.ObservationInterrupted");
-  return { kind: "observationInterrupted" };
-};
+  decodeCanonicalConstructor(value, "Canonical.ObservationInterrupted")
+  return { kind: "observationInterrupted" }
+}
 const decodePrepare = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.Prepare");
-  return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.Prepare")
+  return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }
+}
 const decodePreparationRefused = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PreparationRefused");
-  return { kind: "preparationRefused" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PreparationRefused")
+  return { kind: "preparationRefused" }
+}
 const decodeUnitAdmitted = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.UnitAdmitted");
+  const x = decodeCanonicalConstructor(value, "Canonical.UnitAdmitted")
   return {
     kind: "unitAdmitted",
     operation: nat(x.operation, true),
     reservation: nat(x.reservation, true),
     position: nat(x.position, true),
     bytes: bytes(x.bytes),
-    after: capacityView(x.after),
-  };
-};
+    after: capacityView(x.after)
+  }
+}
 const decodeUnitRefused = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.UnitRefused");
+  const x = decodeCanonicalConstructor(value, "Canonical.UnitRefused")
   return {
     kind: "unitRefused",
     position: nat(x.position, true),
     bytes: bytes(x.bytes),
     reason: capacityRefusal(x.reason),
-    after: capacityView(x.after),
-  };
-};
+    after: capacityView(x.after)
+  }
+}
 const decodePreparationReleased = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.PreparationReleased");
-  return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.PreparationReleased")
+  return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }
+}
 const decodeReviewStarted = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.ReviewStarted");
-  return { kind: "reviewStarted" };
-};
+  decodeCanonicalConstructor(value, "Canonical.ReviewStarted")
+  return { kind: "reviewStarted" }
+}
 const decodeJevRequestIssued = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.JevRequestIssued");
+  const x = decodeCanonicalConstructor(value, "Canonical.JevRequestIssued")
   return {
     kind: "jevRequestIssued",
     partition: nat(x.partition, true),
     lifetime: nat(x.lifetime, true),
     round: nat(x.round, true),
     operation: nat(x.operation, true),
-    request: nat(x.request, true),
-  };
-};
+    request: nat(x.request, true)
+  }
+}
 const decodeJevRequestUnavailable = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.JevRequestUnavailable");
-  return { kind: "jevRequestUnavailable" };
-};
+  decodeCanonicalConstructor(value, "Canonical.JevRequestUnavailable")
+  return { kind: "jevRequestUnavailable" }
+}
 const decodeJevRequestStartRecorded = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.JevRequestStartRecorded");
-  return { kind: "jevRequestStartRecorded" };
-};
+  decodeCanonicalConstructor(value, "Canonical.JevRequestStartRecorded")
+  return { kind: "jevRequestStartRecorded" }
+}
 const decodeJevInterruptionRecorded = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.JevInterruptionRecorded");
-  return { kind: "jevInterruptionRecorded" };
-};
+  decodeCanonicalConstructor(value, "Canonical.JevInterruptionRecorded")
+  return { kind: "jevInterruptionRecorded" }
+}
 const decodeJevObservationIgnored = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.JevObservationIgnored");
-  return { kind: "jevObservationIgnored" };
-};
+  decodeCanonicalConstructor(value, "Canonical.JevObservationIgnored")
+  return { kind: "jevObservationIgnored" }
+}
 const decodeJevRequestOutcomeRecorded = (value: unknown): CanonicalCommand => {
   return {
     kind: "jevRequestOutcomeRecorded",
-    outcome: decodeJevRequestOutcome(decodeCanonicalConstructor(value, "Canonical.JevRequestOutcomeRecorded").outcome),
-  };
-};
+    outcome: decodeJevRequestOutcome(decodeCanonicalConstructor(value, "Canonical.JevRequestOutcomeRecorded").outcome)
+  }
+}
 const decodeReservationReleased = (value: unknown): CanonicalCommand => {
   return {
     kind: "reservationReleased",
-    id: nat(decodeCanonicalConstructor(value, "Canonical.ReservationReleased").id, true),
-  };
-};
+    id: nat(decodeCanonicalConstructor(value, "Canonical.ReservationReleased").id, true)
+  }
+}
 const decodeReviewRecorded = (value: unknown): CanonicalCommand => {
   return {
     kind: "reviewRecorded",
-    outcome: outcome(decodeCanonicalConstructor(value, "Canonical.ReviewRecorded").outcome),
-  };
-};
+    outcome: outcome(decodeCanonicalConstructor(value, "Canonical.ReviewRecorded").outcome)
+  }
+}
 const decodeRetainFinding = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.RetainFinding");
-  return { kind: "retainFinding" };
-};
+  decodeCanonicalConstructor(value, "Canonical.RetainFinding")
+  return { kind: "retainFinding" }
+}
 const decodeFindingCountRecorded = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FindingCountRecorded");
-  return { kind: "findingCountRecorded" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FindingCountRecorded")
+  return { kind: "findingCountRecorded" }
+}
 const decodeSettleClear = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.SettleClear");
-  return { kind: "settleClear" };
-};
+  decodeCanonicalConstructor(value, "Canonical.SettleClear")
+  return { kind: "settleClear" }
+}
 const decodeSettleStaleClear = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.SettleStaleClear");
-  return { kind: "settleStaleClear" };
-};
+  decodeCanonicalConstructor(value, "Canonical.SettleStaleClear")
+  return { kind: "settleStaleClear" }
+}
 const decodeRetireStaleFinding = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.RetireStaleFinding");
-  return { kind: "retireStaleFinding" };
-};
+  decodeCanonicalConstructor(value, "Canonical.RetireStaleFinding")
+  return { kind: "retireStaleFinding" }
+}
 const decodePreparedSkipped = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PreparedSkipped");
-  return { kind: "preparedSkipped" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PreparedSkipped")
+  return { kind: "preparedSkipped" }
+}
 const decodePreparedAdmitted = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PreparedAdmitted");
-  return { kind: "preparedAdmitted" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PreparedAdmitted")
+  return { kind: "preparedAdmitted" }
+}
 const decodePreparedCapacityRefused = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.PreparedCapacityRefused");
-  return { kind: "preparedCapacityRefused" };
-};
+  decodeCanonicalConstructor(value, "Canonical.PreparedCapacityRefused")
+  return { kind: "preparedCapacityRefused" }
+}
 const decodeEmptyLost = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.EmptyLost");
-  return { kind: "emptyLost" };
-};
+  decodeCanonicalConstructor(value, "Canonical.EmptyLost")
+  return { kind: "emptyLost" }
+}
 const decodeEmptyAccepted = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.EmptyAccepted");
-  return { kind: "emptyAccepted" };
-};
+  decodeCanonicalConstructor(value, "Canonical.EmptyAccepted")
+  return { kind: "emptyAccepted" }
+}
 const decodeFailureBackend = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FailureBackend");
-  return { kind: "failureBackend" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FailureBackend")
+  return { kind: "failureBackend" }
+}
 const decodeFailureCredential = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FailureCredential");
-  return { kind: "failureCredential" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FailureCredential")
+  return { kind: "failureCredential" }
+}
 const decodeFailureLost = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FailureLost");
-  return { kind: "failureLost" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FailureLost")
+  return { kind: "failureLost" }
+}
 const decodeFailureNone = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FailureNone");
-  return { kind: "failureNone" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FailureNone")
+  return { kind: "failureNone" }
+}
 const decodeDispatchStarted = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.DispatchStarted");
-  return { kind: "dispatchStarted", operation: nat(x.operation, true), sequence: nat(x.sequence) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.DispatchStarted")
+  return { kind: "dispatchStarted", operation: nat(x.operation, true), sequence: nat(x.sequence) }
+}
 const decodeDispatchDiscarded = (value: unknown): CanonicalCommand => {
-  const x = decodeCanonicalConstructor(value, "Canonical.DispatchDiscarded");
-  return { kind: "dispatchDiscarded", operation: nat(x.operation, true), running: bool(x.running) };
-};
+  const x = decodeCanonicalConstructor(value, "Canonical.DispatchDiscarded")
+  return { kind: "dispatchDiscarded", operation: nat(x.operation, true), running: bool(x.running) }
+}
 const decodeDiscardNamedOnly = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.DiscardNamedOnly");
-  return { kind: "discardNamedOnly" };
-};
+  decodeCanonicalConstructor(value, "Canonical.DiscardNamedOnly")
+  return { kind: "discardNamedOnly" }
+}
 const decodeDiscardAllUnfinished = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.DiscardAllUnfinished");
-  return { kind: "discardAllUnfinished" };
-};
+  decodeCanonicalConstructor(value, "Canonical.DiscardAllUnfinished")
+  return { kind: "discardAllUnfinished" }
+}
 const decodeWaitForWork = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.WaitForWork");
-  return { kind: "waitForWork" };
-};
+  decodeCanonicalConstructor(value, "Canonical.WaitForWork")
+  return { kind: "waitForWork" }
+}
 const decodeCancelWork = (value: unknown): CanonicalCommand => {
   return {
     kind: "cancelWork",
-    operation: nat(decodeCanonicalConstructor(value, "Canonical.CancelWork").operation, true),
-  };
-};
+    operation: nat(decodeCanonicalConstructor(value, "Canonical.CancelWork").operation, true)
+  }
+}
 const decodeFinishReady = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FinishReady");
-  return { kind: "finishReady" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FinishReady")
+  return { kind: "finishReady" }
+}
 const decodeFinishLimit = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.FinishLimit");
-  return { kind: "finishLimit" };
-};
+  decodeCanonicalConstructor(value, "Canonical.FinishLimit")
+  return { kind: "finishLimit" }
+}
 const decodeStopEnded = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.StopEnded");
-  return { kind: "stopEnded" };
-};
+  decodeCanonicalConstructor(value, "Canonical.StopEnded")
+  return { kind: "stopEnded" }
+}
 const decodeCollectionEligible = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<
       CanonicalCommand,
       { kind: `collection${string}` }
-    >["kind"],
-  };
-};
+    >["kind"]
+  }
+}
 const decodeFinishReserved = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "finishReserved"
@@ -1682,59 +1678,59 @@ const decodeFinishReserved = (value: unknown): CanonicalCommand => {
       | "finishAuthorized"
       | "finishEnded"
       | "continuationConsumed"
-      | "continuationRefused",
-  };
-};
+      | "continuationRefused"
+  }
+}
 const decodeFinishRecorded = (value: unknown): CanonicalCommand => {
   return {
     kind: "finishRecorded",
-    outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.FinishRecorded").outcome),
-  };
-};
+    outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.FinishRecorded").outcome)
+  }
+}
 const decodeSubmissionBegun = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<
       CanonicalCommand,
       { kind: `submission${string}` }
-    >["kind"],
-  };
-};
+    >["kind"]
+  }
+}
 const decodeRevisionReused = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
+  const name = tag(value)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "revisionReused"
       | "revisionReplaced"
       | "revisionGeneration",
-    generation: nat(decodeCanonicalConstructor(value, name).generation),
-  };
-};
+    generation: nat(decodeCanonicalConstructor(value, name).generation)
+  }
+}
 const decodeRevisionCount = (value: unknown): CanonicalCommand => {
-  return { kind: "revisionCount", count: nat(decodeCanonicalConstructor(value, "Canonical.RevisionCount").count) };
-};
+  return { kind: "revisionCount", count: nat(decodeCanonicalConstructor(value, "Canonical.RevisionCount").count) }
+}
 const decodeRevisionReleased = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "revisionReleased"
       | "revisionCurrent"
       | "revisionStale"
       | "revisionSuperseded"
-      | "revisionNotSuperseded",
-  };
-};
+      | "revisionNotSuperseded"
+  }
+}
 const decodeCollectorUnavailable = (value: unknown): CanonicalCommand => {
   return {
     kind: "collectorUnavailable",
-    reason: decodeCollectorReason(decodeCanonicalConstructor(value, "Canonical.CollectorUnavailable").reason),
-  };
-};
+    reason: decodeCollectorReason(decodeCanonicalConstructor(value, "Canonical.CollectorUnavailable").reason)
+  }
+}
 const decodeCleanupReady = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "cleanupReady"
@@ -1750,12 +1746,12 @@ const decodeCleanupReady = (value: unknown): CanonicalCommand => {
       | "deliveryFinalEmpty"
       | "deliveryRetireAdvice"
       | "deliveryKeepRemaining"
-      | "deliveryKeepForReoffer",
-  };
-};
+      | "deliveryKeepForReoffer"
+  }
+}
 const decodeDeliverySubmissionCandidate = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "deliverySubmissionCandidate"
@@ -1763,24 +1759,24 @@ const decodeDeliverySubmissionCandidate = (value: unknown): CanonicalCommand => 
       | "deliveryBatchProceed"
       | "deliveryBatchRelease"
       | "deliveryCredentialInvalid"
-      | "deliveryCredentialValid",
-  };
-};
+      | "deliveryCredentialValid"
+  }
+}
 const decodeIgnoreCandidate = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "ignoreCandidate"
       | "releaseCandidate"
       | "retireCandidate"
       | "continueCandidate"
-      | "retainCandidate",
-  };
-};
+      | "retainCandidate"
+  }
+}
 const decodeRoundStopBegun = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "roundStopBegun"
@@ -1800,55 +1796,55 @@ const decodeRoundStopBegun = (value: unknown): CanonicalCommand => {
       | "deliveryExistingTokenAllowed"
       | "deliveryExistingTokenDenied"
       | "deliveryUnreservedStopAllowed"
-      | "deliveryUnreservedStopDenied",
-  };
-};
+      | "deliveryUnreservedStopDenied"
+  }
+}
 const decodeRoundStopTerminal = (value: unknown): CanonicalCommand => {
-  const command = decodeCanonicalConstructor(value, "Canonical.RoundStopTerminal");
-  return { kind: "roundStopTerminal", revokeProvisional: bool(command.revoke_provisional), close: bool(command.close) };
-};
+  const command = decodeCanonicalConstructor(value, "Canonical.RoundStopTerminal")
+  return { kind: "roundStopTerminal", revokeProvisional: bool(command.revoke_provisional), close: bool(command.close) }
+}
 const decodeNoticeSuppressed = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
+  const name = tag(value)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "noticeSuppressed"
       | "noticeCreatePending"
       | "noticeMergePending",
-    count: nat(decodeCanonicalConstructor(value, name).count),
-  };
-};
+    count: nat(decodeCanonicalConstructor(value, name).count)
+  }
+}
 const decodeNoticePruned = (value: unknown): CanonicalCommand => {
-  const item = decodeCanonicalConstructor(value, "Canonical.NoticePruned");
+  const item = decodeCanonicalConstructor(value, "Canonical.NoticePruned")
   return {
     kind: "noticePruned",
     dropLease: bool(item.drop_lease),
     dropPending: bool(item.drop_pending),
-    dropKey: bool(item.drop_key),
-  };
-};
+    dropKey: bool(item.drop_key)
+  }
+}
 const decodeNoticeSelected = (value: unknown): CanonicalCommand => {
   return {
     kind: "noticeSelected",
-    ids: readList(decodeCanonicalConstructor(value, "Canonical.NoticeSelected").ids, (id) => nat(id, true)),
-  };
-};
+    ids: readList(decodeCanonicalConstructor(value, "Canonical.NoticeSelected").ids, (id) => nat(id, true))
+  }
+}
 const decodeIncludeChoice = (value: unknown): CanonicalCommand => {
-  const choice = decodeCanonicalConstructor(value, "Canonical.IncludeChoice").choice;
-  const name = tag(choice);
+  const choice = decodeCanonicalConstructor(value, "Canonical.IncludeChoice").choice
+  const name = tag(choice)
   if (name !== "Configuration.ReplaceIncludes" && name !== "Configuration.KeepIncludes")
-    throw new TypeError("invalid include choice");
-  decodeCanonicalConstructor(choice, name);
+    throw new TypeError("invalid include choice")
+  decodeCanonicalConstructor(choice, name)
   return {
     kind: "includeChoice",
-    choice: name === "Configuration.ReplaceIncludes" ? "replaceIncludes" : "keepIncludes",
-  };
-};
+    choice: name === "Configuration.ReplaceIncludes" ? "replaceIncludes" : "keepIncludes"
+  }
+}
 const decodeFileSelection = (value: unknown): CanonicalCommand => {
-  const selection = decodeCanonicalConstructor(value, "Canonical.FileSelection").selection;
-  const names = ["Protected", "Excluded", "EmptyIncludes", "NotIncluded", "Selected"];
-  const name = tag(selection);
-  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file selection");
-  decodeCanonicalConstructor(selection, name);
+  const selection = decodeCanonicalConstructor(value, "Canonical.FileSelection").selection
+  const names = ["Protected", "Excluded", "EmptyIncludes", "NotIncluded", "Selected"]
+  const name = tag(selection)
+  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file selection")
+  decodeCanonicalConstructor(selection, name)
   return {
     kind: "fileSelection",
     selection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as
@@ -1856,15 +1852,15 @@ const decodeFileSelection = (value: unknown): CanonicalCommand => {
       | "excluded"
       | "emptyIncludes"
       | "notIncluded"
-      | "selected",
-  };
-};
+      | "selected"
+  }
+}
 const decodeFileProtection = (value: unknown): CanonicalCommand => {
-  const protection = decodeCanonicalConstructor(value, "Canonical.FileProtection").protection;
-  const names = ["AllowedPath", "RepositoryBoundary", "SensitivePath", "GeneratedOrVendor", "FileExtension"];
-  const name = tag(protection);
-  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file protection");
-  decodeCanonicalConstructor(protection, name);
+  const protection = decodeCanonicalConstructor(value, "Canonical.FileProtection").protection
+  const names = ["AllowedPath", "RepositoryBoundary", "SensitivePath", "GeneratedOrVendor", "FileExtension"]
+  const name = tag(protection)
+  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file protection")
+  decodeCanonicalConstructor(protection, name)
   return {
     kind: "fileProtection",
     protection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as
@@ -1872,30 +1868,30 @@ const decodeFileProtection = (value: unknown): CanonicalCommand => {
       | "repositoryBoundary"
       | "sensitivePath"
       | "generatedOrVendor"
-      | "fileExtension",
-  };
-};
+      | "fileExtension"
+  }
+}
 const decodeCandidateFile = (value: unknown): CanonicalCommand => {
-  const candidate = decodeCanonicalConstructor(value, "Canonical.CandidateFile").candidate;
-  const names = ["CandidateAllowed", "RefuseGitAdmin", "RefuseFileKind", "RefuseGitIgnore"];
-  const name = tag(candidate);
-  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid candidate file");
-  decodeCanonicalConstructor(candidate, name);
+  const candidate = decodeCanonicalConstructor(value, "Canonical.CandidateFile").candidate
+  const names = ["CandidateAllowed", "RefuseGitAdmin", "RefuseFileKind", "RefuseGitIgnore"]
+  const name = tag(candidate)
+  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid candidate file")
+  decodeCanonicalConstructor(candidate, name)
   return {
     kind: "candidateFile",
     candidate: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "candidateAllowed"
       | "refuseGitAdmin"
       | "refuseFileKind"
-      | "refuseGitIgnore",
-  };
-};
+      | "refuseGitIgnore"
+  }
+}
 const decodeReviewAdmission = (value: unknown): CanonicalCommand => {
-  const admission = decodeCanonicalConstructor(value, "Canonical.ReviewAdmission").admission;
-  const names = ["AdmitReview", "RefuseRoot", "RefuseConfiguration", "RefuseCredential", "RefuseSelection"];
-  const name = tag(admission);
-  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid review admission");
-  decodeCanonicalConstructor(admission, name);
+  const admission = decodeCanonicalConstructor(value, "Canonical.ReviewAdmission").admission
+  const names = ["AdmitReview", "RefuseRoot", "RefuseConfiguration", "RefuseCredential", "RefuseSelection"]
+  const name = tag(admission)
+  if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid review admission")
+  decodeCanonicalConstructor(admission, name)
   return {
     kind: "reviewAdmission",
     admission: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as
@@ -1903,30 +1899,30 @@ const decodeReviewAdmission = (value: unknown): CanonicalCommand => {
       | "refuseRoot"
       | "refuseConfiguration"
       | "refuseCredential"
-      | "refuseSelection",
-  };
-};
+      | "refuseSelection"
+  }
+}
 const decodeRuleGate = (value: unknown): CanonicalCommand => {
-  const gate = decodeCanonicalConstructor(value, "Canonical.RuleGate").gate;
-  const name = tag(gate);
-  if (name !== "RulePolicy.Admit" && name !== "RulePolicy.Omit") throw new TypeError("invalid rule gate");
-  decodeCanonicalConstructor(gate, name);
-  return { kind: "ruleGate", gate: name === "RulePolicy.Admit" ? "admit" : "omit" };
-};
+  const gate = decodeCanonicalConstructor(value, "Canonical.RuleGate").gate
+  const name = tag(gate)
+  if (name !== "RulePolicy.Admit" && name !== "RulePolicy.Omit") throw new TypeError("invalid rule gate")
+  decodeCanonicalConstructor(gate, name)
+  return { kind: "ruleGate", gate: name === "RulePolicy.Admit" ? "admit" : "omit" }
+}
 const decodeRuleOrder = (value: unknown): CanonicalCommand => {
-  const order = decodeCanonicalConstructor(value, "Canonical.RuleOrder").order;
-  const name = tag(order);
+  const order = decodeCanonicalConstructor(value, "Canonical.RuleOrder").order
+  const name = tag(order)
   if (name !== "RulePolicy.Before" && name !== "RulePolicy.Equal" && name !== "RulePolicy.After")
-    throw new TypeError("invalid rule order");
-  decodeCanonicalConstructor(order, name);
+    throw new TypeError("invalid rule order")
+  decodeCanonicalConstructor(order, name)
   return {
     kind: "ruleOrder",
-    order: name === "RulePolicy.Before" ? "before" : name === "RulePolicy.After" ? "after" : "equal",
-  };
-};
+    order: name === "RulePolicy.Before" ? "before" : name === "RulePolicy.After" ? "after" : "equal"
+  }
+}
 const decodeNoticeRejectedFull = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
       | "noticeRejectedFull"
@@ -1936,71 +1932,71 @@ const decodeNoticeRejectedFull = (value: unknown): CanonicalCommand => {
       | "noticeCommitted"
       | "noticeDropped"
       | "noticeLeased"
-      | "noticePendingCleared",
-  };
-};
+      | "noticePendingCleared"
+  }
+}
 const decodeCachePrepared = (value: unknown): CanonicalCommand => {
   return {
     kind: "cachePrepared",
-    evicted: readList(decodeCanonicalConstructor(value, "Canonical.CachePrepared").evicted, (id) => nat(id, true)),
-  };
-};
+    evicted: readList(decodeCanonicalConstructor(value, "Canonical.CachePrepared").evicted, (id) => nat(id, true))
+  }
+}
 const decodeCacheDiscarded = (value: unknown): CanonicalCommand => {
   return {
     kind: "cacheDiscarded",
-    ids: readList(decodeCanonicalConstructor(value, "Canonical.CacheDiscarded").ids, (id) => nat(id, true)),
-  };
-};
+    ids: readList(decodeCanonicalConstructor(value, "Canonical.CacheDiscarded").ids, (id) => nat(id, true))
+  }
+}
 const decodeReuseJoinAdvice = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<
       Extract<CanonicalCommand, { kind: `reuse${string}` | `cache${string}` }>["kind"],
       "cachePrepared" | "cacheDiscarded"
-    >,
-  };
-};
+    >
+  }
+}
 const decodeCollectorProceed = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  decodeCanonicalConstructor(value, name);
+  const name = tag(value)
+  decodeCanonicalConstructor(value, name)
   return {
     kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<
       Extract<CanonicalCommand, { kind: `collector${string}` | `reuse${string}` }>["kind"],
       "collectorUnavailable"
-    >,
-  };
-};
+    >
+  }
+}
 const decodeWriteAuthorized = (value: unknown): CanonicalCommand => {
   return {
     kind: "writeAuthorized",
-    operation: nat(decodeCanonicalConstructor(value, "Canonical.WriteAuthorized").operation, true),
-  };
-};
+    operation: nat(decodeCanonicalConstructor(value, "Canonical.WriteAuthorized").operation, true)
+  }
+}
 const decodeWriteRecorded = (value: unknown): CanonicalCommand => {
   return {
     kind: "writeRecorded",
-    outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.WriteRecorded").outcome),
-  };
-};
+    outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.WriteRecorded").outcome)
+  }
+}
 const decodeWaitForOutput = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.WaitForOutput");
-  return { kind: "waitForOutput" };
-};
+  decodeCanonicalConstructor(value, "Canonical.WaitForOutput")
+  return { kind: "waitForOutput" }
+}
 const decodeReofferAtStop = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.ReofferAtStop");
-  return { kind: "reofferAtStop" };
-};
+  decodeCanonicalConstructor(value, "Canonical.ReofferAtStop")
+  return { kind: "reofferAtStop" }
+}
 const decodePartitionRetired = (value: unknown): CanonicalCommand => {
   return {
     kind: "partitionRetired",
-    round: nat(decodeCanonicalConstructor(value, "Canonical.PartitionRetired").round, true),
-  };
-};
+    round: nat(decodeCanonicalConstructor(value, "Canonical.PartitionRetired").round, true)
+  }
+}
 const decodeAdmissionForgotten = (value: unknown): CanonicalCommand => {
-  decodeCanonicalConstructor(value, "Canonical.AdmissionForgotten");
-  return { kind: "admissionForgotten" };
-};
+  decodeCanonicalConstructor(value, "Canonical.AdmissionForgotten")
+  return { kind: "admissionForgotten" }
+}
 const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalCommand>> = {
   "Canonical.CapacityGranted": decodeCapacityGranted,
   "Canonical.CapacityRefused": decodeCapacityRefused,
@@ -2216,57 +2212,57 @@ const commandDecoders: Readonly<Record<string, (value: unknown) => CanonicalComm
   "Canonical.WaitForOutput": decodeWaitForOutput,
   "Canonical.ReofferAtStop": decodeReofferAtStop,
   "Canonical.PartitionRetired": decodePartitionRetired,
-  "Canonical.AdmissionForgotten": decodeAdmissionForgotten,
-};
+  "Canonical.AdmissionForgotten": decodeAdmissionForgotten
+}
 
 const decodeCommand = (value: unknown): CanonicalCommand => {
-  const name = tag(value);
-  const decode = Object.hasOwn(commandDecoders, name) ? commandDecoders[name] : undefined;
-  if (decode === undefined) throw new TypeError("unknown canonical command");
-  return decode(value);
-};
-const known = new WeakSet<object>();
+  const name = tag(value)
+  const decode = Object.hasOwn(commandDecoders, name) ? commandDecoders[name] : undefined
+  if (decode === undefined) throw new TypeError("unknown canonical command")
+  return decode(value)
+}
+const known = new WeakSet<object>()
 // Projections contain validated numeric facts, not native handles or payloads.
 // Weak keys do not extend canonical-state lifetime beyond its actual owner.
-const projections = new WeakMap<object, CanonicalProjection>();
+const projections = new WeakMap<object, CanonicalProjection>()
 const registerCanonical = (state: unknown): void => {
-  const identity = freezeCanonicalData(object(state));
-  known.add(identity);
+  const identity = freezeCanonicalData(object(state))
+  known.add(identity)
   try {
-    projectCanonical(identity);
+    projectCanonical(identity)
   } catch (cause) {
-    known.delete(identity);
-    projections.delete(identity);
-    throw cause;
+    known.delete(identity)
+    projections.delete(identity)
+    throw cause
   }
-};
-const decodeState = (value: unknown) => decodeCanonicalConstructor(value, "Canonical.State");
-const decodeLedger = (value: unknown) => decodeCanonicalConstructor(value, "Ledger.Ledger");
-const decodeLedgerLimits = (value: unknown) => decodeCanonicalConstructor(value, "Ledger.Limits");
+}
+const decodeState = (value: unknown) => decodeCanonicalConstructor(value, "Canonical.State")
+const decodeLedger = (value: unknown) => decodeCanonicalConstructor(value, "Ledger.Ledger")
+const decodeLedgerLimits = (value: unknown) => decodeCanonicalConstructor(value, "Ledger.Limits")
 
 const projectCompletedEdits = (value: unknown) => {
-  const history = decodeCanonicalConstructor(value, "EditHistory.State");
+  const history = decodeCanonicalConstructor(value, "EditHistory.State")
   const completedEdits = readList(
     history.entries,
     (value) => {
-      const entry = decodeCanonicalConstructor(value, "EditHistory.Completed");
+      const entry = decodeCanonicalConstructor(value, "EditHistory.Completed")
       return {
         tool: nat(entry.tool, true),
         reason: decodeCompletedEditReason(entry.reason),
-        reported: bool(entry.reported),
-      };
+        reported: bool(entry.reported)
+      }
     },
-    1000,
-  );
+    1000
+  )
   if (new Set(completedEdits.map((entry) => entry.tool)).size !== completedEdits.length)
-    throw new TypeError("duplicate completed edit identity");
-  return completedEdits;
-};
+    throw new TypeError("duplicate completed edit identity")
+  return completedEdits
+}
 
 const projectDispatch = (value: unknown) => {
-  const rawDispatch = decodeCanonicalConstructor(value, "Dispatch.State");
+  const rawDispatch = decodeCanonicalConstructor(value, "Dispatch.State")
   const dispatchEntry = (value: unknown): DispatchEntry => {
-    const x = decodeCanonicalConstructor(value, "Dispatch.Entry");
+    const x = decodeCanonicalConstructor(value, "Dispatch.Entry")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2274,11 +2270,11 @@ const projectDispatch = (value: unknown) => {
       operation: nat(x.operation, true),
       sequence: nat(x.sequence),
       cancelled: bool(x.cancelled),
-      preparation: bool(x.preparation),
-    };
-  };
+      preparation: bool(x.preparation)
+    }
+  }
   const requests = readList(rawDispatch.requests, (value) => {
-    const x = decodeCanonicalConstructor(value, "Dispatch.Request");
+    const x = decodeCanonicalConstructor(value, "Dispatch.Request")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2286,47 +2282,42 @@ const projectDispatch = (value: unknown) => {
       operation: nat(x.operation, true),
       request: nat(x.request, true),
       started: bool(x.started),
-      interrupted: bool(x.interrupted),
-    };
-  });
+      interrupted: bool(x.interrupted)
+    }
+  })
   const dispatch = {
     queued: readList(rawDispatch.queued, dispatchEntry),
     running: readList(rawDispatch.running, dispatchEntry),
     nextSequence: nat(rawDispatch.next_sequence),
     closed: bool(rawDispatch.closed),
-    requests,
-  };
-  return dispatch;
-};
+    requests
+  }
+  return dispatch
+}
 
 const projectNotices = (value: unknown) => {
-  const noticeState = decodeCanonicalConstructor(value, "NoticeState.State");
+  const noticeState = decodeCanonicalConstructor(value, "NoticeState.State")
   const notices: CanonicalProjection["notices"] = readList(noticeState.records, (value) => {
-    const item = decodeCanonicalConstructor(value, "NoticeState.Record");
+    const item = decodeCanonicalConstructor(value, "NoticeState.Record")
     const pending =
       tag(item.pending) === "Some"
         ? (() => {
             const p = decodeCanonicalConstructor(
               decodeCanonicalConstructor(item.pending, "Some").value,
-              "NoticeState.Pending",
-            );
-            return {
-              id: nat(p.id, true),
-              count: nat(p.count),
-              sequence: nat(p.sequence, true),
-              leased: bool(p.leased),
-            };
+              "NoticeState.Pending"
+            )
+            return { id: nat(p.id, true), count: nat(p.count), sequence: nat(p.sequence, true), leased: bool(p.leased) }
           })()
-        : (decodeCanonicalConstructor(item.pending, "None"), undefined);
+        : (decodeCanonicalConstructor(item.pending, "None"), undefined)
     return {
       id: nat(item.id, true),
       partition: nat(item.partition, true),
       group: nat(item.group, true),
       reservation: nat(item.reservation, true),
       suppressed: nat(item.suppressed),
-      ...(pending === undefined ? {} : { pending }),
-    };
-  });
+      ...(pending === undefined ? {} : { pending })
+    }
+  })
   if (
     new Set(notices.map((item) => item.id)).size !== notices.length ||
     new Set(notices.map((item) => item.reservation)).size !== notices.length ||
@@ -2335,133 +2326,133 @@ const projectNotices = (value: unknown) => {
     new Set(notices.flatMap((item) => (item.pending === undefined ? [] : [item.pending.sequence]))).size !==
       notices.filter((item) => item.pending !== undefined).length
   )
-    throw new TypeError("duplicate canonical notice identity");
-  return notices;
-};
+    throw new TypeError("duplicate canonical notice identity")
+  return notices
+}
 
 const projectReuse = (value: unknown) => {
-  const reuseState = decodeCanonicalConstructor(value, "ReuseState.State");
+  const reuseState = decodeCanonicalConstructor(value, "ReuseState.State")
   const reuse: CanonicalProjection["reuse"] = {
     claims: readList(reuseState.claims, (value) => {
-      const item = decodeCanonicalConstructor(value, "ReuseState.Claim");
-      return { id: nat(item.id, true), attached: bool(item.attached) };
+      const item = decodeCanonicalConstructor(value, "ReuseState.Claim")
+      return { id: nat(item.id, true), attached: bool(item.attached) }
     }),
     cache: readList(reuseState.cache, (value) => {
-      const item = decodeCanonicalConstructor(value, "ReuseState.Entry");
+      const item = decodeCanonicalConstructor(value, "ReuseState.Entry")
       return {
         id: nat(item.id, true),
         partition: nat(item.partition, true),
         bytes: nat(item.bytes),
-        reservation: nat(item.reservation, true),
-      };
-    }),
-  };
+        reservation: nat(item.reservation, true)
+      }
+    })
+  }
   if (
     new Set(reuse.claims.map((item) => item.id)).size !== reuse.claims.length ||
     new Set(reuse.cache.map((item) => item.id)).size !== reuse.cache.length
   ) {
-    throw new TypeError("duplicate canonical evaluation identity");
+    throw new TypeError("duplicate canonical evaluation identity")
   }
-  return reuse;
-};
+  return reuse
+}
 
 const projectRevision = (value: unknown) => {
-  const rawRevision = decodeCanonicalConstructor(value, "RevisionState.State");
+  const rawRevision = decodeCanonicalConstructor(value, "RevisionState.State")
   const revision = {
     entries: readList(rawRevision.entries, (value) => {
-      const entry = decodeCanonicalConstructor(value, "RevisionState.Entry");
+      const entry = decodeCanonicalConstructor(value, "RevisionState.Entry")
       return {
         subject: nat(entry.subject, true),
         input: nat(entry.input, true),
         generation: nat(entry.generation, true),
-        members: nat(entry.members, true),
-      };
+        members: nat(entry.members, true)
+      }
     }),
-    nextGeneration: nat(rawRevision.next_generation, true),
-  };
+    nextGeneration: nat(rawRevision.next_generation, true)
+  }
   if (new Set(revision.entries.map((entry) => entry.subject)).size !== revision.entries.length)
-    throw new TypeError("duplicate canonical revision subject");
-  return revision;
-};
+    throw new TypeError("duplicate canonical revision subject")
+  return revision
+}
 
 const projectCollection = (value: unknown) => {
-  const collectionState = decodeCanonicalConstructor(value, "CollectionState.State");
+  const collectionState = decodeCanonicalConstructor(value, "CollectionState.State")
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {
-      const item = decodeCanonicalConstructor(value, "CollectionState.Lease");
-      return { advice: nat(item.advice, true), owner: nat(item.owner, true) };
+      const item = decodeCanonicalConstructor(value, "CollectionState.Lease")
+      return { advice: nat(item.advice, true), owner: nat(item.owner, true) }
     }),
     claims: readList(collectionState.claims, (value) => {
-      const item = decodeCanonicalConstructor(value, "CollectionState.Claim");
-      return { group: nat(item.group, true), owner: nat(item.owner, true) };
-    }),
-  };
+      const item = decodeCanonicalConstructor(value, "CollectionState.Claim")
+      return { group: nat(item.group, true), owner: nat(item.owner, true) }
+    })
+  }
   if (
     new Set(collection.ready).size !== collection.ready.length ||
     new Set(collection.leases.map((item) => item.advice)).size !== collection.leases.length ||
     collection.leases.some((item) => !collection.ready.includes(item.advice)) ||
     new Set(collection.claims.map((item) => item.group)).size !== collection.claims.length
   ) {
-    throw new TypeError("inconsistent canonical collection state");
+    throw new TypeError("inconsistent canonical collection state")
   }
-  return collection;
-};
+  return collection
+}
 
 const projectDelivery = (value: unknown) => {
-  const deliveryState = decodeCanonicalConstructor(value, "DeliveryState.State");
-  const rawSubmissions = decodeCanonicalConstructor(deliveryState.submissions, "SubmissionState.State");
+  const deliveryState = decodeCanonicalConstructor(value, "DeliveryState.State")
+  const rawSubmissions = decodeCanonicalConstructor(deliveryState.submissions, "SubmissionState.State")
   const surface = (value: unknown): "edit" | "background" | "stop" => {
-    const name = tag(value);
-    decodeCanonicalConstructor(value, name);
-    if (name === "Handoff.Edit") return "edit";
-    if (name === "Handoff.Background") return "background";
-    if (name === "Handoff.Stop") return "stop";
-    throw new TypeError("invalid submission surface");
-  };
+    const name = tag(value)
+    decodeCanonicalConstructor(value, name)
+    if (name === "Handoff.Edit") return "edit"
+    if (name === "Handoff.Background") return "background"
+    if (name === "Handoff.Stop") return "stop"
+    throw new TypeError("invalid submission surface")
+  }
   const decodeLease = (value: unknown) => {
-    const lease = decodeCanonicalConstructor(value, "Handoff.Lease");
-    const phaseName = tag(lease.phase);
-    const leasePhase = decodeCanonicalConstructor(lease.phase, phaseName);
-    if ("surface" in leasePhase) surface(leasePhase.surface);
-    const phase = phaseName.slice("Handoff.".length).toLowerCase();
+    const lease = decodeCanonicalConstructor(value, "Handoff.Lease")
+    const phaseName = tag(lease.phase)
+    const leasePhase = decodeCanonicalConstructor(lease.phase, phaseName)
+    if ("surface" in leasePhase) surface(leasePhase.surface)
+    const phase = phaseName.slice("Handoff.".length).toLowerCase()
     if (!["available", "reserved", "authorized", "submitted", "uncertain"].includes(phase))
-      throw new TypeError("invalid submission lease phase");
-    nat(lease.item, true);
-    bool(lease.closed);
+      throw new TypeError("invalid submission lease phase")
+    nat(lease.item, true)
+    bool(lease.closed)
     return {
       round: nat(lease.round, true),
       phase: phase as "available" | "reserved" | "authorized" | "submitted" | "uncertain",
-      reoffered: bool(lease.reoffered),
-    };
-  };
+      reoffered: bool(lease.reoffered)
+    }
+  }
   const delivery = {
     slots: readList(deliveryState.slots, (value) => {
-      const item = decodeCanonicalConstructor(value, "DeliveryState.Slot");
-      decodeCanonicalConstructor(item.phase, tag(item.phase));
-      const phase = tag(item.phase).slice("DeliveryState.".length).toLowerCase();
+      const item = decodeCanonicalConstructor(value, "DeliveryState.Slot")
+      decodeCanonicalConstructor(item.phase, tag(item.phase))
+      const phase = tag(item.phase).slice("DeliveryState.".length).toLowerCase()
       if (!["reserved", "authorized", "submitted", "failed", "uncertain"].includes(phase))
-        throw new TypeError("invalid canonical delivery phase");
+        throw new TypeError("invalid canonical delivery phase")
       return {
         group: nat(item.group, true),
         round: nat(item.round, true),
         attempt: nat(item.attempt, true),
         token: nat(item.token, true),
         selected: readList(item.selected, (id) => nat(id, true)),
-        phase: phase as "reserved" | "authorized" | "submitted" | "failed" | "uncertain",
-      };
+        phase: phase as "reserved" | "authorized" | "submitted" | "failed" | "uncertain"
+      }
     }),
     counters: readList(deliveryState.counters, (value) => {
-      const item = decodeCanonicalConstructor(value, "DeliveryState.Counter");
-      return { group: nat(item.group, true), round: nat(item.round, true), used: nat(item.used) };
+      const item = decodeCanonicalConstructor(value, "DeliveryState.Counter")
+      return { group: nat(item.group, true), round: nat(item.round, true), used: nat(item.used) }
     }),
     submissions: {
       batches: readList(rawSubmissions.batches, (value) => {
-        const item = decodeCanonicalConstructor(value, "SubmissionState.Batch");
-        decodeCanonicalConstructor(item.phase, tag(item.phase));
-        const phase = tag(item.phase).slice("Delivery.".length).toLowerCase();
+        const item = decodeCanonicalConstructor(value, "SubmissionState.Batch")
+        decodeCanonicalConstructor(item.phase, tag(item.phase))
+        const phase = tag(item.phase).slice("Delivery.".length).toLowerCase()
         if (!["reserved", "authorized", "submitted", "uncertain"].includes(phase))
-          throw new TypeError("invalid submission phase");
+          throw new TypeError("invalid submission phase")
         return {
           advice: nat(item.advice, true),
           group: nat(item.group, true),
@@ -2470,63 +2461,63 @@ const projectDelivery = (value: unknown) => {
           surface: surface(item.surface),
           phase: phase as "reserved" | "authorized" | "submitted" | "uncertain",
           fingerprints: readList(item.fingerprints, (id) => nat(id, true)),
-          units: readList(item.units, (id) => nat(id, true)),
-        };
+          units: readList(item.units, (id) => nat(id, true))
+        }
       }),
       leases: readList(rawSubmissions.leases, (value) => {
-        const item = decodeCanonicalConstructor(value, "SubmissionState.LeaseRecord");
-        const lease = decodeLease(item.current);
-        if (tag(item.previous) === "Some") decodeLease(decodeCanonicalConstructor(item.previous, "Some").value);
-        else decodeCanonicalConstructor(item.previous, "None");
-        return { advice: nat(item.advice, true), fingerprint: nat(item.fingerprint, true), ...lease };
-      }),
-    },
-  };
+        const item = decodeCanonicalConstructor(value, "SubmissionState.LeaseRecord")
+        const lease = decodeLease(item.current)
+        if (tag(item.previous) === "Some") decodeLease(decodeCanonicalConstructor(item.previous, "Some").value)
+        else decodeCanonicalConstructor(item.previous, "None")
+        return { advice: nat(item.advice, true), fingerprint: nat(item.fingerprint, true), ...lease }
+      })
+    }
+  }
   if (
     new Set(delivery.slots.map((item) => item.group)).size !== delivery.slots.length ||
     new Set(delivery.counters.map((item) => `${item.group}:${item.round}`)).size !== delivery.counters.length ||
     delivery.counters.some((item) => item.used > 4)
   )
-    throw new TypeError("inconsistent canonical delivery state");
+    throw new TypeError("inconsistent canonical delivery state")
   if (
     new Set(delivery.submissions.batches.map((item) => `${item.advice}:${item.token}`)).size !==
       delivery.submissions.batches.length ||
     new Set(delivery.submissions.leases.map((item) => `${item.advice}:${item.fingerprint}`)).size !==
       delivery.submissions.leases.length
   ) {
-    throw new TypeError("inconsistent canonical submission state");
+    throw new TypeError("inconsistent canonical submission state")
   }
-  return delivery;
-};
+  return delivery
+}
 
 const validateDispatch = (
   dispatch: CanonicalProjection["dispatch"],
-  executionLimits: CanonicalProjection["executionLimits"],
+  executionLimits: CanonicalProjection["executionLimits"]
 ) => {
-  const dispatchEntries = [...dispatch.queued, ...dispatch.running];
-  validateDispatchRequests(dispatch, executionLimits);
+  const dispatchEntries = [...dispatch.queued, ...dispatch.running]
+  validateDispatchRequests(dispatch, executionLimits)
   if (
     new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
     new Set(dispatchEntries.map((x) => x.sequence)).size !== dispatchEntries.length ||
     dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence)
   )
-    throw new TypeError("inconsistent canonical dispatch state");
-};
+    throw new TypeError("inconsistent canonical dispatch state")
+}
 
 const workReservationMismatch = (work: CanonicalProjection["work"][number], charge: CapacityCharge | undefined) => {
-  if (work.reservation === 0) return !["awaitingSourceRead", "sourceReading"].includes(work.kind);
-  if (charge?.partition !== work.partition) return true;
-  if (work.kind === "pendingFinding") return !["storedResult", "adviceRecheck"].includes(charge.purpose);
-  return charge.purpose !== (work.kind === "preparing" ? "preparation" : "reviewUnit");
-};
+  if (work.reservation === 0) return !["awaitingSourceRead", "sourceReading"].includes(work.kind)
+  if (charge?.partition !== work.partition) return true
+  if (work.kind === "pendingFinding") return !["storedResult", "adviceRecheck"].includes(charge.purpose)
+  return charge.purpose !== (work.kind === "preparing" ? "preparation" : "reviewUnit")
+}
 
 const validateStateIdentities = (
   data: Pick<CanonicalProjection, "charges" | "work" | "rounds" | "admissions"> & {
-    readonly chargeIds: ReadonlySet<number>;
+    readonly chargeIds: ReadonlySet<number>
   },
-  s: ReturnType<typeof decodeState>,
+  s: ReturnType<typeof decodeState>
 ) => {
-  const { charges, chargeIds, work, rounds, admissions } = data;
+  const { charges, chargeIds, work, rounds, admissions } = data
   if (
     chargeIds.size !== charges.length ||
     work.filter((x) => x.reservation !== 0).length > charges.length ||
@@ -2534,15 +2525,15 @@ const validateStateIdentities = (
     new Set(work.filter((x) => x.reservation !== 0).map((x) => x.reservation)).size !==
       work.filter((x) => x.reservation !== 0).length
   )
-    throw new TypeError("inconsistent canonical state");
-  validateRoundIdentities(rounds, admissions, s);
-};
+    throw new TypeError("inconsistent canonical state")
+  validateRoundIdentities(rounds, admissions, s)
+}
 
 const validateWorkReservations = (
   work: CanonicalProjection["work"],
   chargesById: ReadonlyMap<number, CapacityCharge>,
   rounds: CanonicalProjection["rounds"],
-  s: ReturnType<typeof decodeState>,
+  s: ReturnType<typeof decodeState>
 ) => {
   if (
     work.some(
@@ -2550,51 +2541,51 @@ const validateWorkReservations = (
         workReservationMismatch(x, chargesById.get(x.reservation)) ||
         x.operation >= (s.next_operation as number) ||
         !rounds.some(
-          (round) => round.partition === x.partition && round.lifetime === x.lifetime && round.id === x.round,
-        ),
+          (round) => round.partition === x.partition && round.lifetime === x.lifetime && round.id === x.round
+        )
     )
   )
-    throw new TypeError("inconsistent canonical state");
-};
+    throw new TypeError("inconsistent canonical state")
+}
 
 const validateCachedReservations = (
   cache: CanonicalProjection["reuse"]["cache"],
-  chargesById: ReadonlyMap<number, CapacityCharge>,
+  chargesById: ReadonlyMap<number, CapacityCharge>
 ) => {
   if (
     cache.some((entry) => {
-      const charge = chargesById.get(entry.reservation);
-      return charge?.purpose !== "storedResult" || charge.partition !== entry.partition || charge.bytes !== entry.bytes;
+      const charge = chargesById.get(entry.reservation)
+      return charge?.purpose !== "storedResult" || charge.partition !== entry.partition || charge.bytes !== entry.bytes
     })
   )
-    throw new TypeError("inconsistent canonical state");
-};
+    throw new TypeError("inconsistent canonical state")
+}
 
 const validateCapacityLimits = (
   charges: CanonicalProjection["charges"],
   rounds: CanonicalProjection["rounds"],
   usedBytes: number,
   ledger: ReturnType<typeof decodeLedger>,
-  limits: ReturnType<typeof decodeLedgerLimits>,
+  limits: ReturnType<typeof decodeLedgerLimits>
 ) => {
   if (
     charges.some((x) => x.id >= (ledger.next_id as number)) ||
     rounds.some((round) => {
-      const local = charges.filter((charge) => charge.partition === round.partition);
+      const local = charges.filter((charge) => charge.partition === round.partition)
       return (
         local.length > (limits.partition_items as number) ||
         local.reduce((sum, charge) => sum + charge.bytes, 0) > (limits.partition_bytes as number)
-      );
+      )
     }) ||
     charges.length > (limits.global_items as number) ||
     usedBytes > (limits.global_bytes as number)
   )
-    throw new TypeError("inconsistent canonical state");
-};
+    throw new TypeError("inconsistent canonical state")
+}
 
 const validateDispatchRequests = (
   dispatch: CanonicalProjection["dispatch"],
-  executionLimits: CanonicalProjection["executionLimits"],
+  executionLimits: CanonicalProjection["executionLimits"]
 ) => {
   if (
     dispatch.running.filter((entry) => entry.preparation).length > executionLimits.preparation ||
@@ -2603,45 +2594,45 @@ const validateDispatchRequests = (
     new Set(dispatch.requests.map((entry) => entry.operation)).size !== dispatch.requests.length ||
     dispatch.requests.some((entry) => entry.interrupted && !entry.started)
   )
-    throw new TypeError("inconsistent canonical dispatch state");
-};
+    throw new TypeError("inconsistent canonical dispatch state")
+}
 
 const validateRoundIdentities = (
   rounds: CanonicalProjection["rounds"],
   admissions: CanonicalProjection["admissions"],
-  s: ReturnType<typeof decodeState>,
+  s: ReturnType<typeof decodeState>
 ) => {
   if (
     new Set(rounds.map((x) => x.partition)).size !== rounds.length ||
     new Set(admissions.map((x) => x.partition)).size !== admissions.length ||
     rounds.some(
-      (x) => x.id >= (s.next_round as number) || (x.write !== undefined && x.write >= (s.next_operation as number)),
+      (x) => x.id >= (s.next_round as number) || (x.write !== undefined && x.write >= (s.next_operation as number))
     )
   )
-    throw new TypeError("inconsistent canonical state");
-};
+    throw new TypeError("inconsistent canonical state")
+}
 
 const projectGlobal = (state: unknown, charges: CanonicalProjection["charges"], usedBytes: number) => {
-  const total = decodeCanonicalConstructor(bendCanonicalTotal(state), "Ledger.Usage");
-  const global = { items: nat(total.items), bytes: nat(total.bytes) };
-  if (global.items !== charges.length || global.bytes !== usedBytes) throw new TypeError("Bend ledger total mismatch");
-  return global;
-};
+  const total = decodeCanonicalConstructor(bendCanonicalTotal(state), "Ledger.Usage")
+  const global = { items: nat(total.items), bytes: nat(total.bytes) }
+  if (global.items !== charges.length || global.bytes !== usedBytes) throw new TypeError("Bend ledger total mismatch")
+  return global
+}
 
 const projectInventory = (state: unknown, limits: ReturnType<typeof decodeLedgerLimits>) => {
   const inventory = readList(bendCanonicalInventory(state), (entry) => {
-    const x = decodeCanonicalConstructor(entry, "Ledger.InventoryEntry");
-    const entryLimits = decodeCanonicalConstructor(x.limits, "Ledger.Limits");
+    const x = decodeCanonicalConstructor(entry, "Ledger.InventoryEntry")
+    const entryLimits = decodeCanonicalConstructor(x.limits, "Ledger.Limits")
     return {
       purpose: purpose(x.purpose),
       limits: {
         globalItems: nat(entryLimits.global_items, true),
         globalBytes: nat(entryLimits.global_bytes, true),
         partitionItems: nat(entryLimits.partition_items, true),
-        partitionBytes: nat(entryLimits.partition_bytes, true),
-      },
-    };
-  });
+        partitionBytes: nat(entryLimits.partition_bytes, true)
+      }
+    }
+  })
   if (
     inventory.length !== 6 ||
     new Set(inventory.map((entry) => entry.purpose)).size !== 6 ||
@@ -2650,50 +2641,50 @@ const projectInventory = (state: unknown, limits: ReturnType<typeof decodeLedger
         entry.limits.globalItems !== limits.global_items ||
         entry.limits.globalBytes !== limits.global_bytes ||
         entry.limits.partitionItems !== limits.partition_items ||
-        entry.limits.partitionBytes !== limits.partition_bytes,
+        entry.limits.partitionBytes !== limits.partition_bytes
     )
   )
-    throw new TypeError("inconsistent capacity inventory");
-  return inventory;
-};
+    throw new TypeError("inconsistent capacity inventory")
+  return inventory
+}
 
 export const projectCanonical = (state: unknown): CanonicalProjection => {
   // Only registered, fully frozen Bend states enter this weak-key cache.
   if (typeof state === "object" && state !== null) {
-    const cached = projections.get(state);
-    if (cached !== undefined) return cached;
+    const cached = projections.get(state)
+    if (cached !== undefined) return cached
   }
-  const identity = object(state);
-  if (!known.has(identity)) throw new TypeError("foreign canonical state");
-  const s = decodeState(state);
-  nat(s.next_round, true);
-  nat(s.next_operation, true);
-  const completedEdits = projectCompletedEdits(s.history);
-  const dispatch = projectDispatch(s.dispatch);
-  const collectionState = decodeCanonicalConstructor(s.collection, "CollectionState.State");
-  const notices = projectNotices(collectionState.notices);
-  const reuse = projectReuse(collectionState.reuse);
-  const revision = projectRevision(collectionState.revision);
+  const identity = object(state)
+  if (!known.has(identity)) throw new TypeError("foreign canonical state")
+  const s = decodeState(state)
+  nat(s.next_round, true)
+  nat(s.next_operation, true)
+  const completedEdits = projectCompletedEdits(s.history)
+  const dispatch = projectDispatch(s.dispatch)
+  const collectionState = decodeCanonicalConstructor(s.collection, "CollectionState.State")
+  const notices = projectNotices(collectionState.notices)
+  const reuse = projectReuse(collectionState.reuse)
+  const revision = projectRevision(collectionState.revision)
 
-  const collection = projectCollection(s.collection);
-  const delivery = projectDelivery(collectionState.delivery);
+  const collection = projectCollection(s.collection)
+  const delivery = projectDelivery(collectionState.delivery)
   const executionLimits = {
     preparation: nat(bendPreparationLimit(), true),
-    jevRequests: nat(bendJevRequestLimit(), true),
-  };
-  validateDispatch(dispatch, executionLimits);
-  const ledger = decodeLedger(s.ledger);
-  nat(ledger.next_id, true);
-  const limits = decodeLedgerLimits(ledger.limits);
-  for (const value of Object.values(limits).slice(1)) nat(value, true);
-  const charges = readList(ledger.charges, charge);
+    jevRequests: nat(bendJevRequestLimit(), true)
+  }
+  validateDispatch(dispatch, executionLimits)
+  const ledger = decodeLedger(s.ledger)
+  nat(ledger.next_id, true)
+  const limits = decodeLedgerLimits(ledger.limits)
+  for (const value of Object.values(limits).slice(1)) nat(value, true)
+  const charges = readList(ledger.charges, charge)
   const rounds = readList(s.rounds, (value) => {
-    const x = decodeCanonicalConstructor(value, "Canonical.Round");
-    const write = tag(x.write) === "Some" ? nat(decodeCanonicalConstructor(x.write, "Some").value, true) : undefined;
-    if (write === undefined) decodeCanonicalConstructor(x.write, "None");
+    const x = decodeCanonicalConstructor(value, "Canonical.Round")
+    const write = tag(x.write) === "Some" ? nat(decodeCanonicalConstructor(x.write, "Some").value, true) : undefined
+    if (write === undefined) decodeCanonicalConstructor(x.write, "None")
     const quietSince =
-      tag(x.quiet_since) === "Some" ? nat(decodeCanonicalConstructor(x.quiet_since, "Some").value) : undefined;
-    if (quietSince === undefined) decodeCanonicalConstructor(x.quiet_since, "None");
+      tag(x.quiet_since) === "Some" ? nat(decodeCanonicalConstructor(x.quiet_since, "Some").value) : undefined
+    if (quietSince === undefined) decodeCanonicalConstructor(x.quiet_since, "None")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2702,48 +2693,48 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       deciding: bool(x.deciding),
       ...(write === undefined ? {} : { write }),
       uncertain: bool(x.uncertain),
-      ...(quietSince === undefined ? {} : { quietSince }),
-    };
-  });
+      ...(quietSince === undefined ? {} : { quietSince })
+    }
+  })
   const admissions = readList(s.admissions, (value) => {
-    const x = decodeCanonicalConstructor(value, "Admission.AdmissionState");
+    const x = decodeCanonicalConstructor(value, "Admission.AdmissionState")
     const permits = readList(x.permits, (entry) => {
-      const permit = decodeCanonicalConstructor(entry, "Admission.Permit");
-      const started = nat(permit.started);
-      const deadline = nat(permit.deadline);
-      if (deadline < started) throw new TypeError("invalid permit deadline");
-      return { token: nat(permit.token, true), tool: nat(permit.tool, true), round: nat(permit.round, true), deadline };
-    });
-    const next = nat(x.next_token, true);
+      const permit = decodeCanonicalConstructor(entry, "Admission.Permit")
+      const started = nat(permit.started)
+      const deadline = nat(permit.deadline)
+      if (deadline < started) throw new TypeError("invalid permit deadline")
+      return { token: nat(permit.token, true), tool: nat(permit.tool, true), round: nat(permit.round, true), deadline }
+    })
+    const next = nat(x.next_token, true)
     if (
       permits.some((item) => item.token >= next) ||
       new Set(permits.map((item) => item.token)).size !== permits.length ||
       new Set(permits.map((item) => item.tool)).size !== permits.length
     )
-      throw new TypeError("invalid admission tokens");
+      throw new TypeError("invalid admission tokens")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
       round: nat(x.round),
       active: bool(x.active),
       closedAt: nat(x.closed_at),
-      permits,
-    };
-  });
+      permits
+    }
+  })
   const work = readList(s.work, (value) => {
-    const x = decodeCanonicalConstructor(value, "Canonical.Work");
-    const kind = tag(x.kind);
-    decodeCanonicalConstructor(x.kind, kind);
+    const x = decodeCanonicalConstructor(value, "Canonical.Work")
+    const kind = tag(x.kind)
+    decodeCanonicalConstructor(x.kind, kind)
     const names = {
       "Canonical.AwaitingSourceRead": "awaitingSourceRead",
       "Canonical.SourceReading": "sourceReading",
       "Canonical.Preparing": "preparing",
       "Canonical.Reviewing": "reviewing",
       "Canonical.AtJev": "atJev",
-      "Canonical.PendingFinding": "pendingFinding",
-    } as const;
-    const stage = names[kind as keyof typeof names];
-    if (stage === undefined) throw new TypeError("invalid work kind");
+      "Canonical.PendingFinding": "pendingFinding"
+    } as const
+    const stage = names[kind as keyof typeof names]
+    if (stage === undefined) throw new TypeError("invalid work kind")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2751,41 +2742,41 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       operation: nat(x.operation, true),
       reservation: nat(x.charge),
       parent: nat(x.parent),
-      kind: stage,
-    };
-  });
+      kind: stage
+    }
+  })
   const pendingFindings = readList(s.work, (value) => {
-    const x = decodeCanonicalConstructor(value, "Canonical.Work");
+    const x = decodeCanonicalConstructor(value, "Canonical.Work")
     return tag(x.kind) === "Canonical.PendingFinding"
       ? {
           operation: nat(x.operation, true),
-          count: nat(decodeCanonicalConstructor(x.kind, "Canonical.PendingFinding").count, true),
+          count: nat(decodeCanonicalConstructor(x.kind, "Canonical.PendingFinding").count, true)
         }
-      : undefined;
-  }).filter((item): item is { operation: number; count: number } => item !== undefined);
-  const chargeIds = new Set(charges.map((x) => x.id));
-  const chargesById = new Map(charges.map((x) => [x.id, x]));
+      : undefined
+  }).filter((item): item is { operation: number; count: number } => item !== undefined)
+  const chargeIds = new Set(charges.map((x) => x.id))
+  const chargesById = new Map(charges.map((x) => [x.id, x]))
   if (
     notices.some((item) => {
-      const held = chargesById.get(item.reservation);
-      return held?.purpose !== "operationalNotice" || held.partition !== item.partition;
+      const held = chargesById.get(item.reservation)
+      return held?.purpose !== "operationalNotice" || held.partition !== item.partition
     })
   )
-    throw new TypeError("canonical notice reservation mismatch");
-  const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0);
-  validateStateIdentities({ charges, chargeIds, work, rounds, admissions }, s);
-  validateWorkReservations(work, chargesById, rounds, s);
-  validateCachedReservations(reuse.cache, chargesById);
-  validateCapacityLimits(charges, rounds, usedBytes, ledger, limits);
-  const global = projectGlobal(state, charges, usedBytes);
+    throw new TypeError("canonical notice reservation mismatch")
+  const usedBytes = charges.reduce((sum, x) => sum + x.bytes, 0)
+  validateStateIdentities({ charges, chargeIds, work, rounds, admissions }, s)
+  validateWorkReservations(work, chargesById, rounds, s)
+  validateCachedReservations(reuse.cache, chargesById)
+  validateCapacityLimits(charges, rounds, usedBytes, ledger, limits)
+  const global = projectGlobal(state, charges, usedBytes)
   const partitionIds = [
-    ...new Set([...rounds.map((round) => round.partition), ...charges.map((item) => item.partition)]),
-  ];
+    ...new Set([...rounds.map((round) => round.partition), ...charges.map((item) => item.partition)])
+  ]
   const partitions = partitionIds.map((partition) => {
-    const usage = decodeCanonicalConstructor(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage");
-    return { partition, items: nat(usage.items), bytes: nat(usage.bytes) };
-  });
-  const inventory = projectInventory(state, limits);
+    const usage = decodeCanonicalConstructor(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage")
+    return { partition, items: nat(usage.items), bytes: nat(usage.bytes) }
+  })
+  const inventory = projectInventory(state, limits)
   const projection: CanonicalProjection = freezeCanonicalData({
     global,
     executionLimits,
@@ -2793,7 +2784,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       globalItems: nat(limits.global_items, true),
       globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true),
-      partitionBytes: nat(limits.partition_bytes, true),
+      partitionBytes: nat(limits.partition_bytes, true)
     },
     partitions,
     charges,
@@ -2808,48 +2799,60 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     revision,
     reuse,
     notices,
-    delivery,
-  });
-  projections.set(identity, projection);
-  return projection;
-};
-const decodeLimits = decoder(CanonicalLimitsSchema);
+    delivery
+  })
+  projections.set(identity, projection)
+  return projection
+}
+const decodeLimits = decoder(CanonicalLimitsSchema)
 export const initialCanonical = (input: typeof CanonicalLimitsSchema.Type): unknown => {
-  const limits = decodeLimits(input);
-  const state = bendCanonicalInitial({ $: "Ledger.Limits", global_items: limits.globalItems, global_bytes: limits.globalBytes, partition_items: limits.partitionItems, partition_bytes: limits.partitionBytes });
-  registerCanonical(state);
-  return state;
-};
+  const limits = decodeLimits(input)
+  const state = bendCanonicalInitial({
+    $: "Ledger.Limits",
+    global_items: limits.globalItems,
+    global_bytes: limits.globalBytes,
+    partition_items: limits.partitionItems,
+    partition_bytes: limits.partitionBytes
+  })
+  registerCanonical(state)
+  return state
+}
 /** Callers must supply measured byte counts, authenticated attribution, and correct deadline facts. */
-export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
-  projectCanonical(state);
-  return decodeTrustedCanonicalStep(bendCanonicalStep(state, encodeCanonicalEvent(event)));
-};
+export const stepCanonical = (
+  state: unknown,
+  event: CanonicalEvent
+): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
+  projectCanonical(state)
+  return decodeTrustedCanonicalStep(bendCanonicalStep(state, encodeCanonicalEvent(event)))
+}
 /** Decode a checked result produced by a core which composes Canonical directly. */
-export const decodeTrustedCanonicalStep = (raw: unknown): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
+export const decodeTrustedCanonicalStep = (
+  raw: unknown
+): { readonly state: unknown; readonly commands: readonly CanonicalCommand[]; readonly rejection?: string } => {
   switch (tag(raw)) {
     case "Canonical.Advanced": {
-      const x = decodeCanonicalConstructor(raw, "Canonical.Advanced");
-      const commands = readList(x.commands, decodeCommand);
-      registerCanonical(x.state);
-      return { state: x.state, commands };
+      const x = decodeCanonicalConstructor(raw, "Canonical.Advanced")
+      const commands = readList(x.commands, decodeCommand)
+      registerCanonical(x.state)
+      return { state: x.state, commands }
     }
     case "Canonical.Rejected": {
-      const x = decodeCanonicalConstructor(raw, "Canonical.Rejected");
-      const reason = decodeCanonicalRejection(x.reason);
-      const rejection = reason.$ === "Canonical.PermitDenied"
-        ? reason.reason.$.slice("Admission.".length)
-        : reason.$.slice("Canonical.".length);
-      registerCanonical(x.state);
-      return { state: x.state, commands: [], rejection };
+      const x = decodeCanonicalConstructor(raw, "Canonical.Rejected")
+      const reason = decodeCanonicalRejection(x.reason)
+      const rejection =
+        reason.$ === "Canonical.PermitDenied"
+          ? reason.reason.$.slice("Admission.".length)
+          : reason.$.slice("Canonical.".length)
+      registerCanonical(x.state)
+      return { state: x.state, commands: [], rejection }
     }
-    default: throw new TypeError("unknown canonical step");
+    default:
+      throw new TypeError("unknown canonical step")
   }
-};
-
+}
 
 /** Private trusted-composer publication; the exact projection decoder runs before return. */
 export const projectTrustedCanonical = (state: unknown): CanonicalProjection => {
-  registerCanonical(state);
-  return projectCanonical(state);
-};
+  registerCanonical(state)
+  return projectCanonical(state)
+}

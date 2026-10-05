@@ -1,41 +1,87 @@
-import { expect, it } from "vitest";
-import { encodeNoticeExpiryClock, validateExpiryControl, validateExpiryProfile, validateInitialExpiryProfile, encodeExpiryProfile, decodeExpiryEvents } from "./expiry-controls.ts";
+import { expect, it } from "vitest"
+import {
+  encodeNoticeExpiryClock,
+  validateExpiryControl,
+  validateExpiryProfile,
+  validateInitialExpiryProfile,
+  encodeExpiryProfile,
+  decodeExpiryEvents
+} from "./expiry-controls.ts"
 
 it("captures exact immutable expiry facts without making a host boundary decision", () => {
-  const profile = validateExpiryProfile({ pendingMs: 10, leaseMs: 2, cooldownMs: 20 });
-  expect(Object.isFrozen(profile)).toBe(true);
-  const notice = encodeNoticeExpiryClock({ partition: 2, group: 9, key: 101, retainedAt: 10, pendingMs: 10, leaseStarted: 15, leaseMs: 2, cooldownStarted: 10, cooldownMs: 20 });
-  expect(Object.isFrozen(notice)).toBe(true);
-  expect(notice.retained_at).toBe(10);
-  expect(notice.partition).toBe(2);
-  expect(notice.pending_duration).toBe(10);
-});
+  const profile = validateExpiryProfile({ pendingMs: 10, leaseMs: 2, cooldownMs: 20 })
+  expect(Object.isFrozen(profile)).toBe(true)
+  const notice = encodeNoticeExpiryClock({
+    partition: 2,
+    group: 9,
+    key: 101,
+    retainedAt: 10,
+    pendingMs: 10,
+    leaseStarted: 15,
+    leaseMs: 2,
+    cooldownStarted: 10,
+    cooldownMs: 20
+  })
+  expect(Object.isFrozen(notice)).toBe(true)
+  expect(notice.retained_at).toBe(10)
+  expect(notice.partition).toBe(2)
+  expect(notice.pending_duration).toBe(10)
+})
 it("rejects impossible derived deadlines and malformed controls", () => {
-  expect(() => encodeNoticeExpiryClock({ partition: 1, group: 1, key: 1, retainedAt: 2 ** 48 - 2, pendingMs: 10, leaseStarted: 0, leaseMs: 2, cooldownStarted: 0, cooldownMs: 20 })).toThrow();
-  expect(() => validateExpiryProfile({ pendingMs: 0, leaseMs: 2, cooldownMs: 20 })).toThrow();
-  expect(() => validateExpiryControl({ kind: "expireNotice", partition: 1, group: 1, key: 0, excepted: false })).toThrow();
-  expect(() => validateExpiryControl({ kind: "expireNotice", partition: 1, group: 1, key: 1, excepted: false, unexpected: true })).toThrow();
-});
+  expect(() =>
+    encodeNoticeExpiryClock({
+      partition: 1,
+      group: 1,
+      key: 1,
+      retainedAt: 2 ** 48 - 2,
+      pendingMs: 10,
+      leaseStarted: 0,
+      leaseMs: 2,
+      cooldownStarted: 0,
+      cooldownMs: 20
+    })
+  ).toThrow()
+  expect(() => validateExpiryProfile({ pendingMs: 0, leaseMs: 2, cooldownMs: 20 })).toThrow()
+  expect(() =>
+    validateExpiryControl({ kind: "expireNotice", partition: 1, group: 1, key: 0, excepted: false })
+  ).toThrow()
+  expect(() =>
+    validateExpiryControl({ kind: "expireNotice", partition: 1, group: 1, key: 1, excepted: false, unexpected: true })
+  ).toThrow()
+})
 it("decodes bounded actual Canonical cleanup facts and rejects cyclic lists", () => {
-  expect(decodeExpiryEvents({ $: "Con", head: { $: "Canonical.ReleaseCapacity", reservation: 2n }, tail: { $: "Nil" } })).toEqual([{ kind: "releaseCapacity", reservation: 2 }]);
-  const cyclic: { $: string; head: unknown; tail?: unknown } = { $: "Con", head: { $: "Canonical.ReleaseCapacity", reservation: 2 } };
-  cyclic.tail = cyclic;
-  expect(() => decodeExpiryEvents(cyclic)).toThrow();
-});
+  expect(
+    decodeExpiryEvents({ $: "Con", head: { $: "Canonical.ReleaseCapacity", reservation: 2n }, tail: { $: "Nil" } })
+  ).toEqual([{ kind: "releaseCapacity", reservation: 2 }])
+  const cyclic: { $: string; head: unknown; tail?: unknown } = {
+    $: "Con",
+    head: { $: "Canonical.ReleaseCapacity", reservation: 2 }
+  }
+  cyclic.tail = cyclic
+  expect(() => decodeExpiryEvents(cyclic)).toThrow()
+})
 
 it("keeps initial clock durations in u48 while live expiry controls remain bounded", async () => {
-  const { createRun, restoreReplay } = await import("./index.ts");
-  const maximum = 2 ** 48 - 1;
-  const profile = { pendingMs: maximum, leaseMs: maximum, cooldownMs: maximum };
-  expect(validateInitialExpiryProfile(profile)).toEqual(profile);
-  expect(encodeExpiryProfile(profile)).toMatchObject({ pending_duration: maximum, lease_duration: maximum, cooldown_duration: maximum });
+  const { createRun, restoreReplay } = await import("./index.ts")
+  const maximum = 2 ** 48 - 1
+  const profile = { pendingMs: maximum, leaseMs: maximum, cooldownMs: maximum }
+  expect(validateInitialExpiryProfile(profile)).toEqual(profile)
+  expect(encodeExpiryProfile(profile)).toMatchObject({
+    pending_duration: maximum,
+    lease_duration: maximum,
+    cooldown_duration: maximum
+  })
   for (const adviceLifetime of [1_000_000_001, maximum]) {
-    const run = createRun({ adviceLifetime });
-    expect([run.now, run.eventCount]).toEqual([0, 0]);
-    expect(restoreReplay(run.exportReplay()).runtimeSnapshot()).toEqual(run.runtimeSnapshot());
+    const run = createRun({ adviceLifetime })
+    expect([run.now, run.eventCount]).toEqual([0, 0])
+    expect(restoreReplay(run.exportReplay()).runtimeSnapshot()).toEqual(run.runtimeSnapshot())
   }
-  expect(() => createRun({ adviceLifetime: maximum + 1 })).toThrow();
-  expect(() => validateInitialExpiryProfile({ ...profile, pendingMs: maximum + 1 })).toThrow();
-  expect(() => validateExpiryControl({ kind: "expiryProfile", profile: { pendingMs: 1_000_000_001, leaseMs: 2, cooldownMs: 20 } })).toThrow();
-  expect(() => validateExpiryControl({ kind: "expiryProfile", profile: { pendingMs: 10, leaseMs: 2, cooldownMs: 1_000_001 } })).toThrow();
-});
+  expect(() => createRun({ adviceLifetime: maximum + 1 })).toThrow()
+  expect(() => validateInitialExpiryProfile({ ...profile, pendingMs: maximum + 1 })).toThrow()
+  expect(() =>
+    validateExpiryControl({ kind: "expiryProfile", profile: { pendingMs: 1_000_000_001, leaseMs: 2, cooldownMs: 20 } })
+  ).toThrow()
+  expect(() =>
+    validateExpiryControl({ kind: "expiryProfile", profile: { pendingMs: 10, leaseMs: 2, cooldownMs: 1_000_001 } })
+  ).toThrow()
+})
