@@ -1,5 +1,5 @@
 import { InspectionTransportObservation } from "../inspection/transport.ts"
-import { captureInspectionPolicy, captureInspectionFindings } from "../inspection/capture.ts"
+import { captureInspectionPolicy, captureInspectionFindings, captureInspectionFate } from "../inspection/capture.ts"
 import type { InspectionScope, InspectionCorrelation } from "../inspection/contract.ts"
 import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
@@ -2273,14 +2273,30 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentRemoveAdvice = Effect.fn("ResidentRuntime.removeAdvice")(function* (id: string, token?: string) {
     const advice = (yield* residentAdvice()).find((item) => item.id === id)
-    return (
-      advice !== undefined &&
-      (yield* residentLedger.advice.remove(
-        advice,
-        (yield* residentAdviceExpired(advice, residentNow())) ? "expired" : "stale",
-        token
-      ))
-    )
+    if (advice === undefined) return false
+    const expired = yield* residentAdviceExpired(advice, residentNow())
+    const findings = (yield* residentLedger.advice.current(advice)).findings
+    const removed = yield* residentLedger.advice.remove(advice, expired ? "expired" : "stale", token)
+    if (removed && inspection.isEnabled(advice.observation.root)) {
+      const evaluationId = inspectionOrigins.get(advice.evaluationKey)
+      inspection.offer(
+        {
+          root: advice.observation.root,
+          runtime: advice.observation.advicee.host,
+          runtimeVersion: advice.observation.advicee.hostVersion,
+          sessionId: advice.observation.advicee.sessionId,
+          subagentId: advice.observation.advicee.subagentId
+        },
+        evaluationId === undefined ? {} : { evaluationId },
+        captureInspectionFate(
+          findings,
+          expired ? "expired" : "stale",
+          expired ? "retention-expired" : "resident-stale",
+          advice.id
+        )
+      )
+    }
+    return removed
   }, Effect.uninterruptible)
 
   const residentExpirePending = Effect.fn("ResidentRuntime.expirePending")(function* (now: number) {
@@ -3764,6 +3780,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             result.findings
           )
           if (disposition === "ignored" || disposition === "stale") {
+            if (
+              result.findings.length &&
+              job.inspectionReceipt !== undefined &&
+              inspection.isEnabled(job.inspectionReceipt.scope.root)
+            )
+              inspection.offer(
+                job.inspectionReceipt.scope,
+                {
+                  ...job.inspectionReceipt.correlation,
+                  ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId })
+                },
+                captureInspectionFate(
+                  result.findings,
+                  disposition === "stale" ? "stale" : "discarded",
+                  disposition === "stale" ? "resident-stale" : "settlement-ignored"
+                )
+              )
             yield* residentReleaseReuseClaim(job.evaluationKey)
             yield* residentReleaseUnit(job)
             return
@@ -3808,6 +3841,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           })
           const settleNonRetainedOutcome = Effect.fn("ResidentRuntime.settleNonRetainedOutcome")(function* () {
             if (disposition !== "retainFinding") {
+              if (
+                result.findings.length &&
+                job.inspectionReceipt !== undefined &&
+                inspection.isEnabled(job.inspectionReceipt.scope.root)
+              )
+                inspection.offer(
+                  job.inspectionReceipt.scope,
+                  {
+                    ...job.inspectionReceipt.correlation,
+                    ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId })
+                  },
+                  captureInspectionFate(
+                    result.findings,
+                    disposition === "retireStaleFinding" ? "stale" : "discarded",
+                    disposition === "retireStaleFinding" ? "resident-stale" : "settlement-ignored"
+                  )
+                )
               if (disposition === "retireStaleFinding" && job.round !== undefined && job.workUnitId !== undefined) {
                 ;(yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId)
               }
@@ -4093,6 +4143,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         })
       })
       const advice = yield* insertRetainedAdvice()
+      if (job.inspectionReceipt !== undefined && inspection.isEnabled(job.inspectionReceipt.scope.root))
+        inspection.offer(
+          job.inspectionReceipt.scope,
+          {
+            ...job.inspectionReceipt.correlation,
+            ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId })
+          },
+          captureInspectionFate(evaluation.findings, "retained", "pending-advice", advice.id)
+        )
       job.completed = true
       yield* Effect.gen(function* () {
         yield* withinWork(

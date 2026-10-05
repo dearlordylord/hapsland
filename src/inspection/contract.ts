@@ -55,6 +55,19 @@ export const InspectionWriterState = Schema.Literals([
 ])
 export const InspectionFact = Schema.Union([
   Schema.Struct({
+    kind: Schema.Literal("finding-fate"),
+    fate: Schema.Literals(["retained", "stale", "expired", "discarded"]),
+    reason: Schema.Literals(["pending-advice", "resident-stale", "retention-expired", "settlement-ignored"]),
+    adviceId: Schema.optionalKey(Id),
+    payload: Schema.Union([
+      Schema.Struct({
+        status: Schema.Literal("available"),
+        findingIds: Schema.Array(Hash).check(Schema.isMaxLength(128))
+      }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literal("oversized") })
+    ])
+  }),
+  Schema.Struct({
     kind: Schema.Literal("evaluation-route"),
     route: Schema.Literals(["fresh", "joined-pending", "joined-claimed", "existing-advice", "cached"]),
     semanticIdentity: Hash,

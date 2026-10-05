@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import type { PreparedUnit } from "../direct-event/model.ts"
 import type { Finding } from "../direct-event/output.ts"
 import type { InspectionFact } from "./contract.ts"
@@ -42,4 +43,28 @@ export const captureInspectionFindings = (
     findings.length > 128 || !fits(findings)
       ? { status: "missing", reason: "oversized" }
       : { status: "available", findings }
+})
+
+/** Stable identity of the interpreted rule finding, independent of any submission attempt. */
+export const captureInspectionFate = (
+  findings: ReadonlyArray<Finding>,
+  fate: Extract<InspectionFact, { kind: "finding-fate" }>["fate"],
+  reason: Extract<InspectionFact, { kind: "finding-fate" }>["reason"],
+  adviceId?: string
+): Extract<InspectionFact, { kind: "finding-fate" }> => ({
+  kind: "finding-fate",
+  fate,
+  reason,
+  ...(adviceId === undefined ? {} : { adviceId }),
+  payload:
+    findings.length > 128
+      ? { status: "missing", reason: "oversized" }
+      : {
+          status: "available",
+          findingIds: findings.map((finding) =>
+            createHash("sha256")
+              .update(JSON.stringify([finding.semanticIdentity, finding.ruleId]))
+              .digest("hex")
+          )
+        }
 })

@@ -47,7 +47,7 @@ it("exposes exact retained bytes from a real resident's production provider tran
                 kind: record.fact.kind,
                 ...(record.fact.kind === "preparation-omission" ? { reason: record.fact.reason } : {})
               })
-              if (record.fact.kind === "evaluation-outcome") stored.resolve()
+              if (record.fact.kind === "finding-fate" && record.fact.fate === "retained") stored.resolve()
             })
           )
         )

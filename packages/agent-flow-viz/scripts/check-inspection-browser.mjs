@@ -6,7 +6,7 @@ import { Effect, Scope, Exit } from "effect"
 import { makeResidentRuntime } from "../../../src/resident/server.ts"
 import { residentPaths } from "../../../src/resident/paths.ts"
 import { adaptCodexDirectEvent } from "../../../src/direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../../../src/direct-event/test-fixtures.ts"
+import { addEvent, makeGitFixture, put, advicee } from "../../../src/direct-event/test-fixtures.ts"
 import { makeInspectionStorage } from "../../../src/inspection/storage.ts"
 import { makeInspectionHttpServer } from "../../../src/inspection/http.ts"
 import * as HttpClient from "effect/http/HttpClient"
@@ -40,6 +40,7 @@ try {
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const dispatched = []
   let published = nativeDeferred()
+  const retired = nativeDeferred()
   const resident = await Effect.runPromise(
     makeResidentRuntime(residentPaths(join(root, "runtime")), undefined, {
       offlineHttpClient: HttpClient.make((request) => {
@@ -69,8 +70,9 @@ try {
           history.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
+                if (record.fact.kind === "finding-fate" && record.fact.fate === "stale") retired.resolve()
                 if (
-                  record.fact.kind === "evaluation-outcome" ||
+                  (record.fact.kind === "finding-fate" && record.fact.fate === "retained") ||
                   (record.fact.kind === "evaluation-route" && record.fact.route !== "fresh")
                 )
                   published.resolve()
@@ -180,6 +182,17 @@ try {
   assert.match(await page.locator("#files").textContent(), /Recorded skipped preparation paths:[\s\S]*bad\.ts/)
   assert.match(await page.locator("#files").textContent(), /Recorded omissions:[\s\S]*bad\.ts[\s\S]*import/)
   assert.equal(dispatched.length, 4, "failed preparation must not create a classifier request")
+  await put(root, "type.ts", "type OrderCount = string;\n")
+  await Effect.runPromise(resident.collect(root, advicee(), dispatch))
+  await retired.promise
+  await page
+    .getByRole("button", { name: /type\.ts/ })
+    .first()
+    .click()
+  await page.waitForFunction(() => document.querySelector("#results").textContent.includes('"fate": "stale"'))
+  assert.match(await page.locator("#results").textContent(), /Observed finding fates \(independent of submission\)/)
+  assert.match(await page.locator("#results").textContent(), /"fate": "retained"/)
+  assert.equal(dispatched.length, 4, "advice revalidation must not invent another classifier request")
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   assert.deepEqual(errors, [])
   console.log(

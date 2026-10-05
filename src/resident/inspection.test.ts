@@ -4,14 +4,63 @@ import { describe, expect, it } from "vitest"
 import { join } from "node:path"
 import { writeFile } from "node:fs/promises"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
+import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts"
 import { residentPaths } from "./paths.ts"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it("records actual advice expiry without claiming source repair or submission", async () => {
+    const root = await makeGitFixture()
+    await put(root, "type.ts", "type OrderCount = number;\n")
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    let clock = 1000
+    const retained = nativeDeferred<void>()
+    const expired = nativeDeferred<void>()
+    const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
+      inspectionPersistence: {
+        write: (record, encoded, publication) =>
+          store.write(record, encoded, publication).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                if (record.fact.kind === "finding-fate" && record.fact.fate === "retained") retained.resolve()
+                if (record.fact.kind === "finding-fate" && record.fact.fate === "expired") expired.resolve()
+              })
+            )
+          )
+      }
+    })
+    const dispatch: ResidentDispatchContext = {
+      statePath: join(root, "consent"),
+      userConfigPath: join(root, "absent-user"),
+      credential: null,
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }]))
+      }
+    }
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
+    if (!observation) throw new Error("missing observation")
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    await retained.promise
+    clock += PENDING_ADVICE_EXPIRY_MS
+    expect((await Effect.runPromise(server.collect(root, advicee(), dispatch))).status).toBe("empty")
+    await expired.promise
+    const records = await Effect.runPromise(store.snapshot())
+    const fates = records.filter((record) => record.fact.kind === "finding-fate")
+    expect(fates.map((record) => record.fact)).toMatchObject([
+      { fate: "retained", reason: "pending-advice" },
+      { fate: "expired", reason: "retention-expired" }
+    ])
+    expect(fates[0]?.correlation.evaluationId).toBe(fates[1]?.correlation.evaluationId)
+    expect(records.filter((record) => record.fact.kind === "writer-evidence")).toHaveLength(0)
+    expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
+  })
+
   it("retains incomplete preparation beside a clear independent unit without a request for the failed path", async () => {
     const root = await makeGitFixture()
     await put(root, "good.ts", "type GoodCount = number\n")
@@ -213,6 +262,7 @@ describe("resident inspection capture", () => {
     const stored = nativeDeferred<void>()
     const prepared = nativeDeferred<void>()
     const evaluated = nativeDeferred<void>()
+    const retired = nativeDeferred<void>()
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
@@ -222,7 +272,8 @@ describe("resident inspection capture", () => {
               Effect.sync(() => {
                 if (record.fact.kind === "edit-admission") stored.resolve()
                 if (record.fact.kind === "unit-prepared") prepared.resolve()
-                if (record.fact.kind === "evaluation-outcome") evaluated.resolve()
+                if (record.fact.kind === "finding-fate" && record.fact.fate === "retained") evaluated.resolve()
+                if (record.fact.kind === "finding-fate" && record.fact.fate === "stale") retired.resolve()
               })
             )
           )
@@ -275,6 +326,25 @@ describe("resident inspection capture", () => {
       kind: "evaluation-outcome",
       outcome: "findings"
     })
+    const retained = preparedRecords.find((record) => record.fact.kind === "finding-fate")
+    expect(retained?.fact).toMatchObject({
+      fate: "retained",
+      reason: "pending-advice",
+      payload: { status: "available" }
+    })
+    await put(root, "type.ts", "type OrderCount = string;\n")
+    await Effect.runPromise(server.collect(root, advicee(), dispatch))
+    await retired.promise
+    expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
+    const retiredRecords = await Effect.runPromise(store.snapshot())
+    const stale = retiredRecords.find((record) => record.fact.kind === "finding-fate" && record.fact.fate === "stale")
+    expect(stale?.fact).toMatchObject({ fate: "stale", reason: "resident-stale" })
+    if (stale?.fact.kind !== "finding-fate" || retained?.fact.kind !== "finding-fate")
+      throw new Error("missing fate evidence")
+    expect(stale.fact.adviceId).toBe(retained.fact.adviceId)
+    expect(stale.fact.payload).toEqual(retained.fact.payload)
+    expect(stale.correlation.evaluationId).toBe(retained.correlation.evaluationId)
+    expect(retiredRecords.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
     await writeFile(config, JSON.stringify({ version: 1, sessionInspection: false }))
     Effect.runSync(server.admit(observation, dispatch))
     await Effect.runPromise(server.whenIdle())
