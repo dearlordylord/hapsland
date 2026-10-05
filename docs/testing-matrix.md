@@ -17,7 +17,7 @@ Engine evidence. They remain subject to lint and TypeScript checks.
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Resident playback liveness | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play, pause/resume; finding/clear cache plus quiet-window settlement and replay | Observed progress beyond Jev result through genuine cache facts; not universal scheduler liveness or live Jev transport |
-| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident ingress → private journal → production HTTP/SSE → Chromium; pre-launch history, keyboard selection, pause/resume, safe text, 375 px layout | Observed baseline ingress display; classifier payload, native writer, registry, replay gaps and full-feature acceptance remain pending |
+| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident ingress and production offline provider transport → private journal → production HTTP/SSE → Chromium; exact request copy equals dispatched bytes, pre-launch history, keyboard selection, pause/resume, safe text, 375 px layout | Observed ingress and exact request-body display/copy; richer preparation/results, native writer, registry, replay gaps and full-feature acceptance remain pending |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
 | Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, real Husky/lint-staged formatting and commit rejection | Offline temporary-repository workflow; no build or agent invocation |
@@ -105,6 +105,24 @@ repair probes despite a lost first background opportunity and a native Stop time
 These source-checkout diagnostics do not amend the original comparison cell or
 establish a general delivery guarantee. The investigation made four physical Jev
 requests across its two live runs.
+
+## Local inspection storage boundary
+
+The [journal tests](../src/inspection/storage.test.ts) exercise actual asynchronous
+filesystem publication, shared allocated-byte accounting, exact capture-aged
+expiry, independent writer contention, and killed producers. Consent is checked
+at the recorder's synchronous commit of an already-readable immutable object:
+disable before commit drops it; disable during later cleanup retains the earlier
+capture. Incomplete temporary links are conservatively discarded after a crash,
+so this is optional history rather than a durable audit guarantee.
+
+The [native lock tests](../src/inspection/native-lock.test.ts) establish private
+directory descriptor validation and loading from a compiled Bun package layout.
+The non-waiting kernel lock releases on descriptor close or process exit and
+allocates no journal recovery files. The native build/release checks require the
+binding in both existing arm64 profiles. These focused checks do not establish
+production archive installation or full-feature acceptance; affected installed
+checks and the final milestone gate remain separate requirements.
 
 ## Local inspection model
 

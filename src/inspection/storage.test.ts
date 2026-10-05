@@ -1,13 +1,14 @@
 import { mkdtemp, readdir, lstat, writeFile, symlink, readFile, chmod, rm, statfs, realpath } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { Effect } from "effect"
+import { Effect, Scope, Exit } from "effect"
 import { afterEach, describe, expect, it } from "vitest"
 import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
 import { makeInspectionStorage, inspectionAllocatedBytes } from "./storage.ts"
 import { nativeDeferred } from "../test-support/native-deferred.ts"
 import { spawn } from "node:child_process"
 import { once } from "node:events"
+import { makeInspectionRecorder } from "./recorder.ts"
 
 const directories: string[] = []
 afterEach(async () => {
@@ -29,43 +30,130 @@ const record = (sequence: number, capturedAt = 100, lifetime = "first"): Inspect
   fact: { kind: "edit-received", candidates: [{ operation: "update", path: "日本語.ts" }] }
 })
 const publish = (store: ReturnType<typeof makeInspectionStorage>, value: InspectionRecord, allowed = () => true) =>
-  Effect.runPromise(store.write(value, JSON.stringify(value), allowed))
+  Effect.runPromise(store.write(value, JSON.stringify(value), { allowed, commit: allowed }))
 
 describe("private inspection journal", () => {
-  it("reads retained history after a real writer process exits during IO", async () => {
+  it.each([
+    { boundary: "beforeCommit", retained: 0 },
+    { boundary: "afterCommit", retained: 1 }
+  ])("orders disable against $boundary while filesystem cleanup is pending", async ({ boundary, retained }) => {
     const directory = await fixture()
-    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
-    const first = record(1)
-    await publish(store, first)
-    const script = `
+    const scope = await Effect.runPromise(Scope.make())
+    const entered = nativeDeferred<void>()
+    const release = nativeDeferred<void>()
+    const disabled = nativeDeferred<void>()
+    let sourceWrite = false
+    const history = makeInspectionStorage(
+      directory,
+      { retentionMs: 1000, storageBytes: 1048576, now: () => 100 },
+      {
+        [boundary]: async () => {
+          if (!sourceWrite) return
+          entered.resolve()
+          await release.promise
+        }
+      }
+    )
+    try {
+      const recorder = await Effect.runPromise(
+        makeInspectionRecorder(
+          { endpoint: "/private/resident.sock", lifetime: "first" },
+          {
+            write: (value, encoded, publication) =>
+              Effect.suspend(() => {
+                sourceWrite = value.fact.kind === "edit-received"
+                return history.write(value, encoded, publication).pipe(
+                  Effect.tap(() =>
+                    Effect.sync(() => {
+                      if (value.fact.kind === "recording-state" && value.fact.state === "disabled") disabled.resolve()
+                    })
+                  )
+                )
+              })
+          },
+          { now: () => 100 }
+        ).pipe(Effect.provideService(Scope.Scope, scope))
+      )
+      const value = record(1)
+      if (value.fact.kind !== "edit-received") throw new Error("missing edit fixture")
+      recorder.observeRecording(value.scope.root, true)
+      expect(recorder.offer(value.scope, value.correlation, value.fact)).toBe("queued")
+      await entered.promise
+      recorder.observeRecording(value.scope.root, false)
+      expect(recorder.offer(value.scope, { receiptId: "after-disable" }, value.fact)).toBe("disabled")
+      release.resolve()
+      await disabled.promise
+      const records = await Effect.runPromise(history.snapshot())
+      expect(records.filter((value) => value.fact.kind === "edit-received")).toHaveLength(retained)
+      expect((await readdir(directory)).every((name) => name.endsWith(".json"))).toBe(true)
+    } finally {
+      release.resolve()
+      await Effect.runPromise(Scope.close(scope, Exit.void))
+    }
+  })
+  it.each([
+    { boundary: "beforePublication", withdraw: false },
+    { boundary: "afterPublication", withdraw: true },
+    { boundary: "beforeCommit", withdraw: true }
+  ])(
+    "reads committed history after a writer dies at $boundary (withdraw=$withdraw)",
+    async ({ boundary, withdraw }) => {
+      const directory = await fixture()
+      const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
+      const first = record(1)
+      await publish(store, first)
+      const script = `
       import { Effect } from "effect";
       import { makeInspectionStorage } from ${JSON.stringify(new URL("./storage.ts", import.meta.url).href)};
       const value = JSON.parse(process.argv[2]);
+      let allowed = true;
       const store = makeInspectionStorage(process.argv[1], { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }, {
-        beforePublication: async () => { process.stdin.resume(); process.stdout.write("ready\\n"); await new Promise(() => {}); }
+        [process.argv[3]]: async () => {
+          process.stdin.on("data", () => { allowed = false; process.stdout.write("disabled\\n"); });
+          process.stdin.resume(); process.stdout.write("ready\\n"); await new Promise(() => {});
+        }
       });
-      await Effect.runPromise(store.write(value, JSON.stringify(value), () => true));
+      await Effect.runPromise(store.write(value, JSON.stringify(value), { allowed: () => allowed, commit: () => allowed }));
     `
-    const child = spawn(
-      process.execPath,
-      ["--input-type=module", "--eval", script, directory, JSON.stringify(record(2))],
-      { stdio: ["pipe", "pipe", "pipe"] }
-    )
-    const exited = once(child, "exit")
-    try {
-      await once(child.stdout, "data")
-      await expect(Effect.runPromise(store.snapshot())).rejects.toThrow("inspection storage unavailable")
-      child.kill("SIGKILL")
-      await exited
-      expect(await Effect.runPromise(store.snapshot())).toEqual([first])
-      expect((await readdir(directory)).some((name) => name.startsWith("pending-"))).toBe(true)
-    } finally {
-      if (child.exitCode === null && child.signalCode === null) {
+      const child = spawn(
+        process.execPath,
+        ["--input-type=module", "--eval", script, directory, JSON.stringify(record(2)), boundary],
+        { stdio: ["pipe", "pipe", "pipe"] }
+      )
+      const exited = once(child, "exit")
+      const deadline = setTimeout(() => child.kill("SIGKILL"), 10000)
+      const output = () =>
+        Promise.race([
+          once(child.stdout, "data"),
+          exited.then(() => {
+            throw new Error("inspection writer exited before its IO barrier")
+          })
+        ])
+      try {
+        await output()
+        await expect(Effect.runPromise(store.snapshot())).rejects.toThrow("inspection storage unavailable")
+        if (withdraw) {
+          const disabled = output()
+          child.stdin.write("disable\n")
+          await disabled
+        }
         child.kill("SIGKILL")
         await exited
+        expect(await Effect.runPromise(store.snapshot())).toEqual([first])
+        expect(await readdir(directory)).toEqual([
+          `${first.source.id}-${String(first.sequence).padStart(16, "0")}.json`
+        ])
+        await publish(store, record(3))
+        expect((await Effect.runPromise(store.snapshot())).map((entry) => entry.sequence)).toEqual([1, 3])
+      } finally {
+        clearTimeout(deadline)
+        if (child.exitCode === null && child.signalCode === null) {
+          child.kill("SIGKILL")
+          await exited
+        }
       }
     }
-  })
+  )
   it("revokes capture while real filesystem publication is pending", async () => {
     const directory = await fixture()
     const entered = nativeDeferred<void>()
@@ -109,7 +197,7 @@ describe("private inspection journal", () => {
     const controller = new AbortController()
     const value = record(1)
     const writing = Effect.runPromiseExit(
-      store.write(value, JSON.stringify(value), () => true),
+      store.write(value, JSON.stringify(value), { allowed: () => true, commit: () => true }),
       { signal: controller.signal }
     )
     await entered.promise
@@ -147,6 +235,7 @@ describe("private inspection journal", () => {
     await publish(store, record(2, 100))
     now = 101
     expect((await Effect.runPromise(store.snapshot())).map((entry) => entry.sequence)).toEqual([2])
+    expect((await readdir(directory)).filter((name) => name.endsWith(".json"))).toHaveLength(1)
     await publish(store, record(3, 51))
     expect((await Effect.runPromise(store.snapshot())).map((entry) => entry.sequence)).toEqual([2])
   })
@@ -174,13 +263,30 @@ describe("private inspection journal", () => {
     expect(await Effect.runPromise(store.snapshot())).toEqual([])
     expect(await readdir(directory)).toEqual([])
   })
-  it("refuses another writer immediately and leaves its lock intact", async () => {
+  it("refuses competing readers and writers without waiting, then releases ownership", async () => {
     const directory = await fixture()
-    const lock = join(directory, "writer.lock")
-    await writeFile(lock, "other writer", { mode: 0o600 })
-    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
-    await expect(publish(store, record(1))).rejects.toThrow("inspection storage unavailable")
-    expect(await readFile(lock, "utf8")).toBe("other writer")
+    const entered = nativeDeferred<void>()
+    const release = nativeDeferred<void>()
+    const limits = { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }
+    const first = makeInspectionStorage(directory, limits, {
+      beforePublication: async () => {
+        entered.resolve()
+        await release.promise
+      }
+    })
+    const second = makeInspectionStorage(directory, limits)
+    const writing = publish(first, record(1))
+    await entered.promise
+    try {
+      await expect(publish(second, record(2))).rejects.toThrow("inspection storage unavailable")
+      await expect(Effect.runPromise(second.snapshot())).rejects.toThrow("inspection storage unavailable")
+    } finally {
+      release.resolve()
+      await writing
+    }
+    await publish(second, record(2))
+    expect((await Effect.runPromise(second.snapshot())).map((entry) => entry.sequence)).toEqual([1, 2])
+    expect((await readdir(directory)).every((name) => name.endsWith(".json"))).toBe(true)
   })
   it("refuses symlinks and unrelated entries without reading or deleting their targets", async () => {
     const directory = await fixture()

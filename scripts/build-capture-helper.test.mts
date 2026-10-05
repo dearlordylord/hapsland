@@ -59,6 +59,17 @@ it("rejects an unsupported-host source build when a declared native artifact is 
   expect(result.stderr).toContain("release native artifact is missing")
 })
 
+it.each(["linux-arm64", "darwin-arm64"])(
+  "requires the inspection lock binding in the %s release profile",
+  (profile) => {
+    const { directory, run } = fixture()
+    rmSync(join(directory, "native/prebuilt", profile, "inspection-lock.node"))
+    const result = run()
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain(`release native artifact is missing: ${profile}/inspection-lock.node`)
+  }
+)
+
 it("rejects a foreign-architecture artifact without repairing or replacing it", () => {
   const { directory, run } = fixture()
   const artifact = join(directory, "native/prebuilt/linux-arm64/credential-secret-service")

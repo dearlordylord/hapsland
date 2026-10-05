@@ -48,8 +48,8 @@ try {
         )
       }),
       inspectionPersistence: {
-        write: (record, encoded, allowed) =>
-          history.write(record, encoded, allowed).pipe(
+        write: (record, encoded, publication) =>
+          history.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
                 if (record.fact.kind === "evaluation-outcome") published.resolve()

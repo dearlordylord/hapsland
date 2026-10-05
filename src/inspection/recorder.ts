@@ -13,9 +13,18 @@ import {
   type InspectionScope
 } from "./contract.ts"
 
+export interface InspectionPublication {
+  readonly allowed: () => boolean
+  /** Commit this immutable, readable record synchronously against consent; cleanup may follow. */
+  readonly commit: () => boolean
+}
 export interface InspectionPersistence {
-  /** Publish only while allowed() remains true, including after asynchronous IO. */
-  readonly write: (record: InspectionRecord, encoded: string, allowed: () => boolean) => Effect.Effect<void, unknown>
+  /** Stage asynchronously, then commit only once the exact record is readable. */
+  readonly write: (
+    record: InspectionRecord,
+    encoded: string,
+    publication: InspectionPublication
+  ) => Effect.Effect<void, unknown>
 }
 export type InspectionObservation = Exclude<InspectionFact, { readonly kind: "recording-state" }>
 export type InspectionOffer = "queued" | "disabled" | "overflow" | "oversized" | "invalid"
@@ -139,12 +148,25 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
       const entry = pending.get(key)
       if (entry === undefined) return
       pending.delete(key)
+      let committed = false
       const allowed = () =>
-        !closed &&
-        (!entry.sourceBearing ||
-          (roots.get(entry.root)?.state === "enabled" && roots.get(entry.root)?.epoch === entry.epoch))
+        committed ||
+        (!closed &&
+          (!entry.sourceBearing ||
+            (roots.get(entry.root)?.state === "enabled" && roots.get(entry.root)?.epoch === entry.epoch)))
+      const publication = {
+        allowed,
+        commit: () => {
+          if (!allowed()) return false
+          // No await between checking consent and committing this one record.
+          committed = true
+          return true
+        }
+      }
       const write = Effect.suspend(() =>
-        allowed() ? persistence.write(decodeInspectionRecordText(entry.encoded), entry.encoded, allowed) : Effect.void
+        allowed()
+          ? persistence.write(decodeInspectionRecordText(entry.encoded), entry.encoded, publication)
+          : Effect.void
       )
       yield* write.pipe(
         Effect.catchCause(() => Effect.void),

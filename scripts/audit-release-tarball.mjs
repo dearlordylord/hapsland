@@ -75,6 +75,7 @@ for (const profile of ["linux-arm64", "darwin-arm64"]) {
     required.push(`dist/bin/${profile}/${command}`)
   for (const artifact of [
     "credential-secret-service",
+    "inspection-lock.node",
     "tree-sitter/build/Release/tree_sitter_runtime_binding.node",
     "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
     "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",

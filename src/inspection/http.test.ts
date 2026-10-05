@@ -25,8 +25,8 @@ it("exposes exact retained bytes from a real resident's production provider tran
   const dispatched: Buffer[] = []
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
     inspectionPersistence: {
-      write: (record, encoded, allowed) =>
-        history.write(record, encoded, allowed).pipe(
+      write: (record, encoded, publication) =>
+        history.write(record, encoded, publication).pipe(
           Effect.tap(() =>
             Effect.sync(() => {
               if (record.fact.kind === "evaluation-outcome") stored.resolve()
@@ -104,8 +104,8 @@ it("serves pre-launch real resident history through protected HTTP and SSE after
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
     inspectionPersistence: {
-      write: (record, encoded, allowed) =>
-        history.write(record, encoded, allowed).pipe(
+      write: (record, encoded, publication) =>
+        history.write(record, encoded, publication).pipe(
           Effect.tap(() =>
             Effect.sync(() => {
               if (record.fact.kind === "evaluation-outcome") stored.resolve()

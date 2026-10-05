@@ -20,8 +20,8 @@ describe("resident inspection capture", () => {
     const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
-        write: (record, encoded, allowed) =>
-          history.write(record, encoded, allowed).pipe(
+        write: (record, encoded, publication) =>
+          history.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
                 if (record.fact.kind === "edit-admission") stored.resolve()
@@ -107,8 +107,8 @@ describe("resident inspection capture", () => {
     const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       inspectionPersistence: {
-        write: (record, encoded, allowed) =>
-          store.write(record, encoded, allowed).pipe(
+        write: (record, encoded, publication) =>
+          store.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
                 if (record.fact.kind === "edit-admission") stored.resolve()

@@ -31,7 +31,7 @@ describe("optional inspection recording", () => {
                     yield* Deferred.succeed(started, undefined)
                     yield* Deferred.await(release)
                   }
-                  if (publishable()) saved.push(record)
+                  if (publishable.commit()) saved.push(record)
                   if (record.fact.kind === "recording-state" && record.fact.state === "disabled")
                     yield* Deferred.succeed(finished, undefined)
                 })
@@ -73,7 +73,7 @@ describe("optional inspection recording", () => {
                   yield* Deferred.await(release)
                   void encoded
                 }
-                if (publishable()) saved.push(record)
+                if (publishable.commit()) saved.push(record)
                 if (record.correlation.receiptId === "immutable") yield* Deferred.succeed(completed, undefined)
               })
           })

@@ -564,7 +564,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const inspection = yield* makeInspectionRecorder(
     { endpoint: paths.socket, lifetime },
     options.inspectionPersistence ?? {
-      write: (record, encoded, allowed) =>
+      write: (record, encoded, publication) =>
         Effect.suspend(() => {
           const limits = inspectionLimits.get(record.scope.root)
           return limits === undefined
@@ -572,7 +572,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             : makeInspectionStorage(join(HAPSLAND_STATE_DIRECTORY, "inspection"), limits).write(
                 record,
                 encoded,
-                allowed
+                publication
               )
         })
     }

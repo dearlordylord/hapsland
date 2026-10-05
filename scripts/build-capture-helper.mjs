@@ -17,6 +17,35 @@ if (process.arch !== "arm64" || !["darwin", "linux"].includes(process.platform))
 }
 mkdirSync(nativeDirectory, { recursive: true, mode: 0o755 })
 
+const nodeIncludes = [
+  resolve(dirname(process.execPath), "../include/node"),
+  "/usr/local/include/node",
+  "/usr/include/node",
+  "/opt/homebrew/include/node"
+].find((path) => existsSync(resolve(path, "node_api.h")))
+if (!nodeIncludes) throw new Error("inspection locking requires Node-API development headers")
+const inspectionOutput = resolve(nativeDirectory, "inspection-lock.node")
+buildNativeArtifact(inspectionOutput, (stagedOutput) => {
+  const result = spawnSync(
+    "cc",
+    [
+      "-O2",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      `-I${nodeIncludes}`,
+      ...(process.platform === "darwin" ? ["-bundle", "-undefined", "dynamic_lookup"] : ["-shared", "-fPIC"]),
+      resolve(root, "native/inspection-lock.c"),
+      "-o",
+      stagedOutput
+    ],
+    { stdio: "inherit", timeout: 30000 }
+  )
+  if (result.error !== undefined || result.status !== 0)
+    throw new Error("inspection directory lock binding could not be built")
+})
+
 if (process.platform === "darwin") {
   const captureOutput = resolve(nativeDirectory, "capture-open")
   buildNativeArtifact(captureOutput, (stagedOutput) => {
