@@ -112,6 +112,7 @@ export const SimulationModel = Schema.Struct({
   suspended: Schema.Boolean,
   revision: Schema.Number,
   selected: Schema.Number,
+  timelineEpoch: Schema.Number,
   activityFrom: Schema.Number,
   feedback: Schema.String
 })
@@ -188,6 +189,7 @@ export const initialSimulation: SimulationModel = {
   suspended: false,
   revision: 0,
   selected: -1,
+  timelineEpoch: 0,
   activityFrom: -1,
   feedback: "Start a seeded source-free session. Jev effects are simulated."
 }
@@ -1038,8 +1040,8 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
           feedback = "Replay inputs exported below; copy JSON to a fresh dashboard run."
           break
         default:
-          if (action.startsWith("inspect:")) {
-            selected = Number(action.slice(8))
+          if (action.startsWith("inspect:") || action.startsWith("scrub:")) {
+            selected = Number(action.slice(action.indexOf(":") + 1))
             playing = false
           }
           if (["previous", "next", "latest", "from-start", "go-bookmark"].includes(action)) {
@@ -1082,6 +1084,7 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
           : suspended,
       replay,
       selected,
+      timelineEpoch: action.startsWith("scrub:") ? model.timelineEpoch : model.timelineEpoch + 1,
       feedback,
       revision: model.revision + 1
     }
@@ -1909,8 +1912,12 @@ export const simulationView = <Message>(
             h.AriaLabel("Retained event timeline"),
             h.Min(String(observations[0]?.sequence ?? 0)),
             h.Max(String(observations.at(-1)?.sequence ?? 0)),
-            h.Value(String(current?.sequence ?? 0)),
-            h.OnInput((raw) => action(`inspect:${raw}`))
+            // The native thumb owns an in-flight gesture; queued playback renders
+            // may update the default without replaying an older value over the drag.
+            // Explicit controls replace the node to synchronize historical navigation.
+            h.Key(`timeline:${model.draftEpoch}:${model.timelineEpoch}`),
+            { _tag: "Prop", key: "defaultValue", value: String(current?.sequence ?? 0) },
+            h.OnInput((raw) => action(`scrub:${raw}`))
           ])
         ]
       ),
