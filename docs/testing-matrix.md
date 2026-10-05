@@ -111,6 +111,14 @@ requests across its two live runs.
 
 ## Local inspection storage boundary
 
+The [foreground command tests](../src/inspection/command.test.ts) run both the
+source CLI and the standalone CLI extracted from a freshly built production
+archive. They check no implicit opt-in or resident startup, SIGINT exit without
+forced termination, pre-launch history, continued resident recording while the
+dashboard is stopped, and retained history after dashboard restart. The packaged
+case uses an environment without Node or Bun on PATH. This establishes the local
+host's packaged dashboard lifecycle, not additional platform support.
+
 The [journal tests](../src/inspection/storage.test.ts) exercise actual asynchronous
 filesystem publication, shared allocated-byte accounting, exact capture-aged
 expiry, independent writer contention, and killed producers. A physical near-full
@@ -196,7 +204,7 @@ links each period to its next retained transition, and excludes disabled edits
 from source-bearing history. An open historical period does not claim current
 state or continuous coverage. Its configured 4 MiB fixture quota preserves the
 full bounded marker window for the selected older handoff's expiry check; the
-shared 128 MiB milestone check remains pending; bounded marker retention and
+physical default-cap journal check is described above; bounded marker retention and
 marker loss have separate journal checks.
 
 Loss markers are source-free, private, immutable version-one journal objects
