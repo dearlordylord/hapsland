@@ -238,10 +238,18 @@ def parent_ready(world: M.World,parent: Maybe<&2,C.Work>) -> Bool:
   match parent:
     case Some{work}: U32.is_eq(remaining(world,work),0)
     case None{}: True{}
-def birth_ready(known: Maybe<&2,C.Work>,+world: M.World,work: C.Work) -> Bool:
+def entrance_clear(items: List<&2,C.Work>,+world: M.World) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +work <> rest:
+      Bool.not(U32.is_eq(kind(work),0) && (progress(world,work) < 24 : U32)) && entrance_clear(rest,world)
+def birth_ready(known: Maybe<&2,C.Work>,+world: M.World,+work: C.Work) -> Bool:
   match known:
     case Some{_}: True{}
-    case None{}: parent_ready(world,find_work(family(work),M.work(M.core(world))))
+    # Burst arrivals share an entrance. Keep their18px sprites and shadows
+    # distinct by waiting for24px of clearance before committing an admission.
+    case None{}:
+      (Bool.not(U32.is_eq(kind(work),0)) || entrance_clear(M.work(M.core(world)),world)) && parent_ready(world,find_work(family(work),M.work(M.core(world))))
 def births_ready(items: List<&2,C.Work>,+world: M.World) -> Bool:
   match items:
     case Nil{}: True{}

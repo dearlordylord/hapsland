@@ -51,6 +51,19 @@ def peak_jev_age(fuel: Nat,+world: M.World,+oldest: U32) -> U32:
     case 0n: oldest
     case 1n+n:
       peak_jev_age(n,ConsumerTests.run(100n,world),U32.max(oldest,jev_age(P.tokens(world),world)))
+def bursts(fuel: Nat,world: M.World) -> M.World:
+  match fuel:
+    case 0n: world
+    case 1n+n: bursts(n,H.key(world,110))
+def separated_from(items: List<&2,P.Token>,+world: M.World,+token: P.Token) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +other <> rest:
+      Bool.not(U32.is_eq(P.phase(token),0) && U32.is_eq(P.phase(other),0) && Map.in_range(H.unit_point(world,token),H.unit_point(world,other),23)) && separated_from(rest,world,token)
+def entrance_separated(items: List<&2,P.Token>,+world: M.World) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +token <> +rest: separated_from(rest,world,token) && entrance_separated(rest,world)
 def main() -> IO(Unit):
   +origin = H.initial()
   +idle = ConsumerTests.run(100n,origin)
@@ -66,4 +79,5 @@ def main() -> IO(Unit):
     require((M.time(ConsumerTests.run(1600n,H.key(origin,110))) >= 1600 : U32),"route check advances the game instead of freezing")
     require((P.count(ConsumerTests.run(1600n,H.key(origin,110)),4) > 0 : U32),"mobs reach Jev through earlier stages instead of remaining at the entrance")
     require((peak_jev_age(120n,H.key(origin,110),0) < 1000 : U32),"recurring workload cannot strand mobs in AtJev for1000 ticks over12000 ticks")
+    require((P.count(ConsumerTests.run(100n,bursts(6n,origin)),0) > 1 : U32) && entrance_separated(P.tokens(ConsumerTests.run(100n,bursts(6n,origin))),ConsumerTests.run(100n,bursts(6n,origin))),"repeated bursts spawn distinct mobs at least24 pixels apart on the entrance road")
     IO.print("GAME STARTUP regression checks complete")
