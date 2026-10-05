@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "r3_split_correlations",
+  "question": "Does `artifact` let one part of a fact be set without the parts it is only correct with, because the shape keeps them in separate fields instead of one value?\n\nFocus: Fields that are independent attributes of one thing are not the finding. The finding is a group that must move together to stay correct \u2014 a quantity and its unit, the two ends of a range, the coordinates of a point \u2014 which the shape lets be supplied or changed one at a time. A part that is already meaningful on its own is not half of a fact, however closely it goes with its neighbours.",
+  "criteria": {
+    "false": "Parts that are only correct together arrive as one value, or each field carries something that means what it says on its own\n\nExamples:\n- money is one `{ amount, currency }` value, constructed together and passed whole\n- a period is one `{ from, to }` value, so an end never exists without its start\n- a position is a `Point`, not two loose numbers\n- a `widthMm` and a `heightMm` on one label, each a measurement that means what it says without the other",
+    "true": "Two or more fields carry parts of one fact, and the shape lets one be set without the others\n\nExamples:\n- an `amount` beside a `currency`, so a number can arrive in no currency at all\n- `latitude` and `longitude` as separate optional fields, so half a position is representable\n- `startedAt` and `endedAt` side by side, either settable without the other\n- a `value` beside a `unit` and a `scale`, each reachable on its own"
+  },
+  "threshold": 0.7,
+  "message": "Parts of one fact appear independently settable.",
+  "title": "split correlations",
+  "inputs": [
+    {
+      "languages": [
+        "typescript",
+        "rust",
+        "bend"
+      ],
+      "kind": "type",
+      "requires": [
+        "root-declaration",
+        "resolved-outbound-types",
+        "selected-source-type-closure"
+      ]
+    }
+  ]
+}

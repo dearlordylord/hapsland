@@ -1,11 +1,11 @@
+import { unattendedSetupTemplates } from "../src/cli-command.ts"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 import { readFile, mkdir, writeFile } from "node:fs/promises"
 import { dirname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { ConfigurationDocument, CONFIGURATION_VERSION } from "../src/configuration/types.ts"
-import { RulePack, RULE_PACK_SCHEMA_VERSION } from "../src/rules/schema.ts"
-import { TYPE_INPUT_CONTRACT } from "../src/rules/targets.ts"
+import { RuleDefinition, RULE_SCHEMA_VERSION } from "../src/rules/schema.ts"
 
 type JsonObject = Record<string, unknown>
 type GeneratedTarget = { readonly path: string; readonly content?: string; readonly problem?: string }
@@ -13,32 +13,25 @@ type GeneratedTarget = { readonly path: string; readonly content?: string; reado
 const JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 const README_MARKERS = ["<!-- configuration-readme:start -->", "<!-- configuration-readme:end -->"] as const
 const GUIDE_MARKERS = ["<!-- configuration-guide:start -->", "<!-- configuration-guide:end -->"] as const
-const PACK_GUIDE_MARKERS = ["<!-- rule-pack-guide:start -->", "<!-- rule-pack-guide:end -->"] as const
+const RULE_GUIDE_MARKERS = ["<!-- rule-guide:start -->", "<!-- rule-guide:end -->"] as const
 
 const configurationExample = JSON.stringify({ version: CONFIGURATION_VERSION, includes: ["src/**"] }, null, 2)
 
-const rulePackExample = JSON.stringify(
+const ruleExample = JSON.stringify(
   {
-    schemaVersion: RULE_PACK_SCHEMA_VERSION,
-    id: "team",
-    contentVersion: "1.0.0",
-    rules: [
+    version: RULE_SCHEMA_VERSION,
+    id: "team/meaningful-combinations",
+    question: "Does the artifact make an invalid state representable?",
+    criteria: {
+      false: "Every representable state has a domain meaning.",
+      true: "The artifact admits a state with no domain meaning."
+    },
+    message: "Review this declaration's representable states.",
+    inputs: [
       {
-        id: "meaningful-combinations",
-        question: "Does the artifact make an invalid state representable?",
-        criteria: {
-          false: "Every representable state has a domain meaning.",
-          true: "The artifact admits a state with no domain meaning."
-        },
-        message: "Review this declaration's representable states.",
-        applicability: { includes: ["src/**"] },
-        reviewTargets: [
-          {
-            artifactKind: "typeShape",
-            inputContract: TYPE_INPUT_CONTRACT,
-            capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
-          }
-        ]
+        languages: ["typescript", "rust", "bend"],
+        kind: "type",
+        requires: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
       }
     ]
   },
@@ -60,27 +53,24 @@ const toJsonSchema = (schema: Schema.Constraint): JsonObject => {
 }
 
 /** Add JSON Schema constraints that also have semantic runtime checks. */
-export const renderRulePackSchema = (): JsonObject => {
-  const schema = structuredClone(toJsonSchema(RulePack))
+export const renderRuleSchema = (): JsonObject => {
+  const schema = structuredClone(toJsonSchema(RuleDefinition))
   const definitions = objectValue(schema.$defs)
-  const rule = objectValue(definitions?.RuleDefinition)
-  const ruleProperties = objectValue(rule?.properties)
-  const targets = objectValue(ruleProperties?.reviewTargets)
-  if (definitions === undefined || rule === undefined || ruleProperties === undefined || targets === undefined) {
-    throw new Error("unexpected rule-pack Effect schema shape")
-  }
-  targets.minItems = 1
-  targets.maxItems = 2
-  targets.allOf = [
-    { contains: { $ref: "#/$defs/TypeShapeReviewTarget" }, minContains: 0, maxContains: 1 },
-    { contains: { $ref: "#/$defs/FunctionReviewTarget" }, minContains: 0, maxContains: 1 }
-  ]
-  for (const name of ["TypeShapeReviewTarget", "FunctionReviewTarget"]) {
-    const target = objectValue(definitions[name])
-    const capabilities = objectValue(objectValue(target?.properties)?.capabilities)
-    if (capabilities === undefined) throw new Error("missing review target capabilities")
-    capabilities.minItems = 1
-    capabilities.uniqueItems = true
+  const rule = objectValue(definitions?.RuleDocument) ?? schema
+  const inputs = objectValue(objectValue(rule.properties)?.inputs)
+  if (inputs === undefined) throw new Error("unexpected rule Effect schema shape")
+  inputs.minItems = 1
+  const items = objectValue(inputs.items)
+  const branches = Array.isArray(items?.anyOf) ? items.anyOf : []
+  for (const branch of branches) {
+    const properties = objectValue(objectValue(branch)?.properties)
+    const languages = objectValue(properties?.languages)
+    const requires = objectValue(properties?.requires)
+    if (languages !== undefined) {
+      languages.minItems = 1
+      languages.uniqueItems = true
+    }
+    if (requires !== undefined) requires.uniqueItems = true
   }
   return schema
 }
@@ -322,7 +312,7 @@ const shortIntroduction = (): string =>
   [
     "## Configuration",
     "",
-    "Configure file selection and exclusions, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.",
+    "Configure file selection and exclusions, individual local rules and per-rule selection, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.",
     "",
     "A small project configuration:",
     "",
@@ -330,7 +320,7 @@ const shortIntroduction = (): string =>
     configurationExample,
     "```",
     "",
-    "See the [complete configuration guide](./docs/configuration.md) for field details, rule packs, precedence, and runtime behavior."
+    "See the [complete configuration guide](./docs/configuration.md) for field details, rules, precedence, and runtime behavior."
   ].join("\n")
 
 const fullConfigurationReference = (schema: JsonObject): string =>
@@ -351,21 +341,21 @@ export const renderConfigurationArtifacts = (schema: Schema.Constraint) => {
   return { jsonSchema, documentation: fullConfigurationReference(jsonSchema) }
 }
 
-const fullRulePackReference = (schema: JsonObject): string =>
+const fullRuleReference = (schema: JsonObject): string =>
   [
-    "### Rule-pack example",
+    "### Rule example",
     "",
     "```jsonc",
-    rulePackExample,
+    ruleExample,
     "```",
     "",
-    "### Rule-pack fields",
+    "### Rule fields",
     "",
     markdownTable(schema),
     "",
-    "A type target uses `typeShape` with `direct-event/type-shape/v1`. Its capabilities may be `root-declaration`, `resolved-outbound-types`, and `selected-source-type-closure`.",
-    "A function target uses `function` with `direct-event/function/v1`. Its capabilities may be `signature`, `body`, `resolved-local-calls`, and `resolved-outbound-types`.",
-    "Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to the selected backend only when the required evidence is complete."
+    "Inputs pair each declared language with a kind and required capabilities. Type inputs support TypeScript, Rust and Bend; function inputs currently support TypeScript.",
+    "Schema inputs remain distinct declarations and produce an explicit unsupported-input diagnostic when selected. Concrete values are not review inputs.",
+    "Hapsland dispatches only when the selected language/kind pair and required evidence match. File and language restrictions belong in configuration rule references."
   ].join("\n")
 
 const replaceMarkedSection = (
@@ -406,11 +396,28 @@ const readMarkdown = async (path: string): Promise<string | undefined> => {
 const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>> => {
   const configurationArtifacts = renderConfigurationArtifacts(ConfigurationDocument)
   const configurationSchema = configurationArtifacts.jsonSchema
-  const rulePackSchema = renderRulePackSchema()
+  const ruleSchema = renderRuleSchema()
   const readmePath = resolve(root, "README.md")
   const guidePath = resolve(root, "docs/configuration.md")
   const [readme, guide] = await Promise.all([readMarkdown(readmePath), readMarkdown(guidePath)])
   const targets: Array<GeneratedTarget> = []
+  const installationPath = resolve(root, "docs/installation-workflows.md")
+  const installation = await readMarkdown(installationPath)
+  if (installation === undefined) targets.push({ path: installationPath, problem: "source document is missing" })
+  else {
+    try {
+      targets.push({
+        path: installationPath,
+        content: replaceMarkedSection(
+          installation,
+          ["<!-- unattended-setup-commands:start -->", "<!-- unattended-setup-commands:end -->"],
+          "```sh\n" + unattendedSetupTemplates().join("\n") + "\n```"
+        )
+      })
+    } catch {
+      targets.push({ path: installationPath, problem: "expected exactly one ordered unattended setup marker pair" })
+    }
+  }
 
   if (readme === undefined) {
     targets.push({ path: readmePath, problem: "source document is missing" })
@@ -430,8 +437,8 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
         path: guidePath,
         content: replaceDocumentSections(
           guide,
-          [GUIDE_MARKERS, PACK_GUIDE_MARKERS],
-          [configurationArtifacts.documentation, fullRulePackReference(rulePackSchema)]
+          [GUIDE_MARKERS, RULE_GUIDE_MARKERS],
+          [configurationArtifacts.documentation, fullRuleReference(ruleSchema)]
         )
       })
     } catch (cause) {
@@ -445,10 +452,7 @@ const makeTargets = async (root: string): Promise<ReadonlyArray<GeneratedTarget>
       path: resolve(root, "schemas/review-config-v1.schema.json"),
       content: `${JSON.stringify(configurationSchema, null, 2)}\n`
     },
-    {
-      path: resolve(root, "schemas/review-rule-pack-v1.schema.json"),
-      content: `${JSON.stringify(rulePackSchema, null, 2)}\n`
-    }
+    { path: resolve(root, "schemas/review-rule-v1.schema.json"), content: `${JSON.stringify(ruleSchema, null, 2)}\n` }
   )
   return targets
 }

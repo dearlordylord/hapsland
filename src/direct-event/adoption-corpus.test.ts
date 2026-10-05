@@ -5,7 +5,7 @@ import { adaptCodexDirectEvent } from "./adapter.ts"
 import { prepareObservation, preparedUnitStillCurrent, reviewObservation } from "./pipeline.ts"
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
-import { compileRulePack } from "../rules/compiler.ts"
+import { compileRule } from "../rules/compiler.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts"
 
@@ -31,42 +31,36 @@ const offlineManifest = JSON.parse(await readFile(new URL("offline-manifest.json
     category: string
   }>
 }
-const rules = compileRulePack(
+const rules = [
   {
-    schemaVersion: 1,
-    id: "corpus-probe",
-    contentVersion: "1",
-    rules: [
+    id: "type",
+    question: "Is the shape meaningful?",
+    criteria: { false: "No", true: "Yes" },
+    message: "Review type",
+    inputs: [
       {
-        id: "type",
-        question: "Is the shape meaningful?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Review type",
-        reviewTargets: [
-          {
-            artifactKind: "typeShape",
-            inputContract: TYPE_INPUT_CONTRACT,
-            capabilities: ["root-declaration", "resolved-outbound-types"]
-          }
-        ]
-      },
-      {
-        id: "function",
-        question: "Is the body accounted for?",
-        criteria: { false: "No", true: "Yes" },
-        message: "Review function",
-        reviewTargets: [
-          {
-            artifactKind: "function",
-            inputContract: FUNCTION_INPUT_CONTRACT,
-            capabilities: ["signature", "body", "resolved-local-calls"]
-          }
-        ]
+        languages: ["typescript", "rust", "bend"],
+        kind: "type",
+
+        requires: ["root-declaration", "resolved-outbound-types"]
       }
     ]
   },
-  "fixture:adoption-corpus"
-)
+  {
+    id: "function",
+    question: "Is the body accounted for?",
+    criteria: { false: "No", true: "Yes" },
+    message: "Review function",
+    inputs: [
+      {
+        languages: ["typescript"],
+        kind: "function",
+
+        requires: ["signature", "body", "resolved-local-calls"]
+      }
+    ]
+  }
+].map((rule) => compileRule({ version: 1, ...rule }, "fixture:adoption-corpus"))
 
 describe("proposed adoption corpus native completeness", () => {
   for (const fixture of manifest.cases) {

@@ -1,7 +1,7 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support and the 2026-10-01 request to add bounded Bend support and cross-file support for both languages, and the 2026-10-04 decision to assume valid source syntax and isolate unrelated Bend literals.
+**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support and the 2026-10-01 request to add bounded Bend support and cross-file support for both languages, and the 2026-10-04 decision to assume valid source syntax and isolate unrelated Bend literals, followed by the 2026-10-05 authorization of individual rules and distinct root/context policy.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the supported direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
@@ -250,7 +250,7 @@ Cross-language imports do not provide supporting evidence. Resolve an import to 
 canonical repository-relative path and declaration identity; a text-name match
 alone never establishes a binding. Before reading **each** newly discovered
 source file, check root containment,
-protected/privacy exclusions, Git ignore, and configured file selection. Capture
+protected/privacy exclusions, Git ignore, and configured context selection. Capture
 an eligible file stably, at most once per observation snapshot, without treating
 it as an independently edited root. Unsupported package/external resolution,
 ambiguous binding, or unavailable authority marks the dependent edge omitted.
@@ -268,13 +268,13 @@ tracks the precise supported resolution scope and a separate dashboard
 state-machine diagram. That diagram uses the same checked transition adapter
 as production and distinguishes native facts from Bend decisions.
 
-For example, if A.ts refers to B.ts, B.ts refers to C.ts, A and B are selected,
-and C is excluded, capture A and B in that order after their individual checks.
+For example, if selected root A.ts refers to B.ts, B.ts refers to C.ts, context
+selection permits B and denies C, capture A and B after their individual checks.
 Check C's path but never read C's source. Mark the blocked edge as omitted and
 keep checking later edges. Rules that need C do not run; a rule whose declared
 needs are met by A and B may run with the omission marked in its input.
-Independent roots follow the same rule. No excluded source is copied into an
-allowed file's review input.
+Independent roots pass root selection. Neither privacy-denied source nor context-denied
+supporting source is copied into an allowed root's review input.
 
 The target per-source-file stable-capture ceiling is **256 KiB inclusive**. A
 lower configured ceiling applies on every supported platform; native capture
@@ -308,41 +308,56 @@ candidate never becomes a clear/no-finding result for a rule that did not run.
 The implementation must check the graph boundary and each rule's declared needs;
 "complete" cannot be assumed from unparsed syntax.
 
-## Rule pack and configuration contract
+## Rule and configuration contract
 
-`rule-pack/v1` requires an explicit `reviewTargets` declaration
-to each rule. Each target names `artifactKind` (`typeShape` or `function`), exact
-`inputContract`, and an enumerated set of evidence capabilities the rule needs.
-These declarations decide whether a candidate's evidence is sufficient for that
-rule. Type
-capabilities include `root-declaration`, `resolved-outbound-types`, and
-`selected-source-type-closure`; function capabilities include `signature`, `body`,
-`resolved-local-calls`, and `resolved-outbound-types`. These capabilities describe
-what a branch projection can support; a root with no outbound references can
-still be complete. A rule applying to both branches declares
-two targets and branch-specific requirements. Neither a broad
-kind wildcard nor an unversioned contract alias is allowed. Unknown target or
-capability makes the selected pack invalid before egress.
+The 2026-10-05 owner authorization replaces rule packs with one version-one JSONC
+rule per file and moves all path policy into configuration. This supersedes the
+corresponding #220 decisions; no compatibility loader or parallel legacy definition
+is retained. The [configuration guide](configuration.md#declarative-rules) describes
+authoring and the amended [Phase F contract](../PRODUCT-PHASE-F-SPEC.md) owns layering.
 
-Path applicability continues to intersect global file selection. The compiler
-selects a rule only when its required evidence is present, after artifact kind, exact contract,
-declared capabilities, path filter, and any built-in semantic applicability all
-match. Rule identity includes the pack ID/version/content digest, rule definition
-digest, target, and
-effective threshold/message; changing any evaluation-affecting part invalidates
-reuse. The target list belongs in the authored rule definition digest. A rule may
-share a question across branches, but branch-specific criteria and messages need
-separate rule IDs or explicit target-specific definitions so evidence promises
-remain honest.
+Each rule declares `inputs`: supported combinations of `languages`, `kind`, and
+`requires`. Supported kinds are `type` for TypeScript/Rust/Bend and `function` for
+TypeScript. The compiler maps those combinations to the exact input contracts in
+this document. Authors specify semantic requirements, not wire contract identifiers.
+Type requirements are `root-declaration`, `resolved-outbound-types`, and
+`selected-source-type-closure`; function requirements are `signature`, `body`,
+`resolved-local-calls`, and `resolved-outbound-types`. A root with no outbound
+references can satisfy complete closure. Each entry has distinct, nonempty languages and distinct requirements. `requires`
+may be empty: it adds no evidence requirement beyond a supported extracted root,
+and does not establish complete dependency evidence. Duplicate language/kind combinations fail validation. Enabled inputs selected by
+configured languages must have supported combinations and requirements; otherwise
+configuration fails before source capture.
 
-Schema-v1 packs keep their current rule meaning. The target uses the existing
-file settings: absent settings include all otherwise eligible files, and
-configured includes/excludes narrow or replace that selection under the
-documented precedence. There is no separate repository grant. A migration
-must produce explicit targets for new rule inputs, update setup and file
-settings documentation, and continue to reject unknown configuration
-versions. Project settings cannot bypass protected paths, containment,
-Git ignore, supported host boundaries, or analysis limits.
+Runtime validation schemas, including Zod and Effect Schema, are a separate future
+input form requiring an explicit supported dialect and extraction contract. A disabled rule may store such an input, but enabling a selected schema input fails.
+A multi-input definition may run its supported combinations if its configured
+languages exclude all unsupported inputs. This does not add schema execution support.
+Concrete values are not supported roots.
+The evidence model has no raw/type/schema ranking: capabilities and bounded observed
+evidence establish eligibility. Rule-file validation schemas are not review inputs.
+
+Configuration explicitly connects each rule by path. An inherited identity can be
+configured by ID without redefining its source. Settings select enablement, languages,
+root paths, threshold, and message. The rule itself contains no file applicability
+policy. Configured rule languages must be a subset of authored languages; a language outside
+that set is a configuration error. Within that boundary, per-rule selections intersect
+global root selection and cannot add an analyzer or input capability.
+
+`includes`/`excludes` select review roots; `contextIncludes`/`contextExcludes` select
+supporting files. Omitted context selection follows root file selection, so narrowing
+roots does not silently expand reads. An explicit context scope may add `shared/**`
+without selecting unchanged or edited roots there. Every read still passes
+`privacyExcludes`, containment, protected paths, Git ignore, and capture limits.
+No context or rule setting bypasses these restrictions. Language settings select
+roots; dependency traversal remains bounded by the root's language adapter.
+
+A selected rule runs only when its language, kind, configured paths, and required
+evidence all match. No backend request is sent if no rule remains. Rule identity
+includes the stable ID and exact definition digest; input identity includes the
+selected input entry, renderer/contract, and effective activation, language, path,
+threshold and message policy. Definition or policy changes invalidate affected reuse.
+Different questions, criteria, or feedback for different branches use distinct rules.
 
 ## Review unit, identity, input, and publication
 
@@ -419,8 +434,8 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    and rationale. Missing labels mean unchecked; rules needing omitted evidence
    have skip expectations, not probability bands.
 2. Deterministic offline checks establish unique attribution, finite expansion,
-   per-rule evidence checks and strict schema-v1 target validation,
-   exact request shape, per-path file selection before any source read
+   per-rule evidence checks and strict version-one input validation,
+   exact request shape, root/context selection and privacy checks before any source read
    (including A → B → excluded C),
    no read of excluded C, continued bounded traversal after a contribution
    exceeds the remaining tree budget,

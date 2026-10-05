@@ -1,3 +1,4 @@
+import { SETUP_REVIEW_CHOICES, SETUP_CREDENTIAL_CHOICES } from "./onboarding/setup-request.ts"
 import { isHookInvocation } from "./runtime/hook-invocation.ts"
 import * as Argument from "effect/cli/Argument"
 import * as Command from "effect/cli/Command"
@@ -103,12 +104,59 @@ const automationFlags = {
     Flag.withHidden
   )
 }
+export const unattendedSetupOptions = {
+  "no-input": switchFlag("no-input", [], false).pipe(
+    Flag.withDescription("Suppress prompts; previews unless application is authorized separately")
+  ),
+  apply: switchFlag("apply", [], false).pipe(
+    Flag.withDescription("Authorize applying the current validated setup preview")
+  ),
+  "save-plan": valueFlag("save-plan").pipe(Flag.withDescription("Save a setup plan for later explicit application")),
+  "apply-plan": valueFlag("apply-plan").pipe(
+    Flag.withDescription("Apply a saved setup plan after validating its current digests")
+  ),
+  credential: Flag.Literals("credential", SETUP_CREDENTIAL_CHOICES).pipe(
+    Flag.atMost(1),
+    Flag.map((values) => values[0])
+  ),
+  review: Flag.Literals("review", SETUP_REVIEW_CHOICES).pipe(
+    Flag.atMost(1),
+    Flag.map((values) => values[0])
+  ),
+  json: switchFlag("json", [], false)
+}
+const setupFlag = (name: keyof typeof unattendedSetupOptions): string => `--${name}`
+export const unattendedSetupTemplates = (): ReadonlyArray<string> => {
+  const base = `hapsland setup codex ${setupFlag("no-input")} ${setupFlag("review")} ${SETUP_REVIEW_CHOICES[0]} ${setupFlag("credential")}`
+  return [
+    `${base} ${SETUP_CREDENTIAL_CHOICES[1]} ${setupFlag("json")}`,
+    `${base} ${SETUP_CREDENTIAL_CHOICES[1]} ${setupFlag("apply")} ${setupFlag("json")}`,
+    `${base} ${SETUP_CREDENTIAL_CHOICES[0]} ${setupFlag("save-plan")} setup-plan.json ${setupFlag("json")}`,
+    `hapsland setup ${setupFlag("no-input")} ${setupFlag("apply-plan")} setup-plan.json ${setupFlag("json")}`
+  ]
+}
+export const unattendedSetupUsage = (): string =>
+  `Unattended setup requires an explicit client, ${setupFlag("review")} ${SETUP_REVIEW_CHOICES.join("|")} and ${setupFlag("credential")} ${SETUP_CREDENTIAL_CHOICES.join("|")}. Preview example: ${unattendedSetupTemplates()[0]}. Add ${setupFlag("apply")} to authorize changes, or use ${setupFlag("apply-plan")} FILE.`
 export type AutomationOptions = Command.Command.Config.Infer<typeof automationFlags>
 export interface ClientArguments {
   readonly host: SetupClient | undefined
   readonly flags: ReadonlyMap<string, string>
 }
+const rulesOptions = {
+  action: Argument.Literals("action", ["list", "show", "explain", "enable", "disable", "create", "connect"]).pipe(
+    Argument.optional
+  ),
+  id: valueFlag("id"),
+  path: valueFlag("path"),
+  scope: Flag.Literals("scope", ["personal", "project"]).pipe(
+    Flag.atMost(1),
+    Flag.map((values) => values[0])
+  ),
+  json: switchFlag("json", [], false)
+}
+export type RulesOptions = Command.Command.Config.Infer<typeof rulesOptions>
 export type Invocation =
+  | { readonly kind: "rules"; readonly options: RulesOptions }
   | { readonly kind: "automation"; readonly options: AutomationOptions; readonly client: ClientArguments }
   | { readonly kind: "lifecycle"; readonly command: ClientCommand; readonly client: ClientArguments }
 
@@ -127,7 +175,7 @@ const clientArguments = (values: ClientArgumentValues): ClientArguments => {
   const host = selectedClientHost(values)
   const flags = new Map<string, string>()
   for (const [name, value] of Object.entries(values)) if (typeof value === "string") flags.set(`--${name}`, value)
-  if (values["new-key"] === true) flags.set("--new-key", "true")
+  for (const name of ["new-key", "no-input", "apply", "json"]) if (values[name] === true) flags.set(`--${name}`, "true")
   return { host, flags }
 }
 
@@ -202,14 +250,19 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
       invocation = { kind: "automation", options: values, client: clientArguments(values) }
     })
   ).pipe(Command.withDescription("Hapsland — Claude Code and Codex review integration"))
+  const rulesCommand = Command.make("rules", rulesOptions, (options) =>
+    Effect.sync(() => {
+      invocation = { kind: "rules", options }
+    })
+  ).pipe(Command.withDescription("Inspect, toggle, create or connect local JSON rules; no classifier calls"))
   const root = parent.pipe(
-    Command.withSubcommands(
-      clientCommands.map((command) =>
+    Command.withSubcommands([
+      ...clientCommands.map((command) =>
         Command.make(
           command,
           {
             ...profiles,
-            ...(command === "setup" ? { "new-key": automationFlags["new-key"] } : {}),
+            ...(command === "setup" ? { "new-key": automationFlags["new-key"], ...unattendedSetupOptions } : {}),
             client: Argument.Literals("client", ["claude", "codex", "pi"]).pipe(Argument.optional),
             ...(command === "update" || command === "setup" || command === "repair" || command === "reinstall"
               ? { target: valueFlag("target") }
@@ -251,8 +304,9 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
             }[command]
           )
         )
-      )
-    )
+      ),
+      rulesCommand
+    ])
   )
   const output: string[] = []
   const capturedConsole = Object.assign(Object.create(console), {

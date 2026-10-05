@@ -6,8 +6,8 @@ import { symlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
-import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 import { MAX_OPERATIONAL_NOTICE_KEYS, OPERATIONAL_NOTICE_COOLDOWN_MS } from "./server.ts"
 import { residentPaths } from "./paths.ts"
@@ -40,33 +40,31 @@ const installCapacityRule = async (root: string, threshold = 0.7, messageBytes =
     root,
     "rules.jsonc",
     JSON.stringify({
-      schemaVersion: 1,
-      id: "team",
-      contentVersion: "1",
-      rules: [
+      version: 1,
+      id: "large",
+      question: "Does this declaration need review?",
+      criteria: { false: "No", true: "Yes" },
+      threshold,
+      message: "x".repeat(messageBytes),
+      inputs: [
         {
-          id: "large",
-          question: "Does this declaration need review?",
-          criteria: { false: "No", true: "Yes" },
-          threshold,
-          message: "x".repeat(messageBytes),
-          applicability: { includes: ["**/*.ts"] },
-          reviewTargets: [
-            {
-              artifactKind: "typeShape",
-              inputContract: "direct-event/type-shape/v1",
-              capabilities: ["root-declaration", "resolved-outbound-types"]
-            }
-          ]
+          languages: ["typescript", "rust", "bend"],
+          kind: "type",
+
+          requires: ["root-declaration", "resolved-outbound-types"]
         }
       ]
     })
   )
-  await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }))
+  await put(
+    root,
+    ".hapsland.jsonc",
+    JSON.stringify({ version: 1, rules: [{ path: "rules.jsonc", includes: ["**/*.ts"] }] })
+  )
 }
 
 const capacityDispatch = (statePath: string): ResidentDispatchContext =>
-  dispatch(statePath, { answers: { ...answers, "team/large": { _tag: "Probability", probability: 1 } } })
+  dispatch(statePath, { answers: { ...answers, large: { _tag: "Probability", probability: 1 } } })
 
 const collectAndFinalize = async (
   server: ResidentRuntime,

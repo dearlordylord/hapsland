@@ -20,7 +20,7 @@
         "minLength": 1,
         "description": "A non-empty repository-relative glob pattern using forward slashes."
       },
-      "description": "Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths."
+      "description": "Changed-root repository-relative patterns. Omission inherits the lower-precedence list; an empty array selects no roots."
     },
     "excludes": {
       "type": "array",
@@ -29,7 +29,37 @@
         "minLength": 1,
         "description": "A non-empty repository-relative glob pattern using forward slashes."
       },
-      "description": "Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win."
+      "description": "Changed-root repository-relative exclusions. Exclusions accumulate across configuration layers and always win for roots."
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "typescript",
+          "rust",
+          "bend"
+        ]
+      },
+      "description": "Changed-root analyzer languages. Omission inherits; an empty array selects no roots."
+    },
+    "contextIncludes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A non-empty repository-relative glob pattern using forward slashes."
+      },
+      "description": "Supporting-context patterns. Omission inherits effective root includes; an empty array selects no supporting paths."
+    },
+    "contextExcludes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "description": "A non-empty repository-relative glob pattern using forward slashes."
+      },
+      "description": "Supporting-context exclusions accumulate across layers. Omission inherits effective root exclusions."
     },
     "privacyExcludes": {
       "type": "array",
@@ -76,19 +106,11 @@
     "graphLimits": {
       "$ref": "#/$defs/GraphLimitsSettings"
     },
-    "packs": {
+    "rules": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/RulePackReference"
-      },
-      "description": "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently."
-    },
-    "ruleOverrides": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/$defs/RuleOverride"
-      },
-      "description": "Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs."
+        "$ref": "#/$defs/RuleReference"
+      }
     }
   },
   "required": [
@@ -96,7 +118,7 @@
   ],
   "additionalProperties": false,
   "title": "Review configuration v1",
-  "description": "JSONC configuration for file selection, bounded import exploration, rule packs, and credential references.",
+  "description": "JSONC configuration for file selection, bounded import exploration, rules, and credential references.",
   "$defs": {
     "ReviewBackendSettings": {
       "anyOf": [
@@ -237,24 +259,57 @@
       "additionalProperties": false,
       "description": "Versioned bounded import graph limits; omitted values inherit."
     },
-    "RulePackReference": {
+    "RuleReference": {
       "anyOf": [
         {
           "type": "string",
-          "minLength": 1,
-          "description": "Path to a local rule-pack document."
+          "minLength": 1
         },
         {
           "type": "object",
           "properties": {
             "path": {
               "type": "string",
-              "minLength": 1,
-              "description": "Local rule-pack path; relative paths resolve from the originating configuration file."
+              "minLength": 1
             },
             "enabled": {
-              "type": "boolean",
-              "description": "Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack."
+              "type": "boolean"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "typescript",
+                  "rust",
+                  "bend"
+                ]
+              }
+            },
+            "includes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A non-empty repository-relative glob pattern using forward slashes."
+              }
+            },
+            "excludes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A non-empty repository-relative glob pattern using forward slashes."
+              }
+            },
+            "threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
             }
           },
           "required": [
@@ -267,13 +322,46 @@
           "properties": {
             "id": {
               "type": "string",
-              "minLength": 1,
-              "pattern": "^[^/:\\\\\\s]+$",
-              "description": "Identity of a rule pack declared in a lower-precedence configuration layer."
+              "pattern": "^(?!\\.{1,2}(?:\\/|$))(?!.*\\/\\.{1,2}(?:\\/|$))[a-zA-Z0-9._-]+(?:\\/[a-zA-Z0-9._-]+)*$"
             },
             "enabled": {
-              "type": "boolean",
-              "description": "Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack."
+              "type": "boolean"
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "typescript",
+                  "rust",
+                  "bend"
+                ]
+              }
+            },
+            "includes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A non-empty repository-relative glob pattern using forward slashes."
+              }
+            },
+            "excludes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A non-empty repository-relative glob pattern using forward slashes."
+              }
+            },
+            "threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
             }
           },
           "required": [
@@ -282,47 +370,7 @@
           "additionalProperties": false
         }
       ],
-      "description": "A path declaration or an inherited pack identity; object forms contain exactly one locator."
-    },
-    "RuleOverride": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this rule is enabled in this configuration layer."
-        },
-        "includes": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "description": "A non-empty repository-relative glob pattern using forward slashes."
-          },
-          "description": "Additional rule path filters; they intersect global file selection."
-        },
-        "excludes": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "description": "A non-empty repository-relative glob pattern using forward slashes."
-          },
-          "description": "Rule-specific path exclusions; they cannot restore globally excluded paths."
-        },
-        "threshold": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Probability threshold from 0 through 1. Omission inherits the rule-pack threshold."
-        },
-        "message": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Advice text to use for this rule; omission keeps the rule-pack message."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID."
+      "description": "A local rule path or inherited rule ID, with optional selection settings."
     }
   }
 }

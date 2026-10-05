@@ -9,8 +9,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
 import type { DirectObservation } from "../direct-event/model.ts"
-import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import {
   acknowledgeAdviceEffect as acknowledgeAdvice,
   beginComposedSubmissionEffect as beginComposedSubmission,

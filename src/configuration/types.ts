@@ -49,64 +49,24 @@ const EnvironmentVariableName = Schema.String.check(Schema.isPattern(/^[A-Z_][A-
   default: DEFAULT_CREDENTIAL_ENV_VAR
 })
 
-/** A local or bundled declarative rule-pack reference. */
-const PackEnabled = Schema.Boolean.annotate({
-  description:
-    "Optional enablement override. Omission inherits an existing pack's state and enables a newly declared pack."
+export const RuleSettings = Schema.Struct({
+  enabled: Schema.optionalKey(Schema.Boolean),
+  languages: Schema.optionalKey(Schema.Array(Schema.Literals(["typescript", "rust", "bend"]))),
+  includes: Schema.optionalKey(Schema.Array(Pattern)),
+  excludes: Schema.optionalKey(Schema.Array(Pattern)),
+  threshold: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
+  message: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1)))
 })
-
-export const RulePackReference = Schema.Union([
-  Schema.String.check(Schema.isMinLength(1)).annotate({ description: "Path to a local rule-pack document." }),
-  // A reference is either a declaration (path) or an inherited identity (id).
-  // Keeping these as separate object schemas makes the XOR part of the public
-  // boundary rather than relying on a later loader check.
-  Schema.Struct({
-    path: Schema.String.check(Schema.isMinLength(1)).annotate({
-      description: "Local rule-pack path; relative paths resolve from the originating configuration file."
-    }),
-    enabled: Schema.optionalKey(PackEnabled)
-  }),
-  Schema.Struct({
-    id: RuleIdentitySchema.annotate({
-      description: "Identity of a rule pack declared in a lower-precedence configuration layer."
-    }),
-    enabled: Schema.optionalKey(PackEnabled)
-  })
+export type RuleSettings = typeof RuleSettings.Type
+export const RuleReference = Schema.Union([
+  Schema.String.check(Schema.isMinLength(1)),
+  Schema.Struct({ path: Schema.String.check(Schema.isMinLength(1)), ...RuleSettings.fields }),
+  Schema.Struct({ id: RuleIdentitySchema, ...RuleSettings.fields })
 ]).annotate({
-  identifier: "RulePackReference",
-  description: "A path declaration or an inherited pack identity; object forms contain exactly one locator."
+  identifier: "RuleReference",
+  description: "A local rule path or inherited rule ID, with optional selection settings."
 })
-export type RulePackReference = typeof RulePackReference.Type
-
-export const RuleOverride = Schema.Struct({
-  enabled: Schema.optionalKey(
-    Schema.Boolean.annotate({ description: "Whether this rule is enabled in this configuration layer." })
-  ),
-  includes: Schema.optionalKey(
-    Schema.Array(Pattern).annotate({
-      description: "Additional rule path filters; they intersect global file selection."
-    })
-  ),
-  excludes: Schema.optionalKey(
-    Schema.Array(Pattern).annotate({
-      description: "Rule-specific path exclusions; they cannot restore globally excluded paths."
-    })
-  ),
-  threshold: Schema.optionalKey(
-    Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })).annotate({
-      description: "Probability threshold from 0 through 1. Omission inherits the rule-pack threshold."
-    })
-  ),
-  message: Schema.optionalKey(
-    Schema.String.check(Schema.isMinLength(1)).annotate({
-      description: "Advice text to use for this rule; omission keeps the rule-pack message."
-    })
-  )
-}).annotate({
-  identifier: "RuleOverride",
-  description: "Layer-specific activation, path filters, threshold, and advice message for one qualified rule ID."
-})
-export interface RuleOverride extends Schema.Schema.Type<typeof RuleOverride> {}
+export type RuleReference = typeof RuleReference.Type
 
 const graphBound = (ceiling: number, description: string) =>
   Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: ceiling })).annotate({ description, default: ceiling })
@@ -165,13 +125,30 @@ export const ConfigurationDocument = Schema.Struct({
   includes: Schema.optionalKey(
     Schema.Array(Pattern).annotate({
       description:
-        "Optional repository-relative file patterns. Omission inherits the lower-precedence list; an empty array selects no paths."
+        "Changed-root repository-relative patterns. Omission inherits the lower-precedence list; an empty array selects no roots."
     })
   ),
   excludes: Schema.optionalKey(
     Schema.Array(Pattern).annotate({
       description:
-        "Additional repository-relative exclusions. Exclusions accumulate across configuration layers and always win."
+        "Changed-root repository-relative exclusions. Exclusions accumulate across configuration layers and always win for roots."
+    })
+  ),
+  languages: Schema.optionalKey(
+    Schema.Array(Schema.Literals(["typescript", "rust", "bend"])).annotate({
+      description: "Changed-root analyzer languages. Omission inherits; an empty array selects no roots."
+    })
+  ),
+  contextIncludes: Schema.optionalKey(
+    Schema.Array(Pattern).annotate({
+      description:
+        "Supporting-context patterns. Omission inherits effective root includes; an empty array selects no supporting paths."
+    })
+  ),
+  contextExcludes: Schema.optionalKey(
+    Schema.Array(Pattern).annotate({
+      description:
+        "Supporting-context exclusions accumulate across layers. Omission inherits effective root exclusions."
     })
   ),
   privacyExcludes: Schema.optionalKey(
@@ -199,23 +176,10 @@ export const ConfigurationDocument = Schema.Struct({
     })
   ),
   graphLimits: Schema.optionalKey(GraphLimitsSettings),
-  /** Explicit local pack references. Bundled Noul is loaded independently. */
-  packs: Schema.optionalKey(
-    Schema.Array(RulePackReference).annotate({
-      description:
-        "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently."
-    })
-  ),
-  /** Qualified rule IDs to per-field activation/selection overrides. */
-  ruleOverrides: Schema.optionalKey(
-    Schema.Record(Schema.String, RuleOverride).annotate({
-      description: "Map of qualified rule IDs to layer-specific overrides. Use pack-id/rule-id for local packs."
-    })
-  )
+  rules: Schema.optionalKey(Schema.Array(RuleReference))
 }).annotate({
   title: "Review configuration v1",
-  description:
-    "JSONC configuration for file selection, bounded import exploration, rule packs, and credential references."
+  description: "JSONC configuration for file selection, bounded import exploration, rules, and credential references."
 })
 export interface ConfigurationDocument extends Schema.Schema.Type<typeof ConfigurationDocument> {}
 
@@ -236,6 +200,10 @@ export type ResolvedPolicy = {
   readonly includes: ReadonlyArray<PatternOrigin>
   readonly overriddenIncludes: ReadonlyArray<PatternOrigin>
   readonly excludes: ReadonlyArray<PatternOrigin>
+  readonly contextIncludes: ReadonlyArray<PatternOrigin>
+  readonly overriddenContextIncludes: ReadonlyArray<PatternOrigin>
+  readonly contextExcludes: ReadonlyArray<PatternOrigin>
+  readonly languages: Originated<ReadonlyArray<"typescript" | "rust" | "bend">>
   readonly protectedExcludes: ReadonlyArray<PatternOrigin>
   readonly credentialEnvVar: Originated<string>
   readonly claudeFeedbackMode: Originated<ClaudeFeedbackMode>

@@ -7,8 +7,8 @@ import { JEV_API_BASE } from "../runtime/backend.ts"
 import { liveLayer } from "../jev-decision.ts"
 import { ReviewBackend } from "../ports/review-backend.ts"
 import { compileRules } from "../rules/compiler.ts"
-import type { LoadedRulePack } from "../rules/loader.ts"
-import { BUNDLED_NOUL_PACK } from "../rules/bundled.ts"
+import type { LoadedRule } from "../rules/loader.ts"
+import { SHIPPED_DEFAULT_RULES } from "../rules/shipped.ts"
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
@@ -82,15 +82,16 @@ export type DefaultEvaluationSuite = {
   readonly compiledRules: ReadonlyArray<ReturnType<typeof compileRules>[number]>
 }
 
-const productionPack: LoadedRulePack = {
-  ...BUNDLED_NOUL_PACK,
+const productionRules: ReadonlyArray<LoadedRule> = SHIPPED_DEFAULT_RULES.map((rule) => ({
+  ...rule,
   origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" },
   path: "built-in:noul",
-  enabled: true
-}
+  enabled: true,
+  reference: { path: "built-in:noul", origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" } }
+}))
 
-const compiledRules = compileRules({ packs: [productionPack] })
-const allRuleIds = BUNDLED_EVALUATION_RULES.map((rule) => rule.identity.qualifiedId)
+const compiledRules = compileRules({ rules: productionRules })
+const allRuleIds = BUNDLED_EVALUATION_RULES.map((rule) => rule.identity.ruleId)
 const backendIdentity = (mode: "controlled" | "live") => makeBackendIdentity({ id: "jev", version: "1", mode })
 const inputContract = makeInputContractIdentity({
   id: "full-file-plus-path",

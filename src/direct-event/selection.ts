@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect"
 import { matchesAnyGlob } from "../matcher/glob.ts"
 import { admitCandidateFile, selectFile } from "../configuration/decision.ts"
 import { protectedPathReason } from "../policy/file-policy.ts"
+import { rootLanguageForPath } from "./languages/path-language.ts"
 import type { PhysicalRootIdentity } from "./model.ts"
 
 export type DirectFilePolicy = {
@@ -13,6 +14,9 @@ export type DirectFilePolicy = {
   readonly includes: ReadonlyArray<string>
   /** Already-accumulated exclusions from every configuration layer. */
   readonly excludes: ReadonlyArray<string>
+  readonly languages?: ReadonlyArray<string>
+  readonly contextIncludes?: ReadonlyArray<string>
+  readonly contextExcludes?: ReadonlyArray<string>
 }
 
 export const DEFAULT_DIRECT_FILE_POLICY: DirectFilePolicy = { includes: ["**/*"], excludes: [] }
@@ -40,7 +44,9 @@ export const selectedByDirectFilePolicy = (path: string, policy: DirectFilePolic
     protected: protectedPathReason(path) !== undefined,
     excluded: matchesAnyGlob(policy.excludes, path),
     includesEmpty: policy.includes.length === 0,
-    included: matchesAnyGlob(policy.includes, path)
+    included:
+      matchesAnyGlob(policy.includes, path) &&
+      (policy.languages === undefined || policy.languages.includes(rootLanguageForPath(path) ?? ""))
   }) === "selected"
 
 const equalToOrWithin = (parent: string, candidate: string): boolean => {
@@ -115,7 +121,21 @@ export const resolvedDirectFilePolicy = (policy: {
   readonly includes: ReadonlyArray<{ readonly value: string }>
   readonly excludes: ReadonlyArray<{ readonly value: string }>
   readonly protectedExcludes?: ReadonlyArray<{ readonly value: string }>
+  readonly languages?: { readonly value: ReadonlyArray<string> }
+  readonly contextIncludes?: ReadonlyArray<{ readonly value: string }>
+  readonly contextExcludes?: ReadonlyArray<{ readonly value: string }>
 }): DirectFilePolicy => ({
   includes: policy.includes.map(({ value }) => value),
-  excludes: [...policy.excludes, ...(policy.protectedExcludes ?? [])].map(({ value }) => value)
+  excludes: [...policy.excludes, ...(policy.protectedExcludes ?? [])].map(({ value }) => value),
+  ...(policy.languages === undefined ? {} : { languages: policy.languages.value }),
+  contextIncludes: (policy.contextIncludes ?? policy.includes).map(({ value }) => value),
+  contextExcludes: [...(policy.contextExcludes ?? policy.excludes), ...(policy.protectedExcludes ?? [])].map(
+    ({ value }) => value
+  )
+})
+
+/** Supporting reads retain the canonical gate and privacy exclusions, without root-language restriction. */
+export const contextDirectFilePolicy = (policy: DirectFilePolicy): DirectFilePolicy => ({
+  includes: policy.contextIncludes ?? policy.includes,
+  excludes: policy.contextExcludes ?? policy.excludes
 })

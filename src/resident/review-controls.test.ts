@@ -3,8 +3,8 @@ import { Deferred, Effect, Exit, Layer, Ref } from "effect"
 import { rm } from "node:fs/promises"
 import { join } from "node:path"
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts"
-import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
-import { configuredRules } from "../policy/rules.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put } from "../direct-event/test-fixtures.ts"
+import { configuredRules } from "../test-support/default-rules.ts"
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
 import {
   ResidentReviewControls,
