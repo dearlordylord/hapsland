@@ -16,6 +16,7 @@ Engine evidence. They remain subject to lint and TypeScript checks.
 
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
+| Resident playback liveness | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play, pause/resume; finding/clear cache plus quiet-window settlement and replay | Observed progress beyond Jev result through genuine cache facts; not universal scheduler liveness or live Jev transport |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
 | Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, real Husky/lint-staged formatting and commit rejection | Offline temporary-repository workflow; no build or agent invocation |

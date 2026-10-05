@@ -1790,7 +1790,9 @@ export class Run {
       }
       return this.step(untilTime)
     }
-    let event = item.input.event
+    // Cache transitions consume the issued capsule; its event also owns the
+    // quiet/collector followups. The queued input is a detached display copy.
+    let event = item.cacheFact?.event ?? item.input.event
     if (item.generated && ["jevRequestSettled", "jevRequestReady", "finalCandidateCheck"].includes(event.kind)) {
       const context = this.driverContext(event, item, undefined)
       event = decodeDriverEvent(this.core.fence(event, true, context))

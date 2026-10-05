@@ -21,6 +21,7 @@
     "test:resident-capacity-browser": "node scripts/check-resident-capacity-browser.mjs",
     "test:edit-permits-browser": "node scripts/check-edit-permits-browser.mjs",
     "test:edit-duration-browser": "node scripts/check-edit-duration-browser.mjs",
+    "test:resident-liveness-browser": "node scripts/check-resident-liveness-browser.mjs",
     "test:live-drafts-browser": "node scripts/check-live-drafts-browser.mjs",
     "test:collectors-browser": "node scripts/check-collectors-browser.mjs",
     "test:stop-slot-browser": "node scripts/check-stop-slot-browser.mjs"
