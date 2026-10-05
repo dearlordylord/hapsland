@@ -2,6 +2,7 @@ import { piHooks, piHookCommand } from "../runtime/hook-catalog.ts"
 import { spawn } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
 import { fileURLToPath } from "node:url"
+import { piOfferReports } from "./inspection.ts"
 
 type Context = { cwd: string; sessionManager: { getSessionId(): string } }
 type Event = Record<string, any>
@@ -145,7 +146,13 @@ export const createPiExtension =
       fields: Event = {}
     ) => {
       // This ack proves our native handler offered these bytes; later handlers may replace them.
-      await send(id, "ack", { token: result.token, lifetime: result.lifetime, ...fields })
+      const writerReports = piOfferReports(result, output)
+      await send(id, "ack", {
+        token: result.token,
+        lifetime: result.lifetime,
+        ...fields,
+        ...(writerReports === undefined ? {} : { writerReports })
+      })
       if (generation !== epoch) return
       return output
     }

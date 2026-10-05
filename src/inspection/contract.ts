@@ -233,7 +233,7 @@ export const InspectionFact = Schema.Union([
     output: Schema.Union([
       Schema.Struct({
         status: Schema.Literal("available"),
-        representation: Schema.Literal("host-jsonl-base64"),
+        representation: Schema.Literal("native-output-utf8-base64"),
         encoded: Schema.String.check(Schema.isMaxLength(21848)),
         byteLength: Count,
         sha256: Hash

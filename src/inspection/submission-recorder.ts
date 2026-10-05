@@ -121,7 +121,7 @@ export const makeInspectionSubmissionRecorder = (
                 ? { status: "missing", reason: "oversized" }
                 : {
                     status: "available",
-                    representation: "host-jsonl-base64",
+                    representation: "native-output-utf8-base64",
                     encoded: body.toString("base64"),
                     byteLength: body.byteLength,
                     sha256: createHash("sha256").update(body).digest("hex")
