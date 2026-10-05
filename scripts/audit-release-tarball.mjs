@@ -46,7 +46,7 @@ const allowed = (name) =>
     "docs/installation-workflows.md",
     "docs/npm-publishing.md"
   ].includes(name) ||
-  name === "dist/pi/extension.js" ||
+  ["dist/pi/extension.js", "dist/pi/inspection.js", "dist/runtime/hook-catalog.js"].includes(name) ||
   /^dist\/bin\/(?:linux|darwin)-arm64\/hapsland(?:-doctor|-parser|-resident)?$/.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name)
 for (const name of names) {
@@ -69,7 +69,15 @@ if (
 ) {
   throw new Error("release package manifest differs from reviewed release coordinates or runtime contract")
 }
-const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh", "dist/pi/extension.js"]
+const required = [
+  "package.json",
+  "package-runtime.json",
+  "README.md",
+  "bin/launch.sh",
+  "dist/pi/extension.js",
+  "dist/pi/inspection.js",
+  "dist/runtime/hook-catalog.js"
+]
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
   for (const command of ["hapsland", "hapsland-doctor", "hapsland-parser", "hapsland-resident"])
     required.push(`dist/bin/${profile}/${command}`)
