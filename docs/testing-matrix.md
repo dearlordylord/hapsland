@@ -14,6 +14,11 @@ participate in the shared Engine preparation identity. Keep their formatting sta
 when changing other owners; intentional preparation changes require regenerated
 Engine evidence. They remain subject to lint and TypeScript checks.
 
+The measured input owner `scripts/abide-large-declaration-fixtures.mjs` also stays
+outside automatic formatting. Its exact bytes are bound to the retained research
+declaration; lint still applies. Changing it requires replacement measurement
+evidence before regenerating the scenario pages.
+
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Resident playback and timeline | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `npm --prefix packages/agent-flow-viz run test:timeline-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play and pause/resume; finding/clear cache and quiet-window replay; monotonic timeline drag, exact paused endpoint, keyboard seek, previous/next/latest and playback resynchronization | Observed cache progress and browser interaction; not universal scheduler liveness or live Jev transport |

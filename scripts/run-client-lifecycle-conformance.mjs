@@ -127,8 +127,8 @@ try {
   const repeated = await terminal(["update"])
   assert.equal(repeated.code, 0, repeated.output)
   assert.equal(repeated.confirmations, 0)
-  assert(repeated.output.includes("claude: already current"))
-  assert(repeated.output.includes("codex: already current"))
+  assert(repeated.output.includes("claude update: already current"), repeated.output)
+  assert(repeated.output.includes("codex update: already current"), repeated.output)
   assert.equal(
     readdirSync(join(root, ".local/share/hapsland/candidates")).filter((name) => name.startsWith("snapshot-")).length,
     1

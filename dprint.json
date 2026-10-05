@@ -26,7 +26,8 @@
     "**/vendor/**",
     "**/fixtures/**",
     "packages/monkey-business/src/preparation.ts",
-    "packages/monkey-business/src/file-trees.ts"
+    "packages/monkey-business/src/file-trees.ts",
+    "scripts/abide-large-declaration-fixtures.mjs"
   ],
   "plugins": [
     "https://plugins.dprint.dev/oxc-0.32.0.wasm"

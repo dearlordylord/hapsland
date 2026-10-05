@@ -168,7 +168,7 @@ describe("Claude synchronous hook CLI", () => {
     expect(await completed).toEqual({ code: 0, signal: null })
   })
 
-  it("rejects a selected block after the user revokes opt-in at final IPC handoff", async () => {
+  it("retains the edit's blocking snapshot after settings change at final IPC handoff", async () => {
     const root = await makeGitFixture()
     roots.push(root)
     const statePath = join(root, "consent")
@@ -244,14 +244,14 @@ describe("Claude synchronous hook CLI", () => {
       writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}')
       writeFileSync(`${gate}.release`, "release\n")
       expect(await completed, stderr).toBe(0)
-      expect(JSON.parse(stdout)).not.toHaveProperty("decision", "block")
+      expect(JSON.parse(stdout)).toHaveProperty("decision", "block")
       expect(readFileSync(path, "utf8")).toBe("type RevokedCount = number\n")
       const paths = residentPaths(join(root, "runtime"))
       const owner = await observeResident(paths)
       const stats = await runClient(
         residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime })
       )
-      expect(stats).toMatchObject({ status: "stats", pendingAdvice: 1 })
+      expect(stats).toMatchObject({ status: "stats", pendingAdvice: 0 })
     } finally {
       writeFileSync(`${gate}.release`, "release\n")
       if (child.exitCode === null) child.kill()

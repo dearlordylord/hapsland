@@ -6,6 +6,17 @@ import { join } from "node:path"
 import { test } from "node:test"
 import { discoverQualityFiles, isQualityFile } from "./quality-file-discovery.mjs"
 
+test("measured research fixtures remain lint inputs without requiring reformatting", () => {
+  const root = join(import.meta.dirname, "..")
+  const fixture = "scripts/abide-large-declaration-fixtures.mjs"
+  assert.equal(isQualityFile(fixture), true)
+  execFileSync(join(root, "node_modules/.bin/dprint"), ["check", fixture, "src/runtime/cli-names.ts"], {
+    cwd: root,
+    stdio: "pipe",
+    timeout: 10000
+  })
+})
+
 test("quality selection includes staged, unstaged and untracked code, excludes deleted and owned artifacts", () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-quality-files-"))
   const git = (...args) => execFileSync("git", args, { cwd: root, stdio: "pipe" })
