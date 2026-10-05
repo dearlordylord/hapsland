@@ -103,6 +103,12 @@ Unreachable residents have unknown current recording state; paused displays keep
 the observation at their displayed snapshot. Enabled capture does not guarantee
 that every event was successfully retained.
 
+For edits with multiple classifier invocations, choose the captured request by
+review unit and request identity. The exact-body view and copy action use that
+immutable selection. Original-evaluation links select the matching captured
+request; missing transport evidence is explicit and is not replaced by another
+unit's body.
+
 Retained recording transitions are grouped into observed periods for each resident
 lifetime and working root. Each period names its retained start and next retained
 transition, with separate consent epochs after re-enabling. A missing next

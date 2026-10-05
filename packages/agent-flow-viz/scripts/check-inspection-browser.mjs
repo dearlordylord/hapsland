@@ -24,15 +24,16 @@ import { nativeDeferred } from "../../../src/test-support/native-deferred.ts"
 const root = await makeGitFixture()
 const scope = await Effect.runPromise(Scope.make())
 let browser
+let phase = "startup"
 const deadline = setTimeout(() => {
-  console.error("inspection browser deadline expired")
+  console.error("inspection browser deadline expired at", phase)
   process.exit(1)
 }, 45000)
 try {
   await put(
     root,
     "type.ts",
-    'import type { Amount } from "./support";\r\ntype OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: Amount\r\n};\r\n'
+    'import type { Amount } from "./support";\r\ntype OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: Amount\r\n};\r\ntype ShipmentCount = number;\r\n'
   )
   await put(root, "support.ts", "export type Amount = number;\n")
   const inspectionConfig = {
@@ -139,6 +140,38 @@ try {
   await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[0]))
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
+  await page.waitForFunction(() => document.querySelectorAll("#requests button").length === 2)
+  const copiedRequests = []
+  const requestDeclarations = []
+  const requestReferences = []
+  for (const index of [0, 1]) {
+    await page.locator("#requests button").nth(index).focus()
+    await page.keyboard.press("Enter")
+    const metadata = JSON.parse(await page.locator("#request-metadata").textContent())
+    assert.ok(metadata.unitId && metadata.requestId && metadata.evaluationId)
+    assert.ok(["OrderCount", "ShipmentCount"].includes(metadata.declaration))
+    requestDeclarations.push(metadata.declaration)
+    requestReferences.push({ sourceId: metadata.sourceId, sequence: metadata.sequence })
+    assert.equal(metadata.payload.status, "available")
+    await page.getByRole("button", { name: "Copy exact request", exact: true }).focus()
+    await page.keyboard.press("Enter")
+    await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
+    const copied = await page.evaluate(() => navigator.clipboard.readText())
+    assert.equal(JSON.parse(copied).state.artifact.name, metadata.declaration)
+    assert.equal(Buffer.byteLength(copied), metadata.payload.byteLength)
+    assert.equal(await page.locator("#exact").textContent(), copied)
+    copiedRequests.push(copied)
+  }
+  assert.deepEqual(
+    [...copiedRequests].sort(),
+    dispatched
+      .slice(0, 2)
+      .map((body) => body.toString("utf8"))
+      .sort()
+  )
+  assert.equal(new Set(copiedRequests).size, 2)
+  await page.locator("#requests button").first().focus()
+  await page.keyboard.press("Enter")
   assert.match(await page.locator("#files").textContent(), /Recorded physical preparation reads:[\s\S]*support\.ts/)
   assert.match(await page.locator("#files").textContent(), /Source actually included[\s\S]*support\.ts · Amount/)
   assert.match(await page.locator("#source").textContent(), /日本語/)
@@ -184,19 +217,65 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 3)
   assert.equal(await page.evaluate(() => getSelection().toString().length), 20)
   assert.equal(await page.locator("#detail").evaluate((element) => element.scrollTop), readingPosition)
-  assert.equal(dispatched.length, 3)
+  assert.equal(dispatched.length, 4)
   await edit("type.ts", "reuse-existing-advice")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
-  assert.equal(dispatched.length, 3, "existing advice must not create another classifier invocation")
+  assert.equal(dispatched.length, 4, "existing advice must not create another classifier invocation")
   const reused = page.getByRole("button", { name: /type\.ts/ }).last()
   await reused.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("existing-advice"))
-  const original = page.getByRole("button", { name: "Inspect original evaluation", exact: true })
+  const original = page
+    .locator("#routes p")
+    .filter({ hasText: requestDeclarations[0] })
+    .getByRole("button", { name: "Inspect original evaluation", exact: true })
   await original.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("fresh"))
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
+  await reused.focus()
+  await page.keyboard.press("Enter")
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("existing-advice"))
+  const secondOriginal = page
+    .locator("#routes p")
+    .filter({ hasText: requestDeclarations[1] })
+    .getByRole("button", { name: "Inspect original evaluation", exact: true })
+  await secondOriginal.focus()
+  await page.keyboard.press("Enter")
+  assert.equal(JSON.parse(await page.locator("#request-metadata").textContent()).declaration, requestDeclarations[1])
+  assert.ok(
+    Buffer.from(await page.locator("#exact").textContent()).equals(Buffer.from(copiedRequests[1])),
+    "Original evaluation selects its own captured request bytes"
+  )
+  phase = "request loss"
+  // Model unclassified loss of only this fixture's selected immutable request.
+  const missingRequest = requestReferences[1]
+  await rm(
+    join(root, "inspection", `${missingRequest.sourceId}-${String(missingRequest.sequence).padStart(16, "0")}.json`)
+  )
+  const missingResponse = await (
+    await fetch(`${server.url}payload/${missingRequest.sourceId}/${missingRequest.sequence}`)
+  ).json()
+  assert.equal(missingResponse.status, "missing")
+  assert.equal(missingResponse.reason, "not-retained")
+  phase = "request-loss replay"
+  await page.waitForFunction(() => document.querySelectorAll("#requests button").length === 1)
+  phase = "missing original request"
+  assert.equal(await page.locator("#copy").isDisabled(), true)
+  assert.match(await page.locator("#exact").textContent(), /unavailable.*cannot be reconstructed/)
+  await reused.focus()
+  await page.keyboard.press("Enter")
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("existing-advice"))
+  await page
+    .locator("#routes p")
+    .filter({ hasText: requestDeclarations[1] })
+    .getByRole("button", { name: "Inspect original evaluation", exact: true })
+    .focus()
+  await page.keyboard.press("Enter")
+  assert.equal(await page.locator("#requests button").count(), 1)
+  assert.equal(await page.locator("#copy").isDisabled(), true)
+  assert.match(await page.locator("#request-metadata").textContent(), /no retained transport evidence/)
+  phase = "mixed outcomes and native handoffs"
   await put(root, "mixed.ts", "type MixedCount = number;\n")
   await put(root, "bad.ts", 'import { Amount } from "./support";\ntype BadCount = Amount;\n')
   await edit(["mixed.ts", "bad.ts"], "mixed-preparation")
@@ -205,7 +284,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed recorded outcomes"))
   assert.match(await page.locator("#files").textContent(), /Recorded skipped preparation paths:[\s\S]*bad\.ts/)
   assert.match(await page.locator("#files").textContent(), /Recorded omissions:[\s\S]*bad\.ts[\s\S]*import/)
-  assert.equal(dispatched.length, 4, "failed preparation must not create a classifier request")
+  assert.equal(dispatched.length, 5, "failed preparation must not create a classifier request")
   await put(root, "type.ts", "type OrderCount = string;\n")
   const response = await Effect.runPromise(resident.collect(root, advicee(), dispatch))
   await retired.promise
@@ -216,7 +295,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#results").textContent.includes('"fate": "stale"'))
   assert.match(await page.locator("#results").textContent(), /Observed finding fates \(independent of submission\)/)
   assert.match(await page.locator("#results").textContent(), /"fate": "retained"/)
-  assert.equal(dispatched.length, 4, "advice revalidation must not invent another classifier request")
+  assert.equal(dispatched.length, 5, "advice revalidation must not invent another classifier request")
   assert.equal(response.status, "advice")
   assert.equal(response.findingCount, 3)
   const collected = {
@@ -405,7 +484,8 @@ try {
   assert.equal(await page.evaluate(() => getSelection().toString().length), 20)
   assert.equal(await page.locator("#handoff-exact").evaluate((element) => element.scrollTop), outputPosition)
   assert.equal(await page.locator("#handoff-exact img").count(), 0)
-  assert.equal(dispatched.length, 5)
+  assert.equal(dispatched.length, 6)
+  phase = "recording periods"
   for (const cycle of [1, 2]) {
     recordingPublished = nativeDeferred()
     await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ ...inspectionConfig, sessionInspection: false }))
@@ -442,11 +522,12 @@ try {
   assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-1.ts"))
   assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-2.ts"))
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 8)
-  assert.equal(dispatched.length, 9)
+  assert.equal(dispatched.length, 10)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   await page.getByRole("button", { name: "Pause", exact: true }).click()
   const frozen = await page.locator("#detail").textContent()
   const copiedBeforeExpiry = await page.evaluate(() => navigator.clipboard.readText())
+  phase = "capacity eviction and payload expiry"
   const journal = join(root, "inspection")
   const allocation = (value) => Math.max(value.size, value.blocks * 512)
   let allocated = allocation(await lstat(journal))
@@ -487,7 +568,7 @@ try {
   assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, known capacity eviction, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, per-unit request selection and exact copy, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, known capacity eviction, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)
