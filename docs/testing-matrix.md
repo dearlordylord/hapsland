@@ -277,6 +277,10 @@ validation. A different Git commit is informational: identical source trees may
 still carry the same evidence. Determine applicability from the actual inputs
 and changed owners, without rerunning a broad gate merely to update a commit ID.
 
+### Laboratory regression contract
+
+Changes to the optional balance laboratory retain independently expected positive cases and countercases for each enabled ability; catalogue disable, removal and representative replacement; action refusals and finite budget exhaustion; paired interactions; reproducible replay; and held-out contexts excluded from candidate selection. Demonstrate sensitivity to an intentionally incorrect action mapping or metric accounting. Observation retention and presentation must not determine business progress; reuse existing split-advance checks for unchanged simulation owners and test changed mappings at matching control boundaries. Select focused laboratory, native/emitted and affected consumer checks by the changed owner. Recheck game-absent independence when dependency edges change. Participant studies and live backend execution are separate from the offline foundation gate.
+
 Keep transport equality and public behavior comparisons distinct. Compare the
 complete encoded native and emitted-JavaScript outputs. At the public boundary,
 assert facts required by the accepted contract, including relevant intermediate
