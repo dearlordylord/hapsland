@@ -1,118 +1,126 @@
-import { currentCommand, commandEntrypoint, commandTokens, versionProbeArguments, observedRuntimeVersion, expectedRuntimeVersion } from "../runtime/package-runtime.ts";
-import { Config, Effect, Schema } from "effect";
-import { execFileClosedStdin } from "./host-process.ts";
-import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import { atomicInstallationFile } from "./atomic-installation-file.ts";
+import { commandHookGroup } from "../runtime/hook-catalog.ts"
+import {
+  currentCommand,
+  commandEntrypoint,
+  commandTokens,
+  versionProbeArguments,
+  observedRuntimeVersion,
+  expectedRuntimeVersion
+} from "../runtime/package-runtime.ts"
+import { Config, Effect, Schema } from "effect"
+import { execFileClosedStdin } from "./host-process.ts"
+import { createHash } from "node:crypto"
+import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs"
+import { homedir } from "node:os"
+import { join, resolve } from "node:path"
+import { atomicInstallationFile } from "./atomic-installation-file.ts"
 
-import { withInstallationLock } from "./installation-lock.ts";
+import { withInstallationLock } from "./installation-lock.ts"
 import {
   canonicalJson as canonical,
   reconcileOwnedEvent,
   removeMarkedHandlers,
-  retainedHookSubset,
-} from "./hook-reconciliation.ts";
+  retainedHookSubset
+} from "./hook-reconciliation.ts"
 
 class ClaudeInstallationError extends Schema.TaggedError<ClaudeInstallationError>()("ClaudeInstallationError", {
-  reason: Schema.NonEmptyString,
+  reason: Schema.NonEmptyString
 }) {
   override get message() {
-    return this.reason;
+    return this.reason
   }
 }
 
-const MARKER = "--review-tool-owned=claude-v1";
-const COMPOSED_MARKER = "--review-tool-composed-owned=claude-v1";
-const PROFILE = "2.1.218";
-const OWNERSHIP_VERSION = 1;
-type JsonObject = Record<string, unknown>;
+const MARKER = "--review-tool-owned=claude-v1"
+const COMPOSED_MARKER = "--review-tool-composed-owned=claude-v1"
+const PROFILE = "2.1.218"
+const OWNERSHIP_VERSION = 1
+type JsonObject = Record<string, unknown>
 
 export interface ClaudeInstallationRequest {
-  readonly claudeHome?: string;
-  readonly claudeExecutable?: string;
-  readonly proposalDigest?: string;
-  readonly reinstall?: boolean;
+  readonly claudeHome?: string
+  readonly claudeExecutable?: string
+  readonly proposalDigest?: string
+  readonly reinstall?: boolean
 }
 
 interface OwnedRecord {
-  readonly version: 1;
-  readonly adapter: "claude";
-  readonly home: string;
-  readonly hookDigest: string;
-  readonly command: string;
-  readonly hookGroups?: Record<string, unknown>;
+  readonly version: 1
+  readonly adapter: "claude"
+  readonly home: string
+  readonly hookDigest: string
+  readonly command: string
+  readonly hookGroups?: Record<string, unknown>
   readonly composed?: {
-    readonly stopDigest: string;
-    readonly promptDigest: string;
-    readonly subagentStopDigest?: string;
-    readonly preToolUseDigest?: string;
-  };
+    readonly stopDigest: string
+    readonly promptDigest: string
+    readonly subagentStopDigest?: string
+    readonly preToolUseDigest?: string
+  }
 }
 
 const object = (value: unknown): value is JsonObject =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-const digest = (value: string) => createHash("sha256").update(value).digest("hex");
-const encode = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
-const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
-const error = (cause: unknown) => (cause instanceof Error ? cause.message : "installation failed");
+  typeof value === "object" && value !== null && !Array.isArray(value)
+const digest = (value: string) => createHash("sha256").update(value).digest("hex")
+const encode = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`
+const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
+const error = (cause: unknown) => (cause instanceof Error ? cause.message : "installation failed")
 
 const paths = (home: string) => ({
   settings: join(home, "settings.json"),
   ownership: join(home, ".hapsland", "claude-installation-v1.json"),
-  lock: join(home, ".hapsland", "claude-installation.lock"),
-});
+  lock: join(home, ".hapsland", "claude-installation.lock")
+})
 
 const file = (path: string): string | undefined => {
   try {
-    const stat = lstatSync(path);
-    if (!stat.isFile()) throw new Error(`configuration is not a regular file: ${path}`);
-    return readFileSync(path, "utf8");
+    const stat = lstatSync(path)
+    if (!stat.isFile()) throw new Error(`configuration is not a regular file: ${path}`)
+    return readFileSync(path, "utf8")
   } catch (cause) {
-    if (object(cause) && cause.code === "ENOENT") return undefined;
-    throw cause;
+    if (object(cause) && cause.code === "ENOENT") return undefined
+    throw cause
   }
-};
+}
 
 const parseObject = (content: string | undefined, label: string): JsonObject => {
-  if (content === undefined) return {};
+  if (content === undefined) return {}
   try {
-    const value: unknown = JSON.parse(content);
-    if (object(value)) return value;
+    const value: unknown = JSON.parse(content)
+    if (object(value)) return value
   } catch {
     /* reported below */
   }
-  throw new Error(`${label} must contain a JSON object`);
-};
+  throw new Error(`${label} must contain a JSON object`)
+}
 
 const requiredStringFields = (value: JsonObject, fields: ReadonlyArray<string>): boolean =>
-  fields.every((field) => typeof value[field] === "string");
+  fields.every((field) => typeof value[field] === "string")
 const optionalStringField = (value: JsonObject, field: string): boolean =>
-  value[field] === undefined || typeof value[field] === "string";
+  value[field] === undefined || typeof value[field] === "string"
 const validComposedRecord = (value: unknown): boolean => {
-  if (value === undefined) return true;
+  if (value === undefined) return true
   return (
     object(value) &&
     requiredStringFields(value, ["stopDigest", "promptDigest"]) &&
     optionalStringField(value, "subagentStopDigest") &&
     optionalStringField(value, "preToolUseDigest")
-  );
-};
+  )
+}
 const readRecord = (path: string): OwnedRecord | undefined => {
-  const content = file(path);
-  if (content === undefined) return undefined;
-  const value = parseObject(content, "Claude ownership record");
+  const content = file(path)
+  if (content === undefined) return undefined
+  const value = parseObject(content, "Claude ownership record")
   if (
     value.version !== OWNERSHIP_VERSION ||
     value.adapter !== "claude" ||
     !requiredStringFields(value, ["home", "hookDigest", "command"]) ||
     !validComposedRecord(value.composed)
   ) {
-    throw new Error("Claude ownership record has an unsupported shape");
+    throw new Error("Claude ownership record has an unsupported shape")
   }
-  return value as unknown as OwnedRecord;
-};
+  return value as unknown as OwnedRecord
+}
 
 const countMarker = (value: unknown): number =>
   typeof value === "string"
@@ -123,37 +131,37 @@ const countMarker = (value: unknown): number =>
       ? value.reduce<number>((sum, item) => sum + countMarker(item), 0)
       : object(value)
         ? Object.values(value).reduce<number>((sum, item) => sum + countMarker(item), 0)
-        : 0;
+        : 0
 
 const groups = (settings: JsonObject): ReadonlyArray<unknown> => {
-  if (settings.hooks === undefined) return [];
-  if (!object(settings.hooks)) throw new Error("Claude settings hooks must be an object");
-  const post = settings.hooks.PostToolUse;
-  if (post === undefined) return [];
-  if (!Array.isArray(post)) throw new Error("Claude settings PostToolUse must be an array");
-  return post;
-};
+  if (settings.hooks === undefined) return []
+  if (!object(settings.hooks)) throw new Error("Claude settings hooks must be an object")
+  const post = settings.hooks.PostToolUse
+  if (post === undefined) return []
+  if (!Array.isArray(post)) throw new Error("Claude settings PostToolUse must be an array")
+  return post
+}
 
 const owned = (settings: JsonObject): { index: number; group: unknown } | undefined => {
-  if (countMarker(settings) > 1) throw new Error("duplicate owned Claude hook markers require reconciliation");
+  if (countMarker(settings) > 1) throw new Error("duplicate owned Claude hook markers require reconciliation")
   const foundGroups = groups(settings)
     .map((group, index) => ({ group, index }))
-    .filter(({ group }) => countMarker(group) === 1 || JSON.stringify(group).includes(COMPOSED_MARKER));
-  if (foundGroups.length > 1) throw new Error("duplicate owned Claude PostToolUse groups require reconciliation");
-  const found = foundGroups[0];
-  if (countMarker(settings) === 1 && found === undefined) throw new Error("owned Claude marker is outside PostToolUse");
-  return found;
-};
+    .filter(({ group }) => countMarker(group) === 1 || JSON.stringify(group).includes(COMPOSED_MARKER))
+  if (foundGroups.length > 1) throw new Error("duplicate owned Claude PostToolUse groups require reconciliation")
+  const found = foundGroups[0]
+  if (countMarker(settings) === 1 && found === undefined) throw new Error("owned Claude marker is outside PostToolUse")
+  return found
+}
 
 const withGroups = (settings: JsonObject, next: ReadonlyArray<unknown>): JsonObject => {
-  const hooks = { ...(settings.hooks as JsonObject | undefined) };
-  if (next.length === 0) delete hooks.PostToolUse;
-  else hooks.PostToolUse = next;
-  const result = { ...settings };
-  if (Object.keys(hooks).length === 0) delete result.hooks;
-  else result.hooks = hooks;
-  return result;
-};
+  const hooks = { ...(settings.hooks as JsonObject | undefined) }
+  if (next.length === 0) delete hooks.PostToolUse
+  else hooks.PostToolUse = next
+  const result = { ...settings }
+  if (Object.keys(hooks).length === 0) delete result.hooks
+  else result.hooks = hooks
+  return result
+}
 
 const withComposedGroup = (
   settings: JsonObject,
@@ -161,7 +169,7 @@ const withComposedGroup = (
   next: unknown | undefined,
   expectedDigest: string | undefined,
   restoreMissing = false,
-  expectedGroup?: unknown,
+  expectedGroup?: unknown
 ): JsonObject =>
   reconcileOwnedEvent(settings, event, next, {
     marker: COMPOSED_MARKER,
@@ -169,39 +177,40 @@ const withComposedGroup = (
     expectedFingerprint: expectedDigest,
     expectedGroup,
     restoreMissing,
-    label: "Claude",
-  });
+    label: "Claude"
+  })
 
 const host = (observed: string) => ({
   supported: observed === PROFILE || observed === `${PROFILE} (Claude Code)`,
   observed,
-  required: `Claude Code ${PROFILE}`,
-});
+  required: `Claude Code ${PROFILE}`
+})
 
 const inputs = (
   request: ClaudeInstallationRequest,
   configured: { runtime: string; entrypoint: string },
   observed: string,
-  runtimeObserved: string,
+  runtimeObserved: string
 ) => {
-  const home = resolve(request.claudeHome ?? join(homedir(), ".claude"));
-  const runtime = resolve(configured.runtime);
-  let entrypoint = resolve(configured.entrypoint);
+  const home = resolve(request.claudeHome ?? join(homedir(), ".claude"))
+  const runtime = resolve(configured.runtime)
+  let entrypoint = resolve(configured.entrypoint)
   try {
-    entrypoint = realpathSync(entrypoint);
+    entrypoint = realpathSync(entrypoint)
   } catch {
     /* readiness reports missing path */
   }
-  const command = `${commandTokens(runtime, entrypoint).map(quote).join(" ")} --claude-hook --controlled-writer --composed-edit-hook ${MARKER}`;
-  const composed = (kind: "stop" | "prompt" | "before-edit") =>
-    `${kind === "before-edit" ? "exec " : ""}${commandTokens(runtime, entrypoint).map(quote).join(" ")} --composed-${kind}-hook --composed-host=claude-code ${COMPOSED_MARKER}`;
-  const group = { matcher: "Edit|Write", hooks: [{ type: "command", command, timeout: 5 }] };
-  const stopGroup = { hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] };
-  const preGroup = {
-    matcher: "Edit|Write",
-    hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }],
-  };
-  const promptGroup = { hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] };
+  const options = {
+    command: commandTokens(runtime, entrypoint).map(quote).join(" "),
+    editMarker: MARKER,
+    composedMarker: COMPOSED_MARKER
+  }
+  const group = commandHookGroup("claude", "PostToolUse", options)
+  const command = group.hooks[0]!.command
+  const stopGroup = commandHookGroup("claude", "Stop", options)
+  const subagentStopGroup = commandHookGroup("claude", "SubagentStop", options)
+  const preGroup = commandHookGroup("claude", "PreToolUse", options)
+  const promptGroup = commandHookGroup("claude", "UserPromptSubmit", options)
   return {
     home,
     runtime,
@@ -210,48 +219,51 @@ const inputs = (
     group,
     preGroup,
     stopGroup,
+    subagentStopGroup,
     promptGroup,
     paths: paths(home),
     host: host(observed),
-    runtimeObserved,
-  };
-};
+    runtimeObserved
+  }
+}
 
 const resolveInputs = Effect.fn("ClaudeInstallation.inputs")(
   function* (request: ClaudeInstallationRequest) {
-    const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(currentCommand().executable));
+    const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(
+      Config.withDefault(currentCommand().executable)
+    )
     const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(
-      Config.withDefault(commandEntrypoint(currentCommand())),
-    );
+      Config.withDefault(commandEntrypoint(currentCommand()))
+    )
     const hostRun = yield* execFileClosedStdin(request.claudeExecutable ?? "claude", ["--version"], {
       env: process.env,
       timeout: 2_000,
-      maxBuffer: 1_048_576,
-    });
+      maxBuffer: 1_048_576
+    })
     const runtimeRun = yield* execFileClosedStdin(resolve(runtime), versionProbeArguments(runtime, entrypoint), {
       env: process.env,
       timeout: 2_000,
-      maxBuffer: 1_048_576,
-    });
+      maxBuffer: 1_048_576
+    })
     return yield* Effect.try({
       try: () =>
         inputs(
           request,
           { runtime, entrypoint },
           hostRun.succeeded ? hostRun.stdout.trim() : "unavailable",
-          runtimeRun.succeeded ? observedRuntimeVersion(runtimeRun.stdout) : "unavailable",
+          runtimeRun.succeeded ? observedRuntimeVersion(runtimeRun.stdout) : "unavailable"
         ),
-      catch: () => new ClaudeInstallationError({ reason: "installation inputs unavailable" }),
-    });
+      catch: () => new ClaudeInstallationError({ reason: "installation inputs unavailable" })
+    })
   },
-  Effect.mapError(() => new ClaudeInstallationError({ reason: "Claude installation configuration is invalid" })),
-);
+  Effect.mapError(() => new ClaudeInstallationError({ reason: "Claude installation configuration is invalid" }))
+)
 
 const ready = (input: ReturnType<typeof inputs>) => {
-  const version = input.runtimeObserved;
-  let entrypointReady = false;
+  const version = input.runtimeObserved
+  let entrypointReady = false
   try {
-    entrypointReady = statSync(input.entrypoint).isFile();
+    entrypointReady = statSync(input.entrypoint).isFile()
   } catch {
     /* reported as unavailable */
   }
@@ -259,114 +271,114 @@ const ready = (input: ReturnType<typeof inputs>) => {
     supported: input.host.supported && version === expectedRuntimeVersion(input.entrypoint) && entrypointReady,
     host: input.host,
     runtime: { observed: version, required: expectedRuntimeVersion(input.entrypoint) },
-    entrypoint: { path: input.entrypoint, ready: entrypointReady },
-  };
-};
+    entrypoint: { path: input.entrypoint, ready: entrypointReady }
+  }
+}
 
-type Kind = "install" | "update" | "uninstall";
-type ClaudeInputs = ReturnType<typeof inputs>;
-type OwnedHookGroup = NonNullable<ReturnType<typeof owned>>;
+type Kind = "install" | "update" | "uninstall"
+type ClaudeInputs = ReturnType<typeof inputs>
+type OwnedHookGroup = NonNullable<ReturnType<typeof owned>>
 const readPlanRecord = (request: ClaudeInstallationRequest, input: ClaudeInputs): OwnedRecord | undefined => {
-  let record: OwnedRecord | undefined;
+  let record: OwnedRecord | undefined
   try {
-    record = readRecord(input.paths.ownership);
+    record = readRecord(input.paths.ownership)
   } catch (cause) {
-    if (!request.reinstall) throw cause;
+    if (!request.reinstall) throw cause
   }
   if (record !== undefined && record.home !== input.home)
-    throw new Error("Claude ownership record belongs to another home");
-  return record;
-};
+    throw new Error("Claude ownership record belongs to another home")
+  return record
+}
 const assertNoComposedRecord = (settings: JsonObject): void => {
   for (const event of ["PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit"] as const)
-    withComposedGroup(settings, event, undefined, undefined);
-};
+    withComposedGroup(settings, event, undefined, undefined)
+}
 const currentHookMatches = (record: OwnedRecord, current: OwnedHookGroup): boolean =>
   digest(canonical(current.group)) === record.hookDigest ||
-  retainedHookSubset(current.group, record.hookGroups?.PostToolUse);
+  retainedHookSubset(current.group, record.hookGroups?.PostToolUse)
 const assertOwnedHook = (record: OwnedRecord | undefined, current: OwnedHookGroup | undefined): void => {
-  if (current !== undefined && record === undefined) throw new Error("owned Claude hook has no ownership record");
+  if (current !== undefined && record === undefined) throw new Error("owned Claude hook has no ownership record")
   if (record !== undefined && current !== undefined && !currentHookMatches(record, current))
-    throw new Error("owned Claude hook is missing or locally modified");
-};
+    throw new Error("owned Claude hook is missing or locally modified")
+}
 const assertInstallableRecord = (kind: Kind, record: OwnedRecord | undefined): void => {
-  if (kind === "install" && record !== undefined) throw new Error("Claude integration already installed; use update");
-};
+  if (kind === "install" && record !== undefined) throw new Error("Claude integration already installed; use update")
+}
 const assertUpdatableRecord = (
   kind: Kind,
   request: ClaudeInstallationRequest,
-  previous: OwnedRecord | undefined,
+  previous: OwnedRecord | undefined
 ): void => {
   if (kind === "update" && previous === undefined && !request.reinstall)
-    throw new Error("Claude integration is not installed");
-};
+    throw new Error("Claude integration is not installed")
+}
 const assertPlanKind = (
   kind: Kind,
   request: ClaudeInstallationRequest,
   record: OwnedRecord | undefined,
-  previous: OwnedRecord | undefined,
+  previous: OwnedRecord | undefined
 ): void => {
-  assertInstallableRecord(kind, record);
-  assertUpdatableRecord(kind, request, previous);
-};
+  assertInstallableRecord(kind, record)
+  assertUpdatableRecord(kind, request, previous)
+}
 const plannedPostToolGroups = (
   kind: Kind,
   settings: JsonObject,
   input: ClaudeInputs,
-  current: OwnedHookGroup | undefined,
+  current: OwnedHookGroup | undefined
 ): unknown[] => {
-  const next = [...groups(settings)];
+  const next = [...groups(settings)]
   if (kind === "uninstall") {
-    if (current !== undefined) next.splice(current.index, 1);
-  } else if (current === undefined) next.push(input.group);
-  else next[current.index] = input.group;
-  return next;
-};
+    if (current !== undefined) next.splice(current.index, 1)
+  } else if (current === undefined) next.push(input.group)
+  else next[current.index] = input.group
+  return next
+}
 const nextComposedGroup = (kind: Kind, group: unknown): unknown | undefined =>
-  kind === "uninstall" ? undefined : group;
+  kind === "uninstall" ? undefined : group
 const composedPlanEvents = (kind: Kind, input: ClaudeInputs, record: OwnedRecord | undefined) => {
-  const composed: Partial<NonNullable<OwnedRecord["composed"]>> = record?.composed ?? {};
-  const expected: Record<string, unknown> = record?.hookGroups ?? {};
+  const composed: Partial<NonNullable<OwnedRecord["composed"]>> = record?.composed ?? {}
+  const expected: Record<string, unknown> = record?.hookGroups ?? {}
   return [
     {
       event: "PreToolUse" as const,
       next: nextComposedGroup(kind, input.preGroup),
       fingerprint: composed.preToolUseDigest,
-      expected: expected.PreToolUse,
+      expected: expected.PreToolUse
     },
     {
       event: "Stop" as const,
       next: nextComposedGroup(kind, input.stopGroup),
       fingerprint: composed.stopDigest,
-      expected: expected.Stop,
+      expected: expected.Stop
     },
     {
       event: "SubagentStop" as const,
-      next: nextComposedGroup(kind, input.stopGroup),
+      next: nextComposedGroup(kind, input.subagentStopGroup),
       fingerprint: composed.subagentStopDigest,
-      expected: expected.SubagentStop,
+      expected: expected.SubagentStop
     },
     {
       event: "UserPromptSubmit" as const,
       next: nextComposedGroup(kind, input.promptGroup),
       fingerprint: composed.promptDigest,
-      expected: expected.UserPromptSubmit,
-    },
-  ];
-};
+      expected: expected.UserPromptSubmit
+    }
+  ]
+}
 const plannedSettings = (
   kind: Kind,
   settings: JsonObject,
   postGroups: readonly unknown[],
   input: ClaudeInputs,
-  record: OwnedRecord | undefined,
+  record: OwnedRecord | undefined
 ): JsonObject => {
-  if (kind === "uninstall" && record === undefined) return settings;
-  let next = withGroups(settings, postGroups);
+  if (kind === "uninstall" && record === undefined) return settings
+  let next = withGroups(settings, postGroups)
   for (const event of composedPlanEvents(kind, input, record))
-    next = withComposedGroup(next, event.event, event.next, event.fingerprint, true, event.expected);
-  return next;
-};
+    next = withComposedGroup(next, event.event, event.next, event.fingerprint, true, event.expected)
+  return next
+}
 const installationOwnedRecord = (input: ClaudeInputs): OwnedRecord => ({
   version: OWNERSHIP_VERSION,
   adapter: "claude",
@@ -377,40 +389,40 @@ const installationOwnedRecord = (input: ClaudeInputs): OwnedRecord => ({
     PostToolUse: input.group,
     PreToolUse: input.preGroup,
     Stop: input.stopGroup,
-    SubagentStop: input.stopGroup,
-    UserPromptSubmit: input.promptGroup,
+    SubagentStop: input.subagentStopGroup,
+    UserPromptSubmit: input.promptGroup
   },
   composed: {
     preToolUseDigest: digest(canonical(input.preGroup)),
     stopDigest: digest(canonical(input.stopGroup)),
     promptDigest: digest(canonical(input.promptGroup)),
-    subagentStopDigest: digest(canonical(input.stopGroup)),
-  },
-});
-const missingContentDigest = (content: string | undefined): string => digest(content ?? "<missing>");
+    subagentStopDigest: digest(canonical(input.subagentStopGroup))
+  }
+})
+const missingContentDigest = (content: string | undefined): string => digest(content ?? "<missing>")
 const plannedSettingsContent = (
   kind: Kind,
   record: OwnedRecord | undefined,
   before: string | undefined,
-  next: JsonObject,
-): string | undefined => (kind === "uninstall" && record === undefined ? before : encode(next));
+  next: JsonObject
+): string | undefined => (kind === "uninstall" && record === undefined ? before : encode(next))
 const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
-  const beforeSettings = file(input.paths.settings);
-  const beforeRecord = file(input.paths.ownership);
-  const originalSettings = parseObject(beforeSettings, "Claude settings.json");
+  const beforeSettings = file(input.paths.settings)
+  const beforeRecord = file(input.paths.ownership)
+  const originalSettings = parseObject(beforeSettings, "Claude settings.json")
   const settings = request.reinstall
     ? removeMarkedHandlers(originalSettings, [MARKER, COMPOSED_MARKER])
-    : originalSettings;
-  const previousRecord = readPlanRecord(request, input);
-  const record = request.reinstall ? undefined : previousRecord;
-  const current = owned(settings);
-  if (record === undefined) assertNoComposedRecord(settings);
-  assertOwnedHook(record, current);
-  assertPlanKind(kind, request, record, previousRecord);
-  const nextGroups = plannedPostToolGroups(kind, settings, input, current);
-  const nextSettings = plannedSettings(kind, settings, nextGroups, input, record);
-  const afterSettings = plannedSettingsContent(kind, record, beforeSettings, nextSettings);
-  const afterRecord = kind === "uninstall" ? undefined : encode(installationOwnedRecord(input));
+    : originalSettings
+  const previousRecord = readPlanRecord(request, input)
+  const record = request.reinstall ? undefined : previousRecord
+  const current = owned(settings)
+  if (record === undefined) assertNoComposedRecord(settings)
+  assertOwnedHook(record, current)
+  assertPlanKind(kind, request, record, previousRecord)
+  const nextGroups = plannedPostToolGroups(kind, settings, input, current)
+  const nextSettings = plannedSettings(kind, settings, nextGroups, input, record)
+  const afterSettings = plannedSettingsContent(kind, record, beforeSettings, nextSettings)
+  const afterRecord = kind === "uninstall" ? undefined : encode(installationOwnedRecord(input))
   const proposalDigest = digest(
     canonical({
       version: 1,
@@ -420,9 +432,9 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<
       beforeSettings: missingContentDigest(beforeSettings),
       beforeRecord: missingContentDigest(beforeRecord),
       afterSettings: missingContentDigest(afterSettings),
-      afterRecord: missingContentDigest(afterRecord),
-    }),
-  );
+      afterRecord: missingContentDigest(afterRecord)
+    })
+  )
   return {
     input,
     beforeSettings,
@@ -430,43 +442,43 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<
     afterSettings,
     afterRecord,
     proposalDigest,
-    noChange: beforeSettings === afterSettings && beforeRecord === afterRecord,
-  };
-};
+    noChange: beforeSettings === afterSettings && beforeRecord === afterRecord
+  }
+}
 
 const resultError = (operation: string, cause: unknown, home?: string) => ({
   version: 1 as const,
   operation,
   status: "conflict" as const,
   home,
-  error: { message: error(cause) },
-});
+  error: { message: error(cause) }
+})
 
-const previewOperations = { install: "install-preview", update: "update-preview", uninstall: "uninstall" } as const;
+const previewOperations = { install: "install-preview", update: "update-preview", uninstall: "uninstall" } as const
 const proposalFileChange = (
   before: string | undefined,
   after: string | undefined,
   path: string,
-  description: string,
-) => (before === after ? [] : [{ path, description }]);
+  description: string
+) => (before === after ? [] : [{ path, description }])
 const previewHookGroups = (kind: Kind, next: ReturnType<typeof plan>, input: ClaudeInputs): Record<string, unknown> => {
-  if (kind !== "uninstall") return installationOwnedRecord(input).hookGroups ?? {};
-  if (next.beforeRecord === undefined) return {};
-  return readRecord(input.paths.ownership)?.hookGroups ?? {};
-};
-const requiresSupportedHost = (kind: Kind, supported: boolean): boolean => kind !== "uninstall" && !supported;
+  if (kind !== "uninstall") return installationOwnedRecord(input).hookGroups ?? {}
+  if (next.beforeRecord === undefined) return {}
+  return readRecord(input.paths.ownership)?.hookGroups ?? {}
+}
+const requiresSupportedHost = (kind: Kind, supported: boolean): boolean => kind !== "uninstall" && !supported
 const preview = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
-  const operation = previewOperations[kind];
+  const operation = previewOperations[kind]
   try {
-    const compatibility = ready(input);
+    const compatibility = ready(input)
     if (requiresSupportedHost(kind, compatibility.supported))
       return {
         version: 1 as const,
         operation,
         status: "unsupported" as const,
-        host: { adapter: "claude", home: input.home, compatibility },
-      };
-    const next = plan(kind, request, input);
+        host: { adapter: "claude", home: input.home, compatibility }
+      }
+    const next = plan(kind, request, input)
     return {
       version: 1 as const,
       operation,
@@ -479,46 +491,46 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnTy
             next.beforeSettings,
             next.afterSettings,
             input.paths.settings,
-            "owned PostToolUse, PreToolUse, Stop, SubagentStop and UserPromptSubmit hooks",
+            "owned PostToolUse, PreToolUse, Stop, SubagentStop and UserPromptSubmit hooks"
           ),
-          ...proposalFileChange(next.beforeRecord, next.afterRecord, input.paths.ownership, "Claude ownership record"),
+          ...proposalFileChange(next.beforeRecord, next.afterRecord, input.paths.ownership, "Claude ownership record")
         ],
         ownedChanges: {
           hooks: { file: input.paths.settings, groups: previewHookGroups(kind, next, input) },
-          ownershipRecord: input.paths.ownership,
-        },
+          ownershipRecord: input.paths.ownership
+        }
       },
       installed: next.noChange && kind !== "uninstall",
       alreadyCurrent: next.noChange,
       trust: {
         status: "native-confirmation-required",
         guidance:
-          "Claude Code owns workspace trust and hook approval; open the repository normally and review native prompts.",
+          "Claude Code owns workspace trust and hook approval; open the repository normally and review native prompts."
       },
-      pending: ["apply this proposal digest", "review effective file settings and credential access"],
-    };
+      pending: ["apply this proposal digest", "review effective file settings and credential access"]
+    }
   } catch (cause) {
-    return resultError(operation, cause, request.claudeHome);
+    return resultError(operation, cause, request.claudeHome)
   }
-};
+}
 
 const assertClaudeFiles = (
   first: string,
   firstExpected: string | undefined,
   second: string,
   secondExpected: string | undefined,
-  message: string,
+  message: string
 ): void => {
-  if (file(first) !== firstExpected || file(second) !== secondExpected) throw new Error(message);
-};
+  if (file(first) !== firstExpected || file(second) !== secondExpected) throw new Error(message)
+}
 const rollbackOwnedRecord = (input: ClaudeInputs, next: ReturnType<typeof plan>): void => {
   try {
     if (file(input.paths.settings) === next.beforeSettings && file(input.paths.ownership) === next.afterRecord)
-      atomicInstallationFile(input.paths.ownership, next.beforeRecord);
+      atomicInstallationFile(input.paths.ownership, next.beforeRecord)
   } catch {
     /* Preserve primary failure; inspection exposes partial state. */
   }
-};
+}
 const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): void => {
   // Settings is applied last: a failed record write cannot enable a new hook.
   try {
@@ -527,170 +539,167 @@ const commitClaudePlan = (input: ClaudeInputs, next: ReturnType<typeof plan>): v
       next.beforeRecord,
       input.paths.settings,
       next.beforeSettings,
-      "Claude configuration changed during apply; obtain a fresh preview",
-    );
-    atomicInstallationFile(input.paths.ownership, next.afterRecord);
+      "Claude configuration changed during apply; obtain a fresh preview"
+    )
+    atomicInstallationFile(input.paths.ownership, next.afterRecord)
     assertClaudeFiles(
       input.paths.settings,
       next.beforeSettings,
       input.paths.ownership,
       next.afterRecord,
-      "Claude configuration changed during apply; current settings were preserved",
-    );
-    atomicInstallationFile(input.paths.settings, next.afterSettings);
+      "Claude configuration changed during apply; current settings were preserved"
+    )
+    atomicInstallationFile(input.paths.settings, next.afterSettings)
   } catch (cause) {
-    rollbackOwnedRecord(input, next);
-    throw cause;
+    rollbackOwnedRecord(input, next)
+    throw cause
   }
-};
+}
 const nonemptyInstallationError = (cause: Error): string =>
-  cause.message.length > 0 ? cause.message : "installation failed";
+  cause.message.length > 0 ? cause.message : "installation failed"
 const installationFailureReason = (cause: unknown): string =>
-  cause instanceof Error ? nonemptyInstallationError(cause) : "installation failed";
+  cause instanceof Error ? nonemptyInstallationError(cause) : "installation failed"
 const apply = Effect.fn("ClaudeInstallation.apply")(function* (kind: Kind, request: ClaudeInstallationRequest) {
-  const operation = kind;
+  const operation = kind
   try {
-    const input = yield* resolveInputs(request);
+    const input = yield* resolveInputs(request)
     if (kind !== "uninstall" && !ready(input).supported)
-      return { version: 1 as const, operation, status: "unsupported" as const, host: input.host };
+      return { version: 1 as const, operation, status: "unsupported" as const, host: input.host }
     return yield* withInstallationLock(
       input.paths.lock,
       Effect.try({
         try: () => {
-          const next = plan(kind, request, input);
-          if (request.proposalDigest === undefined) return preview(kind, request, input);
+          const next = plan(kind, request, input)
+          if (request.proposalDigest === undefined) return preview(kind, request, input)
           if (request.proposalDigest !== next.proposalDigest)
             return {
               version: 1 as const,
               operation,
               status: "proposal-mismatch" as const,
-              error: { message: "Claude settings changed since preview; obtain a new proposal" },
-            };
-          if (next.noChange) return { version: 1 as const, operation, status: "already-current" as const };
-          commitClaudePlan(input, next);
+              error: { message: "Claude settings changed since preview; obtain a new proposal" }
+            }
+          if (next.noChange) return { version: 1 as const, operation, status: "already-current" as const }
+          commitClaudePlan(input, next)
           return {
             version: 1 as const,
             operation,
             status: "complete" as const,
-            trust: { status: "native-confirmation-required" },
-          };
+            trust: { status: "native-confirmation-required" }
+          }
         },
-        catch: (cause) =>
-          new ClaudeInstallationError({
-            reason: installationFailureReason(cause),
-          }),
-      }),
-    ).pipe(Effect.catch((error) => Effect.succeed(resultError(operation, error, request.claudeHome))));
+        catch: (cause) => new ClaudeInstallationError({ reason: installationFailureReason(cause) })
+      })
+    ).pipe(Effect.catch((error) => Effect.succeed(resultError(operation, error, request.claudeHome))))
   } catch (cause) {
-    return resultError(operation, cause, request.claudeHome);
+    return resultError(operation, cause, request.claudeHome)
   }
-});
+})
 
 export const previewClaudeInstallation = Effect.fn("ClaudeInstallation.preview")(function* (
-  request: ClaudeInstallationRequest,
+  request: ClaudeInstallationRequest
 ) {
-  return preview("install", request, yield* resolveInputs(request));
-});
+  return preview("install", request, yield* resolveInputs(request))
+})
 export const installClaudeIntegration = Effect.fn("ClaudeInstallation.install")((request: ClaudeInstallationRequest) =>
-  apply("install", request),
-);
+  apply("install", request)
+)
 export const previewClaudeUpdate = Effect.fn("ClaudeInstallation.previewUpdate")(function* (
-  request: ClaudeInstallationRequest,
+  request: ClaudeInstallationRequest
 ) {
-  return preview("update", request, yield* resolveInputs(request));
-});
+  return preview("update", request, yield* resolveInputs(request))
+})
 export const updateClaudeIntegration = Effect.fn("ClaudeInstallation.update")((request: ClaudeInstallationRequest) =>
-  apply("update", request),
-);
+  apply("update", request)
+)
 export const uninstallClaudeIntegration = Effect.fn("ClaudeInstallation.uninstall")(function* (
-  request: ClaudeInstallationRequest,
+  request: ClaudeInstallationRequest
 ) {
-  if (request.proposalDigest !== undefined) return yield* apply("uninstall", request);
-  return preview("uninstall", request, yield* resolveInputs(request));
-});
+  if (request.proposalDigest !== undefined) return yield* apply("uninstall", request)
+  return preview("uninstall", request, yield* resolveInputs(request))
+})
 
 /** Include damaged owned state so an update reports it instead of silently skipping the client. */
 export const hasClaudeRegistration = (request: ClaudeInstallationRequest): boolean => {
-  const selected = paths(resolve(request.claudeHome ?? join(homedir(), ".claude")));
-  if (file(selected.ownership) !== undefined) return true;
-  const settings = file(selected.settings) ?? "";
-  return settings.includes(MARKER) || settings.includes(COMPOSED_MARKER);
-};
+  const selected = paths(resolve(request.claudeHome ?? join(homedir(), ".claude")))
+  if (file(selected.ownership) !== undefined) return true
+  const settings = file(selected.settings) ?? ""
+  return settings.includes(MARKER) || settings.includes(COMPOSED_MARKER)
+}
 
 const assertInspectionOwnership = (
   record: OwnedRecord | undefined,
   current: OwnedHookGroup | undefined,
-  input: ClaudeInputs,
+  input: ClaudeInputs
 ): void => {
-  if (record === undefined || current === undefined) throw new Error("owned Claude hook and ownership record disagree");
+  if (record === undefined || current === undefined) throw new Error("owned Claude hook and ownership record disagree")
   if (record.home !== input.home || digest(canonical(current.group)) !== record.hookDigest)
-    throw new Error("owned Claude hook and ownership record disagree");
-};
+    throw new Error("owned Claude hook and ownership record disagree")
+}
 const inspectComposedOwnership = (settings: JsonObject, record: OwnedRecord | undefined): void => {
-  if (record?.composed === undefined) return;
-  withComposedGroup(settings, "PreToolUse", undefined, record.composed.preToolUseDigest);
-  withComposedGroup(settings, "Stop", undefined, record.composed.stopDigest);
-  withComposedGroup(settings, "SubagentStop", undefined, record.composed.subagentStopDigest);
-  withComposedGroup(settings, "UserPromptSubmit", undefined, record.composed.promptDigest);
-};
+  if (record?.composed === undefined) return
+  withComposedGroup(settings, "PreToolUse", undefined, record.composed.preToolUseDigest)
+  withComposedGroup(settings, "Stop", undefined, record.composed.stopDigest)
+  withComposedGroup(settings, "SubagentStop", undefined, record.composed.subagentStopDigest)
+  withComposedGroup(settings, "UserPromptSubmit", undefined, record.composed.promptDigest)
+}
 const inspect = (request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
   try {
-    const settings = parseObject(file(input.paths.settings), "Claude settings.json");
-    const record = readRecord(input.paths.ownership);
-    const current = owned(settings);
-    if (record === undefined) assertNoComposedRecord(settings);
+    const settings = parseObject(file(input.paths.settings), "Claude settings.json")
+    const record = readRecord(input.paths.ownership)
+    const current = owned(settings)
+    if (record === undefined) assertNoComposedRecord(settings)
     if (record === undefined && current === undefined)
-      return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: false };
-    assertInspectionOwnership(record, current, input);
-    inspectComposedOwnership(settings, record);
-    return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: true };
+      return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: false }
+    assertInspectionOwnership(record, current, input)
+    inspectComposedOwnership(settings, record)
+    return { version: 1 as const, operation: "inspect-installation", status: "ready" as const, installed: true }
   } catch (cause) {
-    return resultError("inspect-installation", cause, request.claudeHome);
+    return resultError("inspect-installation", cause, request.claudeHome)
   }
-};
+}
 
 export const inspectClaudeInstallation = Effect.fn("ClaudeInstallation.inspect")(function* (
-  request: ClaudeInstallationRequest,
+  request: ClaudeInstallationRequest
 ) {
-  return inspect(request, yield* resolveInputs(request));
-});
+  return inspect(request, yield* resolveInputs(request))
+})
 
 export const diagnoseClaudeIntegration = Effect.fn("ClaudeInstallation.diagnose")(function* (
-  request: ClaudeInstallationRequest,
+  request: ClaudeInstallationRequest
 ) {
-  const input = yield* resolveInputs(request);
-  const compatibility = ready(input);
-  const inspection = inspect(request, input);
+  const input = yield* resolveInputs(request)
+  const compatibility = ready(input)
+  const inspection = inspect(request, input)
   const checks = [
     { stage: "host", status: compatibility.host.supported ? "ready" : "unsupported", observed: compatibility.host },
     {
       stage: "runtime",
       status: compatibility.runtime.observed === compatibility.runtime.required ? "ready" : "unsupported",
-      observed: compatibility.runtime,
+      observed: compatibility.runtime
     },
     {
       stage: "configuration-ownership",
       status: inspection.status === "conflict" ? "conflict" : inspection.installed ? "ready" : "missing",
-      observed: inspection,
+      observed: inspection
     },
     {
       stage: "native-trust",
       status: "unknown",
-      observed: "Claude Code workspace trust and hook approval are host-owned",
+      observed: "Claude Code workspace trust and hook approval are host-owned"
     },
-    { stage: "file-selection", status: "unknown", observed: "inspect effective file settings" },
-  ];
+    { stage: "file-selection", status: "unknown", observed: "inspect effective file settings" }
+  ]
   return {
     version: 1 as const,
     operation: "doctor" as const,
     status: checks.some(
-      (check) => check.status === "conflict" || check.status === "unsupported" || check.status === "missing",
+      (check) => check.status === "conflict" || check.status === "unsupported" || check.status === "missing"
     )
       ? ("not-ready" as const)
       : ("unknown" as const),
     offline: true as const,
     readOnly: true as const,
     providerCalls: 0 as const,
-    checks,
-  };
-});
+    checks
+  }
+})

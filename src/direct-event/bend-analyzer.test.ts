@@ -1,31 +1,39 @@
-import { describe, expect, it } from "vitest";
-import { extractBendDeclarations } from "./languages/bend/extractor.ts";
-import { analyzeTypeFile, inspectGraphFile, combinedAnalyzerMaterializationPreflight } from "./analyzer.ts";
+import { describe, expect, it } from "vitest"
+import { extractBendDeclarations } from "./languages/bend/extractor.ts"
+import { analyzeTypeFile, inspectGraphFile, combinedAnalyzerMaterializationPreflight } from "./analyzer.ts"
 
 const analyze = (source: string) => {
-  const result = analyzeTypeFile("model.bend", source);
-  if (result.status !== "analyzed") throw new Error(result.reason);
-  return result.units;
-};
+  const result = analyzeTypeFile("model.bend", source)
+  if (result.status !== "analyzed") throw new Error(result.reason)
+  return result.units
+}
 
 describe("bounded Bend datatype extraction", () => {
   it("closes same-file payloads and retains exact source and coordinates", () => {
-    const source = "# intro\nimport Base\n\ntype Receipt is Data:\n  Receipt{id: String}\n\ntype Delivery is Data: # root\n  Waiting{}\n  Delivered{receipt: Receipt}\n";
-    const outcomes = analyze(source);
-    expect(outcomes.every((unit) => unit.status === "ready")).toBe(true);
-    expect(outcomes[1]?.unit.root.references[0]?.kind).toBe("expanded");
-    const graph = inspectGraphFile("model.bend", source);
-    expect(graph?.imports.size).toBe(0);
+    const source =
+      "# intro\nimport Base\n\ntype Receipt is Data:\n  Receipt{id: String}\n\ntype Delivery is Data: # root\n  Waiting{}\n  Delivered{receipt: Receipt}\n"
+    const outcomes = analyze(source)
+    expect(outcomes.every((unit) => unit.status === "ready")).toBe(true)
+    expect(outcomes[1]?.unit.root.references[0]?.kind).toBe("expanded")
+    const graph = inspectGraphFile("model.bend", source)
+    expect(graph?.imports.size).toBe(0)
     expect(graph?.declarations.get("Delivery")).toMatchObject({
-      artifact: { kind: "datatype", source: "type Delivery is Data: # root\n  Waiting{}\n  Delivered{receipt: Receipt}" },
-      location: { start: { line: 7, column: 1 }, end: { line: 9, column: 30 } },
-    });
-    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)?.declarations).toBe(2);
-  });
+      artifact: {
+        kind: "datatype",
+        source: "type Delivery is Data: # root\n  Waiting{}\n  Delivered{receipt: Receipt}"
+      },
+      location: { start: { line: 7, column: 1 }, end: { line: 9, column: 30 } }
+    })
+    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)?.declarations).toBe(2)
+  })
 
   it("supports erased type parameters and nested local datatype arguments", () => {
-    expect(analyze("import Base\ntype Box<-A: Data> is Data:\n  Box{value: A}\ntype Root is Data:\n  Root{value: Box<Box<String>>}").every((unit) => unit.status === "ready")).toBe(true);
-  });
+    expect(
+      analyze(
+        "import Base\ntype Box<-A: Data> is Data:\n  Box{value: A}\ntype Root is Data:\n  Root{value: Box<Box<String>>}"
+      ).every((unit) => unit.status === "ready")
+    ).toBe(true)
+  })
 
   it.each([
     "type Root is Data:\n  Root{value: Missing}",
@@ -46,102 +54,132 @@ describe("bounded Bend datatype extraction", () => {
     "type Root is Data:\n  Root{value: U32, value: U32}",
     "type Root is Data:\n  Root{\n    value: U32\n  }",
     "import Base\ndef String() -> Data:\n  U32\ntype Root is Data:\n  Root{value: String}",
-    "type Root<-A: Data> is Data:\n  Root{A: Data, value: A}",
+    "type Root<-A: Data> is Data:\n  Root{A: Data, value: A}"
   ])("preserves omissions for %s", (source) => {
-    expect(analyze(source).at(-1)?.status).toBe("unsupported");
-  });
+    expect(analyze(source).at(-1)?.status).toBe("unsupported")
+  })
 
   it("maps leading relative aliases and nested payloads in reference order", () => {
-    const result = extractBendDeclarations("import ./receipt.bend as R\nimport ../box.bend as B\ntype Root is Data:\n  Root{value: B.Box<R.Receipt>, again: R.Receipt}", 64);
-    expect("declarations" in result).toBe(true);
-    if (!("declarations" in result)) return;
+    const result = extractBendDeclarations(
+      "import ./receipt.bend as R\nimport ../box.bend as B\ntype Root is Data:\n  Root{value: B.Box<R.Receipt>, again: R.Receipt}",
+      64
+    )
+    expect("declarations" in result).toBe(true)
+    if (!("declarations" in result)) return
     expect([...result.imports]).toEqual([
       ["B.Box", { path: "../box.bend", name: "Box" }],
-      ["R.Receipt", { path: "./receipt.bend", name: "Receipt" }],
-    ]);
+      ["R.Receipt", { path: "./receipt.bend", name: "Receipt" }]
+    ])
     expect(result.declarations[0]?.references).toEqual([
-      { kind: "named", name: "B.Box" }, { kind: "named", name: "R.Receipt" },
-    ]);
-  });
+      { kind: "named", name: "B.Box" },
+      { kind: "named", name: "R.Receipt" }
+    ])
+  })
 
   it("keeps missing aliased declarations as named edges for graph resolution", () => {
-    const result = extractBendDeclarations("import ./receipt.bend as R\ntype Root is Data:\n  Root{value: R.Missing}", 64);
-    if (!("declarations" in result)) throw new Error(result.reason);
-    expect(result.imports.get("R.Missing")).toEqual({ path: "./receipt.bend", name: "Missing" });
-    expect(result.declarations[0]?.references).toEqual([{ kind: "named", name: "R.Missing" }]);
-  });
+    const result = extractBendDeclarations(
+      "import ./receipt.bend as R\ntype Root is Data:\n  Root{value: R.Missing}",
+      64
+    )
+    if (!("declarations" in result)) throw new Error(result.reason)
+    expect(result.imports.get("R.Missing")).toEqual({ path: "./receipt.bend", name: "Missing" })
+    expect(result.declarations[0]?.references).toEqual([{ kind: "named", name: "R.Missing" }])
+  })
 
   it.each([
     "import ./one.bend as R\nimport ./two.bend as R\ntype Root is Data:\n  Root{}",
     "import ./one.bend as R\ntype R is Data:\n  C{}",
     "import ./one.bend as R\ntype Root is Data:\n  R{}",
     "import ./one.bend as R\ndef R.foo() -> Data:\n  Data\ntype Root is Data:\n  C{}",
-    "type Root is Data:\n  C{}\nimport ./one.bend as R",
+    "type Root is Data:\n  C{}\nimport ./one.bend as R"
   ])("rejects conflicting or late import aliases %s", (source) => {
-    expect(extractBendDeclarations(source, 64)).toHaveProperty("reason");
-  });
+    expect(extractBendDeclarations(source, 64)).toHaveProperty("reason")
+  })
 
   it.each([
     "import ./one.bend as R\ntype Root<-R: Data> is Data:\n  C{value: R.Receipt}",
     "import ./one.bend as R\ntype Root is Data:\n  C{R: Data, value: R.Receipt}",
     "import /absolute/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}",
-    "import hub/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}",
+    "import hub/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}"
   ])("marks shadowed or unsupported import evidence omitted %s", (source) => {
-    const result = extractBendDeclarations(source, 64);
-    if (!("declarations" in result)) throw new Error(result.reason);
-    expect(result.declarations[0]?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
-  });
+    const result = extractBendDeclarations(source, 64)
+    if (!("declarations" in result)) throw new Error(result.reason)
+    expect(result.declarations[0]?.references.some((reference) => reference.kind === "unsupported")).toBe(true)
+  })
 
-  it.each(["Word", "List", "Maybe", "IO", "WNil", "Nat"])("does not assume aliased %s wins over Base names", (alias) => {
-    for (const imports of [`import Base\nimport ./child.bend as ${alias}`, `import ./child.bend as ${alias}\nimport Base`]) {
-      const result = extractBendDeclarations(`${imports}\ntype Root is Data:\n  Root{value: ${alias}.Nil}`, 64);
-      if (!("declarations" in result)) throw new Error(result.reason);
-      expect(result.declarations[0]?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
-      expect(result.imports.size).toBe(0);
+  it.each(["Word", "List", "Maybe", "IO", "WNil", "Nat"])(
+    "does not assume aliased %s wins over Base names",
+    (alias) => {
+      for (const imports of [
+        `import Base\nimport ./child.bend as ${alias}`,
+        `import ./child.bend as ${alias}\nimport Base`
+      ]) {
+        const result = extractBendDeclarations(`${imports}\ntype Root is Data:\n  Root{value: ${alias}.Nil}`, 64)
+        if (!("declarations" in result)) throw new Error(result.reason)
+        expect(result.declarations[0]?.references.some((reference) => reference.kind === "unsupported")).toBe(true)
+        expect(result.imports.size).toBe(0)
+      }
     }
-  });
+  )
 
   it("does not erase a bare builtin spelling that is also an alias", () => {
-    const result = extractBendDeclarations("import Base\nimport ./child.bend as Nat\ntype Root is Data:\n  Root{value: Nat}", 64);
-    if (!("declarations" in result)) throw new Error(result.reason);
-    expect(result.declarations[0]?.references).toContainEqual({ kind: "named", name: "Nat" });
-    expect(result.declarations[0]?.references).toContainEqual({ kind: "unsupported", name: "Root" });
-  });
+    const result = extractBendDeclarations(
+      "import Base\nimport ./child.bend as Nat\ntype Root is Data:\n  Root{value: Nat}",
+      64
+    )
+    if (!("declarations" in result)) throw new Error(result.reason)
+    expect(result.declarations[0]?.references).toContainEqual({ kind: "named", name: "Nat" })
+    expect(result.declarations[0]?.references).toContainEqual({ kind: "unsupported", name: "Root" })
+  })
 
   it("allows an unambiguous Receipt alias alongside Base", () => {
-    const result = extractBendDeclarations("import Base\nimport ./child.bend as Receipt\ntype Root is Data:\n  Root{value: Receipt.Value}", 64);
-    if (!("declarations" in result)) throw new Error(result.reason);
-    expect(result.imports.get("Receipt.Value")).toEqual({ path: "./child.bend", name: "Value" });
-    expect(result.declarations[0]?.references).toEqual([{ kind: "named", name: "Receipt.Value" }]);
-  });
+    const result = extractBendDeclarations(
+      "import Base\nimport ./child.bend as Receipt\ntype Root is Data:\n  Root{value: Receipt.Value}",
+      64
+    )
+    if (!("declarations" in result)) throw new Error(result.reason)
+    expect(result.imports.get("Receipt.Value")).toEqual({ path: "./child.bend", name: "Value" })
+    expect(result.declarations[0]?.references).toEqual([{ kind: "named", name: "Receipt.Value" }])
+  })
 
   it("contains recursive references and enforces shared budgets", () => {
-    expect(analyze("type A is Type:\n  A{value: B}\ntype B is Type:\n  B{value: A}")[0]?.status).toBe("ready");
-    const many = Array.from({ length: 65 }, (_, index) => `type T${index} is Data:\n  C${index}{}`).join("\n");
-    expect(analyzeTypeFile("model.bend", many)).toMatchObject({ status: "unsupported", reason: "declaration-limit" });
-    const types = Array.from({ length: 17 }, (_, index) => `type T${index} is Data:\n  C${index}{}`).join("\n");
-    const root = `type Root is Data:\n  Root{${Array.from({ length: 17 }, (_, index) => `f${index}: T${index}`).join(", ")}}`;
-    expect(analyze(`${root}\n${types}`)[0]).toMatchObject({ status: "unsupported", reason: "reference-limit" });
-  });
+    expect(analyze("type A is Type:\n  A{value: B}\ntype B is Type:\n  B{value: A}")[0]?.status).toBe("ready")
+    const many = Array.from({ length: 65 }, (_, index) => `type T${index} is Data:\n  C${index}{}`).join("\n")
+    expect(analyzeTypeFile("model.bend", many)).toMatchObject({ status: "unsupported", reason: "declaration-limit" })
+    const types = Array.from({ length: 17 }, (_, index) => `type T${index} is Data:\n  C${index}{}`).join("\n")
+    const root = `type Root is Data:\n  Root{${Array.from({ length: 17 }, (_, index) => `f${index}: T${index}`).join(", ")}}`
+    expect(analyze(`${root}\n${types}`)[0]).toMatchObject({ status: "unsupported", reason: "reference-limit" })
+  })
 
   it.each([
     "type Root is Data:\n  Root{}\ntype Root is Data:\n  Other{}",
-    "type A is Data:\n  Same{}\ntype B is Data:\n  Same{}",
+    "type A is Data:\n  Same{}\ntype B is Data:\n  Same{}"
   ])("rejects ambiguous declarations %s", (source) => {
-    expect(analyzeTypeFile("model.bend", source)).toMatchObject({ status: "unsupported", reason: "declaration-merge" });
-  });
+    expect(analyzeTypeFile("model.bend", source)).toMatchObject({ status: "unsupported", reason: "declaration-merge" })
+  })
 
   it("rejects competing type and def/law bindings but preserves qualified names", () => {
     for (const declaration of ["def T() -> Data:\n  Data", "law T:\n  Data"]) {
-      expect(analyzeTypeFile("model.bend", `type T is Data:\n  C{}\n${declaration}`)).toMatchObject({ status: "unsupported", reason: "declaration-merge" });
-      expect(analyzeTypeFile("model.bend", `${declaration}\ntype T is Data:\n  C{}`)).toMatchObject({ status: "unsupported", reason: "declaration-merge" });
+      expect(analyzeTypeFile("model.bend", `type T is Data:\n  C{}\n${declaration}`)).toMatchObject({
+        status: "unsupported",
+        reason: "declaration-merge"
+      })
+      expect(analyzeTypeFile("model.bend", `${declaration}\ntype T is Data:\n  C{}`)).toMatchObject({
+        status: "unsupported",
+        reason: "declaration-merge"
+      })
     }
-    expect(analyze("type T is Data:\n  C{}\ndef T.foo() -> Data:\n  T")[0]?.status).toBe("ready");
-  });
+    expect(analyze("type T is Data:\n  C{}\ndef T.foo() -> Data:\n  T")[0]?.status).toBe("ready")
+  })
 
   it("does not find roots in comments, definitions, laws or strings", () => {
-    expect(analyzeTypeFile("model.bend", "# type Fake is Data:\ndef main() -> Data:\n  type Hidden is Data:")).toMatchObject({ status: "unsupported", reason: "no-declarations" });
-    expect(analyzeTypeFile("model.bend", 'def main() -> String:\n  "type Fake is Data:"')).toMatchObject({ status: "unsupported", reason: "parse" });
-    expect(analyzeTypeFile("model.bend", "type Bad is Data")).toMatchObject({ status: "unsupported", reason: "parse" });
-  });
-});
+    expect(
+      analyzeTypeFile("model.bend", "# type Fake is Data:\ndef main() -> Data:\n  type Hidden is Data:")
+    ).toMatchObject({ status: "unsupported", reason: "no-declarations" })
+    expect(analyzeTypeFile("model.bend", 'def main() -> String:\n  "type Fake is Data:"')).toMatchObject({
+      status: "unsupported",
+      reason: "parse"
+    })
+    expect(analyzeTypeFile("model.bend", "type Bad is Data")).toMatchObject({ status: "unsupported", reason: "parse" })
+  })
+})

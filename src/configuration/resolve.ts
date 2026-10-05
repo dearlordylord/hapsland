@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash } from "node:crypto"
 import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
@@ -13,107 +13,97 @@ import {
   type Originated,
   type PatternOrigin,
   type ResolvedPolicy,
-  type ReviewBackendSettings,
-} from "./types.ts";
-import { ConfigurationError } from "./errors.ts";
-import { replaceIncludes } from "./decision.ts";
-import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimitField, type GraphLimits } from "./graph-limits.ts";
+  type ReviewBackendSettings
+} from "./types.ts"
+import { ConfigurationError } from "./errors.ts"
+import { replaceIncludes } from "./decision.ts"
+import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimitField, type GraphLimits } from "./graph-limits.ts"
 
 export type ConfigurationLayer = {
-  readonly name: ConfigurationLayerName;
-  readonly source: string;
-  readonly document: ConfigurationDocument;
-};
+  readonly name: ConfigurationLayerName
+  readonly source: string
+  readonly document: ConfigurationDocument
+}
 
 const origin = (layer: ConfigurationLayer, field: string): ConfigurationOrigin => ({
   layer: layer.name,
   source: layer.source,
-  field,
-});
+  field
+})
 
-const originated = <T>(value: T, owner: ConfigurationOrigin): Originated<T> => ({
-  value,
-  origin: owner,
-});
+const originated = <T>(value: T, owner: ConfigurationOrigin): Originated<T> => ({ value, origin: owner })
 
 const patternsFor = (
   layer: ConfigurationLayer,
   field: string,
-  values: ReadonlyArray<string>,
-): ReadonlyArray<PatternOrigin> => values.map((value) => ({ value, origin: origin(layer, field), active: true }));
+  values: ReadonlyArray<string>
+): ReadonlyArray<PatternOrigin> => values.map((value) => ({ value, origin: origin(layer, field), active: true }))
 
 const includeValues = (
-  document: ConfigurationDocument,
+  document: ConfigurationDocument
 ): { readonly field: "includes"; readonly values: ReadonlyArray<string> } | undefined => {
-  if (document.includes !== undefined) return { field: "includes", values: document.includes };
-  return undefined;
-};
+  if (document.includes !== undefined) return { field: "includes", values: document.includes }
+  return undefined
+}
 
 const excludeValues = (
-  document: ConfigurationDocument,
+  document: ConfigurationDocument
 ): { readonly field: "excludes"; readonly values: ReadonlyArray<string> } | undefined => {
-  if (document.excludes !== undefined) return { field: "excludes", values: document.excludes };
-  return undefined;
-};
+  if (document.excludes !== undefined) return { field: "excludes", values: document.excludes }
+  return undefined
+}
 
 const stable = (value: unknown): string => {
-  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`
   if (typeof value === "object" && value !== null) {
     return `{${Object.keys(value as Record<string, unknown>)
       .sort()
       .map((key) => `${JSON.stringify(key)}:${stable((value as Record<string, unknown>)[key])}`)
-      .join(",")}}`;
+      .join(",")}}`
   }
-  return JSON.stringify(value);
-};
+  return JSON.stringify(value)
+}
 
-const digest = (value: unknown): string => createHash("sha256").update(stable(value)).digest("hex");
+const digest = (value: unknown): string => createHash("sha256").update(stable(value)).digest("hex")
 
 const dedupePatterns = (values: ReadonlyArray<PatternOrigin>): ReadonlyArray<PatternOrigin> => {
-  const seen = new Set<string>();
+  const seen = new Set<string>()
   return values.filter((entry) => {
-    if (seen.has(entry.value)) return false;
-    seen.add(entry.value);
-    return true;
-  });
-};
+    if (seen.has(entry.value)) return false
+    seen.add(entry.value)
+    return true
+  })
+}
 
 const allLayers = (layers: ReadonlyArray<ConfigurationLayer>): ReadonlyArray<ConfigurationLayer> => {
-  const builtIn = layers.find((layer) => layer.name === "built-in");
+  const builtIn = layers.find((layer) => layer.name === "built-in")
   const ordered: Array<ConfigurationLayer> =
     builtIn !== undefined
       ? [...layers]
-      : [
-          {
-            name: "built-in",
-            source: "built-in",
-            document: { version: 1 },
-          },
-          ...layers,
-        ];
-  return ordered.sort((left, right) => layerRank(left.name) - layerRank(right.name));
-};
+      : [{ name: "built-in", source: "built-in", document: { version: 1 } }, ...layers]
+  return ordered.sort((left, right) => layerRank(left.name) - layerRank(right.name))
+}
 
-const layerRank = (name: ConfigurationLayerName): number => (name === "built-in" ? 0 : name === "user" ? 1 : 2);
+const layerRank = (name: ConfigurationLayerName): number => (name === "built-in" ? 0 : name === "user" ? 1 : 2)
 
 const effectiveGraphLimit = (layers: ReadonlyArray<ConfigurationLayer>, key: GraphLimitField): Originated<number> => {
-  let value: number = GRAPH_LIMIT_CEILINGS[key];
-  let owner: ConfigurationOrigin = { layer: "built-in", source: "built-in", field: `graphLimits.${key}` };
+  let value: number = GRAPH_LIMIT_CEILINGS[key]
+  let owner: ConfigurationOrigin = { layer: "built-in", source: "built-in", field: `graphLimits.${key}` }
   for (const layer of layers) {
-    const supplied = layer.document.graphLimits?.[key];
-    if (supplied === undefined) continue;
+    const supplied = layer.document.graphLimits?.[key]
+    if (supplied === undefined) continue
     if (layer.name === "project" && owner.layer === "user" && supplied > value) {
       throw new ConfigurationError({
         source: layer.source,
         field: `graphLimits.${key}`,
-        reason: "project graph limit may only lower the user maximum",
-      });
+        reason: "project graph limit may only lower the user maximum"
+      })
     }
-    value = supplied;
-    owner = origin(layer, `graphLimits.${key}`);
+    value = supplied
+    owner = origin(layer, `graphLimits.${key}`)
   }
-  return originated(value, owner);
-};
+  return originated(value, owner)
+}
 
 /** Convert the resolved, origin-bearing profile into a frozen Bend input. */
 export const effectiveGraphLimits = (policy: ResolvedPolicy): GraphLimits =>
@@ -125,61 +115,62 @@ export const effectiveGraphLimits = (policy: ResolvedPolicy): GraphLimits =>
     readBytes: policy.graphLimits.readBytes.value,
     outgoingEdges: policy.graphLimits.outgoingEdges.value,
     depth: policy.graphLimits.depth.value,
-    work: policy.graphLimits.work.value,
-  });
+    work: policy.graphLimits.work.value
+  })
 
 export const effectiveEditPermitLimits = (
-  policy: ResolvedPolicy,
-): {
-  readonly perAdvicee: number;
-  readonly resident: number;
-} => {
-  const user = policy.layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
+  policy: ResolvedPolicy
+): { readonly perAdvicee: number; readonly resident: number } => {
+  const user = policy.layers.find((layer) => layer.name === "user")?.document.editPermitLimits
   return {
     perAdvicee: user?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee,
-    resident: user?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident,
-  };
-};
+    resident: user?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident
+  }
+}
 
 export const sessionAnalyticsSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> => {
-  let setting = originated(false, { layer: "built-in", source: "built-in", field: "sessionAnalytics" });
+  let setting = originated(false, { layer: "built-in", source: "built-in", field: "sessionAnalytics" })
   for (const layer of policy.layers) {
     if (layer.document.sessionAnalytics !== undefined)
-      setting = originated(layer.document.sessionAnalytics, origin(layer, "sessionAnalytics"));
+      setting = originated(layer.document.sessionAnalytics, origin(layer, "sessionAnalytics"))
   }
-  return setting;
-};
+  return setting
+}
 
-export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean => sessionAnalyticsSetting(policy).value;
+export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean => sessionAnalyticsSetting(policy).value
 
 export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
-  policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS;
+  policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS
 
 export const effectiveReviewBackend = (policy: Pick<ResolvedPolicy, "layers">): ReviewBackendSettings =>
-  policy.layers.find((layer) => layer.name === "user")?.document.reviewBackend ?? { provider: "jev" };
+  policy.layers.find((layer) => layer.name === "user")?.document.reviewBackend ?? { provider: "jev" }
 
 const userOwnedControls = [
   { field: "editPermitLimits", reason: "only user configuration may set shared resident edit permit limits" },
-  { field: "virtualRoundQuietMs", reason: "only user configuration may set the shared resident virtual round timeout" },
-] as const;
+  { field: "virtualRoundQuietMs", reason: "only user configuration may set the shared resident virtual round timeout" }
+] as const
 
 const validateUserControls = (layers: ReadonlyArray<ConfigurationLayer>) => {
   for (const layer of layers) {
     if (layer.name !== "user" && layer.document.reviewBackend !== undefined) {
-      throw new ConfigurationError({ source: layer.source, field: "reviewBackend", reason: "only user configuration may select a review destination" });
+      throw new ConfigurationError({
+        source: layer.source,
+        field: "reviewBackend",
+        reason: "only user configuration may select a review destination"
+      })
     }
   }
   for (const control of userOwnedControls) {
     for (const layer of layers) {
       if (layer.name === "project" && layer.document[control.field] !== undefined) {
-        throw new ConfigurationError({ source: layer.source, field: control.field, reason: control.reason });
+        throw new ConfigurationError({ source: layer.source, field: control.field, reason: control.reason })
       }
     }
   }
-};
+}
 
 const validatePermitLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
-  const userPermitLimits = layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
+  const userPermitLimits = layers.find((layer) => layer.name === "user")?.document.editPermitLimits
   if (
     (userPermitLimits?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee) >
     (userPermitLimits?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident)
@@ -187,92 +178,96 @@ const validatePermitLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
     throw new ConfigurationError({
       source: layers.find((layer) => layer.name === "user")?.source ?? "built-in",
       field: "editPermitLimits",
-      reason: "perAdvicee limit cannot exceed resident limit",
-    });
+      reason: "perAdvicee limit cannot exceed resident limit"
+    })
   }
-};
+}
 
 const resolvePatterns = (layers: ReadonlyArray<ConfigurationLayer>) => {
   let includes: ReadonlyArray<PatternOrigin> = patternsFor(
     layers[0] ?? { name: "built-in", source: "built-in", document: { version: 1 } },
     "includes",
-    BUILT_IN_INCLUDES,
-  );
-  let overriddenIncludes: ReadonlyArray<PatternOrigin> = [];
-  let includeRank = 0;
-  let excludes: ReadonlyArray<PatternOrigin> = [];
+    BUILT_IN_INCLUDES
+  )
+  let overriddenIncludes: ReadonlyArray<PatternOrigin> = []
+  let includeRank = 0
+  let excludes: ReadonlyArray<PatternOrigin> = []
   const protectedExcludes: Array<PatternOrigin> = BUILT_IN_PROTECTED_EXCLUDES.map((value) => ({
     value,
     origin: { layer: "built-in", source: "built-in", field: "protectedExcludes" },
-    active: true,
-  }));
+    active: true
+  }))
 
   for (const layer of layers) {
-    const suppliedIncludes = includeValues(layer.document);
-    const rank = layerRank(layer.name);
+    const suppliedIncludes = includeValues(layer.document)
+    const rank = layerRank(layer.name)
     if (replaceIncludes(suppliedIncludes !== undefined, includeRank, rank)) {
-      if (suppliedIncludes === undefined) throw new Error("canonical include choice lacks patterns");
+      if (suppliedIncludes === undefined) throw new Error("canonical include choice lacks patterns")
       overriddenIncludes = dedupePatterns([
         ...overriddenIncludes,
-        ...includes.map((entry) => ({ ...entry, active: false })),
-      ]);
-      includes = dedupePatterns(patternsFor(layer, suppliedIncludes.field, suppliedIncludes.values));
-      includeRank = rank;
+        ...includes.map((entry) => ({ ...entry, active: false }))
+      ])
+      includes = dedupePatterns(patternsFor(layer, suppliedIncludes.field, suppliedIncludes.values))
+      includeRank = rank
     }
-    const suppliedExcludes = excludeValues(layer.document);
+    const suppliedExcludes = excludeValues(layer.document)
     if (suppliedExcludes !== undefined) {
-      excludes = dedupePatterns([...excludes, ...patternsFor(layer, suppliedExcludes.field, suppliedExcludes.values)]);
+      excludes = dedupePatterns([...excludes, ...patternsFor(layer, suppliedExcludes.field, suppliedExcludes.values)])
     }
     if (layer.document.privacyExcludes !== undefined) {
-      protectedExcludes.push(...patternsFor(layer, "privacyExcludes", layer.document.privacyExcludes));
+      protectedExcludes.push(...patternsFor(layer, "privacyExcludes", layer.document.privacyExcludes))
     }
   }
 
-  return { includes, overriddenIncludes, excludes, protectedExcludes: dedupePatterns(protectedExcludes) };
-};
+  return { includes, overriddenIncludes, excludes, protectedExcludes: dedupePatterns(protectedExcludes) }
+}
 
 const resolveCredentialReference = (layers: ReadonlyArray<ConfigurationLayer>) => {
-  const backendOwner = layers.find((layer) => layer.name === "user" && layer.document.reviewBackend?.provider === "cloudflare");
+  const backendOwner = layers.find(
+    (layer) => layer.name === "user" && layer.document.reviewBackend?.provider === "cloudflare"
+  )
   let credentialEnvVar: Originated<string> = originated(
     backendOwner === undefined ? DEFAULT_CREDENTIAL_ENV_VAR : "CLOUDFLARE_API_TOKEN",
-    backendOwner === undefined ? { layer: "built-in", source: "built-in", field: "credentialEnvVar" } : origin(backendOwner, "reviewBackend"),
-  );
+    backendOwner === undefined
+      ? { layer: "built-in", source: "built-in", field: "credentialEnvVar" }
+      : origin(backendOwner, "reviewBackend")
+  )
   for (const layer of layers) {
-    const value = layer.document.credentialEnvVar;
+    const value = layer.document.credentialEnvVar
     if (value !== undefined) {
       // Credential authority is user-owned. A project may provide a reference
       // when no user reference exists, but cannot silently redirect a user's
       // configured secret source.
       if (credentialEnvVar.origin.layer !== "user" || layer.name !== "project") {
-        credentialEnvVar = originated(value, origin(layer, "credentialEnvVar"));
+        credentialEnvVar = originated(value, origin(layer, "credentialEnvVar"))
       }
     }
   }
 
-  return credentialEnvVar;
-};
+  return credentialEnvVar
+}
 
 const resolveClaudeFeedback = (layers: ReadonlyArray<ConfigurationLayer>) => {
   let claudeFeedbackMode: Originated<ClaudeFeedbackMode> = originated("advisory", {
     layer: "built-in",
     source: "built-in",
-    field: "claudeFeedbackMode",
-  });
+    field: "claudeFeedbackMode"
+  })
   for (const layer of layers) {
-    const value = layer.document.claudeFeedbackMode;
-    if (value === undefined) continue;
+    const value = layer.document.claudeFeedbackMode
+    if (value === undefined) continue
     if (value === "block-current-findings" && layer.name !== "user") {
       throw new ConfigurationError({
         source: layer.source,
         field: "claudeFeedbackMode",
-        reason: "only user configuration may enable Claude block feedback",
-      });
+        reason: "only user configuration may enable Claude block feedback"
+      })
     }
-    claudeFeedbackMode = originated(value, origin(layer, "claudeFeedbackMode"));
+    claudeFeedbackMode = originated(value, origin(layer, "claudeFeedbackMode"))
   }
 
-  return claudeFeedbackMode;
-};
+  return claudeFeedbackMode
+}
 
 const resolveGraphLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
   const graphLimits = {
@@ -283,53 +278,43 @@ const resolveGraphLimits = (layers: ReadonlyArray<ConfigurationLayer>) => {
     readBytes: effectiveGraphLimit(layers, "readBytes"),
     outgoingEdges: effectiveGraphLimit(layers, "outgoingEdges"),
     depth: effectiveGraphLimit(layers, "depth"),
-    work: effectiveGraphLimit(layers, "work"),
-  };
+    work: effectiveGraphLimit(layers, "work")
+  }
   if (graphLimits.readBytes.value < graphLimits.sourceBytes.value) {
     throw new ConfigurationError({
       source: graphLimits.readBytes.origin.source,
       field: "graphLimits.readBytes",
-      reason: "total read cap must be at least the per-file source cap for full-file reservation",
-    });
+      reason: "total read cap must be at least the per-file source cap for full-file reservation"
+    })
   }
 
-  return graphLimits;
-};
+  return graphLimits
+}
 
 /**
  * Resolve built-in → user → project policy while retaining every relevant origin.
  * The returned value is immutable-by-convention and can be captured per event.
  */
 export const resolveConfiguration = (suppliedLayers: ReadonlyArray<ConfigurationLayer>, root = "."): ResolvedPolicy => {
-  const layers = allLayers(suppliedLayers);
-  validateUserControls(layers);
-  validatePermitLimits(layers);
-  const patterns = resolvePatterns(layers);
-  const credentialEnvVar = resolveCredentialReference(layers);
-  const claudeFeedbackMode = resolveClaudeFeedback(layers);
-  const graphLimits = resolveGraphLimits(layers);
+  const layers = allLayers(suppliedLayers)
+  validateUserControls(layers)
+  validatePermitLimits(layers)
+  const patterns = resolvePatterns(layers)
+  const credentialEnvVar = resolveCredentialReference(layers)
+  const claudeFeedbackMode = resolveClaudeFeedback(layers)
+  const graphLimits = resolveGraphLimits(layers)
 
-  const policyWithoutDigest = {
-    root,
-    ...patterns,
-    credentialEnvVar,
-    claudeFeedbackMode,
-    graphLimits,
-    layers,
-  };
-  return {
-    ...policyWithoutDigest,
-    digest: digest(policyWithoutDigest),
-  };
-};
+  const policyWithoutDigest = { root, ...patterns, credentialEnvVar, claudeFeedbackMode, graphLimits, layers }
+  return { ...policyWithoutDigest, digest: digest(policyWithoutDigest) }
+}
 
 export const captureConfiguration = (policy: ResolvedPolicy): ConfigurationCapture => {
-  return { policy };
-};
+  return { policy }
+}
 
-export const configurationDigest = (policy: ResolvedPolicy): string => policy.digest;
+export const configurationDigest = (policy: ResolvedPolicy): string => policy.digest
 
-export const stableConfigurationValue = stable;
+export const stableConfigurationValue = stable
 
 /** Validate a captured policy before an event can dispatch source. */
 export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
@@ -344,13 +329,13 @@ export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
       credentialEnvVar: policy.credentialEnvVar,
       claudeFeedbackMode: policy.claudeFeedbackMode,
       graphLimits: policy.graphLimits,
-      layers: policy.layers,
+      layers: policy.layers
     })
   ) {
     throw new ConfigurationError({
       source: "captured-policy",
       field: "digest",
-      reason: "captured configuration identity does not match its policy",
-    });
+      reason: "captured configuration identity does not match its policy"
+    })
   }
-};
+}

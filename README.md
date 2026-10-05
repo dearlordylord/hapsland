@@ -308,8 +308,8 @@ whether the resolved source is present. On Linux and macOS, `hapsland --login` u
 terminal input with the platform's native credential store;
 `hapsland --login --credential-stdin` is the explicit headless form, and
 `hapsland --logout` removes the owned saved item. Project configuration refers to a
-credential environment-variable name; secret values and environment files are never
-stored in project files or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
+credential environment-variable name; secret values are never stored in review
+configuration or printed. User configuration selects Jev or Cloudflare Clef/Clef-flash; see
 [provider selection and limits](docs/review-providers.md). Arbitrary endpoint routing is not supported. Hooks do not prompt.
 An unavailable credential prevents provider dispatch. Changing effective exclusions
 affects future dispatches and cannot recall a request already sent.
@@ -319,7 +319,14 @@ The supported Codex event boundary is documented in the
 integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
 An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
 hooks invoke the packed standalone CLI and never depend on this source path.
-Live use reads `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
+Setup and hooks read the selected key from environment → project `.env.local` →
+project `.env` → user `~/.config/hapsland/.env` (or `$XDG_CONFIG_HOME/hapsland/.env`).
+An explicit environment value takes priority, including empty. The default key reference
+then falls back to native saved login. File keys need no special agent launcher;
+[credential lookup](docs/installation-workflows.md#personal-development-on-your-own-clients)
+describes file limits and diagnostics.
+
+Live use selects `TYPESAFE_API_KEY` for Jev or `CLOUDFLARE_API_TOKEN` for Cloudflare
 through the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`.
 The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
@@ -339,3 +346,46 @@ The maintainer-only semantic evaluation protocol and its sanitized offline miles
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and
 [`evidence/evaluation/README.md`](./evidence/evaluation/README.md). Ordinary tests and
 the review hook never run the maintainer evaluation suite against Jev.
+
+## Code style
+
+Run `npm run format` to apply Oxlint fixes and dprint/OXC formatting.
+`npm run lint:code` checks all authored code; `npm run lint:changed` checks staged,
+unstaged and untracked code against `HEAD`. For a branch comparison, use
+`npm run lint:changed -- --base=origin/master`. `check:fast` includes changed-file
+checks, and CI checks all authored code.
+
+`npm run prepare` installs the Husky Git hook (also run during dependency
+installation). Pre-commit runs lint-staged: it fixes and restages selected code,
+and rejects remaining lint errors. Generated, vendor, fixture and evidence files
+are excluded. [The formatter configuration](./dprint.json) and
+[lint rules](./.oxlintrc.json) own the exact settings. The imported Dalph setup uses
+two-space indentation and 120-column formatting. Hapsland keeps Effect generators
+without `yield` and inline import types; namespace type resolution is checked by
+TypeScript because Oxlint's import namespace check reports false positives for Effect.
+
+<!-- hapsland-hooks:start -->
+## Agent hooks
+
+Generated from [the hook catalog](./src/runtime/hook-catalog.ts). Command timeouts are upper limits, not measured latency. Pi limits each Hapsland command call; a callback may make multiple calls. Codex does not install a `UserPromptSubmit` hook. OpenCode review hooks are currently inactive.
+
+| Runtime | Event | Selection | Mode | Limit | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| Codex | `PreToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Sync command | 10 s | Report the edit and collect ready advice |
+| Codex | `PostToolUse` | `^(apply_patch\|Edit\|Write\|Bash)$` | Async command | 25 s | Deliver advice that finishes after the edit response |
+| Codex | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Codex | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Claude Code | `PreToolUse` | `Edit\|Write` | Sync command | 5 s | Register an edit attempt before the tool runs |
+| Claude Code | `PostToolUse` | `Edit\|Write` | Sync command | 5 s | Report the edit and collect ready advice |
+| Claude Code | `Stop` | All | Sync command | 5 s | Collect admitted review results before the agent finishes |
+| Claude Code | `SubagentStop` | All | Sync command | 5 s | Collect admitted review results before a subagent finishes |
+| Claude Code | `UserPromptSubmit` | All | Sync command | 4 s | Notify the resident of the user prompt; does not open a review round |
+| Pi | `agent_start` | All | Extension callback | No IPC | Remember the agent identity for cleanup |
+| Pi | `tool_call` | `edit` | Extension callback | 7 s per IPC call | Register a supported edit attempt |
+| Pi | `tool_result` | `edit` | Extension callback | 7 s per IPC call | Report the edit and offer ready advice in the tool result |
+| Pi | `agent_before_settle` | All | Extension callback | 7 s per IPC call | Offer review advice before the agent settles |
+| Pi | `session_before_switch` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
+| Pi | `session_shutdown` | All | Extension callback | 7 s per IPC call | Retire edit attempts and close owned partitions |
+| Pi | `agent_settled` | All | Extension callback | 7 s per IPC call | Close the originating agent partition |
+<!-- hapsland-hooks:end -->

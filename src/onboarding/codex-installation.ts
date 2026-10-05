@@ -1,7 +1,16 @@
-import { currentCommand, commandEntrypoint, commandTokens, packageRootFromEntrypoint, expectedRuntimeVersion, commandFromEntrypoint, runtimeProbeArguments } from "../runtime/package-runtime.ts";
-import { Config, Effect, Schema } from "effect";
-import { execFileClosedStdin } from "./host-process.ts";
-import { createHash, randomUUID } from "node:crypto";
+import { commandHookGroup, commandHooks } from "../runtime/hook-catalog.ts"
+import {
+  currentCommand,
+  commandEntrypoint,
+  commandTokens,
+  packageRootFromEntrypoint,
+  expectedRuntimeVersion,
+  commandFromEntrypoint,
+  runtimeProbeArguments
+} from "../runtime/package-runtime.ts"
+import { Config, Effect, Schema } from "effect"
+import { execFileClosedStdin } from "./host-process.ts"
+import { createHash, randomUUID } from "node:crypto"
 import {
   accessSync,
   constants,
@@ -13,246 +22,186 @@ import {
   rmSync,
   statSync,
   unlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { homedir } from "node:os";
-import { dirname, extname, join, resolve } from "node:path";
-import { parse as parseToml } from "smol-toml";
-import { isCodexHostVersion } from "../direct-event/model.ts";
+  writeFileSync
+} from "node:fs"
+import { homedir } from "node:os"
+import { dirname, extname, join, resolve } from "node:path"
+import { parse as parseToml } from "smol-toml"
+import { isCodexHostVersion } from "../direct-event/model.ts"
 
-import { withInstallationLock } from "./installation-lock.ts";
+import { withInstallationLock } from "./installation-lock.ts"
 import {
   canonicalJson as stableJson,
   reconcileOwnedEvent,
   removeMarkedHandlers,
-  retainedHookSubset,
-} from "./hook-reconciliation.ts";
+  retainedHookSubset
+} from "./hook-reconciliation.ts"
 
 class CodexInstallationError extends Schema.TaggedError<CodexInstallationError>()("CodexInstallationError", {
-  reason: Schema.NonEmptyString,
+  reason: Schema.NonEmptyString
 }) {
   override get message() {
-    return this.reason;
+    return this.reason
   }
 }
 
-const OWNERSHIP_VERSION = 1 as const;
-const RESULT_VERSION = 1 as const;
-const OWNED_MARKER = "--review-tool-owned=codex-v1";
-const COMPOSED_MARKER = "--review-tool-composed-owned=codex-v1";
-const OWNED_MATCHER = "^(apply_patch|Edit|Write|Bash)$";
-const PRODUCT_DIRECTORY = ".hapsland";
+const OWNERSHIP_VERSION = 1 as const
+const RESULT_VERSION = 1 as const
+const OWNED_MARKER = "--review-tool-owned=codex-v1"
+const COMPOSED_MARKER = "--review-tool-composed-owned=codex-v1"
+const PRODUCT_DIRECTORY = ".hapsland"
 
-type JsonObject = { [key: string]: unknown };
+type JsonObject = { [key: string]: unknown }
 
 class TargetPackageMetadataInvalid extends Error {}
 
 export interface InstallationRequest {
-  readonly codexHome?: string;
-  readonly proposalDigest?: string;
-  readonly codexExecutable?: string;
-  readonly reinstall?: boolean;
+  readonly codexHome?: string
+  readonly proposalDigest?: string
+  readonly codexExecutable?: string
+  readonly reinstall?: boolean
 }
 
 interface FileSnapshot {
-  readonly path: string;
-  readonly exists: boolean;
-  readonly content: string;
-  readonly digest: string;
+  readonly path: string
+  readonly exists: boolean
+  readonly content: string
+  readonly digest: string
 }
 
 interface Mutation {
-  readonly path: string;
-  readonly beforeDigest: string;
-  readonly beforeContent: string | null;
-  readonly afterDigest: string;
-  readonly afterContent: string | null;
-  readonly description: string;
+  readonly path: string
+  readonly beforeDigest: string
+  readonly beforeContent: string | null
+  readonly afterDigest: string
+  readonly afterContent: string | null
+  readonly description: string
 }
 
 interface OwnershipRecord {
-  readonly version: 1;
-  readonly adapter: "codex";
-  readonly codexHome: string;
-  readonly runtimeVersion: string;
-  readonly packageVersion: string;
-  readonly residentProtocol: number;
-  readonly executable: string;
-  readonly args: ReadonlyArray<string>;
-  readonly marker: typeof OWNED_MARKER;
-  readonly hookFingerprint: string;
-  readonly hookGroups?: Record<string, unknown>;
+  readonly version: 1
+  readonly adapter: "codex"
+  readonly codexHome: string
+  readonly runtimeVersion: string
+  readonly packageVersion: string
+  readonly residentProtocol: number
+  readonly executable: string
+  readonly args: ReadonlyArray<string>
+  readonly marker: typeof OWNED_MARKER
+  readonly hookFingerprint: string
+  readonly hookGroups?: Record<string, unknown>
   readonly composedFingerprints?: {
-    readonly stop: string;
-    readonly prompt: string;
-    readonly subagentStop?: string;
-    readonly preToolUse?: string;
-  };
+    readonly stop: string
+    readonly subagentStop?: string
+    readonly preToolUse?: string
+  }
   readonly owned: ReadonlyArray<{
-    readonly file: string;
-    readonly kind: "feature" | "hook";
-    readonly fingerprint: string;
-  }>;
+    readonly file: string
+    readonly kind: "feature" | "hook"
+    readonly fingerprint: string
+  }>
 }
 
 interface Journal {
-  readonly version: 1;
-  readonly operation: "install" | "update" | "uninstall";
-  readonly proposalDigest: string;
-  readonly completed: ReadonlyArray<number>;
-  readonly reinstall?: boolean;
-  readonly replacedJournalDigest?: string;
-  readonly mutations: ReadonlyArray<Mutation>;
+  readonly version: 1
+  readonly operation: "install" | "update" | "uninstall"
+  readonly proposalDigest: string
+  readonly completed: ReadonlyArray<number>
+  readonly reinstall?: boolean
+  readonly replacedJournalDigest?: string
+  readonly mutations: ReadonlyArray<Mutation>
 }
 
 export type InstallationResult =
-  JsonObject | { readonly version: 1; readonly operation: string; readonly status: string };
+  | JsonObject
+  | { readonly version: 1; readonly operation: string; readonly status: string }
 
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
-const HOOKS_FEATURE_FINGERPRINT = sha256("features.hooks=true");
-const missingDigest = sha256("installation-v1:missing");
+const sha256 = (value: string) => createHash("sha256").update(value).digest("hex")
+const HOOKS_FEATURE_FINGERPRINT = sha256("features.hooks=true")
+const missingDigest = sha256("installation-v1:missing")
 const digestSnapshot = (exists: boolean, content: string) =>
-  exists ? sha256(`installation-v1:file\0${content}`) : missingDigest;
+  exists ? sha256(`installation-v1:file\0${content}`) : missingDigest
 
 const snapshot = (path: string): FileSnapshot => {
   try {
-    const content = readFileSync(path, "utf8");
-    return { path, exists: true, content, digest: digestSnapshot(true, content) };
+    const content = readFileSync(path, "utf8")
+    return { path, exists: true, content, digest: digestSnapshot(true, content) }
   } catch (cause) {
     if (isNodeError(cause, "ENOENT")) {
-      return { path, exists: false, content: "", digest: missingDigest };
+      return { path, exists: false, content: "", digest: missingDigest }
     }
-    throw new Error(`configuration is unreadable: ${path}`);
+    throw new Error(`configuration is unreadable: ${path}`)
   }
-};
+}
 
 const isNodeError = (value: unknown, code: string) =>
-  typeof value === "object" && value !== null && "code" in value && value.code === code;
+  typeof value === "object" && value !== null && "code" in value && value.code === code
 
 const isObject = (value: unknown): value is JsonObject =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const parseJsonObject = (file: FileSnapshot): JsonObject => {
-  if (!file.exists) return {};
-  let value: unknown;
+  if (!file.exists) return {}
+  let value: unknown
   try {
-    value = JSON.parse(file.content);
+    value = JSON.parse(file.content)
   } catch {
-    throw new Error(`configuration is malformed JSON: ${file.path}`);
+    throw new Error(`configuration is malformed JSON: ${file.path}`)
   }
-  if (!isObject(value)) throw new Error(`configuration root must be an object: ${file.path}`);
-  return value;
-};
+  if (!isObject(value)) throw new Error(`configuration root must be an object: ${file.path}`)
+  return value
+}
 
-const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 
-const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) => {
-  const controlled = controlledReviewer ? " --controlled-reviewer" : "";
-  const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
+const codexHookOptions = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer: boolean) => ({
+  command: commandTokens(runtime, entrypoint).map(quoteShell).join(" "),
+  editMarker: OWNED_MARKER,
+  composedMarker: COMPOSED_MARKER,
+  ...(hostVersion === "0.155.1" ? {} : { versionFlag: `--codex-version=${hostVersion}` }),
+  controlledReviewer
+})
+const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => {
+  const options = codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer)
   return {
-    type: "command",
-    command: `${commandTokens(runtime, entrypoint).map(quoteShell).join(" ")} --codex-hook${controlled} --controlled-writer --composed-edit-hook ${OWNED_MARKER}${version}`,
-    timeout: 10,
-  };
-};
+    PreToolUse: commandHookGroup("codex", "PreToolUse", options),
+    Stop: commandHookGroup("codex", "Stop", options),
+    SubagentStop: commandHookGroup("codex", "SubagentStop", options)
+  }
+}
+const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) =>
+  commandHookGroup("codex", "PostToolUse", codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer))
 
-const composedCommand = (
-  runtime: string,
-  entrypoint: string,
-  hostVersion: string,
-  kind: "background" | "stop" | "prompt" | "before-edit",
-  controlledReviewer = false,
-) => {
-  const controlled = controlledReviewer ? " --controlled-reviewer" : "";
-  const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
-  const exec = kind === "before-edit" ? "exec " : "";
-  return `${exec}${commandTokens(runtime, entrypoint).map(quoteShell).join(" ")} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
-};
-
-const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => ({
-  PreToolUse: {
-    matcher: OWNED_MATCHER,
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "before-edit", controlledReviewer),
-        timeout: 5,
-      },
-    ],
-  },
-  Stop: {
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "stop", controlledReviewer),
-        timeout: 5,
-      },
-    ],
-  },
-  SubagentStop: {
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "stop", controlledReviewer),
-        timeout: 5,
-      },
-    ],
-  },
-  UserPromptSubmit: {
-    hooks: [
-      {
-        type: "command",
-        command: composedCommand(runtime, entrypoint, hostVersion, "prompt", controlledReviewer),
-        timeout: 4,
-      },
-    ],
-  },
-});
-
-const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) => ({
-  matcher: OWNED_MATCHER,
-  hooks: [
-    ownedHook(runtime, entrypoint, hostVersion, controlledReviewer),
-    {
-      type: "command",
-      command: composedCommand(runtime, entrypoint, hostVersion, "background", controlledReviewer),
-      timeout: 25,
-      async: true,
-    },
-  ],
-});
-
-const hookFingerprint = (value: unknown) => sha256(`installation-v1:hook\0${stableJson(value)}`);
+const hookFingerprint = (value: unknown) => sha256(`installation-v1:hook\0${stableJson(value)}`)
 
 const markerCount = (value: unknown): number => {
-  if (typeof value === "string") return value.includes(OWNED_MARKER) ? 1 : 0;
-  if (Array.isArray(value)) return value.reduce<number>((count, item) => count + markerCount(item), 0);
-  if (isObject(value)) return Object.values(value).reduce<number>((count, item) => count + markerCount(item), 0);
-  return 0;
-};
+  if (typeof value === "string") return value.includes(OWNED_MARKER) ? 1 : 0
+  if (Array.isArray(value)) return value.reduce<number>((count, item) => count + markerCount(item), 0)
+  if (isObject(value)) return Object.values(value).reduce<number>((count, item) => count + markerCount(item), 0)
+  return 0
+}
 
 const postToolUseGroups = (root: JsonObject): Array<unknown> => {
-  if (!("hooks" in root)) return [];
-  if (!isObject(root.hooks)) throw new Error("hooks.json field 'hooks' must be an object");
-  const post = root.hooks.PostToolUse;
-  if (post === undefined) return [];
-  if (!Array.isArray(post)) throw new Error("hooks.json PostToolUse must be an array");
-  return post;
-};
+  if (!("hooks" in root)) return []
+  if (!isObject(root.hooks)) throw new Error("hooks.json field 'hooks' must be an object")
+  const post = root.hooks.PostToolUse
+  if (post === undefined) return []
+  if (!Array.isArray(post)) throw new Error("hooks.json PostToolUse must be an array")
+  return post
+}
 
 const withComposedGroups = (
   root: JsonObject,
   target: ReturnType<typeof composedGroups> | undefined,
   expected: OwnershipRecord["composedFingerprints"],
   restoreMissing = false,
-  expectedGroups?: Record<string, unknown>,
+  expectedGroups?: Record<string, unknown>
 ): JsonObject => {
-  let next = root;
+  let next = root
   for (const [event, key] of [
     ["PreToolUse", "preToolUse"],
     ["Stop", "stop"],
-    ["SubagentStop", "subagentStop"],
-    ["UserPromptSubmit", "prompt"],
+    ["SubagentStop", "subagentStop"]
   ] as const) {
     next = reconcileOwnedEvent(next, event, target?.[event], {
       marker: COMPOSED_MARKER,
@@ -260,255 +209,253 @@ const withComposedGroups = (
       expectedFingerprint: expected?.[key],
       expectedGroup: expectedGroups?.[event],
       restoreMissing,
-      label: "Codex",
-    });
+      label: "Codex"
+    })
   }
-  return next;
-};
+  return reconcileOwnedEvent(next, "UserPromptSubmit", undefined, {
+    marker: COMPOSED_MARKER,
+    fingerprint: hookFingerprint,
+    expectedFingerprint:
+      expectedGroups?.UserPromptSubmit === undefined ? undefined : hookFingerprint(expectedGroups.UserPromptSubmit),
+    expectedGroup: expectedGroups?.UserPromptSubmit,
+    restoreMissing: true,
+    label: "Codex"
+  })
+}
 
 const addOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
-  const count = markerCount(root);
-  if (count > 1) throw new Error("duplicate owned Codex hook representations require manual reconciliation");
-  if (count === 1) return root;
-  const hooks = root.hooks === undefined ? {} : root.hooks;
-  if (!isObject(hooks)) throw new Error("hooks.json field 'hooks' must be an object");
-  const groups = postToolUseGroups(root);
-  return {
-    ...root,
-    hooks: {
-      ...hooks,
-      PostToolUse: [...groups, group],
-    },
-  };
-};
+  const count = markerCount(root)
+  if (count > 1) throw new Error("duplicate owned Codex hook representations require manual reconciliation")
+  if (count === 1) return root
+  const hooks = root.hooks === undefined ? {} : root.hooks
+  if (!isObject(hooks)) throw new Error("hooks.json field 'hooks' must be an object")
+  const groups = postToolUseGroups(root)
+  return { ...root, hooks: { ...hooks, PostToolUse: [...groups, group] } }
+}
 
-const isOwnedPostGroup = (group: unknown) => markerCount(group) > 0 || stableJson(group).includes(COMPOSED_MARKER);
+const isOwnedPostGroup = (group: unknown) => markerCount(group) > 0 || stableJson(group).includes(COMPOSED_MARKER)
 
 const replaceOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
-  if (!postToolUseGroups(root).some(isOwnedPostGroup)) return addOwnedHook(root, group);
-  const hooks = root.hooks;
-  if (!isObject(hooks)) throw new Error("owned Codex hook is missing or locally modified");
-  const groups = postToolUseGroups(root);
-  const ownedIndexes = groups.flatMap((candidate, index) => (isOwnedPostGroup(candidate) ? [index] : []));
-  if (ownedIndexes.length !== 1) throw new Error("owned Codex hook is missing, duplicated, or locally modified");
-  const ownedIndex = ownedIndexes[0];
-  if (ownedIndex === undefined) throw new Error("owned Codex hook is missing");
+  if (!postToolUseGroups(root).some(isOwnedPostGroup)) return addOwnedHook(root, group)
+  const hooks = root.hooks
+  if (!isObject(hooks)) throw new Error("owned Codex hook is missing or locally modified")
+  const groups = postToolUseGroups(root)
+  const ownedIndexes = groups.flatMap((candidate, index) => (isOwnedPostGroup(candidate) ? [index] : []))
+  if (ownedIndexes.length !== 1) throw new Error("owned Codex hook is missing, duplicated, or locally modified")
+  const ownedIndex = ownedIndexes[0]
+  if (ownedIndex === undefined) throw new Error("owned Codex hook is missing")
   return {
     ...root,
-    hooks: {
-      ...hooks,
-      PostToolUse: groups.map((candidate, index) => (index === ownedIndex ? group : candidate)),
-    },
-  };
-};
+    hooks: { ...hooks, PostToolUse: groups.map((candidate, index) => (index === ownedIndex ? group : candidate)) }
+  }
+}
 
 const validatedRemovalIndex = (
   ownedIndexes: ReadonlyArray<number>,
   groups: ReadonlyArray<unknown>,
   expectedFingerprint: string,
-  expectedGroup: unknown,
+  expectedGroup: unknown
 ) => {
-  const index = ownedIndexes[0];
+  const index = ownedIndexes[0]
   if (
     index === undefined ||
     (hookFingerprint(groups[index]) !== expectedFingerprint && !retainedHookSubset(groups[index], expectedGroup))
   ) {
-    throw new Error("owned Codex hook was locally modified; reconcile it before uninstalling");
+    throw new Error("owned Codex hook was locally modified; reconcile it before uninstalling")
   }
-  return index;
-};
-
-const removeOwnedHook = (root: JsonObject, expectedFingerprint: string, expectedGroup?: unknown): JsonObject => {
-  if (!postToolUseGroups(root).some(isOwnedPostGroup)) return root;
-  const hooks = root.hooks;
-  if (!isObject(hooks)) throw new Error("owned Codex hook is missing or locally modified");
-  const groups = postToolUseGroups(root);
-  const ownedIndexes = groups.flatMap((group, index) => (isOwnedPostGroup(group) ? [index] : []));
-  if (ownedIndexes.length !== 1) throw new Error("owned Codex hook is missing, duplicated, or locally modified");
-  const index = validatedRemovalIndex(ownedIndexes, groups, expectedFingerprint, expectedGroup);
-  const nextGroups = groups.filter((_, candidate) => candidate !== index);
-  const nextHooks = { ...hooks };
-  if (nextGroups.length === 0) delete nextHooks.PostToolUse;
-  else nextHooks.PostToolUse = nextGroups;
-  const next = { ...root };
-  if (Object.keys(nextHooks).length === 0) delete next.hooks;
-  else next.hooks = nextHooks;
-  return next;
-};
-
-const validateToml = (file: FileSnapshot): JsonObject => {
-  if (!file.exists || file.content.trim() === "") return {};
-  try {
-    const parsed = parseToml(file.content);
-    if (!isObject(parsed)) throw new Error("not an object");
-    return parsed;
-  } catch {
-    throw new Error(`configuration is malformed TOML: ${file.path}`);
-  }
-};
-
-interface TomlLine {
-  readonly start: number;
-  readonly contentEnd: number;
-  readonly end: number;
-  readonly text: string;
-  readonly syntactic: boolean;
+  return index
 }
 
-type MultilineDelimiter = '"""' | "'''" | undefined;
+const removeOwnedHook = (root: JsonObject, expectedFingerprint: string, expectedGroup?: unknown): JsonObject => {
+  if (!postToolUseGroups(root).some(isOwnedPostGroup)) return root
+  const hooks = root.hooks
+  if (!isObject(hooks)) throw new Error("owned Codex hook is missing or locally modified")
+  const groups = postToolUseGroups(root)
+  const ownedIndexes = groups.flatMap((group, index) => (isOwnedPostGroup(group) ? [index] : []))
+  if (ownedIndexes.length !== 1) throw new Error("owned Codex hook is missing, duplicated, or locally modified")
+  const index = validatedRemovalIndex(ownedIndexes, groups, expectedFingerprint, expectedGroup)
+  const nextGroups = groups.filter((_, candidate) => candidate !== index)
+  const nextHooks = { ...hooks }
+  if (nextGroups.length === 0) delete nextHooks.PostToolUse
+  else nextHooks.PostToolUse = nextGroups
+  const next = { ...root }
+  if (Object.keys(nextHooks).length === 0) delete next.hooks
+  else next.hooks = nextHooks
+  return next
+}
+
+const validateToml = (file: FileSnapshot): JsonObject => {
+  if (!file.exists || file.content.trim() === "") return {}
+  try {
+    const parsed = parseToml(file.content)
+    if (!isObject(parsed)) throw new Error("not an object")
+    return parsed
+  } catch {
+    throw new Error(`configuration is malformed TOML: ${file.path}`)
+  }
+}
+
+interface TomlLine {
+  readonly start: number
+  readonly contentEnd: number
+  readonly end: number
+  readonly text: string
+  readonly syntactic: boolean
+}
+
+type MultilineDelimiter = '"""' | "'''" | undefined
 
 const tomlDelimiterAt = (line: string, index: number): MultilineDelimiter => {
-  if (line.startsWith('"""', index)) return '"""';
-  if (line.startsWith("'''", index)) return "'''";
-  return undefined;
-};
-const isTomlQuote = (character: string | undefined): character is '"' | "'" => character === '"' || character === "'";
+  if (line.startsWith('"""', index)) return '"""'
+  if (line.startsWith("'''", index)) return "'''"
+  return undefined
+}
+const isTomlQuote = (character: string | undefined): character is '"' | "'" => character === '"' || character === "'"
 const isTomlTerminator = (line: string, index: number, delimiter: string) =>
-  line.startsWith(delimiter, index) && (delimiter.startsWith("'") || index === 0 || line[index - 1] !== "\\");
+  line.startsWith(delimiter, index) && (delimiter.startsWith("'") || index === 0 || line[index - 1] !== "\\")
 const advanceTomlMultiline = (line: string, index: number, multiline: Exclude<MultilineDelimiter, undefined>) =>
-  isTomlTerminator(line, index, multiline) ? { index: index + 2, multiline: undefined } : { index, multiline };
+  isTomlTerminator(line, index, multiline) ? { index: index + 2, multiline: undefined } : { index, multiline }
 const advanceTomlQuote = (line: string, index: number, quote: '"' | "'") =>
-  isTomlTerminator(line, index, quote) ? undefined : quote;
+  isTomlTerminator(line, index, quote) ? undefined : quote
 
 const advanceTomlStringState = (line: string, initial: MultilineDelimiter): MultilineDelimiter => {
-  let multiline = initial;
-  let quote: '"' | "'" | undefined;
+  let multiline = initial
+  let quote: '"' | "'" | undefined
   for (let index = 0; index < line.length; index += 1) {
     if (multiline !== undefined) {
-      ({ index, multiline } = advanceTomlMultiline(line, index, multiline));
-      continue;
+      ;({ index, multiline } = advanceTomlMultiline(line, index, multiline))
+      continue
     }
-    const character = line[index];
+    const character = line[index]
     if (quote !== undefined) {
-      quote = advanceTomlQuote(line, index, quote);
-      continue;
+      quote = advanceTomlQuote(line, index, quote)
+      continue
     }
-    if (character === "#") break;
-    const delimiter = tomlDelimiterAt(line, index);
+    if (character === "#") break
+    const delimiter = tomlDelimiterAt(line, index)
     if (delimiter !== undefined) {
-      multiline = delimiter;
-      index += 2;
-      continue;
+      multiline = delimiter
+      index += 2
+      continue
     }
-    if (isTomlQuote(character)) quote = character;
+    if (isTomlQuote(character)) quote = character
   }
-  return multiline;
-};
+  return multiline
+}
 
 const tomlLines = (content: string): ReadonlyArray<TomlLine> => {
-  const lines: Array<TomlLine> = [];
-  let offset = 0;
-  let multiline: MultilineDelimiter;
+  const lines: Array<TomlLine> = []
+  let offset = 0
+  let multiline: MultilineDelimiter
   while (offset < content.length) {
-    const newline = content.indexOf("\n", offset);
-    const end = newline < 0 ? content.length : newline + 1;
+    const newline = content.indexOf("\n", offset)
+    const end = newline < 0 ? content.length : newline + 1
     const contentEnd =
-      newline < 0 ? content.length : newline > offset && content[newline - 1] === "\r" ? newline - 1 : newline;
-    const text = content.slice(offset, contentEnd);
-    const syntactic = multiline === undefined;
-    lines.push({ start: offset, contentEnd, end, text, syntactic });
-    multiline = advanceTomlStringState(text, multiline);
-    offset = end;
+      newline < 0 ? content.length : newline > offset && content[newline - 1] === "\r" ? newline - 1 : newline
+    const text = content.slice(offset, contentEnd)
+    const syntactic = multiline === undefined
+    lines.push({ start: offset, contentEnd, end, text, syntactic })
+    multiline = advanceTomlStringState(text, multiline)
+    offset = end
   }
-  return lines;
-};
+  return lines
+}
 
 const tableHeader = (line: string): "features" | "other" | undefined => {
-  const trimmed = line.trimStart();
-  if (!trimmed.startsWith("[")) return undefined;
+  const trimmed = line.trimStart()
+  if (!trimmed.startsWith("[")) return undefined
   try {
-    const parsed = parseToml(`${line}\n__review_tool_probe__ = true\n`);
-    return isObject(parsed.features) && parsed.features.__review_tool_probe__ === true ? "features" : "other";
+    const parsed = parseToml(`${line}\n__review_tool_probe__ = true\n`)
+    return isObject(parsed.features) && parsed.features.__review_tool_probe__ === true ? "features" : "other"
   } catch {
-    return "other";
+    return "other"
   }
-};
+}
 
 const isHooksAssignment = (line: string): boolean => {
   try {
-    const parsed = parseToml(`["features"]\n${line}\n`);
-    return isObject(parsed.features) && "hooks" in parsed.features;
+    const parsed = parseToml(`["features"]\n${line}\n`)
+    return isObject(parsed.features) && "hooks" in parsed.features
   } catch {
-    return false;
+    return false
   }
-};
+}
 
 const locateFeaturesSyntax = (content: string) => {
-  let inFeatures = false;
-  let header: TomlLine | undefined;
-  let hooks: TomlLine | undefined;
+  let inFeatures = false
+  let header: TomlLine | undefined
+  let hooks: TomlLine | undefined
   for (const line of tomlLines(content)) {
-    if (!line.syntactic) continue;
-    const table = tableHeader(line.text);
+    if (!line.syntactic) continue
+    const table = tableHeader(line.text)
     if (table !== undefined) {
-      inFeatures = table === "features";
-      if (inFeatures) header = line;
-      continue;
+      inFeatures = table === "features"
+      if (inFeatures) header = line
+      continue
     }
-    if (inFeatures && isHooksAssignment(line.text)) hooks = line;
+    if (inFeatures && isHooksAssignment(line.text)) hooks = line
   }
-  return { header, hooks };
-};
+  return { header, hooks }
+}
 
 const hooksFeature = (parsed: unknown) => {
-  const features = isObject(parsed) ? parsed.features : undefined;
-  return isObject(features) ? features.hooks : undefined;
-};
+  const features = isObject(parsed) ? parsed.features : undefined
+  return isObject(features) ? features.hooks : undefined
+}
 
 const insertHooksFeature = (content: string): string => {
-  const syntax = locateFeaturesSyntax(content);
+  const syntax = locateFeaturesSyntax(content)
   if (syntax.header === undefined) {
-    const separator = content.length === 0 || content.endsWith("\n") ? "" : "\n";
-    return `${content}${separator}${content.length === 0 ? "" : "\n"}[features]\nhooks = true\n`;
+    const separator = content.length === 0 || content.endsWith("\n") ? "" : "\n"
+    return `${content}${separator}${content.length === 0 ? "" : "\n"}[features]\nhooks = true\n`
   }
-  const newline = content.slice(syntax.header.contentEnd, syntax.header.end) || "\n";
-  return `${content.slice(0, syntax.header.contentEnd)}${newline}hooks = true${content.slice(syntax.header.contentEnd)}`;
-};
+  const newline = content.slice(syntax.header.contentEnd, syntax.header.end) || "\n"
+  return `${content.slice(0, syntax.header.contentEnd)}${newline}hooks = true${content.slice(syntax.header.contentEnd)}`
+}
 
 const assertHooksSemanticState = (content: string, expected: true | "absent") => {
-  let parsed: unknown;
+  let parsed: unknown
   try {
-    parsed = parseToml(content);
+    parsed = parseToml(content)
   } catch {
-    throw new Error("generated config.toml is invalid; no configuration was written");
+    throw new Error("generated config.toml is invalid; no configuration was written")
   }
-  const hooks = hooksFeature(parsed);
+  const hooks = hooksFeature(parsed)
   if ((expected === true && hooks !== true) || (expected === "absent" && hooks !== undefined)) {
-    throw new Error("generated config.toml does not have the required hooks feature state");
+    throw new Error("generated config.toml does not have the required hooks feature state")
   }
-};
+}
 
 const enableHooksFeature = (file: FileSnapshot): string => {
-  const parsed = validateToml(file);
-  const features = parsed.features;
+  const parsed = validateToml(file)
+  const features = parsed.features
   if (features !== undefined && !isObject(features)) {
-    throw new Error("config.toml [features] must be a table");
+    throw new Error("config.toml [features] must be a table")
   }
-  const current = isObject(features) ? features.hooks : undefined;
+  const current = isObject(features) ? features.hooks : undefined
   if (current === false) {
-    throw new Error("Codex hooks are explicitly disabled; installation will not override user or managed policy");
+    throw new Error("Codex hooks are explicitly disabled; installation will not override user or managed policy")
   }
-  if (current === true) return file.content;
-  if (current !== undefined) throw new Error("config.toml features.hooks must be a boolean");
-  const next = insertHooksFeature(file.content);
-  assertHooksSemanticState(next, true);
-  return next;
-};
+  if (current === true) return file.content
+  if (current !== undefined) throw new Error("config.toml features.hooks must be a boolean")
+  const next = insertHooksFeature(file.content)
+  assertHooksSemanticState(next, true)
+  return next
+}
 
 const disableOwnedFeature = (content: string): string => {
-  const hooks = locateFeaturesSyntax(content).hooks;
-  if (hooks === undefined) throw new Error("owned Codex feature entry is missing or locally modified");
-  const next = `${content.slice(0, hooks.start)}${content.slice(hooks.end)}`;
-  assertHooksSemanticState(next, "absent");
-  return next;
-};
+  const hooks = locateFeaturesSyntax(content).hooks
+  if (hooks === undefined) throw new Error("owned Codex feature entry is missing or locally modified")
+  const next = `${content.slice(0, hooks.start)}${content.slice(hooks.end)}`
+  assertHooksSemanticState(next, "absent")
+  return next
+}
 
 const ComposedFingerprints = Schema.Struct({
   stop: Schema.String,
-  prompt: Schema.String,
   subagentStop: Schema.optional(Schema.String),
-  preToolUse: Schema.optional(Schema.String),
-});
+  preToolUse: Schema.optional(Schema.String)
+})
 
 const OwnershipRecordShape = Schema.Struct({
   version: Schema.Literal(1),
@@ -523,41 +470,41 @@ const OwnershipRecordShape = Schema.Struct({
   hookFingerprint: Schema.String,
   hookGroups: Schema.optional(Schema.Unknown),
   composedFingerprints: Schema.optional(ComposedFingerprints),
-  owned: Schema.Array(Schema.Unknown),
-});
+  owned: Schema.Array(Schema.Unknown)
+})
 
 const OwnedEntry = Schema.Struct({
   file: Schema.String,
   kind: Schema.Literals(["feature", "hook"]),
-  fingerprint: Schema.String,
-});
+  fingerprint: Schema.String
+})
 
 const decodeOwnershipRecord = (value: unknown) => {
   try {
-    return Schema.decodeUnknownSync(OwnershipRecordShape)(value);
+    return Schema.decodeUnknownSync(OwnershipRecordShape)(value)
   } catch {
-    throw new Error("installation ownership record has an unsupported shape or version");
+    throw new Error("installation ownership record has an unsupported shape or version")
   }
-};
+}
 
 const decodeOwnedEntry = (value: unknown) => {
   try {
-    return Schema.decodeUnknownSync(OwnedEntry)(value);
+    return Schema.decodeUnknownSync(OwnedEntry)(value)
   } catch {
-    throw new Error("installation ownership record has an unsupported owned-entry shape");
+    throw new Error("installation ownership record has an unsupported owned-entry shape")
   }
-};
+}
 
 const readOwnership = (path: string): OwnershipRecord | undefined => {
-  const file = snapshot(path);
-  if (!file.exists) return undefined;
-  let parsed: unknown;
+  const file = snapshot(path)
+  if (!file.exists) return undefined
+  let parsed: unknown
   try {
-    parsed = JSON.parse(file.content);
+    parsed = JSON.parse(file.content)
   } catch {
-    throw new Error("installation ownership record is malformed");
+    throw new Error("installation ownership record is malformed")
   }
-  const value = decodeOwnershipRecord(parsed);
+  const value = decodeOwnershipRecord(parsed)
   return {
     version: 1,
     adapter: "codex",
@@ -575,23 +522,22 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
       : {
           composedFingerprints: {
             stop: value.composedFingerprints.stop,
-            prompt: value.composedFingerprints.prompt,
             ...(value.composedFingerprints.subagentStop === undefined
               ? {}
               : { subagentStop: value.composedFingerprints.subagentStop }),
             ...(value.composedFingerprints.preToolUse === undefined
               ? {}
-              : { preToolUse: value.composedFingerprints.preToolUse }),
-          },
+              : { preToolUse: value.composedFingerprints.preToolUse })
+          }
         }),
-    owned: value.owned.map(decodeOwnedEntry),
-  };
-};
+    owned: value.owned.map(decodeOwnedEntry)
+  }
+}
 
 const reinstallDigest = (baseDigest: string, replacedJournalDigest?: string) =>
   replacedJournalDigest === undefined
     ? baseDigest
-    : sha256(stableJson({ version: 1, baseDigest, replacedJournalDigest }));
+    : sha256(stableJson({ version: 1, baseDigest, replacedJournalDigest }))
 
 const pathsFor = (home: string) => ({
   config: join(home, "config.toml"),
@@ -599,29 +545,29 @@ const pathsFor = (home: string) => ({
   product: join(home, PRODUCT_DIRECTORY),
   ownership: join(home, PRODUCT_DIRECTORY, "installation-v1.json"),
   journal: join(home, PRODUCT_DIRECTORY, "journal-v1.json"),
-  lock: join(home, PRODUCT_DIRECTORY, "installation.lock"),
-});
+  lock: join(home, PRODUCT_DIRECTORY, "installation.lock")
+})
 
 const atomicWrite = (path: string, content: string) => {
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
+  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`
   try {
-    writeFileSync(temporary, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
-    renameSync(temporary, path);
+    writeFileSync(temporary, content, { encoding: "utf8", mode: 0o600, flag: "wx" })
+    renameSync(temporary, path)
   } finally {
-    rmSync(temporary, { force: true });
+    rmSync(temporary, { force: true })
   }
-};
+}
 
 const atomicRemove = (path: string) => {
   try {
-    unlinkSync(path);
+    unlinkSync(path)
   } catch (cause) {
-    if (!isNodeError(cause, "ENOENT")) throw cause;
+    if (!isNodeError(cause, "ENOENT")) throw cause
   }
-};
+}
 
-const encodeJson = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+const encodeJson = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`
 
 const mutation = (file: FileSnapshot, afterContent: string | null, description: string): Mutation => ({
   path: file.path,
@@ -629,13 +575,13 @@ const mutation = (file: FileSnapshot, afterContent: string | null, description: 
   beforeContent: file.exists ? file.content : null,
   afterDigest: afterContent === null ? missingDigest : digestSnapshot(true, afterContent),
   afterContent,
-  description,
-});
+  description
+})
 
 const installationDigest = (
   operation: "install" | "update" | "uninstall",
   home: string,
-  mutations: ReadonlyArray<Mutation>,
+  mutations: ReadonlyArray<Mutation>
 ) =>
   sha256(
     stableJson({
@@ -647,13 +593,13 @@ const installationDigest = (
         path,
         beforeDigest,
         afterDigest,
-        description,
-      })),
-    }),
-  );
+        description
+      }))
+    })
+  )
 
 const codexCompatibility = (observed: string, versions: ReadonlyArray<string>, hooksAvailable: boolean) => {
-  const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(observed)?.[1] ?? "unavailable";
+  const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(observed)?.[1] ?? "unavailable"
   return {
     supported: isCodexHostVersion(version) && hooksAvailable,
     hooksAvailable,
@@ -661,190 +607,181 @@ const codexCompatibility = (observed: string, versions: ReadonlyArray<string>, h
     observed,
     version,
     required: "Codex CLI with lifecycle hooks and a stable semantic version",
-    testedVersions: versions,
-  };
-};
+    testedVersions: versions
+  }
+}
 
 const pathReadiness = (path: string, executable: boolean) => {
   try {
-    const metadata = statSync(path);
-    accessSync(path, executable ? constants.R_OK | constants.X_OK : constants.R_OK);
-    return { ready: metadata.isFile(), observed: metadata.isFile() ? "regular-file" : "not-a-regular-file" };
+    const metadata = statSync(path)
+    accessSync(path, executable ? constants.R_OK | constants.X_OK : constants.R_OK)
+    return { ready: metadata.isFile(), observed: metadata.isFile() ? "regular-file" : "not-a-regular-file" }
   } catch (cause) {
-    return {
-      ready: false,
-      observed: isNodeError(cause, "ENOENT") ? "missing" : "unreadable",
-    };
+    return { ready: false, observed: isNodeError(cause, "ENOENT") ? "missing" : "unreadable" }
   }
-};
+}
 
 const packagedRuntimeEntrypoints = (entrypoint: string) => {
-  const extension = extname(entrypoint);
+  const extension = extname(entrypoint)
   if (extension === ".js" || extension === ".ts") {
     return {
       parser: join(dirname(entrypoint), `parser-main${extension}`),
-      resident: join(dirname(entrypoint), "resident", `main${extension}`),
-    };
+      resident: join(dirname(entrypoint), "resident", `main${extension}`)
+    }
   }
   return {
     parser: join(dirname(entrypoint), "hapsland-parser"),
-    resident: join(dirname(entrypoint), "hapsland-resident"),
-  };
-};
+    resident: join(dirname(entrypoint), "hapsland-resident")
+  }
+}
 
 const RuntimeObservation = Schema.Struct({
   version: Schema.String,
   platform: Schema.String,
-  architecture: Schema.String,
-});
+  architecture: Schema.String
+})
 type RuntimeProbe = {
-  readonly ready: boolean;
-  readonly observed: string | Schema.Schema.Type<typeof RuntimeObservation>;
-};
+  readonly ready: boolean
+  readonly observed: string | Schema.Schema.Type<typeof RuntimeObservation>
+}
 const probeRuntime = Effect.fn("CodexInstallation.probeRuntime")(function* (executable: string) {
-  const readiness = yield* Effect.sync(() => pathReadiness(executable, true));
-  if (!readiness.ready) return { ready: false, observed: readiness.observed } satisfies RuntimeProbe;
-  const probe = yield* execFileClosedStdin(
-    executable,
-    runtimeProbeArguments(executable),
-    { env: process.env, timeout: 2_000, maxBuffer: 16_384 },
-  );
+  const readiness = yield* Effect.sync(() => pathReadiness(executable, true))
+  if (!readiness.ready) return { ready: false, observed: readiness.observed } satisfies RuntimeProbe
+  const probe = yield* execFileClosedStdin(executable, runtimeProbeArguments(executable), {
+    env: process.env,
+    timeout: 2_000,
+    maxBuffer: 16_384
+  })
   if (!probe.succeeded)
-    return {
-      ready: false,
-      observed: probe.timedOut ? "timed-out" : "not-a-supported-runtime",
-    } satisfies RuntimeProbe;
+    return { ready: false, observed: probe.timedOut ? "timed-out" : "not-a-supported-runtime" } satisfies RuntimeProbe
   const observed = yield* Effect.try({
     try: (): unknown => JSON.parse(probe.stdout),
-    catch: () => "invalid-runtime-json",
-  }).pipe(Effect.flatMap(Schema.decodeUnknownEffect(RuntimeObservation)), Effect.result);
+    catch: () => "invalid-runtime-json"
+  }).pipe(Effect.flatMap(Schema.decodeUnknownEffect(RuntimeObservation)), Effect.result)
   return observed._tag === "Success"
     ? ({ ready: true, observed: observed.success } satisfies RuntimeProbe)
-    : ({ ready: false, observed: "not-a-supported-runtime" } satisfies RuntimeProbe);
-});
+    : ({ ready: false, observed: "not-a-supported-runtime" } satisfies RuntimeProbe)
+})
 
 const runtimeIdentityChecks = (inputs: ReturnType<typeof buildInputs>, runtimeProbe: RuntimeProbe) => {
-  const observedRuntime = isObject(runtimeProbe.observed) ? runtimeProbe.observed : undefined;
-  const requiredVersion = expectedRuntimeVersion(inputs.entrypoint);
-  const declaredPlatforms = [...new Set(inputs.runtimeProfiles.map(({ operatingSystem }) => operatingSystem))];
-  const declaredArchitectures = [...new Set(inputs.runtimeProfiles.map(({ architecture }) => architecture))];
+  const observedRuntime = isObject(runtimeProbe.observed) ? runtimeProbe.observed : undefined
+  const requiredVersion = expectedRuntimeVersion(inputs.entrypoint)
+  const declaredPlatforms = [...new Set(inputs.runtimeProfiles.map(({ operatingSystem }) => operatingSystem))]
+  const declaredArchitectures = [...new Set(inputs.runtimeProfiles.map(({ architecture }) => architecture))]
   const declaredProfile = inputs.runtimeProfiles.some(
     ({ operatingSystem, architecture }) =>
-      operatingSystem === observedRuntime?.platform && architecture === observedRuntime?.architecture,
-  );
+      operatingSystem === observedRuntime?.platform && architecture === observedRuntime?.architecture
+  )
   return {
     engine: {
       ready: runtimeProbe.ready && observedRuntime?.version === requiredVersion,
       observed: observedRuntime?.version ?? runtimeProbe.observed,
-      required: requiredVersion,
+      required: requiredVersion
     },
     platform: {
       ready: runtimeProbe.ready && declaredProfile,
       observed: observedRuntime?.platform ?? runtimeProbe.observed,
-      required: declaredPlatforms.join(", "),
+      required: declaredPlatforms.join(", ")
     },
     architecture: {
       ready: runtimeProbe.ready && declaredProfile,
       observed: observedRuntime?.architecture ?? runtimeProbe.observed,
-      required: declaredArchitectures.join(", "),
-    },
-  };
-};
+      required: declaredArchitectures.join(", ")
+    }
+  }
+}
 
 const runtimeCompatibility = (inputs: ReturnType<typeof buildInputs>) => {
-  const executable = pathReadiness(inputs.executable, true);
-  const entrypoint = pathReadiness(inputs.entrypoint, false);
-  const runtimeProbe = executable.ready ? inputs.runtimeProbe : { ready: false, observed: executable.observed };
-  const packaged = packagedRuntimeEntrypoints(inputs.entrypoint);
-  const parser = pathReadiness(packaged.parser, false);
-  const resident = pathReadiness(packaged.resident, false);
+  const executable = pathReadiness(inputs.executable, true)
+  const entrypoint = pathReadiness(inputs.entrypoint, false)
+  const runtimeProbe = executable.ready ? inputs.runtimeProbe : { ready: false, observed: executable.observed }
+  const packaged = packagedRuntimeEntrypoints(inputs.entrypoint)
+  const parser = pathReadiness(packaged.parser, false)
+  const resident = pathReadiness(packaged.resident, false)
   const checks = {
     runtime: { ...executable, path: inputs.executable },
     entrypoint: { ...entrypoint, path: inputs.entrypoint },
     parser: { ...parser, path: packaged.parser },
     resident: { ...resident, path: packaged.resident },
-    ...runtimeIdentityChecks(inputs, runtimeProbe),
-  };
-  return {
-    supported: Object.values(checks).every((check) => check.ready),
-    checks,
-  };
-};
+    ...runtimeIdentityChecks(inputs, runtimeProbe)
+  }
+  return { supported: Object.values(checks).every((check) => check.ready), checks }
+}
 
 const compatibility = (inputs: ReturnType<typeof buildInputs>) => {
-  const codex = inputs.codex;
-  const runtime = runtimeCompatibility(inputs);
-  return { supported: codex.supported && runtime.supported, codex, runtime };
-};
+  const codex = inputs.codex
+  const runtime = runtimeCompatibility(inputs)
+  return { supported: codex.supported && runtime.supported, codex, runtime }
+}
 
 const unsupportedResult = (
   operation: "install" | "install-preview" | "update" | "update-preview",
   inputs: ReturnType<typeof buildInputs>,
-  host: ReturnType<typeof compatibility>,
+  host: ReturnType<typeof compatibility>
 ) => ({
   version: RESULT_VERSION,
   operation,
   status: "unsupported",
   host: { adapter: "codex", home: inputs.home, compatibility: host },
   completed: [],
-  pending: ["install the declared runtime, packaged entrypoint, and a declared Codex CLI version before mutation"],
-});
+  pending: ["install the declared runtime, packaged entrypoint, and a declared Codex CLI version before mutation"]
+})
 
-const PackageManifest = Schema.Struct({ version: Schema.NonEmptyString });
+const PackageManifest = Schema.Struct({ version: Schema.NonEmptyString })
 const PackageRuntimeDeclaration = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   runtime: Schema.Struct({ name: Schema.Literals(["bun", "node"]), version: Schema.String }),
   profiles: Schema.NonEmptyArray(Schema.Unknown),
   residentProtocol: Schema.Literal(1),
-  codex: Schema.optional(Schema.Unknown),
-});
-const RuntimeProfile = Schema.Struct({ operatingSystem: Schema.String, architecture: Schema.String });
-const DeclaredCodex = Schema.Struct({ testedVersions: Schema.NonEmptyArray(Schema.String) });
+  codex: Schema.optional(Schema.Unknown)
+})
+const RuntimeProfile = Schema.Struct({ operatingSystem: Schema.String, architecture: Schema.String })
+const DeclaredCodex = Schema.Struct({ testedVersions: Schema.NonEmptyArray(Schema.String) })
 
 const packageVersionAt = (root: string) => {
-  const manifest: unknown = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const manifest: unknown = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
   try {
-    return Schema.decodeUnknownSync(PackageManifest)(manifest).version;
+    return Schema.decodeUnknownSync(PackageManifest)(manifest).version
   } catch {
-    throw new Error("package.json must declare a nonempty version");
+    throw new Error("package.json must declare a nonempty version")
   }
-};
+}
 
 const packageRuntimeAt = (root: string) => {
-  const declaration: unknown = JSON.parse(readFileSync(join(root, "package-runtime.json"), "utf8"));
+  const declaration: unknown = JSON.parse(readFileSync(join(root, "package-runtime.json"), "utf8"))
   try {
-    return Schema.decodeUnknownSync(PackageRuntimeDeclaration)(declaration);
+    return Schema.decodeUnknownSync(PackageRuntimeDeclaration)(declaration)
   } catch {
-    throw new Error("package-runtime.json must declare the embedded runtime, nonempty profiles, and residentProtocol 1");
+    throw new Error("package-runtime.json must declare the embedded runtime, nonempty profiles, and residentProtocol 1")
   }
-};
+}
 
 const decodeRuntimeProfile = (profile: unknown) => {
   try {
-    return Schema.decodeUnknownSync(RuntimeProfile)(profile);
+    return Schema.decodeUnknownSync(RuntimeProfile)(profile)
   } catch {
-    throw new Error("package-runtime.json contains an invalid runtime profile");
+    throw new Error("package-runtime.json contains an invalid runtime profile")
   }
-};
+}
 
 const declaredCodexVersions = (codex: unknown): ReadonlyArray<string> => {
-  if (codex === undefined) return ["0.155.1"];
+  if (codex === undefined) return ["0.155.1"]
   try {
-    const { testedVersions } = Schema.decodeUnknownSync(DeclaredCodex)(codex);
-    if (!testedVersions.every(isCodexHostVersion)) throw new Error("unsupported");
-    return testedVersions;
+    const { testedVersions } = Schema.decodeUnknownSync(DeclaredCodex)(codex)
+    if (!testedVersions.every(isCodexHostVersion)) throw new Error("unsupported")
+    return testedVersions
   } catch {
-    throw new Error("package-runtime.json declares unsupported Codex versions");
+    throw new Error("package-runtime.json declares unsupported Codex versions")
   }
-};
+}
 
 interface PackageMetadata {
-  packageVersion: string;
-  residentProtocol: number;
-  runtimeVersion: string;
-  codexVersions: ReadonlyArray<string>;
-  runtimeProfiles: ReadonlyArray<{ readonly operatingSystem: string; readonly architecture: string }>;
-  packageMetadata: { readonly ready: true } | { readonly ready: false; readonly reason: string };
+  packageVersion: string
+  residentProtocol: number
+  runtimeVersion: string
+  codexVersions: ReadonlyArray<string>
+  runtimeProfiles: ReadonlyArray<{ readonly operatingSystem: string; readonly architecture: string }>
+  packageMetadata: { readonly ready: true } | { readonly ready: false; readonly reason: string }
 }
 
 const readPackageMetadata = (root: string): PackageMetadata => {
@@ -854,51 +791,51 @@ const readPackageMetadata = (root: string): PackageMetadata => {
     runtimeVersion: "unsupported",
     codexVersions: ["0.155.1"],
     runtimeProfiles: [],
-    packageMetadata: { ready: true },
-  };
+    packageMetadata: { ready: true }
+  }
   try {
-    metadata.packageVersion = packageVersionAt(root);
-    const declaration = packageRuntimeAt(root);
-    const profiles = declaration.profiles.map(decodeRuntimeProfile);
-    metadata.residentProtocol = declaration.residentProtocol;
-    metadata.runtimeVersion = declaration.runtime.version;
-    metadata.codexVersions = declaredCodexVersions(declaration.codex);
-    metadata.runtimeProfiles = profiles;
+    metadata.packageVersion = packageVersionAt(root)
+    const declaration = packageRuntimeAt(root)
+    const profiles = declaration.profiles.map(decodeRuntimeProfile)
+    metadata.residentProtocol = declaration.residentProtocol
+    metadata.runtimeVersion = declaration.runtime.version
+    metadata.codexVersions = declaredCodexVersions(declaration.codex)
+    metadata.runtimeProfiles = profiles
   } catch (cause) {
     metadata.packageMetadata = {
       ready: false,
-      reason: cause instanceof Error ? cause.message : "package metadata is unreadable",
-    };
+      reason: cause instanceof Error ? cause.message : "package metadata is unreadable"
+    }
   }
-  return metadata;
-};
+  return metadata
+}
 
 const resolvedEntrypoint = (entrypoint: string) => {
-  const requested = resolve(entrypoint);
+  const requested = resolve(entrypoint)
   try {
-    return realpathSync(requested);
+    return realpathSync(requested)
   } catch {
-    return requested;
+    return requested
   } // Compatibility reports the missing path without creating state.
-};
+}
 
 const buildInputs = (
   request: InstallationRequest,
   configured: {
-    readonly home: string;
-    readonly executable: string;
-    readonly entrypoint: string;
-    readonly controlledReviewer: boolean;
-    readonly failAfterWrites: number;
-    readonly hostObserved: string;
-    readonly hooksAvailable: boolean;
-    readonly runtimeProbe: RuntimeProbe;
-  },
+    readonly home: string
+    readonly executable: string
+    readonly entrypoint: string
+    readonly controlledReviewer: boolean
+    readonly failAfterWrites: number
+    readonly hostObserved: string
+    readonly hooksAvailable: boolean
+    readonly runtimeProbe: RuntimeProbe
+  }
 ) => {
-  const home = resolve(configured.home);
-  const executable = resolve(configured.executable);
-  const entrypoint = resolvedEntrypoint(configured.entrypoint);
-  const { codexVersions, ...metadata } = readPackageMetadata(packageRootFromEntrypoint(entrypoint));
+  const home = resolve(configured.home)
+  const executable = resolve(configured.executable)
+  const entrypoint = resolvedEntrypoint(configured.entrypoint)
+  const { codexVersions, ...metadata } = readPackageMetadata(packageRootFromEntrypoint(entrypoint))
   return {
     home,
     executable,
@@ -909,32 +846,34 @@ const buildInputs = (
     codex: codexCompatibility(configured.hostObserved, codexVersions, configured.hooksAvailable),
     runtimeProbe: configured.runtimeProbe,
     ...metadata,
-    paths: pathsFor(home),
-  };
-};
+    paths: pathsFor(home)
+  }
+}
 
 const resolveInputs = Effect.fn("CodexInstallation.inputs")(
   function* (request: InstallationRequest) {
     const home =
       request.codexHome ??
-      (yield* Config.NonEmptyString("CODEX_HOME").pipe(Config.withDefault(join(homedir(), ".codex"))));
+      (yield* Config.NonEmptyString("CODEX_HOME").pipe(Config.withDefault(join(homedir(), ".codex"))))
     const executable = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(
-      Config.withDefault(currentCommand().executable),
-    );
+      Config.withDefault(currentCommand().executable)
+    )
     const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(
-      Config.withDefault(commandEntrypoint(currentCommand())),
-    );
-    const controlled = yield* Config.NonEmptyString("REVIEW_INSTALL_CONTROLLED").pipe(Config.withDefault("0"));
-    const failAfterWrites = yield* Config.Int("REVIEW_INSTALL_FAIL_AFTER_WRITES").pipe(Config.withDefault(-1));
+      Config.withDefault(commandEntrypoint(currentCommand()))
+    )
+    const controlled = yield* Config.NonEmptyString("REVIEW_INSTALL_CONTROLLED").pipe(Config.withDefault("0"))
+    const failAfterWrites = yield* Config.Int("REVIEW_INSTALL_FAIL_AFTER_WRITES").pipe(Config.withDefault(-1))
     const host = yield* execFileClosedStdin(request.codexExecutable ?? "codex", ["--version"], {
       env: process.env,
       timeout: 2_000,
-      maxBuffer: 1_048_576,
-    });
+      maxBuffer: 1_048_576
+    })
     const features = yield* execFileClosedStdin(request.codexExecutable ?? "codex", ["features", "list"], {
-      env: process.env, timeout: 2_000, maxBuffer: 1_048_576,
-    });
-    const runtimeProbe = yield* probeRuntime(resolve(executable));
+      env: process.env,
+      timeout: 2_000,
+      maxBuffer: 1_048_576
+    })
+    const runtimeProbe = yield* probeRuntime(resolve(executable))
     return yield* Effect.try({
       try: () =>
         buildInputs(request, {
@@ -945,26 +884,26 @@ const resolveInputs = Effect.fn("CodexInstallation.inputs")(
           failAfterWrites,
           hostObserved: host.succeeded ? host.stdout.trim() : "unavailable",
           hooksAvailable: features.succeeded && /^hooks\s+\S+\s+(?:true|false)\s*$/m.test(features.stdout),
-          runtimeProbe,
+          runtimeProbe
         }),
-      catch: () => new CodexInstallationError({ reason: "Codex installation inputs unavailable" }),
-    });
+      catch: () => new CodexInstallationError({ reason: "Codex installation inputs unavailable" })
+    })
   },
-  Effect.mapError(() => new CodexInstallationError({ reason: "Codex installation configuration is invalid" })),
-);
+  Effect.mapError(() => new CodexInstallationError({ reason: "Codex installation configuration is invalid" }))
+)
 
 const requireTargetPackageMetadata = (inputs: ReturnType<typeof buildInputs>) => {
   if (!inputs.packageMetadata.ready) {
     throw new TargetPackageMetadataInvalid(
-      `target package metadata is missing or malformed: ${inputs.packageMetadata.reason}`,
-    );
+      `target package metadata is missing or malformed: ${inputs.packageMetadata.reason}`
+    )
   }
-};
+}
 
 const makeOwnershipRecord = (
   inputs: ReturnType<typeof buildInputs>,
   fingerprint: string,
-  featureOwned: boolean,
+  featureOwned: boolean
 ): OwnershipRecord => ({
   version: OWNERSHIP_VERSION,
   adapter: "codex",
@@ -977,78 +916,73 @@ const makeOwnershipRecord = (
   hookFingerprint: fingerprint,
   hookGroups: {
     PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
-    ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
+    ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
   },
   composedFingerprints: {
     preToolUse: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).PreToolUse,
+      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).PreToolUse
     ),
     stop: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).Stop,
+      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).Stop
     ),
     subagentStop: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
-        .SubagentStop,
-    ),
-    prompt: hookFingerprint(
-      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
-        .UserPromptSubmit,
-    ),
+      composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).SubagentStop
+    )
   },
   owned: [
     ...(featureOwned
       ? [{ file: inputs.paths.config, kind: "feature" as const, fingerprint: HOOKS_FEATURE_FINGERPRINT }]
       : []),
-    { file: inputs.paths.hooks, kind: "hook", fingerprint },
-  ],
-});
+    { file: inputs.paths.hooks, kind: "hook", fingerprint }
+  ]
+})
 
 const existingInstallOwnership = (path: string, reinstall: boolean | undefined) => {
   try {
-    return readOwnership(path);
+    return readOwnership(path)
   } catch (cause) {
-    if (!reinstall) throw cause;
-    return undefined;
+    if (!reinstall) throw cause
+    return undefined
   }
-};
+}
 
 const validateRecordedInstallHook = (
   hookRoot: Record<string, unknown>,
   record: OwnershipRecord,
   home: string,
-  reinstall: boolean | undefined,
+  reinstall: boolean | undefined
 ) => {
-  if (record.codexHome !== home) throw new Error("ownership record targets another Codex home");
-  const group = postToolUseGroups(hookRoot).find(isOwnedPostGroup);
+  if (record.codexHome !== home) throw new Error("ownership record targets another Codex home")
+  const group = postToolUseGroups(hookRoot).find(isOwnedPostGroup)
   if (
     !reinstall &&
     group !== undefined &&
     hookFingerprint(group) !== record.hookFingerprint &&
     !retainedHookSubset(group, record.hookGroups?.PostToolUse)
   ) {
-    throw new Error("owned Codex hook was locally modified; reconcile before reinstalling");
+    throw new Error("owned Codex hook was locally modified; reconcile before reinstalling")
   }
-};
+}
 
 const validateInstallOwnership = (
   hookRoot: Record<string, unknown>,
   record: OwnershipRecord | undefined,
   home: string,
-  reinstall: boolean | undefined,
+  reinstall: boolean | undefined
 ) => {
-  const count = markerCount(hookRoot);
+  const count = markerCount(hookRoot)
   if (count > 1 || postToolUseGroups(hookRoot).filter(isOwnedPostGroup).length > 1) {
-    throw new Error("duplicate owned Codex hook representations require manual reconciliation");
+    throw new Error("duplicate owned Codex hook representations require manual reconciliation")
   }
-  if (record !== undefined) return validateRecordedInstallHook(hookRoot, record, home, reinstall);
+  if (record !== undefined) return validateRecordedInstallHook(hookRoot, record, home, reinstall)
   if (count !== 0 || postToolUseGroups(hookRoot).some(isOwnedPostGroup)) {
-    throw new Error("an unrecorded owned-marker hook requires manual reconciliation");
+    throw new Error("an unrecorded owned-marker hook requires manual reconciliation")
   }
-};
+}
 
 const installFeatureOwned = (record: OwnershipRecord | undefined, config: FileSnapshot, nextConfig: string) =>
   (record?.owned.some((entry) => entry.kind === "feature" && entry.file === config.path) ?? false) ||
-  nextConfig !== config.content;
+  nextConfig !== config.content
 
 const installMutations = (
   config: FileSnapshot,
@@ -1057,7 +991,7 @@ const installMutations = (
   nextConfig: string,
   nextHooks: string,
   nextOwnership: string,
-  resetJournal: FileSnapshot | undefined,
+  resetJournal: FileSnapshot | undefined
 ) => [
   ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
   ...(nextHooks === hooks.content ? [] : [mutation(hooks, nextHooks, "append the owned PostToolUse adapter hook")]),
@@ -1066,67 +1000,66 @@ const installMutations = (
   nextConfig === config.content &&
   resetJournal?.exists !== true
     ? []
-    : [mutation(ownership, nextOwnership, "write the versioned ownership record")]),
-];
+    : [mutation(ownership, nextOwnership, "write the versioned ownership record")])
+]
 
 const makeInstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
-  const config = snapshot(inputs.paths.config);
-  const hooks = snapshot(inputs.paths.hooks);
-  const ownership = snapshot(inputs.paths.ownership);
-  const resetJournal = request.reinstall ? snapshot(inputs.paths.journal) : undefined;
-  const existingRecord = existingInstallOwnership(inputs.paths.ownership, request.reinstall);
-  const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
-  const fingerprint = hookFingerprint(group);
-  const originalRoot = parseJsonObject(hooks);
+  const config = snapshot(inputs.paths.config)
+  const hooks = snapshot(inputs.paths.hooks)
+  const ownership = snapshot(inputs.paths.ownership)
+  const resetJournal = request.reinstall ? snapshot(inputs.paths.journal) : undefined
+  const existingRecord = existingInstallOwnership(inputs.paths.ownership, request.reinstall)
+  const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+  const fingerprint = hookFingerprint(group)
+  const originalRoot = parseJsonObject(hooks)
   const hookRoot = request.reinstall
     ? removeMarkedHandlers(originalRoot, [OWNED_MARKER, COMPOSED_MARKER])
-    : originalRoot;
-  validateInstallOwnership(hookRoot, existingRecord, inputs.home, request.reinstall);
-  const nextConfig = enableHooksFeature(config);
+    : originalRoot
+  validateInstallOwnership(hookRoot, existingRecord, inputs.home, request.reinstall)
+  const nextConfig = enableHooksFeature(config)
 
-  const nextHooksRoot =
-    existingRecord === undefined ? addOwnedHook(hookRoot, group) : replaceOwnedHook(hookRoot, group);
+  const nextHooksRoot = existingRecord === undefined ? addOwnedHook(hookRoot, group) : replaceOwnedHook(hookRoot, group)
   const nextHooks = encodeJson(
     withComposedGroups(
       nextHooksRoot,
       composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
       request.reinstall ? undefined : existingRecord?.composedFingerprints,
       true,
-      existingRecord?.hookGroups,
-    ),
-  );
-  const featureOwned = installFeatureOwned(existingRecord, config, nextConfig);
-  const record = makeOwnershipRecord(inputs, fingerprint, featureOwned);
-  const nextOwnership = encodeJson(record);
-  const mutations = installMutations(config, hooks, ownership, nextConfig, nextHooks, nextOwnership, resetJournal);
+      existingRecord?.hookGroups
+    )
+  )
+  const featureOwned = installFeatureOwned(existingRecord, config, nextConfig)
+  const record = makeOwnershipRecord(inputs, fingerprint, featureOwned)
+  const nextOwnership = encodeJson(record)
+  const mutations = installMutations(config, hooks, ownership, nextConfig, nextHooks, nextOwnership, resetJournal)
   return {
     inputs,
     mutations,
     resetJournal,
     digest: reinstallDigest(
       installationDigest("install", inputs.home, mutations),
-      resetJournal?.exists ? resetJournal.digest : undefined,
+      resetJournal?.exists ? resetJournal.digest : undefined
     ),
-    alreadyInstalled: mutations.length === 0,
-  };
-};
+    alreadyInstalled: mutations.length === 0
+  }
+}
 
 const updateOwnership = (inputs: ReturnType<typeof buildInputs>) => {
-  const record = readOwnership(inputs.paths.ownership);
-  if (record === undefined) throw new Error("no owned Codex installation exists; run install first");
-  if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
-  return record;
-};
+  const record = readOwnership(inputs.paths.ownership)
+  if (record === undefined) throw new Error("no owned Codex installation exists; run install first")
+  if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home")
+  return record
+}
 
 const updateOwnedFeature = (record: OwnershipRecord, inputs: ReturnType<typeof buildInputs>) => {
-  const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
+  const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config)
   if (ownedFeature !== undefined && ownedFeature.fingerprint !== HOOKS_FEATURE_FINGERPRINT)
-    throw new Error("owned Codex feature record was locally modified");
-  return ownedFeature;
-};
+    throw new Error("owned Codex feature record was locally modified")
+  return ownedFeature
+}
 
 const validateUpdateHook = (hookRoot: Record<string, unknown>, record: OwnershipRecord) => {
-  const currentGroup = postToolUseGroups(hookRoot).find(isOwnedPostGroup);
+  const currentGroup = postToolUseGroups(hookRoot).find(isOwnedPostGroup)
   if (
     postToolUseGroups(hookRoot).filter(isOwnedPostGroup).length > 1 ||
     markerCount(hookRoot) > 1 ||
@@ -1134,35 +1067,35 @@ const validateUpdateHook = (hookRoot: Record<string, unknown>, record: Ownership
       hookFingerprint(currentGroup) !== record.hookFingerprint &&
       !retainedHookSubset(currentGroup, record.hookGroups?.PostToolUse))
   ) {
-    throw new Error("owned Codex hook was locally modified; the installed version was preserved");
+    throw new Error("owned Codex hook was locally modified; the installed version was preserved")
   }
-};
+}
 
 const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
-  requireTargetPackageMetadata(inputs);
-  const record = updateOwnership(inputs);
-  const config = snapshot(inputs.paths.config);
-  const parsedConfig = validateToml(config);
-  const ownedFeature = updateOwnedFeature(record, inputs);
-  const nextConfig = enableHooksFeature(config);
-  const hooks = snapshot(inputs.paths.hooks);
-  const hookRoot = parseJsonObject(hooks);
-  validateUpdateHook(hookRoot, record);
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
-  const targetFingerprint = hookFingerprint(targetGroup);
+  requireTargetPackageMetadata(inputs)
+  const record = updateOwnership(inputs)
+  const config = snapshot(inputs.paths.config)
+  const _parsedConfig = validateToml(config)
+  const ownedFeature = updateOwnedFeature(record, inputs)
+  const nextConfig = enableHooksFeature(config)
+  const hooks = snapshot(inputs.paths.hooks)
+  const hookRoot = parseJsonObject(hooks)
+  validateUpdateHook(hookRoot, record)
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+  const targetFingerprint = hookFingerprint(targetGroup)
   const nextHooks = encodeJson(
     withComposedGroups(
       replaceOwnedHook(hookRoot, targetGroup),
       composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
       record.composedFingerprints,
       true,
-      record.hookGroups,
-    ),
-  );
-  const ownership = snapshot(inputs.paths.ownership);
+      record.hookGroups
+    )
+  )
+  const ownership = snapshot(inputs.paths.ownership)
   const nextOwnership = encodeJson(
-    makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined || nextConfig !== config.content),
-  );
+    makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined || nextConfig !== config.content)
+  )
   const mutations = [
     // Recording the target first retains the previous working hook if a later
     // per-file write fails. The journal reports and safely resumes this exact state.
@@ -1172,73 +1105,73 @@ const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof 
     ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
     ...(nextHooks === hooks.content
       ? []
-      : [mutation(hooks, nextHooks, "replace only the owned PostToolUse adapter hook")]),
-  ];
+      : [mutation(hooks, nextHooks, "replace only the owned PostToolUse adapter hook")])
+  ]
   return {
     inputs,
     record,
     mutations,
     digest: installationDigest("update", inputs.home, mutations),
-    alreadyCurrent: mutations.length === 0,
-  };
-};
+    alreadyCurrent: mutations.length === 0
+  }
+}
 
 const validateOwnedFeatureRemoval = (
   record: OwnershipRecord,
   inputs: ReturnType<typeof buildInputs>,
-  parsedConfig: JsonObject,
+  parsedConfig: JsonObject
 ) => {
-  const feature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
-  if (feature === undefined) return false;
-  const features = parsedConfig.features;
+  const feature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config)
+  if (feature === undefined) return false
+  const features = parsedConfig.features
   if (
     feature.fingerprint !== HOOKS_FEATURE_FINGERPRINT ||
     (isObject(features) && features.hooks !== undefined && features.hooks !== true)
   ) {
-    throw new Error("owned Codex feature value was locally modified; it was preserved");
+    throw new Error("owned Codex feature value was locally modified; it was preserved")
   }
-  return true;
-};
+  return true
+}
 
 const unrelatedHooksRemain = (root: JsonObject) =>
   markerCount(root) === 0 &&
   isObject(root.hooks) &&
-  Object.values(root.hooks).some((value) => Array.isArray(value) && value.length > 0);
+  Object.values(root.hooks).some((value) => Array.isArray(value) && value.length > 0)
 
 const uninstallConfig = (config: FileSnapshot, parsed: JsonObject, featureOwned: boolean, hookRoot: JsonObject) => {
-  const unrelated = unrelatedHooksRemain(hookRoot);
+  const unrelated = unrelatedHooksRemain(hookRoot)
   return featureOwned && isObject(parsed.features) && parsed.features.hooks === true && !unrelated
     ? disableOwnedFeature(config.content)
-    : config.content;
-};
+    : config.content
+}
 
 const makeUninstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
-  const record = readOwnership(inputs.paths.ownership);
+  const record = readOwnership(inputs.paths.ownership)
   if (record === undefined) {
-    withComposedGroups(parseJsonObject(snapshot(inputs.paths.hooks)), undefined, undefined);
+    withComposedGroups(parseJsonObject(snapshot(inputs.paths.hooks)), undefined, undefined)
     return {
       inputs,
       mutations: [] as Array<Mutation>,
       digest: installationDigest("uninstall", inputs.home, []),
-      alreadyRemoved: true,
-    };
+      alreadyRemoved: true
+    }
   }
-  if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
-  const config = snapshot(inputs.paths.config);
-  const hooks = snapshot(inputs.paths.hooks);
-  const ownership = snapshot(inputs.paths.ownership);
-  const parsedConfig = validateToml(config);
-  const hookRoot = parseJsonObject(hooks);
+  if (record.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home")
+  const config = snapshot(inputs.paths.config)
+  const hooks = snapshot(inputs.paths.hooks)
+  const ownership = snapshot(inputs.paths.ownership)
+  const parsedConfig = validateToml(config)
+  const hookRoot = parseJsonObject(hooks)
   const nextHookRoot = withComposedGroups(
     removeOwnedHook(hookRoot, record.hookFingerprint, record.hookGroups?.PostToolUse),
     undefined,
     record.composedFingerprints,
     true,
-    record.hookGroups,
-  );
-  const nextHooks = encodeJson(nextHookRoot);
-  const featureWasOwned = validateOwnedFeatureRemoval(record, inputs, parsedConfig);
-  const nextConfig = uninstallConfig(config, parsedConfig, featureWasOwned, nextHookRoot);
+    record.hookGroups
+  )
+  const nextHooks = encodeJson(nextHookRoot)
+  const featureWasOwned = validateOwnedFeatureRemoval(record, inputs, parsedConfig)
+  const nextConfig = uninstallConfig(config, parsedConfig, featureWasOwned, nextHookRoot)
   const mutations = [
     ...(nextConfig === config.content
       ? []
@@ -1246,10 +1179,10 @@ const makeUninstallPlan = (request: InstallationRequest, inputs: ReturnType<type
     ...(nextHooks === hooks.content
       ? []
       : [mutation(hooks, nextHooks, "remove only the owned PostToolUse adapter hook")]),
-    mutation(ownership, null, "remove the versioned ownership record"),
-  ];
-  return { inputs, mutations, digest: installationDigest("uninstall", inputs.home, mutations), alreadyRemoved: false };
-};
+    mutation(ownership, null, "remove the versioned ownership record")
+  ]
+  return { inputs, mutations, digest: installationDigest("uninstall", inputs.home, mutations), alreadyRemoved: false }
+}
 
 const conflictResult = (operation: string, reason: string, home?: string) => ({
   version: RESULT_VERSION,
@@ -1258,13 +1191,13 @@ const conflictResult = (operation: string, reason: string, home?: string) => ({
   ...(home === undefined ? {} : { host: { adapter: "codex", home } }),
   error: { code: "configuration_conflict", message: reason },
   completed: [],
-  pending: ["resolve the reported conflict and preview again"],
-});
+  pending: ["resolve the reported conflict and preview again"]
+})
 
 const packageMetadataConflictResult = (
   operation: "update-preview" | "update",
   cause: TargetPackageMetadataInvalid,
-  home: string,
+  home: string
 ) => ({
   version: RESULT_VERSION,
   operation,
@@ -1272,8 +1205,8 @@ const packageMetadataConflictResult = (
   host: { adapter: "codex", home },
   error: { code: "target_package_metadata_invalid", message: cause.message },
   completed: [],
-  pending: ["use a packaged target with a declared package version and version-1 runtime metadata"],
-});
+  pending: ["use a packaged target with a declared package version and version-1 runtime metadata"]
+})
 
 const JournalShape = Schema.Struct({
   version: Schema.Literal(1),
@@ -1282,8 +1215,8 @@ const JournalShape = Schema.Struct({
   mutations: Schema.Array(Schema.Unknown),
   completed: Schema.Array(Schema.Unknown),
   reinstall: Schema.optional(Schema.Unknown),
-  replacedJournalDigest: Schema.optional(Schema.Unknown),
-});
+  replacedJournalDigest: Schema.optional(Schema.Unknown)
+})
 
 const MutationShape = Schema.Struct({
   path: Schema.String,
@@ -1291,25 +1224,25 @@ const MutationShape = Schema.Struct({
   beforeContent: Schema.NullOr(Schema.String),
   afterDigest: Schema.String,
   afterContent: Schema.NullOr(Schema.String),
-  description: Schema.String,
-});
-const decodeMutation = (value: unknown) => Schema.decodeUnknownSync(MutationShape)(value);
+  description: Schema.String
+})
+const decodeMutation = (value: unknown) => Schema.decodeUnknownSync(MutationShape)(value)
 
 const completedJournalStep = (index: unknown, length: number) => {
   if (typeof index !== "number" || !Number.isSafeInteger(index) || index < 0 || index >= length) {
-    throw new Error("completed shape");
+    throw new Error("completed shape")
   }
-  return index;
-};
+  return index
+}
 
 const replacedJournalDigest = (digest: unknown) =>
-  typeof digest === "string" && /^[a-f0-9]{64}$/.test(digest) ? { replacedJournalDigest: digest } : {};
+  typeof digest === "string" && /^[a-f0-9]{64}$/.test(digest) ? { replacedJournalDigest: digest } : {}
 
 const readJournal = (path: string): Journal | undefined => {
-  if (!existsSync(path)) return undefined;
+  if (!existsSync(path)) return undefined
   try {
-    const value = Schema.decodeUnknownSync(JournalShape)(JSON.parse(readFileSync(path, "utf8")));
-    const mutations = value.mutations.map(decodeMutation);
+    const value = Schema.decodeUnknownSync(JournalShape)(JSON.parse(readFileSync(path, "utf8")))
+    const mutations = value.mutations.map(decodeMutation)
     return {
       version: 1,
       operation: value.operation,
@@ -1317,23 +1250,23 @@ const readJournal = (path: string): Journal | undefined => {
       completed: value.completed.map((index) => completedJournalStep(index, mutations.length)),
       ...(value.reinstall === true ? { reinstall: true } : {}),
       ...replacedJournalDigest(value.replacedJournalDigest),
-      mutations,
-    };
+      mutations
+    }
   } catch {
-    throw new Error("recovery journal is malformed; inspect it before making further changes");
+    throw new Error("recovery journal is malformed; inspect it before making further changes")
   }
-};
+}
 
 const recordCompletedMutation = (
   journalPath: string,
   journal: Journal,
   completed: ReadonlyArray<number>,
-  index: number,
+  index: number
 ) => {
-  const next = [...completed, index];
-  atomicWrite(journalPath, encodeJson({ ...journal, completed: next }));
-  return next;
-};
+  const next = [...completed, index]
+  atomicWrite(journalPath, encodeJson({ ...journal, completed: next }))
+  return next
+}
 
 const applyJournalMutation = (
   change: Mutation,
@@ -1341,122 +1274,119 @@ const applyJournalMutation = (
   completed: ReadonlyArray<number>,
   journalPath: string,
   journal: Journal,
-  failAfter: number,
+  failAfter: number
 ) => {
-  const current = snapshot(change.path);
+  const current = snapshot(change.path)
   if (current.digest === change.afterDigest) {
-    return recordCompletedMutation(journalPath, journal, completed, index);
+    return recordCompletedMutation(journalPath, journal, completed, index)
   }
   if (current.digest !== change.beforeDigest) {
-    throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`);
+    throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`)
   }
-  if (change.afterContent === null) atomicRemove(change.path);
-  else atomicWrite(change.path, change.afterContent);
-  const next = recordCompletedMutation(journalPath, journal, completed, index);
-  if (failAfter >= 0 && next.length >= failAfter) throw new Error("injected multi-file failure");
-  return next;
-};
+  if (change.afterContent === null) atomicRemove(change.path)
+  else atomicWrite(change.path, change.afterContent)
+  const next = recordCompletedMutation(journalPath, journal, completed, index)
+  if (failAfter >= 0 && next.length >= failAfter) throw new Error("injected multi-file failure")
+  return next
+}
 
 const applyJournal = (journalPath: string, journal: Journal, failAfter: number) => {
-  let completed = [...journal.completed];
+  let completed = [...journal.completed]
   for (let index = 0; index < journal.mutations.length; index += 1) {
-    const change = journal.mutations[index];
-    if (change === undefined) continue;
-    validateMutationCurrent(change, completed.includes(index));
+    const change = journal.mutations[index]
+    if (change === undefined) continue
+    validateMutationCurrent(change, completed.includes(index))
   }
-  atomicWrite(journalPath, encodeJson(journal));
+  atomicWrite(journalPath, encodeJson(journal))
   for (let index = 0; index < journal.mutations.length; index += 1) {
-    const change = journal.mutations[index];
-    if (change === undefined || completed.includes(index)) continue;
-    completed = applyJournalMutation(change, index, completed, journalPath, journal, failAfter);
+    const change = journal.mutations[index]
+    if (change === undefined || completed.includes(index)) continue
+    completed = applyJournalMutation(change, index, completed, journalPath, journal, failAfter)
   }
-  atomicRemove(journalPath);
-};
+  atomicRemove(journalPath)
+}
 
 const mutationBeforeFile = (change: Mutation): FileSnapshot => ({
   path: change.path,
   exists: change.beforeContent !== null,
   content: change.beforeContent ?? "",
-  digest: change.beforeDigest,
-});
+  digest: change.beforeDigest
+})
 
 const decodedOwnershipContent = (content: string | null) => {
-  if (content === null) return undefined;
+  if (content === null) return undefined
   try {
-    const value: unknown = JSON.parse(content);
-    return isObject(value) ? value : undefined;
+    const value: unknown = JSON.parse(content)
+    return isObject(value) ? value : undefined
   } catch {
-    return undefined;
+    return undefined
   }
-};
+}
 
 const validateMutationContent = (change: Mutation) => {
-  const recomputedBefore = change.beforeContent === null ? missingDigest : digestSnapshot(true, change.beforeContent);
-  const recomputedAfter = change.afterContent === null ? missingDigest : digestSnapshot(true, change.afterContent);
+  const recomputedBefore = change.beforeContent === null ? missingDigest : digestSnapshot(true, change.beforeContent)
+  const recomputedAfter = change.afterContent === null ? missingDigest : digestSnapshot(true, change.afterContent)
   if (change.beforeDigest !== recomputedBefore || change.afterDigest !== recomputedAfter) {
-    throw new Error("recovery journal content does not match its recorded file digests");
+    throw new Error("recovery journal content does not match its recorded file digests")
   }
-};
+}
 
 const validateMutationCurrent = (change: Mutation, completed: boolean) => {
-  const current = snapshot(change.path);
+  const current = snapshot(change.path)
   if (completed) {
     if (current.digest !== change.afterDigest) {
-      throw new Error(`completed journal step changed for ${change.path}; the unrelated edit was preserved`);
+      throw new Error(`completed journal step changed for ${change.path}; the unrelated edit was preserved`)
     }
   } else if (current.digest !== change.beforeDigest && current.digest !== change.afterDigest) {
-    throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`);
+    throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`)
   }
-};
+}
 
 const recoveryComposedFingerprints = (priorOwnership: Record<string, unknown> | undefined) => {
   const priorComposed =
-    isObject(priorOwnership?.composedFingerprints) &&
-    typeof priorOwnership.composedFingerprints.stop === "string" &&
-    typeof priorOwnership.composedFingerprints.prompt === "string"
+    isObject(priorOwnership?.composedFingerprints) && typeof priorOwnership.composedFingerprints.stop === "string"
       ? {
           stop: priorOwnership.composedFingerprints.stop,
-          prompt: priorOwnership.composedFingerprints.prompt,
           ...(typeof priorOwnership.composedFingerprints.preToolUse === "string"
             ? { preToolUse: priorOwnership.composedFingerprints.preToolUse }
             : {}),
           ...(typeof priorOwnership.composedFingerprints.subagentStop === "string"
             ? { subagentStop: priorOwnership.composedFingerprints.subagentStop }
-            : {}),
+            : {})
         }
-      : undefined;
-  return priorComposed;
-};
+      : undefined
+  return priorComposed
+}
 
 const recoveryFeatureOwned = (priorOwnership: Record<string, unknown> | undefined, configPath: string) => {
-  const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : [];
+  const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : []
   const priorFeatureOwned = priorOwned.some(
     (entry) =>
       isObject(entry) &&
       entry.kind === "feature" &&
       entry.file === configPath &&
-      entry.fingerprint === HOOKS_FEATURE_FINGERPRINT,
-  );
+      entry.fingerprint === HOOKS_FEATURE_FINGERPRINT
+  )
 
-  return priorFeatureOwned;
-};
+  return priorFeatureOwned
+}
 
 const recoveryPlan = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
-  const byPath = new Map(journal.mutations.map((change) => [change.path, change]));
-  const configChange = byPath.get(inputs.paths.config);
-  const hooksChange = byPath.get(inputs.paths.hooks);
-  const ownershipChange = byPath.get(inputs.paths.ownership);
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
-  const targetFingerprint = hookFingerprint(targetGroup);
-  const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null);
-  const priorComposed = recoveryComposedFingerprints(priorOwnership);
+  const byPath = new Map(journal.mutations.map((change) => [change.path, change]))
+  const configChange = byPath.get(inputs.paths.config)
+  const hooksChange = byPath.get(inputs.paths.hooks)
+  const ownershipChange = byPath.get(inputs.paths.ownership)
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+  const targetFingerprint = hookFingerprint(targetGroup)
+  const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null)
+  const priorComposed = recoveryComposedFingerprints(priorOwnership)
   const targetComposed = composedGroups(
     inputs.executable,
     inputs.entrypoint,
     inputs.codex.version,
-    inputs.controlledReviewer,
-  );
-  const priorFeatureOwned = recoveryFeatureOwned(priorOwnership, inputs.paths.config);
+    inputs.controlledReviewer
+  )
+  const priorFeatureOwned = recoveryFeatureOwned(priorOwnership, inputs.paths.config)
   return {
     configChange,
     hooksChange,
@@ -1466,27 +1396,26 @@ const recoveryPlan = (journal: Journal, inputs: ReturnType<typeof buildInputs>) 
     priorOwnership,
     priorComposed,
     targetComposed,
-    priorFeatureOwned,
-  };
-};
-type RecoveryPlan = ReturnType<typeof recoveryPlan>;
+    priorFeatureOwned
+  }
+}
+type RecoveryPlan = ReturnType<typeof recoveryPlan>
 const recoveryHookGroups = (plan: RecoveryPlan) =>
-  isObject(plan.priorOwnership?.hookGroups) ? plan.priorOwnership.hookGroups : undefined;
+  isObject(plan.priorOwnership?.hookGroups) ? plan.priorOwnership.hookGroups : undefined
 
 const validateCurrentRecoveryHooks = (inputs: ReturnType<typeof buildInputs>, plan: RecoveryPlan, message: string) => {
-  const { targetGroup, targetComposed } = plan;
-  const currentRoot = parseJsonObject(snapshot(inputs.paths.hooks));
-  const currentGroup = postToolUseGroups(currentRoot).find(isOwnedPostGroup);
+  const { targetGroup, targetComposed } = plan
+  const currentRoot = parseJsonObject(snapshot(inputs.paths.hooks))
+  const currentGroup = postToolUseGroups(currentRoot).find(isOwnedPostGroup)
   if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
-    throw new Error(message);
+    throw new Error(message)
   }
   withComposedGroups(currentRoot, targetComposed, {
     preToolUse: hookFingerprint(targetComposed.PreToolUse),
     stop: hookFingerprint(targetComposed.Stop),
-    prompt: hookFingerprint(targetComposed.UserPromptSubmit),
-    subagentStop: hookFingerprint(targetComposed.SubagentStop),
-  });
-};
+    subagentStop: hookFingerprint(targetComposed.SubagentStop)
+  })
+}
 
 const validateRecoveryFeatureChange = (change: Mutation | undefined) => {
   if (
@@ -1494,71 +1423,71 @@ const validateRecoveryFeatureChange = (change: Mutation | undefined) => {
     (change.description !== "enable Codex's native hooks feature" ||
       change.afterContent !== enableHooksFeature(mutationBeforeFile(change)))
   ) {
-    throw new Error("recovery journal contains an unexpected Codex feature change");
+    throw new Error("recovery journal contains an unexpected Codex feature change")
   }
-};
+}
 
 const requireUpdateOwnership = (journal: Journal, inputs: ReturnType<typeof buildInputs>, plan: RecoveryPlan) => {
-  const { ownershipChange, hooksChange } = plan;
+  const { ownershipChange, hooksChange } = plan
   if (
     ownershipChange === undefined ||
     journal.mutations[0]?.path !== inputs.paths.ownership ||
     ownershipChange.description !== "record the target packaged runtime" ||
     (hooksChange !== undefined && hooksChange.description !== "replace only the owned PostToolUse adapter hook")
   ) {
-    throw new Error("recovery journal is not an exact owned update plan");
+    throw new Error("recovery journal is not an exact owned update plan")
   }
-  return ownershipChange;
-};
+  return ownershipChange
+}
 
 const validateUpdateOwnership = (
   ownershipChange: Mutation,
   inputs: ReturnType<typeof buildInputs>,
-  plan: RecoveryPlan,
+  plan: RecoveryPlan
 ) => {
-  const { targetFingerprint, priorFeatureOwned, configChange } = plan;
+  const { targetFingerprint, priorFeatureOwned, configChange } = plan
   const expectedOwnership = encodeJson(
-    makeOwnershipRecord(inputs, targetFingerprint, priorFeatureOwned || configChange !== undefined),
-  );
+    makeOwnershipRecord(inputs, targetFingerprint, priorFeatureOwned || configChange !== undefined)
+  )
   if (ownershipChange.afterContent !== expectedOwnership) {
-    throw new Error("recovery journal ownership does not match the exact target package");
+    throw new Error("recovery journal ownership does not match the exact target package")
   }
-};
+}
 
 const validateUpdatedRecoveryHooks = (hooksChange: Mutation, plan: RecoveryPlan) => {
-  const { targetGroup, targetComposed, priorComposed } = plan;
-  const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange));
+  const { targetGroup, targetComposed, priorComposed } = plan
+  const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange))
   const expectedHooks = encodeJson(
     withComposedGroups(
       replaceOwnedHook(beforeRoot, targetGroup),
       targetComposed,
       priorComposed,
       true,
-      recoveryHookGroups(plan),
-    ),
-  );
+      recoveryHookGroups(plan)
+    )
+  )
   if (hooksChange.afterContent !== expectedHooks) {
-    throw new Error("recovery journal hook change does not preserve the exact unrelated hook state");
+    throw new Error("recovery journal hook change does not preserve the exact unrelated hook state")
   }
-};
+}
 
 const validateUpdateRecoveryPlan = (journal: Journal, inputs: ReturnType<typeof buildInputs>, plan: RecoveryPlan) => {
-  const ownershipChange = requireUpdateOwnership(journal, inputs, plan);
-  validateRecoveryFeatureChange(plan.configChange);
-  validateUpdateOwnership(ownershipChange, inputs, plan);
-  if (plan.hooksChange !== undefined) validateUpdatedRecoveryHooks(plan.hooksChange, plan);
-  else validateCurrentRecoveryHooks(inputs, plan, "recovery journal does not bind the exact target owned hook");
-};
+  const ownershipChange = requireUpdateOwnership(journal, inputs, plan)
+  validateRecoveryFeatureChange(plan.configChange)
+  validateUpdateOwnership(ownershipChange, inputs, plan)
+  if (plan.hooksChange !== undefined) validateUpdatedRecoveryHooks(plan.hooksChange, plan)
+  else validateCurrentRecoveryHooks(inputs, plan, "recovery journal does not bind the exact target owned hook")
+}
 
 const validateInstalledRecoveryHooks = (hooksChange: Mutation, journal: Journal, plan: RecoveryPlan) => {
-  const { targetGroup, targetComposed, priorComposed } = plan;
-  const originalRoot = parseJsonObject(mutationBeforeFile(hooksChange));
+  const { targetGroup, targetComposed, priorComposed } = plan
+  const originalRoot = parseJsonObject(mutationBeforeFile(hooksChange))
   const beforeRoot = journal.reinstall
     ? removeMarkedHandlers(originalRoot, [OWNED_MARKER, COMPOSED_MARKER])
-    : originalRoot;
+    : originalRoot
   const expectedRoot = postToolUseGroups(beforeRoot).some(isOwnedPostGroup)
     ? replaceOwnedHook(beforeRoot, targetGroup)
-    : addOwnedHook(beforeRoot, targetGroup);
+    : addOwnedHook(beforeRoot, targetGroup)
   if (
     hooksChange.description !== "append the owned PostToolUse adapter hook" ||
     hooksChange.afterContent !==
@@ -1568,42 +1497,42 @@ const validateInstalledRecoveryHooks = (hooksChange: Mutation, journal: Journal,
           targetComposed,
           journal.reinstall ? undefined : priorComposed,
           true,
-          recoveryHookGroups(plan),
-        ),
+          recoveryHookGroups(plan)
+        )
       )
   ) {
-    throw new Error("recovery journal install hook does not preserve unrelated hooks");
+    throw new Error("recovery journal install hook does not preserve unrelated hooks")
   }
-};
+}
 
 const validateInstalledOwnership = (
   ownershipChange: Mutation,
   inputs: ReturnType<typeof buildInputs>,
-  plan: RecoveryPlan,
+  plan: RecoveryPlan
 ) => {
-  const { priorFeatureOwned, configChange, targetFingerprint } = plan;
-  const featureOwned = priorFeatureOwned || configChange !== undefined;
+  const { priorFeatureOwned, configChange, targetFingerprint } = plan
+  const featureOwned = priorFeatureOwned || configChange !== undefined
   if (
     ownershipChange.description !== "write the versioned ownership record" ||
     ownershipChange.afterContent !== encodeJson(makeOwnershipRecord(inputs, targetFingerprint, featureOwned))
   ) {
-    throw new Error("recovery journal contains an unexpected installation ownership record");
+    throw new Error("recovery journal contains an unexpected installation ownership record")
   }
-};
+}
 
 const validateInstallRecoveryPlan = (journal: Journal, inputs: ReturnType<typeof buildInputs>, plan: RecoveryPlan) => {
   if (plan.ownershipChange === undefined)
-    throw new Error("recovery journal install plan is missing its owned installation record");
-  validateRecoveryFeatureChange(plan.configChange);
-  if (plan.hooksChange !== undefined) validateInstalledRecoveryHooks(plan.hooksChange, journal, plan);
-  else validateCurrentRecoveryHooks(inputs, plan, "recovery journal install plan does not bind the exact owned hook");
-  validateInstalledOwnership(plan.ownershipChange, inputs, plan);
-};
+    throw new Error("recovery journal install plan is missing its owned installation record")
+  validateRecoveryFeatureChange(plan.configChange)
+  if (plan.hooksChange !== undefined) validateInstalledRecoveryHooks(plan.hooksChange, journal, plan)
+  else validateCurrentRecoveryHooks(inputs, plan, "recovery journal install plan does not bind the exact owned hook")
+  validateInstalledOwnership(plan.ownershipChange, inputs, plan)
+}
 
 const validateUninstalledRecoveryHooks = (plan: RecoveryPlan) => {
-  const { priorOwnership, hooksChange, priorComposed } = plan;
+  const { priorOwnership, hooksChange, priorComposed } = plan
   const installedFingerprint =
-    typeof priorOwnership?.hookFingerprint === "string" ? priorOwnership.hookFingerprint : undefined;
+    typeof priorOwnership?.hookFingerprint === "string" ? priorOwnership.hookFingerprint : undefined
   if (hooksChange !== undefined) {
     if (
       installedFingerprint === undefined ||
@@ -1614,19 +1543,19 @@ const validateUninstalledRecoveryHooks = (plan: RecoveryPlan) => {
             removeOwnedHook(
               parseJsonObject(mutationBeforeFile(hooksChange)),
               installedFingerprint,
-              recoveryHookGroups(plan)?.PostToolUse,
+              recoveryHookGroups(plan)?.PostToolUse
             ),
             undefined,
             priorComposed,
             true,
-            isObject(priorOwnership?.hookGroups) ? priorOwnership.hookGroups : undefined,
-          ),
+            isObject(priorOwnership?.hookGroups) ? priorOwnership.hookGroups : undefined
+          )
         )
     ) {
-      throw new Error("recovery journal uninstall hook does not preserve unrelated hooks");
+      throw new Error("recovery journal uninstall hook does not preserve unrelated hooks")
     }
   }
-};
+}
 
 const validateRemovedRecoveryFeature = (configChange: Mutation | undefined) => {
   if (
@@ -1634,81 +1563,81 @@ const validateRemovedRecoveryFeature = (configChange: Mutation | undefined) => {
     (configChange.description !== "remove the owned Codex hooks feature entry" ||
       configChange.afterContent !== disableOwnedFeature(mutationBeforeFile(configChange).content))
   ) {
-    throw new Error("recovery journal contains an unexpected Codex feature removal");
+    throw new Error("recovery journal contains an unexpected Codex feature removal")
   }
-};
+}
 
 const validateUninstallRecoveryPlan = (
   _journal: Journal,
   _inputs: ReturnType<typeof buildInputs>,
-  plan: RecoveryPlan,
+  plan: RecoveryPlan
 ) => {
-  const { ownershipChange } = plan;
+  const { ownershipChange } = plan
   if (
     ownershipChange === undefined ||
     ownershipChange.afterContent !== null ||
     ownershipChange.description !== "remove the versioned ownership record"
   ) {
-    throw new Error("recovery journal does not contain the exact owned uninstall record removal");
+    throw new Error("recovery journal does not contain the exact owned uninstall record removal")
   }
-  validateUninstalledRecoveryHooks(plan);
-  validateRemovedRecoveryFeature(plan.configChange);
-};
+  validateUninstalledRecoveryHooks(plan)
+  validateRemovedRecoveryFeature(plan.configChange)
+}
 const recoveryValidators = {
   install: validateInstallRecoveryPlan,
   update: validateUpdateRecoveryPlan,
-  uninstall: validateUninstallRecoveryPlan,
-};
+  uninstall: validateUninstallRecoveryPlan
+}
 
 const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
   if (new Set(journal.completed).size !== journal.completed.length) {
-    throw new Error("recovery journal repeats a completed step");
+    throw new Error("recovery journal repeats a completed step")
   }
   for (let index = 0; index < journal.mutations.length; index += 1) {
-    const change = journal.mutations[index];
-    if (change === undefined) continue;
-    validateMutationContent(change);
-    validateMutationCurrent(change, journal.completed.includes(index));
+    const change = journal.mutations[index]
+    if (change === undefined) continue
+    validateMutationContent(change)
+    validateMutationCurrent(change, journal.completed.includes(index))
   }
   if (
     reinstallDigest(
       installationDigest(journal.operation, inputs.home, journal.mutations),
-      journal.replacedJournalDigest,
+      journal.replacedJournalDigest
     ) !== journal.proposalDigest
   ) {
-    throw new Error("recovery journal proposal digest does not match its declared changes");
+    throw new Error("recovery journal proposal digest does not match its declared changes")
   }
 
-  recoveryValidators[journal.operation](journal, inputs, recoveryPlan(journal, inputs));
-};
+  recoveryValidators[journal.operation](journal, inputs, recoveryPlan(journal, inputs))
+}
 
 const validateUnchangedRecoveryFeature = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
-  if (journal.operation === "uninstall") return;
-  if (journal.mutations.some((change) => change.path === inputs.paths.config)) return;
-  const config = validateToml(snapshot(inputs.paths.config));
+  if (journal.operation === "uninstall") return
+  if (journal.mutations.some((change) => change.path === inputs.paths.config)) return
+  const config = validateToml(snapshot(inputs.paths.config))
   if (!isObject(config.features) || config.features.hooks !== true) {
     throw new Error(
       journal.operation === "install"
         ? "preexisting Codex hooks feature changed during recovery; the current config was preserved"
-        : "Codex hooks feature changed during update recovery; the current config was preserved",
-    );
+        : "Codex hooks feature changed during update recovery; the current config was preserved"
+    )
   }
-};
+}
 
 const parseRecoveryContent = (content: string, message: string): unknown => {
   try {
-    return JSON.parse(content);
+    return JSON.parse(content)
   } catch {
-    throw new Error(message);
+    throw new Error(message)
   }
-};
+}
 
 const validateRecoveryHookContent = (content: string, operation: Journal["operation"]) => {
-  const decoded = parseRecoveryContent(content, "recovery journal contains malformed hooks configuration");
+  const decoded = parseRecoveryContent(content, "recovery journal contains malformed hooks configuration")
   if (!isObject(decoded) || markerCount(decoded) !== (operation === "uninstall" ? 0 : 1)) {
-    throw new Error("recovery journal does not contain the required owned-hook state");
+    throw new Error("recovery journal does not contain the required owned-hook state")
   }
-};
+}
 
 const requireRecoveryRuntimeIdentity = (decoded: unknown, inputs: ReturnType<typeof buildInputs>) => {
   if (
@@ -1718,63 +1647,63 @@ const requireRecoveryRuntimeIdentity = (decoded: unknown, inputs: ReturnType<typ
     decoded.executable !== commandFromEntrypoint(inputs.executable, inputs.entrypoint).executable ||
     JSON.stringify(decoded.args) !== JSON.stringify(commandFromEntrypoint(inputs.executable, inputs.entrypoint).args)
   ) {
-    throw new Error("recovery journal ownership does not match the current packaged runtime");
+    throw new Error("recovery journal ownership does not match the current packaged runtime")
   }
-  return decoded;
-};
+  return decoded
+}
 
 const validateRecoveryOwnershipContent = (
   content: string,
   operation: Journal["operation"],
-  inputs: ReturnType<typeof buildInputs>,
+  inputs: ReturnType<typeof buildInputs>
 ) => {
   const decoded = requireRecoveryRuntimeIdentity(
     parseRecoveryContent(content, "recovery journal contains a malformed ownership record"),
-    inputs,
-  );
+    inputs
+  )
   if (
     operation === "update" &&
     (decoded.residentProtocol !== inputs.residentProtocol || decoded.packageVersion !== inputs.packageVersion)
   ) {
-    throw new Error("recovery journal ownership does not match the current packaged runtime");
+    throw new Error("recovery journal ownership does not match the current packaged runtime")
   }
-};
+}
 
 const validateRecoveryMutation = (
   change: Mutation,
   operation: Journal["operation"],
-  inputs: ReturnType<typeof buildInputs>,
+  inputs: ReturnType<typeof buildInputs>
 ) => {
-  if (change.afterContent === null) return;
+  if (change.afterContent === null) return
   if (change.path === inputs.paths.config) {
-    assertHooksSemanticState(change.afterContent, operation === "uninstall" ? "absent" : true);
+    assertHooksSemanticState(change.afterContent, operation === "uninstall" ? "absent" : true)
   } else if (change.path === inputs.paths.hooks) {
-    validateRecoveryHookContent(change.afterContent, operation);
+    validateRecoveryHookContent(change.afterContent, operation)
   } else if (change.path === inputs.paths.ownership) {
-    validateRecoveryOwnershipContent(change.afterContent, operation, inputs);
+    validateRecoveryOwnershipContent(change.afterContent, operation, inputs)
   }
-};
+}
 const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
-  const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership]);
+  const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership])
   if (
     journal.mutations.some((change) => !allowed.has(change.path)) ||
     new Set(journal.mutations.map((change) => change.path)).size !== journal.mutations.length
   ) {
-    throw new Error("recovery journal contains an unexpected or duplicate configuration target");
+    throw new Error("recovery journal contains an unexpected or duplicate configuration target")
   }
-  validateJournalIntegrity(journal, inputs);
-  validateUnchangedRecoveryFeature(journal, inputs);
-  for (const change of journal.mutations) validateRecoveryMutation(change, journal.operation, inputs);
-};
+  validateJournalIntegrity(journal, inputs)
+  validateUnchangedRecoveryFeature(journal, inputs)
+  for (const change of journal.mutations) validateRecoveryMutation(change, journal.operation, inputs)
+}
 
 const recoveryConflictResult = (
   operation: "install" | "update" | "uninstall",
   inputs: ReturnType<typeof buildInputs>,
   journal: Journal,
-  cause: unknown,
+  cause: unknown
 ) => {
-  const current = readJournal(inputs.paths.journal);
-  const completedIndexes = current?.completed ?? journal.completed;
+  const current = readJournal(inputs.paths.journal)
+  const completedIndexes = current?.completed ?? journal.completed
   return {
     version: RESULT_VERSION,
     operation,
@@ -1782,7 +1711,7 @@ const recoveryConflictResult = (
     host: { adapter: "codex", home: inputs.home },
     error: {
       code: "recovery_conflict",
-      message: cause instanceof Error ? cause.message : "journal recovery prerequisites no longer match",
+      message: cause instanceof Error ? cause.message : "journal recovery prerequisites no longer match"
     },
     recovery: {
       proposalDigest: journal.proposalDigest,
@@ -1795,18 +1724,18 @@ const recoveryConflictResult = (
           version: 1,
           operation: journal.operation,
           codexHome: inputs.home,
-          proposalDigest: journal.proposalDigest,
-        },
-      },
+          proposalDigest: journal.proposalDigest
+        }
+      }
     },
     completed: completedIndexes
       .map((index) => journal.mutations[index]?.description)
       .filter((value) => value !== undefined),
     pending: [
-      "preserve the current files, resolve the reported prerequisite conflict, then rerun with the same proposal digest",
-    ],
-  };
-};
+      "preserve the current files, resolve the reported prerequisite conflict, then rerun with the same proposal digest"
+    ]
+  }
+}
 
 const previewChanges = (mutations: ReadonlyArray<Mutation>) =>
   mutations.map((change) => ({
@@ -1814,65 +1743,56 @@ const previewChanges = (mutations: ReadonlyArray<Mutation>) =>
     action: change.afterContent === null ? "remove" : change.beforeDigest === missingDigest ? "create" : "update",
     description: change.description,
     beforeDigest: change.beforeDigest,
-    afterDigest: change.afterDigest,
-  }));
+    afterDigest: change.afterDigest
+  }))
 
 const ownedChanges = (inputs: ReturnType<typeof buildInputs>) => ({
   runtime: {
     ...commandFromEntrypoint(inputs.executable, inputs.entrypoint),
     parser: commandFromEntrypoint(inputs.executable, packagedRuntimeEntrypoints(inputs.entrypoint).parser),
     resident: commandFromEntrypoint(inputs.executable, packagedRuntimeEntrypoints(inputs.entrypoint).resident),
-    observed: inputs.runtimeProbe.observed,
+    observed: inputs.runtimeProbe.observed
   },
-  feature: {
-    file: inputs.paths.config,
-    table: "features",
-    key: "hooks",
-    value: true,
-  },
+  feature: { file: inputs.paths.config, table: "features", key: "hooks", value: true },
   hook: {
     file: inputs.paths.hooks,
     event: "PostToolUse",
-    matcher: OWNED_MATCHER,
+    matcher: commandHooks.codex.afterEdit.matcher,
     handlers: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).hooks,
     groups: {
       PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
-      ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
-    },
+      ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer)
+    }
   },
-  ownership: {
-    file: inputs.paths.ownership,
-    version: OWNERSHIP_VERSION,
-    adapter: "codex",
-  },
-});
+  ownership: { file: inputs.paths.ownership, version: OWNERSHIP_VERSION, adapter: "codex" }
+})
 
 const installationJournal = (
   inputs: ReturnType<typeof buildInputs>,
-  request: InstallationRequest,
+  request: InstallationRequest
 ): Journal | undefined => {
-  if (!request.reinstall) return readJournal(inputs.paths.journal);
+  if (!request.reinstall) return readJournal(inputs.paths.journal)
   try {
-    const journal = readJournal(inputs.paths.journal);
-    if (journal?.reinstall !== true) return undefined;
-    validateJournalScope(journal, inputs);
-    return journal;
+    const journal = readJournal(inputs.paths.journal)
+    if (journal?.reinstall !== true) return undefined
+    validateJournalScope(journal, inputs)
+    return journal
   } catch {
-    return undefined;
+    return undefined
   }
-};
+}
 
 export const previewCodexInstallation = Effect.fn("CodexInstallation.preview")(function* (
-  request: InstallationRequest,
+  request: InstallationRequest
 ) {
-  const inputs = yield* resolveInputs(request);
-  const home = inputs.home;
+  const inputs = yield* resolveInputs(request)
+  const home = inputs.home
   try {
-    const host = compatibility(inputs);
-    if (!host.supported) return unsupportedResult("install-preview", inputs, host);
-    const pendingJournal = installationJournal(inputs, request);
+    const host = compatibility(inputs)
+    if (!host.supported) return unsupportedResult("install-preview", inputs, host)
+    const pendingJournal = installationJournal(inputs, request)
     if (pendingJournal !== undefined) {
-      validateJournalScope(pendingJournal, inputs);
+      validateJournalScope(pendingJournal, inputs)
       return {
         version: RESULT_VERSION,
         operation: "install-preview",
@@ -1881,22 +1801,22 @@ export const previewCodexInstallation = Effect.fn("CodexInstallation.preview")(f
         proposal: {
           digest: pendingJournal.proposalDigest,
           changes: previewChanges(pendingJournal.mutations),
-          ownedChanges: ownedChanges(inputs),
+          ownedChanges: ownedChanges(inputs)
         },
         recovery: {
           required: true,
           operation: pendingJournal.operation,
           proposalDigest: pendingJournal.proposalDigest,
           completedFiles: pendingJournal.completed.length,
-          totalFiles: pendingJournal.mutations.length,
+          totalFiles: pendingJournal.mutations.length
         },
         completed: pendingJournal.completed
           .map((index) => pendingJournal.mutations[index]?.description)
           .filter((value) => value !== undefined),
-        pending: [`resume the journaled ${pendingJournal.operation} with its original proposal digest`],
-      };
+        pending: [`resume the journaled ${pendingJournal.operation} with its original proposal digest`]
+      }
     }
-    const plan = makeInstallPlan(request, inputs);
+    const plan = makeInstallPlan(request, inputs)
     return {
       version: RESULT_VERSION,
       operation: "install-preview",
@@ -1910,74 +1830,74 @@ export const previewCodexInstallation = Effect.fn("CodexInstallation.preview")(f
           ? {
               journalReplacement: {
                 file: inputs.paths.journal,
-                action: "back up the interrupted journal and rebuild from current settings",
-              },
+                action: "back up the interrupted journal and rebuild from current settings"
+              }
             }
-          : {}),
+          : {})
       },
       installed: plan.alreadyInstalled,
       recovery: { required: false },
       trust: {
         status: "native-confirmation-required",
         guidance:
-          "Start Codex normally in the repository and approve its native repository and hook review prompts. No trust record or bypass flag was changed.",
+          "Start Codex normally in the repository and approve its native repository and hook review prompts. No trust record or bypass flag was changed."
       },
       completed: [],
       pending: [
         "install using this proposal digest",
-        "configure file includes/excludes if you want to narrow or turn off review",
-      ],
-    };
+        "configure file includes/excludes if you want to narrow or turn off review"
+      ]
+    }
   } catch (cause) {
     return {
       ...conflictResult(
         "install-preview",
         cause instanceof Error ? cause.message : "installation preview failed",
-        home,
+        home
       ),
-      host: { adapter: "codex", home, compatibility: compatibility(inputs) },
-    };
+      host: { adapter: "codex", home, compatibility: compatibility(inputs) }
+    }
   }
-});
+})
 
 /** Read-only ownership/configuration inspection independent of host compatibility. */
 /** Discover owned registration state without requiring this package or host version to be current. */
 export const hasCodexRegistration = (request: InstallationRequest): boolean => {
-  const paths = pathsFor(resolve(request.codexHome ?? join(homedir(), ".codex")));
-  if (snapshot(paths.ownership).exists || snapshot(paths.journal).exists) return true;
-  const hooks = snapshot(paths.hooks).content;
-  return hooks.includes(OWNED_MARKER) || hooks.includes(COMPOSED_MARKER);
-};
+  const paths = pathsFor(resolve(request.codexHome ?? join(homedir(), ".codex")))
+  if (snapshot(paths.ownership).exists || snapshot(paths.journal).exists) return true
+  const hooks = snapshot(paths.hooks).content
+  return hooks.includes(OWNED_MARKER) || hooks.includes(COMPOSED_MARKER)
+}
 
 const requireEnabledHooksFeature = (config: JsonObject) => {
   if (!isObject(config.features) || config.features.hooks !== true)
-    throw new Error("Codex hooks feature is missing or disabled");
-};
+    throw new Error("Codex hooks feature is missing or disabled")
+}
 
 const validateInspectedOwnership = (ownership: OwnershipRecord, inputs: ReturnType<typeof buildInputs>) => {
-  if (ownership.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
-  const config = validateToml(snapshot(inputs.paths.config));
-  requireEnabledHooksFeature(config);
-  const hooks = parseJsonObject(snapshot(inputs.paths.hooks));
+  if (ownership.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home")
+  const config = validateToml(snapshot(inputs.paths.config))
+  requireEnabledHooksFeature(config)
+  const hooks = parseJsonObject(snapshot(inputs.paths.hooks))
   if (markerCount(hooks) !== 1 || postToolUseGroups(hooks).filter(isOwnedPostGroup).length !== 1)
-    throw new Error("owned Codex hook is missing or duplicated");
-  const group = postToolUseGroups(hooks).find(isOwnedPostGroup);
+    throw new Error("owned Codex hook is missing or duplicated")
+  const group = postToolUseGroups(hooks).find(isOwnedPostGroup)
   if (hookFingerprint(group) !== ownership.hookFingerprint) {
-    throw new Error("owned Codex hook was locally modified");
+    throw new Error("owned Codex hook was locally modified")
   }
   if (ownership.composedFingerprints !== undefined) {
-    withComposedGroups(hooks, undefined, ownership.composedFingerprints);
+    withComposedGroups(hooks, undefined, ownership.composedFingerprints)
   }
-};
+}
 
 export const inspectCodexInstallation = Effect.fn("CodexInstallation.inspect")(function* (
-  request: InstallationRequest,
+  request: InstallationRequest
 ) {
-  const inputs = yield* resolveInputs(request);
+  const inputs = yield* resolveInputs(request)
   try {
-    const pendingJournal = readJournal(inputs.paths.journal);
+    const pendingJournal = readJournal(inputs.paths.journal)
     if (pendingJournal !== undefined) {
-      validateJournalScope(pendingJournal, inputs);
+      validateJournalScope(pendingJournal, inputs)
       return {
         version: RESULT_VERSION,
         operation: "inspect-installation",
@@ -1988,46 +1908,48 @@ export const inspectCodexInstallation = Effect.fn("CodexInstallation.inspect")(f
           operation: pendingJournal.operation,
           proposalDigest: pendingJournal.proposalDigest,
           completedFiles: pendingJournal.completed.length,
-          totalFiles: pendingJournal.mutations.length,
-        },
-      };
+          totalFiles: pendingJournal.mutations.length
+        }
+      }
     }
-    const ownership = readOwnership(inputs.paths.ownership);
-    let installed = false;
+    const ownership = readOwnership(inputs.paths.ownership)
+    let installed = false
     if (ownership !== undefined) {
-      validateInspectedOwnership(ownership, inputs);
-      const pinnedInputs = { ...inputs };
-      pinnedInputs.executable = ownership.executable;
-      pinnedInputs.entrypoint = commandEntrypoint(ownership);
-      pinnedInputs.runtimeProbe = yield* probeRuntime(ownership.executable);
-      installed = compatibility(pinnedInputs).supported && ownership.runtimeVersion === expectedRuntimeVersion(pinnedInputs.entrypoint);
+      validateInspectedOwnership(ownership, inputs)
+      const pinnedInputs = { ...inputs }
+      pinnedInputs.executable = ownership.executable
+      pinnedInputs.entrypoint = commandEntrypoint(ownership)
+      pinnedInputs.runtimeProbe = yield* probeRuntime(ownership.executable)
+      installed =
+        compatibility(pinnedInputs).supported &&
+        ownership.runtimeVersion === expectedRuntimeVersion(pinnedInputs.entrypoint)
     }
     return {
       version: RESULT_VERSION,
       operation: "inspect-installation",
       status: installed ? "installed" : "missing",
       installed,
-      host: { adapter: "codex", home: inputs.home },
-    };
+      host: { adapter: "codex", home: inputs.home }
+    }
   } catch (cause) {
     return conflictResult(
       "inspect-installation",
       cause instanceof Error ? cause.message : "installation inspection failed",
-      inputs.home,
-    );
+      inputs.home
+    )
   }
-});
+})
 
 const updateRecoveryCommand = (inputs: ReturnType<typeof buildInputs>, proposalDigest: string) => ({
   executable: "hapsland",
   arguments: ["--update"],
-  request: { version: 1, operation: "update", codexHome: inputs.home, proposalDigest },
-});
+  request: { version: 1, operation: "update", codexHome: inputs.home, proposalDigest }
+})
 
 const updatePreviewResult = (
   plan: ReturnType<typeof makeUpdatePlan>,
   host: ReturnType<typeof compatibility>,
-  inputs: ReturnType<typeof buildInputs>,
+  inputs: ReturnType<typeof buildInputs>
 ) => {
   return {
     version: RESULT_VERSION,
@@ -2042,15 +1964,15 @@ const updatePreviewResult = (
         runtimeVersion: plan.record.runtimeVersion,
         executable: plan.record.executable,
         args: plan.record.args,
-        residentProtocol: plan.record.residentProtocol,
+        residentProtocol: plan.record.residentProtocol
       },
       target: {
         packageVersion: inputs.packageVersion,
         runtimeVersion: expectedRuntimeVersion(inputs.entrypoint),
         ...commandFromEntrypoint(inputs.executable, inputs.entrypoint),
         residentProtocol: inputs.residentProtocol,
-        hook: ownedChanges(inputs).hook,
-      },
+        hook: ownedChanges(inputs).hook
+      }
     },
     alreadyCurrent: plan.alreadyCurrent,
     automaticUpdate: false,
@@ -2060,30 +1982,30 @@ const updatePreviewResult = (
       status: plan.alreadyCurrent ? "unchanged" : "renewal-required",
       guidance: plan.alreadyCurrent
         ? "The exact owned hook definition is already current."
-        : "After current work completes, restart Codex normally and approve renewed native hook trust if prompted. No trust record or bypass flag was changed.",
+        : "After current work completes, restart Codex normally and approve renewed native hook trust if prompted. No trust record or bypass flag was changed."
     },
     restart: { required: !plan.alreadyCurrent, processesStopped: false },
     completed: [],
     pending: plan.alreadyCurrent
       ? []
-      : ["update using this proposal digest", "restart Codex after current work completes"],
-  };
-};
+      : ["update using this proposal digest", "restart Codex after current work completes"]
+  }
+}
 
 export const previewCodexUpdate = Effect.fn("CodexInstallation.previewUpdate")(function* (
-  request: InstallationRequest,
+  request: InstallationRequest
 ) {
-  const inputs = yield* resolveInputs(request);
-  const home = inputs.home;
+  const inputs = yield* resolveInputs(request)
+  const home = inputs.home
   try {
-    requireTargetPackageMetadata(inputs);
-    const host = compatibility(inputs);
-    if (!host.supported) return unsupportedResult("update-preview", inputs, host);
-    const pendingJournal = readJournal(inputs.paths.journal);
+    requireTargetPackageMetadata(inputs)
+    const host = compatibility(inputs)
+    if (!host.supported) return unsupportedResult("update-preview", inputs, host)
+    const pendingJournal = readJournal(inputs.paths.journal)
     if (pendingJournal !== undefined) {
-      validateJournalScope(pendingJournal, inputs);
+      validateJournalScope(pendingJournal, inputs)
       if (pendingJournal.operation !== "update") {
-        throw new Error(`a journaled ${pendingJournal.operation} must be recovered before update`);
+        throw new Error(`a journaled ${pendingJournal.operation} must be recovered before update`)
       }
       return {
         version: RESULT_VERSION,
@@ -2096,34 +2018,34 @@ export const previewCodexUpdate = Effect.fn("CodexInstallation.previewUpdate")(f
           proposalDigest: pendingJournal.proposalDigest,
           completedFiles: pendingJournal.completed.length,
           totalFiles: pendingJournal.mutations.length,
-          command: updateRecoveryCommand(inputs, pendingJournal.proposalDigest),
+          command: updateRecoveryCommand(inputs, pendingJournal.proposalDigest)
         },
         preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
         completed: pendingJournal.completed
           .map((index) => pendingJournal.mutations[index]?.description)
           .filter((value) => value !== undefined),
-        pending: ["resume the journaled update with its original proposal digest"],
-      };
+        pending: ["resume the journaled update with its original proposal digest"]
+      }
     }
-    const plan = makeUpdatePlan(request, inputs);
-    return updatePreviewResult(plan, host, inputs);
+    const plan = makeUpdatePlan(request, inputs)
+    return updatePreviewResult(plan, host, inputs)
   } catch (cause) {
     if (cause instanceof TargetPackageMetadataInvalid) {
-      return packageMetadataConflictResult("update-preview", cause, home);
+      return packageMetadataConflictResult("update-preview", cause, home)
     }
-    return conflictResult("update-preview", cause instanceof Error ? cause.message : "update preview failed", home);
+    return conflictResult("update-preview", cause instanceof Error ? cause.message : "update preview failed", home)
   }
-});
+})
 
 const resumeUpdateJournal = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
-  existingJournal: Journal,
+  existingJournal: Journal
 ): InstallationResult => {
   try {
-    validateJournalScope(existingJournal, inputs);
+    validateJournalScope(existingJournal, inputs)
   } catch (cause) {
-    return recoveryConflictResult("update", inputs, existingJournal, cause);
+    return recoveryConflictResult("update", inputs, existingJournal, cause)
   }
   if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "update") {
     return {
@@ -2133,7 +2055,7 @@ const resumeUpdateJournal = (
       host: { adapter: "codex", home: inputs.home },
       error: {
         code: "recovery_required",
-        message: "a prior operation is incomplete; recover it with its original operation and proposal digest",
+        message: "a prior operation is incomplete; recover it with its original operation and proposal digest"
       },
       recovery: {
         proposalDigest: existingJournal.proposalDigest,
@@ -2149,20 +2071,20 @@ const resumeUpdateJournal = (
                   version: 1,
                   operation: existingJournal.operation,
                   codexHome: inputs.home,
-                  proposalDigest: existingJournal.proposalDigest,
-                },
-              },
+                  proposalDigest: existingJournal.proposalDigest
+                }
+              }
       },
       completed: existingJournal.completed
         .map((index) => existingJournal.mutations[index]?.description)
         .filter((value) => value !== undefined),
-      pending: [`resume the journaled ${existingJournal.operation}`],
-    };
+      pending: [`resume the journaled ${existingJournal.operation}`]
+    }
   }
   try {
-    applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites);
+    applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites)
   } catch (cause) {
-    return recoveryConflictResult("update", inputs, existingJournal, cause);
+    return recoveryConflictResult("update", inputs, existingJournal, cause)
   }
   return {
     version: RESULT_VERSION,
@@ -2174,16 +2096,16 @@ const resumeUpdateJournal = (
     trust: { modified: false, status: "renewal-required", bypassUsed: false },
     restart: { required: true, processesStopped: false },
     completed: existingJournal.mutations.map((change) => change.description),
-    pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
-  };
-};
+    pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"]
+  }
+}
 
 const partialUpdateResult = (
   cause: unknown,
   plan: ReturnType<typeof makeUpdatePlan>,
-  inputs: ReturnType<typeof buildInputs>,
+  inputs: ReturnType<typeof buildInputs>
 ): InstallationResult => {
-  const current = readJournal(inputs.paths.journal);
+  const current = readJournal(inputs.paths.journal)
   return {
     version: RESULT_VERSION,
     operation: "update",
@@ -2191,38 +2113,38 @@ const partialUpdateResult = (
     host: { adapter: "codex", home: inputs.home },
     error: {
       code: "partial_completion",
-      message: cause instanceof Error ? cause.message : "update stopped after partial completion",
+      message: cause instanceof Error ? cause.message : "update stopped after partial completion"
     },
     recovery: {
       proposalDigest: plan.digest,
       completedFiles: current?.completed.length ?? 0,
       totalFiles: plan.mutations.length,
-      command: updateRecoveryCommand(inputs, plan.digest),
+      command: updateRecoveryCommand(inputs, plan.digest)
     },
     preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
     completed: (current?.completed ?? [])
       .map((index) => plan.mutations[index]?.description)
       .filter((value) => value !== undefined),
-    pending: ["rerun update with the same proposal digest to resume safely"],
-  };
-};
+    pending: ["rerun update with the same proposal digest to resume safely"]
+  }
+}
 
 const applyUpdatePlan = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
-  plan: ReturnType<typeof makeUpdatePlan>,
+  plan: ReturnType<typeof makeUpdatePlan>
 ): InstallationResult => {
   const journal: Journal = {
     version: 1,
     operation: "update",
     proposalDigest: plan.digest,
     completed: [],
-    mutations: plan.mutations,
-  };
+    mutations: plan.mutations
+  }
   try {
-    applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites);
+    applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites)
   } catch (cause) {
-    return partialUpdateResult(cause, plan, inputs);
+    return partialUpdateResult(cause, plan, inputs)
   }
   return {
     version: RESULT_VERSION,
@@ -2233,36 +2155,36 @@ const applyUpdatePlan = (
     trust: { modified: false, status: "renewal-required", bypassUsed: false },
     restart: { required: true, processesStopped: false },
     completed: plan.mutations.map((change) => change.description),
-    pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
-  };
-};
+    pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"]
+  }
+}
 
 export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(function* (request: InstallationRequest) {
-  const inputs = yield* resolveInputs(request);
+  const inputs = yield* resolveInputs(request)
   try {
-    requireTargetPackageMetadata(inputs);
+    requireTargetPackageMetadata(inputs)
   } catch (cause) {
     if (cause instanceof TargetPackageMetadataInvalid) {
-      return packageMetadataConflictResult("update", cause, inputs.home);
+      return packageMetadataConflictResult("update", cause, inputs.home)
     }
-    return conflictResult("update", "target package metadata validation failed", inputs.home);
+    return conflictResult("update", "target package metadata validation failed", inputs.home)
   }
-  const initialCompatibility = compatibility(inputs);
-  if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility);
+  const initialCompatibility = compatibility(inputs)
+  if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility)
   try {
     return yield* withInstallationLock(
       inputs.paths.lock,
       Effect.gen(function* () {
-        const runtimeProbe = yield* probeRuntime(inputs.executable);
+        const runtimeProbe = yield* probeRuntime(inputs.executable)
         return yield* Effect.try<InstallationResult, CodexInstallationError>({
           try: () => {
-            const currentCompatibility = compatibility({ ...inputs, runtimeProbe });
-            if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility);
-            const existingJournal = readJournal(inputs.paths.journal);
+            const currentCompatibility = compatibility({ ...inputs, runtimeProbe })
+            if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility)
+            const existingJournal = readJournal(inputs.paths.journal)
             if (existingJournal !== undefined) {
-              return resumeUpdateJournal(inputs, request, existingJournal);
+              return resumeUpdateJournal(inputs, request, existingJournal)
             }
-            const plan = makeUpdatePlan(request, inputs);
+            const plan = makeUpdatePlan(request, inputs)
             if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
               return {
                 version: RESULT_VERSION,
@@ -2271,8 +2193,8 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
                 host: { adapter: "codex", home: inputs.home },
                 currentProposalDigest: plan.digest,
                 completed: [],
-                pending: ["preview the update again and approve the matching digest"],
-              };
+                pending: ["preview the update again and approve the matching digest"]
+              }
             }
             if (plan.alreadyCurrent) {
               return {
@@ -2284,32 +2206,32 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
                 trust: { modified: false, status: "unchanged", bypassUsed: false },
                 restart: { required: false, processesStopped: false },
                 completed: [],
-                pending: [],
-              };
+                pending: []
+              }
             }
-            return applyUpdatePlan(inputs, request, plan);
+            return applyUpdatePlan(inputs, request, plan)
           },
           catch: (cause) =>
             new CodexInstallationError({
-              reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed",
-            }),
-        });
-      }),
-    ).pipe(Effect.catch((error) => Effect.succeed(conflictResult("update", error.message, inputs.home))));
+              reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed"
+            })
+        })
+      })
+    ).pipe(Effect.catch((error) => Effect.succeed(conflictResult("update", error.message, inputs.home))))
   } catch (cause) {
-    return conflictResult("update", cause instanceof Error ? cause.message : "update failed", inputs.home);
+    return conflictResult("update", cause instanceof Error ? cause.message : "update failed", inputs.home)
   }
-});
+})
 
 const resumeInstallJournal = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
-  existingJournal: Journal,
+  existingJournal: Journal
 ): InstallationResult => {
   try {
-    validateJournalScope(existingJournal, inputs);
+    validateJournalScope(existingJournal, inputs)
   } catch (cause) {
-    return recoveryConflictResult("install", inputs, existingJournal, cause);
+    return recoveryConflictResult("install", inputs, existingJournal, cause)
   }
   if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "install") {
     return {
@@ -2319,23 +2241,23 @@ const resumeInstallJournal = (
       host: { adapter: "codex", home: inputs.home },
       error: {
         code: "recovery_required",
-        message: "a prior installation is incomplete; rerun install with its original proposal digest",
+        message: "a prior installation is incomplete; rerun install with its original proposal digest"
       },
       recovery: {
         proposalDigest: existingJournal.proposalDigest,
         completedFiles: existingJournal.completed.length,
-        totalFiles: existingJournal.mutations.length,
+        totalFiles: existingJournal.mutations.length
       },
       completed: existingJournal.completed
         .map((index) => existingJournal.mutations[index]?.description)
         .filter((value) => value !== undefined),
-      pending: ["resume the journaled installation"],
-    };
+      pending: ["resume the journaled installation"]
+    }
   }
   try {
-    applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites);
+    applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites)
   } catch (cause) {
-    return recoveryConflictResult("install", inputs, existingJournal, cause);
+    return recoveryConflictResult("install", inputs, existingJournal, cause)
   }
   return {
     version: RESULT_VERSION,
@@ -2346,17 +2268,17 @@ const resumeInstallJournal = (
     completed: existingJournal.mutations.map((change) => change.description),
     pending: [
       "make Jev credentials available and configure file settings if desired",
-      "approve native Codex trust prompts when shown",
-    ],
-  };
-};
+      "approve native Codex trust prompts when shown"
+    ]
+  }
+}
 
 const partialInstallResult = (
   cause: unknown,
   plan: ReturnType<typeof makeInstallPlan>,
-  inputs: ReturnType<typeof buildInputs>,
+  inputs: ReturnType<typeof buildInputs>
 ): InstallationResult => {
-  const current = readJournal(inputs.paths.journal);
+  const current = readJournal(inputs.paths.journal)
   return {
     version: RESULT_VERSION,
     operation: "install",
@@ -2364,24 +2286,24 @@ const partialInstallResult = (
     host: { adapter: "codex", home: inputs.home },
     error: {
       code: "partial_completion",
-      message: cause instanceof Error ? cause.message : "installation stopped after partial completion",
+      message: cause instanceof Error ? cause.message : "installation stopped after partial completion"
     },
     recovery: {
       proposalDigest: plan.digest,
       completedFiles: current?.completed.length ?? 0,
-      totalFiles: plan.mutations.length,
+      totalFiles: plan.mutations.length
     },
     completed: (current?.completed ?? [])
       .map((index) => plan.mutations[index]?.description)
       .filter((value) => value !== undefined),
-    pending: ["rerun install with the same proposal digest to resume safely"],
-  };
-};
+    pending: ["rerun install with the same proposal digest to resume safely"]
+  }
+}
 
 const applyInstallPlan = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
-  plan: ReturnType<typeof makeInstallPlan>,
+  plan: ReturnType<typeof makeInstallPlan>
 ): InstallationResult => {
   const journal: Journal = {
     version: 1,
@@ -2390,14 +2312,14 @@ const applyInstallPlan = (
     ...(plan.resetJournal?.exists ? { replacedJournalDigest: plan.resetJournal.digest } : {}),
     proposalDigest: plan.digest,
     completed: [],
-    mutations: plan.mutations,
-  };
+    mutations: plan.mutations
+  }
   try {
     if (plan.resetJournal?.exists)
-      atomicWrite(`${inputs.paths.journal}.reinstall-backup.${randomUUID()}`, plan.resetJournal.content);
-    applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites);
+      atomicWrite(`${inputs.paths.journal}.reinstall-backup.${randomUUID()}`, plan.resetJournal.content)
+    applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites)
   } catch (cause) {
-    return partialInstallResult(cause, plan, inputs);
+    return partialInstallResult(cause, plan, inputs)
   }
   return {
     version: RESULT_VERSION,
@@ -2407,33 +2329,33 @@ const applyInstallPlan = (
     completed: plan.mutations.map((change) => change.description),
     pending: [
       "make Jev credentials available and configure file settings if desired",
-      "approve native Codex trust prompts when shown",
+      "approve native Codex trust prompts when shown"
     ],
-    trust: { modified: false, bypassUsed: false },
-  };
-};
+    trust: { modified: false, bypassUsed: false }
+  }
+}
 
 export const installCodexIntegration = Effect.fn("CodexInstallation.install")(function* (request: InstallationRequest) {
-  const inputs = yield* resolveInputs(request);
-  const initialCompatibility = compatibility(inputs);
-  if (!initialCompatibility.supported) return unsupportedResult("install", inputs, initialCompatibility);
+  const inputs = yield* resolveInputs(request)
+  const initialCompatibility = compatibility(inputs)
+  if (!initialCompatibility.supported) return unsupportedResult("install", inputs, initialCompatibility)
   try {
     return yield* withInstallationLock(
       inputs.paths.lock,
       Effect.gen(function* () {
-        const runtimeProbe = yield* probeRuntime(inputs.executable);
+        const runtimeProbe = yield* probeRuntime(inputs.executable)
         return yield* Effect.try<InstallationResult, CodexInstallationError>({
           try: () => {
-            const currentCompatibility = compatibility({ ...inputs, runtimeProbe });
-            if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
-            const existingJournal = installationJournal(inputs, request);
+            const currentCompatibility = compatibility({ ...inputs, runtimeProbe })
+            if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility)
+            const existingJournal = installationJournal(inputs, request)
             if (existingJournal !== undefined) {
-              return resumeInstallJournal(inputs, request, existingJournal);
+              return resumeInstallJournal(inputs, request, existingJournal)
             }
-            const plan = makeInstallPlan(request, inputs);
-            const host = compatibility(plan.inputs);
+            const plan = makeInstallPlan(request, inputs)
+            const host = compatibility(plan.inputs)
             if (!host.supported) {
-              return unsupportedResult("install", inputs, host);
+              return unsupportedResult("install", inputs, host)
             }
             if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
               return {
@@ -2443,8 +2365,8 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
                 host: { adapter: "codex", home: inputs.home },
                 currentProposalDigest: plan.digest,
                 completed: [],
-                pending: ["preview again and approve the matching digest"],
-              };
+                pending: ["preview again and approve the matching digest"]
+              }
             }
             if (plan.alreadyInstalled) {
               return {
@@ -2453,38 +2375,38 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
                 status: "already-installed",
                 host: { adapter: "codex", home: inputs.home },
                 completed: [],
-                pending: ["make Jev credentials available and configure file settings if desired"],
-              };
+                pending: ["make Jev credentials available and configure file settings if desired"]
+              }
             }
-            return applyInstallPlan(inputs, request, plan);
+            return applyInstallPlan(inputs, request, plan)
           },
           catch: (cause) =>
             new CodexInstallationError({
-              reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed",
-            }),
-        });
-      }),
-    ).pipe(Effect.catch((error) => Effect.succeed(conflictResult("install", error.message, inputs.home))));
+              reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed"
+            })
+        })
+      })
+    ).pipe(Effect.catch((error) => Effect.succeed(conflictResult("install", error.message, inputs.home))))
   } catch (cause) {
-    return conflictResult("install", cause instanceof Error ? cause.message : "installation failed", inputs.home);
+    return conflictResult("install", cause instanceof Error ? cause.message : "installation failed", inputs.home)
   }
-});
+})
 
 const resumeUninstallJournal = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
-  existingJournal: Journal,
+  existingJournal: Journal
 ): InstallationResult => {
   try {
-    validateJournalScope(existingJournal, inputs);
+    validateJournalScope(existingJournal, inputs)
   } catch (cause) {
-    return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
+    return recoveryConflictResult("uninstall", inputs, existingJournal, cause)
   }
   if (request.proposalDigest === existingJournal.proposalDigest && existingJournal.operation === "uninstall") {
     try {
-      applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites);
+      applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites)
     } catch (cause) {
-      return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
+      return recoveryConflictResult("uninstall", inputs, existingJournal, cause)
     }
     return {
       version: RESULT_VERSION,
@@ -2494,8 +2416,8 @@ const resumeUninstallJournal = (
       resumed: true,
       completed: existingJournal.mutations.map((change) => change.description),
       pending: [],
-      remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
-    };
+      remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"]
+    }
   }
   if (existingJournal.operation === "uninstall" && request.proposalDigest === undefined)
     return {
@@ -2504,17 +2426,17 @@ const resumeUninstallJournal = (
       status: "partial",
       host: { adapter: "codex", home: inputs.home },
       proposal: { digest: existingJournal.proposalDigest, changes: previewChanges(existingJournal.mutations) },
-      recovery: { operation: "uninstall", proposalDigest: existingJournal.proposalDigest },
-    };
-  throw new Error("another journaled operation requires recovery before uninstall");
-};
+      recovery: { operation: "uninstall", proposalDigest: existingJournal.proposalDigest }
+    }
+  throw new Error("another journaled operation requires recovery before uninstall")
+}
 
 const partialUninstallResult = (
   cause: unknown,
   plan: ReturnType<typeof makeUninstallPlan>,
-  inputs: ReturnType<typeof buildInputs>,
+  inputs: ReturnType<typeof buildInputs>
 ): InstallationResult => {
-  const current = readJournal(inputs.paths.journal);
+  const current = readJournal(inputs.paths.journal)
   return {
     version: RESULT_VERSION,
     operation: "uninstall",
@@ -2522,36 +2444,36 @@ const partialUninstallResult = (
     host: { adapter: "codex", home: inputs.home },
     error: {
       code: "partial_completion",
-      message: cause instanceof Error ? cause.message : "uninstall stopped after partial completion",
+      message: cause instanceof Error ? cause.message : "uninstall stopped after partial completion"
     },
     recovery: {
       proposalDigest: plan.digest,
       completedFiles: current?.completed.length ?? 0,
-      totalFiles: plan.mutations.length,
+      totalFiles: plan.mutations.length
     },
     completed: (current?.completed ?? [])
       .map((index) => plan.mutations[index]?.description)
       .filter((value) => value !== undefined),
-    pending: ["rerun uninstall with the same proposal digest to resume safely"],
-  };
-};
+    pending: ["rerun uninstall with the same proposal digest to resume safely"]
+  }
+}
 
 const applyUninstallPlan = (
   inputs: ReturnType<typeof buildInputs>,
   request: InstallationRequest,
-  plan: ReturnType<typeof makeUninstallPlan>,
+  plan: ReturnType<typeof makeUninstallPlan>
 ): InstallationResult => {
   const journal: Journal = {
     version: 1,
     operation: "uninstall",
     proposalDigest: plan.digest,
     completed: [],
-    mutations: plan.mutations,
-  };
+    mutations: plan.mutations
+  }
   try {
-    applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites);
+    applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites)
   } catch (cause) {
-    return partialUninstallResult(cause, plan, inputs);
+    return partialUninstallResult(cause, plan, inputs)
   }
   return {
     version: RESULT_VERSION,
@@ -2560,24 +2482,24 @@ const applyUninstallPlan = (
     host: { adapter: "codex", home: inputs.home },
     completed: plan.mutations.map((change) => change.description),
     pending: [],
-    remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
-  };
-};
+    remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"]
+  }
+}
 
 export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall")(function* (
-  request: InstallationRequest,
+  request: InstallationRequest
 ) {
-  const inputs = yield* resolveInputs(request);
+  const inputs = yield* resolveInputs(request)
   try {
     return yield* withInstallationLock(
       inputs.paths.lock,
       Effect.try<InstallationResult, CodexInstallationError>({
         try: () => {
-          const existingJournal = readJournal(inputs.paths.journal);
+          const existingJournal = readJournal(inputs.paths.journal)
           if (existingJournal !== undefined) {
-            return resumeUninstallJournal(inputs, request, existingJournal);
+            return resumeUninstallJournal(inputs, request, existingJournal)
           }
-          const plan = makeUninstallPlan(request, inputs);
+          const plan = makeUninstallPlan(request, inputs)
           if (plan.alreadyRemoved) {
             return {
               version: RESULT_VERSION,
@@ -2591,9 +2513,9 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
                 "old grant files",
                 "credentials",
                 "user rules",
-                "already dispatched requests cannot be recalled",
-              ],
-            };
+                "already dispatched requests cannot be recalled"
+              ]
+            }
           }
           if (request.proposalDigest === undefined) {
             return {
@@ -2605,8 +2527,8 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
                 digest: plan.digest,
                 changes: previewChanges(plan.mutations),
                 ownedChanges: {
-                  hooks: { file: inputs.paths.hooks, groups: readOwnership(inputs.paths.ownership)?.hookGroups ?? {} },
-                },
+                  hooks: { file: inputs.paths.hooks, groups: readOwnership(inputs.paths.ownership)?.hookGroups ?? {} }
+                }
               },
               completed: [],
               pending: ["rerun uninstall with this proposal digest"],
@@ -2614,9 +2536,9 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
                 "old grant files",
                 "credentials",
                 "user rules",
-                "already dispatched requests cannot be recalled",
-              ],
-            };
+                "already dispatched requests cannot be recalled"
+              ]
+            }
           }
           if (request.proposalDigest !== plan.digest) {
             return {
@@ -2626,26 +2548,26 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
               host: { adapter: "codex", home: inputs.home },
               currentProposalDigest: plan.digest,
               completed: [],
-              pending: ["preview uninstall again and approve the matching digest"],
-            };
+              pending: ["preview uninstall again and approve the matching digest"]
+            }
           }
-          return applyUninstallPlan(inputs, request, plan);
+          return applyUninstallPlan(inputs, request, plan)
         },
         catch: (cause) =>
           new CodexInstallationError({
-            reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed",
-          }),
-      }),
-    ).pipe(Effect.catch((error) => Effect.succeed(conflictResult("uninstall", error.message, inputs.home))));
+            reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed"
+          })
+      })
+    ).pipe(Effect.catch((error) => Effect.succeed(conflictResult("uninstall", error.message, inputs.home))))
   } catch (cause) {
-    return conflictResult("uninstall", cause instanceof Error ? cause.message : "uninstall failed", inputs.home);
+    return conflictResult("uninstall", cause instanceof Error ? cause.message : "uninstall failed", inputs.home)
   }
-});
+})
 
 export const codexInstallation = {
   marker: OWNED_MARKER,
   preview: previewCodexInstallation,
   install: installCodexIntegration,
   uninstall: uninstallCodexIntegration,
-  inspect: inspectCodexInstallation,
-};
+  inspect: inspectCodexInstallation
+}

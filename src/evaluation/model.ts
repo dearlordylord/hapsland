@@ -1,4 +1,4 @@
-import * as Schema from "effect/Schema";
+import * as Schema from "effect/Schema"
 
 /**
  * The evaluation model deliberately uses opaque identities.  A name or a version
@@ -6,91 +6,84 @@ import * as Schema from "effect/Schema";
  * was unchanged.  Every content-bearing entity therefore carries a SHA-256 digest.
  */
 
-const Identifier = Schema.NonEmptyString;
-const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
-const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
-const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+const Identifier = Schema.NonEmptyString
+const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))
+const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 const HexDigest = Schema.String.pipe(
   Schema.check(Schema.isPattern(/^[0-9a-f]{64}$/i)),
-  Schema.brand("EvaluationDigest"),
-);
+  Schema.brand("EvaluationDigest")
+)
 
-export const EvaluationDigest = HexDigest;
-export type EvaluationDigest = typeof EvaluationDigest.Type;
+export const EvaluationDigest = HexDigest
+export type EvaluationDigest = typeof EvaluationDigest.Type
 
-export const EvaluationId = Identifier.pipe(Schema.brand("EvaluationId"));
-export type EvaluationId = typeof EvaluationId.Type;
+export const EvaluationId = Identifier.pipe(Schema.brand("EvaluationId"))
+export type EvaluationId = typeof EvaluationId.Type
 
-export const FixtureId = Identifier.pipe(Schema.brand("EvaluationFixtureId"));
-export type FixtureId = typeof FixtureId.Type;
+export const FixtureId = Identifier.pipe(Schema.brand("EvaluationFixtureId"))
+export type FixtureId = typeof FixtureId.Type
 
-export const RulePackId = Identifier.pipe(Schema.brand("EvaluationRulePackId"));
-export type RulePackId = typeof RulePackId.Type;
+export const RulePackId = Identifier.pipe(Schema.brand("EvaluationRulePackId"))
+export type RulePackId = typeof RulePackId.Type
 
-export const LocalRuleId = Identifier.pipe(Schema.brand("EvaluationLocalRuleId"));
-export type LocalRuleId = typeof LocalRuleId.Type;
+export const LocalRuleId = Identifier.pipe(Schema.brand("EvaluationLocalRuleId"))
+export type LocalRuleId = typeof LocalRuleId.Type
 
-export const QualifiedRuleId = Identifier.pipe(Schema.brand("EvaluationQualifiedRuleId"));
-export type QualifiedRuleId = typeof QualifiedRuleId.Type;
+export const QualifiedRuleId = Identifier.pipe(Schema.brand("EvaluationQualifiedRuleId"))
+export type QualifiedRuleId = typeof QualifiedRuleId.Type
 
-export const ConfigurationCaseId = Identifier.pipe(Schema.brand("EvaluationConfigurationCaseId"));
-export type ConfigurationCaseId = typeof ConfigurationCaseId.Type;
+export const ConfigurationCaseId = Identifier.pipe(Schema.brand("EvaluationConfigurationCaseId"))
+export type ConfigurationCaseId = typeof ConfigurationCaseId.Type
 
-export const ScenarioId = Identifier.pipe(Schema.brand("EvaluationScenarioId"));
-export type ScenarioId = typeof ScenarioId.Type;
+export const ScenarioId = Identifier.pipe(Schema.brand("EvaluationScenarioId"))
+export type ScenarioId = typeof ScenarioId.Type
 
-export const ObservationId = Identifier.pipe(Schema.brand("EvaluationObservationId"));
-export type ObservationId = typeof ObservationId.Type;
+export const ObservationId = Identifier.pipe(Schema.brand("EvaluationObservationId"))
+export type ObservationId = typeof ObservationId.Type
 
-export const ComparisonId = Identifier.pipe(Schema.brand("EvaluationComparisonId"));
-export type ComparisonId = typeof ComparisonId.Type;
+export const ComparisonId = Identifier.pipe(Schema.brand("EvaluationComparisonId"))
+export type ComparisonId = typeof ComparisonId.Type
 
-export const RunId = Identifier.pipe(Schema.brand("EvaluationRunId"));
-export type RunId = typeof RunId.Type;
+export const RunId = Identifier.pipe(Schema.brand("EvaluationRunId"))
+export type RunId = typeof RunId.Type
 
-export const BackendId = Identifier.pipe(Schema.brand("EvaluationBackendId"));
-export type BackendId = typeof BackendId.Type;
+export const BackendId = Identifier.pipe(Schema.brand("EvaluationBackendId"))
+export type BackendId = typeof BackendId.Type
 
-export const InputContractId = Identifier.pipe(Schema.brand("EvaluationInputContractId"));
-export type InputContractId = typeof InputContractId.Type;
+export const InputContractId = Identifier.pipe(Schema.brand("EvaluationInputContractId"))
+export type InputContractId = typeof InputContractId.Type
 
-export const RendererAdapterId = Identifier.pipe(Schema.brand("EvaluationRendererAdapterId"));
-export type RendererAdapterId = typeof RendererAdapterId.Type;
+export const RendererAdapterId = Identifier.pipe(Schema.brand("EvaluationRendererAdapterId"))
+export type RendererAdapterId = typeof RendererAdapterId.Type
 
-export const Version = Identifier.pipe(Schema.brand("EvaluationVersion"));
-export type Version = typeof Version.Type;
+export const Version = Identifier.pipe(Schema.brand("EvaluationVersion"))
+export type Version = typeof Version.Type
 
-export const DigestRef = Schema.Struct({
-  id: Identifier,
-  version: Version,
-  digest: EvaluationDigest,
-});
+export const DigestRef = Schema.Struct({ id: Identifier, version: Version, digest: EvaluationDigest })
 export interface DigestRef extends Schema.Schema.Type<typeof DigestRef> {}
 
 export const RuleIdentity = Schema.Struct({
   packId: RulePackId,
   ruleId: LocalRuleId,
   qualifiedId: QualifiedRuleId,
-  packVersion: Version,
-});
+  packVersion: Version
+})
 export interface RuleIdentity extends Schema.Schema.Type<typeof RuleIdentity> {}
 
 export const RuleApplicability = Schema.Struct({
   includePatterns: Schema.Array(Schema.String),
-  excludePatterns: Schema.Array(Schema.String),
-});
+  excludePatterns: Schema.Array(Schema.String)
+})
 export interface RuleApplicability extends Schema.Schema.Type<typeof RuleApplicability> {}
 
 /** Production packs use the structured Noul criteria; string criteria remain
  * accepted for small authored fixtures and backwards-compatible model data. */
 export const RuleCriteria = Schema.Union([
   Schema.NonEmptyString,
-  Schema.Struct({
-    false: Schema.NonEmptyString,
-    true: Schema.NonEmptyString,
-  }),
-]);
-export type RuleCriteria = typeof RuleCriteria.Type;
+  Schema.Struct({ false: Schema.NonEmptyString, true: Schema.NonEmptyString })
+])
+export type RuleCriteria = typeof RuleCriteria.Type
 
 export const RuleDefinition = Schema.Struct({
   identity: RuleIdentity,
@@ -99,8 +92,8 @@ export const RuleDefinition = Schema.Struct({
   defaultMessage: Schema.NonEmptyString,
   threshold: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   applicability: RuleApplicability,
-  definitionDigest: EvaluationDigest,
-});
+  definitionDigest: EvaluationDigest
+})
 export interface RuleDefinition extends Schema.Schema.Type<typeof RuleDefinition> {}
 
 export const Fixture = Schema.Struct({
@@ -111,8 +104,8 @@ export const Fixture = Schema.Struct({
   path: Schema.NonEmptyString,
   source: Schema.String,
   contentHash: EvaluationDigest,
-  fixtureDigest: EvaluationDigest,
-});
+  fixtureDigest: EvaluationDigest
+})
 export interface Fixture extends Schema.Schema.Type<typeof Fixture> {}
 
 export const FixtureReference = Schema.Struct({
@@ -120,85 +113,73 @@ export const FixtureReference = Schema.Struct({
   domain: Schema.NonEmptyString,
   path: Schema.NonEmptyString,
   contentHash: EvaluationDigest,
-  fixtureDigest: EvaluationDigest,
-});
+  fixtureDigest: EvaluationDigest
+})
 export interface FixtureReference extends Schema.Schema.Type<typeof FixtureReference> {}
 
-export const RuleReference = Schema.Struct({
-  qualifiedId: QualifiedRuleId,
-  definitionDigest: EvaluationDigest,
-});
+export const RuleReference = Schema.Struct({ qualifiedId: QualifiedRuleId, definitionDigest: EvaluationDigest })
 export interface RuleReference extends Schema.Schema.Type<typeof RuleReference> {}
 
 const ExpectedBandFields = Schema.Struct({
   minimum: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   maximum: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   minimumInclusive: Schema.Boolean,
-  maximumInclusive: Schema.Boolean,
-});
+  maximumInclusive: Schema.Boolean
+})
 export const ExpectedBand = ExpectedBandFields.check(
   Schema.makeFilter((band) =>
     band.minimum < band.maximum || (band.minimum === band.maximum && band.minimumInclusive && band.maximumInclusive)
       ? undefined
-      : "minimum and maximum define an empty band",
-  ),
-);
+      : "minimum and maximum define an empty band"
+  )
+)
 export interface ExpectedBand extends Schema.Schema.Type<typeof ExpectedBand> {}
 
 export const ExpectedResult = Schema.Union([
-  Schema.Struct({
-    kind: Schema.Literals(["clear", "violation"] as const),
-    band: ExpectedBand,
-  }),
-  Schema.Struct({
-    kind: Schema.Literal("ambiguous"),
-    reason: Schema.NonEmptyString,
-  }),
-  Schema.Struct({
-    kind: Schema.Literal("unchecked"),
-    reason: Schema.NonEmptyString,
-  }),
-]);
-export type ExpectedResult = typeof ExpectedResult.Type;
+  Schema.Struct({ kind: Schema.Literals(["clear", "violation"] as const), band: ExpectedBand }),
+  Schema.Struct({ kind: Schema.Literal("ambiguous"), reason: Schema.NonEmptyString }),
+  Schema.Struct({ kind: Schema.Literal("unchecked"), reason: Schema.NonEmptyString })
+])
+export type ExpectedResult = typeof ExpectedResult.Type
 
 export const Expectation = Schema.Struct({
   fixtureId: FixtureId,
   ruleId: QualifiedRuleId,
   result: ExpectedResult,
   rationale: Schema.NonEmptyString,
-  expectationDigest: EvaluationDigest,
-});
+  expectationDigest: EvaluationDigest
+})
 export interface Expectation extends Schema.Schema.Type<typeof Expectation> {}
 
 export const ConfigurationRuleOverride = Schema.Struct({
   ruleId: QualifiedRuleId,
   enabled: Schema.optionalKey(Schema.Boolean),
   threshold: Schema.optionalKey(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
-  message: Schema.optionalKey(Schema.NonEmptyString),
-});
+  message: Schema.optionalKey(Schema.NonEmptyString)
+})
 export interface ConfigurationRuleOverride extends Schema.Schema.Type<typeof ConfigurationRuleOverride> {}
 
 export const ConfigurationLayer = Schema.Struct({
   name: Schema.Literals(["built-in", "user", "project"] as const),
   includePatterns: Schema.Array(Schema.String),
   excludePatterns: Schema.Array(Schema.String),
-  ruleOverrides: Schema.Array(ConfigurationRuleOverride),
-});
+  ruleOverrides: Schema.Array(ConfigurationRuleOverride)
+})
 export interface ConfigurationLayer extends Schema.Schema.Type<typeof ConfigurationLayer> {}
 
 export const ConsentState = Schema.Struct({
   repositoryId: Schema.NonEmptyString,
   backendId: BackendId,
   destinationId: Schema.NonEmptyString,
-  granted: Schema.Boolean,
-});
+  granted: Schema.Boolean
+})
 export interface ConsentState extends Schema.Schema.Type<typeof ConsentState> {}
 
 export const ConfigurationProvenance = Schema.Struct({
   field: Schema.NonEmptyString,
   origin: Schema.Literals(["built-in", "user", "project"] as const),
-  valueDigest: EvaluationDigest,
-});
+  valueDigest: EvaluationDigest
+})
 export interface ConfigurationProvenance extends Schema.Schema.Type<typeof ConfigurationProvenance> {}
 
 export const EffectiveConfiguration = Schema.Struct({
@@ -207,8 +188,8 @@ export const EffectiveConfiguration = Schema.Struct({
   selectedRuleIds: Schema.Array(QualifiedRuleId),
   ruleOverrides: Schema.Array(ConfigurationRuleOverride),
   provenance: Schema.Array(ConfigurationProvenance),
-  configurationDigest: EvaluationDigest,
-});
+  configurationDigest: EvaluationDigest
+})
 export interface EffectiveConfiguration extends Schema.Schema.Type<typeof EffectiveConfiguration> {}
 
 export const ConfigurationCase = Schema.Struct({
@@ -218,29 +199,25 @@ export const ConfigurationCase = Schema.Struct({
   project: ConfigurationLayer,
   consent: ConsentState,
   expectedEffective: EffectiveConfiguration,
-  caseDigest: EvaluationDigest,
-});
+  caseDigest: EvaluationDigest
+})
 export interface ConfigurationCase extends Schema.Schema.Type<typeof ConfigurationCase> {}
 
 export const BackendIdentity = Schema.Struct({
   id: BackendId,
   version: Version,
-  mode: Schema.Literals(["controlled", "fake-http", "live"] as const),
-});
+  mode: Schema.Literals(["controlled", "fake-http", "live"] as const)
+})
 export interface BackendIdentity extends Schema.Schema.Type<typeof BackendIdentity> {}
 
-export const InputContractIdentity = Schema.Struct({
-  id: InputContractId,
-  version: Version,
-  digest: EvaluationDigest,
-});
+export const InputContractIdentity = Schema.Struct({ id: InputContractId, version: Version, digest: EvaluationDigest })
 export interface InputContractIdentity extends Schema.Schema.Type<typeof InputContractIdentity> {}
 
 export const RendererAdapterIdentity = Schema.Struct({
   id: RendererAdapterId,
   version: Version,
-  digest: EvaluationDigest,
-});
+  digest: EvaluationDigest
+})
 export interface RendererAdapterIdentity extends Schema.Schema.Type<typeof RendererAdapterIdentity> {}
 
 export const ScenarioAction = Schema.Struct({
@@ -250,10 +227,10 @@ export const ScenarioAction = Schema.Struct({
     "duplicate-event",
     "changed-snapshot",
     "backend-failure",
-    "advance-time",
+    "advance-time"
   ] as const),
-  identity: Schema.NonEmptyString,
-});
+  identity: Schema.NonEmptyString
+})
 export interface ScenarioAction extends Schema.Schema.Type<typeof ScenarioAction> {}
 
 const EvaluationScenarioFields = Schema.Struct({
@@ -270,8 +247,8 @@ const EvaluationScenarioFields = Schema.Struct({
   rendererAdapter: RendererAdapterIdentity,
   eventSequence: Schema.Array(ScenarioAction),
   requestCount: Schema.optionalKey(NonNegativeInteger),
-  scenarioDigest: EvaluationDigest,
-});
+  scenarioDigest: EvaluationDigest
+})
 /**
  * The wire shape intentionally remains compatible with the original public
  * object API, but the interaction mode is a checked variant: named scenarios
@@ -279,17 +256,17 @@ const EvaluationScenarioFields = Schema.Struct({
  */
 export const EvaluationScenario = EvaluationScenarioFields.check(
   Schema.makeFilter((scenario) => {
-    const named = scenario.interaction === "named";
-    const hasName = scenario.interactionName !== undefined;
-    return named === hasName ? undefined : "interactionName is required only for named scenarios";
-  }),
-);
+    const named = scenario.interaction === "named"
+    const hasName = scenario.interactionName !== undefined
+    return named === hasName ? undefined : "interactionName is required only for named scenarios"
+  })
+)
 export interface EvaluationScenario extends Schema.Schema.Type<typeof EvaluationScenario> {}
 
 export const AssessmentEntry = Schema.Struct({
   ruleId: QualifiedRuleId,
-  probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
-});
+  probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 }))
+})
 export interface AssessmentEntry extends Schema.Schema.Type<typeof AssessmentEntry> {}
 
 export const RequestShape = Schema.Struct({
@@ -299,8 +276,8 @@ export const RequestShape = Schema.Struct({
   contentHash: EvaluationDigest,
   ruleIds: Schema.Array(QualifiedRuleId),
   inputContract: InputContractIdentity,
-  rendererAdapter: RendererAdapterIdentity,
-});
+  rendererAdapter: RendererAdapterIdentity
+})
 export interface RequestShape extends Schema.Schema.Type<typeof RequestShape> {}
 
 const TransportObservationFields = Schema.Struct({
@@ -308,38 +285,38 @@ const TransportObservationFields = Schema.Struct({
   attempts: PositiveInteger,
   retries: NonNegativeInteger,
   durationMs: NonNegativeFinite,
-  errorCategory: Schema.optionalKey(Schema.NonEmptyString),
-});
+  errorCategory: Schema.optionalKey(Schema.NonEmptyString)
+})
 /** Available observations have no error category; unavailable observations
  * always retain a source-free category. Attempts are the initial request plus
  * the recorded retry count, so the aggregate budget is auditable. */
 export const TransportObservation = TransportObservationFields.check(
   Schema.makeFilter((transport) => {
     if (transport.attempts !== transport.retries + 1) {
-      return "attempts must equal retries plus one";
+      return "attempts must equal retries plus one"
     }
     if (transport.status === "available" && transport.errorCategory !== undefined) {
-      return "available transport cannot carry an error category";
+      return "available transport cannot carry an error category"
     }
     if (transport.status === "unavailable" && transport.errorCategory === undefined) {
-      return "unavailable transport requires an error category";
+      return "unavailable transport requires an error category"
     }
-    return undefined;
-  }),
-);
+    return undefined
+  })
+)
 export interface TransportObservation extends Schema.Schema.Type<typeof TransportObservation> {}
 
 export const ConformanceObservation = Schema.Struct({
   status: Schema.Literals(["passed", "failed", "unchecked"] as const),
-  reasons: Schema.Array(Schema.NonEmptyString),
-});
+  reasons: Schema.Array(Schema.NonEmptyString)
+})
 export interface ConformanceObservation extends Schema.Schema.Type<typeof ConformanceObservation> {}
 
 export const FindingObservation = Schema.Struct({
   ruleId: QualifiedRuleId,
   probability: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
-  message: Schema.NonEmptyString,
-});
+  message: Schema.NonEmptyString
+})
 export interface FindingObservation extends Schema.Schema.Type<typeof FindingObservation> {}
 
 const ObservationFields = Schema.Struct({
@@ -353,48 +330,48 @@ const ObservationFields = Schema.Struct({
   assessment: Schema.optionalKey(Schema.Array(AssessmentEntry)),
   findings: Schema.Array(FindingObservation),
   reviewStatus: Schema.Literals(["reviewed", "skipped", "unavailable", "incomplete"] as const),
-  observationDigest: EvaluationDigest,
-});
+  observationDigest: EvaluationDigest
+})
 /**
  * Review status and assessment are one state machine, not independent flags.
  * Keep the existing fields for callers while rejecting combinations that could
  * make an unavailable or incomplete review look successfully assessed.
  */
-type ObservationInput = Schema.Schema.Type<typeof ObservationFields>;
+type ObservationInput = Schema.Schema.Type<typeof ObservationFields>
 const reviewStates = {
   reviewed: {
     transport: "available",
     conformance: "passed",
     assessment: true,
-    error: "reviewed observations require available transport, passed conformance, and an assessment",
+    error: "reviewed observations require available transport, passed conformance, and an assessment"
   },
   unavailable: {
     transport: "unavailable",
     conformance: "unchecked",
     assessment: false,
-    error: "unavailable observations require unavailable transport, unchecked conformance, and no assessment",
+    error: "unavailable observations require unavailable transport, unchecked conformance, and no assessment"
   },
   incomplete: {
     transport: "available",
     conformance: "failed",
     assessment: false,
-    error: "incomplete observations require available transport, failed conformance, and no assessment",
-  },
-} as const;
+    error: "incomplete observations require available transport, failed conformance, and no assessment"
+  }
+} as const
 
 const observationStateError = (observation: ObservationInput) => {
-  const hasAssessment = observation.assessment !== undefined;
+  const hasAssessment = observation.assessment !== undefined
   if (observation.reviewStatus === "skipped")
-    return hasAssessment ? "skipped observations cannot carry an assessment" : undefined;
-  const required = reviewStates[observation.reviewStatus];
+    return hasAssessment ? "skipped observations cannot carry an assessment" : undefined
+  const required = reviewStates[observation.reviewStatus]
   return observation.transport.status === required.transport &&
     observation.conformance.status === required.conformance &&
     hasAssessment === required.assessment
     ? undefined
-    : required.error;
-};
+    : required.error
+}
 
-export const Observation = ObservationFields.check(Schema.makeFilter(observationStateError));
+export const Observation = ObservationFields.check(Schema.makeFilter(observationStateError))
 
 export interface Observation extends Schema.Schema.Type<typeof Observation> {}
 
@@ -411,18 +388,18 @@ const ComparisonFields = Schema.Struct({
   direction: Schema.optionalKey(Schema.Literals(["increase", "decrease", "change", "no-change"] as const)),
   minimumDelta: Schema.optionalKey(NonNegativeFinite),
   tolerance: NonNegativeFinite,
-  comparisonDigest: EvaluationDigest,
-});
+  comparisonDigest: EvaluationDigest
+})
 /** A comparison relation has a fixed set of endpoint/semantic fields.  The
  * checked variants preserve the pre-existing flat JSON shape while preventing
  * callers from silently constructing an unusable comparison. */
-type ComparisonInput = Schema.Schema.Type<typeof ComparisonFields>;
+type ComparisonInput = Schema.Schema.Type<typeof ComparisonFields>
 const comparisonOmits = (comparison: ComparisonInput, fields: ReadonlyArray<keyof ComparisonInput>) =>
-  fields.every((field) => comparison[field] === undefined);
+  fields.every((field) => comparison[field] === undefined)
 const hasObservationPair = (comparison: ComparisonInput) =>
   comparison.leftObservationId !== undefined &&
   comparison.rightObservationId !== undefined &&
-  comparison.leftObservationId !== comparison.rightObservationId;
+  comparison.leftObservationId !== comparison.rightObservationId
 
 const exactComparisonError = (comparison: ComparisonInput) =>
   hasObservationPair(comparison) &&
@@ -432,10 +409,10 @@ const exactComparisonError = (comparison: ComparisonInput) =>
     "expectation",
     "fixtureRelation",
     "direction",
-    "minimumDelta",
+    "minimumDelta"
   ])
     ? undefined
-    : "exact comparisons require only distinct left and right observations";
+    : "exact comparisons require only distinct left and right observations"
 
 const semanticComparisonError = (comparison: ComparisonInput) =>
   comparison.observationId !== undefined &&
@@ -445,27 +422,27 @@ const semanticComparisonError = (comparison: ComparisonInput) =>
     "rightObservationId",
     "fixtureRelation",
     "direction",
-    "minimumDelta",
+    "minimumDelta"
   ]) &&
   (comparison.expectation === undefined || comparison.ruleId === comparison.expectation.ruleId)
     ? undefined
-    : "semantic-band comparisons require one observation and no pair fields";
+    : "semantic-band comparisons require one observation and no pair fields"
 
 const measuredComparisonError = (comparison: ComparisonInput) =>
   hasObservationPair(comparison) &&
   comparison.ruleId !== undefined &&
   comparisonOmits(comparison, ["observationId", "expectation"])
     ? undefined
-    : "measured-change comparisons require left/right observations and a rule";
+    : "measured-change comparisons require left/right observations and a rule"
 
 const comparisonValidators = {
   exact: exactComparisonError,
   "semantic-band": semanticComparisonError,
-  "measured-change": measuredComparisonError,
-};
+  "measured-change": measuredComparisonError
+}
 export const Comparison = ComparisonFields.check(
-  Schema.makeFilter((comparison) => comparisonValidators[comparison.relation](comparison)),
-);
+  Schema.makeFilter((comparison) => comparisonValidators[comparison.relation](comparison))
+)
 
 export interface Comparison extends Schema.Schema.Type<typeof Comparison> {}
 
@@ -474,8 +451,8 @@ export const CallBudget = Schema.Struct({
   maximumRetriesPerRequest: NonNegativeInteger,
   // A milestone may have no remaining authorization.  Keeping zero valid lets a
   // planner reject the run before a provider layer is acquired.
-  authorizedRemainingCalls: Schema.optionalKey(NonNegativeInteger),
-});
+  authorizedRemainingCalls: Schema.optionalKey(NonNegativeInteger)
+})
 export interface CallBudget extends Schema.Schema.Type<typeof CallBudget> {}
 
 /** Predeclared milestone release gate; it is part of run identity. */
@@ -483,8 +460,8 @@ export const ReleaseAcceptance = Schema.Struct({
   requireTransportAvailable: Schema.Boolean,
   requireConformance: Schema.Boolean,
   requireSemanticPass: Schema.Boolean,
-  requireNoUnchecked: Schema.Boolean,
-});
+  requireNoUnchecked: Schema.Boolean
+})
 export interface ReleaseAcceptance extends Schema.Schema.Type<typeof ReleaseAcceptance> {}
 export const EvaluationRun = Schema.Struct({
   id: RunId,
@@ -504,8 +481,8 @@ export const EvaluationRun = Schema.Struct({
   budget: CallBudget,
   acceptance: ReleaseAcceptance,
   liveOptIn: Schema.Boolean,
-  runDigest: EvaluationDigest,
-});
+  runDigest: EvaluationDigest
+})
 export interface EvaluationRun extends Schema.Schema.Type<typeof EvaluationRun> {}
 
 const EvaluationPlanFields = Schema.Struct({
@@ -523,25 +500,25 @@ const EvaluationPlanFields = Schema.Struct({
       "live-opt-in-required",
       "live-credential-required",
       "live-authorization-required",
-      "live-authorization-exceeds-limit",
-    ] as const),
+      "live-authorization-exceeds-limit"
+    ] as const)
   ),
-  planDigest: EvaluationDigest,
-});
+  planDigest: EvaluationDigest
+})
 export const EvaluationPlan = EvaluationPlanFields.check(
   Schema.makeFilter((plan) => {
     if (plan.permitted && plan.rejectionReason !== undefined) {
-      return "permitted plans cannot carry a rejection reason";
+      return "permitted plans cannot carry a rejection reason"
     }
     if (!plan.permitted && plan.rejectionReason === undefined) {
-      return "rejected plans require a rejection reason";
+      return "rejected plans require a rejection reason"
     }
     if (plan.worstCaseRequests !== plan.plannedRequests * plan.maximumAttemptsPerRequest) {
-      return "worstCaseRequests must include the declared retry ceiling";
+      return "worstCaseRequests must include the declared retry ceiling"
     }
-    return undefined;
-  }),
-);
+    return undefined
+  })
+)
 export interface EvaluationPlan extends Schema.Schema.Type<typeof EvaluationPlan> {}
 
 const ComparisonResultFields = Schema.Struct({
@@ -553,34 +530,34 @@ const ComparisonResultFields = Schema.Struct({
   semantic: Schema.Literals(["passed", "failed", "ambiguous", "unchecked"] as const),
   passed: Schema.Boolean,
   reason: Schema.optionalKey(Schema.NonEmptyString),
-  delta: Schema.optionalKey(Schema.Finite),
-});
-type ComparisonStatus = Schema.Schema.Type<typeof ComparisonResultFields>;
+  delta: Schema.optionalKey(Schema.Finite)
+})
+type ComparisonStatus = Schema.Schema.Type<typeof ComparisonResultFields>
 const comparisonRelationError = (result: ComparisonStatus, label: "results" | "summaries") => {
   if (result.relation === "exact" && result.semantic !== "unchecked")
-    return `exact comparison ${label} cannot carry a semantic status`;
+    return `exact comparison ${label} cannot carry a semantic status`
   if (result.relation !== "exact" && result.deterministic !== "unchecked")
-    return `non-exact comparison ${label} cannot carry a deterministic status`;
-  return undefined;
-};
+    return `non-exact comparison ${label} cannot carry a deterministic status`
+  return undefined
+}
 const comparisonShouldPass = (result: ComparisonStatus) =>
   result.transport === "available" &&
   result.conformance === "passed" &&
-  (result.relation === "exact" ? result.deterministic === "passed" : result.semantic === "passed");
+  (result.relation === "exact" ? result.deterministic === "passed" : result.semantic === "passed")
 const comparisonPassError = (result: ComparisonStatus) =>
   result.passed === comparisonShouldPass(result)
     ? undefined
-    : "passed must agree with transport, conformance, and relation status";
+    : "passed must agree with transport, conformance, and relation status"
 const comparisonDeltaError = (result: ComparisonStatus, label: "results" | "summaries") =>
   result.relation !== "measured-change" && result.delta !== undefined
     ? `delta is only valid for measured-change ${label}`
-    : undefined;
+    : undefined
 const comparisonStatusError = (result: ComparisonStatus, label: "results" | "summaries") =>
-  comparisonRelationError(result, label) ?? comparisonPassError(result) ?? comparisonDeltaError(result, label);
+  comparisonRelationError(result, label) ?? comparisonPassError(result) ?? comparisonDeltaError(result, label)
 
 export const ComparisonResult = ComparisonResultFields.check(
-  Schema.makeFilter((result) => comparisonStatusError(result, "results")),
-);
+  Schema.makeFilter((result) => comparisonStatusError(result, "results"))
+)
 
 export interface ComparisonResult extends Schema.Schema.Type<typeof ComparisonResult> {}
 
@@ -589,15 +566,15 @@ const AggregateCountsFields = Schema.Struct({
   passed: NonNegativeInteger,
   failed: NonNegativeInteger,
   unchecked: NonNegativeInteger,
-  ambiguous: NonNegativeInteger,
-});
+  ambiguous: NonNegativeInteger
+})
 export const AggregateCounts = AggregateCountsFields.check(
   Schema.makeFilter((counts) =>
     counts.total === counts.passed + counts.failed + counts.unchecked + counts.ambiguous
       ? undefined
-      : "aggregate total must equal the sum of its statuses",
-  ),
-);
+      : "aggregate total must equal the sum of its statuses"
+  )
+)
 export interface AggregateCounts extends Schema.Schema.Type<typeof AggregateCounts> {}
 
 const ComparisonSummaryFields = Schema.Struct({
@@ -609,11 +586,11 @@ const ComparisonSummaryFields = Schema.Struct({
   conformance: Schema.Literals(["passed", "failed", "unchecked"] as const),
   semantic: Schema.Literals(["passed", "failed", "ambiguous", "unchecked"] as const),
   reason: Schema.optionalKey(Schema.NonEmptyString),
-  delta: Schema.optionalKey(Schema.Finite),
-});
+  delta: Schema.optionalKey(Schema.Finite)
+})
 export const ComparisonSummary = ComparisonSummaryFields.check(
-  Schema.makeFilter((summary) => comparisonStatusError({ ...summary, comparisonId: summary.id }, "summaries")),
-);
+  Schema.makeFilter((summary) => comparisonStatusError({ ...summary, comparisonId: summary.id }, "summaries"))
+)
 
 export interface ComparisonSummary extends Schema.Schema.Type<typeof ComparisonSummary> {}
 
@@ -630,8 +607,8 @@ export const EvaluationCoverage = Schema.Struct({
   plannedExpectations: NonNegativeInteger,
   observedExpectations: NonNegativeInteger,
   uncheckedExpectations: NonNegativeInteger,
-  ambiguousExpectations: NonNegativeInteger,
-});
+  ambiguousExpectations: NonNegativeInteger
+})
 export interface EvaluationCoverage extends Schema.Schema.Type<typeof EvaluationCoverage> {}
 
 /**
@@ -645,9 +622,9 @@ const TimingEvidenceFields = Schema.Struct({
   maximumDurationMs: NonNegativeFinite,
   meanDurationMs: NonNegativeFinite,
   p50DurationMs: NonNegativeFinite,
-  p95DurationMs: NonNegativeFinite,
-});
-type TimingEvidence = Schema.Schema.Type<typeof TimingEvidenceFields>;
+  p95DurationMs: NonNegativeFinite
+})
+type TimingEvidence = Schema.Schema.Type<typeof TimingEvidenceFields>
 const emptyTimingError = (timing: TimingEvidence) =>
   [
     timing.totalDurationMs,
@@ -655,25 +632,25 @@ const emptyTimingError = (timing: TimingEvidence) =>
     timing.maximumDurationMs,
     timing.meanDurationMs,
     timing.p50DurationMs,
-    timing.p95DurationMs,
+    timing.p95DurationMs
   ].every((value) => value === 0)
     ? undefined
-    : "empty timing evidence must contain zero aggregates";
+    : "empty timing evidence must contain zero aggregates"
 const timingRangeInvalid = (timing: TimingEvidence) =>
   timing.minimumDurationMs > timing.maximumDurationMs ||
   timing.p50DurationMs < timing.minimumDurationMs ||
   timing.p50DurationMs > timing.maximumDurationMs ||
   timing.p95DurationMs < timing.p50DurationMs ||
-  timing.p95DurationMs > timing.maximumDurationMs;
+  timing.p95DurationMs > timing.maximumDurationMs
 const timingEvidenceError = (timing: TimingEvidence) => {
-  if (timing.sampleCount === 0) return emptyTimingError(timing);
-  if (timingRangeInvalid(timing)) return "timing percentiles must be ordered within the observed range";
+  if (timing.sampleCount === 0) return emptyTimingError(timing)
+  if (timingRangeInvalid(timing)) return "timing percentiles must be ordered within the observed range"
   return Math.abs(timing.meanDurationMs * timing.sampleCount - timing.totalDurationMs) <
     Math.max(1e-9, timing.totalDurationMs * 1e-9)
     ? undefined
-    : "timing mean must agree with total duration and sample count";
-};
-export const EvaluationTimingEvidence = TimingEvidenceFields.check(Schema.makeFilter(timingEvidenceError));
+    : "timing mean must agree with total duration and sample count"
+}
+export const EvaluationTimingEvidence = TimingEvidenceFields.check(Schema.makeFilter(timingEvidenceError))
 
 export interface EvaluationTimingEvidence extends Schema.Schema.Type<typeof EvaluationTimingEvidence> {}
 
@@ -682,8 +659,8 @@ const RejectionReason = Schema.Literals([
   "live-opt-in-required",
   "live-credential-required",
   "live-authorization-required",
-  "live-authorization-exceeds-limit",
-] as const);
+  "live-authorization-exceeds-limit"
+] as const)
 
 const EvaluationBudgetSummaryFields = Schema.Struct({
   declaredMaximumRequests: PositiveInteger,
@@ -692,23 +669,23 @@ const EvaluationBudgetSummaryFields = Schema.Struct({
   observedRequests: NonNegativeInteger,
   withinBudget: Schema.Boolean,
   planPermitted: Schema.Boolean,
-  rejectionReason: Schema.optionalKey(RejectionReason),
-});
+  rejectionReason: Schema.optionalKey(RejectionReason)
+})
 const EvaluationBudgetSummary = EvaluationBudgetSummaryFields.check(
   Schema.makeFilter((budget) => {
     if (budget.planPermitted !== (budget.rejectionReason === undefined)) {
       return budget.planPermitted
         ? "permitted reports cannot carry a rejection reason"
-        : "rejected reports require a rejection reason";
+        : "rejected reports require a rejection reason"
     }
     const expectedWithinBudget =
       budget.observedRequests <= budget.declaredMaximumRequests &&
-      budget.worstCaseRequests <= budget.declaredMaximumRequests;
+      budget.worstCaseRequests <= budget.declaredMaximumRequests
     return budget.withinBudget === expectedWithinBudget
       ? undefined
-      : "withinBudget must agree with observed and worst-case request counts";
-  }),
-);
+      : "withinBudget must agree with observed and worst-case request counts"
+  })
+)
 
 export const EvaluationReport = Schema.Struct({
   runId: RunId,
@@ -734,24 +711,21 @@ export const EvaluationReport = Schema.Struct({
   configurationCaseDigests: Schema.Array(EvaluationDigest),
   inputContract: InputContractIdentity,
   rendererAdapter: RendererAdapterIdentity,
-  reportDigest: EvaluationDigest,
-});
+  reportDigest: EvaluationDigest
+})
 export interface EvaluationReport extends Schema.Schema.Type<typeof EvaluationReport> {}
 
 /** Strict parsing options are exported so every boundary can reject unknown fields. */
-export const strictParseOptions = {
-  onExcessProperty: "error",
-  errors: "all",
-} as const;
+export const strictParseOptions = { onExcessProperty: "error", errors: "all" } as const
 
-export const decodeRuleDefinition = Schema.decodeUnknownEffect(RuleDefinition, strictParseOptions);
-export const decodeFixture = Schema.decodeUnknownEffect(Fixture, strictParseOptions);
-export const decodeExpectation = Schema.decodeUnknownEffect(Expectation, strictParseOptions);
-export const decodeConfigurationCase = Schema.decodeUnknownEffect(ConfigurationCase, strictParseOptions);
-export const decodeEvaluationScenario = Schema.decodeUnknownEffect(EvaluationScenario, strictParseOptions);
-export const decodeEvaluationPlan = Schema.decodeUnknownEffect(EvaluationPlan, strictParseOptions);
-export const decodeObservation = Schema.decodeUnknownEffect(Observation, strictParseOptions);
-export const decodeComparison = Schema.decodeUnknownEffect(Comparison, strictParseOptions);
-export const decodeComparisonResult = Schema.decodeUnknownEffect(ComparisonResult, strictParseOptions);
-export const decodeEvaluationRun = Schema.decodeUnknownEffect(EvaluationRun, strictParseOptions);
-export const decodeEvaluationReport = Schema.decodeUnknownEffect(EvaluationReport, strictParseOptions);
+export const decodeRuleDefinition = Schema.decodeUnknownEffect(RuleDefinition, strictParseOptions)
+export const decodeFixture = Schema.decodeUnknownEffect(Fixture, strictParseOptions)
+export const decodeExpectation = Schema.decodeUnknownEffect(Expectation, strictParseOptions)
+export const decodeConfigurationCase = Schema.decodeUnknownEffect(ConfigurationCase, strictParseOptions)
+export const decodeEvaluationScenario = Schema.decodeUnknownEffect(EvaluationScenario, strictParseOptions)
+export const decodeEvaluationPlan = Schema.decodeUnknownEffect(EvaluationPlan, strictParseOptions)
+export const decodeObservation = Schema.decodeUnknownEffect(Observation, strictParseOptions)
+export const decodeComparison = Schema.decodeUnknownEffect(Comparison, strictParseOptions)
+export const decodeComparisonResult = Schema.decodeUnknownEffect(ComparisonResult, strictParseOptions)
+export const decodeEvaluationRun = Schema.decodeUnknownEffect(EvaluationRun, strictParseOptions)
+export const decodeEvaluationReport = Schema.decodeUnknownEffect(EvaluationReport, strictParseOptions)

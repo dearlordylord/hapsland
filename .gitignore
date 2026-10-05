@@ -1,5 +1,6 @@
 node_modules
 .env
+.env.local
 coverage
 crap-report.json
 dist
@@ -11,3 +12,5 @@ dist
 .tools/lean/
 
 .test-runs/
+
+.husky/_/

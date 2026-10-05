@@ -1,2 +1,10 @@
-export function cleanupOwnedResident(directory: string, commands: readonly { executable: string; args: readonly string[] }[]): Promise<void>;
-export function observeOwnedResidentProcess(pid: number, directory: string, commands: readonly { executable: string; args: readonly string[] }[], options?: { platform?: NodeJS.Platform; inspectPs?: () => string; probe?: () => void }): { pid: number; start: string; owned: boolean } | undefined;
+export function cleanupOwnedResident(
+  directory: string,
+  commands: readonly { executable: string; args: readonly string[] }[]
+): Promise<void>
+export function observeOwnedResidentProcess(
+  pid: number,
+  directory: string,
+  commands: readonly { executable: string; args: readonly string[] }[],
+  options?: { platform?: NodeJS.Platform; inspectPs?: () => string; probe?: () => void }
+): { pid: number; start: string; owned: boolean } | undefined

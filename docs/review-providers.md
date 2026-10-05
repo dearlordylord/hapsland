@@ -92,7 +92,7 @@ Use `clef-flash` to select the other Cloudflare model. Make
 `CLOUDFLARE_API_TOKEN` available to the installed runtime's hook environment.
 An explicit user `credentialEnvVar` can name another variable. Configuration
 contains the account ID and variable reference, never the token value.
-Cloudflare's derived credential reference is user-owned and environment-only:
+Cloudflare's derived credential reference is user-owned and uses environment/file lookup without native fallback:
 a project cannot override it, and missing Cloudflare credentials cannot fall
 back to Hapsland's saved Jev key. `hapsland --login` still manages the Jev key.
 Cloudflare uses a validated 32-character hexadecimal account ID and the fixed

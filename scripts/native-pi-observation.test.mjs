@@ -1,9 +1,62 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { assessPiAdoption, piModelProfile } from './native-pi-observation.mjs';
-const base = () => ({events:[{kind:'hapsland-response',status:'registered',at:0},{kind:'tool-result',tool:'edit',at:1,initial:true,patchPresent:true,pathMatches:true,replacementsMatchCurrent:true},{kind:'tool-result',at:2,finding:true},{kind:'provider-request',at:3,finding:true},{kind:'tool-result',tool:'edit',at:4,final:true,toolUseHash:'repair'}],requests:[{rootKind:'interface',expandedEdges:1,conditionalFindingSourceMatched:true}],outcomes:[{toolUseHash:'repair',outcome:'completed-clear'}],finalMatches:true,compiles:true,rejectsInvalid:true,setupReady:true,doctorReady:true});
-test('separate installed, attributed, submitted, model-visible, repaired and follow-up assertions',()=>assert.ok(Object.values(assessPiAdoption(base())).every(Boolean)));
-test('extension mutation alone cannot establish model visibility or advice-driven repair',()=>{const b=base();b.events=b.events.filter(e=>e.kind!=='provider-request');const c=assessPiAdoption(b);assert.equal(c.nativeAdviceSubmitted,true);assert.equal(c.adviceInProviderRequest,false);assert.equal(c.repairAfterModelVisibleAdvice,false);});
-test('unrelated or findings-only follow-up cannot establish clear repair review',()=>{for(const outcome of [{toolUseHash:'other',outcome:'completed-clear'},{toolUseHash:'repair',outcome:'completed-findings'}]){const b=base();b.outcomes=[outcome];assert.equal(assessPiAdoption(b).followupClearForRepair,false);}});
-test('native evidence and semantic expansion are required independently',()=>{const b=base();b.events.find(e=>e.initial).patchPresent=false;b.requests[0].expandedEdges=0;const c=assessPiAdoption(b);assert.equal(c.exactNativeEditEvidence,false);assert.equal(c.semanticCrossFileReview,false);});
-test('ordinary selected model is validated without a fallback or overwrite',()=>{assert.deepEqual(piModelProfile({defaultProvider:'openai-codex',defaultModel:'gpt-6-luna'}),{provider:'openai-codex',model:'gpt-6-luna'});assert.throws(()=>piModelProfile({defaultProvider:'openai',defaultModel:'other'}));});
+import test from "node:test"
+import assert from "node:assert/strict"
+import { assessPiAdoption, piModelProfile } from "./native-pi-observation.mjs"
+const base = () => ({
+  events: [
+    { kind: "hapsland-response", status: "registered", at: 0 },
+    {
+      kind: "tool-result",
+      tool: "edit",
+      at: 1,
+      initial: true,
+      patchPresent: true,
+      pathMatches: true,
+      replacementsMatchCurrent: true
+    },
+    { kind: "tool-result", at: 2, finding: true },
+    { kind: "provider-request", at: 3, finding: true },
+    { kind: "tool-result", tool: "edit", at: 4, final: true, toolUseHash: "repair" }
+  ],
+  requests: [{ rootKind: "interface", expandedEdges: 1, conditionalFindingSourceMatched: true }],
+  outcomes: [{ toolUseHash: "repair", outcome: "completed-clear" }],
+  finalMatches: true,
+  compiles: true,
+  rejectsInvalid: true,
+  setupReady: true,
+  doctorReady: true
+})
+test("separate installed, attributed, submitted, model-visible, repaired and follow-up assertions", () =>
+  assert.ok(Object.values(assessPiAdoption(base())).every(Boolean)))
+test("extension mutation alone cannot establish model visibility or advice-driven repair", () => {
+  const b = base()
+  b.events = b.events.filter((e) => e.kind !== "provider-request")
+  const c = assessPiAdoption(b)
+  assert.equal(c.nativeAdviceSubmitted, true)
+  assert.equal(c.adviceInProviderRequest, false)
+  assert.equal(c.repairAfterModelVisibleAdvice, false)
+})
+test("unrelated or findings-only follow-up cannot establish clear repair review", () => {
+  for (const outcome of [
+    { toolUseHash: "other", outcome: "completed-clear" },
+    { toolUseHash: "repair", outcome: "completed-findings" }
+  ]) {
+    const b = base()
+    b.outcomes = [outcome]
+    assert.equal(assessPiAdoption(b).followupClearForRepair, false)
+  }
+})
+test("native evidence and semantic expansion are required independently", () => {
+  const b = base()
+  b.events.find((e) => e.initial).patchPresent = false
+  b.requests[0].expandedEdges = 0
+  const c = assessPiAdoption(b)
+  assert.equal(c.exactNativeEditEvidence, false)
+  assert.equal(c.semanticCrossFileReview, false)
+})
+test("ordinary selected model is validated without a fallback or overwrite", () => {
+  assert.deepEqual(piModelProfile({ defaultProvider: "openai-codex", defaultModel: "gpt-6-luna" }), {
+    provider: "openai-codex",
+    model: "gpt-6-luna"
+  })
+  assert.throws(() => piModelProfile({ defaultProvider: "openai", defaultModel: "other" }))
+})

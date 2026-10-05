@@ -34,7 +34,7 @@ hapsland setup codex
 hapsland setup pi
 ```
 
-Setup rechecks credentials on every run: a nonempty `TYPESAFE_API_KEY` takes precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; setup does not validate the key against Jev. Package installation alone does not ask for a key.
+Setup rechecks credentials on every run: environment and file credentials take precedence over saved login; an explicitly configured `credentialEnvVar` selects environment-only authentication. An available key is reused. A missing saved key triggers masked input in an interactive terminal after installation approval. An unavailable or locked store is reported separately with recovery instructions; setup does not validate the key against Jev. Package installation alone does not ask for a key.
 
 Use `hapsland setup codex --new-key` (also supported for Claude and Pi) to skip the existing-key lookup and request a replacement. This requires a terminal and an accessible native store. It does not override environment credential precedence: unset the environment key to use saved login. With an explicit `credentialEnvVar`, set that variable instead. Automation may set `newKey: true` in its version-1 `--setup` JSON request.
 
@@ -47,6 +47,38 @@ Finish current client work, restart the client normally, and complete its native
 ```sh
 hapsland doctor              # All registered clients, read-only
 hapsland doctor claude       # One client
+```
+
+### Reading doctor and installer results
+
+User-facing doctor and lifecycle output uses plain ASCII markers: `[OK]` for the
+stated successful check or change, `[WARN]` for partial or unknown readiness,
+`[FAIL]` for failure, and `[INFO]` for information or a skipped operation. The
+labels work without terminal colors or Unicode. An installed hook is not evidence
+of a real review: setup keeps restart, native trust and first-review actions visible.
+
+`hapsland-doctor` prints a readable package report by default, including when its
+output is redirected. Use `hapsland-doctor --json` for the existing version-1
+machine report; internal package installers and conformance checks pass this flag
+explicitly. Package doctor checks the packaged runtime and local dependencies;
+it does not establish agent setup, credential validity or real-review success.
+`hapsland doctor CLIENT` checks the installed integration and reports any unknown
+native trust separately. Versioned JSON requests such as `hapsland --doctor`,
+`--setup` and `--status` retain their JSON contracts; hooks and IPC do not receive
+human markers. Human status output remains available with `--status-human`.
+
+A successful package report starts with:
+
+```text
+[OK] Package doctor: package checks passed.
+```
+
+An installed integration can still end setup with:
+
+```text
+[OK] Installation: the owned Codex integration was installed.
+[WARN] Setup: offline readiness: unknown.
+[INFO] Next: restart Codex, complete native repository and hook trust, then make an ordinary supported edit and inspect review activity. A real review was not verified by setup.
 ```
 
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) , [Codex guide](codex-installation.md), and [Pi guide](pi-installation.md) for automation, ownership, credentials, and host-specific limits. Saved login uses the native credential store; hooks do not prompt.
@@ -133,9 +165,11 @@ To request a replacement key during development installation:
 mise exec bun@1.3.14 -- npm run dev-install -- --host=codex --new-key
 ```
 
-`dev-install` additionally reads `.env` from the checkout working directory, using Node's dotenv parser without shell execution. Explicit process environment variables take precedence, including empty values; `.env` fills only missing variables. An absent `.env` is allowed. Values are not printed, and `.env` is excluded from build caching and packaging. This supplies the key to setup and its child processes; it does not export it into the parent terminal. Codex started separately still needs the key in its own environment or native storage.
+Setup, status, doctor and installed hooks share credential lookup: explicit process environment, repository-root `.env.local`, repository-root `.env`, then `$XDG_CONFIG_HOME/hapsland/.env` (default `~/.config/hapsland/.env`). Missing or empty file keys allow the next source; an explicitly present environment variable, including an empty value, takes precedence over files. Without a file or environment key, the default credential reference falls back to native storage. An explicitly configured `credentialEnvVar` selects that named key from environment/files without native fallback.
 
-`--new-key` cannot be combined with `--update`, which does not run guided credential entry. If native storage is unavailable, set `TYPESAFE_API_KEY` securely in the terminal before normal setup, then start the agent from that same environment. Hapsland does not save this environment key.
+Only the selected credential field is read, with Node's dotenv parser and no shell execution or process-environment mutation. Files must be regular, not symlinks, and at most 64 KiB; an unreadable or rejected file stops lookup rather than silently choosing another key. Keep credential files ignored and owner-only. `.env` and `.env.local` are excluded from build caching and packaging. Installed hooks read the current project's files independently, so start Codex normally; no installer environment or special launcher is needed for file credentials. A project key is scoped to that project; use the user file for other projects. Diagnostics expose the selected path, never its value.
+
+`--new-key` cannot be combined with `--update`, which does not run guided credential entry. Replacement entry still targets native storage; it does not overwrite file credentials. File keys are read directly and are not copied into configuration, native storage or archives.
 
 Before submitting a code change, run the contributor checks separately:
 

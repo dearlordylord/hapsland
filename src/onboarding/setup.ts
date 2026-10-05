@@ -1,149 +1,101 @@
-import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts";
-import * as Effect from "effect/Effect";
-import { discoverWorkingTreeRoot } from "../repository/root.ts";
-import {
-  loadReviewSettings,
-  type ReviewSettings,
-} from "../runtime/review-config.ts";
-import {
-  resolveCredential,
-  saveCredential,
-  type CredentialResolution,
-} from "../credentials/secret-service.ts";
-import {
-  installCodexIntegration,
-  previewCodexInstallation,
-  type InstallationRequest,
-} from "./codex-installation.ts";
+import { previewPiInstallation, installPiIntegration } from "./pi-installation.ts"
+import * as Effect from "effect/Effect"
+import { discoverWorkingTreeRoot } from "../repository/root.ts"
+import { loadReviewSettings, type ReviewSettings } from "../runtime/review-config.ts"
+import { resolveCredential, saveCredential, type CredentialResolution } from "../credentials/secret-service.ts"
+import { installCodexIntegration, previewCodexInstallation, type InstallationRequest } from "./codex-installation.ts"
 import {
   installClaudeIntegration,
   hasClaudeRegistration,
   previewClaudeInstallation,
   previewClaudeUpdate,
-  updateClaudeIntegration,
-} from "./claude-installation.ts";
+  updateClaudeIntegration
+} from "./claude-installation.ts"
 
 type SetupFields = {
-  readonly version: 1;
-  readonly operation: "setup";
-  readonly scope: {
-    readonly cwd: string;
-    readonly review: "enabled" | "disabled";
-  };
-  readonly credential: "saved" | "environment" | "skip";
-  readonly installProposalDigest?: string;
-  readonly interactive?: boolean;
-  readonly newKey?: boolean;
-};
+  readonly version: 1
+  readonly operation: "setup"
+  readonly scope: { readonly cwd: string; readonly review: "enabled" | "disabled" }
+  readonly credential: "saved" | "environment" | "skip"
+  readonly installProposalDigest?: string
+  readonly interactive?: boolean
+  readonly newKey?: boolean
+}
 
 export type SetupRequest = SetupFields &
   (
-    | {
-        readonly host: "codex";
-        readonly codexHome?: string;
-        readonly codexExecutable?: string;
-      }
+    | { readonly host: "codex"; readonly codexHome?: string; readonly codexExecutable?: string }
     | { readonly host: "pi"; readonly piHome?: string; readonly piExecutable?: string }
-    | {
-        readonly host: "claude";
-        readonly claudeHome?: string;
-        readonly claudeExecutable?: string;
-      }
-  );
+    | { readonly host: "claude"; readonly claudeHome?: string; readonly claudeExecutable?: string }
+  )
 
-type StageStatus =
-  | "complete"
-  | "pending"
-  | "skipped"
-  | "unknown"
-  | "unsupported"
-  | "conflict"
-  | "partial";
+type StageStatus = "complete" | "pending" | "skipped" | "unknown" | "unsupported" | "conflict" | "partial"
 type SetupStage = {
-  readonly stage:
-    | "compatibility"
-    | "installation"
-    | "credential"
-    | "repository"
-    | "host-trust"
-    | "execution-context";
-  readonly status: StageStatus;
-  readonly summary: string;
-  readonly observed?: unknown;
-};
+  readonly stage: "compatibility" | "installation" | "credential" | "repository" | "host-trust" | "execution-context"
+  readonly status: StageStatus
+  readonly summary: string
+  readonly observed?: unknown
+}
 type SetupAction = {
-  readonly stage: SetupStage["stage"];
-  readonly code: string;
-  readonly action: string;
-  readonly authorization?: Readonly<Record<string, string>>;
-};
+  readonly stage: SetupStage["stage"]
+  readonly code: string
+  readonly action: string
+  readonly authorization?: Readonly<Record<string, string>>
+}
 
-type RecordValue = Readonly<Record<string, unknown>>;
+type RecordValue = Readonly<Record<string, unknown>>
 const record = (value: unknown): RecordValue | undefined =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as RecordValue)
-    : undefined;
-const text = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
-const list = (value: unknown): ReadonlyArray<unknown> =>
-  Array.isArray(value) ? value : [];
+  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RecordValue) : undefined
+const text = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined)
+const list = (value: unknown): ReadonlyArray<unknown> => (Array.isArray(value) ? value : [])
 
-const installationRequest = (
-  request: Extract<SetupRequest, { host: "codex" }>,
-): InstallationRequest => ({
+const installationRequest = (request: Extract<SetupRequest, { host: "codex" }>): InstallationRequest => ({
   ...(request.codexHome === undefined ? {} : { codexHome: request.codexHome }),
-  ...(request.codexExecutable === undefined
-    ? {}
-    : { codexExecutable: request.codexExecutable }),
-});
+  ...(request.codexExecutable === undefined ? {} : { codexExecutable: request.codexExecutable })
+})
 
 export type SetupOptions = {
-  readonly statePath: string;
-  readonly userConfigPath?: string;
+  readonly statePath: string
+  readonly userConfigPath?: string
   /** Supplied only by the installed CLI's masked /dev/tty handoff. */
-  readonly readCredential?: () => Effect.Effect<string, unknown>;
-};
+  readonly readCredential?: () => Effect.Effect<string, unknown>
+}
 
 type SetupProgress = {
-  readonly stages: Array<SetupStage>;
-  readonly actions: Array<SetupAction>;
-  readonly completed: Array<string>;
-  readonly pending: Array<string>;
-};
+  readonly stages: Array<SetupStage>
+  readonly actions: Array<SetupAction>
+  readonly completed: Array<string>
+  readonly pending: Array<string>
+}
 
 const reportRepositorySettings = (
   request: SetupRequest,
   settings: ReviewSettings,
   root: string,
-  progress: SetupProgress,
+  progress: SetupProgress
 ) => {
-  const { stages, actions, completed, pending } = progress;
+  const { stages, actions, completed, pending } = progress
   if (request.scope.review === "disabled") {
     const excludedAll = settings.configuration.policy.excludes.some(
-      (entry) => entry.origin.layer === "user" && entry.value === "**/*",
-    );
+      (entry) => entry.origin.layer === "user" && entry.value === "**/*"
+    )
     stages.push({
       stage: "repository",
       status: excludedAll ? "complete" : "pending",
-      summary: excludedAll
-        ? "user file settings exclude all files"
-        : "review disablement requires a user exclusion",
+      summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
       observed: {
         canonicalRoot: root,
-        effectiveIncludes: settings.configuration.policy.includes.map(
-          (entry) => entry.value,
-        ),
-      },
-    });
-    if (excludedAll) completed.push("user file settings disable review");
+        effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value)
+      }
+    })
+    if (excludedAll) completed.push("user file settings disable review")
     else {
       actions.push({
         stage: "repository",
         code: "exclude-all-files",
-        action:
-          'set excludes to ["**/*"] in user review settings, then rerun setup',
-      });
-      pending.push("exclude all files in user review settings");
+        action: 'set excludes to ["**/*"] in user review settings, then rerun setup'
+      })
+      pending.push("exclude all files in user review settings")
     }
   } else {
     stages.push({
@@ -152,120 +104,89 @@ const reportRepositorySettings = (
       summary: "effective file settings loaded",
       observed: {
         canonicalRoot: root,
-        effectiveIncludes: settings.configuration.policy.includes.map(
-          (entry) => entry.value,
-        ),
-        effectiveExcludes: settings.configuration.policy.excludes.map(
-          (entry) => entry.value,
-        ),
-      },
-    });
-    completed.push("effective file settings loaded");
+        effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
+        effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value)
+      }
+    })
+    completed.push("effective file settings loaded")
   }
-};
+}
 
-const reportExecutionContext = (
-  installed: boolean,
-  hostName: string,
-  progress: SetupProgress,
-) => {
-  const { stages, actions, pending } = progress;
+const reportExecutionContext = (installed: boolean, hostName: string, progress: SetupProgress) => {
+  const { stages, actions, pending: _pending } = progress
   if (installed) {
     stages.push({
       stage: "host-trust",
       status: "unknown",
       summary: `${hostName} native repository and hook trust cannot be queried offline`,
-      observed: { trustRecordsModified: false, bypassUsed: false },
-    });
+      observed: { trustRecordsModified: false, bypassUsed: false }
+    })
     actions.push({
       stage: "host-trust",
       code: "complete-native-trust",
-      action: `start ${hostName} normally in the canonical repository and complete any native repository or hook review prompt`,
-    });
+      action: `start ${hostName} normally in the canonical repository and complete any native repository or hook review prompt`
+    })
   } else {
-    stages.push({
-      stage: "host-trust",
-      status: "pending",
-      summary: "native trust follows installation",
-    });
+    stages.push({ stage: "host-trust", status: "pending", summary: "native trust follows installation" })
   }
   stages.push({
     stage: "execution-context",
     status: "unknown",
-    summary:
-      "actual host invocation and credential accessibility remain unknown until observed",
-    observed: { providerCalls: 0, reviewPerformed: false },
-  });
-};
+    summary: "actual host invocation and credential accessibility remain unknown until observed",
+    observed: { providerCalls: 0, reviewPerformed: false }
+  })
+}
 
-const reportRepositoryFailure = (
-  discoveryFailed: boolean,
-  progress: SetupProgress,
-) => {
-  const { stages, actions, pending } = progress;
+const reportRepositoryFailure = (discoveryFailed: boolean, progress: SetupProgress) => {
+  const { stages, actions, pending } = progress
   stages.push({
     stage: "credential",
     status: "unknown",
-    summary:
-      "credential selection is unknown because repository configuration is unavailable",
-  });
+    summary: "credential selection is unknown because repository configuration is unavailable"
+  })
   stages.push({
     stage: "repository",
     status: discoveryFailed ? "unsupported" : "conflict",
     summary: discoveryFailed
       ? "the requested scope is not a discoverable Git working tree"
-      : "the repository review configuration is invalid",
-  });
+      : "the repository review configuration is invalid"
+  })
   actions.push({
     stage: "repository",
-    code: discoveryFailed
-      ? "select-repository"
-      : "repair-repository-configuration",
+    code: discoveryFailed ? "select-repository" : "repair-repository-configuration",
     action: discoveryFailed
       ? "select a discoverable canonical Git working tree, then rerun setup"
-      : "repair the reported repository review configuration, then rerun setup",
-  });
-  pending.push("repair repository discovery or configuration");
-};
+      : "repair the reported repository review configuration, then rerun setup"
+  })
+  pending.push("repair repository discovery or configuration")
+}
 
 type InteractiveCredentialOutcome =
   | { readonly status: "cancelled" }
-  | {
-      readonly status: string;
-      readonly generation: number;
-      readonly savedCredentialUse: "active" | "suspended";
-    };
+  | { readonly status: string; readonly generation: number; readonly savedCredentialUse: "active" | "suspended" }
 
-const reportSkippedCredential = (
-  request: SetupRequest,
-  progress: SetupProgress,
-) => {
-  const { stages, actions, completed, pending } = progress;
+const reportSkippedCredential = (request: SetupRequest, progress: SetupProgress) => {
+  const { stages, actions, completed, pending } = progress
   stages.push({
     stage: "credential",
     status: request.scope.review === "disabled" ? "skipped" : "pending",
-    summary: "credential setup was explicitly skipped",
-  });
-  if (request.scope.review === "disabled")
-    completed.push("credential setup skipped");
+    summary: "credential setup was explicitly skipped"
+  })
+  if (request.scope.review === "disabled") completed.push("credential setup skipped")
   else {
     actions.push({
       stage: "credential",
       code: "select-credential-source",
-      action:
-        "rerun setup with an explicit saved or environment credential source before expecting review readiness",
-    });
-    pending.push("select a credential source");
+      action: "rerun setup with an explicit saved or environment credential source before expecting review readiness"
+    })
+    pending.push("select a credential source")
   }
-};
+}
 
-const reportInteractiveCredentialAction = (
-  outcome: InteractiveCredentialOutcome,
-  progress: SetupProgress,
-) => {
-  const { actions } = progress;
-  const indeterminate = outcome.status === "indeterminate";
-  const cancelled = outcome.status === "cancelled";
+const reportInteractiveCredentialAction = (outcome: InteractiveCredentialOutcome, progress: SetupProgress) => {
+  const { actions } = progress
+  const indeterminate = outcome.status === "indeterminate"
+  const cancelled = outcome.status === "cancelled"
   actions.push({
     stage: "credential",
     code: interactiveCredentialActionCode(outcome.status),
@@ -277,9 +198,9 @@ const reportInteractiveCredentialAction = (
           ? "unlock the login keyring, then run hapsland --login"
           : outcome.status === "invalid"
             ? "run hapsland --login again and enter a nonempty credential"
-            : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run hapsland --login. Alternatively set TYPESAFE_API_KEY before setup and launching the agent",
-  });
-};
+            : "reinstall an archive containing the native helper for this platform if it is missing, or repair native credential storage; then run hapsland --login. Alternatively set TYPESAFE_API_KEY before setup and launching the agent"
+  })
+}
 
 const interactiveCredentialActionCode = (status: string) =>
   status === "cancelled"
@@ -288,15 +209,12 @@ const interactiveCredentialActionCode = (status: string) =>
       ? "reconcile-credential-lifecycle"
       : status === "invalid"
         ? "replace-invalid-credential"
-        : "recover-credential-storage";
+        : "recover-credential-storage"
 
-const reportInteractiveCredential = (
-  outcome: InteractiveCredentialOutcome,
-  progress: SetupProgress,
-) => {
-  const { stages, pending } = progress;
-  const indeterminate = outcome.status === "indeterminate";
-  const cancelled = outcome.status === "cancelled";
+const reportInteractiveCredential = (outcome: InteractiveCredentialOutcome, progress: SetupProgress) => {
+  const { stages, pending } = progress
+  const indeterminate = outcome.status === "indeterminate"
+  const cancelled = outcome.status === "cancelled"
   stages.push({
     stage: "credential",
     status: "pending",
@@ -314,108 +232,113 @@ const reportInteractiveCredential = (
         ? {
             generation: outcome.generation,
             savedCredentialUse: outcome.savedCredentialUse,
-            ...(indeterminate ? {} : { previousCredentialPreserved: true }),
+            ...(indeterminate ? {} : { previousCredentialPreserved: true })
           }
-        : { previousCredentialPreserved: true }),
-    },
-  });
-  pending.push(
-    indeterminate
-      ? "reconcile suspended saved credential use"
-      : "complete saved credential login",
-  );
-  reportInteractiveCredentialAction(outcome, progress);
-};
+        : { previousCredentialPreserved: true })
+    }
+  })
+  pending.push(indeterminate ? "reconcile suspended saved credential use" : "complete saved credential login")
+  reportInteractiveCredentialAction(outcome, progress)
+}
+
+const credentialPendingSummary = (resolution: CredentialResolution): string => {
+  if (resolution.source === "saved" && resolution.status === "unavailable")
+    return "native credential storage is unavailable; Hapsland could not check for a saved Jev key"
+  if (resolution.status === "missing")
+    return "a Jev API key is required; no key was found in the selected credential source"
+  return `the selected ${resolution.source} credential is ${resolution.status}`
+}
+
+const credentialPendingAction = (
+  request: SetupRequest,
+  settings: ReviewSettings,
+  environmentOnly: boolean,
+  resolution: CredentialResolution
+): string => {
+  if (resolution.file !== undefined)
+    return `restore a readable regular credential file at ${resolution.file}, then rerun setup`
+  if (resolution.status === "locked")
+    return "unlock the login keyring in the desktop session, then rerun setup interactively"
+  if (request.credential === "environment" || environmentOnly)
+    return `set ${settings.credentialEnvVar} in the selected host execution environment, then rerun setup`
+  if (resolution.status === "missing" || resolution.status === "invalid")
+    return "rerun setup interactively in a user terminal for masked credential entry; use --new-key to replace a saved key"
+  return `restore native credential storage (Linux: a session D-Bus Secret Service with a default collection; macOS: login Keychain), or set ${settings.credentialEnvVar} in the terminal before setup and launching the agent`
+}
 
 const reportCredentialResolution = (
   request: SetupRequest,
   settings: ReviewSettings,
   environmentOnly: boolean,
   resolution: CredentialResolution,
-  progress: SetupProgress,
+  progress: SetupProgress
 ) => {
-  const { stages, actions, completed, pending } = progress;
+  const { stages, actions, completed, pending } = progress
   if (resolution.status === "present") {
     stages.push({
       stage: "credential",
       status: "complete",
-      summary: `a review credential is available from ${resolution.source}`,
+      summary: `a review credential is available from ${resolution.file ?? resolution.source}`,
       observed: {
         source: resolution.source,
+        ...(resolution.file === undefined ? {} : { file: resolution.file }),
         inspectedContext: "setup-process",
-        valueDisclosed: false,
-      },
-    });
-    completed.push("credential available to setup");
+        valueDisclosed: false
+      }
+    })
+    completed.push("credential available to setup")
   } else {
-    const code =
-      resolution.status === "locked"
-        ? "unlock-credential-store"
-        : "provide-credential";
+    const code = resolution.status === "locked" ? "unlock-credential-store" : "provide-credential"
     stages.push({
       stage: "credential",
       status: "pending",
-      summary: resolution.source === "saved" && resolution.status === "unavailable"
-        ? "native credential storage is unavailable; Hapsland could not check for a saved Jev key"
-        : resolution.status === "missing" ? "a Jev API key is required; no key was found in the selected credential source"
-        : `the selected ${resolution.source} credential is ${resolution.status}`,
+      summary: credentialPendingSummary(resolution),
       observed: {
         source: resolution.source,
+        ...(resolution.file === undefined ? {} : { file: resolution.file }),
         status: resolution.status,
         inspectedContext: "setup-process",
-        valueDisclosed: false,
-      },
-    });
+        valueDisclosed: false
+      }
+    })
     actions.push({
       stage: "credential",
       code,
-      action:
-        resolution.status === "locked"
-          ? "unlock the login keyring in the desktop session, then rerun setup interactively"
-          : request.credential === "environment" || environmentOnly
-            ? `set ${settings.credentialEnvVar} in the selected host execution environment, then rerun setup`
-            : resolution.status === "missing" || resolution.status === "invalid"
-              ? "rerun setup interactively in a user terminal for masked credential entry; use --new-key to replace a saved key"
-              : `restore native credential storage (Linux: a session D-Bus Secret Service with a default collection; macOS: login Keychain), or set ${settings.credentialEnvVar} in the terminal before setup and launching the agent`,
-    });
-    pending.push("make the selected credential available");
+      action: credentialPendingAction(request, settings, environmentOnly, resolution)
+    })
+    pending.push("make the selected credential available")
   }
-};
+}
 
 const readInteractiveCredential = Effect.fn("Setup.readCredential")(function* (
   readCredential: () => Effect.Effect<string, unknown>,
-  settings: ReviewSettings,
+  settings: ReviewSettings
 ) {
-  let resolution: CredentialResolution | undefined;
-  let interactiveOutcome: InteractiveCredentialOutcome | undefined;
-  const valueResult = yield* readCredential().pipe(Effect.result);
+  let resolution: CredentialResolution | undefined
+  let interactiveOutcome: InteractiveCredentialOutcome | undefined
+  const valueResult = yield* readCredential().pipe(Effect.result)
   if (valueResult._tag === "Success") {
-    let value = valueResult.success;
-    const saved = yield* saveCredential(value);
-    value = "";
+    let value = valueResult.success
+    const saved = yield* saveCredential(value)
+    value = ""
     if (saved.status === "stored") {
-      resolution = yield* resolveCredential({
-        envVar: settings.credentialEnvVar,
-        environmentOnly: false,
-      });
+      resolution = yield* resolveCredential({ envVar: settings.credentialEnvVar, environmentOnly: false })
     } else {
       interactiveOutcome = {
         status: saved.status,
         generation: saved.state.generation,
-        savedCredentialUse: saved.state.savedUseSuspended
-          ? "suspended"
-          : "active",
-      };
+        savedCredentialUse: saved.state.savedUseSuspended ? "suspended" : "active"
+      }
     }
-  } else interactiveOutcome = { status: "cancelled" };
-  return { resolution, interactiveOutcome };
-});
+  } else interactiveOutcome = { status: "cancelled" }
+  return { resolution, interactiveOutcome }
+})
 
 const maskedCredentialReader = (
   request: SetupRequest,
   options: SetupOptions,
   resolution: CredentialResolution,
-  installed: boolean,
+  installed: boolean
 ) => {
   if (
     request.credential === "saved" &&
@@ -424,119 +347,137 @@ const maskedCredentialReader = (
     resolution.status === "missing" &&
     installed
   ) {
-    return options.readCredential;
+    return options.readCredential
   }
-  return undefined;
-};
+  return undefined
+}
+
+const newCredentialReader = (
+  request: SetupRequest,
+  options: SetupOptions,
+  environmentOnly: boolean,
+  installed: boolean
+) => {
+  if (request.credential !== "saved" || environmentOnly || !installed || request.interactive !== true) return undefined
+  return options.readCredential
+}
+
+const reportNewCredentialPending = (settings: ReviewSettings, environmentOnly: boolean, progress: SetupProgress) => {
+  progress.stages.push({
+    stage: "credential",
+    status: "pending",
+    summary: environmentOnly
+      ? "new saved key entry cannot replace the configured environment credential"
+      : "a new Jev key requires interactive entry after installation approval"
+  })
+  progress.actions.push({
+    stage: "credential",
+    code: "provide-credential",
+    action: environmentOnly
+      ? `set ${settings.credentialEnvVar} in the selected host execution environment; remove the explicit credentialEnvVar setting to use saved login`
+      : "run hapsland setup with --new-key in a user terminal and approve installation"
+  })
+  progress.pending.push("enter a new credential")
+}
+
+const setupNewCredential = Effect.fn("Setup.newCredential")(function* (
+  request: SetupRequest,
+  options: SetupOptions,
+  settings: ReviewSettings,
+  installed: boolean,
+  environmentOnly: boolean,
+  progress: SetupProgress
+) {
+  const reader = newCredentialReader(request, options, environmentOnly, installed)
+  if (reader === undefined) {
+    reportNewCredentialPending(settings, environmentOnly, progress)
+    return
+  }
+  const result = yield* readInteractiveCredential(reader, settings)
+  if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress)
+  else if (result.resolution !== undefined)
+    reportCredentialResolution(request, settings, false, result.resolution, progress)
+})
 
 const setupCredential = Effect.fn("Setup.credential")(function* (
   request: SetupRequest,
   options: SetupOptions,
   settings: ReviewSettings,
   installed: boolean,
-  progress: SetupProgress,
+  progress: SetupProgress
 ) {
   const environmentOnly =
-    request.credential === "environment" ||
-    settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in";
+    request.credential === "environment" || settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   if (request.newKey === true) {
-    if (request.credential !== "saved" || environmentOnly || !installed || request.interactive !== true || options.readCredential === undefined) {
-      progress.stages.push({ stage: "credential", status: "pending", summary: environmentOnly
-        ? "new saved key entry cannot replace the configured environment credential"
-        : "a new Jev key requires interactive entry after installation approval" });
-      progress.actions.push({ stage: "credential", code: "provide-credential", action: environmentOnly
-        ? `set ${settings.credentialEnvVar} in the selected host execution environment; remove the explicit credentialEnvVar setting to use saved login`
-        : "run hapsland setup with --new-key in a user terminal and approve installation" });
-      progress.pending.push("enter a new credential");
-      return;
-    }
-    const result = yield* readInteractiveCredential(options.readCredential, settings);
-    if (result.interactiveOutcome !== undefined) reportInteractiveCredential(result.interactiveOutcome, progress);
-    else if (result.resolution !== undefined) reportCredentialResolution(request, settings, false, result.resolution, progress);
-    return;
+    yield* setupNewCredential(request, options, settings, installed, environmentOnly, progress)
+    return
   }
   if (request.credential === "skip") {
-    reportSkippedCredential(request, progress);
+    reportSkippedCredential(request, progress)
   } else {
     let resolution = yield* resolveCredential({
       envVar: settings.credentialEnvVar,
       environmentOnly,
-    });
-    let interactiveOutcome: InteractiveCredentialOutcome | undefined;
-    const readCredential = maskedCredentialReader(
-      request,
-      options,
-      resolution,
-      installed,
-    );
+      root: settings.configuration.policy.root
+    })
+    let interactiveOutcome: InteractiveCredentialOutcome | undefined
+    const readCredential = maskedCredentialReader(request, options, resolution, installed)
     if (readCredential !== undefined) {
-      const result = yield* readInteractiveCredential(readCredential, settings);
-      interactiveOutcome = result.interactiveOutcome;
-      if (result.resolution !== undefined) resolution = result.resolution;
+      const result = yield* readInteractiveCredential(readCredential, settings)
+      interactiveOutcome = result.interactiveOutcome
+      if (result.resolution !== undefined) resolution = result.resolution
     }
     if (interactiveOutcome !== undefined) {
-      reportInteractiveCredential(interactiveOutcome, progress);
+      reportInteractiveCredential(interactiveOutcome, progress)
     } else {
-      reportCredentialResolution(
-        request,
-        settings,
-        environmentOnly,
-        resolution,
-        progress,
-      );
+      reportCredentialResolution(request, settings, environmentOnly, resolution, progress)
     }
   }
-});
+})
 
 const reportCompatibility = (
   installationStatus: string,
   hostName: string,
   compatibility: RecordValue | undefined,
-  progress: SetupProgress,
+  progress: SetupProgress
 ) => {
-  const { stages, actions, completed } = progress;
+  const { stages, actions, completed } = progress
   if (installationStatus === "unsupported") {
     stages.push({
       stage: "compatibility",
       status: "unsupported",
       summary: `the selected ${hostName} host is unsupported`,
-      observed: compatibility,
-    });
+      observed: compatibility
+    })
     actions.push({
       stage: "compatibility",
       code: "select-supported-host",
-      action: `select a declared ${hostName} executable and the packaged Bun runtime, then rerun setup`,
-    });
+      action: `select a declared ${hostName} executable and the packaged Bun runtime, then rerun setup`
+    })
   } else {
     stages.push({
       stage: "compatibility",
       status: "complete",
       summary: `the selected ${hostName} host and packaged runtime are compatible`,
-      observed: compatibility,
-    });
-    completed.push("compatibility checked");
+      observed: compatibility
+    })
+    completed.push("compatibility checked")
   }
-};
+}
 
 type InstallationState = {
-  readonly currentInstallationStatus: string;
-  readonly installedAtPreview: boolean;
-  readonly hostName: string;
-  readonly hostHome: string | undefined;
-  readonly installationRecord: RecordValue;
-  readonly proposal: RecordValue | undefined;
-  readonly installDigest: string | undefined;
-};
+  readonly currentInstallationStatus: string
+  readonly installedAtPreview: boolean
+  readonly hostName: string
+  readonly hostHome: string | undefined
+  readonly installationRecord: RecordValue
+  readonly proposal: RecordValue | undefined
+  readonly installDigest: string | undefined
+}
 
 const reportInstalled = (state: InstallationState, progress: SetupProgress) => {
-  const { stages, completed } = progress;
-  const {
-    currentInstallationStatus,
-    installedAtPreview,
-    hostName,
-    hostHome,
-    installationRecord,
-  } = state;
+  const { stages, completed } = progress
+  const { currentInstallationStatus, installedAtPreview, hostName, hostHome, installationRecord } = state
   stages.push({
     stage: "installation",
     status: "complete",
@@ -544,167 +485,129 @@ const reportInstalled = (state: InstallationState, progress: SetupProgress) => {
       currentInstallationStatus === "already-installed" || installedAtPreview
         ? `the owned ${hostName} integration is already installed`
         : `the owned ${hostName} integration was installed`,
-    observed: { home: hostHome, changes: list(installationRecord.completed) },
-  });
-  completed.push(`owned ${hostName} integration installed`);
-};
+    observed: { home: hostHome, changes: list(installationRecord.completed) }
+  })
+  completed.push(`owned ${hostName} integration installed`)
+}
 
-const reportPartialInstallation = (
-  state: InstallationState,
-  progress: SetupProgress,
-) => {
-  const { stages, actions, pending } = progress;
-  const { installationRecord, proposal, installDigest } = state;
+const reportPartialInstallation = (state: InstallationState, progress: SetupProgress) => {
+  const { stages, actions, pending } = progress
+  const { installationRecord, proposal, installDigest } = state
   stages.push({
     stage: "installation",
     status: "partial",
     summary: "installation stopped after partial completion",
-    observed: {
-      recovery: installationRecord.recovery,
-      proposal: installationRecord.proposal ?? proposal,
-    },
-  });
-  const recovery = record(installationRecord.recovery);
-  const recoveryDigest = text(recovery?.proposalDigest) ?? installDigest;
+    observed: { recovery: installationRecord.recovery, proposal: installationRecord.proposal ?? proposal }
+  })
+  const recovery = record(installationRecord.recovery)
+  const recoveryDigest = text(recovery?.proposalDigest) ?? installDigest
   actions.push({
     stage: "installation",
     code: "resume-installation",
     action: "rerun setup with the journaled installation proposal digest",
-    ...(recoveryDigest === undefined
-      ? {}
-      : { authorization: { installProposalDigest: recoveryDigest } }),
-  });
-  pending.push("resume the journaled installation");
-};
+    ...(recoveryDigest === undefined ? {} : { authorization: { installProposalDigest: recoveryDigest } })
+  })
+  pending.push("resume the journaled installation")
+}
 
 const reportInstallationApproval = (
   state: InstallationState & { readonly installDigest: string },
-  progress: SetupProgress,
+  progress: SetupProgress
 ) => {
-  const { stages, actions, pending } = progress;
-  const { hostName, proposal, installDigest } = state;
+  const { stages, actions, pending } = progress
+  const { hostName, proposal, installDigest } = state
   stages.push({
     stage: "installation",
     status: "pending",
     summary: "installation requires approval of the exact owned changes",
     observed: {
-      proposal: {
-        digest: installDigest,
-        changes: list(proposal?.changes),
-        ownedChanges: proposal?.ownedChanges,
-      },
-    },
-  });
+      proposal: { digest: installDigest, changes: list(proposal?.changes), ownedChanges: proposal?.ownedChanges }
+    }
+  })
   actions.push({
     stage: "installation",
     code: "approve-installation",
-    action:
-      "review the change summary, then rerun setup with its proposal digest",
-    authorization: { installProposalDigest: installDigest },
-  });
-  pending.push(`approve the owned ${hostName} configuration changes`);
-};
+    action: "review the change summary, then rerun setup with its proposal digest",
+    authorization: { installProposalDigest: installDigest }
+  })
+  pending.push(`approve the owned ${hostName} configuration changes`)
+}
 
-const reportInstallationConflict = (
-  state: InstallationState,
-  progress: SetupProgress,
-) => {
-  const { stages, actions, pending } = progress;
-  const { currentInstallationStatus, hostName, installationRecord } = state;
-  const status: StageStatus =
-    currentInstallationStatus === "unsupported" ? "unsupported" : "conflict";
+const reportInstallationConflict = (state: InstallationState, progress: SetupProgress) => {
+  const { stages, actions, pending } = progress
+  const { currentInstallationStatus, hostName, installationRecord } = state
+  const status: StageStatus = currentInstallationStatus === "unsupported" ? "unsupported" : "conflict"
   stages.push({
     stage: "installation",
     status,
     summary: `the owned ${hostName} integration could not be installed`,
-    observed: installationRecord.error,
-  });
+    observed: installationRecord.error
+  })
   actions.push({
     stage: "installation",
-    code:
-      status === "unsupported"
-        ? "select-supported-host"
-        : "resolve-installation-conflict",
+    code: status === "unsupported" ? "select-supported-host" : "resolve-installation-conflict",
     action:
       status === "unsupported"
         ? `select a supported ${hostName} executable and host configuration home, then rerun setup`
-        : "preserve the selected host files, resolve the reported ownership or configuration conflict, then rerun setup",
-  });
-  pending.push("resolve the reported installation problem");
-};
+        : "preserve the selected host files, resolve the reported ownership or configuration conflict, then rerun setup"
+  })
+  pending.push("resolve the reported installation problem")
+}
 
-const reportInstallation = (
-  state: InstallationState,
-  installed: boolean,
-  progress: SetupProgress,
-) => {
-  if (installed) return reportInstalled(state, progress);
-  if (state.currentInstallationStatus === "partial")
-    return reportPartialInstallation(state, progress);
-  if (
-    state.currentInstallationStatus === "preview" &&
-    state.installDigest !== undefined
-  ) {
-    return reportInstallationApproval(
-      { ...state, installDigest: state.installDigest },
-      progress,
-    );
+const reportInstallation = (state: InstallationState, installed: boolean, progress: SetupProgress) => {
+  if (installed) return reportInstalled(state, progress)
+  if (state.currentInstallationStatus === "partial") return reportPartialInstallation(state, progress)
+  if (state.currentInstallationStatus === "preview" && state.installDigest !== undefined) {
+    return reportInstallationApproval({ ...state, installDigest: state.installDigest }, progress)
   }
-  reportInstallationConflict(state, progress);
-};
+  reportInstallationConflict(state, progress)
+}
 
 const installationOperations = (request: SetupRequest) => {
-  if (request.host === "pi") return { preview: () => previewPiInstallation(request), install: (proposalDigest: string) => installPiIntegration({ ...request, proposalDigest }) };
+  if (request.host === "pi")
+    return {
+      preview: () => previewPiInstallation(request),
+      install: (proposalDigest: string) => installPiIntegration({ ...request, proposalDigest })
+    }
   if (request.host === "codex") {
-    const codexRequest = installationRequest(request);
+    const codexRequest = installationRequest(request)
     return {
       preview: () => previewCodexInstallation(codexRequest),
-      install: (proposalDigest: string) =>
-        installCodexIntegration({ ...codexRequest, proposalDigest }),
-    };
+      install: (proposalDigest: string) => installCodexIntegration({ ...codexRequest, proposalDigest })
+    }
   }
   const claudeRequest = {
-    ...(request.claudeHome === undefined
-      ? {}
-      : { claudeHome: request.claudeHome }),
-    ...(request.claudeExecutable === undefined
-      ? {}
-      : { claudeExecutable: request.claudeExecutable }),
-  };
-  const claudeInstalled = hasClaudeRegistration(claudeRequest);
+    ...(request.claudeHome === undefined ? {} : { claudeHome: request.claudeHome }),
+    ...(request.claudeExecutable === undefined ? {} : { claudeExecutable: request.claudeExecutable })
+  }
+  const claudeInstalled = hasClaudeRegistration(claudeRequest)
   const preview = Effect.fn("Setup.previewInstallation")(function* () {
-    if (!claudeInstalled)
-      return yield* previewClaudeInstallation(claudeRequest);
-    const target = yield* previewClaudeUpdate(claudeRequest);
-    const changes = list(record(record(target)?.proposal)?.changes);
-    return {
-      ...target,
-      installed: target.status === "preview" && changes.length === 0,
-    };
-  });
+    if (!claudeInstalled) return yield* previewClaudeInstallation(claudeRequest)
+    const target = yield* previewClaudeUpdate(claudeRequest)
+    const changes = list(record(record(target)?.proposal)?.changes)
+    return { ...target, installed: target.status === "preview" && changes.length === 0 }
+  })
   return {
     preview,
     install: (proposalDigest: string) =>
       claudeInstalled
         ? updateClaudeIntegration({ ...claudeRequest, proposalDigest })
-        : installClaudeIntegration({ ...claudeRequest, proposalDigest }),
-  };
-};
+        : installClaudeIntegration({ ...claudeRequest, proposalDigest })
+  }
+}
 
 const shouldApplyInstallation = (
   status: string,
   installed: boolean,
   suppliedDigest: string | undefined,
-  digest: string | undefined,
+  digest: string | undefined
 ) => {
-  if (digest === undefined || suppliedDigest !== digest) return false;
-  return status === "partial" || (status === "preview" && !installed);
-};
+  if (digest === undefined || suppliedDigest !== digest) return false
+  return status === "partial" || (status === "preview" && !installed)
+}
 
 const optionalNextSteps = (request: SetupRequest, status: string) =>
-  status === "completed" &&
-  request.scope.review === "enabled" &&
-  request.host === "codex"
+  status === "completed" && request.scope.review === "enabled" && request.host === "codex"
     ? {
         optionalNextSteps: [
           {
@@ -712,93 +615,63 @@ const optionalNextSteps = (request: SetupRequest, status: string) =>
             selection: "preview" as const,
             paid: false as const,
             action:
-              "optionally preview the separate synthetic first-review demo; live execution requires an explicit selection for its disposable root",
-          },
-        ],
+              "optionally preview the separate synthetic first-review demo; live execution requires an explicit selection for its disposable root"
+          }
+        ]
       }
-    : {};
+    : {}
 
 const installationPreview = (request: SetupRequest, installation: unknown) => {
-  const installationRecord = record(installation) ?? {};
-  const previewHost = record(installationRecord.host);
-  const compatibility = record(previewHost?.compatibility);
-  const installationStatus = text(installationRecord.status) ?? "conflict";
+  const installationRecord = record(installation) ?? {}
+  const previewHost = record(installationRecord.host)
+  const compatibility = record(previewHost?.compatibility)
+  const installationStatus = text(installationRecord.status) ?? "conflict"
   const hostHome =
     text(previewHost?.home) ??
-    (request.host === "pi" ? request.piHome : request.host === "claude" ? request.claudeHome : request.codexHome);
+    (request.host === "pi" ? request.piHome : request.host === "claude" ? request.claudeHome : request.codexHome)
 
-  return { installationRecord, compatibility, installationStatus, hostHome };
-};
+  return { installationRecord, compatibility, installationStatus, hostHome }
+}
 
-const setupInstallation = Effect.fn("Setup.installation")(function* (
-  request: SetupRequest,
-  progress: SetupProgress,
-) {
-  const hostName = request.host === "pi" ? "Pi" : request.host === "claude" ? "Claude Code" : "Codex";
-  const { preview, install } = installationOperations(request);
-  let installation: unknown = yield* preview();
-  const previewEvidence = installationPreview(request, installation);
-  let installationRecord = previewEvidence.installationRecord;
-  const { compatibility, installationStatus, hostHome } = previewEvidence;
+const setupInstallation = Effect.fn("Setup.installation")(function* (request: SetupRequest, progress: SetupProgress) {
+  const hostName = request.host === "pi" ? "Pi" : request.host === "claude" ? "Claude Code" : "Codex"
+  const { preview, install } = installationOperations(request)
+  let installation: unknown = yield* preview()
+  const previewEvidence = installationPreview(request, installation)
+  let installationRecord = previewEvidence.installationRecord
+  const { compatibility, installationStatus, hostHome } = previewEvidence
 
-  reportCompatibility(installationStatus, hostName, compatibility, progress);
+  reportCompatibility(installationStatus, hostName, compatibility, progress)
 
-  const proposal = record(installationRecord.proposal);
-  const installDigest = text(proposal?.digest);
-  const installedAtPreview = installationRecord.installed === true;
+  const proposal = record(installationRecord.proposal)
+  const installDigest = text(proposal?.digest)
+  const installedAtPreview = installationRecord.installed === true
   if (
-    shouldApplyInstallation(
-      installationStatus,
-      installedAtPreview,
-      request.installProposalDigest,
-      installDigest,
-    ) &&
+    shouldApplyInstallation(installationStatus, installedAtPreview, request.installProposalDigest, installDigest) &&
     installDigest !== undefined
   ) {
-    installation = yield* install(installDigest);
-    installationRecord = record(installation) ?? {};
+    installation = yield* install(installDigest)
+    installationRecord = record(installation) ?? {}
   }
 
-  const currentInstallationStatus =
-    text(installationRecord.status) ?? installationStatus;
+  const currentInstallationStatus = text(installationRecord.status) ?? installationStatus
   const installed =
     installedAtPreview ||
-    [
-      "installed",
-      "already-installed",
-      "complete",
-      "updated",
-      "already-current",
-    ].includes(currentInstallationStatus);
+    ["installed", "already-installed", "complete", "updated", "already-current"].includes(currentInstallationStatus)
   reportInstallation(
-    {
-      currentInstallationStatus,
-      installedAtPreview,
-      hostName,
-      hostHome,
-      installationRecord,
-      proposal,
-      installDigest,
-    },
+    { currentInstallationStatus, installedAtPreview, hostName, hostHome, installationRecord, proposal, installDigest },
     installed,
-    progress,
-  );
-  return { installed, hostHome, hostName };
-});
+    progress
+  )
+  return { installed, hostHome, hostName }
+})
 
-const setupStatus = (
-  request: SetupRequest,
-  installed: boolean,
-  progress: SetupProgress,
-) => {
-  const { stages, actions, completed } = progress;
+const setupStatus = (request: SetupRequest, installed: boolean, progress: SetupProgress) => {
+  const { stages, actions, completed: _completed } = progress
   const blockingStage = stages.find(
-    (stage) =>
-      stage.status === "unsupported" ||
-      stage.status === "conflict" ||
-      stage.status === "partial",
-  );
-  const repositoryStage = stages.find((stage) => stage.stage === "repository");
+    (stage) => stage.status === "unsupported" || stage.status === "conflict" || stage.status === "partial"
+  )
+  const repositoryStage = stages.find((stage) => stage.stage === "repository")
   const status =
     blockingStage?.status === "unsupported"
       ? "unsupported"
@@ -806,71 +679,51 @@ const setupStatus = (
         ? "conflict"
         : blockingStage?.status === "partial"
           ? "partial"
-          : request.scope.review === "disabled" &&
-              installed &&
-              repositoryStage?.status === "complete"
+          : request.scope.review === "disabled" && installed && repositoryStage?.status === "complete"
             ? "completed"
             : actions.length > 0
               ? "needs-user-action"
-              : "completed";
-  return status;
-};
+              : "completed"
+  return status
+}
 
-export const runSetup = Effect.fn("Setup.run")(function* (
-  request: SetupRequest,
-  options: SetupOptions,
-) {
-  const stages: Array<SetupStage> = [];
-  const actions: Array<SetupAction> = [];
-  const completed: Array<string> = [];
-  const pending: Array<string> = [];
-  const progress: SetupProgress = { stages, actions, completed, pending };
-  const { installed, hostHome, hostName } = yield* setupInstallation(
-    request,
-    progress,
-  );
+export const runSetup = Effect.fn("Setup.run")(function* (request: SetupRequest, options: SetupOptions) {
+  const stages: Array<SetupStage> = []
+  const actions: Array<SetupAction> = []
+  const completed: Array<string> = []
+  const pending: Array<string> = []
+  const progress: SetupProgress = { stages, actions, completed, pending }
+  const { installed, hostHome, hostName } = yield* setupInstallation(request, progress)
 
-  const rootResult = yield* discoverWorkingTreeRoot(request.scope.cwd).pipe(
-    Effect.result,
-  );
+  const rootResult = yield* discoverWorkingTreeRoot(request.scope.cwd).pipe(Effect.result)
   const settingsResult =
     rootResult._tag === "Success"
       ? yield* loadReviewSettings(
           rootResult.success,
-          options.userConfigPath === undefined
-            ? {}
-            : { userConfigPath: options.userConfigPath },
+          options.userConfigPath === undefined ? {} : { userConfigPath: options.userConfigPath }
         ).pipe(Effect.result)
-      : undefined;
+      : undefined
 
-  if (
-    rootResult._tag === "Failure" ||
-    settingsResult === undefined ||
-    settingsResult._tag === "Failure"
-  ) {
-    reportRepositoryFailure(rootResult._tag === "Failure", progress);
+  if (rootResult._tag === "Failure" || settingsResult === undefined || settingsResult._tag === "Failure") {
+    reportRepositoryFailure(rootResult._tag === "Failure", progress)
   } else {
-    const settings = settingsResult.success;
-    yield* setupCredential(request, options, settings, installed, progress);
+    const settings = settingsResult.success
+    yield* setupCredential(request, options, settings, installed, progress)
 
-    reportRepositorySettings(request, settings, rootResult.success, progress);
+    reportRepositorySettings(request, settings, rootResult.success, progress)
   }
 
-  reportExecutionContext(installed, hostName, progress);
+  reportExecutionContext(installed, hostName, progress)
 
-  const status = setupStatus(request, installed, progress);
+  const status = setupStatus(request, installed, progress)
   return {
     version: 1 as const,
     operation: "setup" as const,
     status,
-    host: {
-      adapter: request.host,
-      ...(hostHome === undefined ? {} : { home: hostHome }),
-    },
+    host: { adapter: request.host, ...(hostHome === undefined ? {} : { home: hostHome }) },
     scope: {
-      repository:
-        rootResult._tag === "Success" ? rootResult.success : request.scope.cwd,
-      review: request.scope.review,
+      repository: rootResult._tag === "Success" ? rootResult.success : request.scope.cwd,
+      review: request.scope.review
     },
     providerCalls: 0 as const,
     paidVerificationPerformed: false as const,
@@ -878,8 +731,8 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     completed,
     pending,
     actions: actions.slice(0, 4),
-    ...optionalNextSteps(request, status),
-  };
-});
+    ...optionalNextSteps(request, status)
+  }
+})
 
-export * as Setup from "./setup.ts";
+export * as Setup from "./setup.ts"

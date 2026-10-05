@@ -1,30 +1,30 @@
-import { assertReviewEngineBoundary } from "./runtime/review-engine-boundary.ts";
-import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe";
-import * as Config from "effect/Config";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as Schema from "effect/Schema";
-import { Decision, DecisionModel } from "effect/ai";
-import * as FetchHttpClient from "effect/http/FetchHttpClient";
-import * as HttpClient from "effect/http/HttpClient";
-import { JEV_API_BASE } from "./runtime/backend.ts";
+import { assertReviewEngineBoundary } from "./runtime/review-engine-boundary.ts"
+import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe"
+import * as Config from "effect/Config"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Schema from "effect/Schema"
+import { Decision, DecisionModel } from "effect/ai"
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
+import * as HttpClient from "effect/http/HttpClient"
+import { JEV_API_BASE } from "./runtime/backend.ts"
 
-assertReviewEngineBoundary("jev-decision");
+assertReviewEngineBoundary("jev-decision")
 
-export const MODEL = "jev-latest";
+export const MODEL = "jev-latest"
 
-type ProbabilityDecisions = Readonly<Record<string, Decision.Probability>>;
+type ProbabilityDecisions = Readonly<Record<string, Decision.Probability>>
 
 /** Validate an unknown script fixture as JSON, then issue all decisions in one request. */
 export const decide = <const Decisions extends ProbabilityDecisions>(options: {
-  readonly state: unknown;
-  readonly decisions: Decisions;
+  readonly state: unknown
+  readonly decisions: Decisions
 }) =>
   Effect.gen(function* () {
-    const input = yield* Schema.decodeUnknownEffect(Schema.Json)(options.state);
-    const definition = Decision.make({ input: Schema.Json, decisions: options.decisions });
-    return yield* DecisionModel.decide(definition, { input });
-  });
+    const input = yield* Schema.decodeUnknownEffect(Schema.Json)(options.state)
+    const definition = Decision.make({ input: Schema.Json, decisions: options.decisions })
+    return yield* DecisionModel.decide(definition, { input })
+  })
 
 /**
  * Builds the Jev-backed DecisionModel for one explicit destination and credential
@@ -32,25 +32,26 @@ export const decide = <const Decisions extends ProbabilityDecisions>(options: {
  * silently replaced by a provider default after dispatch authorization.
  */
 export const liveLayer = (options: {
-  readonly apiUrl: string;
-  readonly credentialEnvVar: string;
+  readonly apiUrl: string
+  readonly credentialEnvVar: string
   /** Explicit offline transport for resident conformance witnesses. */
-  readonly httpClient?: HttpClient.HttpClient;
+  readonly httpClient?: HttpClient.HttpClient
 }) => {
   const client = Layer.effect(
     TypeSafeClient.TypeSafeClient,
     Effect.gen(function* () {
-      const apiKey = yield* Config.Redacted(options.credentialEnvVar);
-      return yield* TypeSafeClient.make({ apiKey, apiUrl: options.apiUrl });
-    }),
-  ).pipe(Layer.provide(options.httpClient === undefined
-    ? FetchHttpClient.layer
-    : Layer.succeed(HttpClient.HttpClient, options.httpClient)));
-  return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client));
-};
+      const apiKey = yield* Config.Redacted(options.credentialEnvVar)
+      return yield* TypeSafeClient.make({ apiKey, apiUrl: options.apiUrl })
+    })
+  ).pipe(
+    Layer.provide(
+      options.httpClient === undefined
+        ? FetchHttpClient.layer
+        : Layer.succeed(HttpClient.HttpClient, options.httpClient)
+    )
+  )
+  return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client))
+}
 
 /** Reads TYPESAFE_API_KEY and uses the TypeSafe service's default destination. */
-export const Live = liveLayer({
-  apiUrl: JEV_API_BASE,
-  credentialEnvVar: "TYPESAFE_API_KEY",
-});
+export const Live = liveLayer({ apiUrl: JEV_API_BASE, credentialEnvVar: "TYPESAFE_API_KEY" })

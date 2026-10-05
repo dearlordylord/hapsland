@@ -16,6 +16,44 @@ This comparison concerns review inputs and data boundaries. Rule origins, loadin
 | **How can users restrict file access?** | Configured exclusions are checked before Hapsland reads the declaration or supporting files. | There are built-in filename exclusions. A rule's configurable file scope limits that rule's review inputs; it is not a general prohibition on local reading or storage. |
 | **What is stored on disk?** | Collected review code and pending advice remain in memory. Hapsland's activity history does not contain source code. | Whole-turn review uses Git snapshots. Local session state can retain original source from affected files and the user task. |
 
+## Credential lookup in setup and hooks
+
+This targeted credential comparison was source-inspected on 2026-10-04 against
+Abide 0.0.8, commit `a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac`; it updates only
+the credential scope, not the 0.0.7 native observations below. No Abide credential
+flow or provider request was executed for this investigation.
+
+Abide's [shared credential resolver](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/lib/credentials.ts#L28-L109)
+searches process environment, repository `.env.local`, repository `.env`, then
+`~/.abide/.env`, choosing the first source with a nonempty supported key.
+[Init](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/commands/init.ts#L49-L55)
+and [session-start hooks](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/hooks/sessionStart.ts#L64-L76)
+use that resolver; edit and stop hooks do too. A new hook process reads the file
+sources itself rather than depending on environment injected during installation.
+The reader extracts supported credential fields without loading the whole file
+into process environment. Login writes an owner-only file; it does not use a
+native credential store. These are SRC / SOURCE-INSPECTED claims.
+
+Hapsland setup, status and hook dispatch now share [credential input lookup](../src/credentials/input.ts).
+They read the selected key from process environment, repository `.env.local`,
+repository `.env`, then the user Hapsland configuration directory's `.env`.
+The native saved-key resolver remains the fallback for the default reference.
+Dev-install no longer injects checkout dotenv into its child environment. The
+fresh-process regression exercises file lookup with no inherited key; native
+agent delivery and provider validity remain separate checks.
+
+The advisory classification is **BORROW** for a shared resolver whose persistent
+sources are read by both setup and runtime. This does not adopt Abide's storage
+format, key names or precedence as Hapsland requirements. Abide's
+[init self-test](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/commands/init.ts#L16-L29)
+inherits installer environment and checks only exit status, while the
+[hook runner](https://github.com/coldteadotai/abide/blob/a4c33c5e0f8fe5a8fa30c1757c6d54598da073ac/packages/cli/src/lib/hookRunner.ts#L25-L51)
+also exits successfully after a missing-key notice or handled error. That test is
+**REJECT** as proof of credential availability in a separately launched agent.
+The proposed Hapsland acceptance check is a fresh hook process resolving the
+configured persistent source without a key injected by the installer; native
+agent execution and provider validity remain separate checks.
+
 ## Running both tools together
 
 Hapsland and Abide can operate alongside each other in Codex CLI and Claude Code. Keep both tools' hook registrations; each reviewer retains its own rules and configuration. A finding from one tool does not replace the other tool's review.
