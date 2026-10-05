@@ -2,6 +2,9 @@ import { chmod, open, rename, symlink, unlink, writeFile } from "node:fs/promise
 import { constants } from "node:fs"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { join } from "node:path"
+import { Socket } from "node:net"
+import { once } from "node:events"
+import { residentRequestEffect } from "../resident/client.ts"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
 import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
@@ -203,3 +206,53 @@ it("bounds registry metadata and reports omitted sources without accepting brows
     )
   )
 }, 10000)
+
+it("isolates saturated read-only discovery sockets from hook-control capacity", async () => {
+  const root = await makeGitFixture()
+  const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")))
+  const viewers: Socket[] = []
+  try {
+    await Effect.runPromise(resident.listen())
+    for (let i = 0; i < 4; i += 1) {
+      const socket = new Socket()
+      viewers.push(socket)
+      socket.connect(join(resident.paths.directory, "inspection.sock"))
+      await once(socket, "connect")
+    }
+    expect(
+      await Effect.runPromise(residentRequestEffect(resident.paths, { requestRoute: "shared", operation: "hello" }))
+    ).toMatchObject({ status: "ready", lifetime: resident.lifetime })
+    const readonlyPaths = { ...resident.paths, socket: join(resident.paths.directory, "inspection.sock") }
+    for (const socket of viewers) socket.destroy()
+    await Promise.all(viewers.map((socket) => (socket.closed ? Promise.resolve() : once(socket, "close"))))
+    expect(
+      await Effect.runPromise(
+        residentRequestEffect(readonlyPaths, {
+          requestRoute: "shared",
+          operation: "cleanup",
+          lifetime: resident.lifetime
+        })
+      )
+    ).toEqual({ status: "unsupported" })
+    expect(
+      await Effect.runPromise(residentRequestEffect(resident.paths, { requestRoute: "shared", operation: "hello" }))
+    ).toMatchObject({ status: "ready" })
+    const hooks: Socket[] = []
+    try {
+      for (let i = 0; i < 32; i += 1) {
+        const socket = new Socket()
+        hooks.push(socket)
+        socket.connect(resident.paths.socket)
+        await once(socket, "connect")
+      }
+      expect(
+        await Effect.runPromise(residentRequestEffect(readonlyPaths, { requestRoute: "shared", operation: "hello" }))
+      ).toMatchObject({ status: "ready", lifetime: resident.lifetime })
+    } finally {
+      for (const socket of hooks) socket.destroy()
+    }
+  } finally {
+    for (const socket of viewers) socket.destroy()
+    await Effect.runPromise(resident.close)
+  }
+})

@@ -1,6 +1,6 @@
 import { constants, type Stats } from "node:fs"
 import { lstat, open, realpath } from "node:fs/promises"
-import { dirname, isAbsolute } from "node:path"
+import { dirname, isAbsolute, join } from "node:path"
 import { Effect } from "effect"
 import type { ResidentResponse } from "../resident/protocol.ts"
 import { residentRequestEffect } from "../resident/client.ts"
@@ -61,10 +61,21 @@ const endpointIdentity = async (endpoint: string) => {
         data.lifetime.length > 256
       )
         throw unsafe()
+      const inspectionPaths = { ...paths, socket: join(paths.directory, "inspection.sock") }
       const socket = await lstat(paths.socket)
+      const inspectionSocket = await lstat(inspectionPaths.socket)
+      if (!validateEndpointMetadata(metadata(inspectionSocket), "socket")) throw unsafe()
       if (!validateEndpointMetadata(metadata(socket), "socket") || !same(directory, await lstat(paths.directory)))
         throw unsafe()
-      return { pid: data.pid, lifetime: data.lifetime, paths, directory, owner: status, socket }
+      return {
+        pid: data.pid,
+        lifetime: data.lifetime,
+        paths: inspectionPaths,
+        directory,
+        owner: status,
+        socket,
+        inspectionSocket
+      }
     } finally {
       await owner.close()
     }
@@ -99,7 +110,8 @@ const probe = (endpoint: string): Effect.Effect<Probe> =>
       after.lifetime !== before.lifetime ||
       !same(before.directory, after.directory) ||
       !same(before.owner, after.owner) ||
-      !same(before.socket, after.socket)
+      !same(before.socket, after.socket) ||
+      !same(before.inspectionSocket, after.inspectionSocket)
     )
       return { health: "unavailable" as const }
     return {

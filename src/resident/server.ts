@@ -677,6 +677,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
   })
   let residentServer: Server | undefined
+  let inspectionServer: Server | undefined
+  let inspectionConnections = 0
   let residentOwnsOwnerRecord = false
   const residentIdleChecks = yield* FiberHandle.make<void, never>().pipe(
     Effect.provideService(Scope.Scope, residentDispatchScope)
@@ -5464,6 +5466,38 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     )
   )
 
+  const inspectionAccept = Effect.fn("ResidentInspection.accept")((socket: Socket) =>
+    Effect.acquireUseRelease(
+      makeSocketFramePort(socket),
+      (port) =>
+        Effect.gen(function* () {
+          yield* port.setIdleTimeout(300)
+          const frame = yield* port.read
+          const request = frame._tag === "Frame" ? decodeCurrentResidentRequest(frame.encoded) : undefined
+          const response =
+            request?.operation === "hello"
+              ? yield* residentRequestLifetime(request)
+              : request?.operation === "inspection-status"
+                ? ((yield* residentRequestLifetime(request)) ?? {
+                    status: "inspection-status" as const,
+                    sourceId: inspectionSourceId(paths.socket, lifetime),
+                    observedAt: Date.now(),
+                    ...inspection.currentRecording()
+                  })
+                : { status: "unsupported" as const }
+          yield* port.write(encodeCurrentResidentResponse(response ?? { status: "unsupported" }))
+          yield* port.closed
+        }),
+      (port) => port.close
+    ).pipe(
+      Effect.ensuring(
+        Effect.sync(() => {
+          inspectionConnections -= 1
+        })
+      )
+    )
+  )
+
   const residentScheduleRetirementClose = Effect.fn("ResidentRuntime.scheduleRetirementClose")(function* () {
     if (!(yield* residentLedger.runtime.scheduleRetirement())) return
     // Retirement runs at the process boundary, outside the scope it closes.
@@ -5550,6 +5584,28 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         })
         residentServer = server
         yield* residentAdapter("secure resident socket", () => chmod(owner.paths.socket, 0o600))
+        const inspectionPaths = { ...owner.paths, socket: join(owner.paths.directory, "inspection.sock") }
+        yield* verifyRemovableSocket(inspectionPaths).pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "verify inspection socket" }))
+        )
+        yield* residentAdapter("remove stale inspection socket", () => rm(inspectionPaths.socket, { force: true }))
+        const readonlyServer = createServer((socket) => {
+          if (!readonlyServer.listening || inspectionConnections >= 4) {
+            socket.destroy()
+            return
+          }
+          inspectionConnections += 1
+          runSocket(Effect.forkIn(inspectionAccept(socket), residentIpcScope, { startImmediately: true }))
+        })
+        readonlyServer.maxConnections = 4
+        yield* Effect.callback<void, ResidentAdapterError>((resume) => {
+          readonlyServer.once("error", () =>
+            resume(Effect.fail(new ResidentAdapterError({ operation: "bind inspection socket" })))
+          )
+          readonlyServer.listen(inspectionPaths.socket, () => resume(Effect.void))
+        })
+        inspectionServer = readonlyServer
+        yield* residentAdapter("secure inspection socket", () => chmod(inspectionPaths.socket, 0o600))
         residentOwnsOwnerRecord = true
         yield* residentAdapter("publish resident endpoint", () =>
           writeFile(owner.paths.owner, `${JSON.stringify({ pid: process.pid, lifetime: owner.lifetime })}\n`, {
@@ -5607,7 +5663,24 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 }),
                 { startImmediately: true }
               )
+        const readonlyServer = inspectionServer
+        const inspectionClosed =
+          readonlyServer === undefined
+            ? undefined
+            : yield* Effect.forkChild(
+                Effect.callback<void>((resume) => {
+                  readonlyServer.close(() => resume(Effect.void))
+                }),
+                { startImmediately: true }
+              )
         yield* Scope.close(residentIpcScope, Exit.void)
+        if (inspectionClosed !== undefined) yield* Fiber.join(inspectionClosed)
+        if (readonlyServer !== undefined) {
+          inspectionServer = undefined
+          yield* residentAdapter("remove owned inspection socket", () =>
+            rm(join(owner.paths.directory, "inspection.sock"), { force: true })
+          )
+        }
         if (endpointClosed !== undefined) yield* Fiber.join(endpointClosed)
         yield* residentLedger.clear()
         if (server !== undefined) {
