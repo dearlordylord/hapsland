@@ -2,6 +2,8 @@ import { validInspectionAddress } from "./options.ts"
 import { createServer } from "node:http"
 import { randomBytes } from "node:crypto"
 import { Effect, Stream, Schedule } from "effect"
+import * as NodeHttpServerRequest from "@effect/platform-node/NodeHttpServerRequest"
+import { watchInspectionConsumer } from "./consumer.ts"
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"
 import * as HttpServer from "effect/http/HttpServer"
 import * as Request from "effect/http/HttpServerRequest"
@@ -112,6 +114,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
         return Response.jsonUnsafe(value, { headers })
       }
       if (route.pathname === `${base}events`) {
+        watchInspectionConsumer(NodeHttpServerRequest.toServerResponse(request))
         let cursor = requestedCursor
         const next = Effect.suspend(() =>
           snapshot(cursor).pipe(
@@ -129,7 +132,10 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
             )
           )
         )
-        return Response.stream(stream, { contentType: "text/event-stream", headers })
+        return Response.stream(stream, {
+          contentType: "text/event-stream",
+          headers: { ...headers, "x-inspection-replay": "Send Last-Event-ID or cursor to resume retained history" }
+        })
       }
       return Response.empty({ status: 404, headers })
     })
