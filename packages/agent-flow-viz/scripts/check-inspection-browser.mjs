@@ -508,17 +508,20 @@ try {
   assert.equal(dispatched.length, 6)
   phase = "recording periods"
   for (const cycle of [1, 2]) {
+    phase = `recording disable ${cycle}`
     recordingPublished = nativeDeferred()
     await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ ...inspectionConfig, sessionInspection: false }))
     await put(root, `disabled-${cycle}.ts`, `type Disabled${cycle}Count = number;\n`)
     await edit(`disabled-${cycle}.ts`, `disabled-${cycle}`, false)
     await recordingPublished.promise
+    phase = `recording enable ${cycle}`
     recordingPublished = nativeDeferred()
     await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify(inspectionConfig))
     await put(root, `enabled-${cycle}.ts`, `type Enabled${cycle}Count = number;\n`)
     await edit(`enabled-${cycle}.ts`, `enabled-${cycle}`)
     await recordingPublished.promise
   }
+  phase = "recording periods display"
   await page.locator("#recording-periods").waitFor({ timeout: 2000 })
   await page.waitForFunction(() => JSON.parse(document.querySelector("#recording-periods").textContent).length === 5)
   const periods = JSON.parse(await page.locator("#recording-periods").textContent())

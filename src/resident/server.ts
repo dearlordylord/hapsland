@@ -3328,6 +3328,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       let requestSettled = false
       let interruptionReported = false
       let readyReported = false
+      let evaluationOutcomeObserved = false
       let requestIdentity:
         | Pick<
             JevRequestObservation,
@@ -3700,6 +3701,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               )
             )
             const evaluation = evaluatePrepared(job.prepared, beforeDispatch, (evidence) => {
+              if (evidence.kind === "evaluation-outcome") evaluationOutcomeObserved = true
               if (job.inspectionReceipt === undefined || !inspection.isEnabled(job.inspectionReceipt.scope.root)) return
               const fact =
                 evidence.kind === "model-input"
@@ -4033,6 +4035,29 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         // invariant defects and scope interruption remain visible in the fiber.
         Effect.onError(() =>
           Effect.gen(function* () {
+            // A provider defect can escape the pipeline's checked-error result.
+            // Record its unavailable outcome without hiding the original cause
+            // or duplicating an outcome already observed by the pipeline.
+            const receipt = job.inspectionReceipt
+            if (
+              requestStarted &&
+              !evaluationOutcomeObserved &&
+              receipt !== undefined &&
+              inspection.isEnabled(receipt.scope.root)
+            ) {
+              inspection.offer(
+                receipt.scope,
+                {
+                  ...receipt.correlation,
+                  ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
+                  unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
+                  ...(issuedRequest === undefined
+                    ? {}
+                    : { requestId: createHash("sha256").update(`${job.partition}:${issuedRequest}`).digest("hex") })
+                },
+                { kind: "evaluation-outcome", outcome: signal.aborted ? "interrupted" : "backend" }
+              )
+            }
             if (
               !readyReported &&
               (yield* residentLedger.canonicalProjection()).work.some(
