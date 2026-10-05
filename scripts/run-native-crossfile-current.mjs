@@ -122,6 +122,9 @@ const initialSourceMarker =
       : "PaymentState{status:"
 const feedbackMessages = Object.fromEntries(configuredRules.map((rule) => [rule.id, rule.message]))
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline"
+const archiveArgument = process.argv.find((argument) => argument.startsWith("--archive="))
+if (archiveArgument !== undefined && (host !== "pi" || archiveArgument === "--archive="))
+  throw new Error("--archive=PATH requires a local production tarball and the Pi profile")
 if (host === "pi") {
   await runPiNativeProfile({
     project,
@@ -130,7 +133,8 @@ if (host === "pi") {
     scenario,
     mode,
     messages: feedbackMessages,
-    runnerPath: new URL(import.meta.url)
+    runnerPath: new URL(import.meta.url),
+    archivePath: archiveArgument?.slice("--archive=".length)
   })
   process.exit(process.exitCode ?? 0)
 }

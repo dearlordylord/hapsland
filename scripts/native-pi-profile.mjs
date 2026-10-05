@@ -13,7 +13,7 @@ import {
   writeFileSync
 } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { assessPiAdoption, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
 
 const hash = (value) => createHash("sha256").update(value).digest("hex")
@@ -76,7 +76,16 @@ export const piRuntimeAssetsDigest = (packageRoot) => {
   return { sha256: hash(JSON.stringify(assets)), files: assets.length }
 }
 
-export async function runPiNativeProfile({ project, fixture, language, scenario, mode, messages, runnerPath }) {
+export async function runPiNativeProfile({
+  project,
+  fixture,
+  language,
+  scenario,
+  mode,
+  messages,
+  runnerPath,
+  archivePath
+}) {
   if (
     language !== "typescript" ||
     !["adoption", "reviewer-unavailable", "unsupported-write", "unicode-edit"].includes(scenario) ||
@@ -121,6 +130,8 @@ export async function runPiNativeProfile({ project, fixture, language, scenario,
     executionMode: "print-json-no-session",
     trust: "isolated global agent extension; no project-local files approved",
     packageInstallation: "production npm tarball with lifecycle scripts disabled",
+    archivePreparation:
+      archivePath === undefined ? "freshly-packed" : "provided; runtime assets must match current build",
     ordinaryProfileChanged: false
   }
   writeFileSync(
@@ -178,12 +189,15 @@ export async function runPiNativeProfile({ project, fixture, language, scenario,
         }
       })
     )
-    const packed = await execute("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", temp], {
-      cwd: project,
-      timeout: 120000
-    })
-    if (packed.code !== 0) throw new Error("Native package packing failed")
-    const tarball = join(temp, JSON.parse(packed.stdout)[0].filename)
+    let tarball
+    if (archivePath === undefined) {
+      const packed = await execute("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", temp], {
+        cwd: project,
+        timeout: 120000
+      })
+      if (packed.code !== 0) throw new Error("Native package packing failed")
+      tarball = join(temp, JSON.parse(packed.stdout)[0].filename)
+    } else tarball = resolve(archivePath)
     const installed = await execute(
       "npm",
       [
@@ -201,6 +215,16 @@ export async function runPiNativeProfile({ project, fixture, language, scenario,
       { cwd: temp, timeout: 120000 }
     )
     if (installed.code !== 0) throw new Error("Native production package installation failed")
+    const packageRoot = join(install, "node_modules/@hapsland/hapsland")
+    const runtimeAssets = piRuntimeAssetsDigest(packageRoot)
+    const currentBuildAssets = piRuntimeAssetsDigest(project)
+    if (runtimeAssets.sha256 !== currentBuildAssets.sha256)
+      throw new Error("Installed Pi archive runtime assets differ from the current build")
+    if (
+      JSON.stringify(JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"))) !==
+      JSON.stringify(JSON.parse(readFileSync(join(project, "package.json"), "utf8")))
+    )
+      throw new Error("Installed Pi archive manifest differs from the current package")
     const cli = join(install, "node_modules", ".bin", "hapsland")
     const hapslandIdentity = JSON.parse(
       (await execute(cli, ["--runtime-identity"], { cwd: repo, timeout: 10000 })).stdout
@@ -391,6 +415,7 @@ syncBuiltinESMExports();
     checks.noJevRequestAttempt = !events.some((e) => e.kind === "jev-blocked-attempt")
     checks.nativeAgentResponseObserved = events.some((e) => e.kind === "native-message" && e.role === "assistant")
     checks.agentModelMatchesProfile = piModelObserved(events, model)
+    checks.installedRuntimeMatchesBuild = runtimeAssets.sha256 === currentBuildAssets.sha256
     record = {
       schemaVersion: 1,
       recordedAt: new Date().toISOString(),
@@ -412,7 +437,9 @@ syncBuiltinESMExports();
         version: JSON.parse(readFileSync(join(install, "node_modules/@hapsland/hapsland/package.json"), "utf8"))
           .version,
         tarballSha256: hash(readFileSync(tarball)),
-        runtimeAssets: piRuntimeAssetsDigest(join(install, "node_modules/@hapsland/hapsland"))
+        runtimeAssets,
+        currentBuildAssets,
+        archivePreparation: declaration.archivePreparation
       },
       runnerHash,
       piProfileHash,
