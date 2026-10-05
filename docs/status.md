@@ -109,6 +109,12 @@ immutable selection. Original-evaluation links select the matching captured
 request; missing transport evidence is explicit and is not replaced by another
 unit's body.
 
+Retained classifier totals follow the visible edit filters. Observed model
+invocations and HTTP attempts are counted separately, with live, controlled and
+unknown activity kept distinct. Joins, cache hits and existing advice add no new
+calls. Replayed source/sequence identities count once; missing capture or history
+can leave these totals incomplete.
+
 Retained recording transitions are grouped into observed periods for each resident
 lifetime and working root. Each period names its retained start and next retained
 transition, with separate consent epochs after re-enabling. A missing next
