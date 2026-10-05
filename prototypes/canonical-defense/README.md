@@ -6,7 +6,7 @@
 **Expected use:** Build spatial towers and inspect continuous review activity in a separate engine instance.
 **Lifecycle:** At the owner's game-layout selection, consolidate accepted mechanics into the game owner, update inbound links, and delete rejected variants and obsolete evidence. Review this guide when shared engine controls or native rendering change.
 
-The [development-time balance laboratory](lab/README.md) provides editable ability catalogues, finite comparisons and replay over the shared engine. Its current capability and gameplay limits are recorded in that guide; #203 remains in progress.
+The [development-time balance laboratory](lab/README.md) provides editable ability catalogues, finite comparisons and replay over the shared engine. Its capability, focused local qualification and gameplay limits are recorded in that guide; the experimental roster remains provisional.
 
 The completed performance investigation and its decisions are recorded below, with executable receipts retained in `performance-evidence/`. The temporary experiment journal has been consolidated here after the full consumer comparison passed.
 

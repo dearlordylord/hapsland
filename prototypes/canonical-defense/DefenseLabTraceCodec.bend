@@ -2303,7 +2303,7 @@ def list_nativeruntypes_state(values: List<&2,List<&2,NativeRunTypes.State>>, su
 
 def defensemodel_tower(values: List<&2,DefenseModel.Tower>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.Tower{v0,v1,v2,v3} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> U32.to_nat(v2) <> U32.to_nat(v3) <> suffix
+    case DefenseModel.Tower{v0,v1,v2,v3,v4,v5} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> U32.to_nat(v2) <> U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> suffix
     case _: 999999n <> suffix
 
 def list_defensemodel_tower_items(values: List<&2,List<&2,DefenseModel.Tower>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
