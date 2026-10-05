@@ -9,6 +9,7 @@ dist
 .tools/lychee/
 
 .tools/bend/
+.tools/canonical-defense/
 .tools/lean/
 
 .test-runs/

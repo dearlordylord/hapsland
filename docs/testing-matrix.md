@@ -16,7 +16,9 @@ Engine evidence. They remain subject to lint and TypeScript checks.
 
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
-| Resident playback liveness | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play, pause/resume; finding/clear cache plus quiet-window settlement and replay | Observed progress beyond Jev result through genuine cache facts; not universal scheduler liveness or live Jev transport |
+| Resident playback and timeline | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `npm --prefix packages/agent-flow-viz run test:timeline-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play and pause/resume; finding/clear cache and quiet-window replay; monotonic timeline drag, exact paused endpoint, keyboard seek, previous/next/latest and playback resynchronization | Observed cache progress and browser interaction; not universal scheduler liveness or live Jev transport |
+| Resident settings inspection | `npm run test:focused -- packages/monkey-business/src/applied-settings.test.ts` | Snapshot identity across execution, defensive copies and deep freezing, control invalidation, rejected controls and replay restoration | Applied configuration and controls are stable inspection inputs; no performance-improvement claim |
+| Immutable simulation boundary reuse | `npm run test:focused -- src/canonical/immutable.test.ts src/canonical/simulation-codec.test.ts src/canonical/boundary-schema.test.ts src/canonical/boundary.test.ts src/canonical/simulation-adapter.test.ts` | Schema-equivalent scalar fast paths; cyclic/shared/wide freezing; frozen graph reuse; mutable and accessor isolation; list and scalar bounds; emitted Engine equivalence | Boundary correctness and snapshot isolation; no throughput claim |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
 | Lint workflow regression | `node --test scripts/quality-file-discovery.test.mjs scripts/quality-lint.test.mjs` | Git selection, failure propagation, real Husky/lint-staged formatting and commit rejection | Offline temporary-repository workflow; no build or agent invocation |
@@ -133,6 +135,16 @@ JS execution bound. Each test has a 250-second aggregate bound; supervise each
 selected qualification with a 300-second stage. These overrides do not change
 runner defaults or product deadlines. Recovery compares the complete native
 and compiler-emitted vectors before its independent public and replay checks.
+
+The original advicee preparation-after-departure comparison uses C30/clang90/native5
+with a 150-second aggregate watchdog; an authenticated preflight session keeps
+its own fixed compilation policy. Freshness source-change comparisons retain
+native/emitted-JS agreement under a 200-second watchdog (C90/clang60/native5,
+JS15+5). Their independent public milestones and replay also run as separate
+TypeScript tests. The concurrent-notice comparison uses the shared native runner
+and its C30/clang30/native5 allowances under the same 100-second watchdog;
+it no longer owns a separate compiler subprocess implementation.
+These are fixture compilation budgets, not product latency deadlines.
 
 ## Pull request checks
 

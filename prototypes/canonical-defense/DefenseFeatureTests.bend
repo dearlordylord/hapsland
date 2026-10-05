@@ -4,9 +4,11 @@ import ./DefensePreviewTests.bend as Preview
 import ./DefenseMapTests.bend as Map
 import ./DefenseDrawTests.bend as Draw
 import ./DefenseRasterTests.bend as Raster
+import ./DefenseStartupTests.bend as Startup
 def main() -> IO(Unit):
   do IO<Unit>:
     Consumer.main()
+    Startup.main()
     Preview.main()
     Map.main()
     Draw.main()

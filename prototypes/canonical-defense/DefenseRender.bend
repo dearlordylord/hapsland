@@ -636,8 +636,8 @@ def on_word(on: Bool) -> String:
     case True{}: "ON"
     case False{}: "OFF"
 
-def activity_line(world: M.World) -> String:
-  Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED")
+def activity_line(+world: M.World) -> String:
+  Bool.pick(String,M.active(world),Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED"),"BUILD FIRST - N/ENTER START")
 
 def family_row(+world: M.World,+family: Nat,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
@@ -679,7 +679,7 @@ def scene(+world: M.World) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
   +target = T.focus(world,Preview.target(preview))
   +base = dependency_kind(T.focus_kind(world,Preview.kind(preview)),world,target,ghost(world,preview,family_panel(world,target,F.text("SHOWING " ++ U32.show(U32.min(2,M.number(List.length(&2,P.Token,tokens)))) ++ " OF " ++ U32.show(M.number(List.length(&2,P.Token,tokens))) ++ " LIVE UNITS",812,420,1,12439239,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))))
-  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / A ARRIVALS / [ ] PACE / R RESET / TAB MAP",24,742,1,16768133,base))
+  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,base))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
     F.text(activity_line(world) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("TOWERS OWN COMBAT / SHARED ENGINE OWNS BUSINESS",24,111,1,12439239,header))))

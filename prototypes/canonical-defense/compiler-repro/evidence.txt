@@ -1,6 +1,17 @@
 Purpose: native compiler failure reproduction. Authority: bounded implementation evidence, no product-core defect claim.
 Bend 2.0.34; Debian clang14.0.6; Linux ARM64.
 Reduced IR -O0 exit0; -O1/-O3 exit70. Removing musttail does not eliminate O3 failure. Synthetic114-field constructor alone does not reproduce.
-Apple clang21 owner report: O0 and O3 crash; exact O0 invocation supplied. Apple crash not reproduced locally; root-cause equivalence not claimed.
+Original Apple clang21 owner report: O0 and O3 crash; exact O0 invocation supplied. Apple crash was not reproduced during that Linux investigation; root-cause equivalence not claimed.
 Cleanup: when the upstream compiler issue is resolved, consolidate its fix and successful native build evidence into README and delete this reproduction directory.
 Upstream report: https://github.com/bendlang/bend/issues/1233
+
+2026-10-04 local Apple investigation: Apple clang21.0.0 (clang-2100.3.34.2), Darwin27 ARM64, Bend2.0.34.
+Saved full preprocessed source reproduces the Apple diagnostic, clang cc1 exit70.
+The failing optimized continuation is NativeRun.handle_prepared K647; its isolated 180KB IR reproduces in about0.2seconds.
+apple-clang21-stack-probe.c reduces the trigger independently of Bend: preserve_none, live 23rd integer argument x9, and a4096-byte local buffer with Darwin stack probing.
+Five controls: original crashes; -fno-stack-check, ordinary calling convention, unused 23rd argument, and a1024-byte frame each compile. Removing musttail or disabling shrink wrapping does not fix the isolated real continuation.
+Full optimized module with only Darwin probe-stack attributes removed compiled at -O3 (75.33seconds), linked, and stayed alive for a5-second startup smoke before diagnostic termination. Interactive gameplay and performance were not checked.
+run.sh and clang-no-stack-check.sh scope -fno-stack-check to Apple clang21 on Darwin ARM64 and preserve an explicit CC selection. Other compiler/host combinations retain the ordinary build.
+Fresh run.sh validation with installed Bend2.0.34 completed the Bend-to-clang build, launched the game, and stayed alive for5seconds after its startup banner; total207.91seconds, within the declared300-second limit. The diagnostic then terminated the process group. This is startup evidence, not an interactive gameplay check.
+Runner routing checks passed for default/explicit Apple clang21, other Apple clang, upstream clang21, Linux, and Intel Darwin; game arguments were forwarded. The real Apple compiler's version probe and minimal-source build passed through the wrapper. bash -n and npm run docs:check passed.
+Issue1233 closure is not evidence of a fix. PR1074 provides a separate O0 ordinary-ABI workaround; issue1069 discusses wide-bank boxing/spilling. Neither establishes equivalence to the Linux crash above.
