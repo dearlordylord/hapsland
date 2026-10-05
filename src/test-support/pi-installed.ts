@@ -3,7 +3,7 @@ import { execFileSync } from "../../scripts/test-harness/process.mjs"
 import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { expect } from "vitest"
+import assert from "node:assert/strict"
 import { configuredRules } from "../policy/rules.ts"
 import { pathToFileURL } from "node:url"
 import { residentRequestEffect } from "../resident/client.ts"
@@ -216,8 +216,8 @@ export const fixture = (
   const context = { cwd: root, sessionManager: { getSessionId: () => "pi-boundary-session" } }
   const call = async (name: string, event: unknown, ctx = context) => {
     const handler = handlers.get(name)
-    expect(handler, `registered ${name} handler`).toBeDefined()
-    return handler!(event, ctx)
+    assert.ok(handler, `registered ${name} handler`)
+    return handler(event, ctx)
   }
   const prepareResident = async () => {
     // Opt-in healthy-resident precondition for lifecycle witnesses. Cold-start
