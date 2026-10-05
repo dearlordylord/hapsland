@@ -997,9 +997,78 @@ export const CanonicalConstructors = {
   )
 } as const
 
+type CanonicalConstructorTemplate = { readonly name: string; readonly value: Readonly<Record<string, unknown>> }
+type CanonicalConstructorReuseTransaction = {
+  readonly parent: CanonicalConstructorReuseTransaction | undefined
+  readonly staged: Array<readonly [object, CanonicalConstructorTemplate]>
+  readonly byValue: WeakMap<object, CanonicalConstructorTemplate>
+}
+
+const canonicalConstructorTemplates = new WeakMap<object, CanonicalConstructorTemplate>()
+let activeCanonicalConstructorReuse: CanonicalConstructorReuseTransaction | undefined
+
+/** Scope constructor template reuse to a complete, trusted canonical projection. */
+export const withCanonicalConstructorReuse = <A>(project: () => A): A => {
+  const transaction: CanonicalConstructorReuseTransaction = {
+    parent: activeCanonicalConstructorReuse,
+    staged: [],
+    byValue: new WeakMap()
+  }
+  activeCanonicalConstructorReuse = transaction
+  try {
+    const result = project()
+    if (transaction.parent === undefined) {
+      for (const [value, entry] of transaction.staged) {
+        if (!canonicalConstructorTemplates.has(value)) canonicalConstructorTemplates.set(value, entry)
+      }
+    } else {
+      for (const [value, entry] of transaction.staged) {
+        if (!transaction.parent.byValue.has(value)) {
+          transaction.parent.byValue.set(value, entry)
+          transaction.parent.staged.push([value, entry])
+        }
+      }
+    }
+    return result
+  } finally {
+    activeCanonicalConstructorReuse = transaction.parent
+  }
+}
+
+const cachedCanonicalConstructor = (value: object, name: string): Record<string, unknown> | undefined => {
+  for (let transaction = activeCanonicalConstructorReuse; transaction !== undefined; transaction = transaction.parent) {
+    const entry = transaction.byValue.get(value)
+    if (entry?.name === name) return { ...entry.value }
+  }
+  const entry = canonicalConstructorTemplates.get(value)
+  return entry?.name === name ? { ...entry.value } : undefined
+}
+
+const cacheableCanonicalConstructorInput = (value: unknown, decoded: Record<string, unknown>): value is object => {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || !Object.isFrozen(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  if (prototype !== Object.prototype && prototype !== null) return false
+  const descriptors = Object.getOwnPropertyDescriptors(value) as Record<PropertyKey, PropertyDescriptor>
+  if (!Reflect.ownKeys(descriptors).every((key) => "value" in descriptors[key]!)) return false
+  return Reflect.ownKeys(decoded).every((key) => {
+    const descriptor = descriptors[key]
+    return descriptor !== undefined && "value" in descriptor
+  })
+}
+
+const stageCanonicalConstructorTemplate = (value: unknown, name: string, decoded: Record<string, unknown>): void => {
+  const transaction = activeCanonicalConstructorReuse
+  if (transaction === undefined || !cacheableCanonicalConstructorInput(value, decoded)) return
+  const source = value as object
+  if (transaction.byValue.has(source) || canonicalConstructorTemplates.has(source)) return
+  const entry: CanonicalConstructorTemplate = { name, value: Object.freeze({ ...decoded }) }
+  transaction.byValue.set(source, entry)
+  transaction.staged.push([source, entry])
+}
+
 // Compile a constructor interpreter only when that constructor crosses the boundary.
 const decoders = new Map<string, (value: unknown) => Record<string, unknown>>()
-export const decodeCanonicalConstructor = (value: unknown, name: string): Record<string, unknown> => {
+const decodeWithCanonicalConstructor = (value: unknown, name: string): Record<string, unknown> => {
   let decode = decoders.get(name)
   if (decode === undefined) {
     if (!Object.hasOwn(CanonicalConstructors, name)) throw new TypeError(`unknown canonical constructor ${name}`)
@@ -1008,6 +1077,21 @@ export const decodeCanonicalConstructor = (value: unknown, name: string): Record
     decoders.set(name, decode)
   }
   return decode(value)
+}
+
+/** Public boundary decoding always validates the supplied value. */
+export const decodeCanonicalConstructor = (value: unknown, name: string): Record<string, unknown> =>
+  decodeWithCanonicalConstructor(value, name)
+
+/** Owner-internal decoding for records reached from an admitted canonical projection. */
+export const decodeCanonicalProjectionConstructor = (value: unknown, name: string): Record<string, unknown> => {
+  if (typeof value === "object" && value !== null && activeCanonicalConstructorReuse !== undefined) {
+    const cached = cachedCanonicalConstructor(value, name)
+    if (cached !== undefined) return cached
+  }
+  const decoded = decodeWithCanonicalConstructor(value, name)
+  stageCanonicalConstructorTemplate(value, name, decoded)
+  return decoded
 }
 
 const CanonicalRejectionSchema = Schema.Union([
