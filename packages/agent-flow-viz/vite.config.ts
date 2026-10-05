@@ -2,6 +2,8 @@ import { fileURLToPath } from "node:url"
 import { defineConfig } from "vite"
 
 export default defineConfig({
+  // Worktrees can share node_modules, but optimizer caches include checkout paths.
+  cacheDir: fileURLToPath(new URL("../../.test-runs/vite-agent-flow-viz/", import.meta.url)),
   base: "./",
   build: {
     rollupOptions: {
