@@ -23,7 +23,7 @@ test("canonical authority accepts formatter layout and still rejects a changed c
     const schemas = join(root, "src/canonical/constructors.ts")
     const source = readFileSync(schemas, "utf8")
     assert.match(source, /Schema\.suspend\(\(\) =>\n/u)
-    writeFileSync(schemas, source.replace("partition: Nat", "wrong_partition: Nat"))
+    writeFileSync(schemas, source.replaceAll("partition: Nat", "wrong_partition: Nat"))
     const invalid = run()
     assert.notEqual(invalid.status, 0)
     assert.match(invalid.stderr, /exact constructor fields/u)

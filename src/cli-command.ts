@@ -112,18 +112,23 @@ export type Invocation =
   | { readonly kind: "automation"; readonly options: AutomationOptions; readonly client: ClientArguments }
   | { readonly kind: "lifecycle"; readonly command: ClientCommand; readonly client: ClientArguments }
 
-const clientArguments = (values: {
+type ClientArgumentValues = {
   readonly host?: SetupClient | undefined
   readonly client?: Option.Option<SetupClient>
   readonly [name: string]: unknown
-}): ClientArguments => {
+}
+const selectedClientHost = (values: ClientArgumentValues): SetupClient | undefined => {
   const positional = values.client === undefined ? undefined : Option.getOrUndefined(values.client)
   if (positional !== undefined && values.host !== undefined && positional !== values.host)
     throw new Error("Positional client and --host disagree.")
+  return positional ?? values.host
+}
+const clientArguments = (values: ClientArgumentValues): ClientArguments => {
+  const host = selectedClientHost(values)
   const flags = new Map<string, string>()
   for (const [name, value] of Object.entries(values)) if (typeof value === "string") flags.set(`--${name}`, value)
   if (values["new-key"] === true) flags.set("--new-key", "true")
-  return { host: positional ?? values.host, flags }
+  return { host, flags }
 }
 
 const parentOptions = {

@@ -3901,7 +3901,7 @@ describe("resident delivery lease", () => {
       saturated.retainedBytes -
         beforeItems.slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0)
     )
-  }, 10_000)
+  })
 
   it("scans past unavailable advice to independently current advice once per collection", async () => {
     const root = await makeGitFixture()

@@ -1,6 +1,6 @@
 import { writeFileSync, rmSync } from "node:fs"
 import { runClient } from "../test-support/client-runtime.ts"
-import { makeGitFixture } from "../direct-event/test-fixtures.ts"
+import { makeGitFixture, advicee as fixtureAdvicee } from "../direct-event/test-fixtures.ts"
 import { it as effectIt } from "@effect/vitest"
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"
@@ -11,6 +11,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   ResidentIpcError,
+  releaseComposedBackgroundEffect,
   admitAndCollectEffect,
   makeResidentDispatchContextEffect,
   admitObservationEffect,
@@ -36,6 +37,55 @@ afterEach(async () => {
 })
 
 describe("resident client trust boundary", () => {
+  it("does not launch a resident just to release a background claim", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "haps-background-missing-"))
+    directories.push(directory)
+    await chmod(directory, 0o700)
+    expect(
+      await runClient(releaseComposedBackgroundEffect("/repo", fixtureAdvicee(), "claim", residentPaths(directory)))
+    ).toBe(false)
+  })
+
+  it.each(["released", "empty"] as const)("releases a claim against the inspected lifetime: %s", async (status) => {
+    const directory = await mkdtemp(join(tmpdir(), "haps-background-release-"))
+    directories.push(directory)
+    await chmod(directory, 0o700)
+    const paths = residentPaths(directory)
+    const requests: unknown[] = []
+    const server = createServer((socket) => {
+      sockets.push(socket)
+      let frame = ""
+      socket.on("data", (chunk) => {
+        frame += chunk.toString("utf8")
+        if (!frame.includes("\n")) return
+        const request = JSON.parse(frame)
+        requests.push(request)
+        const response =
+          request.operation === "hello"
+            ? { version: 1, status: "ready", lifetime: "owned", pid: process.pid }
+            : { version: 1, status }
+        socket.end(`${JSON.stringify(response)}\n`)
+      })
+    })
+    servers.push(server)
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject)
+      server.listen(paths.socket, resolve)
+    })
+    await chmod(paths.socket, 0o600)
+    const advicee = fixtureAdvicee()
+    const result = await runClient(
+      releaseComposedBackgroundEffect("/repo", advicee, "claim").pipe(
+        Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ REVIEW_RESIDENT_DIR: directory })))
+      )
+    )
+    expect(result).toBe(status === "released")
+    expect(requests).toEqual([
+      { version: 1, operation: "hello" },
+      { version: 1, operation: "release-background", lifetime: "owned", root: "/repo", advicee, token: "claim" }
+    ])
+  })
+
   it("sends the IPC frame when scheduling yields before connection handlers run", async () => {
     const directory = await mkdtemp(join(tmpdir(), "haps-ipc-"))
     directories.push(directory)

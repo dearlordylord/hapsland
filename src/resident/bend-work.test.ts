@@ -84,6 +84,10 @@ describe("canonical work projection", () => {
     expect(
       Effect.runSync(ledger.settleJevRequest("agent", unit.operation, ready.request, unit.reservation, "finding", true))
     ).toBe("retainFinding")
+    expect(view().cachedFinding(source, 2, 20, unit.operation)).toBe(unit.operation)
+    expect(view().cachedFinding(source + 1, 2, 20, unit.operation)).toBeUndefined()
+    expect(view().cachedFinding(source, 2, 20, source)).toBeUndefined()
+    expect(view().cachedFinding(source, 2, 20, -1)).toBeUndefined()
     expect(view().reviseFinding(unit.operation, 2, 20)).toBe(true)
     Effect.runSync(
       ledger.transition({
