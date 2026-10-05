@@ -10,7 +10,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join } from "node:path"
 import { readActivity } from "../activity/status.ts"
 import { configuredRules } from "../test-support/default-rules.ts"
-import { makeGitFixture, put } from "./test-fixtures.ts"
+import { makeReviewGitFixture as makeGitFixture, put } from "./test-fixtures.ts"
 import { residentRequestEffect as residentRequest } from "../resident/client.ts"
 import { residentPaths } from "../resident/paths.ts"
 import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts"
