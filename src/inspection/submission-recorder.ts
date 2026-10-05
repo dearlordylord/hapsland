@@ -45,24 +45,21 @@ export const makeInspectionSubmissionRecorder = (
       }
     }
   }
-  const register = (token: string, batch: Batch): void => {
+  const register = (token: string, batch: Batch): boolean => {
     prune()
+    revoke(token)
     const epoch = recorder.consentEpoch(batch.root)
     if (epoch === undefined || token.length > 256 || batch.findingIds.length > 128 || batch.evaluations.length > 128)
-      return
+      return false
     const encoded = JSON.stringify(batch)
     const size = Buffer.byteLength(encoded) + Buffer.byteLength(token)
-    if (size > 65536) return
-    const prior = tickets.get(token)
-    if (prior !== undefined) {
-      tickets.delete(token)
-      bytes -= prior.bytes
-    }
-    if (tickets.size >= 128 || bytes + size > 65536) return
+    if (size > 65536) return false
+    if (tickets.size >= 128 || bytes + size > 65536) return false
     // Metadata is detached from review ownership; no findings, source or credentials are retained.
     const copy: Batch = JSON.parse(encoded)
     tickets.set(token, { batch: copy, epoch, expires: now() + 30000, bytes: size, attempts: new Map() })
     bytes += size
+    return true
   }
   const observation = InspectionSubmissionObservation.of({
     forAttempt: (attempt) => {
@@ -119,7 +116,7 @@ export const makeInspectionSubmissionRecorder = (
               : Buffer.from(event.encoded)
           const output: Extract<InspectionFact, { kind: "writer-evidence" }>["output"] =
             byteLength === undefined
-              ? { status: "missing", reason: "not-captured" }
+              ? { status: "missing", reason: event.outputMissing ?? "not-captured" }
               : body === undefined
                 ? { status: "missing", reason: "oversized" }
                 : {

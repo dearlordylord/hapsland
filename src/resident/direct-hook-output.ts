@@ -136,7 +136,8 @@ export const submitDirectHookOutput = Effect.fn("DirectHook.submitOutput")(funct
         endpoint: output.collected.paths.socket,
         lifetime: output.collected.lifetime,
         root: output.collected.root,
-        advicee: Object.freeze({ ...output.collected.advicee })
+        advicee: Object.freeze({ ...output.collected.advicee }),
+        ...(output.collected.inspectionReporting === true ? { recording: true } : {})
       })
     } catch {
       observer = undefined

@@ -2,12 +2,19 @@ import { Writable } from "node:stream"
 import { submitDirectHookOutput, DirectHookSubmission } from "../resident/direct-hook-output.ts"
 import { HookOutput, makeWritableHookOutput } from "../resident/hook-output.ts"
 import { hookMonotonicMillis } from "../resident/hook-clock.ts"
-import { InspectionSubmissionObservation } from "./writer.ts"
+import { inspectionWriterClientLayer } from "../resident/inspection-writer-client.ts"
+import {
+  collectReadyEffect,
+  beginComposedSubmissionEffect,
+  releaseComposedSubmissionEffect,
+  acknowledgeAdviceEffect
+} from "../resident/client.ts"
+import { runClient } from "../test-support/client-runtime.ts"
 import { request } from "node:http"
-import { Effect, Scope, Exit } from "effect"
+import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
 import { join } from "node:path"
-import { writeFile } from "node:fs/promises"
+import { writeFile, readFile } from "node:fs/promises"
 import { makeInspectionHttpServer } from "./http.ts"
 import { makeInspectionStorage } from "./storage.ts"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
@@ -322,17 +329,31 @@ it.each([true, false])(
         )
       }
     }
-    expect(Effect.runSync(resident.admit(observation, dispatch)).status).toBe("accepted")
+    expect(Effect.runSync(resident.admit(observation, dispatch, true)).status).toBe("accepted")
     await Effect.runPromise(resident.whenIdle())
     const other = await Effect.runPromise(
       adaptCodexDirectEvent(addEvent(root, ["other.ts"], { tool_use_id: "inspection-other-edit" }))
     )
     if (!other) throw new Error("missing second edit")
-    expect(Effect.runSync(resident.admit(other, dispatch)).status).toBe("accepted")
+    expect(Effect.runSync(resident.admit(other, dispatch, true)).status).toBe("accepted")
     await Effect.runPromise(resident.whenIdle())
-    const response = await Effect.runPromise(resident.collect(root, observation.advicee, dispatch))
-    if (response.status !== "advice") throw new Error("missing advice")
+    const ackGate = join(root, "ack-reply")
+    if (!acknowledged) await writeFile(`${ackGate}.enabled`, "enabled\n")
+    await Effect.runPromise(
+      resident
+        .listen()
+        .pipe(
+          Effect.provide(
+            ConfigProvider.layer(
+              ConfigProvider.fromUnknown(acknowledged ? {} : { REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH: ackGate })
+            )
+          )
+        )
+    )
+    const response = await runClient(collectReadyEffect(root, observation.advicee, dispatch, resident.paths))
+    if (!response) throw new Error("missing advice")
     expect(response.findingCount).toBe(2)
+    expect(response.inspectionReporting).toBe(true)
     const bytes: Array<Buffer> = []
     const stream = new Writable({
       write: (chunk, _encoding, complete) => {
@@ -340,43 +361,32 @@ it.each([true, false])(
         complete()
       }
     })
-    const collected = {
-      output: response.output,
-      token: response.token,
-      lifetime: resident.lifetime,
-      paths: resident.paths,
-      root,
-      advicee: observation.advicee,
-      activityPath: undefined,
-      findingCount: response.findingCount
-    }
-    const outcome = await Effect.runPromise(
-      submitDirectHookOutput(
-        { value: response.output, collected },
-        { composed: false, claude: true, deadlineAt: (await Effect.runPromise(hookMonotonicMillis)) + 5000 }
-      ).pipe(
-        Effect.provideService(HookOutput, makeWritableHookOutput(stream)),
-        Effect.provideService(InspectionSubmissionObservation, resident.inspectionSubmissionObservation),
-        Effect.provideService(DirectHookSubmission, {
-          begin: () => Effect.die("unexpected composed admission"),
-          release: () => Effect.die("unexpected composed release"),
-          writeCodex: () => Effect.die("unexpected synchronous write"),
-          record: () => Effect.void,
-          acknowledge: () =>
-            Effect.gen(function* () {
-              const result = yield* resident.acknowledge(response.token)
-              if (result.status !== "acknowledged") return false
-              if (acknowledged) yield* resident.finalize(response.token)
-              return acknowledged
-            })
-        })
-      )
-    )
-    expect(outcome).toBe("written")
-    await stored.promise
-    stream.end()
+    const collected = response
     const scope = await Effect.runPromise(Scope.make())
     try {
+      const outcome = await Effect.runPromise(
+        submitDirectHookOutput(
+          { value: response.output, collected },
+          { composed: true, claude: true, deadlineAt: (await Effect.runPromise(hookMonotonicMillis)) + 5000 }
+        ).pipe(
+          Effect.provideService(HookOutput, makeWritableHookOutput(stream)),
+          Effect.provide(inspectionWriterClientLayer),
+          Effect.provideService(DirectHookSubmission, {
+            begin: beginComposedSubmissionEffect,
+            release: releaseComposedSubmissionEffect,
+            writeCodex: () => Effect.die("unexpected synchronous write"),
+            record: () => Effect.void,
+            acknowledge: (advice) =>
+              acknowledgeAdviceEffect(advice).pipe(
+                Effect.tap((result) => Effect.sync(() => expect(result).toBe(acknowledged)))
+              )
+          })
+        )
+      )
+      expect(outcome).toBe("written")
+      if (!acknowledged) expect(await readFile(`${ackGate}.entered`, "utf8")).toBe("entered\n")
+      await stored.promise
+      stream.end()
       const server = await Effect.runPromise(
         makeInspectionHttpServer(history).pipe(Effect.provideService(Scope.Scope, scope))
       )
@@ -387,6 +397,7 @@ it.each([true, false])(
       const states = records.filter((record) => record.fact.kind === "writer-evidence")
       expect(states.map((record) => (record.fact.kind === "writer-evidence" ? record.fact.state : null))).toEqual([
         "ready",
+        "authorized",
         "write-started",
         "written",
         ...(acknowledged ? ["acknowledged"] : [])

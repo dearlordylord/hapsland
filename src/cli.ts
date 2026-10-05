@@ -43,6 +43,7 @@ import {
 import { isCodexHostVersion, type CodexHostVersion, type DirectObservation } from "./direct-event/model.ts"
 import { type ClaudeHostOutput } from "./direct-event/claude-output.ts"
 import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts"
+import { inspectionWriterClientLayer } from "./resident/inspection-writer-client.ts"
 import {
   type ResidentStartup,
   admitObservationEffect,
@@ -1736,6 +1737,7 @@ if (invocation.kind === "dashboard") {
         runReviewProgram().pipe(
           Effect.provide(processConfigurationLayer),
           Effect.provide(directHookSubmissionLayer),
+          Effect.provide(inspectionWriterClientLayer),
           Effect.provide(composedHookRuntimeLayer),
           Effect.provide(hookOutputLayer),
           Effect.provide(residentStartupLayer),

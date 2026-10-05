@@ -1,6 +1,7 @@
 import { writeFileSync, rmSync } from "node:fs"
 import { runClient } from "../test-support/client-runtime.ts"
-import { makeGitFixture } from "../direct-event/test-fixtures.ts"
+import { makeGitFixture, advicee } from "../direct-event/test-fixtures.ts"
+import { InspectionWriterReports } from "./inspection-writer-reports.ts"
 import { it as effectIt } from "@effect/vitest"
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect"
 import * as Scheduler from "effect/Scheduler"
@@ -11,6 +12,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   ResidentIpcError,
+  acknowledgeAdviceEffect,
   admitAndCollectEffect,
   makeResidentDispatchContextEffect,
   admitObservationEffect,
@@ -36,6 +38,64 @@ afterEach(async () => {
 })
 
 describe("resident client trust boundary", () => {
+  it.each(["throws", "malformed"])("preserves acknowledgement when optional writer reporting %s", async (mode) => {
+    const directory = await mkdtemp(join(tmpdir(), "haps-ipc-"))
+    directories.push(directory)
+    await chmod(directory, 0o700)
+    const paths = residentPaths(directory)
+    const received: string[] = []
+    const server = createServer((socket) => {
+      sockets.push(socket)
+      let frame = ""
+      socket.on("data", (chunk) => {
+        frame += chunk.toString("utf8")
+        if (!frame.includes("\n")) return
+        const request = JSON.parse(frame)
+        expect(request).not.toHaveProperty("writerReports")
+        received.push(request.operation)
+        socket.end(
+          `${JSON.stringify({ version: 1, status: request.operation === "acknowledge" ? "acknowledged" : "finalized" })}\n`
+        )
+      })
+    })
+    servers.push(server)
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject)
+      server.listen(paths.socket, resolve)
+    })
+    await chmod(paths.socket, 0o600)
+    const recipient = advicee()
+    const invalid = {
+      root: directory,
+      advicee: recipient,
+      attemptId: "11111111-1111-4111-8111-111111111111",
+      findingCount: 1,
+      noticeOnly: false,
+      state: "written" as const,
+      credentials: "forbidden"
+    }
+    const result = await Effect.runPromise(
+      acknowledgeAdviceEffect({
+        output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "finding" } },
+        token: "batch",
+        lifetime: "owner",
+        paths,
+        root: directory,
+        advicee: recipient,
+        activityPath: undefined,
+        findingCount: 1
+      }).pipe(
+        Effect.provideService(InspectionWriterReports, {
+          forBatch: () => {
+            if (mode === "throws") throw new Error("optional reporter unavailable")
+            return [invalid]
+          }
+        })
+      )
+    )
+    expect(result).toBe(true)
+    expect(received).toEqual(["acknowledge", "finalize"])
+  })
   it("sends the IPC frame when scheduling yields before connection handlers run", async () => {
     const directory = await mkdtemp(join(tmpdir(), "haps-ipc-"))
     directories.push(directory)

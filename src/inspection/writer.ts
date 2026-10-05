@@ -9,6 +9,7 @@ export class InspectionWriterObservation extends Context.Service<
     readonly observe: (event: {
       readonly state: Extract<InspectionFact, { kind: "writer-evidence" }>["state"]
       readonly encoded?: string
+      readonly outputMissing?: "oversized"
     }) => void
   }
 >()("@hapsland/InspectionWriterObservation") {}
@@ -38,6 +39,7 @@ export class InspectionSubmissionObservation extends Context.Service<
       readonly lifetime: string
       readonly root: string
       readonly advicee: DirectAdvicee
+      readonly recording?: true
     }) => InspectionWriterObservation["Service"] | undefined
   }
 >()("@hapsland/InspectionSubmissionObservation") {}

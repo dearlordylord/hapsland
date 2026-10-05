@@ -83,6 +83,7 @@ import {
   encodeCurrentResidentResponse,
   type ResidentDispatchContext,
   type ResidentRequest,
+  type ResidentWriterEvidence,
   type ResidentResponse,
   type ResidentUnavailableReason
 } from "./protocol.ts"
@@ -4714,28 +4715,39 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "collect") return yield* residentHandleCollect(request)
     return undefined
   })
+  const inspectionObserveWriterReport = (
+    token: string,
+    reportLifetime: string,
+    report: ResidentWriterEvidence
+  ): void => {
+    const observer = inspectionSubmissions.observation.forAttempt({
+      batchId: token,
+      attemptId: report.attemptId,
+      endpoint: paths.socket,
+      lifetime: reportLifetime,
+      root: report.root,
+      advicee: report.advicee,
+      findingCount: report.findingCount,
+      noticeOnly: report.noticeOnly
+    })
+    observer?.observe({
+      state: report.state,
+      ...(report.encoded === undefined ? {} : { encoded: report.encoded }),
+      ...(report.outputMissing === undefined ? {} : { outputMissing: report.outputMissing })
+    })
+  }
   const residentRouteAdministration = Effect.fn("ResidentRuntime.routeAdministration")(function* (
     request: ResidentRequest,
     _context: Ref.Ref<ResponseContext>
   ) {
     if (request.operation === "inspection-writer") {
-      const observer = inspectionSubmissions.observation.forAttempt({
-        batchId: request.token,
-        attemptId: request.attemptId,
-        endpoint: paths.socket,
-        lifetime: request.lifetime,
-        root: request.root,
-        advicee: request.advicee,
-        findingCount: request.findingCount,
-        noticeOnly: request.noticeOnly
-      })
-      observer?.observe({
-        state: request.state,
-        ...(request.encoded === undefined ? {} : { encoded: request.encoded })
-      })
+      inspectionObserveWriterReport(request.token, request.lifetime, request)
       // Receipt of an optional report is not delivery or persistence acknowledgement.
       return residentResponse({ status: "empty" })
     }
+    if (request.operation === "acknowledge" || request.operation === "finalize")
+      for (const report of request.writerReports ?? [])
+        inspectionObserveWriterReport(request.token, request.lifetime, report)
     if (
       (request.operation === "acknowledge" || request.operation === "finalize") &&
       !(yield* residentComposedDelivery.hasToken(request.token))
@@ -5240,7 +5252,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     // Replace its detached observation ownership only after those checks finish.
     if (finalResponse.status === "advice" && request.operation === "collect" && inspection.isEnabled(request.root)) {
       const payload = captureInspectionFate(findings, "retained", "pending-advice").payload
-      if (payload.status === "available")
+      if (
+        payload.status === "available" &&
         inspectionSubmissions.register(response.token, {
           root: request.root,
           advicee: request.advicee,
@@ -5254,6 +5267,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             ]
           })
         })
+      )
+        return { ...finalResponse, inspectionReporting: true }
     }
     return finalResponse
   }, Effect.uninterruptible)

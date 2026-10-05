@@ -42,6 +42,21 @@ describe("resident protocol bounds", () => {
     ])
       expect(decodeResidentRequest(JSON.stringify({ ...report, ...change }))).toBeUndefined()
     expect(decodeResidentRequest(JSON.stringify({ ...report, encoded: "日".repeat(5461) + "a" }))).toBeDefined()
+    const { requestRoute: _route, operation: _operation, token: _token, lifetime: _lifetime, ...evidence } = report
+    const acknowledgement = {
+      requestRoute: "shared",
+      operation: "acknowledge",
+      lifetime: "owner",
+      token: "batch",
+      writerReports: [evidence]
+    } as const
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(acknowledgement))).toEqual(acknowledgement)
+    for (const writerReports of [
+      Array.from({ length: 9 }, () => evidence),
+      [{ ...evidence, encoded: "日".repeat(5462) }],
+      [{ ...evidence, outputMissing: "oversized" }]
+    ])
+      expect(decodeResidentRequest(JSON.stringify({ ...acknowledgement, writerReports }))).toBeUndefined()
   })
   it("uses one version-one envelope for bounded edit responses and rejects retired ticket requests", () => {
     const observation = {
