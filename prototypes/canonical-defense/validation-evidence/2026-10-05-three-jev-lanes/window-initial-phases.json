@@ -1,0 +1,30 @@
+[
+  {
+    "name": "emission",
+    "args": [
+      "/workspace/typescript/jev/prototypes/canonical-defense/DefenseMain.bend",
+      "-o",
+      "/tmp/hapsland-rule-window.c"
+    ],
+    "limitMs": 240000,
+    "durationMs": 149342,
+    "status": 0
+  },
+  {
+    "name": "compilation",
+    "args": [
+      "-std=c11",
+      "-O0",
+      "/tmp/hapsland-rule-window.c",
+      "-lpthread",
+      "-lm",
+      "-lX11",
+      "-o",
+      "/tmp/hapsland-rule-window"
+    ],
+    "limitMs": 60000,
+    "durationMs": 60170,
+    "status": null,
+    "error": "ETIMEDOUT"
+  }
+]

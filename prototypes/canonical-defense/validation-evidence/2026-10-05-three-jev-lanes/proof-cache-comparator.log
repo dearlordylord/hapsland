@@ -1,0 +1,31 @@
+✔ unchanged bytes reuse the executable; transitive effects and runtime changes rebuild (286.586303ms)
+✔ tool versions, compiler contents, flags and wrapper code invalidate reuse (346.102008ms)
+✔ missing receipts and damaged executables are rebuilt (215.163458ms)
+✔ failed or changing builds never publish a reusable binary (208.432736ms)
+✔ run.sh builds once, reuses the cache and forwards runtime arguments (645.103497ms)
+✔ public contract permits different private scheduler and scenario representation (3.005483ms)
+✔ public contract refuses a changed Canonical owner (4.41062ms)
+✔ public contract still refuses changed observable queue order (3.045483ms)
+✔ external finding-count acknowledgement resolves only its missing event owner (0.387086ms)
+✔ approved presentation proofs pass both Bend and the mathematical kernel (1794.262026ms)
+✔ presentation proof rejects unfinished travel disappears (940.770126ms)
+✔ presentation proof rejects silent parent wait (802.80152ms)
+✔ presentation proof rejects playback called retained (985.53104ms)
+✔ presentation proof rejects certain send invents finish acknowledgement (743.182814ms)
+✔ presentation proof rejects uncertain send invents finish acknowledgement (960.675584ms)
+✔ presentation proof rejects erased causal parent (668.499943ms)
+✔ presentation proof rejects released child waits again (607.927604ms)
+✔ presentation proof rejects early terminal appearance (455.636711ms)
+✔ presentation proof rejects lingering handoff ghost (717.298515ms)
+✔ presentation proof rejects silent spatial queue (474.957206ms)
+✔ presentation proof rejects retention called travel (352.167308ms)
+✔ presentation proof rejects retirement erases acknowledged delivery (582.170015ms)
+✔ presentation proof rejects movement invents clear (1303.502189ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11612.604835

@@ -43,7 +43,7 @@ const config = {
     bytes: 100, unitBytes: [10, 20] },
   preparationDelay: 800, jevDelay: 3200, adviceLifetime: 20000,
   outputProfile: { outcome: "certain", delayMs: 800, leaseMs: 5000 },
-  outcomeWeights: { neverSent: 0, finding: 1, clear: 1, backendFailure: 0, timeout: 0, interrupted: 0 },
+  outcomeWeights: { neverSent: 0, finding: 1, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0 },
   fileTrees: { minFiles: 1, maxFiles: 3, maxImports: 2, maxDepth: 2, deniedPercent: 0,
     missingPercent: 0, unreadablePercent: 0, repeatedEdgePercent: 10, cyclicEdgePercent: 0,
     unsupportedPercent: 0, deadlineStep: 0, localWork: 0,
@@ -144,6 +144,23 @@ for (const seed of [0,3,17,41]) {
             ticks++;
             // Presentation reads every accepted frame and never gates business work.
             run.advance({ untilTime: ticks * 20, maxEvents: 256 });
+            // Independent game scenario: each default request has eight rules.
+            // Add multiplicity through the same public canonical input boundary.
+            const settlements = publicFrames.filter(frame => frame.kind === "canonical" &&
+              frame.observation.event.kind === "jevRequestSettled" &&
+              frame.observation.event.outcome === "finding" && frame.observation.event.currentWork);
+            let counts = 0;
+            for (const frame of settlements) {
+              const event = frame.observation.event;
+              const work = run.observe().projection.work.find(item => item.partition === event.partition &&
+                item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation);
+              if (work?.kind !== "pendingFinding") continue;
+              run.schedule({ at: run.now, kind: "canonical", event: { kind: "findingCountUpdated",
+                partition: event.partition, lifetime: event.lifetime, round: event.round,
+                operation: event.operation, count: 4 } });
+              counts++;
+            }
+            if (counts) run.advance({ untilTime: run.now, maxEvents: 32 });
           }
         } finally { unsubscribe(); }
         const deliveries = list(physical.physical).map(readRecord);

@@ -1,6 +1,9 @@
 # Native layouts are read-only projections of the canonical reducer.
 import Base
 import ./DefenseHistory.bend as History
+import ./DefenseRules.bend as Rules
+import ./DefenseRuleTypes.bend as RuleTypes
+import ./DefenseRulePolicy.bend as RulePolicy
 import ./DefensePresentation.bend as Display
 import ./DefenseMechanics.bend as Mechanics
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as NativeTypes
@@ -163,7 +166,7 @@ def exits(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +layout = M.layout(world)
   +clear = D.outer_point(D.port(D.center(layout,4,0),D.clear_side(layout)),D.clear_side(layout))
   +delivery = D.outer_point(D.exit_port(layout,5),D.exit_side(layout,5))
-  F.text("CLEAR EXIT " ++ U32.show(M.clear(world)),(D.px(clear) + 8 : U32),U32.sub(D.py(clear),7),1,9170322,
+  F.text("CLEAR EXIT",(D.px(clear) + 8 : U32),U32.sub(D.py(clear),7),1,9170322,
     F.text("DELIVERY " ++ U32.show(M.delivered(world)),(D.px(delivery) + 8 : U32),(D.py(delivery) + 2 : U32),1,65483,
       road(D.clear_route(layout),8,9170322,road(D.delivery_route(layout),8,65483,rest))))
 
@@ -189,21 +192,18 @@ def room_walls(+layout: U32,+phase: U32,+point: D.Point,+color: U32,rest: List<&
   wall(door_open(layout,phase,0),0,point,color,wall(door_open(layout,phase,1),1,point,color,
     wall(door_open(layout,phase,2),2,point,color,wall(door_open(layout,phase,3),3,point,color,rest))))
 
-def room_other_entry(on: Bool,+layout: U32,+phase: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match on:
-    case False{}: rest
-    case True{}: road(D.room_route(layout,phase,1),3,7042681,rest)
-
-def clear_inside(phase: U32,+layout: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def room_paths(+phase: U32,+layout: U32,+point: D.Point,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match phase:
-    case 4: road(D.exit_channel(D.center(layout,4,0),D.clear_side(layout)),3,7042681,rest)
-    case _: rest
-
+    case 4:
+      road([D.Point{M.sub(D.px(point),28),M.sub(D.py(point),8)},D.Point{(D.px(point) + 28 : U32),M.sub(D.py(point),8)}],2,7042681,
+        road([D.Point{M.sub(D.px(point),28),D.py(point)},D.Point{(D.px(point) + 28 : U32),D.py(point)}],2,7042681,
+          road([D.Point{M.sub(D.px(point),28),(D.py(point) + 8 : U32)},D.Point{(D.px(point) + 28 : U32),(D.py(point) + 8 : U32)}],2,7042681,rest)))
+    case _: road(D.room_route(layout,phase,0),3,7042681,rest)
 def site_shape(enclosed: Bool,+layout: U32,+phase: U32,+point: D.Point,+x: U32,+y: U32,color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match enclosed:
     case True{}:
       List.append(&2,F.Rect,room_walls(layout,phase,point,color,
-        clear_inside(phase,layout,road(D.room_route(layout,phase,0),3,7042681,room_other_entry(U32.is_eq(layout,1) && U32.is_eq(phase,4),layout,phase,rest)))),[F.Box{x,y,64,48,1914923}])
+        room_paths(phase,layout,point,rest)),[F.Box{x,y,64,48,1914923}])
     case False{}: F.put(x,(y + 45 : U32),64,3,color,rest)
 
 def site_pressure(tokens: List<&2,P.Token>,+world: M.World,+phase: U32) -> U32:
@@ -323,13 +323,12 @@ def text_width(value: String) -> U32:
 
 def stat_delta(+preview: Preview.Preview,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +current = U32.show(Preview.before(preview))
-  +sign = Bool.pick(String,Preview.reduction(Preview.kind(preview))," - "," + ")
-  F.text(current,x,y,2,16777215,F.text(sign ++ U32.show(Preview.delta(preview)),(x + text_width(current) : U32),y,2,cue_color(Preview.status(preview)),rest))
+  F.text(current,x,y,2,16777215,F.text(" TO " ++ U32.show(Preview.after(preview)),(x + text_width(current) : U32),y,2,cue_color(Preview.status(preview)),rest))
 
 def actionable_stats(on: Bool,preview: Preview.Preview,x: U32,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case True{}: stat_delta(preview,x,y,rest)
-    case False{}: F.text("BUILD UNAVAILABLE",x,y,1,15758447,rest)
+    case False{}: F.text("NO TARGET IN RANGE",x,y,1,15758447,rest)
 
 def placement_point(world: M.World,preview: Preview.Preview,operation: Nat) -> D.Point:
   D.center(M.layout(world),Preview.site(preview),0)
@@ -345,13 +344,20 @@ def placement_link(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List
           F.text(stat_label(Preview.kind(preview)),U32.max(24,M.sub(D.px(point),64)),label_y,1,12439239,
             stat_delta(preview,U32.max(24,M.sub(D.px(point),32)),(label_y + 12 : U32),rest))))
 
+def preview_scope(kind: U32) -> String:
+  match kind:
+    case 0: "AFFECTS ALL FUTURE JEV REQUESTS"
+    case 1: "AFFECTS FUTURE OUTPUT SUBMISSIONS"
+    case _: "AFFECTS SOURCE AND CREDENTIAL ACCESS"
 def generic_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("PLACEMENT SNAPSHOT",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text(stat_label(Preview.kind(preview)),812,584,1,12439239,
-      actionable_stats(Preview.legal(preview),preview,812,604,
-        F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
-          F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ Bool.pick(String,U32.is_eq(Preview.kind(preview),2)," / ONE-TIME REPAIR"," / FUTURE TIMING"),812,684,1,12439239,
-            F.text(Bool.pick(String,U32.is_eq(Preview.kind(preview),2),"NO CONTINUING PROTECTION","ISSUED DEADLINES STAY FIXED"),812,702,1,12439239,rest))))))
+  box("BEFORE BUILDING",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
+    F.text(preview_scope(Preview.kind(preview)),812,584,1,16768133,
+      F.text(stat_label(Preview.kind(preview)),812,604,1,12439239,
+        actionable_stats(Bool.not(U32.is_eq(Preview.site(preview),255)),preview,812,624,
+          F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
+            F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ Bool.pick(String,U32.is_eq(Preview.kind(preview),2)," / ONE-TIME REPAIR"," / FUTURE TIMING"),812,684,1,12439239,
+              F.text(Bool.pick(String,U32.is_eq(Preview.kind(preview),2),"RESTORES BOTH ACCESS CHANNELS","ISSUED DEADLINES STAY FIXED"),812,702,1,12439239,rest)))))))
+
 def preview_panel(kind: U32,legal: Bool,world: M.World,preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   generic_panel(world,preview,rest)
 def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
@@ -362,7 +368,7 @@ def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<
       +x = Preview.x(preview)
       +y = Preview.y(preview)
       ring(48n,x,y,Preview.range(preview),color,processor_icon(x,y,Preview.kind(preview),1,color,
-        placement_link(Preview.legal(preview) && Bool.not(U32.is_eq(Preview.site(preview),255)),world,preview,
+        placement_link(Bool.not(U32.is_eq(Preview.site(preview),255)),world,preview,
           preview_panel(Preview.kind(preview),Preview.legal(preview),world,preview,rest))))
 
 def selected_note(tower: M.Tower) -> String:
@@ -526,12 +532,48 @@ def cue_hud(items: List<&2,M.Cue>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
     case Nil{}: rest
     case +cue <> _: F.text(cue_label(cue),24,130,1,Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),16733525,65483),rest)
 
+# Checks share the request transform inside Jev. After the fork they own paths.
+
+def check_bodies(items: List<&2,Bool>,+actor: V.Actor,+group: RuleTypes.Group,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match items:
+    case Nil{}: rest
+    case _ <> tail:
+      monster(Rules.check_point(actor,group,M.layout(world),index),True{},History.phase_color(4),0,
+        check_bodies(tail,actor,group,world,(index + 1 : U32),rest))
+def fragment_bodies(items: List<&2,RuleTypes.Fragment>,+group: RuleTypes.Group,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match items:
+    case Nil{}: rest
+    case +item <> tail:
+      +point = Rules.fragment_point(item)
+      +hit = Rules.fragment_hit(item)
+      +color = Bool.pick(U32,hit,History.phase_color(5),9170322)
+      # Identity and delivery evidence are shown on hover; eight parallel labels
+      # obscure the bodies when a review forks inside the compact Jev room.
+      monster(point,True{},color,0,fragment_bodies(tail,group,world,rest))
+
+def group_bodies(+group: RuleTypes.Group,found: Maybe<&2,V.Actor>,+world: M.World,+rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match found:
+    case Some{+actor}:
+      Bool.pick(List<&2,F.Rect>,Rules.split(group),fragment_bodies(Rules.fragments(group),group,world,rest),
+        Bool.pick(List<&2,F.Rect>,U32.is_eq(Motion.visible_phase(actor),4),check_bodies(Rules.results(group),actor,group,world,0,rest),rest))
+    case None{}: fragment_bodies(Rules.fragments(group),group,world,rest)
+def rule_groups(items: List<&2,RuleTypes.Group>,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match items:
+    case Nil{}: rest
+    case +group <> tail:
+      group_bodies(group,Rules.find_actor(Rules.owner(group),M.actors(world)),world,rule_groups(tail,world,rest))
+def parent_body(found: Maybe<&2,RuleTypes.Group>,+actor: V.Actor) -> Bool:
+  match found:
+    case None{}: True{}
+    case Some{group}: Bool.not(Rules.split(group) || U32.is_eq(Motion.visible_phase(actor),4))
+def rule_parent_visible(+actor: V.Actor,+world: M.World) -> Bool:
+  Motion.drawable(actor,M.actors(world)) && parent_body(Rules.find(Motion.actor_key(actor),Rules.groups(M.rules(world))),actor)
 def history_actor(+actor: V.Actor,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = Motion.point(actor)
   +p = Motion.visible_phase(actor)
   +done = Display.terminal_display(actor)
   +color = History.body_color(actor)
-  +status = Bool.pick(String,done,History.terminal_short(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(Motion.wait_kind(actor,M.actors(world)),0),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PB"),History.body_wait(Motion.wait_kind(actor,M.actors(world)))))
+  +status = Bool.pick(String,Bool.not(Rules.can_move_actor(actor,world)),"Q",Bool.pick(String,done,History.terminal_short(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(Motion.wait_kind(actor,M.actors(world)),0),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PB"),History.body_wait(Motion.wait_kind(actor,M.actors(world))))))
   +x = U32.sub(D.px(point),8)
   F.text("U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))),x,U32.sub(D.py(point),22),1,color,
     F.text("E" ++ Nat.show(Motion.actor_family(actor)),x,U32.sub(D.py(point),14),1,color,
@@ -543,7 +585,7 @@ def hover_actor(items: List<&2,V.Actor>,+world: M.World) -> Maybe<&2,V.Actor>:
   match items:
     case Nil{}: None{}
     case +actor <> rest:
-      Bool.pick(Maybe<&2,V.Actor>,Motion.released(actor) && D.in_range(Motion.point(actor),D.Point{M.mouse_x(world),M.mouse_y(world)},12),Some{actor},hover_actor(rest,world))
+      Bool.pick(Maybe<&2,V.Actor>,rule_parent_visible(actor,world) && Motion.released(actor) && D.in_range(Motion.point(actor),D.Point{M.mouse_x(world),M.mouse_y(world)},12),Some{actor},hover_actor(rest,world))
 def hover_family(found: Maybe<&2,V.Actor>) -> Nat:
   match found:
     case None{}: 0n
@@ -558,7 +600,7 @@ def hover_panel(found: Maybe<&2,V.Actor>,+world: M.World,rest: List<&2,F.Rect>) 
             F.text("LAST " ++ phase_name(Motion.observed_phase(actor)),812,390,1,12439239,
               F.text(History.result_text(actor),812,398,1,15124059,
                 F.text("PREDECESSOR " ++ History.predecessor_text(Display.parent(actor)),812,406,1,12439239,
-                  F.text(History.wait_text(Motion.wait_kind(actor,M.actors(world)),actor,M.actors(world)),812,414,1,15124059,
+                  F.text(Bool.pick(String,Rules.can_move_actor(actor,world),History.wait_text(Motion.wait_kind(actor,M.actors(world)),actor,M.actors(world)),"VISUAL QUEUE / THREE JEV LANES"),812,414,1,15124059,
                     F.text(History.fork_text_for(actor,M.actors(world)),812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))))
 def history_visible(on: Bool,actor: V.Actor,world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
@@ -567,12 +609,54 @@ def history_visible(on: Bool,actor: V.Actor,world: M.World,rest: List<&2,F.Rect>
 def history_actors(items: List<&2,V.Actor>,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match items:
     case Nil{}: rest
-    case +actor <> tail: history_visible(Motion.drawable(actor,M.actors(world)),actor,world,history_actors(tail,world,rest))
+    case +actor <> tail: history_visible(rule_parent_visible(actor,world),actor,world,history_actors(tail,world,rest))
+type RuleHover is Data:
+  RuleHover{group: RuleTypes.Group, rule: U32, finding: Bool, branched: Bool}
+def hover_check(items: List<&2,Bool>,+group: RuleTypes.Group,+actor: V.Actor,+world: M.World,+index: U32) -> Maybe<&2,RuleHover>:
+  match items:
+    case Nil{}: None{}
+    case hit <> tail:
+      Bool.pick(Maybe<&2,RuleHover>,D.in_range(Rules.check_point(actor,group,M.layout(world),index),D.Point{M.mouse_x(world),M.mouse_y(world)},4),
+        Some{RuleHover{group,index,hit,False{}}},hover_check(tail,group,actor,world,(index + 1 : U32)))
+def hover_fragment(items: List<&2,RuleTypes.Fragment>,+group: RuleTypes.Group,+world: M.World) -> Maybe<&2,RuleHover>:
+  match items:
+    case Nil{}: None{}
+    case +item <> tail:
+      Bool.pick(Maybe<&2,RuleHover>,D.in_range(Rules.fragment_point(item),D.Point{M.mouse_x(world),M.mouse_y(world)},6),
+        Some{RuleHover{group,Rules.fragment_rule(item),Rules.fragment_hit(item),True{}}},hover_fragment(tail,group,world))
+def hover_group(+group: RuleTypes.Group,found: Maybe<&2,V.Actor>,+world: M.World) -> Maybe<&2,RuleHover>:
+  match found:
+    case Some{+actor}:
+      Bool.pick(Maybe<&2,RuleHover>,Rules.split(group),hover_fragment(Rules.fragments(group),group,world),
+        Bool.pick(Maybe<&2,RuleHover>,U32.is_eq(Motion.visible_phase(actor),4),hover_check(Rules.results(group),group,actor,world,0),None{}))
+    case None{}: hover_fragment(Rules.fragments(group),group,world)
+def first_hover(found: Maybe<&2,RuleHover>,fallback: Maybe<&2,RuleHover>) -> Maybe<&2,RuleHover>:
+  match found:
+    case Some{value}: Some{value}
+    case None{}: fallback
+def hover_rules(items: List<&2,RuleTypes.Group>,+world: M.World) -> Maybe<&2,RuleHover>:
+  match items:
+    case Nil{}: None{}
+    case +group <> tail:
+      first_hover(hover_group(group,Rules.find_actor(Rules.owner(group),M.actors(world)),world),hover_rules(tail,world))
+def rule_hover_panel(found: Maybe<&2,RuleHover>,world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match found:
+    case None{}: rest
+    case Some{RuleHover{+group,+rule,+hit,+branched}}:
+      +value = Rules.group_profile(group)
+      box("RULE " ++ U32.show((rule + 1 : U32)),"ONE CHECK / SAME PARENT REQUEST",800,330,216,104,16768133,
+        F.text("PARENT " ++ History.identity_text(Rules.owner(group)),812,374,1,16777215,
+          F.text("CAPTURED " ++ U32.show(RulePolicy.checks(value)) ++ " RULES / " ++ U32.show(RulePolicy.percent(value)) ++ "%",812,382,1,12439239,
+            F.text(Bool.pick(String,branched,Bool.pick(String,hit,"FINDING / RETAINED RESULT","CLEAR / NO ADVICE"),"CHECKING / PARALLEL RULES"),812,390,1,15124059,
+              F.text(Bool.pick(String,branched,"RESULT ","SCHEDULED ") ++ Nat.show(RulePolicy.count(Rules.results(group))) ++ " FINDINGS",812,398,1,12439239,
+                F.text(Bool.pick(String,branched,"SPEED " ++ U32.show(Rules.fragment_speed(rule)),"SPEED SHARED WITH REQUEST"),812,406,1,12439239,
+                  F.text(Bool.pick(String,hit && branched,History.submission_text(Rules.sent(group)),""),812,414,1,15124059,
+                    F.text("J K CHANCE / , . RULE COUNT",812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))))
 def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +ids = waiting_ids(tokens,world)
   +queued = Motion.queued(M.actors(world),M.actors(world))
   +base = F.text("VISUAL RELEASE WAIT " ++ U32.show(queued) ++ " / COUNTERS = ENGINE NOW",24,146,1,15758447,rest)
-  wait_label(world,ids,history_actors(M.actors(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,base))))))
+  wait_label(world,ids,rule_groups(Rules.groups(M.rules(world)),world,history_actors(M.actors(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,base)))))))
 
 def on_word(on: Bool) -> String:
   match on:
@@ -610,12 +694,12 @@ def scene(+world: M.World) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
   +hovered = hover_actor(M.actors(world),world)
   +target: Nat = hover_family(hovered)
-  +base = hover_panel(hovered,world,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[])))))))
+  +base = rule_hover_panel(hover_rules(Rules.groups(M.rules(world)),world),world,hover_panel(hovered,world,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))))
   +legend = F.text("U OPERATION / E EDIT ORIGIN / PB PLAYBACK / Q VISUAL QUEUE / STORED RETAINED ADVICE / HOVER FOR REASON",24,722,1,12439239,base)
   +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,legend))))
-  F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),480,78,1,16768133,
+  F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR REQUESTS " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: WAIT START / REQUEST ACTIVE",24,111,1,12439239,F.text(access_line(Mechanics.current_environment(M.engine(world))),24,124,1,12439239,header)))))
+    F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV 3 REQUEST LANES / " ++ U32.show(RulePolicy.checks(Rules.profile(M.rules(world)))) ++ " RULES / FINDING " ++ U32.show(RulePolicy.percent(Rules.profile(M.rules(world)))) ++ "% EACH / J K CHANCE / , . RULES",24,111,1,12439239,F.text(access_line(Mechanics.current_environment(M.engine(world))),24,124,1,12439239,header)))))
 
 def view(world: M.World) -> Image:
   paint(10n,0,0,1024,scene(world),False{})
@@ -639,4 +723,4 @@ def first_trace(items: List<&2,V.Actor>,+world: M.World,+phase: U32,+prefix: Str
 
 def diagnostics(+world: M.World) -> String:
   +preview = Preview.calculate(world)
-  "PACE=" ++ U32.show(M.arrival_interval(world)) ++ " BURST=" ++ U32.show(M.burst_size(M.settings(world))) ++ " " ++ access_line(Mechanics.current_environment(M.engine(world))) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.run_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " " ++ first_trace(M.actors(world),world,0,"ROAD") ++ " " ++ first_trace(M.actors(world),world,1,"SERVICE") ++ " " ++ first_trace(M.actors(world),world,3,"FANOUT")
+  "JEV_LANES=3 JEV_CHECKING=" ++ U32.show(Rules.checking_count(Rules.groups(M.rules(world)),M.actors(world))) ++ " RULES=" ++ U32.show(RulePolicy.checks(Rules.profile(M.rules(world)))) ++ " FINDING_PERCENT=" ++ U32.show(RulePolicy.percent(Rules.profile(M.rules(world)))) ++ " PACE=" ++ U32.show(M.arrival_interval(world)) ++ " BURST=" ++ U32.show(M.burst_size(M.settings(world))) ++ " " ++ access_line(Mechanics.current_environment(M.engine(world))) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.run_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " " ++ first_trace(M.actors(world),world,0,"ROAD") ++ " " ++ first_trace(M.actors(world),world,1,"SERVICE") ++ " " ++ first_trace(M.actors(world),world,3,"FANOUT")

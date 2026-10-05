@@ -1,0 +1,32 @@
+{
+  "id": "20261005173104891-414027-2a6a7b",
+  "mode": "test",
+  "state": "passed",
+  "exitCode": 0,
+  "startedAt": "2026-10-05T17:31:04.899Z",
+  "finishedAt": "2026-10-05T17:36:54.127Z",
+  "elapsedMs": 349228,
+  "failedStages": [],
+  "skippedStages": [],
+  "failures": 0,
+  "stages": [
+    {
+      "name": "game-consumer",
+      "ownerPid": 414027,
+      "command": "/home/node/.local/share/mise/installs/node/24.20.0/bin/node",
+      "args": [
+        "--experimental-strip-types",
+        "prototypes/canonical-defense/verify-consumer.mjs"
+      ],
+      "startedAt": "2026-10-05T17:31:04.918Z",
+      "state": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "elapsedMs": 349201,
+      "logPath": "/workspace/typescript/jev/.test-runs/20261005173104891-414027-2a6a7b/414027-001-game-consumer.log",
+      "pid": 414046
+    }
+  ],
+  "testFailures": []
+}

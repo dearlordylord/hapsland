@@ -19,6 +19,7 @@ import ./DefenseConsumerBatches.bend as DefenseConsumerBatches
 import ./DefenseConsumerObserved.bend as DefenseConsumerObserved
 import ./DefenseModel.bend as DefenseModel
 import ./DefenseMotionTypes.bend as DefenseMotionTypes
+import ./DefenseRuleTypes.bend as DefenseRuleTypes
 import ../../packages/agent-flow-bend/Delivery.bend as Delivery
 import ../../packages/agent-flow-bend/DeliveryState.bend as DeliveryState
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
@@ -2475,9 +2476,73 @@ def list_defensemodel_settings(values: List<&2,List<&2,DefenseModel.Settings>>, 
     case +value <> Nil{}: List.length(&2,DefenseModel.Settings,value) <> list_defensemodel_settings_items([value],suffix)
     case _: 999999n <> suffix
 
+def defenseruletypes_profile(values: List<&2,DefenseRuleTypes.Profile>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseRuleTypes.Profile{v0,v1} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> suffix
+    case _: 999999n <> suffix
+
+def list_bool_items(values: List<&2,List<&2,Bool>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: boolean(head,list_bool_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_bool(values: List<&2,List<&2,Bool>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,Bool,value) <> list_bool_items([value],suffix)
+    case _: 999999n <> suffix
+
+def defenseruletypes_fragment(values: List<&2,DefenseRuleTypes.Fragment>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseRuleTypes.Fragment{v0,v1,v2,v3,v4} <> Nil{}: 0n <> U32.to_nat(v0) <> boolean(v1,U32.to_nat(v2) <> U32.to_nat(v3) <> list_defensemotiontypes_waypoint([v4],suffix))
+    case _: 999999n <> suffix
+
+def list_defenseruletypes_fragment_items(values: List<&2,List<&2,DefenseRuleTypes.Fragment>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defenseruletypes_fragment([head],list_defenseruletypes_fragment_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defenseruletypes_fragment(values: List<&2,List<&2,DefenseRuleTypes.Fragment>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseRuleTypes.Fragment,value) <> list_defenseruletypes_fragment_items([value],suffix)
+    case _: 999999n <> suffix
+
+def defenseruletypes_group(values: List<&2,DefenseRuleTypes.Group>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseRuleTypes.Group{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9} <> Nil{}: 0n <> defensemotiontypes_workidentity([v0],v1 <> defenseruletypes_profile([v2],list_bool([v3],boolean(v4,list_defenseruletypes_fragment([v5],boolean(v6,U32.to_nat(v7) <> U32.to_nat(v8) <> U32.to_nat(v9) <> suffix))))))
+    case _: 999999n <> suffix
+
+def list_defenseruletypes_group_items(values: List<&2,List<&2,DefenseRuleTypes.Group>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defenseruletypes_group([head],list_defenseruletypes_group_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defenseruletypes_group(values: List<&2,List<&2,DefenseRuleTypes.Group>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseRuleTypes.Group,value) <> list_defenseruletypes_group_items([value],suffix)
+    case _: 999999n <> suffix
+
+def defenseruletypes_state(values: List<&2,DefenseRuleTypes.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseRuleTypes.State{v0,v1} <> Nil{}: 0n <> defenseruletypes_profile([v0],list_defenseruletypes_group([v1],suffix))
+    case _: 999999n <> suffix
+
+def list_defenseruletypes_state_items(values: List<&2,List<&2,DefenseRuleTypes.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defenseruletypes_state([head],list_defenseruletypes_state_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defenseruletypes_state(values: List<&2,List<&2,DefenseRuleTypes.State>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseRuleTypes.State,value) <> list_defenseruletypes_state_items([value],suffix)
+    case _: 999999n <> suffix
+
 def defensemodel_control(values: List<&2,DefenseModel.Control>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.Control{v0,v1,v2,v3,v4} <> Nil{}: 0n <> list_defenseauto_state([v0],U32.to_nat(v1) <> list_defensemodel_cue([v2],list_defensemotiontypes_actor([v3],list_defensemodel_settings([v4],suffix))))
+    case DefenseModel.Control{v0,v1,v2,v3,v4,v5} <> Nil{}: 0n <> list_defenseauto_state([v0],U32.to_nat(v1) <> list_defensemodel_cue([v2],list_defensemotiontypes_actor([v3],list_defensemodel_settings([v4],list_defenseruletypes_state([v5],suffix)))))
     case _: 999999n <> suffix
 
 def list_defensemodel_control_items(values: List<&2,List<&2,DefenseModel.Control>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

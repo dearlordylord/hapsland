@@ -1,0 +1,22 @@
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+
+> @hapsland/hapsland@0.1.0 check:fast
+> npm run typecheck && npm run config:check && npm run lint:changed
+
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+
+> @hapsland/hapsland@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+
+> @hapsland/hapsland@0.1.0 config:check
+> node --experimental-strip-types scripts/generate-configuration.ts --check
+
+configuration documentation and schemas are current
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+
+> @hapsland/hapsland@0.1.0 lint:changed
+> node scripts/run-quality-lint.mjs --changed
+
+Checking 30 authored code files

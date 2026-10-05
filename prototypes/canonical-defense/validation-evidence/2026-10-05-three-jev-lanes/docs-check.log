@@ -1,0 +1,18 @@
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+
+> @hapsland/hapsland@0.1.0 docs:check
+> node --test scripts/check-doc-links.test.mjs && node scripts/check-doc-links.mjs && node scripts/generate-hook-index.mjs --check
+
+✔ the offline gate checks new docs, deleted targets, raw HTML, and heading anchors (786.095898ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1077.465859
+Checking local paths, HTML images, and heading anchors in 96 Markdown documents.
+🔍 1207 Total (in 140ms) 🔗 740 Unique ✅ 1097 OK 🚫 0 Errors 👻 110 Excluded
+
+README hook index matches installed definitions

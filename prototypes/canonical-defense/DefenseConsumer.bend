@@ -12,7 +12,7 @@ import ../../packages/agent-flow-bend/ImportGraph.bend as Graph
 import ../../packages/agent-flow-bend/Ledger.bend as Ledger
 
 def weights() -> List<&2,Numeric.Words>:
-  [Numeric.Words{0n,0n},Numeric.Words{1072693248n,0n},Numeric.Words{1072693248n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n}]
+  [Numeric.Words{0n,0n},Numeric.Words{1072693248n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n}]
 def credential_generation() -> Nat: 1n
 def config() -> T.Config:
   T.Config{Ledger.Limits{32n,480n,16n,480n},
