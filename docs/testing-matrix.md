@@ -105,6 +105,24 @@ These source-checkout diagnostics do not amend the original comparison cell or
 establish a general delivery guarantee. The investigation made four physical Jev
 requests across its two live runs.
 
+## Local inspection model
+
+`node scripts/check-inspection-model.mjs` typechecks the executable
+[inspection model](models/sessionInspection.qnt), runs its deterministic protocol
+scenarios, and samples the consent/evidence/loss/replay invariants with seeds
+226, 233 and 225, 1,000 traces per seed and at most 120 steps per trace. Every
+major action must be reached in at least one of the sampled runs. Use
+`--write-evidence` to replace the [sampling record](../evidence/inspection/model-sampling.json)
+when the model changes.
+
+This is design evidence for [#226](https://github.com/dearlordylord/hapsland/issues/226),
+subordinate to the [accepted feature requirements](https://github.com/dearlordylord/hapsland/issues/225).
+Abstract immutable byte tokens and item quotas do not establish actual request
+serialization, allocated storage, private access, process lifetime or native
+handoff. Production inspection acceptance remains at the real-resident public
+HTTP/feed and rendered inspector boundary defined in #225. All eight slices
+must land before its declared final full gate.
+
 ## Native compilation phase
 
 Ordinary `npm test` and `npm run quality:check` invoke Vitest directly after the

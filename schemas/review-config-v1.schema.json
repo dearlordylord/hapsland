@@ -54,6 +54,11 @@
       "description": "Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
       "default": false
     },
+    "sessionInspection": {
+      "type": "boolean",
+      "description": "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
+      "default": false
+    },
     "claudeFeedbackMode": {
       "type": "string",
       "enum": [

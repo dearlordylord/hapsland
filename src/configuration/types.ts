@@ -189,6 +189,13 @@ export const ConfigurationDocument = Schema.Struct({
       default: false
     })
   ),
+  sessionInspection: Schema.optionalKey(
+    Schema.Boolean.annotate({
+      description:
+        "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
+      default: false
+    })
+  ),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),
   editPermitLimits: Schema.optionalKey(EditPermitLimitsSettings),
   virtualRoundQuietMs: Schema.optionalKey(

@@ -85,6 +85,7 @@ they are not Hapsland review-policy layers.
 | `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `sessionAnalytics` | boolean | Optional | false | Opt-in session analytics. Project configuration overrides the user default; disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
+| `sessionInspection` | boolean | Optional | false | Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording. |
 | `claudeFeedbackMode` | "advisory" or "block-current-findings" | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
 | `editPermitLimits` | object | Optional | — | User-owned shared resident admission limits. Omitted values use built-in defaults. |
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |

@@ -139,6 +139,17 @@ export const sessionAnalyticsSetting = (policy: Pick<ResolvedPolicy, "layers">):
 
 export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean => sessionAnalyticsSetting(policy).value
 
+export const sessionInspectionSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> => {
+  let setting = originated(false, { layer: "built-in", source: "built-in", field: "sessionInspection" })
+  for (const layer of policy.layers) {
+    if (layer.document.sessionInspection !== undefined)
+      setting = originated(layer.document.sessionInspection, origin(layer, "sessionInspection"))
+  }
+  return setting
+}
+
+export const effectiveSessionInspection = (policy: ResolvedPolicy): boolean => sessionInspectionSetting(policy).value
+
 export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
   policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS
 
