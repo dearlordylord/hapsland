@@ -587,7 +587,7 @@ else if (operation === "probe") console.log('{"status":"available"}');
     pilotCodexExecutable,
     []
   )
-  expect(approvedPilot.includes("Offline readiness: unknown"), "guided pilot overstated native trust")
+  expect(approvedPilot.includes("Setup: offline readiness: unknown"), "guided pilot overstated native trust")
   expect(approvedPilot.includes("native trust or hook review prompt"), "guided pilot omitted trust handoff")
   expect(!approvedPilot.includes(pilotMarker), "guided rerun disclosed saved credential")
   const pilotHooks = JSON.parse(await readFile(join(pilotHome, "hooks.json"), "utf8"))

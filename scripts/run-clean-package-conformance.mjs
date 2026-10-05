@@ -686,6 +686,10 @@ try {
 
   progress("create-isolated-repository")
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository })
+  const defaultsPath = join(repository, ".hapsland", "rules", "defaults", "hapsland.json")
+  await mkdir(dirname(defaultsPath), { recursive: true })
+  await copyFile(join(packageDirectory, "src/rules/defaults/hapsland.json"), defaultsPath)
+  await writeFile(join(repository, ".hapsland.jsonc"), JSON.stringify({ version: 1, packs: [defaultsPath] }))
   await mustRun("git", ["config", "user.name", "Package Fixture"], { cwd: repository })
   await mustRun("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repository })
   await writeFile(join(repository, "README.md"), "synthetic package fixture\n", { mode: 0o600 })
