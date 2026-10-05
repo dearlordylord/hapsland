@@ -8,6 +8,6 @@ type Fragment is Data:
   Fragment{rule: U32, finding: Bool, x: U32, y: U32, path: List<&2,V.Waypoint>}
 type Group is Data:
   Group{owner: V.WorkIdentity, request: Nat, profile: Profile, results: List<&2,Bool>,
-    split: Bool, fragments: List<&2,Fragment>, retired: Bool, sent: U32}
+    split: Bool, fragments: List<&2,Fragment>, retired: Bool, sent: U32, seat: U32, shape: U32}
 type State is Data:
   State{profile: Profile, groups: List<&2,Group>}

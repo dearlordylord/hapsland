@@ -1,0 +1,15 @@
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.
+Traceback (most recent call last):
+  File "/tmp/hapsland-three-jev-capture-paced.py", line 58, in <module>
+    x('key','--window',window,'n');wait_tokens('JEV_CHECKING=3 ','RULES=4 ',limit=150);pause();time.sleep(.5)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hapsland-three-jev-capture-paced.py", line 53, in wait_tokens
+    raise RuntimeError('state not observed: '+title())
+RuntimeError: state not observed: Hapsland canonical defense | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=4 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=1 STATUS=1 LAYOUT=0 PAUSED=NO TICK=1632 GOLD=160 HP=86 OFFERED=5 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=0 ATJEV=2 LEDGER_ITEMS=2 LEDGER_BYTES=30 TOWERS=0 SELECTED=0 LEVEL=0 PREVIEW=2 BEFORE=3200 DELTA=0 TARGET=0 SITE=255 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 ROADID=0 SERVICEID=1/1/1/25 SERVICEX=376 SERVICEY=190 SERVICEOBSERVED=1 SERVICEOUTCOME=6 FANOUTID=0

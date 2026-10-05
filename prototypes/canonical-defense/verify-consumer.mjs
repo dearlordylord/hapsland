@@ -157,7 +157,7 @@ for (const seed of [0,3,17,41]) {
               if (work?.kind !== "pendingFinding") continue;
               run.schedule({ at: run.now, kind: "canonical", event: { kind: "findingCountUpdated",
                 partition: event.partition, lifetime: event.lifetime, round: event.round,
-                operation: event.operation, count: 8 } });
+                operation: event.operation, count: 4 } });
               counts++;
             }
             if (counts) run.advance({ untilTime: run.now, maxEvents: 32 });

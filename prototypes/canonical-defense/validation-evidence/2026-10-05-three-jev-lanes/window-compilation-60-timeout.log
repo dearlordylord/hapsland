@@ -1,0 +1,13 @@
+file:///tmp/hapsland-build-three-window.mjs:18
+ if(result.error||result.status!==0)throw new Error(`${name} failed: ${result.error?.code??result.status}\n${result.stdout}\n${result.stderr}`);
+                                          ^
+
+Error: compilation failed: ETIMEDOUT
+
+
+    at file:///tmp/hapsland-build-three-window.mjs:18:43
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0

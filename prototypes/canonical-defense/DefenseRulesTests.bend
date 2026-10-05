@@ -28,8 +28,8 @@ def branched(items: List<&2,R.Group>) -> Bool:
     case Nil{}: True{}
     case +group <> tail: Rules.split(group) && branched(tail)
 def equal_motion(+a: Map.Point,+b: Map.Point,+rule: U32) -> Bool:
-  +pa = Rules.formation(a,rule,8)
-  +pb = Rules.formation(b,rule,8)
+  +pa = Rules.formation(a,rule,4)
+  +pb = Rules.formation(b,rule,4)
   U32.is_eq(Map.distance(Map.px(pa),Map.px(pb)),4) && U32.is_eq(Map.py(pa),Map.py(pb))
 def checks_move(n: Nat) -> Bool:
   match n:
@@ -39,7 +39,7 @@ def mixed_counts(items: List<&2,R.Group>) -> Bool:
   match items:
     case Nil{}: False{}
     case +group <> tail:
-      (Nat.is_gt(P.count(Rules.results(group)),0n) && Nat.is_lt(P.count(Rules.results(group)),8n)) || mixed_counts(tail)
+      (Nat.is_gt(P.count(Rules.results(group)),0n) && Nat.is_lt(P.count(Rules.results(group)),4n)) || mixed_counts(tail)
 def results_match(items: List<&2,C.Work>,+groups: List<&2,R.Group>) -> Bool:
   match items:
     case Nil{}: True{}
@@ -70,25 +70,63 @@ def no_stack(fuel: Nat,+world: M.World) -> Bool:
   match fuel:
     case 0n: True{}
     case 1n+n: distinct_all(Rules.groups(M.rules(world)),Rules.groups(M.rules(world))) && no_stack(n,H.tick(world))
+def inside_check(found: Maybe<&2,V.Actor>) -> Bool:
+  match found:
+    case Some{actor}: U32.is_eq(Motion.visible_phase(actor),4)
+    case None{}: False{}
+def checking_count(items: List<&2,R.Group>,+actors: List<&2,V.Actor>) -> Nat:
+  match items:
+    case Nil{}: 0n
+    case +group <> tail:
+      (Bool.pick(Nat,Bool.not(Rules.split(group)) && inside_check(Rules.find_actor(Rules.owner(group),actors)),1n,0n) + checking_count(tail,actors) : Nat)
+def seat_distinct(+group: R.Group,items: List<&2,R.Group>,+world: M.World) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +other <> tail:
+      (Motion.same(Rules.owner(group),Rules.owner(other)) || Bool.not(Rules.occupies(other,M.actors(world),M.layout(world))) ||
+        Bool.not(U32.is_eq(Rules.seat(group),Rules.seat(other)))) && seat_distinct(group,tail,world)
+def seats_safe(items: List<&2,R.Group>,+world: M.World) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +group <> +tail:
+      (Bool.not(Rules.occupies(group,M.actors(world),M.layout(world))) || seat_distinct(group,tail,world)) && seats_safe(tail,world)
+def queued_request(items: List<&2,R.Group>,+actors: List<&2,V.Actor>) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case +group <> tail:
+      (U32.is_eq(Rules.seat(group),255) && Rules.waiting_for_seat(Rules.find_actor(Rules.owner(group),actors))) || queued_request(tail,actors)
+def room_trace(fuel: Nat,+world: M.World,+saw_three: Bool,+saw_queue: Bool) -> Bool:
+  match fuel:
+    case 0n: saw_three && saw_queue
+    case 1n+n:
+      +count = checking_count(Rules.groups(M.rules(world)),M.actors(world))
+      Nat.is_le(count,3n) && seats_safe(Rules.groups(M.rules(world)),world) &&
+        room_trace(n,H.tick(world),saw_three || Nat.is_eq(count,3n),saw_queue || queued_request(Rules.groups(M.rules(world)),M.actors(world)))
 def main() -> IO(Unit):
+  +burst = H.burst(H.initial(),4)
   +issued = Tests.run(45n,H.start(H.initial()))
   +changed = H.configure_rules(issued,1,0)
   +settled = Tests.run(155n,changed)
   +playback = Tests.run(650n,settled)
-  +zero = Tests.run(240n,H.start(H.configure_rules(H.initial(),8,0)))
+  +zero = Tests.run(240n,H.start(H.configure_rules(H.initial(),4,0)))
   +expired = Tests.run(2300n,H.key(H.start(H.initial()),97))
-  +mixed = Tests.run(700n,H.start(H.configure_rules(H.initial(),8,50)))
+  +mixed_burst = H.burst(H.configure_rules(H.initial(),4,50),4)
+  +mixed = Tests.run(700n,H.start(H.configure_rules(H.initial(),4,50)))
   +short: R.Fragment = R.Fragment{0,True{},100,100,[V.Waypoint{120,100,5,0n}]}
   +fast: R.Fragment = R.Fragment{3,True{},100,100,[V.Waypoint{120,100,5,0n}]}
   do IO<Unit>:
     Tests.require(Nat.is_eq(List.length(&2,R.Group,Rules.groups(M.rules(issued))),2n),"two prepared review units issue two requests, each with a rule receipt")
-    Tests.require(group_checks(Rules.groups(M.rules(changed)),8) && U32.is_eq(P.checks(Rules.profile(M.rules(changed))),1),"profile changes preserve eight captured checks in both started requests")
-    Tests.require(Nat.is_eq(List.length(&2,C.Work,M.work(M.core(settled))),2n) && counts(M.work(M.core(settled)),8n),"eight findings update each existing result rather than creating eight requests")
-    Tests.require(branched(Rules.groups(M.rules(playback))) && Nat.is_eq(fragment_count(Rules.groups(M.rules(playback))),16n),"two requests visually fork into sixteen separate findings")
+    Tests.require(group_checks(Rules.groups(M.rules(changed)),4) && U32.is_eq(P.checks(Rules.profile(M.rules(changed))),1),"profile changes preserve four captured checks in both started requests")
+    Tests.require(Nat.is_eq(List.length(&2,C.Work,M.work(M.core(settled))),2n) && counts(M.work(M.core(settled)),4n),"four findings update each existing result rather than creating four requests")
+    Tests.require(branched(Rules.groups(M.rules(playback))) && Nat.is_eq(fragment_count(Rules.groups(M.rules(playback))),8n),"two requests visually fork into eight separate findings")
     Tests.require(no_stack(650n,settled),"separate finding bodies never stack through the Jev fork and retained-room queues")
     Tests.require(U32.is_eq(M.clear(zero),2) && Nat.is_eq(List.length(&2,C.Work,M.work(M.core(zero))),0n),"zero percent sends both actual requests to clear without advice")
     Tests.require(mixed_counts(Rules.groups(M.rules(mixed))) && results_match(M.work(M.core(mixed)),Rules.groups(M.rules(mixed))),"mixed checks choose both branches and canonical finding counts match the captured per-rule results")
-    Tests.require(checks_move(8n),"all eight checks translate by the same distance inside Jev")
+    Tests.require(room_trace(1100n,burst,False{},False{}),"eight requests from four edits reach exactly three checking lanes; a fourth queues and no lane is shared")
+    Tests.require(no_stack(850n,Tests.run(200n,burst)),"four-edit burst keeps individual finding bodies separate through parallel forks and common output routes")
+    Tests.require(no_stack(850n,Tests.run(200n,mixed_burst)),"mixed four-edit burst keeps Clear and Finding bodies distinct after parallel forks")
+    Tests.require(Nat.is_eq(List.length(&2,R.Group,Rules.groups(M.rules(Tests.run(2600n,H.key(burst,97))))),0n) && Nat.is_eq(List.length(&2,R.Group,Rules.groups(M.rules(Tests.run(2600n,H.key(mixed_burst,97))))),0n),"all eight requests eventually drain their histories in finding-only and mixed bursts")
+    Tests.require(checks_move(4n),"all four checks translate by the same distance inside Jev")
     Tests.require(U32.is_eq(Map.px(Rules.fragment_point(Rules.fragment_move(short))),102) && U32.is_eq(Map.px(Rules.fragment_point(Rules.fragment_move(fast))),105),"finding bodies have independent speeds after the fork")
     Tests.require(Nat.is_eq(List.length(&2,R.Group,Rules.groups(M.rules(expired))),0n),"retired results drain all visual findings and leave no rule-history ghosts")
     Tests.require(Bool.not(Rules.keep_fragment(R.Fragment{0,False{},100,100,[]},False{})) && Rules.keep_fragment(R.Fragment{0,True{},100,100,[]},False{}) && Bool.not(Rules.keep_fragment(R.Fragment{0,True{},100,100,[]},True{})),"clear bodies leave while finding records persist until retirement")

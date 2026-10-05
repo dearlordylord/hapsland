@@ -1,0 +1,15 @@
+PASS two prepared review units issue two requests, each with a rule receipt
+PASS profile changes preserve four captured checks in both started requests
+PASS four findings update each existing result rather than creating four requests
+PASS two requests visually fork into eight separate findings
+PASS separate finding bodies never stack through the Jev fork and retained-room queues
+PASS zero percent sends both actual requests to clear without advice
+PASS mixed checks choose both branches and canonical finding counts match the captured per-rule results
+PASS eight requests from four edits reach exactly three checking lanes; a fourth queues and no lane is shared
+PASS four-edit burst keeps individual finding bodies separate through parallel forks and common output routes
+PASS mixed four-edit burst keeps Clear and Finding bodies distinct after parallel forks
+PASS all eight requests eventually drain their histories in finding-only and mixed bursts
+PASS all four checks translate by the same distance inside Jev
+PASS finding bodies have independent speeds after the fork
+PASS retired results drain all visual findings and leave no rule-history ghosts
+PASS clear bodies leave while finding records persist until retirement

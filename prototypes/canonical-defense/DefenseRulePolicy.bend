@@ -6,8 +6,8 @@ import ../../packages/monkey-business-bend/Session.bend as Session
 import ../../packages/monkey-business-bend/Numeric.bend as Numeric
 
 def profile(checks: U32,percent: U32) -> R.Profile:
-  R.Profile{U32.max(1,U32.min(16,checks)),U32.min(100,percent)}
-def initial() -> R.State: R.State{profile(8,100),[]}
+  R.Profile{U32.max(1,U32.min(4,checks)),U32.min(100,percent)}
+def initial() -> R.State: R.State{profile(4,100),[]}
 def checks(value: R.Profile) -> U32:
   match value:
     case R.Profile{n,_}: n
@@ -50,3 +50,33 @@ def count(items: List<&2,Bool>) -> Nat:
   match items:
     case Nil{}: 0n
     case hit <> tail: (Bool.pick(Nat,hit,1n,0n) + count(tail) : Nat)
+
+# Four checks have sixteen possible result patterns. Capture this compact layout
+# once, retaining the original rule indices and roll results in the group.
+def shape(items: List<&2,Bool>) -> U32:
+  match items:
+    case Nil{}: 0
+    case a <> Nil{}: Bool.to_u32(a)
+    case a <> b <> Nil{}: (Bool.to_u32(a) + Bool.to_u32(b) * 2 : U32)
+    case a <> b <> c <> Nil{}: (Bool.to_u32(a) + Bool.to_u32(b) * 2 + Bool.to_u32(c) * 4 : U32)
+    case a <> b <> c <> d <> _: (Bool.to_u32(a) + Bool.to_u32(b) * 2 + Bool.to_u32(c) * 4 + Bool.to_u32(d) * 8 : U32)
+def select(a: U32,b: U32,c: U32,d: U32,rule: U32) -> U32:
+  match rule:
+    case 0: a
+    case 1: b
+    case 2: c
+    case _: d
+def position(shape: U32,rule: U32) -> U32:
+  match shape:
+    case 2: select(1,0,2,3,rule)
+    case 4: select(1,2,0,3,rule)
+    case 5: select(0,2,1,3,rule)
+    case 6: select(2,0,1,3,rule)
+    case 8: select(1,2,3,0,rule)
+    case 9: select(0,2,3,1,rule)
+    case 10: select(2,0,3,1,rule)
+    case 11: select(0,1,3,2,rule)
+    case 12: select(2,3,0,1,rule)
+    case 13: select(0,3,1,2,rule)
+    case 14: select(3,0,1,2,rule)
+    case _: select(0,1,2,3,rule)

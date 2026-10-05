@@ -2510,7 +2510,7 @@ def list_defenseruletypes_fragment(values: List<&2,List<&2,DefenseRuleTypes.Frag
 
 def defenseruletypes_group(values: List<&2,DefenseRuleTypes.Group>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseRuleTypes.Group{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 0n <> defensemotiontypes_workidentity([v0],v1 <> defenseruletypes_profile([v2],list_bool([v3],boolean(v4,list_defenseruletypes_fragment([v5],boolean(v6,U32.to_nat(v7) <> suffix))))))
+    case DefenseRuleTypes.Group{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9} <> Nil{}: 0n <> defensemotiontypes_workidentity([v0],v1 <> defenseruletypes_profile([v2],list_bool([v3],boolean(v4,list_defenseruletypes_fragment([v5],boolean(v6,U32.to_nat(v7) <> U32.to_nat(v8) <> U32.to_nat(v9) <> suffix))))))
     case _: 999999n <> suffix
 
 def list_defenseruletypes_group_items(values: List<&2,List<&2,DefenseRuleTypes.Group>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

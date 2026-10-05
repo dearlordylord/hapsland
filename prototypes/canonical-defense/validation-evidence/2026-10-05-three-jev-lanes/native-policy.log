@@ -1,0 +1,9 @@
+PASS default four checks at 100 percent
+PASS 100 percent finding produces four findings
+PASS zero percent has no findings
+PASS aggregate clear probability uses all checks and six decimal precision
+PASS profile bounds one to four checks and zero to one hundred percent
+PASS identical request seed replays every rule result
+PASS every four-check outcome pattern assigns four unique formation positions
+PASS 512 profiles conserve check count and agree with forced aggregate finding or clear
+Standalone game native suite: all 1 selected roots passed
