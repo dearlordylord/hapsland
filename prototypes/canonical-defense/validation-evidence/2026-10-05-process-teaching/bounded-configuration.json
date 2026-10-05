@@ -1,0 +1,51 @@
+{
+  "scope": "bounded strength/radius through actual Host; offline native/public consumer and focused native presentation",
+  "date": "2026-10-05",
+  "defaults": {
+    "strength": 1,
+    "baseRadius": 100
+  },
+  "bounds": {
+    "strength": [
+      1,
+      16
+    ],
+    "baseRadius": [
+      20,
+      240
+    ],
+    "repairStrength": 1
+  },
+  "sources": {
+    "DefenseModel.bend": "f422e53370fb3c93368f223e35f75cfb9325e2b1203cfcf53665f78c7db66e76",
+    "DefenseHost.bend": "8b560c11b1ac2aaf26a22e8d066ad2501c18138509473e4cbc69dea13835c88d",
+    "DefenseMechanics.bend": "a08641c1e682da58a50082c22c36b46b861d335c64ca827b125b8a05369a4186",
+    "DefenseRender.bend": "2d814061c48f097d83b87cf973904bb22184425fa9d4f3adea73fa2e7b2356ec",
+    "DefenseTowerTests.bend": "c06f69a54af2c883ed4e67611710f8c0bccec5b724b8e4808268f0b4c24b1d01",
+    "DefenseConsumerCodec.bend": "dea4bf9986a69bdef84cb95b5aaa899adeb73b7ae41c463c6ca64f9ab5ef18b5",
+    "defense-consumer-metadata.ts": "0ad5445ef84a1565a9f2d0596922fc8d7c204c96ecfa4fb61a53d75111da78e5"
+  },
+  "checks": {
+    "consumer": {
+      "run": "20261005094914413-3836881-6fe416",
+      "seconds": 106.576,
+      "batchPairs": 145,
+      "hostTicks": 3222,
+      "lanes": [
+        "native",
+        "emitted JavaScript",
+        "public TypeScript"
+      ],
+      "midpointReplay": true
+    },
+    "nativeTowerAssertions": 12,
+    "nativeDisplayAssertions": 7,
+    "nativeInspectionAssertions": 3,
+    "checkFast": "passed",
+    "docsCheck": "passed"
+  },
+  "limits": [
+    "No fresh interactive window run for this configuration extension. Earlier process-teaching screenshots bind their own earlier source.",
+    "No human learning/enjoyment, global balance, live Jev or additional platform claim."
+  ]
+}

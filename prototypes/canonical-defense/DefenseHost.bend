@@ -32,6 +32,8 @@ def tower_detail(kind: U32) -> String:
   Mechanics.detail(kind)
 def tower_range(kind: U32, level: U32) -> U32:
   Mechanics.range(kind, level)
+def built_range(tower: M.Tower) -> U32:
+  Mechanics.tower_range(tower)
 def upgrade_cost(level: U32) -> U32:
   (20 + level * 20 : U32)
 def damage_flash(world: M.World) -> Bool:
@@ -169,8 +171,8 @@ def selected_tower(items: List<&2, M.Tower>, index: U32) -> Maybe<&2, M.Tower>:
 def upgrade_items(items: List<&2, M.Tower>, index: U32) -> List<&2, M.Tower>:
   match items index:
     case Nil{} _: Nil{}
-    case M.Tower{x, y, k, l} <> rest 1:
-      M.Tower{x, y, k, (l + 1 : U32)} <> rest
+    case M.Tower{x, y, k, l, power, radius} <> rest 1:
+      M.Tower{x, y, k, (l + 1 : U32), power, radius} <> rest
     case tower <> rest _: tower <> upgrade_items(rest, M.sub(index, 1))
 def upgrade_found(+world: M.World, found: Maybe<&2, M.Tower>) -> M.World:
   match world found:
@@ -248,23 +250,25 @@ def select(world: M.World, index: U32) -> M.World:
   match world:
     case M.World{core, t, p, l, c, g, h, ts, a, o, r, cl, d, auto, x, y, _, work, flash}:
       M.World{core, t, p, l, c, g, h, ts, a, o, r, cl, d, auto, x, y, index, work, flash}
-def build(+world: M.World, +x: U32, +y: U32, +kind: U32) -> M.World:
+def build_tuned(+world: M.World, +x: U32, +y: U32, +kind: U32, +power: U32, +radius: U32) -> M.World:
   match world:
     case M.World{core, t, p, l, c, +g, +h, ts, a, o, r, cl, d, auto, mx, my, _, work, flash}:
-      pick_world(Bool.and(placement_valid(world, x, y), Bool.and((g >= tower_cost(kind) : U32), Bool.and((kind < 3 : U32), (h > 0 : U32)))),
-        Mechanics.purchased(M.World{core, t, p, l, c, M.sub(g, tower_cost(kind)), h, M.Tower{snap(x), snap(y), kind, 1} <> ts, a, o, r, cl, d, auto, mx, my, 0, work, flash},kind), world)
+      pick_world(Bool.and((power >= 1 : U32) && (power <= 16 : U32) && (radius >= 20 : U32) && (radius <= 240 : U32) && (Bool.not(U32.is_eq(kind,2)) || U32.is_eq(power,1)), Bool.and(placement_valid(world, x, y), Bool.and((g >= tower_cost(kind) : U32), Bool.and((kind < 3 : U32), (h > 0 : U32))))),
+        Mechanics.purchased(M.World{core, t, p, l, c, M.sub(g, tower_cost(kind)), h, M.Tower{snap(x), snap(y), kind, 1, power, radius} <> ts, a, o, r, cl, d, auto, mx, my, 0, work, flash},kind), world)
+def build(world: M.World,x: U32,y: U32,kind: U32) -> M.World:
+  build_tuned(world,x,y,kind,1,100)
 def click(+world: M.World, +x: U32, +y: U32) -> M.World:
   +index = tower_hit(M.towers(world), x, y, 1)
   pick_world((index > 0 : U32), select(move(world, x, y), index), build(move(world, x, y), x, y, M.choice(world)))
 def preview_site(+world: M.World,x: U32,y: U32,kind: U32) -> U32:
-  support_site(world,M.Tower{snap(x),snap(y),kind,1})
+  support_site(world,M.Tower{snap(x),snap(y),kind,1,1,100})
 def preview_target(world: M.World,x: U32,y: U32,kind: U32) -> Nat: 0n
 def profile_delay(+world: M.World,+kind: U32) -> U32:
   Bool.pick(U32,U32.is_eq(kind,2),Mechanics.missing_access(Mechanics.current_environment(M.engine(world))),M.number(Mechanics.current_delay(Mechanics.current_environment(M.engine(world)),kind)))
 def preview_before(+world: M.World,x: U32,y: U32,+kind: U32) -> U32:
   profile_delay(world,kind)
 def hypothetical(+world: M.World,x: U32,y: U32,kind: U32) -> M.World:
-  M.with_towers(world,M.Tower{snap(x),snap(y),kind,1} <> M.towers(world))
+  M.with_towers(world,M.Tower{snap(x),snap(y),kind,1,1,100} <> M.towers(world))
 def preview_gain(+world: M.World,+x: U32,+y: U32,+kind: U32) -> U32:
   +next = hypothetical(world,x,y,kind)
   +base = Bool.pick(Nat,U32.is_eq(kind,0),M.base_jev(M.settings(world)),M.base_output(M.settings(world)))
