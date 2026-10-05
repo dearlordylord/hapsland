@@ -60,6 +60,10 @@ retention does not permit automatic reuse or convert a failed phase to a pass.
 
 Existing [laws](LAWS.bend) and [proofs](PROOF.bend) retain two concrete pressure facts and the universally quantified damage-preserves-Canonical-state statement. [Candidate engine-preservation laws](ConsumerLAWS.bend) quantify over every game World, and pointer coordinates over every U32, without premises. Their [proofs](ConsumerPROOF.bend) are proposals until owner review. The optional proposal-falsification runner has been removed because it launched external tooling without a time bound. These unaccepted proposals do not add a business completion gate; any future owner review must declare its own finite falsification and kernel-validation scope.
 
+## Bounded mechanism configuration
+
+Host construction accepts a strength multiplier from 1 to 16 and a base support radius from 20 to 240 pixels. Repair accepts strength 1 because it restores availability rather than changing latency. Ordinary interactive purchases use strength 1 and radius 100. A tower contributes `level * strength` to the connected service or delivery total; future delay is `base / (1 + total)`. Support radius is `baseRadius + 12 * level`. Upgrades preserve the configured multiplier and base radius. Invalid parameters refuse the purchase without charging resources. The actual tower ring and inspection panel show its configured radius. These bounds define supported experiments, not recommended balance values.
+
 ## Process-teaching qualification
 
 The [2026-10-05 receipt](validation-evidence/2026-10-05-process-teaching/qualification.json) binds the full native/emitted/public consumer comparison and the separately built window to their source identities. The consumer passed all 145 batch pairs and 3,222 Host ticks in 115.74 seconds. Focused native checks passed 13 motion, seven display, twelve startup and three inspection cases; boundary/cache tests, `check:fast` and local documentation checks also passed. The ordinary proof-file source check passed; an optional `--verdict` attempt reached its five-second limit and does not establish enhanced mathematical validity.

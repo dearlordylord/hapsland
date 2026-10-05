@@ -60,6 +60,10 @@ def main() -> IO(Unit):
   +late: List<&2,M.World> = [request(200n,H.start(H.initial()))]
   +early: List<&2,M.World> = [request(200n,H.start(world_value(world)))]
   do IO<Unit>:
+    require(Nat.is_eq(jev_delay(M.engine(H.build_tuned(H.initial(),424,392,0,3,100))),800n),"configured strength3 captures base3200 divided by4")
+    require(Nat.is_eq(jev_delay(M.engine(H.build_tuned(H.initial(),424,392,0,1,20))),3200n),"configured small radius disconnects a normally supported placement")
+    require(Nat.is_eq(jev_delay(M.engine(H.build_tuned(H.initial(),424,232,0,1,240))),1600n),"configured wider radius connects an otherwise ineffective investment")
+    require(U32.is_eq(M.gold(H.build_tuned(H.initial(),424,392,0,0,100)),160),"invalid zero strength refuses without investment")
     require(U32.is_eq(Mechanics.max_level(2),1),"access repair has no fictional speed upgrades")
     require(repair_is_one_shot(),"repair restores access once and another purchase cannot silently repair again")
     require(forced_clear(M.engine(H.build(H.initial_config(forced_config(Consumer.config()),152n),424,392,0))),"delay-only service preserves an explicitly forced clear outcome")

@@ -26,14 +26,15 @@ def site(kind: U32) -> U32:
     case 0: 4
     case 1: 5
     case _: 1
+def tower_range(+tower: M.Tower) -> U32: (M.radius(tower) + M.level(tower) * 12 : U32)
 def connected(+world: M.World,+tower: M.Tower) -> Bool:
   +p: Map.Point = Map.Point{M.tx(tower),M.ty(tower)}
-  Map.in_range(p,Map.center(M.layout(world),site(M.tkind(tower)),0),range(M.tkind(tower),M.level(tower)))
+  Map.in_range(p,Map.center(M.layout(world),site(M.tkind(tower)),0),tower_range(tower))
 def levels(items: List<&2,M.Tower>,+world: M.World,+kind: U32) -> U32:
   match items:
     case Nil{}: 0
     case +tower <> rest:
-      (Bool.pick(U32,U32.is_eq(M.tkind(tower),kind) && connected(world,tower),M.level(tower),0) + levels(rest,world,kind) : U32)
+      (Bool.pick(U32,U32.is_eq(M.tkind(tower),kind) && connected(world,tower),(M.level(tower) * M.power(tower) : U32),0) + levels(rest,world,kind) : U32)
 def strength(+world: M.World,kind: U32) -> U32: levels(M.towers(world),world,kind)
 def delay(base: Nat,power: U32) -> Nat: (base / (1n + U32.to_nat(power) : Nat) : Nat)
 def current_environment(state: T.State) -> T.Environment:

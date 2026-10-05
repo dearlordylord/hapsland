@@ -8,7 +8,7 @@ import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
 
 type Tower is Data:
-  Tower{x: U32, y: U32, kind: U32, level: U32}
+  Tower{x: U32, y: U32, kind: U32, level: U32, power: U32, radius: U32}
 # Host controls stay boxed, including the shared scheduler, to preserve the native ABI.
 # Bounded presentation cues only: never work, targets, or scheduler inputs.
 type Cue is Data:
@@ -159,19 +159,19 @@ def selected(world: World) -> U32:
 
 def tx(tower: Tower) -> U32:
   match tower:
-    case Tower{v, _, _, _}: v
+    case Tower{v, _, _, _, _, _}: v
 
 def ty(tower: Tower) -> U32:
   match tower:
-    case Tower{_, v, _, _}: v
+    case Tower{_, v, _, _, _, _}: v
 
 def tkind(tower: Tower) -> U32:
   match tower:
-    case Tower{_, _, v, _}: v
+    case Tower{_, _, v, _, _, _}: v
 
 def level(tower: Tower) -> U32:
   match tower:
-    case Tower{_, _, _, v}: v
+    case Tower{_, _, _, v, _, _}: v
 
 # Fixed approach spacing and started-service time are game animation metadata.
 def work(core: C.State) -> List<&2, C.Work>:
@@ -269,3 +269,10 @@ def burst_size(settings: Settings) -> U32:
 def with_burst(settings: Settings,size: U32) -> Settings:
   match settings:
     case Settings{jev,output,_}: Settings{jev,output,size}
+
+def power(tower: Tower) -> U32:
+  match tower:
+    case Tower{_,_,_,_,value,_}: value
+def radius(tower: Tower) -> U32:
+  match tower:
+    case Tower{_,_,_,_,_,value}: value

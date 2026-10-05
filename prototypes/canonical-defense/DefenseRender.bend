@@ -301,7 +301,7 @@ def processor_icon(+x: U32,+y: U32,kind: U32,level: U32,+color: U32,rest: List<&
 def selected_ring(on: Bool,+tower: M.Tower,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: rest
-    case True{}: ring(48n,M.tx(tower),M.ty(tower),H.tower_range(M.tkind(tower),M.level(tower)),kind_color(M.tkind(tower)),rest)
+    case True{}: ring(48n,M.tx(tower),M.ty(tower),H.built_range(tower),kind_color(M.tkind(tower)),rest)
 
 def processors(ts: List<&2,M.Tower>,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match ts:
@@ -382,7 +382,7 @@ def inspection_if(on: Bool,+world: M.World,+tower: M.Tower,rest: List<&2,F.Rect>
     case False{}: rest
     case True{}:
       box("SELECTED " ++ H.tower_name(M.tkind(tower)),Bool.pick(String,(M.level(tower) >= Mechanics.max_level(M.tkind(tower)) : U32),Bool.pick(String,U32.is_eq(M.tkind(tower),2),"ONE-SHOT REPAIR / NO UPGRADE","MAX LEVEL 3"),"LEVEL " ++ U32.show(M.level(tower)) ++ " / U COST " ++ U32.show(H.upgrade_cost(M.level(tower)))),800,538,216,184,kind_color(M.tkind(tower)),
-        F.text("RANGE " ++ U32.show(H.tower_range(M.tkind(tower),M.level(tower))),812,584,1,12439239,
+        F.text("RANGE " ++ U32.show(H.built_range(tower)),812,584,1,12439239,
           F.text(Bool.pick(String,U32.is_eq(M.tkind(tower),2),"ONE-TIME ACCESS RESTORE NOW","SCOPE: ALL FUTURE OPERATIONS"),812,602,1,12439239,
             F.text(stat_label(M.tkind(tower)),812,624,1,12439239,
               F.text(U32.show(actual_current(world,tower)),812,640,2,16777215,
