@@ -22,7 +22,7 @@ The game advances the shared simulator with a budget of 256 inputs per active 20
 
 Manual bursts enter the workload immediately. A separate visual entrance queue spaces their bodies by at least 24 pixels; it does not delay simulator admission. Shared room and retained-finding paths keep distinct bodies spaced in a visual queue. The persistent REFUSED counter counts actual capacity and preparation refusals; requesting more edits does not bypass the shared ledger. Source and credential availability are visible in the HUD. Each child waits for its actual predecessor's displayed path: preparation follows the source operation, and review branches follow the completed preparation operation. Family labels retain the originating edit identity across this fan-out. Visual movement advances at most four pixels per tick. The overlay counts bodies waiting for visual release. The recurring arrival interval starts at 30 seconds and can be suspended independently of manual release.
 
-Three game-owned interventions use supported shared simulator controls:
+Three game-owned interventions use supported shared simulator controls. This table describes the default interactive configuration with strength 1:
 
 | Tower | Cost | Placement and effect |
 | --- | --- | --- |
