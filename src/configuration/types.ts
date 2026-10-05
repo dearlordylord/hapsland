@@ -19,6 +19,8 @@ export const DEFAULT_RUNTIME_SETTINGS = {
 } as const
 
 export const DEFAULT_EDIT_PERMIT_LIMITS = { perAdvicee: 32, resident: 4096 } as const
+export const DEFAULT_INSPECTION_RETENTION_DAYS = 7
+export const DEFAULT_INSPECTION_STORAGE_BYTES = 128 * 1024 * 1024
 export const DEFAULT_VIRTUAL_ROUND_QUIET_MS = 5 * 60_000
 
 export const EditPermitLimitsSettings = Schema.Struct({
@@ -194,6 +196,19 @@ export const ConfigurationDocument = Schema.Struct({
       description:
         "Opt-in source-bearing local inspection history. Project configuration overrides the user default in either direction; independent of source-free analytics and disabled by default. Opening the dashboard never enables recording.",
       default: false
+    })
+  ),
+  inspectionRetentionDays: Schema.optionalKey(
+    Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3650 })).annotate({
+      description: "User-owned capture-aged inspection retention in days, shared across residents and projects.",
+      default: DEFAULT_INSPECTION_RETENTION_DAYS
+    })
+  ),
+  inspectionStorageBytes: Schema.optionalKey(
+    Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER })).annotate({
+      description:
+        "User-owned shared allocated inspection-storage cap, including records, indices, payloads and temporary allocations. Unavailable quota drops capture; review continues.",
+      default: DEFAULT_INSPECTION_STORAGE_BYTES
     })
   ),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),

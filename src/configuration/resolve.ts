@@ -4,6 +4,8 @@ import {
   BUILT_IN_PROTECTED_EXCLUDES,
   DEFAULT_CREDENTIAL_ENV_VAR,
   DEFAULT_EDIT_PERMIT_LIMITS,
+  DEFAULT_INSPECTION_RETENTION_DAYS,
+  DEFAULT_INSPECTION_STORAGE_BYTES,
   DEFAULT_VIRTUAL_ROUND_QUIET_MS,
   type ConfigurationDocument,
   type ConfigurationLayerName,
@@ -128,27 +130,32 @@ export const effectiveEditPermitLimits = (
   }
 }
 
-export const sessionAnalyticsSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> => {
-  let setting = originated(false, { layer: "built-in", source: "built-in", field: "sessionAnalytics" })
+const booleanSessionSetting = (
+  policy: Pick<ResolvedPolicy, "layers">,
+  field: "sessionAnalytics" | "sessionInspection"
+): Originated<boolean> => {
+  let setting = originated(false, { layer: "built-in", source: "built-in", field })
   for (const layer of policy.layers) {
-    if (layer.document.sessionAnalytics !== undefined)
-      setting = originated(layer.document.sessionAnalytics, origin(layer, "sessionAnalytics"))
+    const value = layer.document[field]
+    if (value !== undefined) setting = originated(value, origin(layer, field))
   }
   return setting
 }
 
+export const sessionAnalyticsSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> =>
+  booleanSessionSetting(policy, "sessionAnalytics")
 export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean => sessionAnalyticsSetting(policy).value
-
-export const sessionInspectionSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> => {
-  let setting = originated(false, { layer: "built-in", source: "built-in", field: "sessionInspection" })
-  for (const layer of policy.layers) {
-    if (layer.document.sessionInspection !== undefined)
-      setting = originated(layer.document.sessionInspection, origin(layer, "sessionInspection"))
-  }
-  return setting
-}
-
+export const sessionInspectionSetting = (policy: Pick<ResolvedPolicy, "layers">): Originated<boolean> =>
+  booleanSessionSetting(policy, "sessionInspection")
 export const effectiveSessionInspection = (policy: ResolvedPolicy): boolean => sessionInspectionSetting(policy).value
+
+export const effectiveInspectionLimits = (policy: Pick<ResolvedPolicy, "layers">) => {
+  const user = policy.layers.find((layer) => layer.name === "user")?.document
+  return {
+    retentionMs: (user?.inspectionRetentionDays ?? DEFAULT_INSPECTION_RETENTION_DAYS) * 24 * 60 * 60_000,
+    storageBytes: user?.inspectionStorageBytes ?? DEFAULT_INSPECTION_STORAGE_BYTES
+  }
+}
 
 export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
   policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ?? DEFAULT_VIRTUAL_ROUND_QUIET_MS
@@ -157,6 +164,8 @@ export const effectiveReviewBackend = (policy: Pick<ResolvedPolicy, "layers">): 
   policy.layers.find((layer) => layer.name === "user")?.document.reviewBackend ?? { provider: "jev" }
 
 const userOwnedControls = [
+  { field: "inspectionRetentionDays", reason: "only user configuration may set shared inspection retention" },
+  { field: "inspectionStorageBytes", reason: "only user configuration may set shared inspection storage capacity" },
   { field: "editPermitLimits", reason: "only user configuration may set shared resident edit permit limits" },
   { field: "virtualRoundQuietMs", reason: "only user configuration may set the shared resident virtual round timeout" }
 ] as const

@@ -5,6 +5,7 @@ import { decodeConfigurationText, serializeConfigurationDocument } from "./decod
 import {
   effectiveSessionAnalytics,
   effectiveSessionInspection,
+  effectiveInspectionLimits,
   effectiveEditPermitLimits,
   effectiveGraphLimits,
   effectiveVirtualRoundQuietMs,
@@ -55,6 +56,30 @@ describe("configuration v1 decoding", () => {
     expect(() => source("project", '{"version":1,"sessionInspection":"true"}')).toThrowError(
       expect.objectContaining({ field: "sessionInspection" })
     )
+  })
+
+  it("resolves shared inspection retention and allocation limits from user configuration", () => {
+    expect(effectiveInspectionLimits(resolveConfiguration([]))).toEqual({
+      retentionMs: 7 * 24 * 60 * 60_000,
+      storageBytes: 128 * 1024 * 1024
+    })
+    expect(
+      effectiveInspectionLimits(
+        resolveConfiguration([
+          source("user", '{"version":1,"inspectionRetentionDays":2,"inspectionStorageBytes":8388608}')
+        ])
+      )
+    ).toEqual({ retentionMs: 2 * 24 * 60 * 60_000, storageBytes: 8388608 })
+    for (const field of ["inspectionRetentionDays", "inspectionStorageBytes"]) {
+      expect(() => resolveConfiguration([source("project", JSON.stringify({ version: 1, [field]: 1 }))])).toThrowError(
+        expect.objectContaining({ field })
+      )
+      for (const value of [0, -1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+        expect(() => source("user", JSON.stringify({ version: 1, [field]: value }))).toThrowError(
+          expect.objectContaining({ field })
+        )
+      }
+    }
   })
 
   it("resolves session analytics with project precedence, including explicit false", () => {
