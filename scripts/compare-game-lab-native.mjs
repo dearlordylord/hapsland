@@ -8,6 +8,11 @@ import { callbackNativeOwnerSources } from "../prototypes/canonical-defense/lab-
 const fixture = new URL("../prototypes/canonical-defense/DefenseLabConformance.bend", import.meta.url)
 const supervised = process.env.HAPSLAND_GAME_OUTER_DEADLINE_MS !== undefined
 const streams = await createGameStreams(fixture, callbackNativeOwnerSources, {
+  registerBank: true,
+  jsEmissionTimeoutMs: supervised ? 0 : 30000,
+  ...(process.env.HAPSLAND_GAME_NATIVE_RESUME_RECEIPT === undefined
+    ? {}
+    : { resumeCompilerReceipt: process.env.HAPSLAND_GAME_NATIVE_RESUME_RECEIPT }),
   emissionTimeoutMs: supervised ? 0 : 30000,
   clangTimeoutMs: 120000,
   executionTimeoutMs: 5000,
@@ -44,6 +49,7 @@ try {
   }
   console.log(
     JSON.stringify({
+      registerAbi: "host register bank; per-work-loop storage; lowering source/tool pinned",
       scope: "actual Lab native/emitted full owner vectors only; no public-lane or interactive-platform claim",
       scenarios: [
         "clear baseline",
@@ -61,7 +67,7 @@ try {
       phases: {
         cEmissionMs: supervised ? "remaining authenticated supervisor deadline" : 30000,
         clangMs: 120000,
-        jsEmissionMs: 30000,
+        jsEmissionMs: supervised ? "remaining authenticated supervisor deadline" : 30000,
         executionMsPerLane: 5000
       }
     })

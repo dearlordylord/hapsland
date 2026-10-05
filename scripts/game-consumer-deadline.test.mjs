@@ -56,12 +56,16 @@ registerHooks({ load(url, context, nextLoad) {
       assert.equal(captured.options.emissionTimeoutMs, 0)
       assert.equal(captured.options.executionTimeoutMs, lab ? 5000 : 180000)
       assert.equal(captured.options.overallDeadlineMs, deadline)
+      if (lab) {
+        assert.equal(captured.options.registerBank, true)
+        assert.equal(captured.options.jsEmissionTimeoutMs, 0)
+      }
       if (lab)
         assert.deepEqual(
           captured.options.executionArgumentGroups,
           Array.from({ length: 7 }, (_, id) => [String(id)])
         )
-      else assert.equal(captured.options.resumeCompilerReceipt, "owned-explicit-receipt.json")
+      assert.equal(captured.options.resumeCompilerReceipt, "owned-explicit-receipt.json")
     }
   } finally {
     rmSync(directory, { recursive: true, force: true })
@@ -220,5 +224,53 @@ test("explicit successful compiler preparations preserve identity and require co
     assert.throws(() => readGameCompilerReceipt(path, identity), /bytes changed/)
   } finally {
     rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test("shared JS emission budget needs an authenticated finite supervisor", async () => {
+  const { createGameStreams } = await import("../prototypes/canonical-defense/game-stream-runner.mjs")
+  const fixture = new URL("../prototypes/canonical-defense/DefenseLabConformance.bend", import.meta.url)
+  for (const jsEmissionTimeoutMs of [-1, 1, 30001, 120000, 120001, Infinity, NaN])
+    await assert.rejects(createGameStreams(fixture, [], { jsEmissionTimeoutMs }), /invalid game JS emission allowance/)
+  await assert.rejects(
+    createGameStreams(fixture, [], { jsEmissionTimeoutMs: 0 }),
+    /Zero game JS allowance requires a finite owned overall deadline/
+  )
+  await assert.rejects(
+    createGameStreams(fixture, [], { jsEmissionTimeoutMs: 0, overallDeadlineMs: Date.now() + 30000 }),
+    /supervisor|context|owned/
+  )
+})
+
+test("full lab vectors are retained as 280 source-bound evidence rows", async () => {
+  const { retainGameOutputs } = await import("../prototypes/canonical-defense/game-stream-runner.mjs")
+  const root = mkdtempSync(join(tmpdir(), "hapsland-lab-evidence-"))
+  const saved = process.env.HAPSLAND_TEST_FAILURES_FILE
+  try {
+    process.env.HAPSLAND_TEST_FAILURES_FILE = join(root, "failures.jsonl")
+    const files = Array.from({ length: 280 }, (_, index) => {
+      const path = join(root, `batch-${index}.json`)
+      writeFileSync(path, JSON.stringify([Math.floor(index / 40), index % 40, 128, 0]))
+      return path
+    })
+    const identity = {
+      fixture: "/declared/DefenseLabConformance.bend",
+      sources: [{ file: "owner", expected: "exact-source" }],
+      tools: [{ file: "lowering", expected: "exact-tool" }]
+    }
+    const receipt = JSON.parse(readFileSync(retainGameOutputs(files, files, identity), "utf8"))
+    assert.deepEqual(receipt.identity, identity)
+    assert.equal(receipt.native.length, 280)
+    assert.equal(receipt.emitted.length, 280)
+    assert.deepEqual(
+      receipt.native.map((entry) => entry.index),
+      Array.from({ length: 280 }, (_, index) => index)
+    )
+    assert.throws(() => retainGameOutputs(files.slice(0, 279), files, identity), /all 280 batches/)
+    assert.throws(() => retainGameOutputs(files, files.slice(0, 279), identity), /all 280 batches/)
+  } finally {
+    if (saved === undefined) delete process.env.HAPSLAND_TEST_FAILURES_FILE
+    else process.env.HAPSLAND_TEST_FAILURES_FILE = saved
+    rmSync(root, { recursive: true, force: true })
   }
 })
