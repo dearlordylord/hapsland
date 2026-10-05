@@ -536,6 +536,7 @@ export class Run {
   private listeners = new Set<(o: Observation) => void>()
   private structuralListeners = new Set<(frame: RunStructuralFrame) => void>()
   private controls: ControlRecord[] = []
+  private settingsSnapshot: Pick<Replay, "config" | "controls"> | undefined
   private interventionReports: JevInterventionReport[] = []
   get interventions(): readonly JevInterventionReport[] {
     return copy(this.interventionReports)
@@ -2595,6 +2596,12 @@ export class Run {
       if (before[0] === this.count && before[1] === this.takes && before[2] === this.clock)
         throw new Error("unreconstructable replay endpoint")
     }
+  }
+  /** Immutable applied inputs for inspection, without copying the execution timeline. */
+  get appliedSettings(): Pick<Replay, "config" | "controls"> {
+    if (this.settingsSnapshot?.controls.length !== this.controls.length)
+      this.settingsSnapshot = freezeCanonicalData(copy({ config: this.config, controls: this.controls }))
+    return this.settingsSnapshot
   }
   exportReplay(): Replay {
     return copy({

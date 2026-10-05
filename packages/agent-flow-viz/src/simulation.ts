@@ -340,7 +340,7 @@ const draftWeights = (model: SimulationModel): OutcomeWeights => {
   }
   return weights
 }
-const appliedWeights = (replay: Replay): OutcomeWeights => {
+const appliedWeights = (replay: Pick<Replay, "config" | "controls">): OutcomeWeights => {
   let weights =
     replay.config.outcomeWeights ??
     (replay.config.outcome ? singleOutcomeWeights(replay.config.outcome) : DEFAULT_OUTCOME_WEIGHTS)
@@ -466,7 +466,7 @@ export const changeSimulation = (model: SimulationModel, field: string, raw: str
   if (replaySource)
     return { ...draft, feedback: "Cannot update: finish recorded replay before changing live Jev settings." }
   try {
-    const active = run.exportReplay()
+    const active = run.appliedSettings
     const profile = [...active.controls].reverse().find((entry) => entry.control.kind === "jevProfile")?.control
     run.applyControl({
       kind: "jevProfile",
@@ -1065,21 +1065,16 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
       ...loadedFields,
       playing,
       suspended:
-        run
-          ?.exportReplay()
-          .controls.findLast(
-            (entry) =>
-              entry.control.kind === "suspendArrivals" &&
-              (!entry.control.agent || entry.control.agent === model.agentId)
-          )?.control.kind === "suspendArrivals"
+        run?.appliedSettings.controls.findLast(
+          (entry) =>
+            entry.control.kind === "suspendArrivals" && (!entry.control.agent || entry.control.agent === model.agentId)
+        )?.control.kind === "suspendArrivals"
           ? (
-              run
-                .exportReplay()
-                .controls.findLast(
-                  (entry) =>
-                    entry.control.kind === "suspendArrivals" &&
-                    (!entry.control.agent || entry.control.agent === model.agentId)
-                )!.control as Extract<Control, { kind: "suspendArrivals" }>
+              run.appliedSettings.controls.findLast(
+                (entry) =>
+                  entry.control.kind === "suspendArrivals" &&
+                  (!entry.control.agent || entry.control.agent === model.agentId)
+              )!.control as Extract<Control, { kind: "suspendArrivals" }>
             ).suspended
           : suspended,
       replay,
@@ -1123,13 +1118,11 @@ export const tickSimulation = (model: SimulationModel, deltaMs: number): Simulat
       activityFrom,
       suspended:
         (
-          run
-            .exportReplay()
-            .controls.findLast(
-              (entry) =>
-                entry.control.kind === "suspendArrivals" &&
-                (!entry.control.agent || entry.control.agent === model.agentId)
-            )?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined
+          run.appliedSettings.controls.findLast(
+            (entry) =>
+              entry.control.kind === "suspendArrivals" &&
+              (!entry.control.agent || entry.control.agent === model.agentId)
+          )?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined
         )?.suspended ?? model.suspended,
       revision: model.revision + 1,
       playing:
@@ -1205,8 +1198,9 @@ export const simulationView = <Message>(
   } catch {
     /* Invalid drafts are previewed without touching the engine. */
   }
-  const observations = run?.observe().observations ?? []
-  const activeReplay = run?.exportReplay()
+  const observed = run?.observe()
+  const observations = observed?.observations ?? []
+  const activeReplay = run?.appliedSettings
   const latestControl = <Kind extends Control["kind"]>(kind: Kind) =>
     activeReplay?.controls
       .map((entry) => entry.control)
@@ -1398,13 +1392,7 @@ export const simulationView = <Message>(
       ),
       ...(run
         ? [
-            adviceeLifecycleControls(
-              h,
-              run.observe().adviceeLifecycles,
-              run.agentScopes,
-              action,
-              Boolean(replaySource)
-            ),
+            adviceeLifecycleControls(h, observed!.adviceeLifecycles, run.agentScopes, action, Boolean(replaySource)),
             permitControls(h, run.editPermitLimits, run.futurePermitProfile, action, Boolean(replaySource))
           ]
         : []),
@@ -1426,7 +1414,7 @@ export const simulationView = <Message>(
               run.projection,
               run.agentScopes,
               run.now,
-              run.observe().writerReports,
+              observed!.writerReports,
               action,
               Boolean(replaySource),
               run.capacityMetadata.collectors?.capacity ?? 1
@@ -1436,33 +1424,17 @@ export const simulationView = <Message>(
               run.projection,
               run.agentScopes,
               run.now,
-              run.observe().collectionResponseReports,
+              observed!.collectionResponseReports,
               action,
               Boolean(replaySource)
             )
           ]
         : []),
       ...(run
-        ? [
-            callbackControls(
-              h,
-              run.observe().callbackTargets,
-              run.observe().callbackReports,
-              action,
-              Boolean(replaySource)
-            )
-          ]
+        ? [callbackControls(h, observed!.callbackTargets, observed!.callbackReports, action, Boolean(replaySource))]
         : []),
       ...(run
-        ? [
-            outputAttemptControls(
-              h,
-              run.observe().outputAttempts,
-              run.observe().outputReports,
-              action,
-              Boolean(replaySource)
-            )
-          ]
+        ? [outputAttemptControls(h, observed!.outputAttempts, observed!.outputReports, action, Boolean(replaySource))]
         : []),
       ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, Boolean(replaySource))] : []),
       controlForm("graphLimits", [
@@ -1947,7 +1919,7 @@ export const simulationRun = () => run
 /** Load applied generator values when inspecting a different agent. */
 export const selectSimulationAgent = (model: SimulationModel, agent: string): SimulationModel => {
   if (run && !run.agentScopes.length) return { ...model, agentId: agent, item: "" }
-  const replay = run?.exportReplay()
+  const replay = run?.appliedSettings
   const session = replay?.config.sessions?.find((session) => session.agent === agent) ?? replay?.config.session
   const latest = <Kind extends Control["kind"]>(kind: Kind) =>
     replay?.controls.findLast(

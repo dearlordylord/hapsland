@@ -186,7 +186,10 @@ export const update = (model: Model, message: Message) =>
         }
       }
     }),
-    SimulationTick: ({ deltaMs }) => ({ model: { ...model, simulation: tickSimulation(model.simulation, deltaMs) } }),
+    SimulationTick: ({ deltaMs }) => {
+      const simulation = tickSimulation(model.simulation, deltaMs)
+      return { model: simulation === model.simulation ? model : { ...model, simulation } }
+    },
     SelectedImportScenario: ({ index }) => ({
       model: {
         ...model,
