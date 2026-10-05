@@ -10,8 +10,31 @@ import { restoreReplay } from "../../../packages/monkey-business/src/index.ts"
 const towerKinds = { jevService: 0, deliveryRelay: 1, accessRepair: 2 } as const
 export type TowerAbility = keyof typeof towerKinds
 export type TowerIdentity = string
+export const gameAbilityTeaching: Readonly<Record<TowerAbility, {
+  readonly target: string
+  readonly applicability: string
+  readonly businessObservation: string
+}>> = {
+  jevService: {
+    target: "future Jev request latency",
+    applicability: "connected service strength changes future profiles; issued outcomes and deadlines stay captured",
+    businessObservation: "request issuance/settlement timing and shared permit occupancy"
+  },
+  deliveryRelay: {
+    target: "future finding output delivery latency",
+    applicability: "connected relay strength changes future profiles; authorized output timing and membership stay captured",
+    businessObservation: "individual submission and bundle output terminal timing, certainty and retained ownership"
+  },
+  accessRepair: {
+    target: "source readability and credential availability",
+    applicability: "one shot per connected purchase; healthy access can make the investment ineffective",
+    businessObservation: "future request admission and finding progress after restored access"
+  }
+}
 export type GameMechanismDescriptor = {
   readonly cost: number
+  readonly strength?: number
+  readonly radius?: number
   readonly ability: TowerAbility
   readonly displayName: string
   readonly lesson: string
@@ -120,6 +143,12 @@ function validate(input: GameExperiment) {
     if (!Number.isSafeInteger(descriptor.cost) || descriptor.cost < 0 || descriptor.cost > 0xffffffff)
       throw new RangeError("invalid game mechanism cost")
     if (!Object.hasOwn(towerKinds, descriptor.ability)) throw new RangeError("invalid game mechanism ability")
+    if (descriptor.strength !== undefined && (!Number.isSafeInteger(descriptor.strength) ||
+      descriptor.strength < 1 || descriptor.strength > 16)) throw new RangeError("invalid game mechanism strength")
+    if (descriptor.ability === "accessRepair" && descriptor.strength !== undefined && descriptor.strength !== 1)
+      throw new RangeError("repair strength must be1")
+    if (descriptor.radius !== undefined && (!Number.isSafeInteger(descriptor.radius) ||
+      descriptor.radius < 20 || descriptor.radius > 240)) throw new RangeError("invalid game mechanism radius")
     for (const value of [descriptor.displayName, descriptor.lesson])
       if (typeof value !== "string" || !value.trim()) throw new RangeError("invalid game mechanism metadata")
   }
@@ -140,7 +169,8 @@ function validate(input: GameExperiment) {
   if (settings.outcome !== undefined && !["sampled", "clear", "finding"].includes(settings.outcome))
     throw new RangeError("invalid game outcome")
   for (const action of input.actions) {
-    if (Object.hasOwn(action, "cost") || Object.hasOwn(action, "ability"))
+    if (Object.hasOwn(action, "cost") || Object.hasOwn(action, "ability") ||
+      Object.hasOwn(action, "strength") || Object.hasOwn(action, "radius"))
       throw new RangeError("game action configuration belongs to catalogue")
     if (!Number.isSafeInteger(action.atTick) || action.atTick < 0 || action.atTick > input.untilTicks)
       throw new RangeError("invalid game action tick")
@@ -154,7 +184,9 @@ function validate(input: GameExperiment) {
 /** Actual Host placement, targeting, firing and health over the one shared NativeRun. */
 export function runGameExperiment(input: GameExperiment) {
   validate(input)
-  input = structuredClone({ ...input, catalogue: input.catalogue ?? gameMechanisms })
+  const catalogue = Object.fromEntries(Object.entries(input.catalogue ?? gameMechanisms).map(([identity, descriptor]) =>
+    [identity, { ...descriptor, ...gameAbilityTeaching[descriptor.ability] }]))
+  input = structuredClone({ ...input, catalogue })
   const settings = input.settings ?? {}
   let world = Game.create_scenario({ $: "Scenario",
     jev: BigInt(settings.jevDelayMs ?? 3200), delivery: BigInt(settings.outputDelayMs ?? 800),
@@ -184,8 +216,9 @@ export function runGameExperiment(input: GameExperiment) {
         continue
       }
       const receipt = readRecord(action.kind === "build"
-        ? Game.build_priced(world, action.x, action.y,
-          towerKinds[input.catalogue![action.tower]!.ability], input.catalogue![action.tower]!.cost)
+        ? Game.build_tuned(world, action.x, action.y,
+          towerKinds[input.catalogue![action.tower]!.ability], input.catalogue![action.tower]!.cost,
+          input.catalogue![action.tower]!.strength ?? 1, input.catalogue![action.tower]!.radius ?? 100)
         : Game.apply(world, { $: "Upgrade", index: action.index }))
       world = receipt.world
       const result = readRecord(receipt.result).$ as string
@@ -211,7 +244,7 @@ export function runGameExperiment(input: GameExperiment) {
   const traceIdentity = configurationIdentity({ trace, state, actions })
   const recording = { format: 1 as const, sourceIdentity: SOURCE_IDENTITY,
     configurationIdentity: configurationIdentity(input), experiment: input, traceIdentity, businessReplay }
-  return { context: input.context, actions, observations,
+  return { context: input.context, catalogue, actions, observations,
     game: { ...state.game, initialBudget: input.budget, spent: input.budget - state.game.remainingBudget },
     business: state.business, trace, businessReplay,
     termination: state.game.health === 0 ? "dead" as const : state.business.events >= input.maxEvents ? "eventLimit" as const : "tickLimit" as const,

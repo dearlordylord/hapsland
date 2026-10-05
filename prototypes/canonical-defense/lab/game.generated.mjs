@@ -31302,33 +31302,33 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058com
   return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058context$(_state_0, _action_0, _job_0, {$: "None"});
 }
 
-function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$(_context_0, _scope_0) {
+function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$(_state_0, _context_0, _scope_0) {
   const __0 = _context_0["partition"];
   const _lifetime_0 = _context_0["lifetime"];
   const _round_0 = _context_0["round"];
-  const __1 = _context_0["bytes"];
-  const __2 = _context_0["job"];
-  const __3 = _context_0["jev_delay"];
-  const __4 = _context_0["outcome"];
-  const __5 = _context_0["current_work"];
-  const __6 = _context_0["credential_ready"];
-  const __7 = _context_0["credential_generation"];
-  const __8 = _context_0["source_readable"];
-  const __9 = _context_0["advice_lifetime"];
-  const __10 = _context_0["candidate"];
-  const __11 = _context_0["automatic_collection"];
-  const __12 = _context_0["automatic_review"];
-  const __13 = _context_0["automatic_output"];
-  const __14 = _context_0["output_certain"];
-  const __15 = _context_0["output_delay"];
-  const __16 = _context_0["output_lease"];
-  const __17 = _context_0["background"];
-  const __18 = _context_0["automatic_dispatch"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _advice_lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const __1 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _lease_0 = _context_0["output_lease"];
+  const __2 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
   if (_scope_0.$ === "Some") {
     const _partition_0 = _scope_0["value"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058with_scope$({$: "../../packages/monkey-business-bend/Driver.Context", "partition": __0, "lifetime": _lifetime_0, "round": _round_0, "bytes": __1, "job": __2, "jev_delay": __3, "outcome": __4, "current_work": __5, "credential_ready": __6, "credential_generation": __7, "source_readable": __8, "advice_lifetime": __9, "candidate": __10, "automatic_collection": __11, "automatic_review": __12, "automatic_output": __13, "output_certain": __14, "output_delay": __15, "output_lease": __16, "background": __17, "automatic_dispatch": __18}, {$: "../../packages/monkey-business-bend/Driver.ContextScope", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0});
+    return {$: "../../packages/monkey-business-bend/Driver.Context", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _advice_lifetime_0, "candidate": _candidate_0, "automatic_collection": ($Bool$and$(($Bool$not$(($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058collector_configured$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058core$(_state_0)))))), ($Bool$not$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058active_finish$(_state_0, _partition_0)))))), "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058generated_partition$(_state_0, _partition_0)), "automatic_dispatch": _dispatch_0};
   } else {
-    return {$: "../../packages/monkey-business-bend/Driver.Context", "partition": __0, "lifetime": _lifetime_0, "round": _round_0, "bytes": __1, "job": __2, "jev_delay": __3, "outcome": __4, "current_work": __5, "credential_ready": __6, "credential_generation": __7, "source_readable": __8, "advice_lifetime": __9, "candidate": __10, "automatic_collection": __11, "automatic_review": __12, "automatic_output": __13, "output_certain": __14, "output_delay": __15, "output_lease": __16, "background": __17, "automatic_dispatch": __18};
+    return {$: "../../packages/monkey-business-bend/Driver.Context", "partition": __0, "lifetime": _lifetime_0, "round": _round_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": _credential_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _advice_lifetime_0, "candidate": _candidate_0, "automatic_collection": __1, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _lease_0, "background": __2, "automatic_dispatch": _dispatch_0};
   }
 }
 
@@ -31384,7 +31384,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058iss
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_selected$(_state_0, _action_0, _job_0, _command_0, _source_0, _scope_0, _source_job_0) {
-  return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepared_command$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058issued_command$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remember_command$(_state_0, _command_0, _job_0)), _command_0)), _action_0, _job_0, _command_0, ($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepare_command_context$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058core$(_state_0)), _command_0, _source_job_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058outcome_environment$(_state_0)), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_context$(_state_0, _action_0, _job_0, _source_0)), _scope_0)))), {$: "Con", "head": _source_job_0, "tail": {$: "Nil"}});
+  return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepared_command$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058issued_command$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remember_command$(_state_0, _command_0, _job_0)), _command_0)), _action_0, _job_0, _command_0, ($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepare_command_context$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058core$(_state_0)), _command_0, _source_job_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058outcome_environment$(_state_0)), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$(_state_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_context$(_state_0, _action_0, _job_0, _source_0)), _scope_0)))), {$: "Con", "head": _source_job_0, "tail": {$: "Nil"}});
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_bound$(_state_0, _action_0, _command_0, _source_0, _scope_0, _fallback_0, _source_job_0, _found_0) {
@@ -33429,6 +33429,42 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev
   return {$: "../../packages/monkey-business-bend/NativeRunTypes.Controlled", "state": {$: "../../packages/monkey-business-bend/NativeRunTypes.State", "core": _core_0, "items": _items_0, "next": _next_0, "count": _count_0, "seed": _seed_0, "environment": {$: "../../packages/monkey-business-bend/NativeRunTypes.Environment", "jev_delay": _delay_0, "outcome": {$: "None"}, "weights": _weights_0, "preparation_delay": _prep_0, "tree_profile": _tree_0, "graph_limits": _limits_0, "output_delay": _output_0, "output_lease": _lease_0, "current_work": _current_0, "credential_ready": _ready_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "output_profile": _output_profile_0}, "latest": _latest_0, "valid": _valid_0, "prepared": _prepared_0, "jobs": _jobs_0, "host": _host_0}, "applied": true};
 }
 
+function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_delay_control$(_state_0, _delay_0) {
+  const _core_0 = _state_0["core"];
+  const _items_0 = _state_0["items"];
+  const _next_0 = _state_0["next"];
+  const _count_0 = _state_0["count"];
+  const _seed_0 = _state_0["seed"];
+  const _t_0 = _state_0["environment"];
+  const _outcome_0 = _t_0["outcome"];
+  const _weights_0 = _t_0["weights"];
+  const _prep_0 = _t_0["preparation_delay"];
+  const _tree_0 = _t_0["tree_profile"];
+  const _limits_0 = _t_0["graph_limits"];
+  const _output_0 = _t_0["output_delay"];
+  const _lease_0 = _t_0["output_lease"];
+  const _current_0 = _t_0["current_work"];
+  const _ready_0 = _t_0["credential_ready"];
+  const _generation_0 = _t_0["credential_generation"];
+  const _readable_0 = _t_0["source_readable"];
+  const _lifetime_0 = _t_0["advice_lifetime"];
+  const _profile_0 = _t_0["output_profile"];
+  const _latest_0 = _state_0["latest"];
+  const _valid_0 = _state_0["valid"];
+  const _prepared_0 = _state_0["prepared"];
+  const _jobs_0 = _state_0["jobs"];
+  const _host_0 = _state_0["host"];
+  return {$: "../../packages/monkey-business-bend/NativeRunTypes.Controlled", "state": {$: "../../packages/monkey-business-bend/NativeRunTypes.State", "core": _core_0, "items": _items_0, "next": _next_0, "count": _count_0, "seed": _seed_0, "environment": {$: "../../packages/monkey-business-bend/NativeRunTypes.Environment", "jev_delay": _delay_0, "outcome": _outcome_0, "weights": _weights_0, "preparation_delay": _prep_0, "tree_profile": _tree_0, "graph_limits": _limits_0, "output_delay": _output_0, "output_lease": _lease_0, "current_work": _current_0, "credential_ready": _ready_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "output_profile": _profile_0}, "latest": _latest_0, "valid": _valid_0, "prepared": _prepared_0, "jobs": _jobs_0, "host": _host_0}, "applied": true};
+}
+
+function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_delay_supported$(_valid_0, _state_0, _delay_0) {
+  if (_valid_0) {
+    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_delay_control$(_state_0, _delay_0);
+  } else {
+    return {$: "../../packages/monkey-business-bend/NativeRunTypes.Controlled", "state": _state_0, "applied": false};
+  }
+}
+
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_supported$(_valid_0, _state_0, _delay_0, _weights_0) {
   if (_valid_0) {
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_control$(_state_0, _delay_0, _weights_0);
@@ -33643,11 +33679,14 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058out
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058control$(_state_0, _control_0) {
-  if (_control_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl") {
-    const _outcome_0 = _control_0["outcome"];
+  if (_control_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.JevDelay") {
     const _delay_0 = _control_0["delay"];
+    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_delay_supported$(($Nat$is_le$(_delay_0, 1000000000)), _state_0, _delay_0);
+  } else if (_control_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl") {
+    const _outcome_0 = _control_0["outcome"];
+    const _delay_1 = _control_0["delay"];
     const _lease_0 = _control_0["lease"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058output_control$(($Bool$and$(($Bool$and$(($Nat$is_le$(_delay_0, 1000000000)), ($Nat$is_gt$(_lease_0, 0)))), ($Nat$is_le$(_lease_0, 1000000000)))), _state_0, _outcome_0, _delay_0, _lease_0);
+    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058output_control$(($Bool$and$(($Bool$and$(($Nat$is_le$(_delay_1, 1000000000)), ($Nat$is_gt$(_lease_0, 0)))), ($Nat$is_le$(_lease_0, 1000000000)))), _state_0, _outcome_0, _delay_1, _lease_0);
   } else if (_control_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl") {
     const _identity_0 = _control_0["identity"];
     const _action_0 = _control_0["action"];
@@ -33657,9 +33696,9 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058con
     const _value_0 = _control_0["control"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058controlled_workload$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058workload_supported$(_value_0)), _state_0, _identity_1, _value_0);
   } else if (_control_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.JevProfile") {
-    const _delay_1 = _control_0["delay"];
+    const _delay_2 = _control_0["delay"];
     const _weights_0 = _control_0["weights"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_supported$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_le$(_delay_1, 1000000000)), ($Nat$is_eq$(($List$length$(_weights_0)), 6)))), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weights_valid$(_weights_0)))), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weights_enabled$(_weights_0)))), _state_0, _delay_1, _weights_0);
+    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_supported$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_le$(_delay_2, 1000000000)), ($Nat$is_eq$(($List$length$(_weights_0)), 6)))), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weights_valid$(_weights_0)))), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058weights_enabled$(_weights_0)))), _state_0, _delay_2, _weights_0);
   } else {
     const _current_0 = _control_0["current_work"];
     const _ready_0 = _control_0["credential_ready"];
@@ -33698,8 +33737,49 @@ function $DefenseConsumer$058boxed$(_items_0) {
   }
 }
 
+function $DefenseModel$058cue_kind$(_cue_0) {
+  const _value_0 = _cue_0["kind"];
+  return _value_0;
+}
+
+function $DefenseModel$058cue_operation$(_cue_0) {
+  const _value_0 = _cue_0["operation"];
+  return _value_0;
+}
+
+function $DefenseModel$058cue_family$(_cue_0) {
+  const _value_0 = _cue_0["family"];
+  return _value_0;
+}
+
+function $DefenseModel$058cue_x$(_cue_0) {
+  const _value_0 = _cue_0["x"];
+  return _value_0;
+}
+
+function $DefenseModel$058cue_y$(_cue_0) {
+  const _value_0 = _cue_0["y"];
+  return _value_0;
+}
+
+function $DefenseModel$058cue_ttl$(_cue_0) {
+  const _value_0 = _cue_0["ttl"];
+  return _value_0;
+}
+
+function $DefenseModel$058settings_from_environment$(_env_0) {
+  const _jev_0 = _env_0["jev_delay"];
+  const _output_0 = _env_0["output_delay"];
+  return {$: "DefenseModel.Settings", "jev_delay": _jev_0, "output_delay": _output_0, "burst": 1};
+}
+
+function $DefenseModel$058config_settings$(_config_0) {
+  const _env_0 = _config_0["environment"];
+  return $DefenseModel$058settings_from_environment$(_env_0);
+}
+
 function $DefenseModel$058initial_control$() {
-  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": ($DefenseAuto$058initial$()), "tail": {$: "Nil"}}, "pace": 30000};
+  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": ($DefenseAuto$058initial$()), "tail": {$: "Nil"}}, "pace": 30000, "cues": {$: "Nil"}, "actors": {$: "Nil"}, "settings": {$: "Con", "head": ($DefenseModel$058config_settings$(($DefenseConsumer$058config$()))), "tail": {$: "Nil"}}};
 }
 
 function $DefenseModel$058control_value$(_items_0) {
@@ -33727,7 +33807,10 @@ function $DefenseModel$058control_schedule$(_control_0) {
 
 function $DefenseModel$058control_with_schedule$(_control_0, _schedule_0) {
   const _pace_0 = _control_0["pace"];
-  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": _schedule_0, "tail": {$: "Nil"}}, "pace": _pace_0};
+  const _cues_0 = _control_0["cues"];
+  const _actors_0 = _control_0["actors"];
+  const _settings_0 = _control_0["settings"];
+  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": _schedule_0, "tail": {$: "Nil"}}, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0};
 }
 
 function $DefenseModel$058control_pace$(_control_0) {
@@ -33737,7 +33820,10 @@ function $DefenseModel$058control_pace$(_control_0) {
 
 function $DefenseModel$058control_with_pace$(_control_0, _pace_0) {
   const _schedule_0 = _control_0["schedule"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0};
+  const _cues_0 = _control_0["cues"];
+  const _actors_0 = _control_0["actors"];
+  const _settings_0 = _control_0["settings"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0};
 }
 
 function $DefenseModel$058number$(_n_0) {
@@ -33806,11 +33892,6 @@ function $DefenseModel$058towers$(_world_0) {
   return _v_0;
 }
 
-function $DefenseModel$058timers$(_world_0) {
-  const _v_0 = _world_0["timers"];
-  return _v_0;
-}
-
 function $DefenseModel$058active$(_world_0) {
   const _v_0 = _world_0["active"];
   return _v_0;
@@ -33854,7 +33935,6 @@ function $DefenseModel$058with_control$(_world_0, _value_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -33865,7 +33945,7 @@ function $DefenseModel$058with_control$(_world_0, _value_0) {
   const _selected_0 = _world_0["selected"];
   const _damage_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": _value_0, "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": _value_0, "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
 }
 
 function $DefenseModel$058auto$(_world_0) {
@@ -33908,61 +33988,6 @@ function $DefenseModel$058level$(_tower_0) {
   return _v_0;
 }
 
-function $DefenseModel$058cooldown$(_tower_0) {
-  const _v_0 = _tower_0["cooldown"];
-  return _v_0;
-}
-
-function $DefenseModel$058flash$(_tower_0) {
-  const _v_0 = _tower_0["flash"];
-  return _v_0;
-}
-
-function $DefenseModel$058aim$(_tower_0) {
-  const _v_0 = _tower_0["aim"];
-  return _v_0;
-}
-
-function $DefenseModel$058charges$(_tower_0) {
-  const _v_0 = _tower_0["charges"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_id$(_timer_0) {
-  const _v_0 = _timer_0["id"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_phase$(_timer_0) {
-  const _v_0 = _timer_0["phase"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_age$(_timer_0) {
-  const _v_0 = _timer_0["age"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_family$(_timer_0) {
-  const _v_0 = _timer_0["family"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_risk$(_timer_0) {
-  const _v_0 = _timer_0["risk"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_seed$(_timer_0) {
-  const _v_0 = _timer_0["seed"];
-  return _v_0;
-}
-
-function $DefenseModel$058timer_boost$(_timer_0) {
-  const _v_0 = _timer_0["boost"];
-  return _v_0;
-}
-
 function $DefenseModel$058work$(_core_0) {
   const _items_0 = _core_0["work"];
   return _items_0;
@@ -33986,7 +34011,6 @@ function $DefenseModel$058with_engine$(_world_0, _next_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -33998,7 +34022,7 @@ function $DefenseModel$058with_engine$(_world_0, _next_0) {
   const _selected_0 = _world_0["selected"];
   const _damage_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": {$: "Con", "head": _next_0, "tail": {$: "Nil"}}, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": {$: "Con", "head": _next_0, "tail": {$: "Nil"}}, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
 }
 
 function $DefenseModel$058phase$(_kind_0) {
@@ -34017,7 +34041,7 @@ function $DefenseModel$058phase$(_kind_0) {
   }
 }
 
-function $DefenseModel$058with_effects$(_world_0, _towers_0, _timers_0) {
+function $DefenseModel$058with_towers$(_world_0, _towers_0) {
   const _core_0 = _world_0["engine"];
   const _t_0 = _world_0["clock"];
   const _p_0 = _world_0["paused"];
@@ -34036,7 +34060,7 @@ function $DefenseModel$058with_effects$(_world_0, _towers_0, _timers_0) {
   const _selected_0 = _world_0["selected"];
   const _damage_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "timers": _timers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
 }
 
 function $DefenseModel$058damage_work$(_world_0) {
@@ -34063,7 +34087,6 @@ function $DefenseModel$058with_schedule$(_world_0, _schedule_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -34075,7 +34098,7 @@ function $DefenseModel$058with_schedule$(_world_0, _schedule_0) {
   const _selected_0 = _world_0["selected"];
   const _damage_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": ($DefenseModel$058control_with_schedule$(($DefenseModel$058control$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": __0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0})), _schedule_0)), "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": ($DefenseModel$058control_with_schedule$(($DefenseModel$058control$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": __0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0})), _schedule_0)), "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _damage_0, "damageFlash": _flash_0};
 }
 
 function $DefenseModel$058current_round$($0) {
@@ -34123,389 +34146,93 @@ function $DefenseModel$058arrival_interval$(_world_0) {
   return $U32$max$(20, ($DefenseModel$058control_pace$(($DefenseModel$058control$(_world_0)))));
 }
 
-function $DefenseProjection$058ledger$(_core_0) {
-  const _v_0 = _core_0["ledger"];
-  return _v_0;
+function $DefenseModel$058control_cues$(_control_0) {
+  const _cues_0 = _control_0["cues"];
+  return _cues_0;
 }
 
-function $DefenseProjection$058collection$(_core_0) {
-  const _v_0 = _core_0["collection"];
-  return _v_0;
+function $DefenseModel$058control_with_cues$(_control_0, _cues_0) {
+  const _schedule_0 = _control_0["schedule"];
+  const _pace_0 = _control_0["pace"];
+  const _actors_0 = _control_0["actors"];
+  const _settings_0 = _control_0["settings"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0};
 }
 
-function $DefenseProjection$058charge_bytes$(_id_0, _charges_0) {
-  if (_charges_0.$ === "Nil") {
-    return 0;
+function $DefenseModel$058cues$(_world_0) {
+  return $DefenseModel$058control_cues$(($DefenseModel$058control$(_world_0)));
+}
+
+function $DefenseModel$058with_cues$(_world_0, _cues_0) {
+  return $DefenseModel$058with_control$(_world_0, ($DefenseModel$058control_with_cues$(($DefenseModel$058control$(_world_0)), _cues_0)));
+}
+
+function $DefenseModel$058control_actors$(_control_0) {
+  const _actors_0 = _control_0["actors"];
+  return _actors_0;
+}
+
+function $DefenseModel$058control_with_actors$(_control_0, _actors_0) {
+  const _schedule_0 = _control_0["schedule"];
+  const _pace_0 = _control_0["pace"];
+  const _cues_0 = _control_0["cues"];
+  const _settings_0 = _control_0["settings"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0};
+}
+
+function $DefenseModel$058actors$(_world_0) {
+  return $DefenseModel$058control_actors$(($DefenseModel$058control$(_world_0)));
+}
+
+function $DefenseModel$058with_actors$(_world_0, _actors_0) {
+  return $DefenseModel$058with_control$(_world_0, ($DefenseModel$058control_with_actors$(($DefenseModel$058control$(_world_0)), _actors_0)));
+}
+
+function $DefenseModel$058settings_value$(_items_0) {
+  if (_items_0.$ === "Con") {
+    const _value_0 = _items_0["head"];
+    return _value_0;
   } else {
-    const _t_0 = _charges_0["head"];
-    const _candidate_0 = _t_0["id"];
-    const _bytes_0 = _t_0["bytes"];
-    const _rest_0 = _charges_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_id_0, _candidate_0)), _bytes_0, ($DefenseProjection$058charge_bytes$(_id_0, _rest_0)));
+    return $DefenseModel$058config_settings$(($DefenseConsumer$058config$()));
   }
 }
 
-function $DefenseProjection$058charges$(_ledger_0) {
-  const _v_0 = _ledger_0["charges"];
-  return _v_0;
+function $DefenseModel$058settings_control$(_control_0) {
+  const _settings_0 = _control_0["settings"];
+  return $DefenseModel$058settings_value$(_settings_0);
 }
 
-function $DefenseProjection$058project$(_items_0, _ledger_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _part_0 = _t_0["partition"];
-    const _id_0 = _t_0["operation"];
-    const _charge_0 = _t_0["charge"];
-    const _kind_0 = _t_0["kind"];
-    const _parent_0 = _t_0["parent"];
-    const _rest_0 = _items_0["tail"];
-    return {$: "Con", "head": {$: "DefenseProjection.Token", "id": ($DefenseModel$058number$(_id_0)), "parent": ($DefenseModel$058number$(_parent_0)), "partition": ($DefenseModel$058number$(_part_0)), "phase": ($DefenseModel$058phase$(_kind_0)), "bytes": ($DefenseModel$058number$(($DefenseProjection$058charge_bytes$(_charge_0, ($DefenseProjection$058charges$(_ledger_0))))))}, "tail": ($DefenseProjection$058project$(_rest_0, _ledger_0))};
-  }
+function $DefenseModel$058settings$(_world_0) {
+  return $DefenseModel$058settings_control$(($DefenseModel$058control$(_world_0)));
 }
 
-function $DefenseProjection$058tokens$(_world_0) {
-  return $DefenseProjection$058project$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), ($DefenseProjection$058ledger$(($DefenseModel$058core$(_world_0)))));
+function $DefenseModel$058with_settings$(_control_0, _settings_0) {
+  const _schedule_0 = _control_0["schedule"];
+  const _pace_0 = _control_0["pace"];
+  const _cues_0 = _control_0["cues"];
+  const _actors_0 = _control_0["actors"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": {$: "Con", "head": _settings_0, "tail": {$: "Nil"}}};
 }
 
-function $DefenseProjection$058id$(_token_0) {
-  const _v_0 = _token_0["id"];
-  return _v_0;
+function $DefenseModel$058base_jev$(_settings_0) {
+  const _jev_0 = _settings_0["jev_delay"];
+  return _jev_0;
 }
 
-function $DefenseProjection$058parent$(_token_0) {
-  const _v_0 = _token_0["parent"];
-  return _v_0;
+function $DefenseModel$058base_output$(_settings_0) {
+  const _output_0 = _settings_0["output_delay"];
+  return _output_0;
 }
 
-function $DefenseProjection$058partition$(_token_0) {
-  const _v_0 = _token_0["partition"];
-  return _v_0;
+function $DefenseModel$058burst_size$(_settings_0) {
+  const _size_0 = _settings_0["burst"];
+  return _size_0;
 }
 
-function $DefenseProjection$058phase$(_token_0) {
-  const _v_0 = _token_0["phase"];
-  return _v_0;
-}
-
-function $DefenseProjection$058bytes$(_token_0) {
-  const _v_0 = _token_0["bytes"];
-  return _v_0;
-}
-
-function $DefenseProjection$058count_tokens$(_items_0, _phase_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _p_0 = _t_0["phase"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$to_u32$((_p_0 === _phase_0)));
-    const _x_1 = ($DefenseProjection$058count_tokens$(_rest_0, _phase_0));
-    return ((_x_0 + _x_1) >>> 0);
-  }
-}
-
-function $DefenseProjection$058count$(_world_0, _phase_0) {
-  return $DefenseProjection$058count_tokens$(($DefenseProjection$058tokens$(_world_0)), _phase_0);
-}
-
-function $DefenseProjection$058queued_core$(_core_0) {
-  const _t_0 = _core_0["dispatch"];
-  const _items_0 = _t_0["queued"];
-  return $DefenseModel$058number$(($List$length$(_items_0)));
-}
-
-function $DefenseProjection$058queued$(_world_0) {
-  return $DefenseProjection$058queued_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058running_core$(_core_0) {
-  const _t_0 = _core_0["dispatch"];
-  const _items_0 = _t_0["running"];
-  return $DefenseModel$058number$(($List$length$(_items_0)));
-}
-
-function $DefenseProjection$058running$(_world_0) {
-  return $DefenseProjection$058running_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058requests_core$(_core_0) {
-  const _t_0 = _core_0["dispatch"];
-  const _items_0 = _t_0["requests"];
-  return $DefenseModel$058number$(($List$length$(_items_0)));
-}
-
-function $DefenseProjection$058requests$(_world_0) {
-  return $DefenseProjection$058requests_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058ready_core$(_core_0) {
-  const _t_0 = _core_0["collection"];
-  const _items_0 = _t_0["ready"];
-  return $DefenseModel$058number$(($List$length$(_items_0)));
-}
-
-function $DefenseProjection$058ready$(_world_0) {
-  return $DefenseProjection$058ready_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058leases_core$(_core_0) {
-  const _t_0 = _core_0["collection"];
-  const _items_0 = _t_0["leases"];
-  return $DefenseModel$058number$(($List$length$(_items_0)));
-}
-
-function $DefenseProjection$058leases$(_world_0) {
-  return $DefenseProjection$058leases_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058round_count$(_items_0, _mode_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _wait_0 = _t_0["waiting"];
-    const _decide_0 = _t_0["deciding"];
-    const _uncertain_0 = _t_0["uncertain"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$to_u32$(($Bool$pick$((_mode_0 === 0), _wait_0, ($Bool$pick$((_mode_0 === 1), _decide_0, _uncertain_0))))));
-    const _x_1 = ($DefenseProjection$058round_count$(_rest_0, _mode_0));
-    return ((_x_0 + _x_1) >>> 0);
-  }
-}
-
-function $DefenseProjection$058waiting$(_world_0) {
-  return $DefenseProjection$058round_count$(($DefenseModel$058rounds$(($DefenseModel$058core$(_world_0)))), 0);
-}
-
-function $DefenseProjection$058deciding$(_world_0) {
-  return $DefenseProjection$058round_count$(($DefenseModel$058rounds$(($DefenseModel$058core$(_world_0)))), 1);
-}
-
-function $DefenseProjection$058uncertain$(_world_0) {
-  return $DefenseProjection$058round_count$(($DefenseModel$058rounds$(($DefenseModel$058core$(_world_0)))), 2);
-}
-
-function $DefenseProjection$058write_count$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["write"];
-        if (_t_1.$ === "Some") {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($DefenseProjection$058write_count$(_rest_0));
-          return ((1 + _x_0) >>> 0);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $DefenseProjection$058active_slots$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["phase"];
-        if (_t_1.$ === "../../packages/agent-flow-bend/DeliveryState.Reserved") {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($DefenseProjection$058active_slots$(_rest_0));
-          return ((1 + _x_0) >>> 0);
-        } else if (_t_1.$ === "../../packages/agent-flow-bend/DeliveryState.Authorized") {
-          const _rest_1 = _items_0["tail"];
-          const _x_1 = ($DefenseProjection$058active_slots$(_rest_1));
-          return ((1 + _x_1) >>> 0);
-        } else {
-          const _rest_2 = _items_0["tail"];
-          $0 = _rest_2;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $DefenseProjection$058writes_core$(_core_0) {
-  const _t_0 = _core_0["collection"];
-  const _t_1 = _t_0["delivery"];
-  const _slots_0 = _t_1["slots"];
-  return $DefenseProjection$058active_slots$(_slots_0);
-}
-
-function $DefenseProjection$058writes$(_world_0) {
-  return $DefenseProjection$058writes_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058usage$(_world_0) {
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058total$(($DefenseProjection$058charges$(($DefenseProjection$058ledger$(($DefenseModel$058core$(_world_0)))))));
-}
-
-function $DefenseProjection$058usage_items$(_items_0) {
-  const _v_0 = _items_0["items"];
-  return $DefenseModel$058number$(_v_0);
-}
-
-function $DefenseProjection$058usage_bytes$(_items_0) {
-  const _v_0 = _items_0["bytes"];
-  return $DefenseModel$058number$(_v_0);
-}
-
-function $DefenseProjection$058ledger_items$(_world_0) {
-  return $DefenseProjection$058usage_items$(($DefenseProjection$058usage$(_world_0)));
-}
-
-function $DefenseProjection$058ledger_bytes$(_world_0) {
-  return $DefenseProjection$058usage_bytes$(($DefenseProjection$058usage$(_world_0)));
-}
-
-function $DefenseProjection$058ledger_byte_limit_core$(_core_0) {
-  const _t_0 = _core_0["ledger"];
-  const _t_1 = _t_0["limits"];
-  const _v_0 = _t_1["global_bytes"];
-  return $DefenseModel$058number$(_v_0);
-}
-
-function $DefenseProjection$058ledger_byte_limit$(_world_0) {
-  return $DefenseProjection$058ledger_byte_limit_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058ledger_item_limit_core$(_core_0) {
-  const _t_0 = _core_0["ledger"];
-  const _t_1 = _t_0["limits"];
-  const _v_0 = _t_1["global_items"];
-  return $DefenseModel$058number$(_v_0);
-}
-
-function $DefenseProjection$058ledger_item_limit$(_world_0) {
-  return $DefenseProjection$058ledger_item_limit_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058backend_started_items$(_items_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _started_0 = _t_0["started"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$to_u32$(_started_0));
-    const _x_1 = ($DefenseProjection$058backend_started_items$(_rest_0));
-    return ((_x_0 + _x_1) >>> 0);
-  }
-}
-
-function $DefenseProjection$058backend_started_core$(_core_0) {
-  const _t_0 = _core_0["dispatch"];
-  const _items_0 = _t_0["requests"];
-  return $DefenseProjection$058backend_started_items$(_items_0);
-}
-
-function $DefenseProjection$058backend_started$(_world_0) {
-  return $DefenseProjection$058backend_started_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058parent_count_tokens$(_items_0, _owner_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _parent_0 = _t_0["parent"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$to_u32$((_parent_0 === _owner_0)));
-    const _x_1 = ($DefenseProjection$058parent_count_tokens$(_rest_0, _owner_0));
-    return ((_x_0 + _x_1) >>> 0);
-  }
-}
-
-function $DefenseProjection$058parent_children$(_world_0, _parent_0) {
-  return $DefenseProjection$058parent_count_tokens$(($DefenseProjection$058tokens$(_world_0)), _parent_0);
-}
-
-function $DefenseProjection$058parent_pending_tokens$(_items_0, _owner_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _parent_0 = _t_0["parent"];
-    const _p_0 = _t_0["phase"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$to_u32$(($Bool$and$((_parent_0 === _owner_0), (_p_0 === 5)))));
-    const _x_1 = ($DefenseProjection$058parent_pending_tokens$(_rest_0, _owner_0));
-    return ((_x_0 + _x_1) >>> 0);
-  }
-}
-
-function $DefenseProjection$058parent_pending$(_world_0, _parent_0) {
-  return $DefenseProjection$058parent_pending_tokens$(($DefenseProjection$058tokens$(_world_0)), _parent_0);
-}
-
-function $DefenseProjection$058family$(_token_0) {
-  const _x_0 = ($DefenseProjection$058parent$(_token_0));
-  return $Bool$pick$((_x_0 === 0), ($DefenseProjection$058id$(_token_0)), ($DefenseProjection$058parent$(_token_0)));
-}
-
-function $DefenseProjection$058pool_limit$() {
-  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058max_requests$()));
-}
-
-function $DefenseProjection$058preparation_pool_limit$() {
-  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058max_running$()));
-}
-
-function $DefenseProjection$058prep_running_entries$(_items_0) {
-  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058preparation_count$(_items_0)));
-}
-
-function $DefenseProjection$058prep_running_core$(_core_0) {
-  const _t_0 = _core_0["dispatch"];
-  const _entries_0 = _t_0["running"];
-  return $DefenseProjection$058prep_running_entries$(_entries_0);
-}
-
-function $DefenseProjection$058prep_running$(_world_0) {
-  return $DefenseProjection$058prep_running_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058finish_counters_core$(_core_0) {
-  const _t_0 = _core_0["collection"];
-  const _t_1 = _t_0["delivery"];
-  const _counters_0 = _t_1["counters"];
-  return _counters_0;
-}
-
-function $DefenseProjection$058finish_counters$(_world_0) {
-  return $DefenseProjection$058finish_counters_core$(($DefenseModel$058core$(_world_0)));
-}
-
-function $DefenseProjection$058finish_used$(_world_0) {
-  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047DeliveryState$058count$(1, ($DefenseModel$058round$(_world_0)), ($DefenseProjection$058finish_counters$(_world_0)))));
-}
-
-function $DefenseProjection$058counters_within_budget$(_items_0) {
-  if (_items_0.$ === "Nil") {
-    return true;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _used_0 = _t_0["used"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$and$(($Nat$is_le$(_used_0, 4)), ($DefenseProjection$058counters_within_budget$(_rest_0)));
-  }
-}
-
-function $DefenseProjection$058finish_within_budget$(_world_0) {
-  return $DefenseProjection$058counters_within_budget$(($DefenseProjection$058finish_counters$(_world_0)));
+function $DefenseModel$058with_burst$(_settings_0, _size_0) {
+  const _jev_0 = _settings_0["jev_delay"];
+  const _output_0 = _settings_0["output_delay"];
+  return {$: "DefenseModel.Settings", "jev_delay": _jev_0, "output_delay": _output_0, "burst": _size_0};
 }
 
 function $DefenseMap$058px$(_point_0) {
@@ -37545,136 +37272,1262 @@ function $DefenseMap$058layout_valid$(_layout_0) {
   return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($DefenseMap$058road_entry$(_layout_0, 1, 0, ($DefenseMap$058source_route$(_layout_0)))), ($DefenseMap$058road_exit$(_layout_0, 1, ($DefenseMap$058preparation_route$(_layout_0)))))), ($DefenseMap$058road_entry$(_layout_0, 2, 0, ($DefenseMap$058preparation_route$(_layout_0)))))), ($DefenseMap$058road_exit$(_layout_0, 2, ($DefenseMap$058review_route$(_layout_0, 0)))))), ($DefenseMap$058road_entry$(_layout_0, 4, 0, ($DefenseMap$058review_route$(_layout_0, 0)))))), ($DefenseMap$058road_exit$(_layout_0, 2, ($DefenseMap$058review_route$(_layout_0, 1)))))), ($DefenseMap$058road_entry$(_layout_0, 4, 1, ($DefenseMap$058review_route$(_layout_0, 1)))))), ($DefenseMap$058road_exit$(_layout_0, 4, ($DefenseMap$058retained_route$(_layout_0)))))), ($DefenseMap$058road_entry$(_layout_0, 5, 0, ($DefenseMap$058retained_route$(_layout_0)))))), ($DefenseMap$058normal_port$(($DefenseMap$058center$(_layout_0, 4, 0)), ($DefenseMap$058clear_side$(_layout_0)), ($DefenseMap$058first$(($DefenseMap$058clear_route$(_layout_0)))), ($DefenseMap$058second$(($DefenseMap$058clear_route$(_layout_0)))))))), ($DefenseMap$058road_exit$(_layout_0, 5, ($DefenseMap$058delivery_route$(_layout_0)))))), ($DefenseMap$058room_valid$(_layout_0, 1, 0)))), ($DefenseMap$058room_valid$(_layout_0, 2, 0)))), ($DefenseMap$058room_valid$(_layout_0, 4, 0)))), ($DefenseMap$058room_valid$(_layout_0, 4, 1)))), ($DefenseMap$058room_valid$(_layout_0, 5, 0)));
 }
 
-function $DefenseEffects$058cost$(_kind_0) {
-  return TAB_0[Math.min(_kind_0, 6)];
+function $DefenseMechanics$058cost$(_kind_0) {
+  return TAB_0[Math.min(_kind_0, 2)];
 }
 
-function $DefenseEffects$058name$(_kind_0) {
+function $DefenseMechanics$058name$(_kind_0) {
   if (_kind_0 == 0) {
-    return "RAPID";
-  } else if ((_kind_0 & 7) == 0) {
-    return "SHIELD";
-  } else if (_kind_0 == 4) {
-    return "COORDINATOR";
-  } else if ((_kind_0 & 7) == 4) {
-    return "SHIELD";
-  } else if (_kind_0 == 2) {
-    return "RELAY";
-  } else if ((_kind_0 & 3) == 2) {
-    return "SHIELD";
+    return "JEV SERVICE";
+  } else if ((_kind_0 & 1) == 0) {
+    return "ACCESS REPAIR";
   } else if (_kind_0 == 1) {
-    return "REFINER";
-  } else if ((_kind_0 & 7) == 1) {
-    return "SHIELD";
-  } else if (_kind_0 == 5) {
-    return "PACKAGER";
-  } else if ((_kind_0 & 7) == 5) {
-    return "SHIELD";
-  } else if (_kind_0 == 3) {
-    return "PARALLELIZER";
+    return "DELIVERY RELAY";
   } else {
-    return "SHIELD";
+    return "ACCESS REPAIR";
   }
 }
 
-function $DefenseEffects$058detail$(_kind_0) {
+function $DefenseMechanics$058detail$(_kind_0) {
   if (_kind_0 == 0) {
-    return "ROAD OR ACTIVE WORK -12 / 8 TICKS";
-  } else if ((_kind_0 & 7) == 0) {
-    return "FINITE240 CHARGE / HALF PRESSURE MAX";
-  } else if (_kind_0 == 4) {
-    return "UNFINISHED SIBLING WORK -9 / 8 TICKS";
-  } else if ((_kind_0 & 7) == 4) {
-    return "FINITE240 CHARGE / HALF PRESSURE MAX";
-  } else if (_kind_0 == 2) {
-    return "LONG RANGE ROAD / ACTIVE WORK -6 / 12 TICKS";
-  } else if ((_kind_0 & 3) == 2) {
-    return "FINITE240 CHARGE / HALF PRESSURE MAX";
+    return "FUTURE REQUEST DELAY / SAME OUTCOMES";
+  } else if ((_kind_0 & 1) == 0) {
+    return "RESTORE SOURCE AND CREDENTIAL ACCESS";
   } else if (_kind_0 == 1) {
-    return "RISK -15% OF CURRENT / FLOOR60%";
-  } else if ((_kind_0 & 7) == 1) {
-    return "FINITE240 CHARGE / HALF PRESSURE MAX";
-  } else if (_kind_0 == 5) {
-    return "REAL NEXT OUTPUT BATCH TARGET +1";
-  } else if ((_kind_0 & 7) == 5) {
-    return "FINITE240 CHARGE / HALF PRESSURE MAX";
-  } else if (_kind_0 == 3) {
-    return "LOCAL HOST PERMITS +1 WITHIN CORE MAX8";
+    return "FUTURE DELIVERY DELAY / SAME LEASE";
   } else {
-    return "FINITE240 CHARGE / HALF PRESSURE MAX";
+    return "RESTORE SOURCE AND CREDENTIAL ACCESS";
   }
 }
 
-function $DefenseEffects$058range$(_kind_0, _level_0) {
-  const _x_0 = ($Bool$pick$((_kind_0 === 0), 96, ($Bool$pick$((_kind_0 === 1), 110, ($Bool$pick$((_kind_0 === 2), 150, 112))))));
-  const _x_1 = (Math.imul(_level_0, 10) >>> 0);
+function $DefenseMechanics$058range$(_kind_0, _level_0) {
+  const _x_0 = (Math.imul(_level_0, 12) >>> 0);
+  return ((100 + _x_0) >>> 0);
+}
+
+function $DefenseMechanics$058site$(_kind_0) {
+  return TAB_1[Math.min(_kind_0, 2)];
+}
+
+function $DefenseMechanics$058connected$(_world_0, _tower_0) {
+  const _p_0 = {$: "DefenseMap.Point", "x": ($DefenseModel$058tx$(_tower_0)), "y": ($DefenseModel$058ty$(_tower_0))};
+  return $DefenseMap$058in_range$(_p_0, ($DefenseMap$058center$(($DefenseModel$058layout$(_world_0)), ($DefenseMechanics$058site$(($DefenseModel$058tkind$(_tower_0)))), 0)), ($DefenseMechanics$058range$(($DefenseModel$058tkind$(_tower_0)), ($DefenseModel$058level$(_tower_0)))));
+}
+
+function $DefenseMechanics$058levels$(_items_0, _world_0, _kind_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _tower_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($DefenseModel$058tkind$(_tower_0));
+    const _x_1 = ($Bool$pick$(($Bool$and$((_x_0 === _kind_0), ($DefenseMechanics$058connected$(_world_0, _tower_0)))), ($DefenseModel$058level$(_tower_0)), 0));
+    const _x_2 = ($DefenseMechanics$058levels$(_rest_0, _world_0, _kind_0));
+    return ((_x_1 + _x_2) >>> 0);
+  }
+}
+
+function $DefenseMechanics$058strength$(_world_0, _kind_0) {
+  return $DefenseMechanics$058levels$(($DefenseModel$058towers$(_world_0)), _world_0, _kind_0);
+}
+
+function $DefenseMechanics$058delay$(_base_0, _power_0) {
+  return $Nat$div$(_base_0, nat_chk(1 + _power_0));
+}
+
+function $DefenseMechanics$058current_environment$(_state_0) {
+  const _env_0 = _state_0["environment"];
+  return _env_0;
+}
+
+function $DefenseMechanics$058current_delay$(_env_0, _kind_0) {
+  const _jev_0 = _env_0["jev_delay"];
+  const _output_0 = _env_0["output_delay"];
+  return $Bool$pick$((_kind_0 === 0), _jev_0, _output_0);
+}
+
+function $DefenseMechanics$058applied$(_result_0) {
+  const _state_0 = _result_0["state"];
+  return _state_0;
+}
+
+function $DefenseMechanics$058jev$(_state_0, _delay_0) {
+  return $DefenseMechanics$058applied$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058control$(_state_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.JevDelay", "delay": _delay_0})));
+}
+
+function $DefenseMechanics$058output$(_state_0, _env_0, _delay_0) {
+  if (_env_0.$ === "Con") {
+    const _t_0 = _env_0["head"];
+    const _lease_0 = _t_0["output_lease"];
+    const _t_1 = _t_0["output_profile"];
+    const _outcome_0 = _t_1["outcome"];
+    return $DefenseMechanics$058applied$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058control$(_state_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl", "outcome": _outcome_0, "delay": _delay_0, "lease": _lease_0})));
+  } else {
+    return _state_0;
+  }
+}
+
+function $DefenseMechanics$058access$(_state_0, _env_0, _enabled_0) {
+  if (_env_0.$ === "Con") {
+    const _t_0 = _env_0["head"];
+    const _current_0 = _t_0["current_work"];
+    const _ready_0 = _t_0["credential_ready"];
+    const _generation_0 = _t_0["credential_generation"];
+    const _readable_0 = _t_0["source_readable"];
+    const _x_0 = ($Bool$not$(_ready_0));
+    const _x_1 = ($Bool$not$(_readable_0));
+    return $Bool$pick$(($Bool$and$(_enabled_0, (_x_0 || _x_1))), ($DefenseMechanics$058applied$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058control$(_state_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl", "current_work": _current_0, "credential_ready": true, "credential_generation": _generation_0, "source_readable": true})))), _state_0);
+  } else {
+    return _state_0;
+  }
+}
+
+function $DefenseMechanics$058profiles$(_world_0) {
+  const _env_0 = {$: "Con", "head": ($DefenseMechanics$058current_environment$(($DefenseModel$058engine$(_world_0)))), "tail": {$: "Nil"}};
+  const _settings_0 = ($DefenseModel$058settings$(_world_0));
+  const _first_0 = ($DefenseMechanics$058jev$(($DefenseModel$058engine$(_world_0)), ($DefenseMechanics$058delay$(($DefenseModel$058base_jev$(_settings_0)), ($DefenseMechanics$058strength$(_world_0, 0))))));
+  const _second_0 = ($DefenseMechanics$058output$(_first_0, _env_0, ($DefenseMechanics$058delay$(($DefenseModel$058base_output$(_settings_0)), ($DefenseMechanics$058strength$(_world_0, 1))))));
+  return $DefenseModel$058with_engine$(_world_0, _second_0);
+}
+
+function $DefenseMechanics$058purchased_connected$(_items_0, _world_0) {
+  if (_items_0.$ === "Con") {
+    const _tower_0 = _items_0["head"];
+    return $DefenseMechanics$058connected$(_world_0, _tower_0);
+  } else {
+    return false;
+  }
+}
+
+function $DefenseMechanics$058purchased$(_world_0, _kind_0) {
+  const _next_0 = ($DefenseMechanics$058profiles$(_world_0));
+  return $DefenseModel$058with_engine$(_next_0, ($DefenseMechanics$058access$(($DefenseModel$058engine$(_next_0)), {$: "Con", "head": ($DefenseMechanics$058current_environment$(($DefenseModel$058engine$(_next_0)))), "tail": {$: "Nil"}}, ($Bool$and$((_kind_0 === 2), ($DefenseMechanics$058purchased_connected$(($DefenseModel$058towers$(_next_0)), _next_0)))))));
+}
+
+function $DefenseMechanics$058max_level$(_kind_0) {
+  return $Bool$pick$((_kind_0 === 2), 1, 3);
+}
+
+function $DefenseMechanics$058missing_access$(_env_0) {
+  const _ready_0 = _env_0["credential_ready"];
+  const _readable_0 = _env_0["source_readable"];
+  const _x_0 = ($Bool$to_u32$(($Bool$not$(_ready_0))));
+  const _x_1 = ($Bool$to_u32$(($Bool$not$(_readable_0))));
   return ((_x_0 + _x_1) >>> 0);
 }
 
-function $DefenseEffects$058power$(_kind_0, _level_0) {
-  if (_kind_0 == 0) {
-    const _x_0 = (Math.imul(_level_0, 4) >>> 0);
-    return ((8 + _x_0) >>> 0);
-  } else if ((_kind_0 & 7) == 0) {
+function $DefenseMotion$058key$(_work_0) {
+  const _p_0 = _work_0["partition"];
+  const _l_0 = _work_0["lifetime"];
+  const _r_0 = _work_0["round"];
+  const _o_0 = _work_0["operation"];
+  return {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0};
+}
+
+function $DefenseMotion$058same$(_a_0, _b_0) {
+  const _ap_0 = _a_0["partition"];
+  const _al_0 = _a_0["lifetime"];
+  const _ar_0 = _a_0["round"];
+  const _ao_0 = _a_0["operation"];
+  const _bp_0 = _b_0["partition"];
+  const _bl_0 = _b_0["lifetime"];
+  const _br_0 = _b_0["round"];
+  const _bo_0 = _b_0["operation"];
+  return $Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_ap_0, _bp_0)), ($Nat$is_eq$(_al_0, _bl_0)))), ($Nat$is_eq$(_ar_0, _br_0)))), ($Nat$is_eq$(_ao_0, _bo_0)));
+}
+
+function $DefenseMotion$058phase$(_work_0) {
+  const _t_0 = _work_0["kind"];
+  if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AwaitingSourceRead") {
     return 0;
-  } else if (_kind_0 == 4) {
-    const _x_1 = (Math.imul(_level_0, 3) >>> 0);
-    return ((6 + _x_1) >>> 0);
-  } else if ((_kind_0 & 7) == 4) {
-    return 0;
-  } else if (_kind_0 == 2) {
-    const _x_2 = (Math.imul(_level_0, 2) >>> 0);
-    return ((4 + _x_2) >>> 0);
-  } else if ((_kind_0 & 3) == 2) {
-    return 0;
-  } else if (_kind_0 == 1) {
-    const _x_3 = (Math.imul(_level_0, 5) >>> 0);
-    return ((10 + _x_3) >>> 0);
+  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.SourceReading") {
+    return 1;
+  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Preparing") {
+    return 2;
+  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
+    return 3;
+  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+    return 4;
   } else {
-    return 0;
+    return 5;
   }
 }
 
-function $DefenseEffects$058risk_floor$() {
-  return 60;
+function $DefenseMotion$058family$(_work_0) {
+  const _id_0 = _work_0["operation"];
+  const _parent_0 = _work_0["parent"];
+  return $Bool$pick$(($Nat$is_eq$(_parent_0, 0)), _id_0, _parent_0);
 }
 
-function $DefenseEffects$058risk_reduction$(_risk_0, _power_0) {
-  const _x_0 = (Math.imul(_risk_0, _power_0) >>> 0);
-  return $U32$min$(($DefenseModel$058sub$(_risk_0, ($DefenseEffects$058risk_floor$()))), (100 === 0 ? 0 : (_x_0 / 100) >>> 0));
+function $DefenseMotion$058parent$(_work_0) {
+  const _p_0 = _work_0["partition"];
+  const _l_0 = _work_0["lifetime"];
+  const _r_0 = _work_0["round"];
+  const _owner_0 = _work_0["parent"];
+  return $Bool$pick$(($Nat$is_eq$(_owner_0, 0)), {$: "Nil"}, {$: "Con", "head": {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _owner_0}, "tail": {$: "Nil"}});
 }
 
-function $DefenseEffects$058cooldown$(_kind_0) {
-  return TAB_1[Math.min(_kind_0, 3)];
+function $DefenseMotion$058actor_key$(_actor_0) {
+  const _k_0 = _actor_0["key"];
+  return _k_0;
 }
 
-function $DefenseEffects$058upgrade_cost$(_level_0) {
-  const _x_0 = (Math.imul(_level_0, 20) >>> 0);
-  return ((20 + _x_0) >>> 0);
+function $DefenseMotion$058point$(_actor_0) {
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  return {$: "DefenseMap.Point", "x": _x_0, "y": _y_0};
 }
 
-function $DefenseEffects$058pick_timer$(_found_0, _current_0, _fallback_0) {
-  if (_found_0) {
-    return _current_0;
+function $DefenseMotion$058visible_phase$(_actor_0) {
+  const _p_0 = _actor_0["phase"];
+  return _p_0;
+}
+
+function $DefenseMotion$058observed_phase$(_actor_0) {
+  const _p_0 = _actor_0["observed"];
+  return _p_0;
+}
+
+function $DefenseMotion$058actor_family$(_actor_0) {
+  const _f_0 = _actor_0["family"];
+  return _f_0;
+}
+
+function $DefenseMotion$058operation$(_k_0) {
+  const _o_0 = _k_0["operation"];
+  return _o_0;
+}
+
+function $DefenseMotion$058terminal$(_actor_0) {
+  const _t_0 = _actor_0["terminal"];
+  return _t_0;
+}
+
+function $DefenseMotion$058path$(_actor_0) {
+  const _p_0 = _actor_0["path"];
+  return _p_0;
+}
+
+function $DefenseMotion$058waypoints$(_points_0, _p_0, _at_0) {
+  if (_points_0.$ === "Nil") {
+    return {$: "Nil"};
   } else {
-    return _fallback_0;
+    const _t_0 = _points_0["head"];
+    const _x_0 = _t_0["x"];
+    const _y_0 = _t_0["y"];
+    const _rest_0 = _points_0["tail"];
+    return {$: "Con", "head": {$: "DefenseMotionTypes.Waypoint", "x": _x_0, "y": _y_0, "phase": _p_0, "time": _at_0}, "tail": ($DefenseMotion$058waypoints$(_rest_0, _p_0, _at_0))};
   }
 }
 
-function $DefenseEffects$058find_timer$(_id_0, _items_0) {
+function $DefenseMotion$058route$(_layout_0, _p_0, _lane_0) {
+  if (_p_0 == 0) {
+    return $DefenseMap$058source_route$(_layout_0);
+  } else if ((_p_0 & 7) == 0) {
+    return $List$append$(($DefenseMap$058retained_route$(_layout_0)), ($DefenseMap$058room_route$(_layout_0, 5, _lane_0)));
+  } else if (_p_0 == 4) {
+    return $List$append$(($DefenseMap$058entry_channel$(($DefenseMap$058center$(_layout_0, 4, _lane_0)), ($DefenseMap$058entry_side$(_layout_0, 4, _lane_0)))), ($DefenseMap$058snake$(($DefenseMap$058center$(_layout_0, 4, _lane_0)))));
+  } else if ((_p_0 & 7) == 4) {
+    return $List$append$(($DefenseMap$058retained_route$(_layout_0)), ($DefenseMap$058room_route$(_layout_0, 5, _lane_0)));
+  } else if (_p_0 == 2) {
+    return $List$append$(($DefenseMap$058preparation_route$(_layout_0)), ($DefenseMap$058room_route$(_layout_0, 2, _lane_0)));
+  } else if ((_p_0 & 3) == 2) {
+    return $List$append$(($DefenseMap$058retained_route$(_layout_0)), ($DefenseMap$058room_route$(_layout_0, 5, _lane_0)));
+  } else if (_p_0 == 1) {
+    return $DefenseMap$058room_route$(_layout_0, 1, _lane_0);
+  } else if ((_p_0 & 3) == 1) {
+    return $List$append$(($DefenseMap$058retained_route$(_layout_0)), ($DefenseMap$058room_route$(_layout_0, 5, _lane_0)));
+  } else if (_p_0 == 3) {
+    return $DefenseMap$058review_route$(_layout_0, _lane_0);
+  } else {
+    return $List$append$(($DefenseMap$058retained_route$(_layout_0)), ($DefenseMap$058room_route$(_layout_0, 5, _lane_0)));
+  }
+}
+
+function $DefenseMotion$058present$(_id_0, _items_0) {
   if (_items_0.$ === "Nil") {
-    return {$: "DefenseModel.Timer", "id": _id_0, "phase": 0, "age": 0, "family": _id_0, "risk": 100, "seed": 1, "boost": 0};
+    return false;
+  } else {
+    const _work_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($DefenseMotion$058same$(_id_0, ($DefenseMotion$058key$(_work_0))));
+    const _x_1 = ($DefenseMotion$058present$(_id_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DefenseMotion$058work$(_items_0) {
+  if (_items_0.$ === "Con") {
+    const _t_0 = _items_0["head"];
+    const _items_1 = _t_0["work"];
+    return _items_1;
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $DefenseMotion$058changed$(_actor_0, _item_0, _layout_0, _at_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _lane_0 = _actor_0["lane"];
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  const _p_0 = _actor_0["phase"];
+  const _seen_0 = _actor_0["observed"];
+  const _steps_0 = _actor_0["path"];
+  const _t_0 = _actor_0["terminal"];
+  const _parent_0 = _actor_0["predecessor"];
+  const _shown_0 = _actor_0["shown"];
+  const _cause_0 = _actor_0["outcome"];
+  const _released_0 = _actor_0["released"];
+  const _next_0 = ($DefenseMotion$058phase$(_item_0));
+  return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _lane_0, "x": _x_0, "y": _y_0, "phase": _p_0, "observed": _next_0, "path": ($List$append$(_steps_0, ($Bool$pick$((_seen_0 === _next_0), {$: "Nil"}, ($DefenseMotion$058waypoints$(($List$append$(($Bool$pick$(($Bool$and$((_seen_0 === 4), (_next_0 === 5))), ($DefenseMap$058exit_channel$(($DefenseMap$058center$(_layout_0, 4, 0)), ($DefenseMap$058exit_side$(_layout_0, 4)))), {$: "Nil"})), ($DefenseMotion$058route$(_layout_0, _next_0, _lane_0)))), _next_0, _at_0)))))), "terminal": _t_0, "predecessor": _parent_0, "shown": _shown_0, "outcome": _cause_0, "released": _released_0};
+}
+
+function $DefenseMotion$058update_one$(_actor_0, _items_0, _layout_0, _at_0) {
+  if (_items_0.$ === "Nil") {
+    return _actor_0;
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $DefenseEffects$058pick_timer$(($Nat$is_eq$(_id_0, ($DefenseModel$058timer_id$(_item_0)))), _item_0, ($DefenseEffects$058find_timer$(_id_0, _rest_0)));
+    return $Bool$pick$(($DefenseMotion$058same$(($DefenseMotion$058actor_key$(_actor_0)), ($DefenseMotion$058key$(_item_0)))), ($DefenseMotion$058changed$(_actor_0, _item_0, _layout_0, _at_0)), ($DefenseMotion$058update_one$(_actor_0, _rest_0, _layout_0, _at_0)));
   }
 }
 
-function $DefenseEffects$058age$(_id_0, _phase_0, _items_0) {
-  const _timer_0 = ($DefenseEffects$058find_timer$(_id_0, _items_0));
-  const _x_0 = ($DefenseModel$058timer_phase$(_timer_0));
-  return $Bool$pick$((_x_0 === _phase_0), ($DefenseModel$058timer_age$(_timer_0)), 0);
+function $DefenseMotion$058end_route$(_layout_0, _cause_0) {
+  if (_cause_0 == 2) {
+    return $List$append$(($DefenseMap$058exit_channel$(($DefenseMap$058center$(_layout_0, 4, 0)), ($DefenseMap$058clear_side$(_layout_0)))), ($DefenseMap$058clear_route$(_layout_0)));
+  } else if ((_cause_0 & 1) == 0) {
+    return {$: "Nil"};
+  } else if (_cause_0 == 3) {
+    return $DefenseMap$058delivery_route$(_layout_0);
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $DefenseMotion$058outcome$(_actor_0) {
+  const _cause_0 = _actor_0["outcome"];
+  return _cause_0;
+}
+
+function $DefenseMotion$058with_outcome$(_actor_0, _cause_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _l_0 = _actor_0["lane"];
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  const _p_0 = _actor_0["phase"];
+  const _seen_0 = _actor_0["observed"];
+  const _steps_0 = _actor_0["path"];
+  const _t_0 = _actor_0["terminal"];
+  const _parent_0 = _actor_0["predecessor"];
+  const _shown_0 = _actor_0["shown"];
+  const _released_0 = _actor_0["released"];
+  return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": _x_0, "y": _y_0, "phase": _p_0, "observed": _seen_0, "path": _steps_0, "terminal": _t_0, "predecessor": _parent_0, "shown": _shown_0, "outcome": _cause_0, "released": _released_0};
+}
+
+function $DefenseMotion$058member$(_id_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _item_0));
+    const _x_1 = ($DefenseMotion$058member$(_id_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DefenseMotion$058acknowledged$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _items_0["head"];
+        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.FinishRecorded") {
+          const _t_1 = _t_0["outcome"];
+          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Acknowledged") {
+            return true;
+          } else {
+            const __1 = _items_0["tail"];
+            $0 = __1;
+            continue;
+          }
+        } else {
+          const __2 = _items_0["tail"];
+          $0 = __2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DefenseMotion$058refused$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _items_0["head"];
+        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationRefused") {
+          return true;
+        } else {
+          const __1 = _items_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DefenseMotion$058request_outcome$(_value_0) {
+  if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.RequestClear") {
+    return 2;
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.RequestFinding") {
+    return 0;
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.RequestTimeout") {
+    return 7;
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.RequestInterrupted") {
+    return 8;
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.NeverSent") {
+    return 9;
+  } else {
+    return 4;
+  }
+}
+
+function $DefenseMotion$058finish_matches$(_k_0, _group_0, _round_0, _selected_0) {
+  const _p_0 = _k_0["partition"];
+  const _r_0 = _k_0["round"];
+  const _o_0 = _k_0["operation"];
+  return $Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _group_0)), ($Nat$is_eq$(_r_0, _round_0)))), ($DefenseMotion$058member$(_o_0, _selected_0)));
+}
+
+function $DefenseMotion$058witnessed$(_event_0, _commands_0, _actor_0) {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    const _result_0 = _event_0["outcome"];
+    return $Bool$pick$(($DefenseMotion$058same$(($DefenseMotion$058actor_key$(_actor_0)), {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})), ($DefenseMotion$058with_outcome$(_actor_0, ($DefenseMotion$058request_outcome$(_result_0)))), _actor_0);
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.BeginObservedPreparation") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["observation"];
+    return $Bool$pick$(($DefenseMotion$058same$(($DefenseMotion$058actor_key$(_actor_0)), {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})), ($DefenseMotion$058with_outcome$(_actor_0, ($Bool$pick$(($DefenseMotion$058refused$(_commands_0)), 5, 6)))), _actor_0);
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationCompleted") {
+    const _p_2 = _event_0["partition"];
+    const _l_2 = _event_0["lifetime"];
+    const _r_2 = _event_0["round"];
+    const _o_2 = _event_0["operation"];
+    return $Bool$pick$(($DefenseMotion$058same$(($DefenseMotion$058actor_key$(_actor_0)), {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2})), ($DefenseMotion$058with_outcome$(_actor_0, 6)), _actor_0);
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.FinishTerminal") {
+    const _group_0 = _event_0["group"];
+    const _round_0 = _event_0["round"];
+    const _selected_0 = _event_0["selected"];
+    const _t_0 = _event_0["outcome"];
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Acknowledged") {
+      return $Bool$pick$(($Bool$and$(($DefenseMotion$058acknowledged$(_commands_0)), ($DefenseMotion$058finish_matches$(($DefenseMotion$058actor_key$(_actor_0)), _group_0, _round_0, _selected_0)))), ($DefenseMotion$058with_outcome$(_actor_0, 3)), _actor_0);
+    } else {
+      return _actor_0;
+    }
+  } else {
+    return _actor_0;
+  }
+}
+
+function $DefenseMotion$058witnessed_all$(_event_0, _commands_0, _actors_0, _before_0) {
+  if (_actors_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _actor_0 = _actors_0["head"];
+    const _rest_0 = _actors_0["tail"];
+    return {$: "Con", "head": ($Bool$pick$(($DefenseMotion$058present$(($DefenseMotion$058actor_key$(_actor_0)), _before_0)), ($DefenseMotion$058witnessed$(_event_0, _commands_0, _actor_0)), _actor_0)), "tail": ($DefenseMotion$058witnessed_all$(_event_0, _commands_0, _rest_0, _before_0))};
+  }
+}
+
+function $DefenseMotion$058retire$(_actor_0, _layout_0, _at_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _l_0 = _actor_0["lane"];
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  const _p_0 = _actor_0["phase"];
+  const _seen_0 = _actor_0["observed"];
+  const _steps_0 = _actor_0["path"];
+  const _t_0 = _actor_0["terminal"];
+  const _parent_0 = _actor_0["predecessor"];
+  const _shown_0 = _actor_0["shown"];
+  const _cause_0 = _actor_0["outcome"];
+  const _released_0 = _actor_0["released"];
+  return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": _x_0, "y": _y_0, "phase": _p_0, "observed": _seen_0, "path": ($List$append$(_steps_0, ($Bool$pick$((_t_0 === 0), ($DefenseMotion$058waypoints$(($DefenseMotion$058end_route$(_layout_0, _cause_0)), 6, _at_0)), {$: "Nil"})))), "terminal": ($Bool$pick$((_t_0 === 0), 30, _t_0)), "predecessor": _parent_0, "shown": _shown_0, "outcome": _cause_0, "released": _released_0};
+}
+
+function $DefenseMotion$058update$(_items_0, _actors_0, _layout_0, _at_0) {
+  if (_actors_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _actor_0 = _actors_0["head"];
+    const _rest_0 = _actors_0["tail"];
+    return {$: "Con", "head": ($Bool$pick$(($DefenseMotion$058present$(($DefenseMotion$058actor_key$(_actor_0)), _items_0)), ($DefenseMotion$058update_one$(_actor_0, _items_0, _layout_0, _at_0)), ($DefenseMotion$058retire$(_actor_0, _layout_0, _at_0)))), "tail": ($DefenseMotion$058update$(_items_0, _rest_0, _layout_0, _at_0))};
+  }
+}
+
+function $DefenseMotion$058contains$(_id_0, _actors_0) {
+  if (_actors_0.$ === "Nil") {
+    return false;
+  } else {
+    const _actor_0 = _actors_0["head"];
+    const _rest_0 = _actors_0["tail"];
+    const _x_0 = ($DefenseMotion$058same$(_id_0, ($DefenseMotion$058actor_key$(_actor_0))));
+    const _x_1 = ($DefenseMotion$058contains$(_id_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DefenseMotion$058birth_point$(_layout_0, _p_0, _lane_0) {
+  if (_p_0 == 0) {
+    return $DefenseMap$058first$(($DefenseMap$058source_route$(_layout_0)));
+  } else if ((_p_0 & 7) == 0) {
+    return $DefenseMap$058entry_port$(_layout_0, 5, _lane_0);
+  } else if (_p_0 == 4) {
+    return $DefenseMap$058entry_port$(_layout_0, 4, _lane_0);
+  } else if ((_p_0 & 7) == 4) {
+    return $DefenseMap$058entry_port$(_layout_0, 5, _lane_0);
+  } else if (_p_0 == 2) {
+    return $DefenseMap$058exit_port$(_layout_0, 1);
+  } else if ((_p_0 & 3) == 2) {
+    return $DefenseMap$058entry_port$(_layout_0, 5, _lane_0);
+  } else if (_p_0 == 1) {
+    return $DefenseMap$058entry_port$(_layout_0, 1, _lane_0);
+  } else if ((_p_0 & 3) == 1) {
+    return $DefenseMap$058entry_port$(_layout_0, 5, _lane_0);
+  } else if (_p_0 == 3) {
+    return $DefenseMap$058exit_port$(_layout_0, 2);
+  } else {
+    return $DefenseMap$058entry_port$(_layout_0, 5, _lane_0);
+  }
+}
+
+function $DefenseMotion$058birth_actor$(_item_0, _layout_0, _at_0, _lane_0, _predecessor_0) {
+  const _p_0 = ($DefenseMotion$058phase$(_item_0));
+  const _start_0 = ($DefenseMotion$058birth_point$(_layout_0, _p_0, _lane_0));
+  return {$: "DefenseMotionTypes.Actor", "key": ($DefenseMotion$058key$(_item_0)), "family": ($DefenseMotion$058family$(_item_0)), "lane": _lane_0, "x": ($DefenseMap$058px$(_start_0)), "y": ($DefenseMap$058py$(_start_0)), "phase": _p_0, "observed": _p_0, "path": ($DefenseMotion$058waypoints$(($DefenseMotion$058route$(_layout_0, _p_0, _lane_0)), _p_0, _at_0)), "terminal": 0, "predecessor": _predecessor_0, "shown": _at_0, "outcome": 0, "released": false};
+}
+
+function $DefenseMotion$058born$(_item_0, _layout_0, _at_0) {
+  return $DefenseMotion$058birth_actor$(_item_0, _layout_0, _at_0, 0, ($DefenseMotion$058parent$(_item_0)));
+}
+
+function $DefenseMotion$058charge_bytes$(_id_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _charge_0 = _t_0["id"];
+    const _bytes_0 = _t_0["bytes"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, _charge_0)), _bytes_0, ($DefenseMotion$058charge_bytes$(_id_0, _rest_0)));
+  }
+}
+
+function $DefenseMotion$058unit_lane$(_item_0, _states_0) {
+  const _charge_0 = _item_0["charge"];
+  if (_states_0.$ === "Con") {
+    const _t_0 = _states_0["head"];
+    const _t_1 = _t_0["ledger"];
+    const _charges_0 = _t_1["charges"];
+    return $Bool$to_u32$(($Nat$is_eq$(($DefenseMotion$058charge_bytes$(_charge_0, _charges_0)), 20)));
+  } else {
+    return 0;
+  }
+}
+
+function $DefenseMotion$058predecessor$(_event_0, _item_0) {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.BeginObservedPreparation") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["observation"];
+    return {$: "Con", "head": {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationCompleted") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    return {$: "Con", "head": {$: "DefenseMotionTypes.WorkIdentity", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, "tail": {$: "Nil"}};
+  } else {
+    return $DefenseMotion$058parent$(_item_0);
+  }
+}
+
+function $DefenseMotion$058births$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      const _actors_0 = $1;
+      const _layout_0 = $2;
+      const _at_0 = $3;
+      const _states_0 = $4;
+      const _event_0 = $5;
+      if (_items_0.$ === "Nil") {
+        return _actors_0;
+      } else {
+        const _item_0 = _items_0["head"];
+        const _rest_0 = _items_0["tail"];
+        $0 = _rest_0;
+        $1 = ($Bool$pick$(($DefenseMotion$058contains$(($DefenseMotion$058key$(_item_0)), _actors_0)), _actors_0, {$: "Con", "head": ($DefenseMotion$058birth_actor$(_item_0, _layout_0, _at_0, ($DefenseMotion$058unit_lane$(_item_0, _states_0)), ($DefenseMotion$058predecessor$(_event_0, _item_0)))), "tail": _actors_0}));
+        $2 = _layout_0;
+        $3 = _at_0;
+        $4 = _states_0;
+        $5 = _event_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $DefenseMotion$058frame$(_frame_0, _actors_0, _layout_0) {
+  if (_frame_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.ProductFrame") {
+    const _at_0 = _frame_0["time"];
+    const _event_0 = _frame_0["event"];
+    const _before_0 = _frame_0["before"];
+    const _after_0 = _frame_0["after"];
+    const _commands_0 = _frame_0["commands"];
+    const _t_0 = _frame_0["rejection"];
+    if (_t_0.$ === "None") {
+      const _items_0 = ($DefenseMotion$058work$(_after_0));
+      return $DefenseMotion$058births$(_items_0, ($DefenseMotion$058update$(_items_0, ($DefenseMotion$058witnessed_all$(_event_0, _commands_0, _actors_0, ($DefenseMotion$058work$(_before_0)))), _layout_0, _at_0)), _layout_0, _at_0, _after_0, _event_0);
+    } else {
+      return _actors_0;
+    }
+  } else {
+    return _actors_0;
+  }
+}
+
+function $DefenseMotion$058ingest$($0, $1, $2) {
+  for (;;) {
+    {
+      const _frames_0 = $0;
+      const _actors_0 = $1;
+      const _layout_0 = $2;
+      if (_frames_0.$ === "Nil") {
+        return _actors_0;
+      } else {
+        const _next_0 = _frames_0["head"];
+        const _rest_0 = _frames_0["tail"];
+        $0 = _rest_0;
+        $1 = ($DefenseMotion$058frame$(_next_0, _actors_0, _layout_0));
+        $2 = _layout_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $DefenseMotion$058empty$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $DefenseMotion$058parent_ready$(_owner_0, _actors_0) {
+  if (_actors_0.$ === "Nil") {
+    return true;
+  } else {
+    const _actor_0 = _actors_0["head"];
+    const _rest_0 = _actors_0["tail"];
+    return $Bool$pick$(($DefenseMotion$058same$(_owner_0, ($DefenseMotion$058actor_key$(_actor_0)))), ($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0)))), ($DefenseMotion$058parent_ready$(_owner_0, _rest_0)));
+  }
+}
+
+function $DefenseMotion$058ready$(_parent_0, _actors_0) {
+  if (_parent_0.$ === "Nil") {
+    return true;
+  } else {
+    const _owner_0 = _parent_0["head"];
+    return $DefenseMotion$058parent_ready$(_owner_0, _actors_0);
+  }
+}
+
+function $DefenseMotion$058travel$(_start_0, _target_0) {
+  const _x_0 = ($DefenseMap$058px$(_start_0));
+  const _x_1 = ($DefenseMap$058px$(_target_0));
+  return $Bool$pick$((_x_0 === _x_1), {$: "DefenseMap.Point", "x": ($DefenseMap$058px$(_start_0)), "y": ($DefenseMap$058travel_coordinate$(($DefenseMap$058py$(_start_0)), ($DefenseMap$058py$(_target_0)), 4))}, {$: "DefenseMap.Point", "x": ($DefenseMap$058travel_coordinate$(($DefenseMap$058px$(_start_0)), ($DefenseMap$058px$(_target_0)), 4)), "y": ($DefenseMap$058py$(_start_0))});
+}
+
+function $DefenseMotion$058move_to$(_actor_0, _target_0, _rest_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _l_0 = _actor_0["lane"];
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  const _seen_0 = _actor_0["observed"];
+  const _t_0 = _actor_0["terminal"];
+  const _shown_0 = _actor_0["shown"];
+  const _cause_0 = _actor_0["outcome"];
+  const _tx_0 = _target_0["x"];
+  const _ty_0 = _target_0["y"];
+  const _p_0 = _target_0["phase"];
+  const _at_0 = _target_0["time"];
+  const _next_0 = ($DefenseMotion$058travel$({$: "DefenseMap.Point", "x": _x_0, "y": _y_0}, {$: "DefenseMap.Point", "x": _tx_0, "y": _ty_0}));
+  const _done_0 = ($DefenseMap$058same$(_next_0, {$: "DefenseMap.Point", "x": _tx_0, "y": _ty_0}));
+  return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": ($DefenseMap$058px$(_next_0)), "y": ($DefenseMap$058py$(_next_0)), "phase": _p_0, "observed": _seen_0, "path": ($Bool$pick$(_done_0, _rest_0, {$: "Con", "head": {$: "DefenseMotionTypes.Waypoint", "x": _tx_0, "y": _ty_0, "phase": _p_0, "time": _at_0}, "tail": _rest_0})), "terminal": _t_0, "predecessor": {$: "Nil"}, "shown": ($Bool$pick$(_done_0, _at_0, _shown_0)), "outcome": _cause_0, "released": true};
+}
+
+function $DefenseMotion$058advance$(_actor_0, _steps_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _l_0 = _actor_0["lane"];
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  const _p_0 = _actor_0["phase"];
+  const _seen_0 = _actor_0["observed"];
+  const __0 = _actor_0["path"];
+  const _t_0 = _actor_0["terminal"];
+  const _parent_0 = _actor_0["predecessor"];
+  const _shown_0 = _actor_0["shown"];
+  const _cause_0 = _actor_0["outcome"];
+  const _released_0 = _actor_0["released"];
+  if (_steps_0.$ === "Nil") {
+    return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": _x_0, "y": _y_0, "phase": _p_0, "observed": _seen_0, "path": {$: "Nil"}, "terminal": ($Bool$pick$((_t_0 === 0), 0, ((_t_0 - 1) >>> 0))), "predecessor": _parent_0, "shown": _shown_0, "outcome": _cause_0, "released": _released_0};
+  } else {
+    const _next_0 = _steps_0["head"];
+    const _rest_0 = _steps_0["tail"];
+    return $DefenseMotion$058move_to$({$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": _x_0, "y": _y_0, "phase": _p_0, "observed": _seen_0, "path": __0, "terminal": _t_0, "predecessor": _parent_0, "shown": _shown_0, "outcome": _cause_0, "released": _released_0}, _next_0, _rest_0);
+  }
+}
+
+function $DefenseMotion$058waiting$(_actor_0) {
+  const _parent_0 = _actor_0["predecessor"];
+  return _parent_0;
+}
+
+function $DefenseMotion$058alive$(_actor_0) {
+  const _steps_0 = _actor_0["path"];
+  const _t_0 = _actor_0["terminal"];
+  const _x_0 = ($Bool$not$((_t_0 === 1)));
+  const _x_1 = ($Bool$not$(($DefenseMotion$058empty$(_steps_0))));
+  return (_x_0 || _x_1);
+}
+
+function $DefenseMotion$058before$(_a_0, _b_0) {
+  const _ap_0 = _a_0["partition"];
+  const _al_0 = _a_0["lifetime"];
+  const _ar_0 = _a_0["round"];
+  const _ao_0 = _a_0["operation"];
+  const _bp_0 = _b_0["partition"];
+  const _bl_0 = _b_0["lifetime"];
+  const _br_0 = _b_0["round"];
+  const _bo_0 = _b_0["operation"];
+  const _x_0 = (_ar_0 < _br_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_ar_0, _br_0)), (_ao_0 < _bo_0)));
+  const _x_2 = (_al_0 < _bl_0);
+  const _x_3 = ($Bool$and$(($Nat$is_eq$(_al_0, _bl_0)), (_x_0 || _x_1)));
+  const _x_4 = (_ap_0 < _bp_0);
+  const _x_5 = ($Bool$and$(($Nat$is_eq$(_ap_0, _bp_0)), (_x_2 || _x_3)));
+  return (_x_4 || _x_5);
+}
+
+function $DefenseMotion$058entrance$(_actor_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _p_0 = _actor_0["phase"];
+  return $Bool$and$(($Nat$is_eq$(($DefenseMotion$058operation$(_k_0)), _f_0)), (_p_0 === 0));
+}
+
+function $DefenseMotion$058entrance_clear$(_actor_0, _others_0) {
+  if (_others_0.$ === "Nil") {
+    return true;
+  } else {
+    const _other_0 = _others_0["head"];
+    const _rest_0 = _others_0["tail"];
+    const _x_0 = ($DefenseMap$058segment_length$(($DefenseMotion$058point$(_actor_0)), ($DefenseMotion$058point$(_other_0))));
+    return $Bool$and$(($Bool$not$(($Bool$and$(($Bool$and$(($DefenseMotion$058before$(($DefenseMotion$058actor_key$(_other_0)), ($DefenseMotion$058actor_key$(_actor_0)))), ($DefenseMotion$058entrance$(_other_0)))), (_x_0 < 24))))), ($DefenseMotion$058entrance_clear$(_actor_0, _rest_0)));
+  }
+}
+
+function $DefenseMotion$058shared_room$(_actor_0, _other_0) {
+  const _phase_0 = ($DefenseMotion$058visible_phase$(_actor_0));
+  const _x_0 = ($DefenseMotion$058visible_phase$(_other_0));
+  const _x_1 = (_phase_0 === 1);
+  const _x_2 = (_phase_0 === 2);
+  const _x_3 = (_x_1 || _x_2);
+  const _x_4 = (_phase_0 === 4);
+  const _x_5 = (_x_3 || _x_4);
+  const _x_6 = (_phase_0 === 5);
+  const _x_7 = (_x_5 || _x_6);
+  const _x_8 = (_phase_0 === 3);
+  const _x_9 = (_x_7 || _x_8);
+  const _x_10 = (_phase_0 === 6);
+  return $Bool$and$((_phase_0 === _x_0), (_x_9 || _x_10));
+}
+
+function $DefenseMotion$058branch_clear$(_actor_0, _others_0) {
+  if (_others_0.$ === "Nil") {
+    return true;
+  } else {
+    const _other_0 = _others_0["head"];
+    const _rest_0 = _others_0["tail"];
+    const _x_0 = ($DefenseMap$058segment_length$(($DefenseMotion$058point$(_actor_0)), ($DefenseMotion$058point$(_other_0))));
+    return $Bool$and$(($Bool$not$(($Bool$and$(($Bool$and$(($DefenseMotion$058shared_room$(_actor_0, _other_0)), ($DefenseMotion$058before$(($DefenseMotion$058actor_key$(_other_0)), ($DefenseMotion$058actor_key$(_actor_0)))))), (_x_0 < 28))))), ($DefenseMotion$058branch_clear$(_actor_0, _rest_0)));
+  }
+}
+
+function $DefenseMotion$058can_play$(_actor_0, _all_0) {
+  const _x_0 = ($Bool$not$(($DefenseMotion$058entrance$(_actor_0))));
+  const _x_1 = ($DefenseMotion$058entrance_clear$(_actor_0, _all_0));
+  return $Bool$and$(($Bool$and$(($DefenseMotion$058ready$(($DefenseMotion$058waiting$(_actor_0)), _all_0)), ($DefenseMotion$058branch_clear$(_actor_0, _all_0)))), (_x_0 || _x_1));
+}
+
+function $DefenseMotion$058released$(_actor_0) {
+  const _value_0 = _actor_0["released"];
+  return _value_0;
+}
+
+function $DefenseMotion$058drawable$(_actor_0, _all_0) {
+  const _x_0 = ($DefenseMotion$058released$(_actor_0));
+  const _x_1 = ($DefenseMotion$058can_play$(_actor_0, _all_0));
+  return (_x_0 || _x_1);
+}
+
+function $DefenseMotion$058queued$(_items_0, _all_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _actor_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$to_u32$(($Bool$not$(($DefenseMotion$058drawable$(_actor_0, _all_0))))));
+    const _x_1 = ($DefenseMotion$058queued$(_rest_0, _all_0));
+    return ((_x_0 + _x_1) >>> 0);
+  }
+}
+
+function $DefenseMotion$058move_when$(_active_0, _actor_0) {
+  if (_active_0) {
+    return $DefenseMotion$058advance$(_actor_0, ($DefenseMotion$058path$(_actor_0)));
+  } else {
+    return _actor_0;
+  }
+}
+
+function $DefenseMotion$058alive_keep$(_active_0, _actor_0, _rest_0) {
+  if (_active_0) {
+    return {$: "Con", "head": _actor_0, "tail": _rest_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $DefenseMotion$058tick$(_actors_0, _all_0) {
+  if (_actors_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _actor_0 = _actors_0["head"];
+    const _rest_0 = _actors_0["tail"];
+    const _next_0 = ($DefenseMotion$058move_when$(($DefenseMotion$058can_play$(_actor_0, _all_0)), _actor_0));
+    return $DefenseMotion$058alive_keep$(($DefenseMotion$058alive$(_next_0)), _next_0, ($DefenseMotion$058tick$(_rest_0, _all_0)));
+  }
+}
+
+function $DefenseMotion$058step$(_actors_0) {
+  return $DefenseMotion$058tick$(_actors_0, _actors_0);
+}
+
+function $DefenseProjection$058ledger$(_core_0) {
+  const _v_0 = _core_0["ledger"];
+  return _v_0;
+}
+
+function $DefenseProjection$058collection$(_core_0) {
+  const _v_0 = _core_0["collection"];
+  return _v_0;
+}
+
+function $DefenseProjection$058charge_bytes$(_id_0, _charges_0) {
+  if (_charges_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _candidate_0 = _t_0["id"];
+    const _bytes_0 = _t_0["bytes"];
+    const _rest_0 = _charges_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_id_0, _candidate_0)), _bytes_0, ($DefenseProjection$058charge_bytes$(_id_0, _rest_0)));
+  }
+}
+
+function $DefenseProjection$058charges$(_ledger_0) {
+  const _v_0 = _ledger_0["charges"];
+  return _v_0;
+}
+
+function $DefenseProjection$058project$(_items_0, _ledger_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _part_0 = _t_0["partition"];
+    const _id_0 = _t_0["operation"];
+    const _charge_0 = _t_0["charge"];
+    const _kind_0 = _t_0["kind"];
+    const _parent_0 = _t_0["parent"];
+    const _rest_0 = _items_0["tail"];
+    return {$: "Con", "head": {$: "DefenseProjection.Token", "id": ($DefenseModel$058number$(_id_0)), "parent": ($DefenseModel$058number$(_parent_0)), "partition": ($DefenseModel$058number$(_part_0)), "phase": ($DefenseModel$058phase$(_kind_0)), "bytes": ($DefenseModel$058number$(($DefenseProjection$058charge_bytes$(_charge_0, ($DefenseProjection$058charges$(_ledger_0))))))}, "tail": ($DefenseProjection$058project$(_rest_0, _ledger_0))};
+  }
+}
+
+function $DefenseProjection$058tokens$(_world_0) {
+  return $DefenseProjection$058project$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), ($DefenseProjection$058ledger$(($DefenseModel$058core$(_world_0)))));
+}
+
+function $DefenseProjection$058id$(_token_0) {
+  const _v_0 = _token_0["id"];
+  return _v_0;
+}
+
+function $DefenseProjection$058parent$(_token_0) {
+  const _v_0 = _token_0["parent"];
+  return _v_0;
+}
+
+function $DefenseProjection$058partition$(_token_0) {
+  const _v_0 = _token_0["partition"];
+  return _v_0;
+}
+
+function $DefenseProjection$058phase$(_token_0) {
+  const _v_0 = _token_0["phase"];
+  return _v_0;
+}
+
+function $DefenseProjection$058bytes$(_token_0) {
+  const _v_0 = _token_0["bytes"];
+  return _v_0;
+}
+
+function $DefenseProjection$058count_tokens$(_items_0, _phase_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _p_0 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$to_u32$((_p_0 === _phase_0)));
+    const _x_1 = ($DefenseProjection$058count_tokens$(_rest_0, _phase_0));
+    return ((_x_0 + _x_1) >>> 0);
+  }
+}
+
+function $DefenseProjection$058count$(_world_0, _phase_0) {
+  return $DefenseProjection$058count_tokens$(($DefenseProjection$058tokens$(_world_0)), _phase_0);
+}
+
+function $DefenseProjection$058queued_core$(_core_0) {
+  const _t_0 = _core_0["dispatch"];
+  const _items_0 = _t_0["queued"];
+  return $DefenseModel$058number$(($List$length$(_items_0)));
+}
+
+function $DefenseProjection$058queued$(_world_0) {
+  return $DefenseProjection$058queued_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058running_core$(_core_0) {
+  const _t_0 = _core_0["dispatch"];
+  const _items_0 = _t_0["running"];
+  return $DefenseModel$058number$(($List$length$(_items_0)));
+}
+
+function $DefenseProjection$058running$(_world_0) {
+  return $DefenseProjection$058running_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058requests_core$(_core_0) {
+  const _t_0 = _core_0["dispatch"];
+  const _items_0 = _t_0["requests"];
+  return $DefenseModel$058number$(($List$length$(_items_0)));
+}
+
+function $DefenseProjection$058requests$(_world_0) {
+  return $DefenseProjection$058requests_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058ready_core$(_core_0) {
+  const _t_0 = _core_0["collection"];
+  const _items_0 = _t_0["ready"];
+  return $DefenseModel$058number$(($List$length$(_items_0)));
+}
+
+function $DefenseProjection$058ready$(_world_0) {
+  return $DefenseProjection$058ready_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058leases_core$(_core_0) {
+  const _t_0 = _core_0["collection"];
+  const _items_0 = _t_0["leases"];
+  return $DefenseModel$058number$(($List$length$(_items_0)));
+}
+
+function $DefenseProjection$058leases$(_world_0) {
+  return $DefenseProjection$058leases_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058round_count$(_items_0, _mode_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _wait_0 = _t_0["waiting"];
+    const _decide_0 = _t_0["deciding"];
+    const _uncertain_0 = _t_0["uncertain"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$to_u32$(($Bool$pick$((_mode_0 === 0), _wait_0, ($Bool$pick$((_mode_0 === 1), _decide_0, _uncertain_0))))));
+    const _x_1 = ($DefenseProjection$058round_count$(_rest_0, _mode_0));
+    return ((_x_0 + _x_1) >>> 0);
+  }
+}
+
+function $DefenseProjection$058waiting$(_world_0) {
+  return $DefenseProjection$058round_count$(($DefenseModel$058rounds$(($DefenseModel$058core$(_world_0)))), 0);
+}
+
+function $DefenseProjection$058deciding$(_world_0) {
+  return $DefenseProjection$058round_count$(($DefenseModel$058rounds$(($DefenseModel$058core$(_world_0)))), 1);
+}
+
+function $DefenseProjection$058uncertain$(_world_0) {
+  return $DefenseProjection$058round_count$(($DefenseModel$058rounds$(($DefenseModel$058core$(_world_0)))), 2);
+}
+
+function $DefenseProjection$058write_count$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _t_1 = _t_0["write"];
+        if (_t_1.$ === "Some") {
+          const _rest_0 = _items_0["tail"];
+          const _x_0 = ($DefenseProjection$058write_count$(_rest_0));
+          return ((1 + _x_0) >>> 0);
+        } else {
+          const _rest_1 = _items_0["tail"];
+          $0 = _rest_1;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DefenseProjection$058active_slots$($0) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      if (_items_0.$ === "Nil") {
+        return 0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "../../packages/agent-flow-bend/DeliveryState.Reserved") {
+          const _rest_0 = _items_0["tail"];
+          const _x_0 = ($DefenseProjection$058active_slots$(_rest_0));
+          return ((1 + _x_0) >>> 0);
+        } else if (_t_1.$ === "../../packages/agent-flow-bend/DeliveryState.Authorized") {
+          const _rest_1 = _items_0["tail"];
+          const _x_1 = ($DefenseProjection$058active_slots$(_rest_1));
+          return ((1 + _x_1) >>> 0);
+        } else {
+          const _rest_2 = _items_0["tail"];
+          $0 = _rest_2;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $DefenseProjection$058writes_core$(_core_0) {
+  const _t_0 = _core_0["collection"];
+  const _t_1 = _t_0["delivery"];
+  const _slots_0 = _t_1["slots"];
+  return $DefenseProjection$058active_slots$(_slots_0);
+}
+
+function $DefenseProjection$058writes$(_world_0) {
+  return $DefenseProjection$058writes_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058usage$(_world_0) {
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058total$(($DefenseProjection$058charges$(($DefenseProjection$058ledger$(($DefenseModel$058core$(_world_0)))))));
+}
+
+function $DefenseProjection$058usage_items$(_items_0) {
+  const _v_0 = _items_0["items"];
+  return $DefenseModel$058number$(_v_0);
+}
+
+function $DefenseProjection$058usage_bytes$(_items_0) {
+  const _v_0 = _items_0["bytes"];
+  return $DefenseModel$058number$(_v_0);
+}
+
+function $DefenseProjection$058ledger_items$(_world_0) {
+  return $DefenseProjection$058usage_items$(($DefenseProjection$058usage$(_world_0)));
+}
+
+function $DefenseProjection$058ledger_bytes$(_world_0) {
+  return $DefenseProjection$058usage_bytes$(($DefenseProjection$058usage$(_world_0)));
+}
+
+function $DefenseProjection$058ledger_byte_limit_core$(_core_0) {
+  const _t_0 = _core_0["ledger"];
+  const _t_1 = _t_0["limits"];
+  const _v_0 = _t_1["global_bytes"];
+  return $DefenseModel$058number$(_v_0);
+}
+
+function $DefenseProjection$058ledger_byte_limit$(_world_0) {
+  return $DefenseProjection$058ledger_byte_limit_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058ledger_item_limit_core$(_core_0) {
+  const _t_0 = _core_0["ledger"];
+  const _t_1 = _t_0["limits"];
+  const _v_0 = _t_1["global_items"];
+  return $DefenseModel$058number$(_v_0);
+}
+
+function $DefenseProjection$058ledger_item_limit$(_world_0) {
+  return $DefenseProjection$058ledger_item_limit_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058backend_started_items$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _started_0 = _t_0["started"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$to_u32$(_started_0));
+    const _x_1 = ($DefenseProjection$058backend_started_items$(_rest_0));
+    return ((_x_0 + _x_1) >>> 0);
+  }
+}
+
+function $DefenseProjection$058backend_started_core$(_core_0) {
+  const _t_0 = _core_0["dispatch"];
+  const _items_0 = _t_0["requests"];
+  return $DefenseProjection$058backend_started_items$(_items_0);
+}
+
+function $DefenseProjection$058backend_started$(_world_0) {
+  return $DefenseProjection$058backend_started_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058parent_count_tokens$(_items_0, _owner_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _parent_0 = _t_0["parent"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$to_u32$((_parent_0 === _owner_0)));
+    const _x_1 = ($DefenseProjection$058parent_count_tokens$(_rest_0, _owner_0));
+    return ((_x_0 + _x_1) >>> 0);
+  }
+}
+
+function $DefenseProjection$058parent_children$(_world_0, _parent_0) {
+  return $DefenseProjection$058parent_count_tokens$(($DefenseProjection$058tokens$(_world_0)), _parent_0);
+}
+
+function $DefenseProjection$058parent_pending_tokens$(_items_0, _owner_0) {
+  if (_items_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _parent_0 = _t_0["parent"];
+    const _p_0 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$to_u32$(($Bool$and$((_parent_0 === _owner_0), (_p_0 === 5)))));
+    const _x_1 = ($DefenseProjection$058parent_pending_tokens$(_rest_0, _owner_0));
+    return ((_x_0 + _x_1) >>> 0);
+  }
+}
+
+function $DefenseProjection$058parent_pending$(_world_0, _parent_0) {
+  return $DefenseProjection$058parent_pending_tokens$(($DefenseProjection$058tokens$(_world_0)), _parent_0);
+}
+
+function $DefenseProjection$058family$(_token_0) {
+  const _x_0 = ($DefenseProjection$058parent$(_token_0));
+  return $Bool$pick$((_x_0 === 0), ($DefenseProjection$058id$(_token_0)), ($DefenseProjection$058parent$(_token_0)));
+}
+
+function $DefenseProjection$058pool_limit$() {
+  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058max_requests$()));
+}
+
+function $DefenseProjection$058preparation_pool_limit$() {
+  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058max_running$()));
+}
+
+function $DefenseProjection$058prep_running_entries$(_items_0) {
+  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058preparation_count$(_items_0)));
+}
+
+function $DefenseProjection$058prep_running_core$(_core_0) {
+  const _t_0 = _core_0["dispatch"];
+  const _entries_0 = _t_0["running"];
+  return $DefenseProjection$058prep_running_entries$(_entries_0);
+}
+
+function $DefenseProjection$058prep_running$(_world_0) {
+  return $DefenseProjection$058prep_running_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058finish_counters_core$(_core_0) {
+  const _t_0 = _core_0["collection"];
+  const _t_1 = _t_0["delivery"];
+  const _counters_0 = _t_1["counters"];
+  return _counters_0;
+}
+
+function $DefenseProjection$058finish_counters$(_world_0) {
+  return $DefenseProjection$058finish_counters_core$(($DefenseModel$058core$(_world_0)));
+}
+
+function $DefenseProjection$058finish_used$(_world_0) {
+  return $DefenseModel$058number$(($$$$047$$$047packages$047agent$045flow$045bend$047DeliveryState$058count$(1, ($DefenseModel$058round$(_world_0)), ($DefenseProjection$058finish_counters$(_world_0)))));
+}
+
+function $DefenseProjection$058counters_within_budget$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return true;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _used_0 = _t_0["used"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$and$(($Nat$is_le$(_used_0, 4)), ($DefenseProjection$058counters_within_budget$(_rest_0)));
+  }
+}
+
+function $DefenseProjection$058finish_within_budget$(_world_0) {
+  return $DefenseProjection$058counters_within_budget$(($DefenseProjection$058finish_counters$(_world_0)));
 }
 
 function $DefenseEffects$058family$(_work_0) {
@@ -37691,11 +38544,6 @@ function $DefenseEffects$058id$(_work_0) {
 function $DefenseEffects$058kind$(_work_0) {
   const _kind_0 = _work_0["kind"];
   return $DefenseModel$058phase$(_kind_0);
-}
-
-function $DefenseEffects$058queued$(_state_0) {
-  const _items_0 = _state_0["queued"];
-  return _items_0;
 }
 
 function $DefenseEffects$058running$(_state_0) {
@@ -37722,32 +38570,6 @@ function $DefenseEffects$058started$(_id_0, _items_0) {
   }
 }
 
-function $DefenseEffects$058active_kind$(_core_0, _part_0, _life_0, _round_0, _id_0, _parent_0, _kind_0) {
-  if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.SourceReading") {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(($DefenseEffects$058running$(($DefenseModel$058dispatch$(_core_0)))), _part_0, _life_0, _round_0, _id_0);
-  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.Preparing") {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(($DefenseEffects$058running$(($DefenseModel$058dispatch$(_core_0)))), _part_0, _life_0, _round_0, _parent_0);
-  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
-    return $DefenseEffects$058started$(_id_0, ($DefenseEffects$058requests$(($DefenseModel$058dispatch$(_core_0)))));
-  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.PendingFinding") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $DefenseEffects$058inside$(_core_0, _work_0) {
-  const _part_0 = _work_0["partition"];
-  const _life_0 = _work_0["lifetime"];
-  const _round_0 = _work_0["round"];
-  const _id_0 = _work_0["operation"];
-  const _kind_0 = _work_0["kind"];
-  const _parent_0 = _work_0["parent"];
-  const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(($DefenseEffects$058queued$(($DefenseModel$058dispatch$(_core_0)))), _part_0, _life_0, _round_0, _id_0));
-  const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(($DefenseEffects$058queued$(($DefenseModel$058dispatch$(_core_0)))), _part_0, _life_0, _round_0, _parent_0));
-  return $Bool$and$(($DefenseEffects$058active_kind$(_core_0, _part_0, _life_0, _round_0, _id_0, _parent_0, _kind_0)), ($Bool$not$((_x_0 || _x_1))));
-}
-
 function $DefenseEffects$058bytes$(_world_0, _work_0) {
   const _charge_0 = _work_0["charge"];
   return $DefenseProjection$058charge_bytes$(_charge_0, ($DefenseProjection$058charges$(($DefenseProjection$058ledger$(($DefenseModel$058core$(_world_0)))))));
@@ -37757,270 +38579,6 @@ function $DefenseEffects$058lane$(_world_0, _work_0) {
   return $Bool$pick$(($Nat$is_eq$(($DefenseEffects$058bytes$(_world_0, _work_0)), 20)), 1, 0);
 }
 
-function $DefenseEffects$058anchor$(_world_0, _work_0) {
-  return $DefenseMap$058center$(($DefenseModel$058layout$(_world_0)), ($DefenseEffects$058kind$(_work_0)), ($DefenseEffects$058lane$(_world_0, _work_0)));
-}
-
-function $DefenseEffects$058duration$(_world_0, _work_0) {
-  const __0 = _work_0["partition"];
-  const __1 = _work_0["lifetime"];
-  const __2 = _work_0["round"];
-  const __3 = _work_0["operation"];
-  const __4 = _work_0["charge"];
-  const _t_0 = _work_0["kind"];
-  if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AwaitingSourceRead") {
-    return $DefenseMap$058path_length$(($DefenseMap$058source_route$(($DefenseModel$058layout$(_world_0)))));
-  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.SourceReading") {
-    return 60;
-  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Preparing") {
-    return 176;
-  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
-    const __8 = _work_0["parent"];
-    return $DefenseMap$058path_length$(($DefenseMap$058review_route$(($DefenseModel$058layout$(_world_0)), ($DefenseEffects$058lane$(_world_0, {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "charge": __4, "kind": {$: "../../packages/agent-flow-bend/Canonical.Reviewing"}, "parent": __8})))));
-  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
-    const __9 = _work_0["parent"];
-    const _x_0 = ($DefenseEffects$058lane$(_world_0, {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "charge": __4, "kind": {$: "../../packages/agent-flow-bend/Canonical.AtJev"}, "parent": __9}));
-    return $Bool$pick$((_x_0 === 0), 160, 240);
-  } else {
-    const _x_1 = ($DefenseMap$058path_length$(($DefenseMap$058retained_route$(($DefenseModel$058layout$(_world_0))))));
-    const _x_2 = ($DefenseMap$058path_length$(($DefenseMap$058room_route$(($DefenseModel$058layout$(_world_0)), 5, 0))));
-    return ((_x_1 + _x_2) >>> 0);
-  }
-}
-
-function $DefenseEffects$058progress$(_world_0, _work_0) {
-  const _x_0 = ($DefenseEffects$058age$(($DefenseEffects$058id$(_work_0)), ($DefenseEffects$058kind$(_work_0)), ($DefenseModel$058timers$(_world_0))));
-  const _x_1 = ($DefenseModel$058timer_boost$(($DefenseEffects$058find_timer$(($DefenseEffects$058id$(_work_0)), ($DefenseModel$058timers$(_world_0))))));
-  return ((_x_0 + _x_1) >>> 0);
-}
-
-function $DefenseEffects$058effort$(_world_0, _work_0) {
-  const _x_0 = ($DefenseEffects$058kind$(_work_0));
-  return $DefenseModel$058sub$(($DefenseEffects$058progress$(_world_0, _work_0)), ($Bool$pick$((_x_0 === 2), ($DefenseMap$058path_length$(($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0)))))), 0)));
-}
-
-function $DefenseEffects$058remaining$(_world_0, _work_0) {
-  const _x_0 = ($DefenseEffects$058kind$(_work_0));
-  const _x_1 = ($DefenseEffects$058duration$(_world_0, _work_0));
-  const _x_2 = ($Bool$pick$((_x_0 === 2), ($DefenseMap$058path_length$(($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0)))))), 0));
-  return $DefenseModel$058sub$(((_x_1 + _x_2) >>> 0), ($DefenseEffects$058progress$(_world_0, _work_0)));
-}
-
-function $DefenseEffects$058inside_world$(_world_0, _work_0) {
-  const _x_0 = ($DefenseEffects$058kind$(_work_0));
-  const _x_1 = ($DefenseEffects$058effort$(_world_0, _work_0));
-  const _x_2 = ($DefenseEffects$058duration$(_world_0, _work_0));
-  const _x_3 = ($DefenseEffects$058kind$(_work_0));
-  const _x_4 = ($DefenseEffects$058progress$(_world_0, _work_0));
-  const _x_5 = ($DefenseMap$058path_length$(($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0))))));
-  const _x_6 = ($DefenseEffects$058kind$(_work_0));
-  const _x_7 = ($DefenseEffects$058age$(($DefenseEffects$058id$(_work_0)), 5, ($DefenseModel$058timers$(_world_0))));
-  const _x_8 = ($DefenseMap$058path_length$(($DefenseMap$058retained_route$(($DefenseModel$058layout$(_world_0))))));
-  return $Bool$and$(($DefenseEffects$058inside$(($DefenseModel$058core$(_world_0)), _work_0)), ($Bool$pick$((_x_0 === 1), (_x_1 < _x_2), ($Bool$pick$((_x_3 === 2), (_x_4 >= _x_5), ($Bool$pick$((_x_6 === 5), (_x_7 >= _x_8), true)))))));
-}
-
-function $DefenseEffects$058service_point$(_world_0, _work_0) {
-  const _room_0 = ($DefenseMap$058room_route$(($DefenseModel$058layout$(_world_0)), ($DefenseEffects$058kind$(_work_0)), ($DefenseEffects$058lane$(_world_0, _work_0))));
-  const _duration_0 = ($DefenseEffects$058duration$(_world_0, _work_0));
-  const _x_0 = ($U32$min$(_duration_0, ($DefenseEffects$058effort$(_world_0, _work_0))));
-  const _x_1 = ($DefenseMap$058path_length$(_room_0));
-  const _x_2 = (Math.imul(_x_0, _x_1) >>> 0);
-  const _x_3 = ($U32$max$(1, _duration_0));
-  return $DefenseMap$058path_position$(_room_0, (_x_3 === 0 ? 0 : (_x_2 / _x_3) >>> 0));
-}
-
-function $DefenseEffects$058service_or_road$(_inside_0, _world_0, _work_0, _road_0, _age_0) {
-  if (_inside_0) {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  } else {
-    return $DefenseMap$058path_position$(_road_0, _age_0);
-  }
-}
-
-function $DefenseEffects$058retained_point$(_onRoad_0, _world_0, _road_0, _age_0) {
-  if (_onRoad_0) {
-    return $DefenseMap$058path_position$(_road_0, _age_0);
-  } else {
-    const _room_0 = ($DefenseMap$058room_route$(($DefenseModel$058layout$(_world_0)), 5, 0));
-    return $DefenseMap$058path_position$(_room_0, ($U32$min$(($DefenseMap$058path_length$(_room_0)), ($DefenseModel$058sub$(_age_0, ($DefenseMap$058path_length$(_road_0)))))));
-  }
-}
-
-function $DefenseEffects$058jev_point$(_inside_0, _world_0, _work_0) {
-  if (_inside_0) {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  } else {
-    const _anchor_0 = ($DefenseEffects$058anchor$(_world_0, _work_0));
-    const _x_0 = ($DefenseMap$058px$(_anchor_0));
-    return {$: "DefenseMap.Point", "x": ((_x_0 + 32) >>> 0), "y": ($DefenseMap$058py$(_anchor_0))};
-  }
-}
-
-function $DefenseEffects$058review_waiting$(_world_0, _work_0) {
-  const _x_0 = ($DefenseEffects$058kind$(_work_0));
-  const _x_1 = ($DefenseEffects$058remaining$(_world_0, _work_0));
-  return $Bool$and$((_x_0 === 3), (_x_1 === 0));
-}
-
-function $DefenseEffects$058id_of$(_work_0) {
-  return $DefenseEffects$058id$(_work_0);
-}
-
-function $DefenseEffects$058review_rank$(_items_0, _world_0, _id_0, _side_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _other_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($DefenseModel$058number$(($DefenseEffects$058id_of$(_other_0))));
-    const _x_1 = ($DefenseModel$058number$(_id_0));
-    const _x_2 = ($DefenseEffects$058lane$(_world_0, _other_0));
-    const _x_3 = ($Bool$to_u32$(($Bool$and$(($Bool$and$((_x_0 < _x_1), (_x_2 === _side_0))), ($DefenseEffects$058review_waiting$(_world_0, _other_0))))));
-    const _x_4 = ($DefenseEffects$058review_rank$(_rest_0, _world_0, _id_0, _side_0));
-    return ((_x_3 + _x_4) >>> 0);
-  }
-}
-
-function $DefenseEffects$058point_phase$(_phase_0, _world_0, _work_0, _age_0) {
-  if (_phase_0 == 0) {
-    return $DefenseMap$058path_position$(($DefenseMap$058source_route$(($DefenseModel$058layout$(_world_0)))), _age_0);
-  } else if ((_phase_0 & 7) == 0) {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  } else if (_phase_0 == 4) {
-    return $DefenseEffects$058jev_point$(($DefenseEffects$058inside_world$(_world_0, _work_0)), _world_0, _work_0);
-  } else if ((_phase_0 & 7) == 4) {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  } else if (_phase_0 == 2) {
-    const _x_0 = ($DefenseMap$058path_length$(($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0))))));
-    return $DefenseEffects$058service_or_road$((_age_0 >= _x_0), _world_0, _work_0, ($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0)))), _age_0);
-  } else if ((_phase_0 & 3) == 2) {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  } else if (_phase_0 == 3) {
-    const _x_1 = ($DefenseEffects$058review_rank$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), _world_0, ($DefenseEffects$058id$(_work_0)), ($DefenseEffects$058lane$(_world_0, _work_0))));
-    return $DefenseMap$058path_position$(($DefenseMap$058review_route$(($DefenseModel$058layout$(_world_0)), ($DefenseEffects$058lane$(_world_0, _work_0)))), ($Bool$pick$(($DefenseEffects$058review_waiting$(_world_0, _work_0)), ($DefenseModel$058sub$(($DefenseEffects$058duration$(_world_0, _work_0)), (Math.imul(_x_1, 12) >>> 0))), _age_0)));
-  } else if ((_phase_0 & 3) == 3) {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  } else if (_phase_0 == 5) {
-    const _x_2 = ($DefenseMap$058path_length$(($DefenseMap$058retained_route$(($DefenseModel$058layout$(_world_0))))));
-    return $DefenseEffects$058retained_point$((_age_0 < _x_2), _world_0, ($DefenseMap$058retained_route$(($DefenseModel$058layout$(_world_0)))), _age_0);
-  } else {
-    return $DefenseEffects$058service_point$(_world_0, _work_0);
-  }
-}
-
-function $DefenseEffects$058point_work$(_world_0, _work_0) {
-  return $DefenseEffects$058point_phase$(($DefenseEffects$058kind$(_work_0)), _world_0, _work_0, ($DefenseEffects$058progress$(_world_0, _work_0)));
-}
-
-function $DefenseEffects$058supports$(_world_0, _tower_0, _phase_0) {
-  return $DefenseMap$058in_range$({$: "DefenseMap.Point", "x": ($DefenseModel$058tx$(_tower_0)), "y": ($DefenseModel$058ty$(_tower_0))}, ($DefenseMap$058center$(($DefenseModel$058layout$(_world_0)), _phase_0, 0)), ($DefenseEffects$058range$(($DefenseModel$058tkind$(_tower_0)), ($DefenseModel$058level$(_tower_0)))));
-}
-
-function $DefenseEffects$058covered$(_world_0, _tower_0, _work_0) {
-  return $DefenseMap$058in_range$({$: "DefenseMap.Point", "x": ($DefenseModel$058tx$(_tower_0)), "y": ($DefenseModel$058ty$(_tower_0))}, ($DefenseEffects$058point_work$(_world_0, _work_0)), ($DefenseEffects$058range$(($DefenseModel$058tkind$(_tower_0)), ($DefenseModel$058level$(_tower_0)))));
-}
-
-function $DefenseEffects$058levels$(_items_0, _world_0, _kind_0, _phase_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _tower_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($DefenseModel$058tkind$(_tower_0));
-    const _x_1 = ($Bool$pick$(($Bool$and$((_x_0 === _kind_0), ($DefenseEffects$058supports$(_world_0, _tower_0, _phase_0)))), ($DefenseModel$058level$(_tower_0)), 0));
-    const _x_2 = ($DefenseEffects$058levels$(_rest_0, _world_0, _kind_0, _phase_0));
-    return ((_x_1 + _x_2) >>> 0);
-  }
-}
-
-function $DefenseEffects$058permits$(_world_0, _phase_0) {
-  const _x_0 = ($DefenseEffects$058levels$(($DefenseModel$058towers$(_world_0)), _world_0, 3, _phase_0));
-  return $U32$min$(8, ((2 + _x_0) >>> 0));
-}
-
-function $DefenseEffects$058batch_target$(_world_0) {
-  const _x_0 = ($DefenseEffects$058levels$(($DefenseModel$058towers$(_world_0)), _world_0, 5, 5));
-  return $U32$min$(8, ((4 + _x_0) >>> 0));
-}
-
-function $DefenseEffects$058pending_sibling$($0, $1) {
-  for (;;) {
-    {
-      const _parent_0 = $0;
-      const _items_0 = $1;
-      if (_items_0.$ === "Nil") {
-        return false;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["kind"];
-        if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.PendingFinding") {
-          const _owner_0 = _t_0["parent"];
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($Nat$is_eq$(_parent_0, _owner_0));
-          const _x_1 = ($DefenseEffects$058pending_sibling$(_parent_0, _rest_0));
-          return (_x_0 || _x_1);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _parent_0;
-          $1 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $DefenseEffects$058eligible$(_world_0, _tower_0, _work_0) {
-  const _phase_0 = ($DefenseEffects$058kind$(_work_0));
-  const _x_0 = (_phase_0 === 3);
-  const _x_1 = ($Bool$and$((_phase_0 === 2), ($DefenseEffects$058inside$(($DefenseModel$058core$(_world_0)), _work_0))));
-  const _x_2 = (_phase_0 === 0);
-  const _x_3 = (_x_0 || _x_1);
-  const _x_4 = ($DefenseEffects$058inside_world$(_world_0, _work_0));
-  const _x_5 = (_x_2 || _x_3);
-  const _active_0 = (_x_4 || _x_5);
-  const _processable_0 = (_phase_0 <= 4);
-  const _risk_0 = ($DefenseModel$058timer_risk$(($DefenseEffects$058find_timer$(($DefenseEffects$058id$(_work_0)), ($DefenseModel$058timers$(_world_0))))));
-  const _x_6 = ($DefenseModel$058tkind$(_tower_0));
-  const _x_7 = ($DefenseEffects$058remaining$(_world_0, _work_0));
-  const _x_8 = (_x_6 === 1);
-  const _x_9 = (_x_7 > 0);
-  const _x_10 = ($DefenseModel$058tkind$(_tower_0));
-  const _x_11 = ($DefenseEffects$058risk_floor$());
-  const _x_12 = ($DefenseModel$058tkind$(_tower_0));
-  const _x_13 = ($DefenseModel$058tkind$(_tower_0));
-  const _x_14 = ($DefenseModel$058tkind$(_tower_0));
-  const _x_15 = (_x_13 === 0);
-  const _x_16 = (_x_14 === 2);
-  return $Bool$and$(($DefenseEffects$058covered$(_world_0, _tower_0, _work_0)), ($Bool$and$(_active_0, ($Bool$and$(($Bool$and$(_processable_0, (_x_8 || _x_9))), ($Bool$pick$((_x_10 === 1), (_risk_0 > _x_11), ($Bool$pick$((_x_12 === 4), ($Bool$and$((_phase_0 === 4), ($DefenseEffects$058pending_sibling$(($DefenseEffects$058family$(_work_0)), ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))))), (_x_15 || _x_16))))))))));
-}
-
-function $DefenseEffects$058target_scan$($0, $1, $2, $3) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      const _world_0 = $1;
-      const _tower_0 = $2;
-      const _best_0 = $3;
-      if (_items_0.$ === "Nil") {
-        return _best_0;
-      } else {
-        const _work_0 = _items_0["head"];
-        const _rest_0 = _items_0["tail"];
-        $0 = _rest_0;
-        $1 = _world_0;
-        $2 = _tower_0;
-        $3 = ($Bool$pick$(($DefenseEffects$058eligible$(_world_0, _tower_0, _work_0)), ($DefenseEffects$058id$(_work_0)), _best_0));
-        continue;
-      }
-    }
-  }
-}
-
-function $DefenseEffects$058target$(_world_0, _tower_0) {
-  return $DefenseEffects$058target_scan$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), _world_0, _tower_0, 0);
-}
-
 function $DefenseEffects$058find_work$(_operation_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "None"};
@@ -38028,121 +38586,6 @@ function $DefenseEffects$058find_work$(_operation_0, _items_0) {
     const _work_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
     return $Bool$pick$(($Nat$is_eq$(_operation_0, ($DefenseEffects$058id$(_work_0)))), {$: "Some", "value": _work_0}, ($DefenseEffects$058find_work$(_operation_0, _rest_0)));
-  }
-}
-
-function $DefenseEffects$058existing_ready$(_world_0, _before_0, _after_0) {
-  if (_after_0.$ === "Some") {
-    const _work_0 = _after_0["value"];
-    const _x_0 = ($DefenseEffects$058kind$(_before_0));
-    const _x_1 = ($DefenseEffects$058kind$(_work_0));
-    const _x_2 = ($DefenseEffects$058remaining$(_world_0, _before_0));
-    const _x_3 = (_x_0 === _x_1);
-    const _x_4 = (_x_2 === 0);
-    return (_x_3 || _x_4);
-  } else {
-    const _x_5 = ($DefenseEffects$058remaining$(_world_0, _before_0));
-    return (_x_5 === 0);
-  }
-}
-
-function $DefenseEffects$058changed_ready$(_items_0, _world_0, _after_0) {
-  if (_items_0.$ === "Nil") {
-    return true;
-  } else {
-    const _work_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$and$(($DefenseEffects$058existing_ready$(_world_0, _work_0, ($DefenseEffects$058find_work$(($DefenseEffects$058id$(_work_0)), _after_0)))), ($DefenseEffects$058changed_ready$(_rest_0, _world_0, _after_0)));
-  }
-}
-
-function $DefenseEffects$058parent_ready$(_world_0, _parent_0) {
-  if (_parent_0.$ === "Some") {
-    const _work_0 = _parent_0["value"];
-    const _x_0 = ($DefenseEffects$058remaining$(_world_0, _work_0));
-    return (_x_0 === 0);
-  } else {
-    return true;
-  }
-}
-
-function $DefenseEffects$058entrance_clear$(_items_0, _world_0) {
-  if (_items_0.$ === "Nil") {
-    return true;
-  } else {
-    const _work_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($DefenseEffects$058kind$(_work_0));
-    const _x_1 = ($DefenseEffects$058progress$(_world_0, _work_0));
-    return $Bool$and$(($Bool$not$(($Bool$and$((_x_0 === 0), (_x_1 < 24))))), ($DefenseEffects$058entrance_clear$(_rest_0, _world_0)));
-  }
-}
-
-function $DefenseEffects$058birth_ready$(_known_0, _world_0, _work_0) {
-  if (_known_0.$ === "Some") {
-    return true;
-  } else {
-    const _x_0 = ($DefenseEffects$058kind$(_work_0));
-    const _x_1 = ($Bool$not$((_x_0 === 0)));
-    const _x_2 = ($DefenseEffects$058entrance_clear$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), _world_0));
-    return $Bool$and$((_x_1 || _x_2), ($DefenseEffects$058parent_ready$(_world_0, ($DefenseEffects$058find_work$(($DefenseEffects$058family$(_work_0)), ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))))));
-  }
-}
-
-function $DefenseEffects$058births_ready$(_items_0, _world_0) {
-  if (_items_0.$ === "Nil") {
-    return true;
-  } else {
-    const _work_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$and$(($DefenseEffects$058birth_ready$(($DefenseEffects$058find_work$(($DefenseEffects$058id$(_work_0)), ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))), _world_0, _work_0)), ($DefenseEffects$058births_ready$(_rest_0, _world_0)));
-  }
-}
-
-function $DefenseEffects$058transition_ready$(_world_0, _after_0) {
-  return $Bool$and$(($DefenseEffects$058changed_ready$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), _world_0, ($DefenseModel$058work$(_after_0)))), ($DefenseEffects$058births_ready$(($DefenseModel$058work$(_after_0)), _world_0)));
-}
-
-function $DefenseEffects$058has_timer$(_id_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _candidate_0 = _t_0["id"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _candidate_0));
-    const _x_1 = ($DefenseEffects$058has_timer$(_id_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $DefenseEffects$058timer_next$(_world_0, _work_0, _offered_0) {
-  const _current_0 = ($DefenseEffects$058find_timer$(($DefenseEffects$058id$(_work_0)), ($DefenseModel$058timers$(_world_0))));
-  const _owner_0 = ($DefenseEffects$058find_timer$(($DefenseEffects$058family$(_work_0)), ($DefenseModel$058timers$(_world_0))));
-  const _known_0 = ($DefenseEffects$058has_timer$(($DefenseEffects$058id$(_work_0)), ($DefenseModel$058timers$(_world_0))));
-  const _x_0 = ($DefenseEffects$058kind$(_work_0));
-  const _x_1 = ($DefenseEffects$058kind$(_work_0));
-  const _x_2 = ($DefenseModel$058timer_seed$(_owner_0));
-  const _x_3 = ($DefenseEffects$058lane$(_world_0, _work_0));
-  const _x_4 = ((_x_3 + 1) >>> 0);
-  const _x_5 = (Math.imul(_x_2, 17) >>> 0);
-  const _x_6 = (Math.imul(_x_4, 47) >>> 0);
-  const _x_7 = ((_x_5 + _x_6) >>> 0);
-  const _seed_0 = ($Bool$pick$(_known_0, ($DefenseModel$058timer_seed$(_current_0)), ($Bool$pick$((_x_0 === 0), _offered_0, ($Bool$pick$((_x_1 === 3), (100 === 0 ? _x_7 : _x_7 % 100), ($DefenseModel$058timer_seed$(_owner_0))))))));
-  const _x_8 = ($DefenseEffects$058age$(($DefenseEffects$058id$(_work_0)), ($DefenseEffects$058kind$(_work_0)), ($DefenseModel$058timers$(_world_0))));
-  const _x_9 = ($DefenseEffects$058kind$(_work_0));
-  const _x_10 = ($DefenseModel$058timer_phase$(_current_0));
-  const _x_11 = ($DefenseEffects$058kind$(_work_0));
-  return {$: "DefenseModel.Timer", "id": ($DefenseEffects$058id$(_work_0)), "phase": ($DefenseEffects$058kind$(_work_0)), "age": ((_x_8 + 1) >>> 0), "family": ($DefenseEffects$058family$(_work_0)), "risk": ($Bool$pick$(_known_0, ($DefenseModel$058timer_risk$(_current_0)), ($Bool$pick$((_x_9 === 0), 100, ($DefenseModel$058timer_risk$(_owner_0)))))), "seed": _seed_0, "boost": ($Bool$pick$((_x_10 === _x_11), ($DefenseModel$058timer_boost$(_current_0)), 0))};
-}
-
-function $DefenseEffects$058current_timers$(_items_0, _world_0, _offered_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _work_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return {$: "Con", "head": ($DefenseEffects$058timer_next$(_world_0, _work_0, _offered_0)), "tail": ($DefenseEffects$058current_timers$(_rest_0, _world_0, _offered_0))};
   }
 }
 
@@ -38157,123 +38600,186 @@ function $DefenseEffects$058id_found$(_operation_0, _items_0) {
   }
 }
 
-function $DefenseEffects$058refresh$(_world_0, _core_0, _offered_0) {
-  return $DefenseEffects$058current_timers$(($DefenseModel$058work$(_core_0)), _world_0, _offered_0);
+function $DefenseCues$058take$(_items_0, _fuel_0) {
+  if (_items_0.$ === "Nil") {
+    if (_fuel_0 === 0) {
+      return {$: "Nil"};
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    const _cue_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    if (_fuel_0 === 0) {
+      return {$: "Nil"};
+    } else {
+      const _n_0 = (_fuel_0 - 1);
+      return {$: "Con", "head": _cue_0, "tail": ($DefenseCues$058take$(_tail_0, _n_0))};
+    }
+  }
 }
 
-function $DefenseEffects$058modify$(_items_0, _operation_0, _family_0, _group_0, _risk_0, _power_0) {
+function $DefenseCues$058keep$(_on_0, _cue_0, _rest_0) {
+  if (_on_0) {
+    return {$: "Con", "head": _cue_0, "tail": _rest_0};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $DefenseCues$058select$(_items_0, _refusals_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _cue_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    const _x_0 = ($DefenseModel$058cue_kind$(_cue_0));
+    const _x_1 = ($DefenseModel$058cue_kind$(_cue_0));
+    return $DefenseCues$058keep$(($Bool$pick$(_refusals_0, (_x_0 === 2), ($Bool$not$((_x_1 === 2))))), _cue_0, ($DefenseCues$058select$(_tail_0, _refusals_0)));
+  }
+}
+
+function $DefenseCues$058add$(_world_0, _cue_0) {
+  const _items_0 = {$: "Con", "head": _cue_0, "tail": ($DefenseModel$058cues$(_world_0))};
+  return $DefenseModel$058with_cues$(_world_0, ($List$append$(($DefenseCues$058take$(($DefenseCues$058select$(_items_0, true)), 32)), ($DefenseCues$058take$(($DefenseCues$058select$(_items_0, false)), 2)))));
+}
+
+function $DefenseCues$058positioned$(_cue_0, _found_0, _world_0, _ttl_0) {
+  const _kind_0 = _cue_0["kind"];
+  const _id_0 = _cue_0["operation"];
+  const _family_0 = _cue_0["family"];
+  const _x_0 = _cue_0["x"];
+  const _y_0 = _cue_0["y"];
+  if (_found_0.$ === "None") {
+    return {$: "DefenseModel.Cue", "kind": _kind_0, "operation": _id_0, "family": _family_0, "x": _x_0, "y": _y_0, "ttl": _ttl_0};
+  } else {
+    const _point_0 = ($DefenseMap$058center$(($DefenseModel$058layout$(_world_0)), 1, 0));
+    return {$: "DefenseModel.Cue", "kind": _kind_0, "operation": _id_0, "family": _family_0, "x": ($DefenseMap$058px$(_point_0)), "y": ($DefenseMap$058py$(_point_0)), "ttl": _ttl_0};
+  }
+}
+
+function $DefenseCues$058expire$(_items_0, _before_0, _world_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _t_0 = _items_0["head"];
-    const _id_0 = _t_0["id"];
-    const _phase_0 = _t_0["phase"];
-    const _age_0 = _t_0["age"];
-    const _owner_0 = _t_0["family"];
-    const _r_0 = _t_0["risk"];
-    const _seed_0 = _t_0["seed"];
-    const _boost_0 = _t_0["boost"];
+    const _kind_0 = _t_0["kind"];
+    const _id_0 = _t_0["operation"];
+    const _family_0 = _t_0["family"];
+    const _x_0 = _t_0["x"];
+    const _y_0 = _t_0["y"];
+    const _ttl_0 = _t_0["ttl"];
     const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_id_0, _operation_0));
-    const _x_1 = ($Bool$and$(_group_0, ($Nat$is_eq$(_family_0, _owner_0))));
-    const _hit_0 = (_x_0 || _x_1);
-    return {$: "Con", "head": {$: "DefenseModel.Timer", "id": _id_0, "phase": _phase_0, "age": _age_0, "family": _owner_0, "risk": ($Bool$pick$(($Bool$and$(($Bool$and$(_hit_0, _risk_0)), (_phase_0 <= 4))), ($DefenseModel$058sub$(_r_0, ($DefenseEffects$058risk_reduction$(_r_0, _power_0)))), _r_0)), "seed": _seed_0, "boost": ($Bool$pick$(($Bool$and$(_hit_0, ($Bool$not$(_risk_0)))), ((_boost_0 + _power_0) >>> 0), _boost_0))}, "tail": ($DefenseEffects$058modify$(_rest_0, _operation_0, _family_0, _group_0, _risk_0, _power_0))};
+    const _live_0 = ($Bool$and$((_kind_0 === 2), ($Bool$not$(($Nat$is_eq$(($DefenseEffects$058id_found$(_id_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))), 0))))));
+    const _next_0 = ($Bool$pick$(_live_0, 60, ($DefenseModel$058sub$(_ttl_0, 1))));
+    return $DefenseCues$058keep$((_next_0 > 0), ($DefenseCues$058positioned$({$: "DefenseModel.Cue", "kind": _kind_0, "operation": _id_0, "family": _family_0, "x": _x_0, "y": _y_0, "ttl": _next_0}, ($DefenseEffects$058find_work$(_id_0, ($DefenseModel$058work$(($DefenseModel$058core$(_before_0)))))), _before_0, _next_0)), ($DefenseCues$058expire$(_rest_0, _before_0, _world_0)));
   }
 }
 
-function $DefenseEffects$058shot_tower$(_shot_0) {
-  const _v_0 = _shot_0["tower"];
-  return _v_0;
+function $DefenseCues$058denied$($0) {
+  for (;;) {
+    {
+      const _commands_0 = $0;
+      if (_commands_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _commands_0["head"];
+        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationRefused") {
+          return true;
+        } else {
+          const __1 = _commands_0["tail"];
+          $0 = __1;
+          continue;
+        }
+      }
+    }
+  }
 }
 
-function $DefenseEffects$058shot_timers$(_shot_0) {
-  const _v_0 = _shot_0["timers"];
-  return _v_0;
+function $DefenseCues$058refusal$(_world_0, _id_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return _world_0;
+  } else {
+    const _work_0 = _found_0["value"];
+    const _point_0 = ($DefenseMap$058center$(($DefenseModel$058layout$(_world_0)), 1, 0));
+    return $DefenseCues$058add$(_world_0, {$: "DefenseModel.Cue", "kind": 2, "operation": _id_0, "family": ($DefenseEffects$058family$(_work_0)), "x": ($DefenseMap$058px$(_point_0)), "y": ($DefenseMap$058py$(_point_0)), "ttl": 60});
+  }
 }
 
-function $DefenseEffects$058work_kind$(_work_0) {
-  const _kind_0 = _work_0["kind"];
-  return _kind_0;
+function $DefenseCues$058refused$(_on_0, _world_0, _id_0) {
+  if (!_on_0) {
+    return _world_0;
+  } else {
+    return $DefenseCues$058refusal$(_world_0, _id_0, ($DefenseEffects$058find_work$(_id_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
+  }
 }
 
-function $DefenseEffects$058shoot_found$(_world_0, _tower_0, _found_0) {
-  const _x_0 = _tower_0["x"];
-  const _y_0 = _tower_0["y"];
-  const _kind_0 = _tower_0["kind"];
-  const _level_0 = _tower_0["level"];
-  const _t_0 = _tower_0["cooldown"];
-  if (_t_0 == 0) {
-    const __0 = _tower_0["flash"];
-    const __1 = _tower_0["aim"];
-    const _charges_0 = _tower_0["charges"];
-    if (_found_0.$ === "Some") {
-      const _work_0 = _found_0["value"];
-      const _risk_0 = (_kind_0 === 1);
-      const _amount_0 = ($Bool$pick$(_risk_0, ($DefenseEffects$058power$(_kind_0, _level_0)), ($U32$min$(($DefenseEffects$058power$(_kind_0, _level_0)), ($DefenseEffects$058remaining$(_world_0, _work_0))))));
-      const _x_1 = ($DefenseModel$058phase$(($DefenseEffects$058work_kind$(_work_0))));
-      return {$: "DefenseEffects.Shot", "tower": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _kind_0, "level": _level_0, "cooldown": ($DefenseModel$058sub$(($DefenseEffects$058cooldown$(_kind_0)), 1)), "flash": 5, "aim": ($DefenseEffects$058id$(_work_0)), "charges": _charges_0}, "timers": ($DefenseEffects$058modify$(($DefenseModel$058timers$(_world_0)), ($DefenseEffects$058id$(_work_0)), ($DefenseEffects$058family$(_work_0)), (_x_1 <= 2), _risk_0, _amount_0))};
+function $DefenseCues$058frame$(_world_0, _value_0) {
+  if (_value_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.ProductFrame") {
+    const _t_0 = _value_0["event"];
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.BeginObservedPreparation") {
+      const _id_0 = _t_0["observation"];
+      const _commands_0 = _value_0["commands"];
+      const _t_1 = _value_0["rejection"];
+      if (_t_1.$ === "None") {
+        return $DefenseCues$058refused$(($DefenseCues$058denied$(_commands_0)), _world_0, _id_0);
+      } else {
+        return _world_0;
+      }
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AdmitObservation") {
+      const _t_2 = _value_0["rejection"];
+      if (_t_2.$ === "None") {
+        const _point_0 = ($DefenseMap$058path_position$(($DefenseMap$058source_route$(($DefenseModel$058layout$(_world_0)))), 0));
+        return $DefenseCues$058add$(_world_0, {$: "DefenseModel.Cue", "kind": 1, "operation": 0, "family": 0, "x": ($DefenseMap$058px$(_point_0)), "y": ($DefenseMap$058py$(_point_0)), "ttl": 40});
+      } else {
+        return _world_0;
+      }
     } else {
-      return {$: "DefenseEffects.Shot", "tower": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _kind_0, "level": _level_0, "cooldown": ($DefenseModel$058sub$(0, 1)), "flash": ($DefenseModel$058sub$(__0, 1)), "aim": __1, "charges": _charges_0}, "timers": ($DefenseModel$058timers$(_world_0))};
+      return _world_0;
     }
   } else {
-    const _57_0 = u32_to_word(_t_0)["head"];
-    const _58_0 = u32_to_word(_t_0)["tail"];
-    const __2 = _tower_0["flash"];
-    const __3 = _tower_0["aim"];
-    const _charges_1 = _tower_0["charges"];
-    return {$: "DefenseEffects.Shot", "tower": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _kind_0, "level": _level_0, "cooldown": ($DefenseModel$058sub$(word_to_u32({$: "WCon", "head": _57_0, "tail": _58_0}), 1)), "flash": ($DefenseModel$058sub$(__2, 1)), "aim": __3, "charges": _charges_1}, "timers": ($DefenseModel$058timers$(_world_0))};
+    return _world_0;
   }
 }
 
-function $DefenseEffects$058shoot$(_world_0, _tower_0) {
-  return $DefenseEffects$058shoot_found$(_world_0, _tower_0, ($DefenseEffects$058find_work$(($DefenseEffects$058target$(_world_0, _tower_0)), ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
+function $DefenseCues$058frames$($0, $1) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      const _world_0 = $1;
+      if (_items_0.$ === "Nil") {
+        return _world_0;
+      } else {
+        const _value_0 = _items_0["head"];
+        const _rest_0 = _items_0["tail"];
+        $0 = _rest_0;
+        $1 = ($DefenseCues$058frame$(_world_0, _value_0));
+        continue;
+      }
+    }
+  }
 }
 
-function $DefenseEffects$058list_towers$(_value_0) {
-  const _v_0 = _value_0["towers"];
-  return _v_0;
+function $DefenseCues$058tick$(_before_0, _after_0, _items_0) {
+  return $DefenseModel$058with_cues$(_after_0, ($DefenseModel$058cues$(($DefenseCues$058frames$(_items_0, ($DefenseModel$058with_cues$(_before_0, ($DefenseCues$058expire$(($DefenseModel$058cues$(_before_0)), _before_0, _after_0)))))))));
 }
 
-function $DefenseEffects$058list_timers$(_value_0) {
-  const _v_0 = _value_0["timers"];
-  return _v_0;
+function $DefenseCues$058burst$(_world_0) {
+  const _point_0 = ($DefenseMap$058path_position$(($DefenseMap$058source_route$(($DefenseModel$058layout$(_world_0)))), 0));
+  return $DefenseCues$058add$(_world_0, {$: "DefenseModel.Cue", "kind": 0, "operation": 0, "family": 0, "x": ($DefenseMap$058px$(_point_0)), "y": ($DefenseMap$058py$(_point_0)), "ttl": 60});
 }
 
-function $DefenseEffects$058shoot_list$(_items_0, _world_0) {
+function $DefenseCues$058refused_id$(_items_0, _id_0) {
   if (_items_0.$ === "Nil") {
-    return {$: "DefenseEffects.ShotList", "towers": {$: "Nil"}, "timers": ($DefenseModel$058timers$(_world_0))};
+    return false;
   } else {
-    const _tower_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _shot_0 = ($DefenseEffects$058shoot$(_world_0, _tower_0));
-    const _tail_0 = ($DefenseEffects$058shoot_list$(_rest_0, ($DefenseModel$058with_effects$(_world_0, ($DefenseModel$058towers$(_world_0)), ($DefenseEffects$058shot_timers$(_shot_0))))));
-    return {$: "DefenseEffects.ShotList", "towers": {$: "Con", "head": ($DefenseEffects$058shot_tower$(_shot_0)), "tail": ($DefenseEffects$058list_towers$(_tail_0))}, "timers": ($DefenseEffects$058list_timers$(_tail_0))};
+    const _cue_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    const _x_0 = ($DefenseModel$058cue_kind$(_cue_0));
+    const _x_1 = ($Bool$and$((_x_0 === 2), ($Nat$is_eq$(($DefenseModel$058cue_operation$(_cue_0)), _id_0))));
+    const _x_2 = ($DefenseCues$058refused_id$(_tail_0, _id_0));
+    return (_x_1 || _x_2);
   }
-}
-
-function $DefenseEffects$058shoot_world$(_world_0) {
-  const _result_0 = ($DefenseEffects$058shoot_list$(($DefenseModel$058towers$(_world_0)), _world_0));
-  return $DefenseModel$058with_effects$(_world_0, ($DefenseEffects$058list_towers$(_result_0)), ($DefenseEffects$058list_timers$(_result_0)));
-}
-
-function $DefenseOutput$058batch_target$(_world_0) {
-  return $DefenseEffects$058batch_target$(_world_0);
-}
-
-function $DefenseOutput$058item_work$(_world_0) {
-  const _levels_0 = ($DefenseEffects$058levels$(($DefenseModel$058towers$(_world_0)), _world_0, 5, 5));
-  return $Bool$pick$((_levels_0 === 0), 8, ($U32$max$(2, ($DefenseModel$058sub$(5, _levels_0)))));
-}
-
-function $DefenseOutput$058acknowledgement_work$(_world_0) {
-  return 40;
-}
-
-function $DefenseOutput$058bundle_work$(_world_0, _count_0) {
-  const _x_0 = ($DefenseOutput$058item_work$(_world_0));
-  const _x_1 = ($DefenseOutput$058acknowledgement_work$(_world_0));
-  const _x_2 = (Math.imul(_x_0, _count_0) >>> 0);
-  return ((_x_1 + _x_2) >>> 0);
 }
 
 function $DefenseOutput$058lease_ids$(_items_0) {
@@ -38385,211 +38891,33 @@ function $DefenseOutput$058all_ready$(_ids_0, _ready_0) {
   }
 }
 
-function $DefenseMechanics$058refined_weights$() {
-  return {$: "Con", "head": {$: "../../packages/monkey-business-bend/Numeric.Words", "high": 0, "low": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/Numeric.Words", "high": 1071644672, "low": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/Numeric.Words", "high": 1072693248, "low": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/Numeric.Words", "high": 0, "low": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/Numeric.Words", "high": 0, "low": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/Numeric.Words", "high": 0, "low": 0}, "tail": {$: "Nil"}}}}}}};
-}
-
-function $DefenseMechanics$058translate$(_ability_0) {
-  if (_ability_0.$ === "DefenseMechanics.DependencyAcceleration") {
-    return {$: "DefenseMechanics.Unsupported"};
-  } else if (_ability_0.$ === "DefenseMechanics.FutureBatching") {
-    return {$: "DefenseMechanics.Unsupported"};
-  } else if (_ability_0.$ === "DefenseMechanics.LaunchPacing") {
-    return {$: "DefenseMechanics.Unsupported"};
-  } else if (_ability_0.$ === "DefenseMechanics.OutputLatency") {
-    const _outcome_0 = _ability_0["outcome"];
-    const _delay_0 = _ability_0["delay"];
-    const _lease_0 = _ability_0["lease"];
-    return {$: "DefenseMechanics.OutputTiming", "outcome": _outcome_0, "delay": _delay_0, "lease": _lease_0};
-  } else {
-    return {$: "DefenseMechanics.FutureReview", "delay": 3200, "weights": ($DefenseMechanics$058refined_weights$())};
-  }
+function $DefenseHost$058initial_config$(_config_0, _seed_0) {
+  return {$: "DefenseModel.World", "engine": {$: "Con", "head": ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058create$(_config_0, _seed_0)), "tail": {$: "Nil"}}, "clock": 0, "paused": false, "layout": 0, "choice": 0, "gold": 160, "hp": 100, "towers": {$: "Nil"}, "active": false, "offered": 0, "rejected": 0, "clear": 0, "delivered": 0, "auto": {$: "Con", "head": ($DefenseModel$058with_settings$(($DefenseModel$058initial_control$()), ($DefenseModel$058config_settings$(_config_0)))), "tail": {$: "Nil"}}, "mouseX": 0, "mouseY": 0, "selected": 0, "damageWork": 0, "damageFlash": 0};
 }
 
 function $DefenseHost$058initial$() {
-  return {$: "DefenseModel.World", "engine": {$: "Con", "head": ($DefenseConsumer$058initial$()), "tail": {$: "Nil"}}, "clock": 0, "paused": false, "layout": 0, "choice": 0, "gold": 160, "hp": 100, "towers": {$: "Nil"}, "timers": {$: "Nil"}, "active": false, "offered": 0, "rejected": 0, "clear": 0, "delivered": 0, "auto": {$: "Con", "head": ($DefenseModel$058initial_control$()), "tail": {$: "Nil"}}, "mouseX": 0, "mouseY": 0, "selected": 0, "damageWork": 0, "damageFlash": 0};
+  return $DefenseHost$058initial_config$(($DefenseConsumer$058config$()), ($DefenseConsumer$058seed$()));
 }
 
 function $DefenseHost$058tower_cost$(_kind_0) {
-  return $DefenseEffects$058cost$(_kind_0);
+  return $DefenseMechanics$058cost$(_kind_0);
 }
 
 function $DefenseHost$058tower_name$(_kind_0) {
-  return $DefenseEffects$058name$(_kind_0);
+  return $DefenseMechanics$058name$(_kind_0);
 }
 
 function $DefenseHost$058tower_detail$(_kind_0) {
-  return $DefenseEffects$058detail$(_kind_0);
+  return $DefenseMechanics$058detail$(_kind_0);
 }
 
 function $DefenseHost$058tower_range$(_kind_0, _level_0) {
-  return $DefenseEffects$058range$(_kind_0, _level_0);
-}
-
-function $DefenseHost$058tower_power$(_kind_0, _level_0) {
-  return $DefenseEffects$058power$(_kind_0, _level_0);
-}
-
-function $DefenseHost$058tower_cooldown$(_kind_0) {
-  return $DefenseEffects$058cooldown$(_kind_0);
+  return $DefenseMechanics$058range$(_kind_0, _level_0);
 }
 
 function $DefenseHost$058upgrade_cost$(_level_0) {
-  return $DefenseEffects$058upgrade_cost$(_level_0);
-}
-
-function $DefenseHost$058timer_age$(_id_0, _phase_0, _timers_0) {
-  return $DefenseEffects$058age$(_id_0, _phase_0, _timers_0);
-}
-
-function $DefenseHost$058request_for$(_operation_0, _requests_0) {
-  if (_requests_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _requests_0["head"];
-    const _op_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
-    const _rest_0 = _requests_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_operation_0, _op_0)), _id_0, ($DefenseHost$058request_for$(_operation_0, _rest_0)));
-  }
-}
-
-function $DefenseHost$058requests$(_state_0) {
-  return $DefenseEffects$058requests$(_state_0);
-}
-
-function $DefenseHost$058pending_units$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["kind"];
-        if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.PendingFinding") {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($DefenseHost$058pending_units$(_rest_0));
-          return ((1 + _x_0) >>> 0);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $DefenseHost$058unfinished_sibling$(_parent_0, _items_0) {
-  return $DefenseEffects$058pending_sibling$(_parent_0, _items_0);
-}
-
-function $DefenseHost$058has_operation$(_id_0, _items_0) {
-  return $Bool$not$(($Nat$is_eq$(($DefenseEffects$058id_found$(_id_0, _items_0)), 0)));
-}
-
-function $DefenseHost$058has_preparation$($0, $1) {
-  for (;;) {
-    {
-      const _parent_0 = $0;
-      const _items_0 = $1;
-      if (_items_0.$ === "Nil") {
-        return false;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["kind"];
-        if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Preparing") {
-          const _owner_0 = _t_0["parent"];
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($Nat$is_eq$(_parent_0, _owner_0));
-          const _x_1 = ($DefenseHost$058has_preparation$(_parent_0, _rest_0));
-          return (_x_0 || _x_1);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _parent_0;
-          $1 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $DefenseHost$058preparation_running$(_core_0, _part_0, _life_0, _round_0, _id_0) {
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(($DefenseEffects$058running$(($DefenseModel$058dispatch$(_core_0)))), _part_0, _life_0, _round_0, _id_0);
-}
-
-function $DefenseHost$058source_owned$($0) {
-  for (;;) {
-    {
-      const _items_0 = $0;
-      if (_items_0.$ === "Nil") {
-        return 0;
-      } else {
-        const _t_0 = _items_0["head"];
-        const _t_1 = _t_0["kind"];
-        if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.SourceReading") {
-          const _rest_0 = _items_0["tail"];
-          const _x_0 = ($DefenseHost$058source_owned$(_rest_0));
-          return ((1 + _x_0) >>> 0);
-        } else {
-          const _rest_1 = _items_0["tail"];
-          $0 = _rest_1;
-          continue;
-        }
-      }
-    }
-  }
-}
-
-function $DefenseHost$058source_permits$(_world_0) {
-  return $U32$max$(($DefenseEffects$058permits$(_world_0, 1)), ($DefenseEffects$058permits$(_world_0, 2)));
-}
-
-function $DefenseHost$058inside_found$(_world_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return false;
-  } else {
-    const _work_0 = _found_0["value"];
-    return $DefenseEffects$058inside_world$(_world_0, _work_0);
-  }
-}
-
-function $DefenseHost$058in_building$(_world_0, _token_0) {
-  const _x_0 = ($DefenseProjection$058id$(_token_0));
-  return $DefenseHost$058inside_found$(_world_0, ($DefenseEffects$058find_work$(_x_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
-}
-
-function $DefenseHost$058inside_bytes$(_items_0, _world_0, _seen_0, _phase_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["round"];
-    const __3 = _t_0["operation"];
-    const _charge_0 = _t_0["charge"];
-    const __4 = _t_0["kind"];
-    const __5 = _t_0["parent"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($DefenseEffects$058kind$({$: "../../packages/agent-flow-bend/Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "charge": _charge_0, "kind": __4, "parent": __5}));
-    const _x_1 = (_phase_0 === 255);
-    const _x_2 = (_phase_0 === _x_0);
-    const _counted_0 = ($Bool$and$(($Bool$and$(($DefenseEffects$058inside_world$(_world_0, {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "charge": _charge_0, "kind": __4, "parent": __5})), (_x_1 || _x_2))), ($Bool$not$(($$$$047$$$047packages$047agent$045flow$045bend$047CollectionState$058contains$(_charge_0, _seen_0))))));
-    const _x_3 = ($Bool$pick$(_counted_0, ($DefenseEffects$058bytes$(_world_0, {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "charge": _charge_0, "kind": __4, "parent": __5})), 0));
-    const _x_4 = ($DefenseHost$058inside_bytes$(_rest_0, _world_0, ($Bool$pick$(_counted_0, {$: "Con", "head": _charge_0, "tail": _seen_0}, _seen_0)), _phase_0));
-    return nat_chk(_x_3 + _x_4);
-  }
-}
-
-function $DefenseHost$058building_pressure_bytes$(_world_0) {
-  return $DefenseModel$058number$(($DefenseHost$058inside_bytes$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), _world_0, {$: "Nil"}, 255)));
-}
-
-function $DefenseHost$058building_bytes$(_world_0, _phase_0) {
-  return $DefenseModel$058number$(($DefenseHost$058inside_bytes$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))), _world_0, {$: "Nil"}, _phase_0)));
+  const _x_0 = (Math.imul(_level_0, 20) >>> 0);
+  return ((20 + _x_0) >>> 0);
 }
 
 function $DefenseHost$058damage_flash$(_world_0) {
@@ -38597,94 +38925,8 @@ function $DefenseHost$058damage_flash$(_world_0) {
   return (_x_0 > 0);
 }
 
-function $DefenseHost$058site_scan$($0, $1, $2, $3, $4) {
-  for (;;) {
-    {
-      const _world_0 = $0;
-      const _tower_0 = $1;
-      const _sites_0 = $2;
-      const _best_0 = $3;
-      const _distance_0 = $4;
-      if (_sites_0.$ === "Nil") {
-        return _best_0;
-      } else {
-        const _phase_0 = _sites_0["head"];
-        const _rest_0 = _sites_0["tail"];
-        const _point_0 = ($DefenseMap$058center$(($DefenseModel$058layout$(_world_0)), _phase_0, 0));
-        const _x_0 = ($DefenseMap$058distance$(($DefenseModel$058tx$(_tower_0)), ($DefenseMap$058px$(_point_0))));
-        const _x_1 = ($DefenseMap$058distance$(($DefenseModel$058ty$(_tower_0)), ($DefenseMap$058py$(_point_0))));
-        const _d_0 = ((_x_0 + _x_1) >>> 0);
-        const _valid_0 = ($Bool$and$(($DefenseEffects$058supports$(_world_0, _tower_0, _phase_0)), (_d_0 < _distance_0)));
-        $0 = _world_0;
-        $1 = _tower_0;
-        $2 = _rest_0;
-        $3 = ($Bool$pick$(_valid_0, _phase_0, _best_0));
-        $4 = ($Bool$pick$(_valid_0, _d_0, _distance_0));
-        continue;
-      }
-    }
-  }
-}
-
 function $DefenseHost$058support_site$(_world_0, _tower_0) {
-  const _kind_0 = ($DefenseModel$058tkind$(_tower_0));
-  return $DefenseHost$058site_scan$(_world_0, _tower_0, ($Bool$pick$((_kind_0 === 5), {$: "Con", "head": 5, "tail": {$: "Nil"}}, ($Bool$pick$((_kind_0 === 3), {$: "Con", "head": 1, "tail": {$: "Con", "head": 2, "tail": {$: "Con", "head": 4, "tail": {$: "Nil"}}}}, ($Bool$pick$((_kind_0 === 4), {$: "Con", "head": 4, "tail": {$: "Nil"}}, ($Bool$pick$((_kind_0 === 6), {$: "Con", "head": 1, "tail": {$: "Con", "head": 2, "tail": {$: "Con", "head": 4, "tail": {$: "Con", "head": 5, "tail": {$: "Nil"}}}}}, {$: "Con", "head": 1, "tail": {$: "Con", "head": 2, "tail": {$: "Con", "head": 4, "tail": {$: "Nil"}}}})))))))), 255, 4294967295);
-}
-
-function $DefenseHost$058protected_at$(_site_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _p_0 = _t_0["site"];
-    const _bytes_0 = _t_0["bytes"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$pick$((_p_0 === _site_0), _bytes_0, 0));
-    const _x_1 = ($DefenseHost$058protected_at$(_site_0, _rest_0));
-    return ((_x_0 + _x_1) >>> 0);
-  }
-}
-
-function $DefenseHost$058shield_towers$(_result_0) {
-  const _items_0 = _result_0["towers"];
-  return _items_0;
-}
-
-function $DefenseHost$058shield_bytes$(_result_0) {
-  const _bytes_0 = _result_0["protected"];
-  return _bytes_0;
-}
-
-function $DefenseHost$058shield_spent$(_tower_0, _spend_0) {
-  const _x_0 = _tower_0["x"];
-  const _y_0 = _tower_0["y"];
-  const _k_0 = _tower_0["kind"];
-  const _l_0 = _tower_0["level"];
-  const _cd_0 = _tower_0["cooldown"];
-  const _flash_0 = _tower_0["flash"];
-  const _aim_0 = _tower_0["aim"];
-  const _charge_0 = _tower_0["charges"];
-  return {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _k_0, "level": _l_0, "cooldown": _cd_0, "flash": _flash_0, "aim": _aim_0, "charges": ($DefenseModel$058sub$(_charge_0, ($Bool$to_u32$(_spend_0))))};
-}
-
-function $DefenseHost$058shields$(_items_0, _world_0, _spent_0, _hot_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "DefenseHost.Shielded", "towers": {$: "Nil"}, "protected": 0};
-  } else {
-    const _tower_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    const _site_0 = ($DefenseHost$058support_site$(_world_0, _tower_0));
-    const _x_0 = ($DefenseHost$058building_bytes$(_world_0, _site_0));
-    const _budget_0 = ($DefenseModel$058sub$((2 === 0 ? 0 : (_x_0 / 2) >>> 0), ($DefenseHost$058protected_at$(_site_0, _spent_0))));
-    const _x_1 = ($DefenseModel$058tkind$(_tower_0));
-    const _x_2 = ($DefenseModel$058charges$(_tower_0));
-    const _covered_0 = ($Bool$and$(_hot_0, ($Bool$and$((_x_1 === 6), ($Bool$and$((_x_2 > 0), ($Bool$not$((_site_0 === 255)))))))));
-    const _x_3 = ($DefenseModel$058level$(_tower_0));
-    const _amount_0 = ($Bool$pick$(_covered_0, ($U32$min$(_budget_0, (Math.imul(40, _x_3) >>> 0))), 0));
-    const _next_0 = ($DefenseHost$058shields$(_rest_0, _world_0, {$: "Con", "head": {$: "DefenseHost.Protected", "site": _site_0, "bytes": _amount_0}, "tail": _spent_0}, _hot_0));
-    const _x_4 = ($DefenseHost$058shield_bytes$(_next_0));
-    return {$: "DefenseHost.Shielded", "towers": {$: "Con", "head": ($DefenseHost$058shield_spent$(_tower_0, (_amount_0 > 0))), "tail": ($DefenseHost$058shield_towers$(_next_0))}, "protected": ((_amount_0 + _x_4) >>> 0)};
-  }
+  return $Bool$pick$(($DefenseMechanics$058connected$(_world_0, _tower_0)), ($DefenseMechanics$058site$(($DefenseModel$058tkind$(_tower_0)))), 255);
 }
 
 function $DefenseHost$058pressure_buffer$() {
@@ -38702,19 +38944,8 @@ function $DefenseHost$058damage_work$(_raw_0) {
   return (80 === 0 ? 0 : (_x_1 / 80) >>> 0);
 }
 
-function $DefenseHost$058shield_allocation$(_world_0) {
-  const _result_0 = ($DefenseHost$058shields$(($List$reverse$(($DefenseModel$058towers$(_world_0)))), _world_0, {$: "Nil"}, ($DefenseHost$058pressure_hot$(($DefenseHost$058building_pressure_bytes$(_world_0))))));
-  return {$: "DefenseHost.Shielded", "towers": ($List$reverse$(($DefenseHost$058shield_towers$(_result_0)))), "protected": ($DefenseHost$058shield_bytes$(_result_0))};
-}
-
 function $DefenseHost$058residual_damage$(_world_0) {
-  const _raw_0 = ($DefenseHost$058building_pressure_bytes$(_world_0));
-  const _result_0 = ($DefenseHost$058shield_allocation$(_world_0));
-  const _x_0 = ($DefenseHost$058damage_work$(_raw_0));
-  const _x_1 = ($DefenseHost$058shield_bytes$(_result_0));
-  const _x_2 = (Math.imul(_x_0, _x_1) >>> 0);
-  const _x_3 = ($U32$max$(1, _raw_0));
-  return $DefenseModel$058sub$(($DefenseHost$058damage_work$(_raw_0)), (_x_3 === 0 ? 0 : (_x_2 / _x_3) >>> 0));
+  return $DefenseHost$058damage_work$(($DefenseProjection$058ledger_bytes$(_world_0)));
 }
 
 function $DefenseHost$058damage$(_world_0) {
@@ -38726,7 +38957,6 @@ function $DefenseHost$058damage$(_world_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _towers_0 = _world_0["towers"];
-  const _timers_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -38738,16 +38968,10 @@ function $DefenseHost$058damage$(_world_0) {
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  const _raw_0 = ($DefenseHost$058building_pressure_bytes$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "timers": _timers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}));
-  const _guard_0 = ($DefenseHost$058shield_allocation$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "timers": _timers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}));
-  const _x_1 = ($DefenseHost$058damage_work$(_raw_0));
-  const _x_2 = ($DefenseHost$058shield_bytes$(_guard_0));
-  const _x_3 = (Math.imul(_x_1, _x_2) >>> 0);
-  const _x_4 = ($U32$max$(1, _raw_0));
-  const _pulse_0 = ($DefenseModel$058sub$(($DefenseHost$058damage_work$(_raw_0)), (_x_4 === 0 ? 0 : (_x_3 / _x_4) >>> 0)));
-  const _total_0 = ((_work_0 + _pulse_0) >>> 0);
+  const _x_1 = ($DefenseHost$058residual_damage$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}));
+  const _total_0 = ((_work_0 + _x_1) >>> 0);
   const _hit_0 = ($Bool$and$((_total_0 >= 10000), (_h_0 > 0)));
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": ($DefenseModel$058sub$(_h_0, ($Bool$to_u32$(_hit_0)))), "towers": ($DefenseHost$058shield_towers$(_guard_0)), "timers": _timers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": (10000 === 0 ? _total_0 : _total_0 % 10000), "damageFlash": ($Bool$pick$(_hit_0, 10, ($DefenseModel$058sub$(_flash_0, 1))))};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": ($DefenseModel$058sub$(_h_0, ($Bool$to_u32$(_hit_0)))), "towers": _towers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": (10000 === 0 ? _total_0 : _total_0 % 10000), "damageFlash": ($Bool$pick$(_hit_0, 10, ($DefenseModel$058sub$(_flash_0, 1))))};
 }
 
 function $DefenseHost$058drained$(_world_0) {
@@ -38793,7 +39017,6 @@ function $DefenseHost$058started$(_world_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
   const _cl_0 = _world_0["clear"];
@@ -38804,11 +39027,66 @@ function $DefenseHost$058started$(_world_0) {
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": true, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": true, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+}
+
+function $DefenseHost$058burst_controlled$(_world_0, _result_0) {
+  const _state_0 = _result_0["state"];
+  const _t_0 = _result_0["applied"];
+  if (_t_0) {
+    return $DefenseCues$058burst$(($DefenseModel$058with_engine$(($DefenseHost$058started$(_world_0)), _state_0)));
+  } else {
+    return _world_0;
+  }
+}
+
+function $DefenseHost$058burst$(_world_0, _count_0) {
+  return $DefenseHost$058burst_controlled$(_world_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058control$(($DefenseModel$058engine$(_world_0)), {$: "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl", "identity": {$: "Some", "value": 1}, "control": {$: "../../packages/monkey-business-bend/Workload.Burst", "count": _count_0}})));
 }
 
 function $DefenseHost$058start$(_world_0) {
-  return $DefenseHost$058action$(($DefenseHost$058started$(_world_0)), {$: "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl", "identity": {$: "Some", "value": 1}, "control": {$: "../../packages/monkey-business-bend/Workload.Burst", "count": 1}});
+  return $DefenseHost$058burst$(_world_0, ($DefenseModel$058burst_size$(($DefenseModel$058settings$(_world_0)))));
+}
+
+function $DefenseHost$058next_burst$(_size_0) {
+  if (_size_0 == 1) {
+    return 5;
+  } else if (_size_0 == 5) {
+    return 10;
+  } else if ((_size_0 & 1) == 1) {
+    return 1;
+  } else if (_size_0 == 10) {
+    return 20;
+  } else {
+    return 1;
+  }
+}
+
+function $DefenseHost$058cycle_burst$(_world_0) {
+  return $DefenseModel$058with_control$(_world_0, ($DefenseModel$058with_settings$(($DefenseModel$058control$(_world_0)), ($DefenseModel$058with_burst$(($DefenseModel$058settings$(_world_0)), ($DefenseHost$058next_burst$(($DefenseModel$058burst_size$(($DefenseModel$058settings$(_world_0)))))))))));
+}
+
+function $DefenseHost$058adjust_burst$(_world_0, _increase_0) {
+  const _size_0 = ($DefenseModel$058burst_size$(($DefenseModel$058settings$(_world_0))));
+  return $DefenseModel$058with_control$(_world_0, ($DefenseModel$058with_settings$(($DefenseModel$058control$(_world_0)), ($DefenseModel$058with_burst$(($DefenseModel$058settings$(_world_0)), ($Bool$pick$(_increase_0, ($U32$min$(1024, ((_size_0 + 1) >>> 0))), ($U32$max$(1, ($DefenseModel$058sub$(_size_0, 1)))))))))));
+}
+
+function $DefenseHost$058outage_environment$(_world_0, _env_0) {
+  const _current_0 = _env_0["current_work"];
+  const _generation_0 = _env_0["credential_generation"];
+  return $DefenseHost$058action$(_world_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl", "current_work": _current_0, "credential_ready": false, "credential_generation": _generation_0, "source_readable": false});
+}
+
+function $DefenseHost$058outage_allowed$(_allowed_0, _world_0) {
+  if (_allowed_0) {
+    return $DefenseHost$058outage_environment$(_world_0, ($DefenseMechanics$058current_environment$(($DefenseModel$058engine$(_world_0)))));
+  } else {
+    return _world_0;
+  }
+}
+
+function $DefenseHost$058outage$(_world_0) {
+  return $DefenseHost$058outage_allowed$(($Bool$not$(($DefenseModel$058active$(_world_0)))), _world_0);
 }
 
 function $DefenseHost$058frame_counts$($0, $1) {
@@ -38833,9 +39111,24 @@ function $DefenseHost$058frame_counts$($0, $1) {
             $1 = _kind_0;
             continue;
           }
-        } else {
+        } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.CapacityRefused") {
           const _rest_2 = _commands_0["tail"];
-          $0 = _rest_2;
+          const _x_2 = ($Bool$to_u32$((_kind_0 === 3)));
+          const _x_3 = ($DefenseHost$058frame_counts$(_rest_2, _kind_0));
+          return ((_x_2 + _x_3) >>> 0);
+        } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused") {
+          const _rest_3 = _commands_0["tail"];
+          const _x_4 = ($Bool$to_u32$((_kind_0 === 3)));
+          const _x_5 = ($DefenseHost$058frame_counts$(_rest_3, _kind_0));
+          return ((_x_4 + _x_5) >>> 0);
+        } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationRefused") {
+          const _rest_4 = _commands_0["tail"];
+          const _x_6 = ($Bool$to_u32$((_kind_0 === 3)));
+          const _x_7 = ($DefenseHost$058frame_counts$(_rest_4, _kind_0));
+          return ((_x_6 + _x_7) >>> 0);
+        } else {
+          const _rest_5 = _commands_0["tail"];
+          $0 = _rest_5;
           $1 = _kind_0;
           continue;
         }
@@ -38844,42 +39137,32 @@ function $DefenseHost$058frame_counts$($0, $1) {
   }
 }
 
+function $DefenseHost$058observed_event$(_event_0, _kind_0) {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.AdmitObservation") {
+    return $Bool$to_u32$((_kind_0 === 1));
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+    const _t_0 = _event_0["outcome"];
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.RequestClear") {
+      return $Bool$to_u32$((_kind_0 === 2));
+    } else {
+      return 0;
+    }
+  } else {
+    return 0;
+  }
+}
+
 function $DefenseHost$058observed_count$(_frame_0, _kind_0) {
   if (_frame_0.$ === "../../packages/monkey-business-bend/NativeRunTypes.ProductFrame") {
-    const _t_0 = _frame_0["event"];
-    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AdmitObservation") {
-      const _t_1 = _frame_0["rejection"];
-      if (_t_1.$ === "None") {
-        return $Bool$to_u32$((_kind_0 === 1));
-      } else {
-        return 0;
-      }
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
-      const _t_2 = _t_0["outcome"];
-      if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.RequestClear") {
-        const _t_3 = _frame_0["rejection"];
-        if (_t_3.$ === "None") {
-          return $Bool$to_u32$((_kind_0 === 2));
-        } else {
-          return 0;
-        }
-      } else {
-        const __24 = _frame_0["commands"];
-        const _t_4 = _frame_0["rejection"];
-        if (_t_4.$ === "None") {
-          return $DefenseHost$058frame_counts$(__24, _kind_0);
-        } else {
-          return 0;
-        }
-      }
+    const _event_0 = _frame_0["event"];
+    const _commands_0 = _frame_0["commands"];
+    const _t_0 = _frame_0["rejection"];
+    if (_t_0.$ === "None") {
+      const _x_0 = ($DefenseHost$058observed_event$(_event_0, _kind_0));
+      const _x_1 = ($DefenseHost$058frame_counts$(_commands_0, _kind_0));
+      return ((_x_0 + _x_1) >>> 0);
     } else {
-      const __29 = _frame_0["commands"];
-      const _t_5 = _frame_0["rejection"];
-      if (_t_5.$ === "None") {
-        return $DefenseHost$058frame_counts$(__29, _kind_0);
-      } else {
-        return 0;
-      }
+      return 0;
     }
   } else {
     return 0;
@@ -38907,7 +39190,6 @@ function $DefenseHost$058consumed$(_world_0, _advanced_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const __1 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -38922,96 +39204,43 @@ function $DefenseHost$058consumed$(_world_0, _advanced_0) {
   const _state_0 = _advanced_0["state"];
   const _frames_0 = _advanced_0["frames"];
   const _delivered_0 = ($DefenseHost$058count_frames$(_frames_0, 0));
-  const _next_0 = ($DefenseModel$058with_engine$({$: "DefenseModel.World", "engine": __0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": __1, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}, _state_0));
   const _x_1 = (Math.imul(_delivered_0, 5) >>> 0);
   const _x_2 = ($DefenseHost$058count_frames$(_frames_0, 1));
-  const _x_3 = ($DefenseHost$058count_frames$(_frames_0, 1));
+  const _x_3 = ($DefenseHost$058count_frames$(_frames_0, 3));
   const _x_4 = ($DefenseHost$058count_frames$(_frames_0, 2));
-  return {$: "DefenseModel.World", "engine": {$: "Con", "head": _state_0, "tail": {$: "Nil"}}, "clock": ((_t_0 + 1) >>> 0), "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ((_g_0 + _x_1) >>> 0), "hp": _h_0, "towers": _ts_0, "timers": ($DefenseEffects$058refresh$(_next_0, ($DefenseModel$058core$(_next_0)), ((_o_0 + _x_2) >>> 0))), "active": _a_0, "offered": ((_o_0 + _x_3) >>> 0), "rejected": _r_0, "clear": ((_cl_0 + _x_4) >>> 0), "delivered": ((_d_0 + _delivered_0) >>> 0), "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+  return $DefenseCues$058tick$({$: "DefenseModel.World", "engine": __0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}, {$: "DefenseModel.World", "engine": {$: "Con", "head": _state_0, "tail": {$: "Nil"}}, "clock": ((_t_0 + 1) >>> 0), "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ((_g_0 + _x_1) >>> 0), "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": ((_o_0 + _x_2) >>> 0), "rejected": ((_r_0 + _x_3) >>> 0), "clear": ((_cl_0 + _x_4) >>> 0), "delivered": ((_d_0 + _delivered_0) >>> 0), "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}, _frames_0);
 }
 
-function $DefenseHost$058refiner_fired$(_items_0) {
-  if (_items_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _items_0["head"];
-    const _kind_0 = _t_0["kind"];
-    const _flash_0 = _t_0["flash"];
-    const _rest_0 = _items_0["tail"];
-    const _x_0 = ($Bool$and$((_kind_0 === 1), (_flash_0 === 5)));
-    const _x_1 = ($DefenseHost$058refiner_fired$(_rest_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $DefenseHost$058output_outcome$(_value_0) {
-  if (_value_0 == 0) {
-    return {$: "../../packages/monkey-business-bend/OutputScenario.Certain"};
-  } else if ((_value_0 & 1) == 0) {
-    return {$: "../../packages/monkey-business-bend/OutputScenario.Failed"};
-  } else if (_value_0 == 1) {
-    return {$: "../../packages/monkey-business-bend/OutputScenario.Uncertain"};
-  } else {
-    return {$: "../../packages/monkey-business-bend/OutputScenario.Failed"};
-  }
-}
-
-function $DefenseHost$058mapped_action$(_world_0, _mapped_0) {
-  if (_mapped_0.$ === "DefenseMechanics.Unsupported") {
-    return _world_0;
-  } else if (_mapped_0.$ === "DefenseMechanics.OutputTiming") {
-    const _outcome_0 = _mapped_0["outcome"];
-    const _delay_0 = _mapped_0["delay"];
-    const _lease_0 = _mapped_0["lease"];
-    return $DefenseHost$058action$(_world_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl", "outcome": ($DefenseHost$058output_outcome$(_outcome_0)), "delay": _delay_0, "lease": _lease_0});
-  } else {
-    const _delay_1 = _mapped_0["delay"];
-    const _weights_0 = _mapped_0["weights"];
-    return $DefenseHost$058action$(_world_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.JevProfile", "delay": _delay_1, "weights": _weights_0});
-  }
-}
-
-function $DefenseHost$058mechanism$(_world_0, _ability_0) {
-  return $DefenseHost$058mapped_action$(_world_0, ($DefenseMechanics$058translate$(_ability_0)));
-}
-
-function $DefenseHost$058refinement$(_world_0) {
-  return $DefenseHost$058pick_world$(($DefenseHost$058refiner_fired$(($DefenseModel$058towers$(_world_0)))), ($DefenseHost$058mechanism$(_world_0, {$: "DefenseMechanics.Refinement"})), _world_0);
+function $DefenseHost$058presented$(_before_0, _after_0, _frames_0) {
+  return $DefenseModel$058with_actors$(_after_0, ($DefenseMotion$058step$(($DefenseMotion$058ingest$(_frames_0, ($DefenseModel$058actors$(_before_0)), ($DefenseModel$058layout$(_before_0)))))));
 }
 
 function $DefenseHost$058tick_applied$(_world_0, _advanced_0) {
   const _state_0 = _advanced_0["state"];
   const _frames_0 = _advanced_0["frames"];
   const _physical_0 = _advanced_0["physical"];
-  return {$: "DefenseHost.TickObserved", "world": ($DefenseHost$058damage$(($DefenseHost$058refinement$(($DefenseEffects$058shoot_world$(($DefenseHost$058consumed$(_world_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.Advanced", "state": _state_0, "frames": _frames_0, "physical": _physical_0})))))))), "frames": _frames_0, "physical": _physical_0};
-}
-
-function $DefenseHost$058presented_advance$(_ready_0, _world_0, _advanced_0) {
-  if (_ready_0) {
-    return _advanced_0;
-  } else {
-    return {$: "../../packages/monkey-business-bend/NativeRunTypes.Advanced", "state": ($DefenseModel$058engine$(_world_0)), "frames": {$: "Nil"}, "physical": {$: "Nil"}};
-  }
-}
-
-function $DefenseHost$058advancing_observed$(_world_0, _advanced_0) {
-  const _state_0 = _advanced_0["state"];
-  const _frames_0 = _advanced_0["frames"];
-  const _physical_0 = _advanced_0["physical"];
-  return $DefenseHost$058tick_applied$(_world_0, ($DefenseHost$058presented_advance$(($DefenseEffects$058transition_ready$(_world_0, ($DefenseModel$058canonical$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058observe$(_state_0)))))), _world_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.Advanced", "state": _state_0, "frames": _frames_0, "physical": _physical_0})));
+  return {$: "DefenseHost.TickObserved", "world": ($DefenseHost$058damage$(($DefenseHost$058presented$(_world_0, ($DefenseHost$058consumed$(_world_0, {$: "../../packages/monkey-business-bend/NativeRunTypes.Advanced", "state": _state_0, "frames": _frames_0, "physical": _physical_0})), _frames_0)))), "frames": _frames_0, "physical": _physical_0};
 }
 
 function $DefenseHost$058ticking_observed$(_world_0) {
   const _x_0 = ($DefenseModel$058time$(_world_0));
   const _x_1 = nat_chk(_x_0 * 20);
-  return $DefenseHost$058advancing_observed$(_world_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advance$(($DefenseModel$058engine$(_world_0)), 1, nat_chk(_x_1 + 20))));
+  return $DefenseHost$058tick_applied$(_world_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advance$(($DefenseModel$058engine$(_world_0)), 256, nat_chk(_x_1 + 20))));
+}
+
+function $DefenseHost$058playback_when$(_active_0, _world_0) {
+  if (_active_0) {
+    return $DefenseModel$058with_actors$(_world_0, ($DefenseMotion$058step$(($DefenseModel$058actors$(_world_0)))));
+  } else {
+    return _world_0;
+  }
 }
 
 function $DefenseHost$058tick_when$(_active_0, _world_0) {
   if (_active_0) {
     return $DefenseHost$058ticking_observed$(_world_0);
   } else {
-    return {$: "DefenseHost.TickObserved", "world": _world_0, "frames": {$: "Nil"}, "physical": {$: "Nil"}};
+    return {$: "DefenseHost.TickObserved", "world": ($DefenseHost$058playback_when$(($Bool$and$(($DefenseModel$058active$(_world_0)), ($Bool$not$(($DefenseModel$058paused$(_world_0)))))), _world_0)), "frames": {$: "Nil"}, "physical": {$: "Nil"}};
   }
 }
 
@@ -39041,7 +39270,6 @@ function $DefenseHost$058move$(_world_0, _x_0, _y_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39051,12 +39279,12 @@ function $DefenseHost$058move$(_world_0, _x_0, _y_0) {
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
 }
 
 function $DefenseHost$058map_free$(_world_0) {
   const _x_0 = ($DefenseProjection$058writes$(_world_0));
-  return $Bool$and$(($Nat$is_eq$(($List$length$(($DefenseModel$058towers$(_world_0)))), 0)), ($Bool$and$(($Nat$is_eq$(($List$length$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))), 0)), (_x_0 === 0))));
+  return $Bool$and$(($Nat$is_eq$(($List$length$(($DefenseModel$058actors$(_world_0)))), 0)), ($Bool$and$(($Nat$is_eq$(($List$length$(($DefenseModel$058towers$(_world_0)))), 0)), ($Bool$and$(($Nat$is_eq$(($List$length$(($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))), 0)), (_x_0 === 0))))));
 }
 
 function $DefenseHost$058selected_tower$($0, $1) {
@@ -39092,17 +39320,13 @@ function $DefenseHost$058upgrade_items$(_items_0, _index_0) {
     const _y_0 = _t_0["y"];
     const _k_0 = _t_0["kind"];
     const _l_0 = _t_0["level"];
-    const _cd_0 = _t_0["cooldown"];
-    const _flash_0 = _t_0["flash"];
-    const _aim_0 = _t_0["aim"];
-    const _charge_0 = _t_0["charges"];
     const _rest_0 = _items_0["tail"];
     if (_index_0 == 1) {
-      return {$: "Con", "head": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _k_0, "level": ((_l_0 + 1) >>> 0), "cooldown": _cd_0, "flash": _flash_0, "aim": _aim_0, "charges": _charge_0}, "tail": _rest_0};
+      return {$: "Con", "head": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _k_0, "level": ((_l_0 + 1) >>> 0)}, "tail": _rest_0};
     } else {
-      const _36_0 = u32_to_word(_index_0)["head"];
-      const _37_0 = u32_to_word(_index_0)["tail"];
-      return {$: "Con", "head": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _k_0, "level": _l_0, "cooldown": _cd_0, "flash": _flash_0, "aim": _aim_0, "charges": _charge_0}, "tail": ($DefenseHost$058upgrade_items$(_rest_0, ($DefenseModel$058sub$(word_to_u32({$: "WCon", "head": _36_0, "tail": _37_0}), 1))))};
+      const _28_0 = u32_to_word(_index_0)["head"];
+      const _29_0 = u32_to_word(_index_0)["tail"];
+      return {$: "Con", "head": {$: "DefenseModel.Tower", "x": _x_0, "y": _y_0, "kind": _k_0, "level": _l_0}, "tail": ($DefenseHost$058upgrade_items$(_rest_0, ($DefenseModel$058sub$(word_to_u32({$: "WCon", "head": _28_0, "tail": _29_0}), 1))))};
     }
   }
 }
@@ -39116,7 +39340,6 @@ function $DefenseHost$058upgrade_found$(_world_0, _found_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39131,10 +39354,11 @@ function $DefenseHost$058upgrade_found$(_world_0, _found_0) {
   if (_found_0.$ === "Some") {
     const _tower_0 = _found_0["value"];
     const _x_1 = ($DefenseModel$058level$(_tower_0));
-    const _x_2 = ($DefenseHost$058upgrade_cost$(($DefenseModel$058level$(_tower_0))));
-    return $DefenseHost$058pick_world$(($Bool$and$((_x_1 < 3), (_g_0 >= _x_2))), {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ($DefenseModel$058sub$(_g_0, ($DefenseHost$058upgrade_cost$(($DefenseModel$058level$(_tower_0)))))), "hp": _h_0, "towers": ($DefenseHost$058upgrade_items$(_ts_0, _selected_0)), "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}, {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0});
+    const _x_2 = ($DefenseMechanics$058max_level$(($DefenseModel$058tkind$(_tower_0))));
+    const _x_3 = ($DefenseHost$058upgrade_cost$(($DefenseModel$058level$(_tower_0))));
+    return $DefenseHost$058pick_world$(($Bool$and$((_x_1 < _x_2), (_g_0 >= _x_3))), ($DefenseMechanics$058profiles$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ($DefenseModel$058sub$(_g_0, ($DefenseHost$058upgrade_cost$(($DefenseModel$058level$(_tower_0)))))), "hp": _h_0, "towers": ($DefenseHost$058upgrade_items$(_ts_0, _selected_0)), "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0})), {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0});
   } else {
-    return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+    return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
   }
 }
 
@@ -39150,7 +39374,6 @@ function $DefenseHost$058reset_found$(_world_0, _layout_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39162,7 +39385,7 @@ function $DefenseHost$058reset_found$(_world_0, _layout_0) {
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _layout_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _layout_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
 }
 
 function $DefenseHost$058reset_layout$(_layout_0) {
@@ -39179,18 +39402,28 @@ function $DefenseHost$058pacing$(_world_0, _faster_0) {
 function $DefenseHost$058key_result$(_world_0, _code_0) {
   if (_code_0 == 114) {
     return $DefenseHost$058reset_layout$(($DefenseModel$058layout$(_world_0)));
+  } else if (_code_0 == 98) {
+    return $DefenseHost$058cycle_burst$(_world_0);
+  } else if (_code_0 == 102) {
+    return $DefenseHost$058outage$(_world_0);
   } else if (_code_0 == 110) {
     return $DefenseHost$058start$(_world_0);
   } else if ((_code_0 & 1) == 0) {
     return _world_0;
   } else if (_code_0 == 117) {
     return $DefenseHost$058upgrade$(_world_0);
+  } else if (_code_0 == 61) {
+    return $DefenseHost$058adjust_burst$(_world_0, true);
   } else if (_code_0 == 93) {
     return $DefenseHost$058pacing$(_world_0, true);
+  } else if (_code_0 == 45) {
+    return $DefenseHost$058adjust_burst$(_world_0, false);
   } else if (_code_0 == 13) {
     return $DefenseHost$058start$(_world_0);
   } else if ((_code_0 & 3) == 1) {
     return _world_0;
+  } else if (_code_0 == 43) {
+    return $DefenseHost$058adjust_burst$(_world_0, true);
   } else if (_code_0 == 91) {
     return $DefenseHost$058pacing$(_world_0, false);
   } else {
@@ -39220,7 +39453,6 @@ function $DefenseHost$058key_fields$(_world_0, _code_0, _layout_0, _schedule_0) 
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39232,10 +39464,10 @@ function $DefenseHost$058key_fields$(_world_0, _code_0, _layout_0, _schedule_0) 
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  const _choose_0 = ($Bool$and$((_code_0 >= 49), (_code_0 <= 55)));
+  const _choose_0 = ($Bool$and$((_code_0 >= 49), (_code_0 <= 51)));
   const _x_1 = (_code_0 === 32);
   const _x_2 = (_code_0 === 112);
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": ($Bool$pick$((_x_1 || _x_2), ($Bool$not$(_p_0)), _p_0)), "layout": _layout_0, "choice": ($Bool$pick$(_choose_0, ((_code_0 - 49) >>> 0), _c_0)), "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": ($DefenseModel$058control_with_schedule$(($DefenseModel$058control_value$(_auto_0)), _schedule_0)), "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": ($Bool$pick$(_choose_0, 0, _selected_0)), "damageWork": _work_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": ($Bool$pick$((_x_1 || _x_2), ($Bool$not$(_p_0)), _p_0)), "layout": _layout_0, "choice": ($Bool$pick$(_choose_0, ((_code_0 - 49) >>> 0), _c_0)), "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": ($DefenseModel$058control_with_schedule$(($DefenseModel$058control_value$(_auto_0)), _schedule_0)), "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": ($Bool$pick$(_choose_0, 0, _selected_0)), "damageWork": _work_0, "damageFlash": _flash_0};
 }
 
 function $DefenseHost$058key_workload$(_world_0, _code_0) {
@@ -39293,7 +39525,6 @@ function $DefenseHost$058select$(_world_0, _index_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39304,7 +39535,7 @@ function $DefenseHost$058select$(_world_0, _index_0) {
   const _y_0 = _world_0["mouseY"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _index_0, "damageWork": _work_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _index_0, "damageWork": _work_0, "damageFlash": _flash_0};
 }
 
 function $DefenseHost$058build$(_world_0, _x_0, _y_0, _kind_0) {
@@ -39316,7 +39547,6 @@ function $DefenseHost$058build$(_world_0, _x_0, _y_0, _kind_0) {
   const _g_0 = _world_0["gold"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39329,7 +39559,7 @@ function $DefenseHost$058build$(_world_0, _x_0, _y_0, _kind_0) {
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
   const _x_1 = ($DefenseHost$058tower_cost$(_kind_0));
-  return $DefenseHost$058pick_world$(($Bool$and$(($DefenseHost$058placement_valid$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0}, _x_0, _y_0)), ($Bool$and$((_g_0 >= _x_1), ($Bool$and$((_kind_0 < 7), (_h_0 > 0))))))), {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ($DefenseModel$058sub$(_g_0, ($DefenseHost$058tower_cost$(_kind_0)))), "hp": _h_0, "towers": {$: "Con", "head": {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1, "cooldown": 0, "flash": 0, "aim": 0, "charges": 240}, "tail": _ts_0}, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": 0, "damageWork": _work_0, "damageFlash": _flash_0}, {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0});
+  return $DefenseHost$058pick_world$(($Bool$and$(($DefenseHost$058placement_valid$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0}, _x_0, _y_0)), ($Bool$and$((_g_0 >= _x_1), ($Bool$and$((_kind_0 < 3), (_h_0 > 0))))))), ($DefenseMechanics$058purchased$({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ($DefenseModel$058sub$(_g_0, ($DefenseHost$058tower_cost$(_kind_0)))), "hp": _h_0, "towers": {$: "Con", "head": {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1}, "tail": _ts_0}, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": 0, "damageWork": _work_0, "damageFlash": _flash_0}, _kind_0)), {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0});
 }
 
 function $DefenseHost$058click$(_world_0, _x_0, _y_0) {
@@ -39337,146 +39567,39 @@ function $DefenseHost$058click$(_world_0, _x_0, _y_0) {
   return $DefenseHost$058pick_world$((_index_0 > 0), ($DefenseHost$058select$(($DefenseHost$058move$(_world_0, _x_0, _y_0)), _index_0)), ($DefenseHost$058build$(($DefenseHost$058move$(_world_0, _x_0, _y_0)), _x_0, _y_0, ($DefenseModel$058choice$(_world_0)))));
 }
 
-function $DefenseHost$058road_site$(_world_0, _tower_0, _fallback_0) {
-  const _point_0 = {$: "DefenseMap.Point", "x": ($DefenseModel$058tx$(_tower_0)), "y": ($DefenseModel$058ty$(_tower_0))};
-  const _radius_0 = ($DefenseEffects$058range$(($DefenseModel$058tkind$(_tower_0)), ($DefenseModel$058level$(_tower_0))));
-  const _x_0 = ($DefenseModel$058tkind$(_tower_0));
-  const _x_1 = ($DefenseMap$058on_path$(_point_0, ($DefenseMap$058review_route$(($DefenseModel$058layout$(_world_0)), 0)), _radius_0));
-  const _x_2 = ($DefenseMap$058on_path$(_point_0, ($DefenseMap$058review_route$(($DefenseModel$058layout$(_world_0)), 1)), _radius_0));
-  return $Bool$pick$((_x_0 < 3), ($Bool$pick$(($DefenseMap$058on_path$(_point_0, ($DefenseMap$058source_route$(($DefenseModel$058layout$(_world_0)))), _radius_0)), 1, ($Bool$pick$(($DefenseMap$058on_path$(_point_0, ($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0)))), _radius_0)), 2, ($Bool$pick$((_x_1 || _x_2), 4, _fallback_0)))))), _fallback_0);
-}
-
-function $DefenseHost$058preview_site_found$(_world_0, _tower_0, _found_0) {
-  if (_found_0.$ === "Some") {
-    const _work_0 = _found_0["value"];
-    const _x_0 = ($DefenseEffects$058kind$(_work_0));
-    const _x_1 = ($DefenseEffects$058kind$(_work_0));
-    return $Bool$pick$((_x_0 === 0), 1, ($Bool$pick$((_x_1 === 3), 4, ($DefenseEffects$058kind$(_work_0)))));
-  } else {
-    return $DefenseHost$058road_site$(_world_0, _tower_0, ($DefenseHost$058support_site$(_world_0, _tower_0)));
-  }
-}
-
 function $DefenseHost$058preview_site$(_world_0, _x_0, _y_0, _kind_0) {
-  const _tower_0 = {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1, "cooldown": 0, "flash": 0, "aim": 0, "charges": 240};
-  return $DefenseHost$058preview_site_found$(_world_0, _tower_0, ($DefenseEffects$058find_work$(($DefenseEffects$058target$(_world_0, _tower_0)), ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
+  return $DefenseHost$058support_site$(_world_0, {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1});
 }
 
 function $DefenseHost$058preview_target$(_world_0, _x_0, _y_0, _kind_0) {
-  return $DefenseEffects$058target$(_world_0, {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1, "cooldown": 0, "flash": 0, "aim": 0, "charges": 240});
+  return 0;
 }
 
-function $DefenseHost$058target_remaining$(_world_0, _found_0) {
-  if (_found_0.$ === "Some") {
-    const _work_0 = _found_0["value"];
-    return $DefenseEffects$058remaining$(_world_0, _work_0);
-  } else {
-    return 0;
-  }
+function $DefenseHost$058profile_delay$(_world_0, _kind_0) {
+  return $Bool$pick$((_kind_0 === 2), ($DefenseMechanics$058missing_access$(($DefenseMechanics$058current_environment$(($DefenseModel$058engine$(_world_0)))))), ($DefenseModel$058number$(($DefenseMechanics$058current_delay$(($DefenseMechanics$058current_environment$(($DefenseModel$058engine$(_world_0)))), _kind_0)))));
 }
 
 function $DefenseHost$058preview_before$(_world_0, _x_0, _y_0, _kind_0) {
-  const _site_0 = ($DefenseHost$058preview_site$(_world_0, _x_0, _y_0, _kind_0));
-  return $Bool$pick$((_kind_0 === 1), ($DefenseModel$058timer_risk$(($DefenseEffects$058find_timer$(($DefenseHost$058preview_target$(_world_0, _x_0, _y_0, _kind_0)), ($DefenseModel$058timers$(_world_0)))))), ($Bool$pick$((_kind_0 === 3), ($Bool$pick$((_site_0 === 4), ($DefenseEffects$058permits$(_world_0, 4)), ($DefenseHost$058source_permits$(_world_0)))), ($Bool$pick$((_kind_0 === 5), ($DefenseOutput$058batch_target$(_world_0)), ($Bool$pick$((_kind_0 === 6), ($DefenseHost$058residual_damage$(_world_0)), ($DefenseHost$058target_remaining$(_world_0, ($DefenseEffects$058find_work$(($DefenseHost$058preview_target$(_world_0, _x_0, _y_0, _kind_0)), ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))))))))))));
+  return $DefenseHost$058profile_delay$(_world_0, _kind_0);
 }
 
 function $DefenseHost$058hypothetical$(_world_0, _x_0, _y_0, _kind_0) {
-  return $DefenseModel$058with_effects$(_world_0, {$: "Con", "head": {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1, "cooldown": 0, "flash": 0, "aim": 0, "charges": 240}, "tail": ($DefenseModel$058towers$(_world_0))}, ($DefenseModel$058timers$(_world_0)));
+  return $DefenseModel$058with_towers$(_world_0, {$: "Con", "head": {$: "DefenseModel.Tower", "x": ($DefenseHost$058snap$(_x_0)), "y": ($DefenseHost$058snap$(_y_0)), "kind": _kind_0, "level": 1}, "tail": ($DefenseModel$058towers$(_world_0))});
 }
 
 function $DefenseHost$058preview_gain$(_world_0, _x_0, _y_0, _kind_0) {
-  const _before_0 = ($DefenseHost$058preview_before$(_world_0, _x_0, _y_0, _kind_0));
-  const _after_0 = ($DefenseHost$058hypothetical$(_world_0, _x_0, _y_0, _kind_0));
-  const _site_0 = ($DefenseHost$058preview_site$(_world_0, _x_0, _y_0, _kind_0));
-  return $Bool$pick$((_site_0 === 255), 0, ($Bool$pick$((_kind_0 === 3), ($DefenseModel$058sub$(($DefenseHost$058preview_before$(_after_0, _x_0, _y_0, _kind_0)), _before_0)), ($Bool$pick$((_kind_0 === 5), ($DefenseModel$058sub$(($DefenseOutput$058batch_target$(_after_0)), _before_0)), ($Bool$pick$((_kind_0 === 6), ($DefenseModel$058sub$(_before_0, ($DefenseHost$058residual_damage$(_after_0)))), ($Bool$pick$(($Nat$is_eq$(($DefenseHost$058preview_target$(_world_0, _x_0, _y_0, _kind_0)), 0)), 0, ($Bool$pick$((_kind_0 === 1), ($DefenseEffects$058risk_reduction$(_before_0, ($DefenseHost$058tower_power$(_kind_0, 1)))), ($U32$min$(_before_0, ($DefenseHost$058tower_power$(_kind_0, 1)))))))))))))));
+  const _next_0 = ($DefenseHost$058hypothetical$(_world_0, _x_0, _y_0, _kind_0));
+  const _base_0 = ($Bool$pick$((_kind_0 === 0), ($DefenseModel$058base_jev$(($DefenseModel$058settings$(_world_0)))), ($DefenseModel$058base_output$(($DefenseModel$058settings$(_world_0))))));
+  const _x_1 = ($DefenseHost$058preview_site$(_world_0, _x_0, _y_0, _kind_0));
+  return $Bool$pick$((_x_1 === 255), 0, ($Bool$pick$((_kind_0 === 2), ($DefenseHost$058profile_delay$(_world_0, _kind_0)), ($DefenseModel$058sub$(($DefenseHost$058profile_delay$(_world_0, _kind_0)), ($DefenseModel$058number$(($DefenseMechanics$058delay$(_base_0, ($DefenseMechanics$058strength$(_next_0, _kind_0)))))))))));
 }
 
 function $DefenseHost$058preview_secondary_before$(_world_0, _x_0, _y_0, _kind_0) {
-  return $Bool$pick$((_kind_0 === 5), ($DefenseOutput$058item_work$(_world_0)), 0);
+  return 0;
 }
 
 function $DefenseHost$058preview_secondary_delta$(_world_0, _x_0, _y_0, _kind_0) {
-  return $Bool$pick$((_kind_0 === 5), ($DefenseModel$058sub$(($DefenseOutput$058item_work$(_world_0)), ($DefenseOutput$058item_work$(($DefenseHost$058hypothetical$(_world_0, _x_0, _y_0, _kind_0)))))), 0);
-}
-
-function $DefenseHost$058duration_found$(_world_0, _found_0) {
-  if (_found_0.$ === "Some") {
-    const _work_0 = _found_0["value"];
-    return $DefenseEffects$058duration$(_world_0, _work_0);
-  } else {
-    return 0;
-  }
-}
-
-function $DefenseHost$058duration$(_world_0, _token_0) {
-  const _x_0 = ($DefenseProjection$058id$(_token_0));
-  return $DefenseHost$058duration_found$(_world_0, ($DefenseEffects$058find_work$(_x_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
-}
-
-function $DefenseHost$058remaining$(_world_0, _token_0) {
-  const _x_0 = ($DefenseProjection$058id$(_token_0));
-  return $DefenseHost$058target_remaining$(_world_0, ($DefenseEffects$058find_work$(_x_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
-}
-
-function $DefenseHost$058risk$(_world_0, _token_0) {
-  const _x_0 = ($DefenseProjection$058id$(_token_0));
-  return $DefenseModel$058timer_risk$(($DefenseEffects$058find_timer$(_x_0, ($DefenseModel$058timers$(_world_0)))));
-}
-
-function $DefenseHost$058travel_ticks$(_world_0, _phase_0, _lane_0) {
-  if (_phase_0 == 0) {
-    return $DefenseMap$058path_length$(($DefenseMap$058source_route$(($DefenseModel$058layout$(_world_0)))));
-  } else if ((_phase_0 & 3) == 0) {
-    return 0;
-  } else if (_phase_0 == 2) {
-    return $DefenseMap$058path_length$(($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0)))));
-  } else if ((_phase_0 & 3) == 2) {
-    return 0;
-  } else if (_phase_0 == 1) {
-    return $DefenseMap$058path_length$(($DefenseMap$058preparation_route$(($DefenseModel$058layout$(_world_0)))));
-  } else if ((_phase_0 & 7) == 1) {
-    return 0;
-  } else if (_phase_0 == 5) {
-    return $DefenseMap$058path_length$(($DefenseMap$058retained_route$(($DefenseModel$058layout$(_world_0)))));
-  } else if ((_phase_0 & 7) == 5) {
-    return 0;
-  } else if (_phase_0 == 3) {
-    return $DefenseMap$058path_length$(($DefenseMap$058review_route$(($DefenseModel$058layout$(_world_0)), _lane_0)));
-  } else {
-    return 0;
-  }
-}
-
-function $DefenseHost$058lane_found$(_world_0, _found_0) {
-  if (_found_0.$ === "Some") {
-    const _work_0 = _found_0["value"];
-    return $DefenseEffects$058lane$(_world_0, _work_0);
-  } else {
-    return 0;
-  }
-}
-
-function $DefenseHost$058unit_lane$(_world_0, _token_0) {
-  const _x_0 = ($DefenseProjection$058id$(_token_0));
-  return $DefenseHost$058lane_found$(_world_0, ($DefenseEffects$058find_work$(_x_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
-}
-
-function $DefenseHost$058point_work$(_world_0, _work_0) {
-  return $DefenseEffects$058point_work$(_world_0, _work_0);
-}
-
-function $DefenseHost$058point_found$(_world_0, _found_0) {
-  if (_found_0.$ === "Some") {
-    const _work_0 = _found_0["value"];
-    return $DefenseHost$058point_work$(_world_0, _work_0);
-  } else {
-    return {$: "DefenseMap.Point", "x": 24, "y": 100};
-  }
-}
-
-function $DefenseHost$058unit_point$(_world_0, _token_0) {
-  const _x_0 = ($DefenseProjection$058id$(_token_0));
-  return $DefenseHost$058point_found$(_world_0, ($DefenseEffects$058find_work$(_x_0, ($DefenseModel$058work$(($DefenseModel$058core$(_world_0)))))));
+  return 0;
 }
 
 function $observe$(_world_0) {
@@ -39491,7 +39614,6 @@ function $with_budget$(_world_0, _budget_0) {
   const _c_0 = _world_0["choice"];
   const _h_0 = _world_0["hp"];
   const _ts_0 = _world_0["towers"];
-  const _ms_0 = _world_0["timers"];
   const _a_0 = _world_0["active"];
   const _o_0 = _world_0["offered"];
   const _r_0 = _world_0["rejected"];
@@ -39503,7 +39625,7 @@ function $with_budget$(_world_0, _budget_0) {
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _budget_0, "hp": _h_0, "towers": _ts_0, "timers": _ms_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
+  return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _budget_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0};
 }
 
 function $initial$(_state_0, _budget_0, _layout_0) {
@@ -39515,7 +39637,7 @@ function $default_config$() {
 }
 
 function $create_world$(_config_0, _seed_0, _budget_0, _layout_0) {
-  return $DefenseHost$058start$(($initial$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058create$(_config_0, _seed_0)), _budget_0, _layout_0)));
+  return $DefenseHost$058start$(($DefenseHost$058reset_found$(($with_budget$(($DefenseHost$058initial_config$(_config_0, _seed_0)), _budget_0)), _layout_0)));
 }
 
 function $engine_observation$(_world_0) {
@@ -39526,7 +39648,11 @@ function $accepted$(_before_0, _after_0) {
   return {$: "Receipt", "world": _after_0, "result": {$: "Applied"}, "charged": ($DefenseModel$058sub$(($DefenseModel$058gold$(_before_0)), ($DefenseModel$058gold$(_after_0))))};
 }
 
-function $build_checked$(_dead_0, _unknown_0, _illegal_0, _poor_0, _world_0, _x_0, _y_0, _kind_0) {
+function $priced$(_before_0, _after_0, _price_0) {
+  return {$: "Receipt", "world": ($with_budget$(_after_0, ($DefenseModel$058sub$(($DefenseModel$058gold$(_before_0)), _price_0)))), "result": {$: "Applied"}, "charged": _price_0};
+}
+
+function $build_checked$(_dead_0, _unknown_0, _illegal_0, _poor_0, _world_0, _x_0, _y_0, _kind_0, _price_0) {
   if (_dead_0) {
     if (_unknown_0) {
       if (_illegal_0) {
@@ -39583,18 +39709,21 @@ function $build_checked$(_dead_0, _unknown_0, _illegal_0, _poor_0, _world_0, _x_
         if (_poor_0) {
           return {$: "Receipt", "world": _world_0, "result": {$: "Unaffordable"}, "charged": 0};
         } else {
-          return $accepted$(_world_0, ($DefenseHost$058build$(_world_0, _x_0, _y_0, _kind_0)));
+          return $priced$(_world_0, ($DefenseHost$058build$(($with_budget$(_world_0, ($DefenseHost$058tower_cost$(_kind_0)))), _x_0, _y_0, _kind_0)), _price_0);
         }
       }
     }
   }
 }
 
-function $build$(_world_0, _x_0, _y_0, _kind_0) {
+function $build_priced$(_world_0, _x_0, _y_0, _kind_0, _price_0) {
   const _x_1 = ($DefenseModel$058hp$(_world_0));
   const _x_2 = ($DefenseModel$058gold$(_world_0));
-  const _x_3 = ($DefenseHost$058tower_cost$(_kind_0));
-  return $build_checked$((_x_1 === 0), (_kind_0 >= 7), ($Bool$not$(($DefenseHost$058placement_valid$(_world_0, _x_0, _y_0)))), (_x_2 < _x_3), _world_0, _x_0, _y_0, _kind_0);
+  return $build_checked$((_x_1 === 0), (_kind_0 >= 3), ($Bool$not$(($DefenseHost$058placement_valid$(_world_0, _x_0, _y_0)))), (_x_2 < _price_0), _world_0, _x_0, _y_0, _kind_0, _price_0);
+}
+
+function $build$(_world_0, _x_0, _y_0, _kind_0) {
+  return $build_priced$(_world_0, _x_0, _y_0, _kind_0, ($DefenseHost$058tower_cost$(_kind_0)));
 }
 
 function $upgrade_checked$(_full_0, _poor_0, _world_0, _index_0) {
@@ -39619,9 +39748,10 @@ function $upgrade_found$(_world_0, _index_0, _found_0) {
   } else {
     const _tower_0 = _found_0["value"];
     const _x_0 = ($DefenseModel$058level$(_tower_0));
-    const _x_1 = ($DefenseModel$058gold$(_world_0));
-    const _x_2 = ($DefenseHost$058upgrade_cost$(($DefenseModel$058level$(_tower_0))));
-    return $upgrade_checked$((_x_0 >= 3), (_x_1 < _x_2), _world_0, _index_0);
+    const _x_1 = ($DefenseMechanics$058max_level$(($DefenseModel$058tkind$(_tower_0))));
+    const _x_2 = ($DefenseModel$058gold$(_world_0));
+    const _x_3 = ($DefenseHost$058upgrade_cost$(($DefenseModel$058level$(_tower_0))));
+    return $upgrade_checked$((_x_0 >= _x_1), (_x_2 < _x_3), _world_0, _index_0);
   }
 }
 
@@ -39648,16 +39778,113 @@ function $tick$(_world_0) {
   return $tick_result$(($DefenseModel$058gold$(_world_0)), ($DefenseHost$058tick_observed$(_world_0)));
 }
 
-function $tick_allowed$(_allowed_0, _world_0) {
+function $tick_allowed$(_allowed_0, _world_0, _remainingEvents_0) {
   if (_allowed_0) {
-    return $tick$(_world_0);
+    const _x_0 = ($DefenseModel$058time$(_world_0));
+    const _x_1 = nat_chk(_x_0 * 20);
+    return $tick_result$(($DefenseModel$058gold$(_world_0)), ($DefenseHost$058tick_applied$(_world_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058advance$(($DefenseModel$058engine$(_world_0)), (256 < _remainingEvents_0 ? 256 : _remainingEvents_0), nat_chk(_x_1 + 20))))));
+  } else {
+    return $DefenseHost$058tick_observed$(_world_0);
+  }
+}
+
+function $tick_budget$(_nonzero_0, _world_0, _remainingEvents_0) {
+  if (_nonzero_0) {
+    return $tick_allowed$(($DefenseHost$058clock_active$(_world_0)), _world_0, _remainingEvents_0);
   } else {
     return {$: "DefenseHost.TickObserved", "world": _world_0, "frames": {$: "Nil"}, "physical": {$: "Nil"}};
   }
 }
 
 function $tick_bounded$(_world_0, _remainingEvents_0) {
-  return $tick_allowed$(($Bool$not$(($Nat$is_eq$(_remainingEvents_0, 0)))), _world_0);
+  return $tick_budget$(($Bool$not$(($Nat$is_eq$(_remainingEvents_0, 0)))), _world_0, _remainingEvents_0);
+}
+
+function $scenario_outcome$(_result_0) {
+  if (_result_0 == 1) {
+    return {$: "Some", "value": {$: "../../packages/agent-flow-bend/Canonical.RequestClear"}};
+  } else if ((_result_0 & 1) == 1) {
+    return {$: "None"};
+  } else if (_result_0 == 2) {
+    return {$: "Some", "value": {$: "../../packages/agent-flow-bend/Canonical.RequestFinding"}};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $scenario_environment$(_scenario_0, _environment_0) {
+  const _jev_0 = _scenario_0["jev"];
+  const _delivery_0 = _scenario_0["delivery"];
+  const _source_0 = _scenario_0["source"];
+  const _ready_0 = _scenario_0["ready"];
+  const _readable_0 = _scenario_0["readable"];
+  const _result_0 = _scenario_0["result"];
+  const _weights_0 = _environment_0["weights"];
+  const _tree_0 = _environment_0["tree_profile"];
+  const _graph_0 = _environment_0["graph_limits"];
+  const _lease_0 = _environment_0["output_lease"];
+  const _current_0 = _environment_0["current_work"];
+  const _generation_0 = _environment_0["credential_generation"];
+  const _lifetime_0 = _environment_0["advice_lifetime"];
+  const _profile_0 = _environment_0["output_profile"];
+  return {$: "../../packages/monkey-business-bend/NativeRunTypes.Environment", "jev_delay": _jev_0, "outcome": ($scenario_outcome$(_result_0)), "weights": _weights_0, "preparation_delay": _source_0, "tree_profile": _tree_0, "graph_limits": _graph_0, "output_delay": _delivery_0, "output_lease": _lease_0, "current_work": _current_0, "credential_ready": _ready_0, "credential_generation": _generation_0, "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "output_profile": _profile_0};
+}
+
+function $scenario_profile$(_profile_0, _seed_0, _interval_0) {
+  const _t_0 = _profile_0["settings"];
+  const _variation_0 = _t_0["variation"];
+  const _edits_0 = _t_0["edits"];
+  const _pause_0 = _t_0["pause"];
+  const _response_0 = _t_0["response"];
+  const _repairDelay_0 = _t_0["repairDelay"];
+  const _codes_0 = _profile_0["codes"];
+  const _bytes_0 = _profile_0["bytes"];
+  const _units_0 = _profile_0["units"];
+  const _duration_0 = _profile_0["duration"];
+  return {$: "../../packages/monkey-business-bend/Workload.Profile", "settings": {$: "../../packages/monkey-business-bend/Session.Settings", "interval": _interval_0, "variation": _variation_0, "edits": _edits_0, "pause": _pause_0, "response": _response_0, "repairDelay": _repairDelay_0}, "seed": _seed_0, "codes": _codes_0, "bytes": _bytes_0, "units": _units_0, "duration": _duration_0};
+}
+
+function $scenario_advicees$(_advicees_0, _seed_0, _interval_0) {
+  if (_advicees_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _advicees_0["head"];
+    const _p_0 = _t_0["identity"];
+    const _t_1 = _t_0["profile"];
+    if (_t_1.$ === "Some") {
+      const _profile_0 = _t_1["value"];
+      const _rest_0 = _advicees_0["tail"];
+      return {$: "Con", "head": {$: "../../packages/monkey-business-bend/NativeRunTypes.Advicee", "identity": _p_0, "seed": _seed_0, "profile": {$: "Some", "value": ($scenario_profile$(_profile_0, (_seed_0 >>> 0), _interval_0))}}, "tail": ($scenario_advicees$(_rest_0, _seed_0, _interval_0))};
+    } else {
+      const _rest_1 = _advicees_0["tail"];
+      return {$: "Con", "head": {$: "../../packages/monkey-business-bend/NativeRunTypes.Advicee", "identity": _p_0, "seed": _seed_0, "profile": {$: "None"}}, "tail": ($scenario_advicees$(_rest_1, _seed_0, _interval_0))};
+    }
+  }
+}
+
+function $scenario_config$(_scenario_0, _config_0, _seed_0) {
+  const __0 = _scenario_0["jev"];
+  const __1 = _scenario_0["delivery"];
+  const __2 = _scenario_0["source"];
+  const __3 = _scenario_0["ready"];
+  const __4 = _scenario_0["readable"];
+  const __5 = _scenario_0["result"];
+  const __6 = _scenario_0["burst"];
+  const _interval_0 = _scenario_0["interval"];
+  const _limits_0 = _config_0["limits"];
+  const _advicees_0 = _config_0["advicees"];
+  const _environment_0 = _config_0["environment"];
+  const _collectors_0 = _config_0["collectors"];
+  return {$: "../../packages/monkey-business-bend/NativeRunTypes.Config", "limits": _limits_0, "advicees": ($scenario_advicees$(_advicees_0, _seed_0, _interval_0)), "environment": ($scenario_environment$({$: "Scenario", "jev": __0, "delivery": __1, "source": __2, "ready": __3, "readable": __4, "result": __5, "burst": __6, "interval": _interval_0}, _environment_0)), "collectors": _collectors_0};
+}
+
+function $scenario_started$(_world_0, _scenario_0) {
+  const _burst_0 = _scenario_0["burst"];
+  return $DefenseHost$058start$(($DefenseModel$058with_control$(_world_0, ($DefenseModel$058with_settings$(($DefenseModel$058control$(_world_0)), ($DefenseModel$058with_burst$(($DefenseModel$058settings$(_world_0)), _burst_0)))))));
+}
+
+function $create_scenario$(_scenario_0, _seed_0, _budget_0, _layout_0) {
+  return $scenario_started$(($DefenseHost$058reset_found$(($with_budget$(($DefenseHost$058initial_config$(($scenario_config$(_scenario_0, ($DefenseConsumer$058config$()), _seed_0)), _seed_0)), _budget_0)), _layout_0)), _scenario_0);
 }
 
 function $Bool$not$(_b_0) {
@@ -39755,16 +39982,16 @@ function $U32$max$(_a_0, _b_0) {
   return $Bool$pick$((_a_0 < _b_0), _b_0, _a_0);
 }
 
+function $U32$min$(_a_0, _b_0) {
+  return $Bool$pick$((_a_0 < _b_0), _a_0, _b_0);
+}
+
 function $Bool$to_u32$(_b_0) {
   if (!_b_0) {
     return 0;
   } else {
     return 1;
   }
-}
-
-function $U32$min$(_a_0, _b_0) {
-  return $Bool$pick$((_a_0 < _b_0), _a_0, _b_0);
 }
 
 function $Cmp$is_eq$(_c_0) {
@@ -52279,7 +52506,8 @@ function $0m928(v) {
       case "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl": at = at[key] = {...v, "identity": $0m38(v["identity"]), "control": $0m647(v["control"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevProfile": at = at[key] = {...v, "delay": nat_host(v["delay"]), "weights": $0m655(v["weights"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl": at = at[key] = {...v, "credential_generation": nat_host(v["credential_generation"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl); a tag names its constructor as the"
+      case "../../packages/monkey-business-bend/NativeRunTypes.JevDelay": at = at[key] = {...v, "delay": nat_host(v["delay"])}; return top[0];
+      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl, ../../packages/monkey-business-bend/NativeRunTypes.JevDelay); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -52295,57 +52523,8 @@ function $0m929(v) {
       case "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl": at = at[key] = {...v, "identity": $0m26(v["identity"]), "control": $0m648(v["control"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevProfile": at = at[key] = {...v, "delay": BigInt(v["delay"]), "weights": $0m656(v["weights"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl": at = at[key] = {...v, "credential_generation": BigInt(v["credential_generation"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m932(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseModel.Tower": at = at[key] = {...v, "aim": nat_host(v["aim"])}; return top[0];
-      default: throw "bend: DefenseModel.Tower has no tag " + v?.$ + " (its tags: DefenseModel.Tower); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m931(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m932(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m934(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseModel.Timer": at = at[key] = {...v, "id": nat_host(v["id"]), "family": nat_host(v["family"])}; return top[0];
-      default: throw "bend: DefenseModel.Timer has no tag " + v?.$ + " (its tags: DefenseModel.Timer); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m933(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m934(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      case "../../packages/monkey-business-bend/NativeRunTypes.JevDelay": at = at[key] = {...v, "delay": BigInt(v["delay"])}; return top[0];
+      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl, ../../packages/monkey-business-bend/NativeRunTypes.JevDelay); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -52356,8 +52535,45 @@ function $0m930(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseModel.World": at = at[key] = {...v, "engine": $0m876(v["engine"]), "towers": $0m931(v["towers"]), "timers": $0m933(v["timers"])}; return top[0];
-      default: throw "bend: DefenseModel.World has no tag " + v?.$ + " (its tags: DefenseModel.World); a tag names its constructor as the"
+      case "DefenseModel.Cue": at = at[key] = {...v, "operation": nat_host(v["operation"]), "family": nat_host(v["family"])}; return top[0];
+      default: throw "bend: DefenseModel.Cue has no tag " + v?.$ + " (its tags: DefenseModel.Cue); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m931(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.Cue": at = at[key] = {...v, "operation": BigInt(v["operation"]), "family": BigInt(v["family"])}; return top[0];
+      default: throw "bend: DefenseModel.Cue has no tag " + v?.$ + " (its tags: DefenseModel.Cue); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m932(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.Settings": at = at[key] = {...v, "jev_delay": BigInt(v["jev_delay"]), "output_delay": BigInt(v["output_delay"])}; return top[0];
+      default: throw "bend: DefenseModel.Settings has no tag " + v?.$ + " (its tags: DefenseModel.Settings); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m934(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m931(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -52368,21 +52584,8 @@ function $0m937(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseModel.Tower": at = at[key] = {...v, "aim": BigInt(v["aim"])}; return top[0];
-      default: throw "bend: DefenseModel.Tower has no tag " + v?.$ + " (its tags: DefenseModel.Tower); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m936(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m937(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      case "DefenseMotionTypes.WorkIdentity": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
+      default: throw "bend: DefenseMotionTypes.WorkIdentity has no tag " + v?.$ + " (its tags: DefenseMotionTypes.WorkIdentity); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -52393,8 +52596,8 @@ function $0m939(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseModel.Timer": at = at[key] = {...v, "id": BigInt(v["id"]), "family": BigInt(v["family"])}; return top[0];
-      default: throw "bend: DefenseModel.Timer has no tag " + v?.$ + " (its tags: DefenseModel.Timer); a tag names its constructor as the"
+      case "DefenseMotionTypes.Waypoint": at = at[key] = {...v, "time": BigInt(v["time"])}; return top[0];
+      default: throw "bend: DefenseMotionTypes.Waypoint has no tag " + v?.$ + " (its tags: DefenseMotionTypes.Waypoint); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -52414,11 +52617,225 @@ function $0m938(v) {
   }
 }
 
+function $0m940(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m937(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m936(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseMotionTypes.Actor": at = at[key] = {...v, "key": $0m937(v["key"]), "family": BigInt(v["family"]), "path": $0m938(v["path"]), "predecessor": $0m940(v["predecessor"]), "shown": BigInt(v["shown"])}; return top[0];
+      default: throw "bend: DefenseMotionTypes.Actor has no tag " + v?.$ + " (its tags: DefenseMotionTypes.Actor); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
 function $0m935(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseModel.World": at = at[key] = {...v, "engine": $0m875(v["engine"]), "towers": $0m936(v["towers"]), "timers": $0m938(v["timers"])}; return top[0];
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m936(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m941(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m932(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m933(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.Control": at = at[key] = {...v, "cues": $0m934(v["cues"]), "actors": $0m935(v["actors"]), "settings": $0m941(v["settings"])}; return top[0];
+      default: throw "bend: DefenseModel.Control has no tag " + v?.$ + " (its tags: DefenseModel.Control); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m944(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m930(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m947(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseMotionTypes.WorkIdentity": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
+      default: throw "bend: DefenseMotionTypes.WorkIdentity has no tag " + v?.$ + " (its tags: DefenseMotionTypes.WorkIdentity); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m949(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseMotionTypes.Waypoint": at = at[key] = {...v, "time": nat_host(v["time"])}; return top[0];
+      default: throw "bend: DefenseMotionTypes.Waypoint has no tag " + v?.$ + " (its tags: DefenseMotionTypes.Waypoint); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m948(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m949(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m950(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m947(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m946(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseMotionTypes.Actor": at = at[key] = {...v, "key": $0m947(v["key"]), "family": nat_host(v["family"]), "path": $0m948(v["path"]), "predecessor": $0m950(v["predecessor"]), "shown": nat_host(v["shown"])}; return top[0];
+      default: throw "bend: DefenseMotionTypes.Actor has no tag " + v?.$ + " (its tags: DefenseMotionTypes.Actor); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m945(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m946(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m952(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.Settings": at = at[key] = {...v, "jev_delay": nat_host(v["jev_delay"]), "output_delay": nat_host(v["output_delay"])}; return top[0];
+      default: throw "bend: DefenseModel.Settings has no tag " + v?.$ + " (its tags: DefenseModel.Settings); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m951(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m952(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m943(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.Control": at = at[key] = {...v, "cues": $0m944(v["cues"]), "actors": $0m945(v["actors"]), "settings": $0m951(v["settings"])}; return top[0];
+      default: throw "bend: DefenseModel.Control has no tag " + v?.$ + " (its tags: DefenseModel.Control); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m942(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m943(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m953(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m933(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m954(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.World": at = at[key] = {...v, "engine": $0m876(v["engine"]), "auto": $0m942(v["auto"])}; return top[0];
       default: throw "bend: DefenseModel.World has no tag " + v?.$ + " (its tags: DefenseModel.World); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52426,7 +52843,19 @@ function $0m935(v) {
   }
 }
 
-function $0m940(v) {
+function $0m955(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseModel.World": at = at[key] = {...v, "engine": $0m875(v["engine"]), "auto": $0m953(v["auto"])}; return top[0];
+      default: throw "bend: DefenseModel.World has no tag " + v?.$ + " (its tags: DefenseModel.World); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m956(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -52438,125 +52867,7 @@ function $0m940(v) {
   }
 }
 
-function $0m941(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseEffects.Shot": at = at[key] = {...v, "tower": $0m932(v["tower"]), "timers": $0m933(v["timers"])}; return top[0];
-      default: throw "bend: DefenseEffects.Shot has no tag " + v?.$ + " (its tags: DefenseEffects.Shot); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m942(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseEffects.Shot": at = at[key] = {...v, "tower": $0m937(v["tower"]), "timers": $0m938(v["timers"])}; return top[0];
-      default: throw "bend: DefenseEffects.Shot has no tag " + v?.$ + " (its tags: DefenseEffects.Shot); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m943(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseEffects.ShotList": at = at[key] = {...v, "towers": $0m931(v["towers"]), "timers": $0m933(v["timers"])}; return top[0];
-      default: throw "bend: DefenseEffects.ShotList has no tag " + v?.$ + " (its tags: DefenseEffects.ShotList); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m944(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseEffects.ShotList": at = at[key] = {...v, "towers": $0m936(v["towers"]), "timers": $0m938(v["timers"])}; return top[0];
-      default: throw "bend: DefenseEffects.ShotList has no tag " + v?.$ + " (its tags: DefenseEffects.ShotList); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m945(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseMechanics.DependencyAcceleration": at[key] = v; return top[0];
-      case "DefenseMechanics.FutureBatching": at[key] = v; return top[0];
-      case "DefenseMechanics.LaunchPacing": at[key] = v; return top[0];
-      case "DefenseMechanics.OutputLatency": at = at[key] = {...v, "delay": nat_host(v["delay"]), "lease": nat_host(v["lease"])}; return top[0];
-      case "DefenseMechanics.Refinement": at[key] = v; return top[0];
-      default: throw "bend: DefenseMechanics.Ability has no tag " + v?.$ + " (its tags: DefenseMechanics.DependencyAcceleration, DefenseMechanics.FutureBatching, DefenseMechanics.LaunchPacing, DefenseMechanics.OutputLatency, DefenseMechanics.Refinement); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m946(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseMechanics.DependencyAcceleration": at[key] = v; return top[0];
-      case "DefenseMechanics.FutureBatching": at[key] = v; return top[0];
-      case "DefenseMechanics.LaunchPacing": at[key] = v; return top[0];
-      case "DefenseMechanics.OutputLatency": at = at[key] = {...v, "delay": BigInt(v["delay"]), "lease": BigInt(v["lease"])}; return top[0];
-      case "DefenseMechanics.Refinement": at[key] = v; return top[0];
-      default: throw "bend: DefenseMechanics.Ability has no tag " + v?.$ + " (its tags: DefenseMechanics.DependencyAcceleration, DefenseMechanics.FutureBatching, DefenseMechanics.LaunchPacing, DefenseMechanics.OutputLatency, DefenseMechanics.Refinement); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m947(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseMechanics.Unsupported": at[key] = v; return top[0];
-      case "DefenseMechanics.OutputTiming": at = at[key] = {...v, "delay": BigInt(v["delay"]), "lease": BigInt(v["lease"])}; return top[0];
-      case "DefenseMechanics.FutureReview": at = at[key] = {...v, "delay": BigInt(v["delay"]), "weights": $0m656(v["weights"])}; return top[0];
-      default: throw "bend: DefenseMechanics.Action has no tag " + v?.$ + " (its tags: DefenseMechanics.Unsupported, DefenseMechanics.OutputTiming, DefenseMechanics.FutureReview); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m948(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseHost.Shielded": at = at[key] = {...v, "towers": $0m931(v["towers"])}; return top[0];
-      default: throw "bend: DefenseHost.Shielded has no tag " + v?.$ + " (its tags: DefenseHost.Shielded); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m949(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseHost.Shielded": at = at[key] = {...v, "towers": $0m936(v["towers"])}; return top[0];
-      default: throw "bend: DefenseHost.Shielded has no tag " + v?.$ + " (its tags: DefenseHost.Shielded); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m950(v) {
+function $0m957(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -52568,25 +52879,37 @@ function $0m950(v) {
   }
 }
 
-function $0m951(v) {
+function $0m958(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseMechanics.Unsupported": at[key] = v; return top[0];
-      case "DefenseMechanics.OutputTiming": at = at[key] = {...v, "delay": nat_host(v["delay"]), "lease": nat_host(v["lease"])}; return top[0];
-      case "DefenseMechanics.FutureReview": at = at[key] = {...v, "delay": nat_host(v["delay"]), "weights": $0m655(v["weights"])}; return top[0];
-      default: throw "bend: DefenseMechanics.Action has no tag " + v?.$ + " (its tags: DefenseMechanics.Unsupported, DefenseMechanics.OutputTiming, DefenseMechanics.FutureReview); a tag names its constructor as the"
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m789(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
   }
 }
 
-function $0m952(v) {
+function $0m959(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m935(v["world"]), "frames": $0m820(v["frames"]), "physical": $0m833(v["physical"])}; return top[0];
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m818(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m960(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m955(v["world"]), "frames": $0m820(v["frames"]), "physical": $0m833(v["physical"])}; return top[0];
       default: throw "bend: DefenseHost.TickObserved has no tag " + v?.$ + " (its tags: DefenseHost.TickObserved); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52594,11 +52917,11 @@ function $0m952(v) {
   }
 }
 
-function $0m953(v) {
+function $0m961(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m930(v["world"]), "frames": $0m791(v["frames"]), "physical": $0m804(v["physical"])}; return top[0];
+      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m954(v["world"]), "frames": $0m791(v["frames"]), "physical": $0m804(v["physical"])}; return top[0];
       default: throw "bend: DefenseHost.TickObserved has no tag " + v?.$ + " (its tags: DefenseHost.TickObserved); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52606,33 +52929,7 @@ function $0m953(v) {
   }
 }
 
-function $0m954(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m937(v["value"])}; return top[0];
-      default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m955(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m932(v["value"])}; return top[0];
-      default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m956(v) {
+function $0m962(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -52644,11 +52941,11 @@ function $0m956(v) {
   }
 }
 
-function $0m957(v) {
+function $0m963(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "Receipt": at = at[key] = {...v, "world": $0m935(v["world"])}; return top[0];
+      case "Receipt": at = at[key] = {...v, "world": $0m955(v["world"])}; return top[0];
       default: throw "bend: Receipt has no tag " + v?.$ + " (its tags: Receipt); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -52656,8 +52953,32 @@ function $0m957(v) {
   }
 }
 
-const TAB_0 = [35, 55, 45, 70, 35, 60, 50];
-const TAB_1 = [8, 90, 12, 8];export default {
+function $0m964(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Scenario": at = at[key] = {...v, "jev": nat_host(v["jev"]), "delivery": nat_host(v["delivery"]), "source": nat_host(v["source"])}; return top[0];
+      default: throw "bend: Scenario has no tag " + v?.$ + " (its tags: Scenario); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m965(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Scenario": at = at[key] = {...v, "jev": BigInt(v["jev"]), "delivery": BigInt(v["delivery"]), "source": BigInt(v["source"])}; return top[0];
+      default: throw "bend: Scenario has no tag " + v?.$ + " (its tags: Scenario); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+const TAB_0 = [60, 55, 45];
+const TAB_1 = [4, 5, 1];export default {
   "DefenseAuto.initial": run_lib(() => { const r = (run_loop($DefenseAuto$058initial$()));  return r; }, 0),
   "DefenseAuto.enabled": run_lib((a0) => { const r = (run_loop($DefenseAuto$058enabled$((a0)))); (a0); return r; }, 1),
   "DefenseAuto.toggle": run_lib((a0) => { const r = (run_loop($DefenseAuto$058toggle$((a0)))); (a0); return r; }, 1),
@@ -55520,7 +55841,7 @@ const TAB_1 = [8, 90, 12, 8];export default {
   "../../packages/monkey-business-bend/NativeRun.prepared_value": run_lib((a0, a1) => { const r = $0m810(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepared_value$($0m779(a0), $0m876(a1)))); $0m810(a0); $0m875(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRun.prepared_command": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m810(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepared_command$($0m779(a0), $0m293(a1), $0m784(a2), $0m230(a3), $0m877(a4), $0m855(a5)))); $0m810(a0); $0m285(a1); $0m815(a2); $0m224(a3); $0m724(a4); $0m856(a5); return r; }, 6),
   "../../packages/monkey-business-bend/NativeRun.command_context": run_lib((a0, a1, a2, a3) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_context$($0m779(a0), $0m293(a1), $0m784(a2), $0m785(a3)))); $0m810(a0); $0m285(a1); $0m815(a2); $0m816(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/NativeRun.command_partition": run_lib((a0, a1) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$($0m278(a0), $0m38(a1)))); $0m282(a0); $0m26(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.command_partition": run_lib((a0, a1, a2) => { const r = $0m282(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_partition$($0m779(a0), $0m278(a1), $0m38(a2)))); $0m810(a0); $0m282(a1); $0m26(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.request_put_selected": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m828(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_put_selected$((a0), $0m800(a1), $0m799(a2), nat_host(a3), $0m230(a4), $0m799(a5)))); (a0); $0m829(a1); $0m828(a2); BigInt(a3); $0m224(a4); $0m828(a5); return r; }, 6),
   "../../packages/monkey-business-bend/NativeRun.put_request": run_lib((a0, a1, a2) => { const r = $0m828(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_request$($0m799(a0), nat_host(a1), $0m230(a2)))); $0m828(a0); BigInt(a1); $0m224(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.request_issued": run_lib((a0, a1, a2) => { const r = $0m810(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_issued$($0m779(a0), nat_host(a1), $0m230(a2)))); $0m810(a0); BigInt(a1); $0m224(a2); return r; }, 3),
@@ -55677,6 +55998,8 @@ const TAB_1 = [8, 90, 12, 8];export default {
   "../../packages/monkey-business-bend/NativeRun.revalidate_environment": run_lib((a0) => { const r = $0m810(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058revalidate_environment$($0m779(a0)))); $0m810(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.environment_control": run_lib((a0, a1, a2, a3, a4) => { const r = $0m926(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058environment_control$($0m779(a0), (a1), (a2), nat_host(a3), (a4)))); $0m810(a0); (a1); (a2); BigInt(a3); (a4); return r; }, 5),
   "../../packages/monkey-business-bend/NativeRun.jev_control": run_lib((a0, a1, a2) => { const r = $0m926(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_control$($0m779(a0), nat_host(a1), $0m655(a2)))); $0m810(a0); BigInt(a1); $0m656(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRun.jev_delay_control": run_lib((a0, a1) => { const r = $0m926(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_delay_control$($0m779(a0), nat_host(a1)))); $0m810(a0); BigInt(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRun.jev_delay_supported": run_lib((a0, a1, a2) => { const r = $0m926(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_delay_supported$((a0), $0m779(a1), nat_host(a2)))); (a0); $0m810(a1); BigInt(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRun.jev_supported": run_lib((a0, a1, a2, a3) => { const r = $0m926(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058jev_supported$((a0), $0m779(a1), nat_host(a2), $0m655(a3)))); (a0); $0m810(a1); BigInt(a2); $0m656(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRun.unit_sizes": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058unit_sizes$($0m49(a0)))); $0m46(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRun.workload_supported": run_lib((a0) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058workload_supported$($0m647(a0)))); $0m648(a0); return r; }, 1),
@@ -55701,126 +56024,80 @@ const TAB_1 = [8, 90, 12, 8];export default {
   "DefenseConsumer.seed": run_lib(() => { const r = BigInt(run_loop($DefenseConsumer$058seed$()));  return r; }, 0),
   "DefenseConsumer.initial": run_lib(() => { const r = $0m810(run_loop($DefenseConsumer$058initial$()));  return r; }, 0),
   "DefenseConsumer.boxed": run_lib((a0) => { const r = $0m810(run_loop($DefenseConsumer$058boxed$($0m876(a0)))); $0m875(a0); return r; }, 1),
-  "DefenseModel.initial_control": run_lib(() => { const r = (run_loop($DefenseModel$058initial_control$()));  return r; }, 0),
-  "DefenseModel.control_value": run_lib((a0) => { const r = (run_loop($DefenseModel$058control_value$((a0)))); (a0); return r; }, 1),
+  "DefenseModel.cue_kind": run_lib((a0) => { const r = (run_loop($DefenseModel$058cue_kind$($0m930(a0)))); $0m931(a0); return r; }, 1),
+  "DefenseModel.cue_operation": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058cue_operation$($0m930(a0)))); $0m931(a0); return r; }, 1),
+  "DefenseModel.cue_family": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058cue_family$($0m930(a0)))); $0m931(a0); return r; }, 1),
+  "DefenseModel.cue_x": run_lib((a0) => { const r = (run_loop($DefenseModel$058cue_x$($0m930(a0)))); $0m931(a0); return r; }, 1),
+  "DefenseModel.cue_y": run_lib((a0) => { const r = (run_loop($DefenseModel$058cue_y$($0m930(a0)))); $0m931(a0); return r; }, 1),
+  "DefenseModel.cue_ttl": run_lib((a0) => { const r = (run_loop($DefenseModel$058cue_ttl$($0m930(a0)))); $0m931(a0); return r; }, 1),
+  "DefenseModel.settings_from_environment": run_lib((a0) => { const r = $0m932(run_loop($DefenseModel$058settings_from_environment$($0m789(a0)))); $0m818(a0); return r; }, 1),
+  "DefenseModel.config_settings": run_lib((a0) => { const r = $0m932(run_loop($DefenseModel$058config_settings$($0m846(a0)))); $0m847(a0); return r; }, 1),
+  "DefenseModel.initial_control": run_lib(() => { const r = $0m933(run_loop($DefenseModel$058initial_control$()));  return r; }, 0),
+  "DefenseModel.control_value": run_lib((a0) => { const r = $0m933(run_loop($DefenseModel$058control_value$($0m942(a0)))); $0m953(a0); return r; }, 1),
   "DefenseModel.auto_value": run_lib((a0) => { const r = (run_loop($DefenseModel$058auto_value$((a0)))); (a0); return r; }, 1),
-  "DefenseModel.control_schedule": run_lib((a0) => { const r = (run_loop($DefenseModel$058control_schedule$((a0)))); (a0); return r; }, 1),
-  "DefenseModel.control_with_schedule": run_lib((a0, a1) => { const r = (run_loop($DefenseModel$058control_with_schedule$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseModel.control_pace": run_lib((a0) => { const r = (run_loop($DefenseModel$058control_pace$((a0)))); (a0); return r; }, 1),
-  "DefenseModel.control_with_pace": run_lib((a0, a1) => { const r = (run_loop($DefenseModel$058control_with_pace$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseModel.control_schedule": run_lib((a0) => { const r = (run_loop($DefenseModel$058control_schedule$($0m943(a0)))); $0m933(a0); return r; }, 1),
+  "DefenseModel.control_with_schedule": run_lib((a0, a1) => { const r = $0m933(run_loop($DefenseModel$058control_with_schedule$($0m943(a0), (a1)))); $0m933(a0); (a1); return r; }, 2),
+  "DefenseModel.control_pace": run_lib((a0) => { const r = (run_loop($DefenseModel$058control_pace$($0m943(a0)))); $0m933(a0); return r; }, 1),
+  "DefenseModel.control_with_pace": run_lib((a0, a1) => { const r = $0m933(run_loop($DefenseModel$058control_with_pace$($0m943(a0), (a1)))); $0m933(a0); (a1); return r; }, 2),
   "DefenseModel.number": run_lib((a0) => { const r = (run_loop($DefenseModel$058number$(nat_host(a0)))); BigInt(a0); return r; }, 1),
   "DefenseModel.sub": run_lib((a0, a1) => { const r = (run_loop($DefenseModel$058sub$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseModel.engine_box": run_lib((a0) => { const r = $0m875(run_loop($DefenseModel$058engine_box$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.engine": run_lib((a0) => { const r = $0m810(run_loop($DefenseModel$058engine$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.canonical": run_lib((a0) => { const r = $0m208(run_loop($DefenseModel$058canonical$($0m940(a0)))); $0m849(a0); return r; }, 1),
+  "DefenseModel.engine_box": run_lib((a0) => { const r = $0m875(run_loop($DefenseModel$058engine_box$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.engine": run_lib((a0) => { const r = $0m810(run_loop($DefenseModel$058engine$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.canonical": run_lib((a0) => { const r = $0m208(run_loop($DefenseModel$058canonical$($0m956(a0)))); $0m849(a0); return r; }, 1),
   "DefenseModel.core_box": run_lib((a0) => { const r = $0m208(run_loop($DefenseModel$058core_box$($0m876(a0)))); $0m875(a0); return r; }, 1),
-  "DefenseModel.core": run_lib((a0) => { const r = $0m208(run_loop($DefenseModel$058core$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.time": run_lib((a0) => { const r = (run_loop($DefenseModel$058time$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.paused": run_lib((a0) => { const r = (run_loop($DefenseModel$058paused$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.layout": run_lib((a0) => { const r = (run_loop($DefenseModel$058layout$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.choice": run_lib((a0) => { const r = (run_loop($DefenseModel$058choice$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.gold": run_lib((a0) => { const r = (run_loop($DefenseModel$058gold$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.hp": run_lib((a0) => { const r = (run_loop($DefenseModel$058hp$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.towers": run_lib((a0) => { const r = $0m936(run_loop($DefenseModel$058towers$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.timers": run_lib((a0) => { const r = $0m938(run_loop($DefenseModel$058timers$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.active": run_lib((a0) => { const r = (run_loop($DefenseModel$058active$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.offered": run_lib((a0) => { const r = (run_loop($DefenseModel$058offered$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.rejected": run_lib((a0) => { const r = (run_loop($DefenseModel$058rejected$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.clear": run_lib((a0) => { const r = (run_loop($DefenseModel$058clear$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.delivered": run_lib((a0) => { const r = (run_loop($DefenseModel$058delivered$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.schedule_value": run_lib((a0) => { const r = (run_loop($DefenseModel$058schedule_value$((a0)))); (a0); return r; }, 1),
-  "DefenseModel.control": run_lib((a0) => { const r = (run_loop($DefenseModel$058control$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.with_control": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseModel$058with_control$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseModel.auto": run_lib((a0) => { const r = (run_loop($DefenseModel$058auto$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.mouse_x": run_lib((a0) => { const r = (run_loop($DefenseModel$058mouse_x$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.mouse_y": run_lib((a0) => { const r = (run_loop($DefenseModel$058mouse_y$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.selected": run_lib((a0) => { const r = (run_loop($DefenseModel$058selected$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.tx": run_lib((a0) => { const r = (run_loop($DefenseModel$058tx$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.ty": run_lib((a0) => { const r = (run_loop($DefenseModel$058ty$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.tkind": run_lib((a0) => { const r = (run_loop($DefenseModel$058tkind$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.level": run_lib((a0) => { const r = (run_loop($DefenseModel$058level$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.cooldown": run_lib((a0) => { const r = (run_loop($DefenseModel$058cooldown$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.flash": run_lib((a0) => { const r = (run_loop($DefenseModel$058flash$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.aim": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058aim$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.charges": run_lib((a0) => { const r = (run_loop($DefenseModel$058charges$($0m932(a0)))); $0m937(a0); return r; }, 1),
-  "DefenseModel.timer_id": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058timer_id$($0m934(a0)))); $0m939(a0); return r; }, 1),
-  "DefenseModel.timer_phase": run_lib((a0) => { const r = (run_loop($DefenseModel$058timer_phase$($0m934(a0)))); $0m939(a0); return r; }, 1),
-  "DefenseModel.timer_age": run_lib((a0) => { const r = (run_loop($DefenseModel$058timer_age$($0m934(a0)))); $0m939(a0); return r; }, 1),
-  "DefenseModel.timer_family": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058timer_family$($0m934(a0)))); $0m939(a0); return r; }, 1),
-  "DefenseModel.timer_risk": run_lib((a0) => { const r = (run_loop($DefenseModel$058timer_risk$($0m934(a0)))); $0m939(a0); return r; }, 1),
-  "DefenseModel.timer_seed": run_lib((a0) => { const r = (run_loop($DefenseModel$058timer_seed$($0m934(a0)))); $0m939(a0); return r; }, 1),
-  "DefenseModel.timer_boost": run_lib((a0) => { const r = (run_loop($DefenseModel$058timer_boost$($0m934(a0)))); $0m939(a0); return r; }, 1),
+  "DefenseModel.core": run_lib((a0) => { const r = $0m208(run_loop($DefenseModel$058core$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.time": run_lib((a0) => { const r = (run_loop($DefenseModel$058time$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.paused": run_lib((a0) => { const r = (run_loop($DefenseModel$058paused$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.layout": run_lib((a0) => { const r = (run_loop($DefenseModel$058layout$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.choice": run_lib((a0) => { const r = (run_loop($DefenseModel$058choice$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.gold": run_lib((a0) => { const r = (run_loop($DefenseModel$058gold$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.hp": run_lib((a0) => { const r = (run_loop($DefenseModel$058hp$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.towers": run_lib((a0) => { const r = (run_loop($DefenseModel$058towers$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.active": run_lib((a0) => { const r = (run_loop($DefenseModel$058active$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.offered": run_lib((a0) => { const r = (run_loop($DefenseModel$058offered$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.rejected": run_lib((a0) => { const r = (run_loop($DefenseModel$058rejected$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.clear": run_lib((a0) => { const r = (run_loop($DefenseModel$058clear$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.delivered": run_lib((a0) => { const r = (run_loop($DefenseModel$058delivered$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.schedule_value": run_lib((a0) => { const r = (run_loop($DefenseModel$058schedule_value$($0m942(a0)))); $0m953(a0); return r; }, 1),
+  "DefenseModel.control": run_lib((a0) => { const r = $0m933(run_loop($DefenseModel$058control$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.with_control": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseModel$058with_control$($0m954(a0), $0m943(a1)))); $0m955(a0); $0m933(a1); return r; }, 2),
+  "DefenseModel.auto": run_lib((a0) => { const r = (run_loop($DefenseModel$058auto$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.mouse_x": run_lib((a0) => { const r = (run_loop($DefenseModel$058mouse_x$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.mouse_y": run_lib((a0) => { const r = (run_loop($DefenseModel$058mouse_y$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.selected": run_lib((a0) => { const r = (run_loop($DefenseModel$058selected$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.tx": run_lib((a0) => { const r = (run_loop($DefenseModel$058tx$((a0)))); (a0); return r; }, 1),
+  "DefenseModel.ty": run_lib((a0) => { const r = (run_loop($DefenseModel$058ty$((a0)))); (a0); return r; }, 1),
+  "DefenseModel.tkind": run_lib((a0) => { const r = (run_loop($DefenseModel$058tkind$((a0)))); (a0); return r; }, 1),
+  "DefenseModel.level": run_lib((a0) => { const r = (run_loop($DefenseModel$058level$((a0)))); (a0); return r; }, 1),
   "DefenseModel.work": run_lib((a0) => { const r = $0m211(run_loop($DefenseModel$058work$($0m215(a0)))); $0m208(a0); return r; }, 1),
   "DefenseModel.rounds": run_lib((a0) => { const r = $0m209(run_loop($DefenseModel$058rounds$($0m215(a0)))); $0m208(a0); return r; }, 1),
   "DefenseModel.dispatch": run_lib((a0) => { const r = $0m78(run_loop($DefenseModel$058dispatch$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseModel.with_engine": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseModel$058with_engine$($0m930(a0), $0m779(a1)))); $0m935(a0); $0m810(a1); return r; }, 2),
+  "DefenseModel.with_engine": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseModel$058with_engine$($0m954(a0), $0m779(a1)))); $0m955(a0); $0m810(a1); return r; }, 2),
   "DefenseModel.phase": run_lib((a0) => { const r = (run_loop($DefenseModel$058phase$($0m220(a0)))); $0m213(a0); return r; }, 1),
-  "DefenseModel.with_effects": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseModel$058with_effects$($0m930(a0), $0m931(a1), $0m933(a2)))); $0m935(a0); $0m936(a1); $0m938(a2); return r; }, 3),
-  "DefenseModel.damage_work": run_lib((a0) => { const r = (run_loop($DefenseModel$058damage_work$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.damage_flash": run_lib((a0) => { const r = (run_loop($DefenseModel$058damage_flash$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.schedule": run_lib((a0) => { const r = (run_loop($DefenseModel$058schedule$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.with_schedule": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseModel$058with_schedule$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
+  "DefenseModel.with_towers": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseModel$058with_towers$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseModel.damage_work": run_lib((a0) => { const r = (run_loop($DefenseModel$058damage_work$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.damage_flash": run_lib((a0) => { const r = (run_loop($DefenseModel$058damage_flash$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.schedule": run_lib((a0) => { const r = (run_loop($DefenseModel$058schedule$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.with_schedule": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseModel$058with_schedule$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
   "DefenseModel.current_round": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058current_round$($0m216(a0)))); $0m209(a0); return r; }, 1),
-  "DefenseModel.round": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058round$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseModel.arrival_interval": run_lib((a0) => { const r = (run_loop($DefenseModel$058arrival_interval$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.ledger": run_lib((a0) => { const r = $0m4(run_loop($DefenseProjection$058ledger$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.collection": run_lib((a0) => { const r = $0m194(run_loop($DefenseProjection$058collection$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.charge_bytes": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseProjection$058charge_bytes$(nat_host(a0), $0m9(a1)))); BigInt(a0); $0m5(a1); return r; }, 2),
-  "DefenseProjection.charges": run_lib((a0) => { const r = $0m5(run_loop($DefenseProjection$058charges$($0m11(a0)))); $0m4(a0); return r; }, 1),
-  "DefenseProjection.project": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058project$($0m218(a0), $0m11(a1)))); $0m211(a0); $0m4(a1); return r; }, 2),
-  "DefenseProjection.tokens": run_lib((a0) => { const r = (run_loop($DefenseProjection$058tokens$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.id": run_lib((a0) => { const r = (run_loop($DefenseProjection$058id$((a0)))); (a0); return r; }, 1),
-  "DefenseProjection.parent": run_lib((a0) => { const r = (run_loop($DefenseProjection$058parent$((a0)))); (a0); return r; }, 1),
-  "DefenseProjection.partition": run_lib((a0) => { const r = (run_loop($DefenseProjection$058partition$((a0)))); (a0); return r; }, 1),
-  "DefenseProjection.phase": run_lib((a0) => { const r = (run_loop($DefenseProjection$058phase$((a0)))); (a0); return r; }, 1),
-  "DefenseProjection.bytes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058bytes$((a0)))); (a0); return r; }, 1),
-  "DefenseProjection.count_tokens": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058count_tokens$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseProjection.count": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058count$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseProjection.queued_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058queued_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.queued": run_lib((a0) => { const r = (run_loop($DefenseProjection$058queued$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.running_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058running_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.running": run_lib((a0) => { const r = (run_loop($DefenseProjection$058running$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.requests_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058requests_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.requests": run_lib((a0) => { const r = (run_loop($DefenseProjection$058requests$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.ready_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ready_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.ready": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ready$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.leases_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058leases_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.leases": run_lib((a0) => { const r = (run_loop($DefenseProjection$058leases$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.round_count": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058round_count$($0m216(a0), (a1)))); $0m209(a0); (a1); return r; }, 2),
-  "DefenseProjection.waiting": run_lib((a0) => { const r = (run_loop($DefenseProjection$058waiting$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.deciding": run_lib((a0) => { const r = (run_loop($DefenseProjection$058deciding$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.uncertain": run_lib((a0) => { const r = (run_loop($DefenseProjection$058uncertain$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.write_count": run_lib((a0) => { const r = (run_loop($DefenseProjection$058write_count$($0m216(a0)))); $0m209(a0); return r; }, 1),
-  "DefenseProjection.active_slots": run_lib((a0) => { const r = (run_loop($DefenseProjection$058active_slots$($0m143(a0)))); $0m137(a0); return r; }, 1),
-  "DefenseProjection.writes_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058writes_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.writes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058writes$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.usage": run_lib((a0) => { const r = $0m8(run_loop($DefenseProjection$058usage$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.usage_items": run_lib((a0) => { const r = (run_loop($DefenseProjection$058usage_items$($0m7(a0)))); $0m8(a0); return r; }, 1),
-  "DefenseProjection.usage_bytes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058usage_bytes$($0m7(a0)))); $0m8(a0); return r; }, 1),
-  "DefenseProjection.ledger_items": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_items$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.ledger_bytes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_bytes$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.ledger_byte_limit_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_byte_limit_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.ledger_byte_limit": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_byte_limit$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.ledger_item_limit_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_item_limit_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.ledger_item_limit": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_item_limit$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.backend_started_items": run_lib((a0) => { const r = (run_loop($DefenseProjection$058backend_started_items$($0m86(a0)))); $0m81(a0); return r; }, 1),
-  "DefenseProjection.backend_started_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058backend_started_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.backend_started": run_lib((a0) => { const r = (run_loop($DefenseProjection$058backend_started$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.parent_count_tokens": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_count_tokens$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseProjection.parent_children": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_children$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseProjection.parent_pending_tokens": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_pending_tokens$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseProjection.parent_pending": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_pending$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseProjection.family": run_lib((a0) => { const r = (run_loop($DefenseProjection$058family$((a0)))); (a0); return r; }, 1),
-  "DefenseProjection.pool_limit": run_lib(() => { const r = (run_loop($DefenseProjection$058pool_limit$()));  return r; }, 0),
-  "DefenseProjection.preparation_pool_limit": run_lib(() => { const r = (run_loop($DefenseProjection$058preparation_pool_limit$()));  return r; }, 0),
-  "DefenseProjection.prep_running_entries": run_lib((a0) => { const r = (run_loop($DefenseProjection$058prep_running_entries$($0m83(a0)))); $0m79(a0); return r; }, 1),
-  "DefenseProjection.prep_running_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058prep_running_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.prep_running": run_lib((a0) => { const r = (run_loop($DefenseProjection$058prep_running$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.finish_counters_core": run_lib((a0) => { const r = $0m139(run_loop($DefenseProjection$058finish_counters_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseProjection.finish_counters": run_lib((a0) => { const r = $0m139(run_loop($DefenseProjection$058finish_counters$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.finish_used": run_lib((a0) => { const r = (run_loop($DefenseProjection$058finish_used$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseProjection.counters_within_budget": run_lib((a0) => { const r = (run_loop($DefenseProjection$058counters_within_budget$($0m141(a0)))); $0m139(a0); return r; }, 1),
-  "DefenseProjection.finish_within_budget": run_lib((a0) => { const r = (run_loop($DefenseProjection$058finish_within_budget$($0m930(a0)))); $0m935(a0); return r; }, 1),
+  "DefenseModel.round": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058round$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.arrival_interval": run_lib((a0) => { const r = (run_loop($DefenseModel$058arrival_interval$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.control_cues": run_lib((a0) => { const r = $0m934(run_loop($DefenseModel$058control_cues$($0m943(a0)))); $0m933(a0); return r; }, 1),
+  "DefenseModel.control_with_cues": run_lib((a0, a1) => { const r = $0m933(run_loop($DefenseModel$058control_with_cues$($0m943(a0), $0m944(a1)))); $0m933(a0); $0m934(a1); return r; }, 2),
+  "DefenseModel.cues": run_lib((a0) => { const r = $0m934(run_loop($DefenseModel$058cues$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.with_cues": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseModel$058with_cues$($0m954(a0), $0m944(a1)))); $0m955(a0); $0m934(a1); return r; }, 2),
+  "DefenseModel.control_actors": run_lib((a0) => { const r = $0m935(run_loop($DefenseModel$058control_actors$($0m943(a0)))); $0m933(a0); return r; }, 1),
+  "DefenseModel.control_with_actors": run_lib((a0, a1) => { const r = $0m933(run_loop($DefenseModel$058control_with_actors$($0m943(a0), $0m945(a1)))); $0m933(a0); $0m935(a1); return r; }, 2),
+  "DefenseModel.actors": run_lib((a0) => { const r = $0m935(run_loop($DefenseModel$058actors$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.with_actors": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseModel$058with_actors$($0m954(a0), $0m945(a1)))); $0m955(a0); $0m935(a1); return r; }, 2),
+  "DefenseModel.settings_value": run_lib((a0) => { const r = $0m932(run_loop($DefenseModel$058settings_value$($0m951(a0)))); $0m941(a0); return r; }, 1),
+  "DefenseModel.settings_control": run_lib((a0) => { const r = $0m932(run_loop($DefenseModel$058settings_control$($0m943(a0)))); $0m933(a0); return r; }, 1),
+  "DefenseModel.settings": run_lib((a0) => { const r = $0m932(run_loop($DefenseModel$058settings$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseModel.with_settings": run_lib((a0, a1) => { const r = $0m933(run_loop($DefenseModel$058with_settings$($0m943(a0), $0m952(a1)))); $0m933(a0); $0m932(a1); return r; }, 2),
+  "DefenseModel.base_jev": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058base_jev$($0m952(a0)))); $0m932(a0); return r; }, 1),
+  "DefenseModel.base_output": run_lib((a0) => { const r = BigInt(run_loop($DefenseModel$058base_output$($0m952(a0)))); $0m932(a0); return r; }, 1),
+  "DefenseModel.burst_size": run_lib((a0) => { const r = (run_loop($DefenseModel$058burst_size$($0m952(a0)))); $0m932(a0); return r; }, 1),
+  "DefenseModel.with_burst": run_lib((a0, a1) => { const r = $0m932(run_loop($DefenseModel$058with_burst$($0m952(a0), (a1)))); $0m932(a0); (a1); return r; }, 2),
   "DefenseMap.px": run_lib((a0) => { const r = (run_loop($DefenseMap$058px$((a0)))); (a0); return r; }, 1),
   "DefenseMap.py": run_lib((a0) => { const r = (run_loop($DefenseMap$058py$((a0)))); (a0); return r; }, 1),
   "DefenseMap.pick_point": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMap$058pick_point$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
@@ -55883,211 +56160,278 @@ const TAB_1 = [8, 90, 12, 8];export default {
   "DefenseMap.room_valid_points": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseMap$058room_valid_points$((a0), (a1), (a2), (a3)))); (a0); (a1); (a2); (a3); return r; }, 4),
   "DefenseMap.room_valid": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMap$058room_valid$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
   "DefenseMap.layout_valid": run_lib((a0) => { const r = (run_loop($DefenseMap$058layout_valid$((a0)))); (a0); return r; }, 1),
-  "DefenseEffects.cost": run_lib((a0) => { const r = (run_loop($DefenseEffects$058cost$((a0)))); (a0); return r; }, 1),
-  "DefenseEffects.name": run_lib((a0) => { const r = (run_loop($DefenseEffects$058name$((a0)))); (a0); return r; }, 1),
-  "DefenseEffects.detail": run_lib((a0) => { const r = (run_loop($DefenseEffects$058detail$((a0)))); (a0); return r; }, 1),
-  "DefenseEffects.range": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058range$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseEffects.power": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058power$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseEffects.risk_floor": run_lib(() => { const r = (run_loop($DefenseEffects$058risk_floor$()));  return r; }, 0),
-  "DefenseEffects.risk_reduction": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058risk_reduction$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseEffects.cooldown": run_lib((a0) => { const r = (run_loop($DefenseEffects$058cooldown$((a0)))); (a0); return r; }, 1),
-  "DefenseEffects.upgrade_cost": run_lib((a0) => { const r = (run_loop($DefenseEffects$058upgrade_cost$((a0)))); (a0); return r; }, 1),
-  "DefenseEffects.pick_timer": run_lib((a0, a1, a2) => { const r = $0m939(run_loop($DefenseEffects$058pick_timer$((a0), $0m934(a1), $0m934(a2)))); (a0); $0m939(a1); $0m939(a2); return r; }, 3),
-  "DefenseEffects.find_timer": run_lib((a0, a1) => { const r = $0m939(run_loop($DefenseEffects$058find_timer$(nat_host(a0), $0m933(a1)))); BigInt(a0); $0m938(a1); return r; }, 2),
-  "DefenseEffects.age": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058age$(nat_host(a0), (a1), $0m933(a2)))); BigInt(a0); (a1); $0m938(a2); return r; }, 3),
+  "DefenseMechanics.cost": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058cost$((a0)))); (a0); return r; }, 1),
+  "DefenseMechanics.name": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058name$((a0)))); (a0); return r; }, 1),
+  "DefenseMechanics.detail": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058detail$((a0)))); (a0); return r; }, 1),
+  "DefenseMechanics.range": run_lib((a0, a1) => { const r = (run_loop($DefenseMechanics$058range$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseMechanics.site": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058site$((a0)))); (a0); return r; }, 1),
+  "DefenseMechanics.connected": run_lib((a0, a1) => { const r = (run_loop($DefenseMechanics$058connected$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseMechanics.levels": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMechanics$058levels$((a0), $0m954(a1), (a2)))); (a0); $0m955(a1); (a2); return r; }, 3),
+  "DefenseMechanics.strength": run_lib((a0, a1) => { const r = (run_loop($DefenseMechanics$058strength$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseMechanics.delay": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseMechanics$058delay$(nat_host(a0), (a1)))); BigInt(a0); (a1); return r; }, 2),
+  "DefenseMechanics.current_environment": run_lib((a0) => { const r = $0m818(run_loop($DefenseMechanics$058current_environment$($0m779(a0)))); $0m810(a0); return r; }, 1),
+  "DefenseMechanics.current_delay": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseMechanics$058current_delay$($0m789(a0), (a1)))); $0m818(a0); (a1); return r; }, 2),
+  "DefenseMechanics.applied": run_lib((a0) => { const r = $0m810(run_loop($DefenseMechanics$058applied$($0m957(a0)))); $0m926(a0); return r; }, 1),
+  "DefenseMechanics.jev": run_lib((a0, a1) => { const r = $0m810(run_loop($DefenseMechanics$058jev$($0m779(a0), nat_host(a1)))); $0m810(a0); BigInt(a1); return r; }, 2),
+  "DefenseMechanics.output": run_lib((a0, a1, a2) => { const r = $0m810(run_loop($DefenseMechanics$058output$($0m779(a0), $0m958(a1), nat_host(a2)))); $0m810(a0); $0m959(a1); BigInt(a2); return r; }, 3),
+  "DefenseMechanics.access": run_lib((a0, a1, a2) => { const r = $0m810(run_loop($DefenseMechanics$058access$($0m779(a0), $0m958(a1), (a2)))); $0m810(a0); $0m959(a1); (a2); return r; }, 3),
+  "DefenseMechanics.profiles": run_lib((a0) => { const r = $0m955(run_loop($DefenseMechanics$058profiles$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseMechanics.purchased_connected": run_lib((a0, a1) => { const r = (run_loop($DefenseMechanics$058purchased_connected$((a0), $0m954(a1)))); (a0); $0m955(a1); return r; }, 2),
+  "DefenseMechanics.purchased": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseMechanics$058purchased$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseMechanics.max_level": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058max_level$((a0)))); (a0); return r; }, 1),
+  "DefenseMechanics.missing_access": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058missing_access$($0m789(a0)))); $0m818(a0); return r; }, 1),
+  "DefenseMotion.key": run_lib((a0) => { const r = $0m937(run_loop($DefenseMotion$058key$($0m219(a0)))); $0m212(a0); return r; }, 1),
+  "DefenseMotion.same": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058same$($0m947(a0), $0m947(a1)))); $0m937(a0); $0m937(a1); return r; }, 2),
+  "DefenseMotion.phase": run_lib((a0) => { const r = (run_loop($DefenseMotion$058phase$($0m219(a0)))); $0m212(a0); return r; }, 1),
+  "DefenseMotion.family": run_lib((a0) => { const r = BigInt(run_loop($DefenseMotion$058family$($0m219(a0)))); $0m212(a0); return r; }, 1),
+  "DefenseMotion.parent": run_lib((a0) => { const r = $0m940(run_loop($DefenseMotion$058parent$($0m219(a0)))); $0m212(a0); return r; }, 1),
+  "DefenseMotion.actor_key": run_lib((a0) => { const r = $0m937(run_loop($DefenseMotion$058actor_key$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.point": run_lib((a0) => { const r = (run_loop($DefenseMotion$058point$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.visible_phase": run_lib((a0) => { const r = (run_loop($DefenseMotion$058visible_phase$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.observed_phase": run_lib((a0) => { const r = (run_loop($DefenseMotion$058observed_phase$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.actor_family": run_lib((a0) => { const r = BigInt(run_loop($DefenseMotion$058actor_family$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.operation": run_lib((a0) => { const r = BigInt(run_loop($DefenseMotion$058operation$($0m947(a0)))); $0m937(a0); return r; }, 1),
+  "DefenseMotion.terminal": run_lib((a0) => { const r = (run_loop($DefenseMotion$058terminal$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.path": run_lib((a0) => { const r = $0m938(run_loop($DefenseMotion$058path$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.waypoints": run_lib((a0, a1, a2) => { const r = $0m938(run_loop($DefenseMotion$058waypoints$((a0), (a1), nat_host(a2)))); (a0); (a1); BigInt(a2); return r; }, 3),
+  "DefenseMotion.route": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMotion$058route$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
+  "DefenseMotion.present": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058present$($0m947(a0), $0m218(a1)))); $0m937(a0); $0m211(a1); return r; }, 2),
+  "DefenseMotion.work": run_lib((a0) => { const r = $0m211(run_loop($DefenseMotion$058work$($0m793(a0)))); $0m822(a0); return r; }, 1),
+  "DefenseMotion.changed": run_lib((a0, a1, a2, a3) => { const r = $0m936(run_loop($DefenseMotion$058changed$($0m946(a0), $0m219(a1), (a2), nat_host(a3)))); $0m936(a0); $0m212(a1); (a2); BigInt(a3); return r; }, 4),
+  "DefenseMotion.update_one": run_lib((a0, a1, a2, a3) => { const r = $0m936(run_loop($DefenseMotion$058update_one$($0m946(a0), $0m218(a1), (a2), nat_host(a3)))); $0m936(a0); $0m211(a1); (a2); BigInt(a3); return r; }, 4),
+  "DefenseMotion.end_route": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058end_route$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseMotion.outcome": run_lib((a0) => { const r = (run_loop($DefenseMotion$058outcome$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.with_outcome": run_lib((a0, a1) => { const r = $0m936(run_loop($DefenseMotion$058with_outcome$($0m946(a0), (a1)))); $0m936(a0); (a1); return r; }, 2),
+  "DefenseMotion.member": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058member$(nat_host(a0), $0m49(a1)))); BigInt(a0); $0m46(a1); return r; }, 2),
+  "DefenseMotion.acknowledged": run_lib((a0) => { const r = (run_loop($DefenseMotion$058acknowledged$($0m237(a0)))); $0m223(a0); return r; }, 1),
+  "DefenseMotion.refused": run_lib((a0) => { const r = (run_loop($DefenseMotion$058refused$($0m237(a0)))); $0m223(a0); return r; }, 1),
+  "DefenseMotion.request_outcome": run_lib((a0) => { const r = (run_loop($DefenseMotion$058request_outcome$((a0)))); (a0); return r; }, 1),
+  "DefenseMotion.finish_matches": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseMotion$058finish_matches$($0m947(a0), nat_host(a1), nat_host(a2), $0m49(a3)))); $0m937(a0); BigInt(a1); BigInt(a2); $0m46(a3); return r; }, 4),
+  "DefenseMotion.witnessed": run_lib((a0, a1, a2) => { const r = $0m936(run_loop($DefenseMotion$058witnessed$($0m258(a0), $0m237(a1), $0m946(a2)))); $0m259(a0); $0m223(a1); $0m936(a2); return r; }, 3),
+  "DefenseMotion.witnessed_all": run_lib((a0, a1, a2, a3) => { const r = $0m935(run_loop($DefenseMotion$058witnessed_all$($0m258(a0), $0m237(a1), $0m945(a2), $0m218(a3)))); $0m259(a0); $0m223(a1); $0m935(a2); $0m211(a3); return r; }, 4),
+  "DefenseMotion.retire": run_lib((a0, a1, a2) => { const r = $0m936(run_loop($DefenseMotion$058retire$($0m946(a0), (a1), nat_host(a2)))); $0m936(a0); (a1); BigInt(a2); return r; }, 3),
+  "DefenseMotion.update": run_lib((a0, a1, a2, a3) => { const r = $0m935(run_loop($DefenseMotion$058update$($0m218(a0), $0m945(a1), (a2), nat_host(a3)))); $0m211(a0); $0m935(a1); (a2); BigInt(a3); return r; }, 4),
+  "DefenseMotion.contains": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058contains$($0m947(a0), $0m945(a1)))); $0m937(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.birth_point": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMotion$058birth_point$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
+  "DefenseMotion.birth_actor": run_lib((a0, a1, a2, a3, a4) => { const r = $0m936(run_loop($DefenseMotion$058birth_actor$($0m219(a0), (a1), nat_host(a2), (a3), $0m950(a4)))); $0m212(a0); (a1); BigInt(a2); (a3); $0m940(a4); return r; }, 5),
+  "DefenseMotion.born": run_lib((a0, a1, a2) => { const r = $0m936(run_loop($DefenseMotion$058born$($0m219(a0), (a1), nat_host(a2)))); $0m212(a0); (a1); BigInt(a2); return r; }, 3),
+  "DefenseMotion.charge_bytes": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseMotion$058charge_bytes$(nat_host(a0), $0m9(a1)))); BigInt(a0); $0m5(a1); return r; }, 2),
+  "DefenseMotion.unit_lane": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058unit_lane$($0m219(a0), $0m793(a1)))); $0m212(a0); $0m822(a1); return r; }, 2),
+  "DefenseMotion.predecessor": run_lib((a0, a1) => { const r = $0m940(run_loop($DefenseMotion$058predecessor$($0m258(a0), $0m219(a1)))); $0m259(a0); $0m212(a1); return r; }, 2),
+  "DefenseMotion.births": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m935(run_loop($DefenseMotion$058births$($0m218(a0), $0m945(a1), (a2), nat_host(a3), $0m793(a4), $0m258(a5)))); $0m211(a0); $0m935(a1); (a2); BigInt(a3); $0m822(a4); $0m259(a5); return r; }, 6),
+  "DefenseMotion.frame": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseMotion$058frame$($0m792(a0), $0m945(a1), (a2)))); $0m821(a0); $0m935(a1); (a2); return r; }, 3),
+  "DefenseMotion.ingest": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseMotion$058ingest$($0m791(a0), $0m945(a1), (a2)))); $0m820(a0); $0m935(a1); (a2); return r; }, 3),
+  "DefenseMotion.empty": run_lib((a0) => { const r = (run_loop($DefenseMotion$058empty$($0m948(a0)))); $0m938(a0); return r; }, 1),
+  "DefenseMotion.parent_ready": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058parent_ready$($0m947(a0), $0m945(a1)))); $0m937(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.ready": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058ready$($0m950(a0), $0m945(a1)))); $0m940(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.travel": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058travel$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseMotion.move_to": run_lib((a0, a1, a2) => { const r = $0m936(run_loop($DefenseMotion$058move_to$($0m946(a0), $0m949(a1), $0m948(a2)))); $0m936(a0); $0m939(a1); $0m938(a2); return r; }, 3),
+  "DefenseMotion.advance": run_lib((a0, a1) => { const r = $0m936(run_loop($DefenseMotion$058advance$($0m946(a0), $0m948(a1)))); $0m936(a0); $0m938(a1); return r; }, 2),
+  "DefenseMotion.waiting": run_lib((a0) => { const r = $0m940(run_loop($DefenseMotion$058waiting$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.alive": run_lib((a0) => { const r = (run_loop($DefenseMotion$058alive$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.before": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058before$($0m947(a0), $0m947(a1)))); $0m937(a0); $0m937(a1); return r; }, 2),
+  "DefenseMotion.entrance": run_lib((a0) => { const r = (run_loop($DefenseMotion$058entrance$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.entrance_clear": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058entrance_clear$($0m946(a0), $0m945(a1)))); $0m936(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.shared_room": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058shared_room$($0m946(a0), $0m946(a1)))); $0m936(a0); $0m936(a1); return r; }, 2),
+  "DefenseMotion.branch_clear": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058branch_clear$($0m946(a0), $0m945(a1)))); $0m936(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.can_play": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058can_play$($0m946(a0), $0m945(a1)))); $0m936(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.released": run_lib((a0) => { const r = (run_loop($DefenseMotion$058released$($0m946(a0)))); $0m936(a0); return r; }, 1),
+  "DefenseMotion.drawable": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058drawable$($0m946(a0), $0m945(a1)))); $0m936(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.queued": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058queued$($0m945(a0), $0m945(a1)))); $0m935(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.move_when": run_lib((a0, a1) => { const r = $0m936(run_loop($DefenseMotion$058move_when$((a0), $0m946(a1)))); (a0); $0m936(a1); return r; }, 2),
+  "DefenseMotion.alive_keep": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseMotion$058alive_keep$((a0), $0m946(a1), $0m945(a2)))); (a0); $0m936(a1); $0m935(a2); return r; }, 3),
+  "DefenseMotion.tick": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseMotion$058tick$($0m945(a0), $0m945(a1)))); $0m935(a0); $0m935(a1); return r; }, 2),
+  "DefenseMotion.step": run_lib((a0) => { const r = $0m935(run_loop($DefenseMotion$058step$($0m945(a0)))); $0m935(a0); return r; }, 1),
+  "DefenseProjection.ledger": run_lib((a0) => { const r = $0m4(run_loop($DefenseProjection$058ledger$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.collection": run_lib((a0) => { const r = $0m194(run_loop($DefenseProjection$058collection$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.charge_bytes": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseProjection$058charge_bytes$(nat_host(a0), $0m9(a1)))); BigInt(a0); $0m5(a1); return r; }, 2),
+  "DefenseProjection.charges": run_lib((a0) => { const r = $0m5(run_loop($DefenseProjection$058charges$($0m11(a0)))); $0m4(a0); return r; }, 1),
+  "DefenseProjection.project": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058project$($0m218(a0), $0m11(a1)))); $0m211(a0); $0m4(a1); return r; }, 2),
+  "DefenseProjection.tokens": run_lib((a0) => { const r = (run_loop($DefenseProjection$058tokens$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.id": run_lib((a0) => { const r = (run_loop($DefenseProjection$058id$((a0)))); (a0); return r; }, 1),
+  "DefenseProjection.parent": run_lib((a0) => { const r = (run_loop($DefenseProjection$058parent$((a0)))); (a0); return r; }, 1),
+  "DefenseProjection.partition": run_lib((a0) => { const r = (run_loop($DefenseProjection$058partition$((a0)))); (a0); return r; }, 1),
+  "DefenseProjection.phase": run_lib((a0) => { const r = (run_loop($DefenseProjection$058phase$((a0)))); (a0); return r; }, 1),
+  "DefenseProjection.bytes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058bytes$((a0)))); (a0); return r; }, 1),
+  "DefenseProjection.count_tokens": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058count_tokens$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseProjection.count": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058count$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseProjection.queued_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058queued_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.queued": run_lib((a0) => { const r = (run_loop($DefenseProjection$058queued$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.running_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058running_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.running": run_lib((a0) => { const r = (run_loop($DefenseProjection$058running$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.requests_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058requests_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.requests": run_lib((a0) => { const r = (run_loop($DefenseProjection$058requests$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.ready_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ready_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.ready": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ready$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.leases_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058leases_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.leases": run_lib((a0) => { const r = (run_loop($DefenseProjection$058leases$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.round_count": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058round_count$($0m216(a0), (a1)))); $0m209(a0); (a1); return r; }, 2),
+  "DefenseProjection.waiting": run_lib((a0) => { const r = (run_loop($DefenseProjection$058waiting$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.deciding": run_lib((a0) => { const r = (run_loop($DefenseProjection$058deciding$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.uncertain": run_lib((a0) => { const r = (run_loop($DefenseProjection$058uncertain$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.write_count": run_lib((a0) => { const r = (run_loop($DefenseProjection$058write_count$($0m216(a0)))); $0m209(a0); return r; }, 1),
+  "DefenseProjection.active_slots": run_lib((a0) => { const r = (run_loop($DefenseProjection$058active_slots$($0m143(a0)))); $0m137(a0); return r; }, 1),
+  "DefenseProjection.writes_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058writes_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.writes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058writes$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.usage": run_lib((a0) => { const r = $0m8(run_loop($DefenseProjection$058usage$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.usage_items": run_lib((a0) => { const r = (run_loop($DefenseProjection$058usage_items$($0m7(a0)))); $0m8(a0); return r; }, 1),
+  "DefenseProjection.usage_bytes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058usage_bytes$($0m7(a0)))); $0m8(a0); return r; }, 1),
+  "DefenseProjection.ledger_items": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_items$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.ledger_bytes": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_bytes$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.ledger_byte_limit_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_byte_limit_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.ledger_byte_limit": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_byte_limit$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.ledger_item_limit_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_item_limit_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.ledger_item_limit": run_lib((a0) => { const r = (run_loop($DefenseProjection$058ledger_item_limit$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.backend_started_items": run_lib((a0) => { const r = (run_loop($DefenseProjection$058backend_started_items$($0m86(a0)))); $0m81(a0); return r; }, 1),
+  "DefenseProjection.backend_started_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058backend_started_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.backend_started": run_lib((a0) => { const r = (run_loop($DefenseProjection$058backend_started$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.parent_count_tokens": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_count_tokens$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseProjection.parent_children": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_children$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseProjection.parent_pending_tokens": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_pending_tokens$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseProjection.parent_pending": run_lib((a0, a1) => { const r = (run_loop($DefenseProjection$058parent_pending$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseProjection.family": run_lib((a0) => { const r = (run_loop($DefenseProjection$058family$((a0)))); (a0); return r; }, 1),
+  "DefenseProjection.pool_limit": run_lib(() => { const r = (run_loop($DefenseProjection$058pool_limit$()));  return r; }, 0),
+  "DefenseProjection.preparation_pool_limit": run_lib(() => { const r = (run_loop($DefenseProjection$058preparation_pool_limit$()));  return r; }, 0),
+  "DefenseProjection.prep_running_entries": run_lib((a0) => { const r = (run_loop($DefenseProjection$058prep_running_entries$($0m83(a0)))); $0m79(a0); return r; }, 1),
+  "DefenseProjection.prep_running_core": run_lib((a0) => { const r = (run_loop($DefenseProjection$058prep_running_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.prep_running": run_lib((a0) => { const r = (run_loop($DefenseProjection$058prep_running$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.finish_counters_core": run_lib((a0) => { const r = $0m139(run_loop($DefenseProjection$058finish_counters_core$($0m215(a0)))); $0m208(a0); return r; }, 1),
+  "DefenseProjection.finish_counters": run_lib((a0) => { const r = $0m139(run_loop($DefenseProjection$058finish_counters$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.finish_used": run_lib((a0) => { const r = (run_loop($DefenseProjection$058finish_used$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseProjection.counters_within_budget": run_lib((a0) => { const r = (run_loop($DefenseProjection$058counters_within_budget$($0m141(a0)))); $0m139(a0); return r; }, 1),
+  "DefenseProjection.finish_within_budget": run_lib((a0) => { const r = (run_loop($DefenseProjection$058finish_within_budget$($0m954(a0)))); $0m955(a0); return r; }, 1),
   "DefenseEffects.family": run_lib((a0) => { const r = BigInt(run_loop($DefenseEffects$058family$($0m219(a0)))); $0m212(a0); return r; }, 1),
   "DefenseEffects.id": run_lib((a0) => { const r = BigInt(run_loop($DefenseEffects$058id$($0m219(a0)))); $0m212(a0); return r; }, 1),
   "DefenseEffects.kind": run_lib((a0) => { const r = (run_loop($DefenseEffects$058kind$($0m219(a0)))); $0m212(a0); return r; }, 1),
-  "DefenseEffects.queued": run_lib((a0) => { const r = $0m79(run_loop($DefenseEffects$058queued$($0m85(a0)))); $0m78(a0); return r; }, 1),
   "DefenseEffects.running": run_lib((a0) => { const r = $0m79(run_loop($DefenseEffects$058running$($0m85(a0)))); $0m78(a0); return r; }, 1),
   "DefenseEffects.requests": run_lib((a0) => { const r = $0m81(run_loop($DefenseEffects$058requests$($0m85(a0)))); $0m78(a0); return r; }, 1),
   "DefenseEffects.started": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058started$(nat_host(a0), $0m86(a1)))); BigInt(a0); $0m81(a1); return r; }, 2),
-  "DefenseEffects.active_kind": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = (run_loop($DefenseEffects$058active_kind$($0m215(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4), nat_host(a5), $0m220(a6)))); $0m208(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); BigInt(a5); $0m213(a6); return r; }, 7),
-  "DefenseEffects.inside": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058inside$($0m215(a0), $0m219(a1)))); $0m208(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.bytes": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseEffects$058bytes$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.lane": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058lane$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.anchor": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058anchor$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.duration": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058duration$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.progress": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058progress$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.effort": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058effort$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.remaining": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058remaining$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.inside_world": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058inside_world$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.service_point": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058service_point$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.service_or_road": run_lib((a0, a1, a2, a3, a4) => { const r = (run_loop($DefenseEffects$058service_or_road$((a0), $0m930(a1), $0m219(a2), (a3), (a4)))); (a0); $0m935(a1); $0m212(a2); (a3); (a4); return r; }, 5),
-  "DefenseEffects.retained_point": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseEffects$058retained_point$((a0), $0m930(a1), (a2), (a3)))); (a0); $0m935(a1); (a2); (a3); return r; }, 4),
-  "DefenseEffects.jev_point": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058jev_point$((a0), $0m930(a1), $0m219(a2)))); (a0); $0m935(a1); $0m212(a2); return r; }, 3),
-  "DefenseEffects.review_waiting": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058review_waiting$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.id_of": run_lib((a0) => { const r = BigInt(run_loop($DefenseEffects$058id_of$($0m219(a0)))); $0m212(a0); return r; }, 1),
-  "DefenseEffects.review_rank": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseEffects$058review_rank$($0m218(a0), $0m930(a1), nat_host(a2), (a3)))); $0m211(a0); $0m935(a1); BigInt(a2); (a3); return r; }, 4),
-  "DefenseEffects.point_phase": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseEffects$058point_phase$((a0), $0m930(a1), $0m219(a2), (a3)))); (a0); $0m935(a1); $0m212(a2); (a3); return r; }, 4),
-  "DefenseEffects.point_work": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058point_work$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseEffects.supports": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058supports$($0m930(a0), $0m932(a1), (a2)))); $0m935(a0); $0m937(a1); (a2); return r; }, 3),
-  "DefenseEffects.covered": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058covered$($0m930(a0), $0m932(a1), $0m219(a2)))); $0m935(a0); $0m937(a1); $0m212(a2); return r; }, 3),
-  "DefenseEffects.levels": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseEffects$058levels$($0m931(a0), $0m930(a1), (a2), (a3)))); $0m936(a0); $0m935(a1); (a2); (a3); return r; }, 4),
-  "DefenseEffects.permits": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058permits$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseEffects.batch_target": run_lib((a0) => { const r = (run_loop($DefenseEffects$058batch_target$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseEffects.pending_sibling": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058pending_sibling$(nat_host(a0), $0m218(a1)))); BigInt(a0); $0m211(a1); return r; }, 2),
-  "DefenseEffects.eligible": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058eligible$($0m930(a0), $0m932(a1), $0m219(a2)))); $0m935(a0); $0m937(a1); $0m212(a2); return r; }, 3),
-  "DefenseEffects.target_scan": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($DefenseEffects$058target_scan$($0m218(a0), $0m930(a1), $0m932(a2), nat_host(a3)))); $0m211(a0); $0m935(a1); $0m937(a2); BigInt(a3); return r; }, 4),
-  "DefenseEffects.target": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseEffects$058target$($0m930(a0), $0m932(a1)))); $0m935(a0); $0m937(a1); return r; }, 2),
+  "DefenseEffects.bytes": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseEffects$058bytes$($0m954(a0), $0m219(a1)))); $0m955(a0); $0m212(a1); return r; }, 2),
+  "DefenseEffects.lane": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058lane$($0m954(a0), $0m219(a1)))); $0m955(a0); $0m212(a1); return r; }, 2),
   "DefenseEffects.find_work": run_lib((a0, a1) => { const r = $0m234(run_loop($DefenseEffects$058find_work$(nat_host(a0), $0m218(a1)))); BigInt(a0); $0m211(a1); return r; }, 2),
-  "DefenseEffects.existing_ready": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058existing_ready$($0m930(a0), $0m219(a1), $0m239(a2)))); $0m935(a0); $0m212(a1); $0m234(a2); return r; }, 3),
-  "DefenseEffects.changed_ready": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058changed_ready$($0m218(a0), $0m930(a1), $0m218(a2)))); $0m211(a0); $0m935(a1); $0m211(a2); return r; }, 3),
-  "DefenseEffects.parent_ready": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058parent_ready$($0m930(a0), $0m239(a1)))); $0m935(a0); $0m234(a1); return r; }, 2),
-  "DefenseEffects.entrance_clear": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058entrance_clear$($0m218(a0), $0m930(a1)))); $0m211(a0); $0m935(a1); return r; }, 2),
-  "DefenseEffects.birth_ready": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseEffects$058birth_ready$($0m239(a0), $0m930(a1), $0m219(a2)))); $0m234(a0); $0m935(a1); $0m212(a2); return r; }, 3),
-  "DefenseEffects.births_ready": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058births_ready$($0m218(a0), $0m930(a1)))); $0m211(a0); $0m935(a1); return r; }, 2),
-  "DefenseEffects.transition_ready": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058transition_ready$($0m930(a0), $0m215(a1)))); $0m935(a0); $0m208(a1); return r; }, 2),
-  "DefenseEffects.has_timer": run_lib((a0, a1) => { const r = (run_loop($DefenseEffects$058has_timer$(nat_host(a0), $0m933(a1)))); BigInt(a0); $0m938(a1); return r; }, 2),
-  "DefenseEffects.timer_next": run_lib((a0, a1, a2) => { const r = $0m939(run_loop($DefenseEffects$058timer_next$($0m930(a0), $0m219(a1), (a2)))); $0m935(a0); $0m212(a1); (a2); return r; }, 3),
-  "DefenseEffects.current_timers": run_lib((a0, a1, a2) => { const r = $0m938(run_loop($DefenseEffects$058current_timers$($0m218(a0), $0m930(a1), (a2)))); $0m211(a0); $0m935(a1); (a2); return r; }, 3),
   "DefenseEffects.id_found": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseEffects$058id_found$(nat_host(a0), $0m218(a1)))); BigInt(a0); $0m211(a1); return r; }, 2),
-  "DefenseEffects.refresh": run_lib((a0, a1, a2) => { const r = $0m938(run_loop($DefenseEffects$058refresh$($0m930(a0), $0m215(a1), (a2)))); $0m935(a0); $0m208(a1); (a2); return r; }, 3),
-  "DefenseEffects.modify": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m938(run_loop($DefenseEffects$058modify$($0m933(a0), nat_host(a1), nat_host(a2), (a3), (a4), (a5)))); $0m938(a0); BigInt(a1); BigInt(a2); (a3); (a4); (a5); return r; }, 6),
-  "DefenseEffects.shot_tower": run_lib((a0) => { const r = $0m937(run_loop($DefenseEffects$058shot_tower$($0m941(a0)))); $0m942(a0); return r; }, 1),
-  "DefenseEffects.shot_timers": run_lib((a0) => { const r = $0m938(run_loop($DefenseEffects$058shot_timers$($0m941(a0)))); $0m942(a0); return r; }, 1),
-  "DefenseEffects.work_kind": run_lib((a0) => { const r = $0m213(run_loop($DefenseEffects$058work_kind$($0m219(a0)))); $0m212(a0); return r; }, 1),
-  "DefenseEffects.shoot_found": run_lib((a0, a1, a2) => { const r = $0m942(run_loop($DefenseEffects$058shoot_found$($0m930(a0), $0m932(a1), $0m239(a2)))); $0m935(a0); $0m937(a1); $0m234(a2); return r; }, 3),
-  "DefenseEffects.shoot": run_lib((a0, a1) => { const r = $0m942(run_loop($DefenseEffects$058shoot$($0m930(a0), $0m932(a1)))); $0m935(a0); $0m937(a1); return r; }, 2),
-  "DefenseEffects.list_towers": run_lib((a0) => { const r = $0m936(run_loop($DefenseEffects$058list_towers$($0m943(a0)))); $0m944(a0); return r; }, 1),
-  "DefenseEffects.list_timers": run_lib((a0) => { const r = $0m938(run_loop($DefenseEffects$058list_timers$($0m943(a0)))); $0m944(a0); return r; }, 1),
-  "DefenseEffects.shoot_list": run_lib((a0, a1) => { const r = $0m944(run_loop($DefenseEffects$058shoot_list$($0m931(a0), $0m930(a1)))); $0m936(a0); $0m935(a1); return r; }, 2),
-  "DefenseEffects.shoot_world": run_lib((a0) => { const r = $0m935(run_loop($DefenseEffects$058shoot_world$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseOutput.batch_target": run_lib((a0) => { const r = (run_loop($DefenseOutput$058batch_target$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseOutput.item_work": run_lib((a0) => { const r = (run_loop($DefenseOutput$058item_work$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseOutput.acknowledgement_work": run_lib((a0) => { const r = (run_loop($DefenseOutput$058acknowledgement_work$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseOutput.bundle_work": run_lib((a0, a1) => { const r = (run_loop($DefenseOutput$058bundle_work$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
+  "DefenseCues.take": run_lib((a0, a1) => { const r = $0m934(run_loop($DefenseCues$058take$($0m944(a0), nat_host(a1)))); $0m934(a0); BigInt(a1); return r; }, 2),
+  "DefenseCues.keep": run_lib((a0, a1, a2) => { const r = $0m934(run_loop($DefenseCues$058keep$((a0), $0m930(a1), $0m944(a2)))); (a0); $0m931(a1); $0m934(a2); return r; }, 3),
+  "DefenseCues.select": run_lib((a0, a1) => { const r = $0m934(run_loop($DefenseCues$058select$($0m944(a0), (a1)))); $0m934(a0); (a1); return r; }, 2),
+  "DefenseCues.add": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseCues$058add$($0m954(a0), $0m930(a1)))); $0m955(a0); $0m931(a1); return r; }, 2),
+  "DefenseCues.positioned": run_lib((a0, a1, a2, a3) => { const r = $0m931(run_loop($DefenseCues$058positioned$($0m930(a0), $0m239(a1), $0m954(a2), (a3)))); $0m931(a0); $0m234(a1); $0m955(a2); (a3); return r; }, 4),
+  "DefenseCues.expire": run_lib((a0, a1, a2) => { const r = $0m934(run_loop($DefenseCues$058expire$($0m944(a0), $0m954(a1), $0m954(a2)))); $0m934(a0); $0m955(a1); $0m955(a2); return r; }, 3),
+  "DefenseCues.denied": run_lib((a0) => { const r = (run_loop($DefenseCues$058denied$($0m237(a0)))); $0m223(a0); return r; }, 1),
+  "DefenseCues.refusal": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseCues$058refusal$($0m954(a0), nat_host(a1), $0m239(a2)))); $0m955(a0); BigInt(a1); $0m234(a2); return r; }, 3),
+  "DefenseCues.refused": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseCues$058refused$((a0), $0m954(a1), nat_host(a2)))); (a0); $0m955(a1); BigInt(a2); return r; }, 3),
+  "DefenseCues.frame": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseCues$058frame$($0m954(a0), $0m792(a1)))); $0m955(a0); $0m821(a1); return r; }, 2),
+  "DefenseCues.frames": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseCues$058frames$($0m791(a0), $0m954(a1)))); $0m820(a0); $0m955(a1); return r; }, 2),
+  "DefenseCues.tick": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseCues$058tick$($0m954(a0), $0m954(a1), $0m791(a2)))); $0m955(a0); $0m955(a1); $0m820(a2); return r; }, 3),
+  "DefenseCues.burst": run_lib((a0) => { const r = $0m955(run_loop($DefenseCues$058burst$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseCues.refused_id": run_lib((a0, a1) => { const r = (run_loop($DefenseCues$058refused_id$($0m944(a0), nat_host(a1)))); $0m934(a0); BigInt(a1); return r; }, 2),
   "DefenseOutput.lease_ids": run_lib((a0) => { const r = $0m46(run_loop($DefenseOutput$058lease_ids$($0m199(a0)))); $0m195(a0); return r; }, 1),
   "DefenseOutput.core_leases": run_lib((a0) => { const r = $0m195(run_loop($DefenseOutput$058core_leases$($0m215(a0)))); $0m208(a0); return r; }, 1),
-  "DefenseOutput.selection_members": run_lib((a0) => { const r = $0m46(run_loop($DefenseOutput$058selection_members$($0m930(a0)))); $0m935(a0); return r; }, 1),
+  "DefenseOutput.selection_members": run_lib((a0) => { const r = $0m46(run_loop($DefenseOutput$058selection_members$($0m954(a0)))); $0m955(a0); return r; }, 1),
   "DefenseOutput.ready_ids": run_lib((a0) => { const r = $0m46(run_loop($DefenseOutput$058ready_ids$($0m215(a0)))); $0m208(a0); return r; }, 1),
   "DefenseOutput.pending_ids": run_lib((a0) => { const r = $0m46(run_loop($DefenseOutput$058pending_ids$($0m218(a0)))); $0m211(a0); return r; }, 1),
   "DefenseOutput.settled": run_lib((a0) => { const r = (run_loop($DefenseOutput$058settled$($0m218(a0)))); $0m211(a0); return r; }, 1),
   "DefenseOutput.bytes_for": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseOutput$058bytes_for$(nat_host(a0), $0m218(a1), $0m215(a2)))); BigInt(a0); $0m211(a1); $0m208(a2); return r; }, 3),
   "DefenseOutput.selected_bytes": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseOutput$058selected_bytes$($0m49(a0), $0m215(a1)))); $0m46(a0); $0m208(a1); return r; }, 2),
-  "DefenseOutput.selection_bytes": run_lib((a0) => { const r = (run_loop($DefenseOutput$058selection_bytes$($0m930(a0)))); $0m935(a0); return r; }, 1),
+  "DefenseOutput.selection_bytes": run_lib((a0) => { const r = (run_loop($DefenseOutput$058selection_bytes$($0m954(a0)))); $0m955(a0); return r; }, 1),
   "DefenseOutput.all_ready": run_lib((a0, a1) => { const r = (run_loop($DefenseOutput$058all_ready$($0m49(a0), $0m49(a1)))); $0m46(a0); $0m46(a1); return r; }, 2),
-  "DefenseMechanics.refined_weights": run_lib(() => { const r = $0m656(run_loop($DefenseMechanics$058refined_weights$()));  return r; }, 0),
-  "DefenseMechanics.translate": run_lib((a0) => { const r = $0m947(run_loop($DefenseMechanics$058translate$($0m945(a0)))); $0m946(a0); return r; }, 1),
-  "DefenseHost.initial": run_lib(() => { const r = $0m935(run_loop($DefenseHost$058initial$()));  return r; }, 0),
+  "DefenseHost.initial_config": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058initial_config$($0m846(a0), nat_host(a1)))); $0m847(a0); BigInt(a1); return r; }, 2),
+  "DefenseHost.initial": run_lib(() => { const r = $0m955(run_loop($DefenseHost$058initial$()));  return r; }, 0),
   "DefenseHost.tower_cost": run_lib((a0) => { const r = (run_loop($DefenseHost$058tower_cost$((a0)))); (a0); return r; }, 1),
   "DefenseHost.tower_name": run_lib((a0) => { const r = (run_loop($DefenseHost$058tower_name$((a0)))); (a0); return r; }, 1),
   "DefenseHost.tower_detail": run_lib((a0) => { const r = (run_loop($DefenseHost$058tower_detail$((a0)))); (a0); return r; }, 1),
   "DefenseHost.tower_range": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058tower_range$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseHost.tower_power": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058tower_power$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseHost.tower_cooldown": run_lib((a0) => { const r = (run_loop($DefenseHost$058tower_cooldown$((a0)))); (a0); return r; }, 1),
   "DefenseHost.upgrade_cost": run_lib((a0) => { const r = (run_loop($DefenseHost$058upgrade_cost$((a0)))); (a0); return r; }, 1),
-  "DefenseHost.timer_age": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058timer_age$(nat_host(a0), (a1), $0m933(a2)))); BigInt(a0); (a1); $0m938(a2); return r; }, 3),
-  "DefenseHost.request_for": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseHost$058request_for$(nat_host(a0), $0m86(a1)))); BigInt(a0); $0m81(a1); return r; }, 2),
-  "DefenseHost.requests": run_lib((a0) => { const r = $0m81(run_loop($DefenseHost$058requests$($0m85(a0)))); $0m78(a0); return r; }, 1),
-  "DefenseHost.pending_units": run_lib((a0) => { const r = (run_loop($DefenseHost$058pending_units$($0m218(a0)))); $0m211(a0); return r; }, 1),
-  "DefenseHost.unfinished_sibling": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058unfinished_sibling$(nat_host(a0), $0m218(a1)))); BigInt(a0); $0m211(a1); return r; }, 2),
-  "DefenseHost.has_operation": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058has_operation$(nat_host(a0), $0m218(a1)))); BigInt(a0); $0m211(a1); return r; }, 2),
-  "DefenseHost.has_preparation": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058has_preparation$(nat_host(a0), $0m218(a1)))); BigInt(a0); $0m211(a1); return r; }, 2),
-  "DefenseHost.preparation_running": run_lib((a0, a1, a2, a3, a4) => { const r = (run_loop($DefenseHost$058preparation_running$($0m215(a0), nat_host(a1), nat_host(a2), nat_host(a3), nat_host(a4)))); $0m208(a0); BigInt(a1); BigInt(a2); BigInt(a3); BigInt(a4); return r; }, 5),
-  "DefenseHost.source_owned": run_lib((a0) => { const r = (run_loop($DefenseHost$058source_owned$($0m218(a0)))); $0m211(a0); return r; }, 1),
-  "DefenseHost.source_permits": run_lib((a0) => { const r = (run_loop($DefenseHost$058source_permits$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.inside_found": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058inside_found$($0m930(a0), $0m239(a1)))); $0m935(a0); $0m234(a1); return r; }, 2),
-  "DefenseHost.in_building": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058in_building$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.inside_bytes": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($DefenseHost$058inside_bytes$($0m218(a0), $0m930(a1), $0m49(a2), (a3)))); $0m211(a0); $0m935(a1); $0m46(a2); (a3); return r; }, 4),
-  "DefenseHost.building_pressure_bytes": run_lib((a0) => { const r = (run_loop($DefenseHost$058building_pressure_bytes$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.building_bytes": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058building_bytes$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.damage_flash": run_lib((a0) => { const r = (run_loop($DefenseHost$058damage_flash$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.site_scan": run_lib((a0, a1, a2, a3, a4) => { const r = (run_loop($DefenseHost$058site_scan$($0m930(a0), $0m932(a1), (a2), (a3), (a4)))); $0m935(a0); $0m937(a1); (a2); (a3); (a4); return r; }, 5),
-  "DefenseHost.support_site": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058support_site$($0m930(a0), $0m932(a1)))); $0m935(a0); $0m937(a1); return r; }, 2),
-  "DefenseHost.protected_at": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058protected_at$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "DefenseHost.shield_towers": run_lib((a0) => { const r = $0m936(run_loop($DefenseHost$058shield_towers$($0m948(a0)))); $0m949(a0); return r; }, 1),
-  "DefenseHost.shield_bytes": run_lib((a0) => { const r = (run_loop($DefenseHost$058shield_bytes$($0m948(a0)))); $0m949(a0); return r; }, 1),
-  "DefenseHost.shield_spent": run_lib((a0, a1) => { const r = $0m937(run_loop($DefenseHost$058shield_spent$($0m932(a0), (a1)))); $0m937(a0); (a1); return r; }, 2),
-  "DefenseHost.shields": run_lib((a0, a1, a2, a3) => { const r = $0m949(run_loop($DefenseHost$058shields$($0m931(a0), $0m930(a1), (a2), (a3)))); $0m936(a0); $0m935(a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.damage_flash": run_lib((a0) => { const r = (run_loop($DefenseHost$058damage_flash$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.support_site": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058support_site$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
   "DefenseHost.pressure_buffer": run_lib(() => { const r = (run_loop($DefenseHost$058pressure_buffer$()));  return r; }, 0),
   "DefenseHost.pressure_hot": run_lib((a0) => { const r = (run_loop($DefenseHost$058pressure_hot$((a0)))); (a0); return r; }, 1),
   "DefenseHost.damage_work": run_lib((a0) => { const r = (run_loop($DefenseHost$058damage_work$((a0)))); (a0); return r; }, 1),
-  "DefenseHost.shield_allocation": run_lib((a0) => { const r = $0m949(run_loop($DefenseHost$058shield_allocation$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.residual_damage": run_lib((a0) => { const r = (run_loop($DefenseHost$058residual_damage$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.damage": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058damage$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.drained": run_lib((a0) => { const r = (run_loop($DefenseHost$058drained$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.run_status": run_lib((a0) => { const r = (run_loop($DefenseHost$058run_status$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.clock_active": run_lib((a0) => { const r = (run_loop($DefenseHost$058clock_active$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.controlled": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058controlled$($0m930(a0), $0m950(a1)))); $0m935(a0); $0m926(a1); return r; }, 2),
-  "DefenseHost.action": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058action$($0m930(a0), $0m928(a1)))); $0m935(a0); $0m929(a1); return r; }, 2),
-  "DefenseHost.pick_world": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseHost$058pick_world$((a0), $0m930(a1), $0m930(a2)))); (a0); $0m935(a1); $0m935(a2); return r; }, 3),
-  "DefenseHost.started": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058started$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.start": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058start$($0m930(a0)))); $0m935(a0); return r; }, 1),
+  "DefenseHost.residual_damage": run_lib((a0) => { const r = (run_loop($DefenseHost$058residual_damage$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.damage": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058damage$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.drained": run_lib((a0) => { const r = (run_loop($DefenseHost$058drained$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.run_status": run_lib((a0) => { const r = (run_loop($DefenseHost$058run_status$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.clock_active": run_lib((a0) => { const r = (run_loop($DefenseHost$058clock_active$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.controlled": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058controlled$($0m954(a0), $0m957(a1)))); $0m955(a0); $0m926(a1); return r; }, 2),
+  "DefenseHost.action": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058action$($0m954(a0), $0m928(a1)))); $0m955(a0); $0m929(a1); return r; }, 2),
+  "DefenseHost.pick_world": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseHost$058pick_world$((a0), $0m954(a1), $0m954(a2)))); (a0); $0m955(a1); $0m955(a2); return r; }, 3),
+  "DefenseHost.started": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058started$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.burst_controlled": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058burst_controlled$($0m954(a0), $0m957(a1)))); $0m955(a0); $0m926(a1); return r; }, 2),
+  "DefenseHost.burst": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058burst$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.start": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058start$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.next_burst": run_lib((a0) => { const r = (run_loop($DefenseHost$058next_burst$((a0)))); (a0); return r; }, 1),
+  "DefenseHost.cycle_burst": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058cycle_burst$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.adjust_burst": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058adjust_burst$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.outage_environment": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058outage_environment$($0m954(a0), $0m789(a1)))); $0m955(a0); $0m818(a1); return r; }, 2),
+  "DefenseHost.outage_allowed": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058outage_allowed$((a0), $0m954(a1)))); (a0); $0m955(a1); return r; }, 2),
+  "DefenseHost.outage": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058outage$($0m954(a0)))); $0m955(a0); return r; }, 1),
   "DefenseHost.frame_counts": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058frame_counts$($0m237(a0), (a1)))); $0m223(a0); (a1); return r; }, 2),
+  "DefenseHost.observed_event": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058observed_event$($0m258(a0), (a1)))); $0m259(a0); (a1); return r; }, 2),
   "DefenseHost.observed_count": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058observed_count$($0m792(a0), (a1)))); $0m821(a0); (a1); return r; }, 2),
   "DefenseHost.count_frames": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058count_frames$($0m791(a0), (a1)))); $0m820(a0); (a1); return r; }, 2),
-  "DefenseHost.consumed": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058consumed$($0m930(a0), $0m925(a1)))); $0m935(a0); $0m923(a1); return r; }, 2),
-  "DefenseHost.refiner_fired": run_lib((a0) => { const r = (run_loop($DefenseHost$058refiner_fired$($0m931(a0)))); $0m936(a0); return r; }, 1),
-  "DefenseHost.output_outcome": run_lib((a0) => { const r = (run_loop($DefenseHost$058output_outcome$((a0)))); (a0); return r; }, 1),
-  "DefenseHost.mapped_action": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058mapped_action$($0m930(a0), $0m951(a1)))); $0m935(a0); $0m947(a1); return r; }, 2),
-  "DefenseHost.mechanism": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058mechanism$($0m930(a0), $0m945(a1)))); $0m935(a0); $0m946(a1); return r; }, 2),
-  "DefenseHost.refinement": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058refinement$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.tick_applied": run_lib((a0, a1) => { const r = $0m952(run_loop($DefenseHost$058tick_applied$($0m930(a0), $0m925(a1)))); $0m935(a0); $0m923(a1); return r; }, 2),
-  "DefenseHost.presented_advance": run_lib((a0, a1, a2) => { const r = $0m923(run_loop($DefenseHost$058presented_advance$((a0), $0m930(a1), $0m925(a2)))); (a0); $0m935(a1); $0m923(a2); return r; }, 3),
-  "DefenseHost.advancing_observed": run_lib((a0, a1) => { const r = $0m952(run_loop($DefenseHost$058advancing_observed$($0m930(a0), $0m925(a1)))); $0m935(a0); $0m923(a1); return r; }, 2),
-  "DefenseHost.ticking_observed": run_lib((a0) => { const r = $0m952(run_loop($DefenseHost$058ticking_observed$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.tick_when": run_lib((a0, a1) => { const r = $0m952(run_loop($DefenseHost$058tick_when$((a0), $0m930(a1)))); (a0); $0m935(a1); return r; }, 2),
-  "DefenseHost.tick_observed": run_lib((a0) => { const r = $0m952(run_loop($DefenseHost$058tick_observed$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.tick_world": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058tick_world$($0m953(a0)))); $0m952(a0); return r; }, 1),
-  "DefenseHost.ticking": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058ticking$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.tick": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058tick$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.move": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseHost$058move$($0m930(a0), (a1), (a2)))); $0m935(a0); (a1); (a2); return r; }, 3),
-  "DefenseHost.map_free": run_lib((a0) => { const r = (run_loop($DefenseHost$058map_free$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.selected_tower": run_lib((a0, a1) => { const r = $0m954(run_loop($DefenseHost$058selected_tower$($0m931(a0), (a1)))); $0m936(a0); (a1); return r; }, 2),
-  "DefenseHost.upgrade_items": run_lib((a0, a1) => { const r = $0m936(run_loop($DefenseHost$058upgrade_items$($0m931(a0), (a1)))); $0m936(a0); (a1); return r; }, 2),
-  "DefenseHost.upgrade_found": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058upgrade_found$($0m930(a0), $0m955(a1)))); $0m935(a0); $0m954(a1); return r; }, 2),
-  "DefenseHost.upgrade": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058upgrade$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "DefenseHost.reset_found": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058reset_found$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.reset_layout": run_lib((a0) => { const r = $0m935(run_loop($DefenseHost$058reset_layout$((a0)))); (a0); return r; }, 1),
-  "DefenseHost.pacing": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058pacing$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.key_result": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058key_result$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.key_schedule": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058key_schedule$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.key_map": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058key_map$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.key_fields": run_lib((a0, a1, a2, a3) => { const r = $0m935(run_loop($DefenseHost$058key_fields$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.key_workload": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058key_workload$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.key": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058key$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
+  "DefenseHost.consumed": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058consumed$($0m954(a0), $0m925(a1)))); $0m955(a0); $0m923(a1); return r; }, 2),
+  "DefenseHost.presented": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseHost$058presented$($0m954(a0), $0m954(a1), $0m791(a2)))); $0m955(a0); $0m955(a1); $0m820(a2); return r; }, 3),
+  "DefenseHost.tick_applied": run_lib((a0, a1) => { const r = $0m960(run_loop($DefenseHost$058tick_applied$($0m954(a0), $0m925(a1)))); $0m955(a0); $0m923(a1); return r; }, 2),
+  "DefenseHost.ticking_observed": run_lib((a0) => { const r = $0m960(run_loop($DefenseHost$058ticking_observed$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.playback_when": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058playback_when$((a0), $0m954(a1)))); (a0); $0m955(a1); return r; }, 2),
+  "DefenseHost.tick_when": run_lib((a0, a1) => { const r = $0m960(run_loop($DefenseHost$058tick_when$((a0), $0m954(a1)))); (a0); $0m955(a1); return r; }, 2),
+  "DefenseHost.tick_observed": run_lib((a0) => { const r = $0m960(run_loop($DefenseHost$058tick_observed$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.tick_world": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058tick_world$($0m961(a0)))); $0m960(a0); return r; }, 1),
+  "DefenseHost.ticking": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058ticking$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.tick": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058tick$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.move": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseHost$058move$($0m954(a0), (a1), (a2)))); $0m955(a0); (a1); (a2); return r; }, 3),
+  "DefenseHost.map_free": run_lib((a0) => { const r = (run_loop($DefenseHost$058map_free$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.selected_tower": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058selected_tower$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseHost.upgrade_items": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058upgrade_items$((a0), (a1)))); (a0); (a1); return r; }, 2),
+  "DefenseHost.upgrade_found": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058upgrade_found$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.upgrade": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058upgrade$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "DefenseHost.reset_found": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058reset_found$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.reset_layout": run_lib((a0) => { const r = $0m955(run_loop($DefenseHost$058reset_layout$((a0)))); (a0); return r; }, 1),
+  "DefenseHost.pacing": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058pacing$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.key_result": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058key_result$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.key_schedule": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058key_schedule$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.key_map": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058key_map$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.key_fields": run_lib((a0, a1, a2, a3) => { const r = $0m955(run_loop($DefenseHost$058key_fields$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.key_workload": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058key_workload$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.key": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058key$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
   "DefenseHost.snap": run_lib((a0) => { const r = (run_loop($DefenseHost$058snap$((a0)))); (a0); return r; }, 1),
-  "DefenseHost.tower_hit": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058tower_hit$($0m931(a0), (a1), (a2), (a3)))); $0m936(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.tower_clear": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058tower_clear$($0m931(a0), (a1), (a2)))); $0m936(a0); (a1); (a2); return r; }, 3),
-  "DefenseHost.placement_valid": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058placement_valid$($0m930(a0), (a1), (a2)))); $0m935(a0); (a1); (a2); return r; }, 3),
-  "DefenseHost.select": run_lib((a0, a1) => { const r = $0m935(run_loop($DefenseHost$058select$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.build": run_lib((a0, a1, a2, a3) => { const r = $0m935(run_loop($DefenseHost$058build$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.click": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($DefenseHost$058click$($0m930(a0), (a1), (a2)))); $0m935(a0); (a1); (a2); return r; }, 3),
-  "DefenseHost.road_site": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058road_site$($0m930(a0), $0m932(a1), (a2)))); $0m935(a0); $0m937(a1); (a2); return r; }, 3),
-  "DefenseHost.preview_site_found": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058preview_site_found$($0m930(a0), $0m932(a1), $0m239(a2)))); $0m935(a0); $0m937(a1); $0m234(a2); return r; }, 3),
-  "DefenseHost.preview_site": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_site$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.preview_target": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($DefenseHost$058preview_target$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.target_remaining": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058target_remaining$($0m930(a0), $0m239(a1)))); $0m935(a0); $0m234(a1); return r; }, 2),
-  "DefenseHost.preview_before": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_before$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.hypothetical": run_lib((a0, a1, a2, a3) => { const r = $0m935(run_loop($DefenseHost$058hypothetical$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.preview_gain": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_gain$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.preview_secondary_before": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_secondary_before$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.preview_secondary_delta": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_secondary_delta$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "DefenseHost.duration_found": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058duration_found$($0m930(a0), $0m239(a1)))); $0m935(a0); $0m234(a1); return r; }, 2),
-  "DefenseHost.duration": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058duration$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.remaining": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058remaining$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.risk": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058risk$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.travel_ticks": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058travel_ticks$($0m930(a0), (a1), (a2)))); $0m935(a0); (a1); (a2); return r; }, 3),
-  "DefenseHost.lane_found": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058lane_found$($0m930(a0), $0m239(a1)))); $0m935(a0); $0m234(a1); return r; }, 2),
-  "DefenseHost.unit_lane": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058unit_lane$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "DefenseHost.point_work": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058point_work$($0m930(a0), $0m219(a1)))); $0m935(a0); $0m212(a1); return r; }, 2),
-  "DefenseHost.point_found": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058point_found$($0m930(a0), $0m239(a1)))); $0m935(a0); $0m234(a1); return r; }, 2),
-  "DefenseHost.unit_point": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058unit_point$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "observe": run_lib((a0) => { const r = $0m956(run_loop($observe$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "with_budget": run_lib((a0, a1) => { const r = $0m935(run_loop($with_budget$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "initial": run_lib((a0, a1, a2) => { const r = $0m935(run_loop($initial$($0m779(a0), (a1), (a2)))); $0m810(a0); (a1); (a2); return r; }, 3),
+  "DefenseHost.tower_hit": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058tower_hit$((a0), (a1), (a2), (a3)))); (a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.tower_clear": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058tower_clear$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
+  "DefenseHost.placement_valid": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseHost$058placement_valid$($0m954(a0), (a1), (a2)))); $0m955(a0); (a1); (a2); return r; }, 3),
+  "DefenseHost.select": run_lib((a0, a1) => { const r = $0m955(run_loop($DefenseHost$058select$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.build": run_lib((a0, a1, a2, a3) => { const r = $0m955(run_loop($DefenseHost$058build$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.click": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($DefenseHost$058click$($0m954(a0), (a1), (a2)))); $0m955(a0); (a1); (a2); return r; }, 3),
+  "DefenseHost.preview_site": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_site$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.preview_target": run_lib((a0, a1, a2, a3) => { const r = BigInt(run_loop($DefenseHost$058preview_target$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.profile_delay": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058profile_delay$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "DefenseHost.preview_before": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_before$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.hypothetical": run_lib((a0, a1, a2, a3) => { const r = $0m955(run_loop($DefenseHost$058hypothetical$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.preview_gain": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_gain$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.preview_secondary_before": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_secondary_before$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "DefenseHost.preview_secondary_delta": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_secondary_delta$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "observe": run_lib((a0) => { const r = $0m962(run_loop($observe$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "with_budget": run_lib((a0, a1) => { const r = $0m955(run_loop($with_budget$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "initial": run_lib((a0, a1, a2) => { const r = $0m955(run_loop($initial$($0m779(a0), (a1), (a2)))); $0m810(a0); (a1); (a2); return r; }, 3),
   "default_config": run_lib(() => { const r = $0m847(run_loop($default_config$()));  return r; }, 0),
-  "create_world": run_lib((a0, a1, a2, a3) => { const r = $0m935(run_loop($create_world$($0m846(a0), nat_host(a1), (a2), (a3)))); $0m847(a0); BigInt(a1); (a2); (a3); return r; }, 4),
-  "engine_observation": run_lib((a0) => { const r = $0m849(run_loop($engine_observation$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "accepted": run_lib((a0, a1) => { const r = $0m957(run_loop($accepted$($0m930(a0), $0m930(a1)))); $0m935(a0); $0m935(a1); return r; }, 2),
-  "build_checked": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m957(run_loop($build_checked$((a0), (a1), (a2), (a3), $0m930(a4), (a5), (a6), (a7)))); (a0); (a1); (a2); (a3); $0m935(a4); (a5); (a6); (a7); return r; }, 8),
-  "build": run_lib((a0, a1, a2, a3) => { const r = $0m957(run_loop($build$($0m930(a0), (a1), (a2), (a3)))); $0m935(a0); (a1); (a2); (a3); return r; }, 4),
-  "upgrade_checked": run_lib((a0, a1, a2, a3) => { const r = $0m957(run_loop($upgrade_checked$((a0), (a1), $0m930(a2), (a3)))); (a0); (a1); $0m935(a2); (a3); return r; }, 4),
-  "upgrade_found": run_lib((a0, a1, a2) => { const r = $0m957(run_loop($upgrade_found$($0m930(a0), (a1), $0m955(a2)))); $0m935(a0); (a1); $0m954(a2); return r; }, 3),
-  "apply": run_lib((a0, a1) => { const r = $0m957(run_loop($apply$($0m930(a0), (a1)))); $0m935(a0); (a1); return r; }, 2),
-  "tick_result": run_lib((a0, a1) => { const r = $0m952(run_loop($tick_result$((a0), $0m953(a1)))); (a0); $0m952(a1); return r; }, 2),
-  "tick": run_lib((a0) => { const r = $0m952(run_loop($tick$($0m930(a0)))); $0m935(a0); return r; }, 1),
-  "tick_allowed": run_lib((a0, a1) => { const r = $0m952(run_loop($tick_allowed$((a0), $0m930(a1)))); (a0); $0m935(a1); return r; }, 2),
-  "tick_bounded": run_lib((a0, a1) => { const r = $0m952(run_loop($tick_bounded$($0m930(a0), nat_host(a1)))); $0m935(a0); BigInt(a1); return r; }, 2),
+  "create_world": run_lib((a0, a1, a2, a3) => { const r = $0m955(run_loop($create_world$($0m846(a0), nat_host(a1), (a2), (a3)))); $0m847(a0); BigInt(a1); (a2); (a3); return r; }, 4),
+  "engine_observation": run_lib((a0) => { const r = $0m849(run_loop($engine_observation$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "accepted": run_lib((a0, a1) => { const r = $0m963(run_loop($accepted$($0m954(a0), $0m954(a1)))); $0m955(a0); $0m955(a1); return r; }, 2),
+  "priced": run_lib((a0, a1, a2) => { const r = $0m963(run_loop($priced$($0m954(a0), $0m954(a1), (a2)))); $0m955(a0); $0m955(a1); (a2); return r; }, 3),
+  "build_checked": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8) => { const r = $0m963(run_loop($build_checked$((a0), (a1), (a2), (a3), $0m954(a4), (a5), (a6), (a7), (a8)))); (a0); (a1); (a2); (a3); $0m955(a4); (a5); (a6); (a7); (a8); return r; }, 9),
+  "build_priced": run_lib((a0, a1, a2, a3, a4) => { const r = $0m963(run_loop($build_priced$($0m954(a0), (a1), (a2), (a3), (a4)))); $0m955(a0); (a1); (a2); (a3); (a4); return r; }, 5),
+  "build": run_lib((a0, a1, a2, a3) => { const r = $0m963(run_loop($build$($0m954(a0), (a1), (a2), (a3)))); $0m955(a0); (a1); (a2); (a3); return r; }, 4),
+  "upgrade_checked": run_lib((a0, a1, a2, a3) => { const r = $0m963(run_loop($upgrade_checked$((a0), (a1), $0m954(a2), (a3)))); (a0); (a1); $0m955(a2); (a3); return r; }, 4),
+  "upgrade_found": run_lib((a0, a1, a2) => { const r = $0m963(run_loop($upgrade_found$($0m954(a0), (a1), (a2)))); $0m955(a0); (a1); (a2); return r; }, 3),
+  "apply": run_lib((a0, a1) => { const r = $0m963(run_loop($apply$($0m954(a0), (a1)))); $0m955(a0); (a1); return r; }, 2),
+  "tick_result": run_lib((a0, a1) => { const r = $0m960(run_loop($tick_result$((a0), $0m961(a1)))); (a0); $0m960(a1); return r; }, 2),
+  "tick": run_lib((a0) => { const r = $0m960(run_loop($tick$($0m954(a0)))); $0m955(a0); return r; }, 1),
+  "tick_allowed": run_lib((a0, a1, a2) => { const r = $0m960(run_loop($tick_allowed$((a0), $0m954(a1), nat_host(a2)))); (a0); $0m955(a1); BigInt(a2); return r; }, 3),
+  "tick_budget": run_lib((a0, a1, a2) => { const r = $0m960(run_loop($tick_budget$((a0), $0m954(a1), nat_host(a2)))); (a0); $0m955(a1); BigInt(a2); return r; }, 3),
+  "tick_bounded": run_lib((a0, a1) => { const r = $0m960(run_loop($tick_bounded$($0m954(a0), nat_host(a1)))); $0m955(a0); BigInt(a1); return r; }, 2),
+  "scenario_outcome": run_lib((a0) => { const r = (run_loop($scenario_outcome$((a0)))); (a0); return r; }, 1),
+  "scenario_environment": run_lib((a0, a1) => { const r = $0m818(run_loop($scenario_environment$($0m964(a0), $0m789(a1)))); $0m965(a0); $0m818(a1); return r; }, 2),
+  "scenario_profile": run_lib((a0, a1, a2) => { const r = $0m640(run_loop($scenario_profile$($0m639(a0), (a1), (a2)))); $0m640(a0); (a1); (a2); return r; }, 3),
+  "scenario_advicees": run_lib((a0, a1, a2) => { const r = $0m844(run_loop($scenario_advicees$($0m842(a0), nat_host(a1), (a2)))); $0m844(a0); BigInt(a1); (a2); return r; }, 3),
+  "scenario_config": run_lib((a0, a1, a2) => { const r = $0m847(run_loop($scenario_config$($0m964(a0), $0m846(a1), nat_host(a2)))); $0m965(a0); $0m847(a1); BigInt(a2); return r; }, 3),
+  "scenario_started": run_lib((a0, a1) => { const r = $0m955(run_loop($scenario_started$($0m954(a0), $0m964(a1)))); $0m955(a0); $0m965(a1); return r; }, 2),
+  "create_scenario": run_lib((a0, a1, a2, a3) => { const r = $0m955(run_loop($create_scenario$($0m964(a0), nat_host(a1), (a2), (a3)))); $0m965(a0); BigInt(a1); (a2); (a3); return r; }, 4),
 };

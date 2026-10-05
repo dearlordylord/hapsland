@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createGameStreams } from "../prototypes/canonical-defense/game-stream-runner.mjs";
-import { callbackNativeOwnerSources } from "../prototypes/canonical-defense/defense-consumer-metadata.ts";
+import { callbackNativeOwnerSources } from "../prototypes/canonical-defense/lab-trace-metadata.ts";
 
 // Existing game transport owns compiler preflight, transitive source/tool hashes,
 // finite subprocess deadlines, numeric IO wiring and retained output receipts.
@@ -9,7 +9,8 @@ const fixture = new URL("../prototypes/canonical-defense/DefenseLabConformance.b
 const streams = await createGameStreams(fixture, callbackNativeOwnerSources, {
   emissionTimeoutMs: 30000,
   clangTimeoutMs: 30000,
-  executionTimeoutMs: 5000
+  executionTimeoutMs: 5000,
+  executionArgumentGroups: Array.from({length:7},(_,id)=>[String(id)])
 });
 try {
   const rows = 7 * 40;

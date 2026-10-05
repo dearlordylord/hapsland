@@ -72,6 +72,17 @@ test("game execution rejects unbounded or unsupported allowances before compilat
   }
 })
 
+test("scenario execution groups are finite and cannot reuse unrelated retained outputs", async () => {
+  const { createGameStreams } = await import("../prototypes/canonical-defense/game-stream-runner.mjs")
+  const fixture = new URL("../prototypes/canonical-defense/DefenseLabConformance.bend", import.meta.url)
+  for (const executionArgumentGroups of [[], Array.from({length:17},()=>[]), [[1]], [["x".repeat(257)]]]) {
+    await assert.rejects(createGameStreams(fixture, [], { executionArgumentGroups }), /Invalid finite game execution argument groups/)
+  }
+  await assert.rejects(createGameStreams(fixture, [], {
+    executionArgumentGroups:[["0"],["1"]], resumeOutputReceipt:"unrelated.json"
+  }), /Retained game output does not support argument groups/)
+})
+
 test("game streams join split batches once and reject incomplete or malformed lines", async () => {
   const { streamGameBatches } = await import("../prototypes/canonical-defense/game-stream-runner.mjs")
   const directory = mkdtempSync(join(tmpdir(), "hapsland-game-chunks-"))

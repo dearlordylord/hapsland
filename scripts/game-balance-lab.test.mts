@@ -180,9 +180,11 @@ it("accelerates future actual-game requests while preserving issued facts and ex
     actions: [{ atTick: 1, kind: "build", tower: "jevService", x: 424, y: 392 }]
   })
   const settled = (result: typeof baseline) => gameEvents(result.trace, "JevRequestSettled")
-  expect(settled(baseline)).toHaveLength(1)
-  expect(settled(early)).toHaveLength(1)
-  expect(settled(baseline)[0]!.time - settled(early)[0]!.time).toBe(50)
+  expect(settled(baseline)).toHaveLength(2)
+  expect(settled(early)).toHaveLength(2)
+  // One authored edit has two review units [10,20]; each captures its own request.
+  expect(settled(baseline).map((item) => item.time)).toEqual([100, 100])
+  expect(settled(early).map((item) => item.time)).toEqual([50, 50])
   expect(settled(early)[0]!.event.outcome).toEqual(settled(baseline)[0]!.event.outcome)
   expect(settled(late)).toEqual(settled(baseline))
 })
@@ -197,9 +199,11 @@ it("accelerates future actual-game finding output with a clear countercase and c
     ...gameInput,
     actions: [{ atTick: 6, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
   })
-  const outputs = (result: typeof baseline) => gameEvents(result.trace, "OutputTerminal")
-  expect(outputs(baseline)).toHaveLength(1)
-  expect(outputs(baseline)[0]!.time - outputs(early)[0]!.time).toBe(40)
+  const outputs = (result: typeof baseline) => gameEvents(result.trace, "SubmissionTerminal")
+  expect(outputs(baseline)).toHaveLength(2)
+  expect(outputs(baseline).map((item) => item.time)).toEqual([180, 180])
+  expect(outputs(early).map((item) => item.time)).toEqual([140, 140])
+  expect(outputs(early).map((item) => item.event.certain)).toEqual([true, true])
   expect(outputs(late)).toEqual(outputs(baseline))
   const clear = runGameExperiment({
     ...gameInput,
@@ -208,7 +212,7 @@ it("accelerates future actual-game finding output with a clear countercase and c
   })
   expect(outputs(clear)).toEqual([])
   expect(clear.game.spent).toBe(55)
-  expect(early.business.projection.pendingFindings).toHaveLength(1)
+  expect(early.business.projection.pendingFindings).toHaveLength(2)
 })
 
 it("restores blocked actual-game access and leaves healthy access business behavior unchanged", () => {
@@ -220,14 +224,14 @@ it("restores blocked actual-game access and leaves healthy access business behav
       settings: { ...gameInput.settings, ...settings },
       actions: repair
     })
-    expect(restored.business.projection.pendingFindings).toHaveLength(1)
+    expect(restored.business.projection.pendingFindings).toHaveLength(2)
     expect(blocked.business.projection.pendingFindings).toHaveLength(0)
     expect(restored.game.spent).toBe(45)
   }
   const baseline = runGameExperiment(gameInput)
   const healthy = runGameExperiment({ ...gameInput, actions: repair })
   expect(gameEvents(healthy.trace, "JevRequestSettled")).toEqual(gameEvents(baseline.trace, "JevRequestSettled"))
-  expect(gameEvents(healthy.trace, "OutputTerminal")).toEqual(gameEvents(baseline.trace, "OutputTerminal"))
+  expect(gameEvents(healthy.trace, "SubmissionTerminal")).toEqual(gameEvents(baseline.trace, "SubmissionTerminal"))
 })
 
 it("uses configured actual-game prices and refuses unaffordable or disabled purchases without charge", () => {
@@ -285,10 +289,19 @@ it("replaces a stable actual-game identity with delivery ability and records its
     catalogue: { experiment: { ...descriptor, lesson: "Future output", ability: "deliveryRelay" } }
   })
   const baseline = runGameExperiment(gameInput)
-  const outputs = (result: typeof baseline) => gameEvents(result.trace, "OutputTerminal")
+  const outputs = (result: typeof baseline) => gameEvents(result.trace, "SubmissionTerminal")
   expect(outputs(baseline)[0]!.time - outputs(replaced)[0]!.time).toBe(40)
+  const requireRelayEffect = (candidate: typeof baseline) => {
+    if (outputs(baseline)[0]!.time - outputs(candidate)[0]!.time !== 40)
+      throw new Error("expected future relay delivery reduction40ms")
+  }
+  // Intentional wrong ability assignment must fail the independent delivery expectation.
+  expect(() => requireRelayEffect(original)).toThrow("expected future relay")
+  expect(() => requireRelayEffect(replaced)).not.toThrow()
   expect(replaced.game.spent).toBe(60)
   expect(replaced.recording.configurationIdentity).not.toBe(original.recording.configurationIdentity)
+  expect(replaced.catalogue.experiment!.target).toBe("future finding output delivery latency")
+  expect(replaced.catalogue.experiment!.businessObservation).toContain("retained ownership")
   expect(replayGameExperiment(replaced.recording)).toEqual(replaced)
   const clear = runGameExperiment({
     ...gameInput,
@@ -308,6 +321,118 @@ it("refuses deliberately stale generated actual-game identities", () => {
   expect(() => verifyGeneratedGameIdentity({ ...manifest, moduleIdentity: "sha256:stale" })).toThrow("module identity")
   expect(() => verifyGeneratedGameIdentity({ ...manifest, sourceIdentity: "sha256:stale" })).toThrow("source identity")
   expect(() => verifyGeneratedGameIdentity(manifest)).not.toThrow()
+})
+
+it("configures bounded actual-game strength, preserves issued deadlines and multiplies upgrades by strength", () => {
+  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Future latency" }
+  const actions = [{ atTick: 0, kind: "build" as const, tower: "configured", x: 424, y: 392 }]
+  const ordinary = runGameExperiment({
+    ...gameInput,
+    catalogue: { configured: descriptor },
+    enabled: ["configured"],
+    actions
+  })
+  const strong = runGameExperiment({
+    ...gameInput,
+    catalogue: { configured: { ...descriptor, strength: 3 } },
+    enabled: ["configured"],
+    actions
+  })
+  const upgraded = runGameExperiment({
+    ...gameInput,
+    catalogue: { configured: { ...descriptor, strength: 3 } },
+    enabled: ["configured"],
+    actions: [...actions, { atTick: 0, kind: "upgrade", index: 1 }]
+  })
+  const late = runGameExperiment({
+    ...gameInput,
+    catalogue: { configured: { ...descriptor, strength: 3 } },
+    enabled: ["configured"],
+    actions: [{ ...actions[0]!, atTick: 1 }]
+  })
+  const settlementTimes = (result: typeof strong) =>
+    gameEvents(result.trace, "JevRequestSettled").map((item) => item.time)
+  expect(settlementTimes(ordinary)).toEqual([50, 50])
+  expect(settlementTimes(strong)).toEqual([25, 25])
+  expect(settlementTimes(upgraded)).toEqual([14, 14])
+  expect(settlementTimes(late)).toEqual([100, 100])
+  expect(upgraded.game.spent).toBe(100)
+  expect(strong.recording.configurationIdentity).not.toBe(ordinary.recording.configurationIdentity)
+  expect(replayGameExperiment(strong.recording)).toEqual(strong)
+})
+
+it("preserves separately configured strengths for aliases of the same actual ability", () => {
+  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Future latency" }
+  const result = runGameExperiment({
+    ...gameInput,
+    catalogue: { first: { ...descriptor, strength: 1 }, second: { ...descriptor, strength: 3 } },
+    enabled: ["first", "second"],
+    actions: [
+      { atTick: 0, kind: "build", tower: "first", x: 424, y: 392 },
+      { atTick: 0, kind: "build", tower: "second", x: 456, y: 392 }
+    ]
+  })
+  expect(result.actions.map((action) => [action.result, action.charged])).toEqual([
+    ["Applied", 60],
+    ["Applied", 60]
+  ])
+  expect(gameEvents(result.trace, "JevRequestSettled").map((item) => item.time)).toEqual([20, 20])
+  expect(result.game.spent).toBe(120)
+})
+
+it("uses configured actual-game radius to distinguish the same legal placement's connectivity", () => {
+  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Connectivity" }
+  const actions = [{ atTick: 0, kind: "build" as const, tower: "configured", x: 424, y: 392 }]
+  const narrow = runGameExperiment({
+    ...gameInput,
+    catalogue: { configured: { ...descriptor, radius: 20 } },
+    enabled: ["configured"],
+    actions
+  })
+  const wide = runGameExperiment({
+    ...gameInput,
+    catalogue: { configured: { ...descriptor, radius: 100 } },
+    enabled: ["configured"],
+    actions
+  })
+  expect(narrow.actions[0]?.result).toBe("Applied")
+  expect(wide.actions[0]?.result).toBe("Applied")
+  expect(gameEvents(narrow.trace, "JevRequestSettled").map((item) => item.time)).toEqual([100, 100])
+  expect(gameEvents(wide.trace, "JevRequestSettled").map((item) => item.time)).toEqual([50, 50])
+  expect(narrow.game.spent).toBe(wide.game.spent)
+  expect(narrow.recording.configurationIdentity).not.toBe(wide.recording.configurationIdentity)
+})
+
+it("rejects out-of-domain actual-game strength/radius and non-one repair strength before starting", () => {
+  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Future latency" }
+  for (const parameters of [
+    { strength: 0 },
+    { strength: 17 },
+    { strength: 1.5 },
+    { radius: 19 },
+    { radius: 241 },
+    { radius: 20.5 }
+  ])
+    expect(() =>
+      runGameExperiment({
+        ...gameInput,
+        catalogue: { configured: { ...descriptor, ...parameters } },
+        enabled: ["configured"]
+      })
+    ).toThrow("invalid game mechanism")
+  expect(() =>
+    runGameExperiment({
+      ...gameInput,
+      catalogue: { configured: { ...descriptor, ability: "accessRepair", strength: 2 } },
+      enabled: ["configured"]
+    })
+  ).toThrow("repair strength")
+  expect(() =>
+    runGameExperiment({
+      ...gameInput,
+      actions: [{ ...{ atTick: 0, kind: "build" as const, tower: "jevService", x: 424, y: 392, strength: 3 } }]
+    })
+  ).toThrow("configuration belongs to catalogue")
 })
 
 const direct = {

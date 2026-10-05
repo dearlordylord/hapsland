@@ -20,6 +20,7 @@ type ActionResult is Data:
   Unaffordable{}
   MaxLevel{}
   Dead{}
+  InvalidParameters{}
 type Receipt is Data:
   Receipt{world: M.World, result: ActionResult, charged: U32}
 type GameObservation is Data:
@@ -42,18 +43,25 @@ def accepted(+before: M.World, +after: M.World) -> Receipt:
   Receipt{after,Applied{},M.sub(M.gold(before),M.gold(after))}
 # Experimental construction prices change investment accounting only. H.build
 # still owns placement and the exact simulator intervention; no business state is patched.
-def priced(before: M.World,after: M.World,price: U32) -> Receipt:
+def priced(before: M.World,after: M.World,+price: U32) -> Receipt:
   Receipt{with_budget(after,M.sub(M.gold(before),price)),Applied{},price}
-def build_checked(dead: Bool,unknown: Bool,illegal: Bool,poor: Bool,+world: M.World,x: U32,y: U32,+kind: U32,price: U32) -> Receipt:
+def build_checked(dead: Bool,unknown: Bool,illegal: Bool,poor: Bool,+world: M.World,x: U32,y: U32,+kind: U32,price: U32,power: U32,radius: U32) -> Receipt:
   match dead unknown illegal poor:
     case True{} _ _ _: Receipt{world,Dead{},0}
     case _ True{} _ _: Receipt{world,UnknownTower{},0}
     case _ _ True{} _: Receipt{world,IllegalPlacement{},0}
     case _ _ _ True{}: Receipt{world,Unaffordable{},0}
-    case _ _ _ _: priced(world,H.build(with_budget(world,H.tower_cost(kind)),x,y,kind),price)
-def build_priced(+world: M.World,+x: U32,+y: U32,+kind: U32,+price: U32) -> Receipt:
-  build_checked(U32.is_eq(M.hp(world),0),(kind >= 3 : U32),Bool.not(H.placement_valid(world,x,y)),
-    (M.gold(world) < price : U32),world,x,y,kind,price)
+    case _ _ _ _: priced(world,H.build_tuned(with_budget(world,H.tower_cost(kind)),x,y,kind,power,radius),price)
+def build_parameters(valid: Bool,+world: M.World,+x: U32,+y: U32,+kind: U32,+price: U32,power: U32,radius: U32) -> Receipt:
+  match valid:
+    case False{}: Receipt{world,InvalidParameters{},0}
+    case True{}:
+      build_checked(U32.is_eq(M.hp(world),0),(kind >= 3 : U32),Bool.not(H.placement_valid(world,x,y)),
+        (M.gold(world) < price : U32),world,x,y,kind,price,power,radius)
+def build_tuned(world: M.World,x: U32,y: U32,+kind: U32,price: U32,+power: U32,+radius: U32) -> Receipt:
+  build_parameters((power >= 1 : U32) && (power <= 16 : U32) && (radius >= 20 : U32) && (radius <= 240 : U32) && (Bool.not(U32.is_eq(kind,2)) || U32.is_eq(power,1)),world,x,y,kind,price,power,radius)
+def build_priced(world: M.World,x: U32,y: U32,kind: U32,price: U32) -> Receipt:
+  build_tuned(world,x,y,kind,price,1,100)
 def build(+world: M.World,x: U32,y: U32,+kind: U32) -> Receipt:
   build_priced(world,x,y,kind,H.tower_cost(kind))
 def upgrade_checked(full: Bool, poor: Bool, +world: M.World, index: U32) -> Receipt:
@@ -116,7 +124,7 @@ def scenario_config(+scenario: Scenario,config: T.Config,seed: Nat) -> T.Config:
   match scenario config:
     case Scenario{_,_,_,_,_,_,_,interval} T.Config{limits,advicees,environment,collectors}:
       T.Config{limits,scenario_advicees(advicees,seed,interval),scenario_environment(scenario,environment),collectors}
-def scenario_started(world: M.World,scenario: Scenario) -> M.World:
+def scenario_started(+world: M.World,scenario: Scenario) -> M.World:
   match scenario:
     case Scenario{_,_,_,_,_,_,burst,_}:
       H.start(M.with_control(world,M.with_settings(M.control(world),M.with_burst(M.settings(world),burst))))
