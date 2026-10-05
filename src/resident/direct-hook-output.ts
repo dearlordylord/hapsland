@@ -44,14 +44,19 @@ export const directHookSubmissionLayer = Layer.effect(
       begin: beginComposedSubmissionEffect,
       release: releaseComposedSubmissionEffect,
       acknowledge: acknowledgeAdviceEffect,
-      writeCodex: Effect.fn("DirectHookSubmission.writeCodex")((value: ClaudeHostOutput) =>
-        Effect.sync(() => {
+      writeCodex: Effect.fn("DirectHookSubmission.writeCodex")(function* (value: ClaudeHostOutput) {
+        const observer = Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation)
+        yield* Effect.sync(() => {
           if ("hookSpecificOutput" in value)
-            attemptCodexHostOutput(value, (encoded) => {
-              process.stdout.write(encoded)
-            })
+            attemptCodexHostOutput(
+              value,
+              (encoded) => {
+                process.stdout.write(encoded)
+              },
+              observer
+            )
         })
-      ),
+      }),
       record: Effect.fn("DirectHookSubmission.record")((advice: CollectedAdvice, value: ClaudeHostOutput) =>
         Effect.sync(() => {
           recordDemoTrace(Option.getOrUndefined(demoBudgetPath), advice.root, advice.advicee, {
@@ -101,11 +106,7 @@ const recordHookOutput = Effect.fn("DirectHook.recordOutput")(function* (
 ) {
   if (directCodexOutputRequired(output, options, composedSubmission)) {
     handoff.handedOff = true
-    const observer = Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation)
-    observeInspectionWriter(observer, "write-started")
     yield* submission.writeCodex(output.value)
-    // This older synchronous port has no native completion callback.
-    observeInspectionWriter(observer, "uncertain")
   }
   yield* submission.record(output.collected, output.value)
   const acknowledged = yield* submission.acknowledge(output.collected)
