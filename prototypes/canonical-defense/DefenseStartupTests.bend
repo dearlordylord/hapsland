@@ -1,83 +1,66 @@
-# Startup and movement regression after the continuous NativeRun migration.
+# Startup and continuous playback at the actual game Host boundary.
 import Base
 import ./DefenseHost.bend as H
 import ./DefenseModel.bend as M
-import ./DefenseProjection.bend as P
+import ./DefenseMotion.bend as Motion
+import ./DefenseMotionTypes.bend as V
 import ./DefenseMap.bend as Map
-import ./DefenseEffects.bend as E
+import ./DefenseProjection.bend as P
 import ./DefenseConsumerTests.bend as ConsumerTests
 
 def require(ok: Bool,message: String) -> IO(Unit):
   match ok:
     case True{}: IO.print("PASS " ++ message)
     case False{}: IO.die(Unit,1,"FAIL " ++ message)
-def at_entrance(+world: M.World,items: List<&2,P.Token>) -> Bool:
+def at_entrance(+world: M.World,items: List<&2,V.Actor>) -> Bool:
   match items:
     case Nil{}: False{}
-    case +token <> _:
-      U32.is_eq(P.phase(token),0) && Map.in_range(H.unit_point(world,token),Map.path_position(Map.source_route(M.layout(world)),0),2)
-def first_visible(fuel: Nat,+world: M.World) -> Bool:
-  match fuel:
-    case 0n: False{}
-    case 1n+n:
-      Bool.pick(Bool,Nat.is_eq(List.length(&2,P.Token,P.tokens(world)),0n),first_visible(n,H.tick(world)),at_entrance(world,P.tokens(world)))
-def find_token(+operation: U32,items: List<&2,P.Token>) -> Maybe<&2,P.Token>:
+    case +actor <> rest:
+      (U32.is_eq(Motion.visible_phase(actor),0) && Map.in_range(Motion.point(actor),Map.first(Map.source_route(M.layout(world))),4)) || at_entrance(world,rest)
+def find(+id: V.WorkIdentity,items: List<&2,V.Actor>) -> Maybe<&2,V.Actor>:
   match items:
     case Nil{}: None{}
-    case +token <> rest:
-      Bool.pick(Maybe<&2,P.Token>,U32.is_eq(operation,P.id(token)),Some{token},find_token(operation,rest))
-def nearby(+world: M.World,next: M.World,token: P.Token,found: Maybe<&2,P.Token>) -> Bool:
-  match found:
+    case +actor <> rest: Bool.pick(Maybe<&2,V.Actor>,Motion.same(id,Motion.actor_key(actor)),Some{actor},find(id,rest))
+def nearby(before: V.Actor,after: Maybe<&2,V.Actor>) -> Bool:
+  match after:
     case None{}: True{}
-    case Some{other}: Map.in_range(H.unit_point(world,token),H.unit_point(next,other),16)
-def continuous(items: List<&2,P.Token>,+world: M.World,+next: M.World) -> Bool:
+    case Some{next}: (Map.segment_length(Motion.point(before),Motion.point(next)) <= 4 : U32)
+def continuous(items: List<&2,V.Actor>,+next: List<&2,V.Actor>) -> Bool:
   match items:
     case Nil{}: True{}
-    case +token <> rest:
-      nearby(world,next,token,find_token(P.id(token),P.tokens(next))) && continuous(rest,world,next)
+    case +actor <> rest: nearby(actor,find(Motion.actor_key(actor),next)) && continuous(rest,next)
 def route_check(fuel: Nat,+world: M.World) -> Bool:
   match fuel:
     case 0n: True{}
     case 1n+n:
       +next = H.tick(world)
-      E.transition_ready(world,M.core(next)) && continuous(P.tokens(world),world,next) && route_check(n,next)
-def jev_age(items: List<&2,P.Token>,+world: M.World) -> U32:
-  match items:
-    case Nil{}: 0
-    case +token <> rest:
-      U32.max(Bool.pick(U32,U32.is_eq(P.phase(token),4),E.age(U32.to_nat(P.id(token)),4,M.timers(world)),0),jev_age(rest,world))
-def peak_jev_age(fuel: Nat,+world: M.World,+oldest: U32) -> U32:
-  match fuel:
-    case 0n: oldest
-    case 1n+n:
-      peak_jev_age(n,ConsumerTests.run(100n,world),U32.max(oldest,jev_age(P.tokens(world),world)))
-def bursts(fuel: Nat,world: M.World) -> M.World:
-  match fuel:
-    case 0n: world
-    case 1n+n: bursts(n,H.key(world,110))
-def separated_from(items: List<&2,P.Token>,+world: M.World,+token: P.Token) -> Bool:
-  match items:
+      continuous(M.actors(world),M.actors(next)) && route_check(n,next)
+def separated_from(+actor: V.Actor,others: List<&2,V.Actor>,+all: List<&2,V.Actor>) -> Bool:
+  match others:
     case Nil{}: True{}
     case +other <> rest:
-      Bool.not(U32.is_eq(P.phase(token),0) && U32.is_eq(P.phase(other),0) && Map.in_range(H.unit_point(world,token),H.unit_point(world,other),23)) && separated_from(rest,world,token)
-def entrance_separated(items: List<&2,P.Token>,+world: M.World) -> Bool:
+      Bool.not(U32.is_eq(Motion.visible_phase(actor),0) && U32.is_eq(Motion.visible_phase(other),0) &&
+        Motion.drawable(actor,all) && Motion.drawable(other,all) && (Map.segment_length(Motion.point(actor),Motion.point(other)) < 24 : U32)) && separated_from(actor,rest,all)
+def separated(items: List<&2,V.Actor>,+all: List<&2,V.Actor>) -> Bool:
   match items:
     case Nil{}: True{}
-    case +token <> +rest: separated_from(rest,world,token) && entrance_separated(rest,world)
+    case +actor <> +rest: separated_from(actor,rest,all) && separated(rest,all)
+def burst_check(fuel: Nat,+world: M.World) -> Bool:
+  match fuel:
+    case 0n: True{}
+    case 1n+n:
+      separated(M.actors(world),M.actors(world)) && burst_check(n,H.tick(world))
 def main() -> IO(Unit):
   +origin = H.initial()
   +idle = ConsumerTests.run(100n,origin)
-  +built = H.build(origin,424,232,1)
-  +built_idle = ConsumerTests.run(100n,built)
+  +built = H.build(origin,424,392,0)
+  +six = H.burst(origin,6)
+  +queued = H.tick(six)
   do IO<Unit>:
-    require(U32.is_eq(M.time(idle),0) && U32.is_eq(M.offered(idle),0) && Nat.is_eq(List.length(&2,P.Token,P.tokens(idle)),0n),"startup waits for N/Enter without advancing or spawning")
-    require(U32.is_eq(M.time(built_idle),0) && U32.is_eq(M.offered(built_idle),0) && U32.is_eq(M.gold(built_idle),105),"building before N/Enter does not start the workload")
-    require(first_visible(100n,H.key(origin,110)),"N starts with the first visible mob at the entrance")
-    require(first_visible(100n,H.key(origin,13)),"Enter also starts with the first visible mob at the entrance")
-    require(U32.is_eq(M.time(ConsumerTests.run(100n,H.key(H.key(origin,110),114))),0),"restart returns to construction before N/Enter")
-    require(route_check(1600n,H.key(origin,110)),"stage changes and child spawns wait for exits; surviving mobs move at most16 pixels per tick")
-    require((M.time(ConsumerTests.run(1600n,H.key(origin,110))) >= 1600 : U32),"route check advances the game instead of freezing")
-    require((P.count(ConsumerTests.run(1600n,H.key(origin,110)),4) > 0 : U32),"mobs reach Jev through earlier stages instead of remaining at the entrance")
-    require((peak_jev_age(120n,H.key(origin,110),0) < 1000 : U32),"recurring workload cannot strand mobs in AtJev for1000 ticks over12000 ticks")
-    require((P.count(ConsumerTests.run(100n,bursts(6n,origin)),0) > 1 : U32) && entrance_separated(P.tokens(ConsumerTests.run(100n,bursts(6n,origin))),ConsumerTests.run(100n,bursts(6n,origin))),"repeated bursts spawn distinct mobs at least24 pixels apart on the entrance road")
-    IO.print("GAME STARTUP regression checks complete")
+    require(U32.is_eq(M.time(idle),0) && U32.is_eq(M.offered(idle),0),"startup waits for N/Enter without advancing or spawning")
+    require(U32.is_eq(M.time(ConsumerTests.run(100n,built)),0) && U32.is_eq(M.gold(built),100),"building before N does not start the workload")
+    require(at_entrance(H.tick(H.key(origin,110)),M.actors(H.tick(H.key(origin,110)))) && at_entrance(H.tick(H.key(origin,13)),M.actors(H.tick(H.key(origin,13)))),"N and Enter start visible playback at the entrance")
+    require(route_check(1000n,H.start(origin)),"accepted stage changes preserve every surviving visible actor within4 pixels per tick")
+    require((M.offered(queued) >= 6 : U32) && (Motion.queued(M.actors(queued),M.actors(queued)) >= 5 : U32),"manual burst is accepted immediately while its visual bodies queue separately")
+    require(burst_check(140n,six),"six simultaneous edits preserve24 pixel entrance spacing without delaying business admission")
+    require(U32.is_eq(M.burst_size(M.settings(H.key(H.key(origin,98),98))),10),"B selects a batch of10 edits for the next manual release")

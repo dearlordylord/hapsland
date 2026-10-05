@@ -99,7 +99,7 @@ def loop(fuel: Nat, window: Window, +frame: FrameState) -> IO(Unit):
 def launch() -> IO(Unit):
   do IO<Unit>:
     IO.print("Hapsland canonical defense: native layouts over the actual canonical reducer.")
-    IO.print("Build first: 1-7 choose tower; click map ground to build. N/Enter starts work from the entrance, then injects more workload; U upgrades. A suspends/resumes future arrivals; Space/P pauses; [ slows arrivals / ] speeds arrivals; R resets to building first; Tab changes the unused map; Esc exits.")
+    IO.print("Build first: 1-3 choose tower; click map ground to build. N/Enter starts work from the entrance, then injects more workload; U upgrades; B cycles burst size 1/5/10/20. A suspends/resumes future arrivals; Space/P pauses; [ slows arrivals / ] speeds arrivals; R resets to building first; Tab changes the unused map; Esc exits.")
     now : Nat <- IO.now()
     window : Window <- IO.try(Window,Window.open("Hapsland canonical defense",1024,768))
     loop(4294967295n,window,Frame{[H.initial()],now,0,False{}})

@@ -5877,7 +5877,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/output-scenario-driver.bend",
-    sha256: "3ad400ed17d56433392613760cf9105ee1f8204c827069f0c80912c32445ce98"
+    sha256: "67563a56ab628926a1994479c59b2a1c7e1b0f227a110a5888f9737cd6cab887"
   },
   {
     path: "packages/monkey-business-bend/conformance/sharing-observed-driver.bend",

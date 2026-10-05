@@ -1927,6 +1927,17 @@ def jev_control(state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) ->
     case T.State{core, items, next, count, seed, T.Environment{_, _, _, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host}:
       T.Controlled{T.State{core, items, next, count, seed, T.Environment{delay, None{}, weights, prep, tree, limits, output, lease, current, ready, generation, readable, lifetime,output_profile}, latest, valid, prepared,jobs,host}, True{}}
 
+# A delay-only profile control preserves forced outcomes and the random stream.
+# This matches the public jevProfile control with both outcome choices omitted.
+def jev_delay_control(state: T.State,delay: Nat) -> T.Controlled:
+  match state:
+    case T.State{core,items,next,count,seed,T.Environment{_,outcome,weights,prep,tree,limits,output,lease,current,ready,generation,readable,lifetime,profile},latest,valid,prepared,jobs,host}:
+      T.Controlled{T.State{core,items,next,count,seed,T.Environment{delay,outcome,weights,prep,tree,limits,output,lease,current,ready,generation,readable,lifetime,profile},latest,valid,prepared,jobs,host},True{}}
+def jev_delay_supported(valid: Bool,state: T.State,delay: Nat) -> T.Controlled:
+  match valid:
+    case True{}: jev_delay_control(state,delay)
+    case False{}: T.Controlled{state,False{}}
+
 def jev_supported(valid: Bool, state: T.State, delay: Nat, weights: List<&2, Numeric.Words>) -> T.Controlled:
   match valid:
     case True{}: jev_control(state, delay, weights)
@@ -2024,6 +2035,7 @@ def output_control(valid: Bool, state: T.State, outcome: OutputScenario.Outcome,
 
 def control(+state: T.State, control: T.Control) -> T.Controlled:
   match control:
+    case T.JevDelay{+delay}: jev_delay_supported(Nat.is_le(delay,1000000000n),state,delay)
     case T.OutputProfileControl{outcome,+delay,+lease}:
       output_control(Nat.is_le(delay,1000000000n) && Nat.is_gt(lease,0n) && Nat.is_le(lease,1000000000n),state,outcome,delay,lease)
     case T.AdviceeLifecycleControl{identity,action}: lifecycle(state,identity,action)

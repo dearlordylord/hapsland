@@ -5,6 +5,9 @@ import { createNativePreflight, validateNativeFixture, cleanupNativePreflight } 
 // Window/input-device integration remains a separate interactive gate.
 const roots = [
   "DefenseConsumerTests.bend",
+  "DefenseProcessTests.bend",
+  "DefenseMotionTests.bend",
+  "DefenseTowerTests.bend",
   "DefenseStartupTests.bend",
   "DefenseDisplayTests.bend",
   "DefensePreviewTests.bend",
@@ -26,4 +29,4 @@ for (const root of roots) {
     cleanupNativePreflight(preflight);
   }
 }
-console.log("Standalone game native suite: all seven roots passed");
+console.log("Standalone game native suite: all ten roots passed");

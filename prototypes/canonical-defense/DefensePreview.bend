@@ -63,14 +63,14 @@ def legal(+preview: Preview) -> Bool:
 def reason(preview: Preview) -> String:
   match preview:
     case Preview{0, _, _, _, _, _, _, _, _, _, _, _}: "TOWER SELECTED / INSPECT OR UPGRADE"
-    case Preview{1, _, _, _, _, _, _, _, _, _, _, _}: "CURRENT EFFECT / COLORED VALUE IS THE CHANGE"
+    case Preview{1, _, _, _, _, _, _, _, _, _, _, _}: "FUTURE PROFILE / ISSUED WORK UNCHANGED"
     case Preview{2, _, _, _, _, _, _, _, _, _, _, _}: "CANNOT BUILD / ROAD BUILDING OR OCCUPIED GROUND"
     case Preview{3, _, _, _, _, _, _, _, _, _, _, _}: "CANNOT BUILD / NOT ENOUGH GOLD"
     case Preview{4, _, _, _, _, _, _, _, _, _, _, _}: "NO EFFECT / NO SUITABLE SITE IN RANGE"
     case Preview{_, _, _, _, _, _, _, _, _, _, _, _}: "SUITABLE SITE / NO CURRENT EXTRA EFFECT"
 
 def reduction(+kind: U32) -> Bool:
-  Bool.not(U32.is_eq(kind, 3) || U32.is_eq(kind, 5))
+  True{}
 def after_direction(+before: U32, delta: U32, decreases: Bool) -> U32:
   match decreases:
     case True{}: (before - U32.min(before, delta) : U32)

@@ -18,6 +18,7 @@ import ./DefenseAuto.bend as DefenseAuto
 import ./DefenseConsumerBatches.bend as DefenseConsumerBatches
 import ./DefenseConsumerObserved.bend as DefenseConsumerObserved
 import ./DefenseModel.bend as DefenseModel
+import ./DefenseMotionTypes.bend as DefenseMotionTypes
 import ../../packages/agent-flow-bend/Delivery.bend as Delivery
 import ../../packages/agent-flow-bend/DeliveryState.bend as DeliveryState
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
@@ -2426,9 +2427,73 @@ def list_defensemodel_cue(values: List<&2,List<&2,DefenseModel.Cue>>, suffix: Li
     case +value <> Nil{}: List.length(&2,DefenseModel.Cue,value) <> list_defensemodel_cue_items([value],suffix)
     case _: 999999n <> suffix
 
+def defensemotiontypes_workidentity(values: List<&2,DefenseMotionTypes.WorkIdentity>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseMotionTypes.WorkIdentity{v0,v1,v2,v3} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> suffix
+    case _: 999999n <> suffix
+
+def defensemotiontypes_waypoint(values: List<&2,DefenseMotionTypes.Waypoint>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseMotionTypes.Waypoint{v0,v1,v2,v3} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> U32.to_nat(v2) <> v3 <> suffix
+    case _: 999999n <> suffix
+
+def list_defensemotiontypes_waypoint_items(values: List<&2,List<&2,DefenseMotionTypes.Waypoint>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defensemotiontypes_waypoint([head],list_defensemotiontypes_waypoint_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defensemotiontypes_waypoint(values: List<&2,List<&2,DefenseMotionTypes.Waypoint>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseMotionTypes.Waypoint,value) <> list_defensemotiontypes_waypoint_items([value],suffix)
+    case _: 999999n <> suffix
+
+def list_defensemotiontypes_workidentity_items(values: List<&2,List<&2,DefenseMotionTypes.WorkIdentity>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defensemotiontypes_workidentity([head],list_defensemotiontypes_workidentity_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defensemotiontypes_workidentity(values: List<&2,List<&2,DefenseMotionTypes.WorkIdentity>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseMotionTypes.WorkIdentity,value) <> list_defensemotiontypes_workidentity_items([value],suffix)
+    case _: 999999n <> suffix
+
+def defensemotiontypes_actor(values: List<&2,DefenseMotionTypes.Actor>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseMotionTypes.Actor{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10} <> Nil{}: 0n <> defensemotiontypes_workidentity([v0],v1 <> U32.to_nat(v2) <> U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> list_defensemotiontypes_waypoint([v7],U32.to_nat(v8) <> list_defensemotiontypes_workidentity([v9],v10 <> suffix)))
+    case _: 999999n <> suffix
+
+def list_defensemotiontypes_actor_items(values: List<&2,List<&2,DefenseMotionTypes.Actor>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defensemotiontypes_actor([head],list_defensemotiontypes_actor_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defensemotiontypes_actor(values: List<&2,List<&2,DefenseMotionTypes.Actor>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseMotionTypes.Actor,value) <> list_defensemotiontypes_actor_items([value],suffix)
+    case _: 999999n <> suffix
+
+def defensemodel_settings(values: List<&2,DefenseModel.Settings>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseModel.Settings{v0,v1,v2} <> Nil{}: 0n <> v0 <> v1 <> U32.to_nat(v2) <> suffix
+    case _: 999999n <> suffix
+
+def list_defensemodel_settings_items(values: List<&2,List<&2,DefenseModel.Settings>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defensemodel_settings([head],list_defensemodel_settings_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defensemodel_settings(values: List<&2,List<&2,DefenseModel.Settings>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseModel.Settings,value) <> list_defensemodel_settings_items([value],suffix)
+    case _: 999999n <> suffix
+
 def defensemodel_control(values: List<&2,DefenseModel.Control>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.Control{v0,v1,v2} <> Nil{}: 0n <> list_defenseauto_state([v0],U32.to_nat(v1) <> list_defensemodel_cue([v2],suffix))
+    case DefenseModel.Control{v0,v1,v2,v3,v4} <> Nil{}: 0n <> list_defenseauto_state([v0],U32.to_nat(v1) <> list_defensemodel_cue([v2],list_defensemotiontypes_actor([v3],list_defensemodel_settings([v4],suffix))))
     case _: 999999n <> suffix
 
 def list_defensemodel_control_items(values: List<&2,List<&2,DefenseModel.Control>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

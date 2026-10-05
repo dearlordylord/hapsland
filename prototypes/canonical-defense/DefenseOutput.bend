@@ -6,20 +6,6 @@ import ./DefenseEffects.bend as E
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/CollectionState.bend as Collection
 
-def batch_target(world: M.World) -> U32:
-  E.batch_target(world)
-
-# This is simulated serialization work per item, never a ledger byte reduction.
-def item_work(+world: M.World) -> U32:
-  +levels = E.levels(M.towers(world),world,5,5)
-  Bool.pick(U32,U32.is_eq(levels,0),8,U32.max(2,M.sub(5,levels)))
-
-# Host acknowledgement latency is explicit scenario metadata, not encoded bytes.
-def acknowledgement_work(world: M.World) -> U32:
-  40
-def bundle_work(+world: M.World,count: U32) -> U32:
-  (acknowledgement_work(world) + item_work(world) * count : U32)
-
 def lease_ids(items: List<&2,Collection.Lease>) -> List<&2,Nat>:
   match items:
     case Nil{}: []

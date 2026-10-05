@@ -1,4 +1,5 @@
 import Base
+import ./DefenseMotionTypes.bend as V
 import ./DefenseAuto.bend as A
 import ./DefenseConsumer.bend as Consumer
 import ../../packages/monkey-business-bend/NativeRun.bend as Run
@@ -33,9 +34,17 @@ def cue_y(cue: Cue) -> U32:
 def cue_ttl(cue: Cue) -> U32:
   match cue:
     case Cue{_,_,_,_,_,value}: value
+type Settings is Data:
+  Settings{jev_delay: Nat,output_delay: Nat,burst: U32}
+def settings_from_environment(env: T.Environment) -> Settings:
+  match env:
+    case T.Environment{jev,_,_,_,_,_,output,_,_,_,_,_,_,_}: Settings{jev,output,1}
+def config_settings(config: T.Config) -> Settings:
+  match config:
+    case T.Config{_,_,env,_}: settings_from_environment(env)
 type Control is Data:
-  Control{schedule: List<&2,A.State>, pace: U32, cues: List<&2,Cue>}
-def initial_control() -> Control: Control{[A.initial()],30000,[]}
+  Control{schedule: List<&2,A.State>, pace: U32, cues: List<&2,Cue>, actors: List<&2,V.Actor>, settings: List<&2,Settings>}
+def initial_control() -> Control: Control{[A.initial()],30000,[],[],[config_settings(Consumer.config())]}
 def control_value(items: List<&2,Control>) -> Control:
   match items:
     case value <> _: value
@@ -46,16 +55,16 @@ def auto_value(items: List<&2,A.State>) -> A.State:
     case Nil{}: A.initial()
 def control_schedule(control: Control) -> A.State:
   match control:
-    case Control{items,_,_}: auto_value(items)
+    case Control{items,_,_,_,_}: auto_value(items)
 def control_with_schedule(control: Control,schedule: A.State) -> Control:
   match control:
-    case Control{_,pace,cues}: Control{[schedule],pace,cues}
+    case Control{_,pace,cues,actors,settings}: Control{[schedule],pace,cues,actors,settings}
 def control_pace(control: Control) -> U32:
   match control:
-    case Control{_,pace,_}: pace
+    case Control{_,pace,_,_,_}: pace
 def control_with_pace(control: Control,pace: U32) -> Control:
   match control:
-    case Control{schedule,_,cues}: Control{schedule,pace,cues}
+    case Control{schedule,_,cues,actors,settings}: Control{schedule,pace,cues,actors,settings}
 
 # Box the independent NativeRun state; geometry/combat never rewrite it.
 type World is Data:
@@ -277,10 +286,44 @@ def arrival_interval(world: World) -> U32:
 
 def control_cues(control: Control) -> List<&2,Cue>:
   match control:
-    case Control{_,_,cues}: cues
+    case Control{_,_,cues,_,_}: cues
 def control_with_cues(control: Control,cues: List<&2,Cue>) -> Control:
   match control:
-    case Control{schedule,pace,_}: Control{schedule,pace,cues}
+    case Control{schedule,pace,_,actors,settings}: Control{schedule,pace,cues,actors,settings}
 def cues(world: World) -> List<&2,Cue>: control_cues(control(world))
 def with_cues(+world: World,cues: List<&2,Cue>) -> World:
   with_control(world,control_with_cues(control(world),cues))
+
+def control_actors(control: Control) -> List<&2,V.Actor>:
+  match control:
+    case Control{_,_,_,actors,_}: actors
+def control_with_actors(control: Control,actors: List<&2,V.Actor>) -> Control:
+  match control:
+    case Control{schedule,pace,cues,_,settings}: Control{schedule,pace,cues,actors,settings}
+def actors(world: World) -> List<&2,V.Actor>: control_actors(control(world))
+def with_actors(+world: World,actors: List<&2,V.Actor>) -> World:
+  with_control(world,control_with_actors(control(world),actors))
+
+def settings_value(items: List<&2,Settings>) -> Settings:
+  match items:
+    case value <> _: value
+    case _: config_settings(Consumer.config())
+def settings_control(control: Control) -> Settings:
+  match control:
+    case Control{_,_,_,_,settings}: settings_value(settings)
+def settings(world: World) -> Settings: settings_control(control(world))
+def with_settings(control: Control,settings: Settings) -> Control:
+  match control:
+    case Control{schedule,pace,cues,actors,_}: Control{schedule,pace,cues,actors,[settings]}
+def base_jev(settings: Settings) -> Nat:
+  match settings:
+    case Settings{jev,_,_}: jev
+def base_output(settings: Settings) -> Nat:
+  match settings:
+    case Settings{_,output,_}: output
+def burst_size(settings: Settings) -> U32:
+  match settings:
+    case Settings{_,_,size}: size
+def with_burst(settings: Settings,size: U32) -> Settings:
+  match settings:
+    case Settings{jev,output,_}: Settings{jev,output,size}

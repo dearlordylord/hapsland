@@ -1,5 +1,8 @@
 # Native layouts are read-only projections of the canonical reducer.
 import Base
+import ./DefenseMechanics.bend as Mechanics
+import ./DefenseMotion.bend as Motion
+import ./DefenseMotionTypes.bend as V
 import ./Font.bend as F
 import ./DefenseModel.bend as M
 import ./DefenseProjection.bend as P
@@ -129,7 +132,7 @@ def palette(fuel: Nat,+kind: U32,+world: M.World,rest: List<&2,F.Rect>) -> List<
     case 1n+n: palette_row(kind,world,palette(n,(kind + 1 : U32),world,rest))
 
 def sidebar(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("BUILD ON MAP","1-7 CHOOSE / CLICK GROUND / U UPGRADE",800,80,216,240,65483,palette(7n,0,world,
+  box("BUILD ON MAP","1-3 CHOOSE / CLICK GROUND / U UPGRADE",800,80,216,240,65483,palette(3n,0,world,
     box("ACTIVE WORK","E FAMILY / U OPERATION / " ++ U32.show(U32.min(8,M.number(List.length(&2,P.Token,P.tokens(world))))) ++ "/" ++ U32.show(M.number(List.length(&2,P.Token,P.tokens(world)))),800,330,216,104,16768133,rest)))
 
 def road_dots(fuel: Nat, +a: D.Point, +b: D.Point, +step: U32, +width: U32, +color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
@@ -209,13 +212,13 @@ def site_pressure(tokens: List<&2,P.Token>,+world: M.World,+phase: U32) -> U32:
     case Con{+token,tail}: (Bool.pick(U32,U32.is_eq(P.phase(token),phase) && H.in_building(world,token),P.bytes(token),0) + site_pressure(tail,world,phase) : U32)
 
 def preparation_pool(+world: M.World,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("PREP SHARED " ++ U32.show(T.preparation_used(world)) ++ "/" ++ U32.show(T.preparation_limit()) ++ " / GAME SUPPORT " ++ U32.show(H.source_permits(world)),x,(y + 80 : U32),1,65483,
+  F.text("PREP SHARED " ++ U32.show(T.preparation_used(world)) ++ "/" ++ U32.show(T.preparation_limit()),x,(y + 80 : U32),1,65483,
     F.text("LEDGER SHARED / NO ROOM CAP",x,(y + 91 : U32),1,12439239,rest))
 def building_permits(phase: U32,+world: M.World,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match phase:
     case 1: preparation_pool(world,x,y,rest)
     case 2: preparation_pool(world,x,y,rest)
-    case 4: F.text("JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()) ++ " / GAME SUPPORT " ++ U32.show(E.permits(world,4)),x,(y + 80 : U32),1,65483,
+    case 4: F.text("JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),x,(y + 80 : U32),1,65483,
       F.text("LEDGER SHARED / OWNED UNTIL ACK",x,(y + 91 : U32),1,12439239,rest))
     case _: F.text("WRITER OWNERS " ++ U32.show(P.writes(world)),x,(y + 80 : U32),1,65483,rest)
 
@@ -241,7 +244,7 @@ def queue_details(phase: U32,+world: M.World,+side: U32,x: U32,y: U32,rest: List
       F.text("REVIEW QUEUE / SAFE",cx,M.sub(cy,24),1,phase_color(3),
         F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,phase_color(3),
       F.text("TRAVEL " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,False{})) ++ " / PERMIT WAIT " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,True{})),cx,cy,1,65483,
-        F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(E.permits(world,4)) ++ " GAME SUPPORT / CORE " ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
+        F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
           F.text("ROAD SHOTS / WAIT AT JEV DOOR",cx,(cy + 24 : U32),1,12439239,rest)))))
     case _: rest
 
@@ -320,13 +323,9 @@ def cue_color(status: U32) -> U32:
 
 def stat_label(kind: U32) -> String:
   match kind:
-    case 0: "NEXT SHOT TRAVEL / WORK"
-    case 1: "NEXT SHOT SIMULATED RISK %"
-    case 2: "NEXT SHOT TRAVEL / WORK"
-    case 3: "HOST LAUNCH LIMIT"
-    case 4: "BLOCKING SIBLING REMAINING WORK"
-    case 5: "NEXT BATCH TARGET"
-    case _: "ONE TICK HEALTH DAMAGE WORK"
+    case 0: "FUTURE JEV DELAY MS"
+    case 1: "FUTURE OUTPUT DELAY MS"
+    case _: "RESTORE SOURCE / CREDENTIALS"
 
 def text_width(value: String) -> U32:
   match value:
@@ -375,49 +374,9 @@ def generic_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect
       actionable_stats(Preview.legal(preview),preview,812,604,
         F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
           F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ " / AUTO EFFECT",812,684,1,12439239,
-            F.text("NO MANUAL ACTIVATION",812,702,1,12439239,rest))))))
-def batch_panel(+world: M.World,preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("OBSERVED COLLECTION",T.batch_reason(world),800,538,216,184,65483,
-    F.text("READY " ++ U32.show(P.ready(world)) ++ " LEASES " ++ U32.show(P.leases(world)),812,592,1,16777215,
-      F.text("TOWER SUPPORT IS GAME ONLY",812,616,1,12439239,rest)))
-
-def coordinator_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +target = Preview.target(preview)
-  +family = T.target_family(world,target)
-  box("SIBLING DEPENDENCY",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text(Bool.pick(String,Nat.is_eq(target,0n),"NO ACTIVE BLOCKING SIBLING","TARGET U" ++ Nat.show(target) ++ " E" ++ Nat.show(family)),812,584,1,16777215,
-      stat_delta(preview,812,602,
-        F.text("WAITING U" ++ T.ids_short(T.family_members(P.tokens(world),family,1),5n),812,626,1,15758447,
-          F.text(Bool.pick(String,Nat.is_eq(target,0n),"NO COMPLETION FORECAST",Bool.pick(String,T.final_blocker(world,target,Preview.delta(preview)),"THIS SHOT FINISHES LAST SIBLING","MORE SIBLING WORK REMAINS")),812,644,1,65483,
-            F.text("SIBLING DONE DOES NOT MEAN READY",812,664,1,12439239,
-              F.text("READY DOES NOT MEAN BATCH OR ACK",812,682,1,12439239,
-                F.text("SCENARIO BATCH WAITS FOR ALL WORK",812,700,1,12439239,rest))))))))
-def shield_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +after = H.hypothetical(world,Preview.x(preview),Preview.y(preview),6)
-  box("GAME PROTECTION",Bool.pick(String,Bool.not(H.pressure_hot(H.building_pressure_bytes(world))),"COVERED / NO DAMAGING PRESSURE",Bool.pick(String,U32.is_eq(Preview.delta(preview),0),"OVERLAP CAP / NO EXTRA PROTECTION","DAMAGE CHANGES / OWNERSHIP DOES NOT")),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text("DAMAGE WORK PER TICK",812,584,1,12439239,
-      stat_delta(preview,812,602,
-        F.text("RAW ROOM BYTES " ++ U32.show(H.building_pressure_bytes(world)),812,626,1,16777215,
-          F.text("EXTRA PROTECTED " ++ U32.show(M.sub(H.shield_bytes(H.shield_allocation(after)),H.shield_bytes(H.shield_allocation(world)))) ++ " GAME BYTES",812,644,1,65483,
-            F.text("NEW TOWER CHARGES NEXT TICK " ++ U32.show(T.shield_next_spend(after)),812,662,1,65483,
-              F.text("LEDGER STILL " ++ U32.show(P.ledger_bytes(world)) ++ " BYTES",812,682,1,15758447,
-                F.text("GAME METAPHOR / NO CORE CAPACITY GAIN",812,700,1,12439239,rest))))))))
-def refiner_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("PREVENTION / RISK",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text("SIMULATED FINDINGS RISK",812,584,1,12439239,
-      stat_delta(preview,812,602,
-        F.text("MINIMUM RISK 60% / SAME AT EVERY LEVEL",812,632,1,65483,
-          F.text("REPEATED SHOTS HAVE DIMINISHING EFFECT",812,650,1,12439239,
-            F.text("UPGRADES REACH THE FLOOR FASTER",812,668,1,12439239,
-              F.text("SATURATED TARGETS RECEIVE NO SHOTS",812,686,1,12439239,
-                F.text("OBSERVED FINDINGS CANNOT BE REWRITTEN",812,704,1,15758447,rest))))))))
+            F.text("ISSUED DEADLINES STAY FIXED",812,702,1,12439239,rest))))))
 def preview_panel(kind: U32,legal: Bool,world: M.World,preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match kind legal:
-    case 1 True{}: refiner_panel(world,preview,rest)
-    case 5 True{}: batch_panel(world,preview,rest)
-    case 4 True{}: coordinator_panel(world,preview,rest)
-    case 6 True{}: shield_panel(world,preview,rest)
-    case _ _: generic_panel(world,preview,rest)
+  generic_panel(world,preview,rest)
 def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: rest
@@ -429,30 +388,10 @@ def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<
         placement_link(Preview.legal(preview) && Bool.not(U32.is_eq(Preview.site(preview),255)),world,preview,
           preview_panel(Preview.kind(preview),Preview.legal(preview),world,preview,rest))))
 
-def note_kind(kind: U32,+charges: U32) -> String:
-  match kind:
-    case 1: "RISK FLOOR60 / UPGRADES REACH IT FASTER"
-    case 3: "WORKERS / STORAGE UNCHANGED"
-    case 4: "ONLY REAL BLOCKING SIBLINGS"
-    case 5: "NEXT BATCH / COMMITTED BYTES FIXED"
-    case 6: Bool.pick(String,U32.is_eq(charges,0),"GAME SHIELD / CHARGES EXHAUSTED","GAME SHIELD CHARGE " ++ U32.show(charges))
-    case _: "NEXT SHOT / ACTUAL TARGET WORK"
-
-def selected_note(+tower: M.Tower) -> String:
-  note_kind(M.tkind(tower),M.charges(tower))
-
-def actual_current_kind(kind: U32,+world: M.World,+tower: M.Tower) -> U32:
-  match kind:
-    case 1:
-      +id = E.target(world,tower)
-      Bool.pick(U32,Nat.is_eq(id,0n),0,M.timer_risk(E.find_timer(id,M.timers(world))))
-    case 3: Bool.pick(U32,E.supports(world,tower,4),E.permits(world,4),H.source_permits(world))
-    case 5: O.batch_target(world)
-    case 6: H.residual_damage(world)
-    case _: H.target_remaining(world,E.find_work(E.target(world,tower),M.work(M.core(world))))
-
-def actual_current(+world: M.World,+tower: M.Tower) -> U32:
-  actual_current_kind(M.tkind(tower),world,tower)
+def selected_note(tower: M.Tower) -> String:
+  Mechanics.detail(M.tkind(tower))
+def actual_current(+world: M.World,tower: M.Tower) -> U32:
+  H.profile_delay(world,M.tkind(tower))
 
 def inspection_if(on: Bool,+world: M.World,+tower: M.Tower,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
@@ -460,11 +399,11 @@ def inspection_if(on: Bool,+world: M.World,+tower: M.Tower,rest: List<&2,F.Rect>
     case True{}:
       box("SELECTED " ++ H.tower_name(M.tkind(tower)),Bool.pick(String,(M.level(tower) >= 3 : U32),"MAX LEVEL 3","LEVEL " ++ U32.show(M.level(tower)) ++ " / U COST " ++ U32.show(H.upgrade_cost(M.level(tower)))),800,538,216,184,kind_color(M.tkind(tower)),
         F.text("RANGE " ++ U32.show(H.tower_range(M.tkind(tower),M.level(tower))),812,584,1,12439239,
-          F.text("COOLDOWN " ++ U32.show((M.cooldown(tower) * 20 : U32)) ++ " MS",812,602,1,12439239,
+          F.text("SCOPE: ALL FUTURE OPERATIONS",812,602,1,12439239,
             F.text(stat_label(M.tkind(tower)),812,624,1,12439239,
               F.text(U32.show(actual_current(world,tower)),812,640,2,16777215,
                 F.text(selected_note(tower),812,666,1,15124059,
-                  F.text("CURRENT SNAPSHOT / ZERO IF NO TARGET",812,684,1,12439239,rest)))))))
+                  F.text("ISSUED DEADLINES STAY FIXED",812,684,1,12439239,rest)))))))
 
 def inspection(ts: List<&2,M.Tower>,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match ts:
@@ -728,10 +667,25 @@ def overflow_label(on: Bool,+world: M.World,count: U32,rest: List<&2,F.Rect>) ->
     case True{}:
       +point = D.center(M.layout(world),4,0)
       F.text("+" ++ U32.show(count) ++ " WAITING",U32.sub(D.px(point),36),(D.py(point) + 78 : U32),1,15758447,rest)
+def history_actor(+actor: V.Actor,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +point = Motion.point(actor)
+  +p = Motion.visible_phase(actor)
+  +done = (Motion.terminal(actor) > 0 : U32)
+  +color = Bool.pick(U32,done,10066329,phase_color(p))
+  +status = Bool.pick(String,done,"RETIRED",Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","TRACE"))
+  F.text("U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))) ++ " E" ++ Nat.show(Motion.actor_family(actor)),(D.px(point) + 9 : U32),U32.sub(D.py(point),12),1,color,
+    F.text(status,(D.px(point) + 9 : U32),D.py(point),1,color,
+      monster(point,(p > 0 : U32),color,(M.time(world) / 8 : U32),rest)))
+def history_actors(items: List<&2,V.Actor>,+world: M.World,+rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match items:
+    case Nil{}: rest
+    case +actor <> +tail: Bool.pick(List<&2,F.Rect>,Motion.drawable(actor,M.actors(world)),history_actor(actor,world,history_actors(tail,world,rest)),history_actors(tail,world,rest))
 def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +ids = waiting_ids(tokens,world)
   +overflow = overflow_count(tokens,world)
-  overflow_label((overflow > 0 : U32),world,overflow,wait_label(world,ids,actors(tokens,world,ids,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,rest)))))))
+  +queued = Motion.queued(M.actors(world),M.actors(world))
+  +base = F.text("VISUAL QUEUE " ++ U32.show(queued) ++ " / COUNTERS = ENGINE NOW",24,146,1,15758447,rest)
+  overflow_label((overflow > 0 : U32),world,overflow,wait_label(world,ids,history_actors(M.actors(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,base)))))))
 
 def on_word(on: Bool) -> String:
   match on:
@@ -781,10 +735,10 @@ def scene(+world: M.World) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
   +target = T.focus(world,Preview.target(preview))
   +base = dependency_kind(T.focus_kind(world,Preview.kind(preview)),world,target,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[])))))))
-  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,base))))
+  +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B SIZE / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,base))))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(activity_line(world) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: Q WAIT START / R WORKING / W WAIT RESPONSE",24,111,1,12439239,header))))
+    F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: Q WAIT START / R WORKING / W WAIT RESPONSE",24,111,1,12439239,header))))
 
 def view(world: M.World) -> Image:
   paint(10n,0,0,1024,scene(world),False{})

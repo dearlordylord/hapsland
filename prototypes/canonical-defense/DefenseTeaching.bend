@@ -136,14 +136,6 @@ def partition_items(world: M.World) -> U32:
   P.usage_items(Ledger.partition_usage(P.charges(P.ledger(M.core(world))),1n))
 def partition_bytes(world: M.World) -> U32:
   P.usage_bytes(Ledger.partition_usage(P.charges(P.ledger(M.core(world))),1n))
-def first_tower(items: List<&2,M.Tower>) -> M.Tower:
-  match items:
-    case tower <> _: tower
-    case Nil{}: M.Tower{0,0,6,1,0,0,0n,0}
-def shield_charge_after(world: M.World) -> U32:
-  M.charges(first_tower(H.shield_towers(H.shield_allocation(world))))
-def shield_next_spend(world: M.World) -> U32:
-  M.sub(240,shield_charge_after(world))
 def focus_kind_found(fallback: U32,found: Maybe<&2,M.Tower>) -> U32:
   match found:
     case None{}: fallback
