@@ -15,8 +15,9 @@ const targetEvents = Number(options["--events"] ?? 1200)
 const advicees = options["--advicees"] ? [Number(options["--advicees"])] : [1, 6]
 if (!Number.isSafeInteger(targetEvents) || targetEvents < 1 || advicees.some((count) => ![1, 6].includes(count)))
   throw new Error("Expected a positive event target and one or six advicees")
+let stage = "launch"
 const deadline = setTimeout(() => {
-  console.error("CPU evaluator exceeded ten seconds")
+  console.error(`CPU evaluator exceeded ten seconds during ${stage}`)
   process.exit(124)
 }, 10000)
 let browser
@@ -24,6 +25,7 @@ try {
   browser = await chromium.launch({ headless: true })
   const cases = []
   for (const count of advicees) {
+    stage = `setup (${count} advicees)`
     const page = await browser.newPage({ viewport: { width: 1512, height: 1100 } })
     page.setDefaultTimeout(5000)
     const errors = []
@@ -51,29 +53,53 @@ try {
       throw new Error("Expected a fresh Run without processed events")
     const cdp = await page.context().newCDPSession(page)
     await cdp.send("Performance.enable", { timeDomain: "threadTicks" })
+    await page.evaluate(() => {
+      const durations = []
+      const observer = new PerformanceObserver((list) => {
+        durations.push(...list.getEntries().map((entry) => ({ startTime: entry.startTime, duration: entry.duration })))
+      })
+      observer.observe({ type: "longtask" })
+      window.playbackLongTasks = { durations, observer }
+    })
     if (options["--profile"]) {
       await cdp.send("Profiler.enable")
       await cdp.send("Profiler.setSamplingInterval", { interval: 1000 })
       await cdp.send("Profiler.start")
     }
     const prior = await cdp.send("Performance.getMetrics")
+    stage = `playback (${count} advicees)`
     const started = performance.now()
     await page.getByRole("button", { name: "Play resident", exact: true }).evaluate((button) => button.click())
-    await page.waitForFunction(
-      (target) => {
-        if (!document.querySelector(".simulation-history button")) return false
-        if (Number(document.querySelector('[aria-label="Retained event timeline"]')?.max) < target) return false
-        const pause = [...document.querySelectorAll("button")].find((button) => button.textContent === "Pause resident")
-        if (!pause) throw new Error("Pause control missing")
-        pause.click()
-        return true
-      },
-      targetEvents - 1,
-      { polling: "raf", timeout: 7000 }
-    )
+    await page
+      .waitForFunction(
+        (target) => {
+          if (!document.querySelector(".simulation-history button")) return false
+          if (Number(document.querySelector('[aria-label="Retained event timeline"]')?.max) < target) return false
+          const pause = [...document.querySelectorAll("button")].find(
+            (button) => button.textContent === "Pause resident"
+          )
+          if (!pause) throw new Error("Pause control missing")
+          pause.click()
+          return true
+        },
+        targetEvents - 1,
+        { polling: "raf", timeout: 7000 }
+      )
+      .catch((cause) => {
+        if (errors.length) throw new Error(`Production playback failed: ${errors.join("; ")}`, { cause })
+        throw cause
+      })
     await page.waitForFunction(() => document.querySelector(".simulation-status")?.textContent.startsWith("Paused"))
     const elapsedMs = performance.now() - started
     const after = await cdp.send("Performance.getMetrics")
+    const longTasks = await page.evaluate(() => {
+      const { durations, observer } = window.playbackLongTasks
+      durations.push(
+        ...observer.takeRecords().map((entry) => ({ startTime: entry.startTime, duration: entry.duration }))
+      )
+      observer.disconnect()
+      return durations
+    })
     if (options["--profile"]) {
       const { profile } = await cdp.send("Profiler.stop")
       const path = `${options["--profile"]}.${count}.cpuprofile`
@@ -81,6 +107,9 @@ try {
       writeFileSync(path, JSON.stringify(profile))
     }
     const events = (await eventEndpoint()) + 1
+    const virtualTimeMs = Number(
+      (await page.locator(".simulation-status").textContent())?.match(/virtual time (\d+) ms/)?.[1]
+    )
     const delta = (name) => {
       const value = (result) => result.metrics.find((entry) => entry.name === name)?.value
       return (value(after) - value(prior)) * 1000
@@ -95,6 +124,7 @@ try {
       seed: 7,
       before,
       events,
+      virtualTimeMs,
       cpuMs,
       cpuMsPerEvent: cpuMs / events,
       elapsedMs,
@@ -102,6 +132,9 @@ try {
       scriptCpuMs: delta("ScriptDuration"),
       layoutCpuMs: delta("LayoutDuration"),
       styleCpuMs: delta("RecalcStyleDuration"),
+      observedLongTaskCount: longTasks.length,
+      maxObservedLongTaskMs: Math.max(0, ...longTasks.map((entry) => entry.duration)),
+      observedLongTasks: longTasks,
       bundle
     })
     await page.close()

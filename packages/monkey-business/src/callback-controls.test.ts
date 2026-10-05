@@ -61,3 +61,23 @@ describe("callback control syntax", () => {
     expect(() => decodeCallbackTarget({ ...head, effect: { ...head.effect, extra: true } })).toThrow()
   })
 })
+
+it("checks every raw Finish member across number and bigint wire values", () => {
+  const finish = {
+    ...target,
+    effect: { kind: "finishTerminal" as const, group: 1, round: 3, attempt: 10, token: 8, selected: [9, 7] }
+  }
+  const encoded = encodeCallbackTarget(finish)
+  const withMembers = (first: unknown, second: unknown) => ({
+    ...encoded,
+    effect: {
+      ...encoded.effect,
+      selected: { $: "Con", head: first, tail: { $: "Con", head: second, tail: { $: "Nil" } } }
+    }
+  })
+  expect(decodeCallbackTarget(withMembers(9n, 7n))).toEqual(finish)
+  for (const invalid of [0, 0n, -1n, 1.5, 2 ** 48, 2n ** 48n]) {
+    expect(() => decodeCallbackTarget(withMembers(9n, invalid))).toThrow(TypeError)
+  }
+  expect(() => decodeCallbackTarget(withMembers(9, 9n))).toThrow(TypeError)
+})

@@ -310,7 +310,54 @@ export const consumedSharedPermit = (
 const schedulerEntry = decoder(
   Schema.Struct({ $: Schema.Literal("Scheduler.Entry"), at: Schema.Number, order: Schema.Number })
 )
+const maxSchedulerEntryNat = 2 ** 48 - 1
+const maxSchedulerEntryBigNat = BigInt(maxSchedulerEntryNat)
+const schedulerEntryNat = (value: unknown): number | undefined => {
+  if (typeof value === "number")
+    return Number.isInteger(value) && value >= 0 && value <= maxSchedulerEntryNat ? value : undefined
+  if (typeof value === "bigint") return value >= 0n && value <= maxSchedulerEntryBigNat ? Number(value) : undefined
+  return undefined
+}
+/** Fast path only for the plain data objects emitted by the trusted scheduler. */
+const fastSchedulerEntry = (value: unknown): { readonly at: number; readonly order: number } | undefined => {
+  try {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype
+    )
+      return undefined
+
+    // Descriptor inspection lets accessors and unexpected shapes fall through
+    // without reading their values. The existing decoder owns those cases.
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<PropertyKey, PropertyDescriptor>
+    const enumerableKeys = Reflect.ownKeys(descriptors).filter((key) => descriptors[key]?.enumerable)
+    if (
+      enumerableKeys.length !== 3 ||
+      !enumerableKeys.includes("$") ||
+      !enumerableKeys.includes("at") ||
+      !enumerableKeys.includes("order")
+    )
+      return undefined
+
+    const tag = descriptors["$"]
+    const at = descriptors.at
+    const order = descriptors.order
+    if (!tag || !("value" in tag) || tag.value !== "Scheduler.Entry") return undefined
+    if (!at || !("value" in at) || !order || !("value" in order)) return undefined
+    const nativeAt = schedulerEntryNat(at.value)
+    const nativeOrder = schedulerEntryNat(order.value)
+    if (nativeAt === undefined || nativeOrder === undefined) return undefined
+    return Object.freeze({ at: nativeAt, order: nativeOrder })
+  } catch {
+    // Proxies and other unusual values retain the established schema path.
+    return undefined
+  }
+}
 const decodeEntry = (value: unknown): { readonly at: number; readonly order: number } => {
+  const fast = fastSchedulerEntry(value)
+  if (fast) return fast
   const entry = schedulerEntry(decodeSharedValue(value))
   return freezeCanonicalData({ at: readNat(entry.at), order: readNat(entry.order) })
 }
