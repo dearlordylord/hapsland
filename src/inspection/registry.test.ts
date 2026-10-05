@@ -267,7 +267,16 @@ it("closes incomplete inspection frames despite continuous input", async () => {
     await Effect.runPromise(resident.listen())
     socket.connect(join(resident.paths.directory, "inspection.sock"))
     await once(socket, "connect")
-    const closed = once(socket, "close")
+    const socketErrors: NodeJS.ErrnoException[] = []
+    socket.on("error", (error) => socketErrors.push(error))
+    // A trickled write can race the peer's deadline close. Require close itself,
+    // and check its transport errors instead of rejecting Node's once(close).
+    const closed = new Promise<void>((resolve) =>
+      socket.once("close", () => {
+        clearInterval(trickle)
+        resolve()
+      })
+    )
     trickle = setInterval(() => socket.write(" "), 50)
     await Promise.race([
       closed,
@@ -275,6 +284,7 @@ it("closes incomplete inspection frames despite continuous input", async () => {
         deadline = setTimeout(() => reject(new Error("trickled inspection connection exceeded finite deadline")), 1000)
       })
     ])
+    expect(socketErrors.every((error) => error.code === "EPIPE" || error.code === "ECONNRESET")).toBe(true)
     expect(
       await Effect.runPromise(residentRequestEffect(resident.paths, { requestRoute: "shared", operation: "hello" }))
     ).toMatchObject({ status: "ready" })
