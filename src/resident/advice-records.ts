@@ -1,3 +1,4 @@
+import type { ReviewSettingsSnapshot } from "../runtime/review-settings.ts"
 import type { Finding } from "../direct-event/output.ts"
 import type { DirectObservation, PreparedUnit } from "../direct-event/model.ts"
 import type { EvaluatedUnit } from "../direct-event/pipeline.ts"
@@ -6,6 +7,7 @@ import type { WorkRevision } from "./revision.ts"
 import type { RoundWork } from "./round-records.ts"
 
 export type AdviceMetadata = {
+  readonly settings: ReviewSettingsSnapshot
   readonly id: string
   readonly analyticsPath: string | undefined
   readonly analyticsEnabled: boolean

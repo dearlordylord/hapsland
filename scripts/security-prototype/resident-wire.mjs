@@ -121,7 +121,7 @@ try {
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "WIRE_KEY_SENTINEL",
-      environmentOnly: true,
+
       generation: 0,
       statePath: join(root, "credential-state")
     },
@@ -212,7 +212,7 @@ try {
   )
   if (collection.status === "unsupported") throw new Error("resident rejected composed fixture collection")
   event("settled", { repoId: "fixture-repo", path, source: "production" })
-  const expectedCount = scenario === "allowed" ? 1 : 0
+  const expectedCount = scenario === "exclude-at-admission" ? 0 : 1
   if (requests.length !== expectedCount) failure = `expected ${expectedCount} request(s), observed ${requests.length}`
   if (requests.some((request) => request.classification !== "allowed")) failure = "forbidden request observed"
   if (events.some((entry) => entry.kind === "prepared" && entry.path !== path)) failure = "unexpected prepared path"
@@ -220,7 +220,7 @@ try {
   if (authorityObservations.length !== expectedAuthorityCount) failure = "resident authority observation count mismatch"
   const authority = authorityObservations[0]
   if (authority !== undefined) {
-    const expectedSelection = scenario === "allowed"
+    const expectedSelection = scenario !== "exclude-at-admission"
     if (
       authority.path !== path ||
       authority.sequence !== 1 ||
@@ -240,13 +240,7 @@ try {
   const orderKinds = authorityOrder.map((entry) => entry.kind)
   if (
     JSON.stringify(orderKinds) !==
-    JSON.stringify(
-      scenario === "allowed"
-        ? ["dispatchAuthority", "request"]
-        : scenario === "exclude-at-dispatch"
-          ? ["dispatchAuthority"]
-          : []
-    )
+    JSON.stringify(scenario !== "exclude-at-admission" ? ["dispatchAuthority", "request"] : [])
   )
     failure = "resident authority/request ordering mismatch"
   if (authorityOrder.some((entry) => entry.path !== path)) failure = "authority/request path mismatch"

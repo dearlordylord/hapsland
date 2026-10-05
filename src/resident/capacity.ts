@@ -823,6 +823,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
             (...args: Parameters<ComposedDelivery["ensureFromHostTurn"]>) =>
               deliveryCommitEffect((operations) => operations.ensureFromHostTurn(...args))
           ),
+          registeredEditSettings: Effect.fn("ComposedDelivery.registeredEditSettings")(
+            (...args: Parameters<ComposedDelivery["registeredEditSettings"]>) =>
+              deliveryRead((view) => view.registeredEditSettings(...args))
+          ),
           registerEdit: Effect.fn("ComposedDelivery.registerEdit")(
             (...args: Parameters<ComposedDelivery["registerEdit"]>) =>
               deliveryCommitEffect((operations) => operations.registerEdit(...args))

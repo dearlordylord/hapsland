@@ -136,7 +136,7 @@ describe("exact resident request alternatives", () => {
     const credential = {
       name: "API_KEY",
       environmentValue: "é".repeat(16_384),
-      environmentOnly: true,
+
       generation: Number.MAX_SAFE_INTEGER,
       statePath: "/tmp/state"
     }

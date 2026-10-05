@@ -1,3 +1,5 @@
+import { defaultReviewSettings } from "../runtime/review-config.ts"
+import { settingsSource } from "../runtime/review-settings.ts"
 import { providerIdentity } from "../review-providers/catalog.ts"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
@@ -65,7 +67,7 @@ type Owner = Effect.Success<ReturnType<typeof makeResidentState<never, string, n
 const fixture = (existing?: Owner) =>
   Effect.gen(function* () {
     const owner = existing ?? (yield* makeResidentState())
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit refused")
     const round = yield* owner.rounds.bind(
       "agent",
@@ -91,6 +93,12 @@ const fixture = (existing?: Owner) =>
     yield* owner.observation("agent", admissionId, "completeObservation", round.canonicalRound)
     const revision = (yield* owner.revision.register("agent", prepared, true, "revision")).revision
     const initial: AdviceInitial = {
+      settings: {
+        ...defaultReviewSettings(observation.root),
+        source: settingsSource(observation.root),
+        rules: [],
+        ruleDigests: []
+      },
       id: "advice",
       canonicalRound: round.canonicalRound,
       round,

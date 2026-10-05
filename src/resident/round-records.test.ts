@@ -26,7 +26,7 @@ const counts = { named: { queued: 1, running: 0 }, all: { queued: 2, running: 3 
 it.effect("serializes concurrent round binding, replacement and retirement without losing ownership", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const bound = yield* Effect.all(
       Array.from({ length: 16 }, (_, index) => owner.rounds.bind("agent", generation, activity, `cohort-${index}`)),
@@ -57,7 +57,7 @@ it.effect("serializes concurrent round binding, replacement and retirement witho
 it.effect("binds immutable handles and activity to the canonical admission generation", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "first-cohort")
     expect(round.canonicalRound).toBe(yield* owner.currentRoundId("agent"))
@@ -90,7 +90,7 @@ it.effect("rejects missing or mismatched canonical authority without publishing 
     expect(yield* owner.knownPartitionId("agent")).toBeUndefined()
     expect(yield* owner.currentRoundId("agent")).toBeUndefined()
     expect(yield* owner.rounds.entries()).toEqual([])
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const admitted = yield* owner.canonicalProjection()
     expect(yield* defectMessage(owner.rounds.bind("agent", generation + 1, activity, "cohort"))).toContain(
@@ -104,7 +104,7 @@ it.effect("rejects missing or mismatched canonical authority without publishing 
 it.effect("rolls back native binding and preserves a prior activity snapshot on construction failure", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const before = yield* owner.canonicalProjection()
     const broken = {
@@ -131,7 +131,7 @@ it.effect("rolls back native binding and preserves a prior activity snapshot on 
 it.effect("publishes cohort replacement and the Bend-selected discard counts together", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "first")
     const before = yield* snapshotRound(owner.rounds, round)
@@ -159,7 +159,7 @@ it.effect("publishes cohort replacement and the Bend-selected discard counts tog
 it.effect("publishes no replacement or discarded counts when native cohort construction fails", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "cohort")
     const first = (yield* snapshotRound(owner.rounds, round)).work
@@ -187,7 +187,7 @@ it.effect("publishes no replacement or discarded counts when native cohort const
 it.effect("retires canonical and native ownership together and fences identity reuse after clear", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const firstGeneration = yield* owner.delivery().admitEdit("agent", "first", 0)
+    const firstGeneration = (yield* owner.delivery().admitEdit("agent", "first", 0))?.generation
     if (firstGeneration === undefined) throw new Error("fixture edit admission refused")
     const first = yield* owner.rounds.bind("agent", firstGeneration, activity, "first")
     expect(yield* owner.rounds.retire(first)).toBe(true)
@@ -195,7 +195,7 @@ it.effect("retires canonical and native ownership together and fences identity r
     expect(yield* owner.rounds.entries()).toEqual([])
     expect((yield* owner.canonicalProjection()).rounds).toEqual([])
     yield* owner.clear()
-    const nextGeneration = yield* owner.delivery().admitEdit("agent", "next", 0)
+    const nextGeneration = (yield* owner.delivery().admitEdit("agent", "next", 0))?.generation
     if (nextGeneration === undefined) throw new Error("fixture edit admission refused")
     const next = yield* owner.rounds.bind("agent", nextGeneration, activity, "next")
     expect(next.canonicalRound).toBe(first.canonicalRound)
@@ -222,7 +222,7 @@ it.effect("retires canonical and native ownership together and fences identity r
 it.effect("retains round metadata until outstanding physical dispatch work settles before clear", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState<never, string, { readonly operation: number; readonly round: number }>()
-    const generation = yield* owner.delivery().admitEdit("agent", "edit", 0)
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "cohort")
     const started = yield* Deferred.make<void>()

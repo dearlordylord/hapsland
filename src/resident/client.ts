@@ -21,7 +21,8 @@ import { resolve } from "node:path"
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts"
 
-import { loadReviewSettings, type ReviewConfigError } from "../runtime/review-config.ts"
+import { ReviewConfigError } from "../runtime/review-config.ts"
+import { loadConfiguration } from "../configuration/load.ts"
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts"
 import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts"
 import type { ClaudeHostOutput, CollectionMode } from "./collection.ts"
@@ -394,7 +395,11 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   userConfigPath: string | undefined,
   controlledOptions: ControlledDecisionModelOptions | undefined
 ): Effect.fn.Return<ResidentDispatchContext, ResidentIpcError | ReviewConfigError> {
-  const settings = yield* loadReviewSettings(root, userConfigurationOptions(userConfigPath))
+  const capture = yield* loadConfiguration(root, userConfigurationOptions(userConfigPath)).pipe(
+    Effect.mapError(
+      (error) => new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
+    )
+  )
   const controlled = controlledDispatchOptions(controlledOptions)
   const configuration = yield* Config.all({
     credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(
@@ -404,7 +409,7 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })))
   const credentialInput = !dispatchUsesCredential(controlled)
     ? undefined
-    : yield* resolveCredentialInput({ envVar: settings.credentialEnvVar, root }).pipe(
+    : yield* resolveCredentialInput({ envVar: capture.policy.credentialEnvVar.value, root }).pipe(
         Effect.mapError(() => new ResidentIpcError({ message: "resident credential input unavailable" }))
       )
   const credentialStatePath = resolve(configuration.credentialStatePath)
@@ -412,19 +417,17 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
     try: () => readCredentialState(credentialStatePath),
     catch: () => new ResidentIpcError({ message: "resident credential metadata unavailable" })
   })
-  const environmentOnly = settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   return {
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
-    sessionAnalytics: effectiveSessionAnalytics(settings.configuration.policy),
+    sessionAnalytics: effectiveSessionAnalytics(capture.policy),
     userConfigPath: nullableResolvedPath(userConfigPath),
     demoBudgetPath: nullableResolvedPath(Option.getOrUndefined(configuration.demoBudgetPath)),
     credential: !dispatchUsesCredential(controlled)
       ? null
       : {
-          name: settings.credentialEnvVar,
+          name: capture.policy.credentialEnvVar.value,
           environmentValue: credentialInput?.value === undefined ? null : Redacted.value(credentialInput.value),
-          environmentOnly,
           generation: credentialState.generation,
           statePath: credentialStatePath
         },

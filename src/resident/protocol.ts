@@ -36,7 +36,6 @@ export type ResidentDispatchContext = {
   readonly credential: {
     readonly name: string
     readonly environmentValue: string | null
-    readonly environmentOnly: boolean
     readonly generation: number
     readonly statePath: string
   } | null
@@ -260,7 +259,6 @@ const Dispatch = Schema.Struct({
       environmentValue: Schema.NullOr(
         Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 32_768))
       ),
-      environmentOnly: Schema.Boolean,
       generation: SafeNatural,
       // Preserve the credential owner's path contract independently of general path bounds.
       statePath: Schema.String.check(Schema.isPattern(/^\//))

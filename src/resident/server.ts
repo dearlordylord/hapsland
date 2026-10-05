@@ -15,8 +15,7 @@ import { recordAnalytics, type AnalyticsKind } from "../activity/analytics.ts"
 import {
   effectiveSessionAnalytics,
   effectiveEditPermitLimits,
-  effectiveVirtualRoundQuietMs,
-  effectiveReviewBackend
+  effectiveVirtualRoundQuietMs
 } from "../configuration/resolve.ts"
 import { recordRoundClosure, type RoundCloseReason, recordActivity } from "../activity/status.ts"
 import { monotonicNow } from "./hook-clock.ts"
@@ -57,10 +56,7 @@ import { captureStable } from "../direct-event/capture.ts"
 import { resolvedDirectFilePolicy, selectedByDirectFilePolicy } from "../direct-event/selection.ts"
 import { admitReview } from "../configuration/decision.ts"
 import { reviewDecisionModelLayer } from "../review-providers/live.ts"
-import { providerIdentity } from "../review-providers/catalog.ts"
-import { loadReviewSettings } from "../runtime/review-config.ts"
-import { loadConfiguration } from "../configuration/load.ts"
-import { readCurrentClaudeFeedbackAuthority } from "../configuration/current-claude-authority.ts"
+import { makeReviewSettings, settingsSource, type ReviewSettingsSnapshot } from "../runtime/review-settings.ts"
 import {
   controlledDecisionModelLayer,
   type ControlledDecisionModelOptions
@@ -186,6 +182,7 @@ type IngressJob = {
   readonly round?: RoundWork
   readonly work?: WorkCohort
   completed?: boolean
+  readonly settings: ReviewSettingsSnapshot
   readonly kind: "ingress"
   readonly workObservationId?: number
   readonly canonicalObservationId: number
@@ -202,7 +199,6 @@ type ResponseAuthority = {
   readonly partition: string
   readonly root: string
   readonly advicee: DirectAdvicee
-  readonly userConfigPath: string | null
   readonly claudeFeedbackMode: ClaudeOutputMode
   readonly credentialGeneration: number | null
   readonly credentialStatePath: string | null
@@ -233,6 +229,7 @@ type UnitJob = {
   released?: boolean
   requestId?: number
   requestStarted?: boolean
+  readonly settings: ReviewSettingsSnapshot
   readonly kind: "unit"
   readonly workUnitId?: number
   /** The canonical observation admitted before source preparation began. */
@@ -546,6 +543,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const runtimeConfiguration = yield* makeResidentRuntimeConfiguration().pipe(
     Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" }))
   )
+  const reviewSettings = yield* makeReviewSettings()
   const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
   const lifetime = residentLedger.residentLifetime
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
@@ -752,7 +750,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     canonicalRound: number,
     canonicalObservationId: number,
     reservation: CapacityReservation,
-    round: RoundWork | undefined
+    round: RoundWork | undefined,
+    settings: ReviewSettingsSnapshot
   ): Effect.fn.Return<IngressJob> {
     const roundFields =
       round === undefined
@@ -764,6 +763,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
     return {
       kind: "ingress",
+      settings,
       canonicalRound,
       ...roundFields,
       observation,
@@ -798,23 +798,37 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentAdmissionStale = (composed: boolean, generation: number | undefined): boolean =>
     composed && generation === undefined
-  const admit = Effect.fn("ResidentRuntime.admit")(function* (
+  const residentAdmit = Effect.fn("ResidentRuntime.admit")(function* (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
     composed = false,
     requirePermit = false
-  ): Effect.fn.Return<ResidentResponse> {
+  ): Effect.fn.Return<{ readonly response: ResidentResponse; readonly settings?: ReviewSettingsSnapshot }> {
     const now = residentNow()
     yield* residentExpirePending(now)
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     yield* residentPruneNoticeCooldowns(now)
-    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return { status: "rejected-capacity" }
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active")
+      return { response: { status: "rejected-capacity" } }
     const group = adviceePartition(observation.root, observation.advicee)
-    const generation = yield* residentAdmissionGeneration(group, observation, composed, requirePermit)
+    const registeredSettings = yield* residentComposedDelivery.registeredEditSettings(
+      group,
+      observation.advicee.toolUseId
+    )
+    const settings =
+      registeredSettings ??
+      (yield* reviewSettings
+        .capture(settingsSource(observation.root, residentOptionalUserConfig(dispatch)))
+        .pipe(Effect.catch(() => Effect.succeed(undefined))))
+    // A registered edit keeps its original snapshot, even after the cache expires.
+    if (settings === undefined) return { response: { status: "rejected-stale" } }
+    const editAdmission = yield* residentAdmissionGeneration(group, observation, composed, requirePermit)
+    const generation = editAdmission?.generation
+    const editSettings = editAdmission?.settings ?? settings
     if (residentAdmissionStale(composed, generation)) {
       recordResidentObservationActivity(observation, dispatch, "incomplete")
-      return { status: "rejected-stale" }
+      return { response: { status: "rejected-stale" } }
     }
     const round = yield* residentBindAdmissionRound(group, generation, observation, dispatch)
     const partition = group
@@ -826,12 +840,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     )
     if (reservation === undefined) {
       yield* residentRejectAdmissionCapacity(observation, dispatch)
-      return { status: "rejected-capacity" }
+      return { response: { status: "rejected-capacity" } }
     }
     const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound))
     if (Exit.isFailure(admission)) {
       yield* residentLedger.release(reservation)
-      return { status: "rejected-capacity" }
+      return { response: { status: "rejected-capacity" } }
     }
     const canonicalObservationId = admission.value
     const job = yield* residentAdmissionJob(
@@ -841,18 +855,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       canonicalRound,
       canonicalObservationId,
       reservation,
-      round
+      round,
+      editSettings
     )
     if (!(yield* residentDispatcher.enqueue(partition, job))) {
       yield* residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound)
       yield* residentLedger.release(reservation)
       yield* residentRejectAdmissionCapacity(observation, dispatch)
-      return { status: "rejected-capacity" }
+      return { response: { status: "rejected-capacity" } }
     }
     residentRecordAdmissionDiagnostics(observation)
     recordResidentObservationActivity(observation, dispatch, "pending")
-    return { status: "accepted" }
+    return { response: { status: "accepted" }, settings: editSettings }
   }, Effect.uninterruptible)
+
+  const admit = Effect.fn("ResidentRuntime.admitResponse")((...args: Parameters<typeof residentAdmit>) =>
+    residentAdmit(...args).pipe(Effect.map(({ response }) => response))
+  )
 
   function residentCollectionElapsed(now: number, started: number, limit: number): number {
     const elapsed = Math.min(limit, Math.max(0, now - started))
@@ -1200,7 +1219,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     final: boolean
   ) {
     yield* residentCollectionBarrier(advice, final)
-    const validity = yield* residentRevalidate(advice, frame.dispatch)
+    const validity = yield* residentRevalidate(advice)
     const retained = (yield* residentAdvice()).find((item) => item.id === advice.id)
     const route = yield* residentCandidateRoute({
       kind: "validationRouteCheck",
@@ -1323,13 +1342,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ): boolean => state !== undefined && state.generation === generation && (environmentOnly || !state.savedUseSuspended)
   const residentHandoffCredentialAuthorized = (
     frame: CollectionFrame,
+    advice: Advice,
     ownerCurrent: boolean,
     generationValid: boolean
   ): boolean => {
     const credential = frame.dispatch.credential
     if (!ownerCurrent || !generationValid || credential === null) return true
     const state = readCredentialState(credential.statePath)
-    return residentCollectionCredentialStateValid(state, frame.credentialGeneration, credential.environmentOnly)
+    return residentCollectionCredentialStateValid(
+      state,
+      frame.credentialGeneration,
+      frame.authority?.credentialEnvironmentOnly ?? advice.credentialEnvironmentOnly
+    )
   }
   const residentCollectionHandoffFacts = Effect.fn("ResidentRuntime.collectionHandoffFacts")(function* (
     frame: CollectionFrame,
@@ -1340,7 +1364,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const delivery = retained === undefined ? undefined : (yield* residentLedger.advice.current(retained)).delivery
     const ownerCurrent = retained === advice && delivery?.token === token
     const generationValid = advice.credentialGeneration === frame.credentialGeneration
-    const credentialAuthorized = residentHandoffCredentialAuthorized(frame, ownerCurrent, generationValid)
+    const credentialAuthorized = residentHandoffCredentialAuthorized(frame, advice, ownerCurrent, generationValid)
     return {
       delivery,
       ownerCurrent,
@@ -2446,7 +2470,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   })
   const residentOptionalUserConfig = (dispatch: ResidentDispatchContext): string | undefined =>
     dispatch.userConfigPath ?? undefined
-  const residentUserConfigOptions = (path: string | undefined) => (path === undefined ? {} : { userConfigPath: path })
   const residentPrepare = Effect.fn("ResidentRuntime.prepare")((job: IngressJob, sequence: number) => {
     const server = runtime
     const expectedActivityUnits: Array<string> = []
@@ -2482,11 +2505,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return true
       })
       if (!(yield* startSourcePreparation())) return
-      const userConfigPath = residentOptionalUserConfig(job.dispatch)
       const controlled = decodeControlledOptions(job.dispatch.controlled)
       const settings = yield* withinWork(
         Effect.gen(function* () {
-          const settings = yield* loadReviewSettings(job.observation.root, residentUserConfigOptions(userConfigPath))
+          const settings = job.settings
           if (job.dispatch.controlled !== null && controlled === undefined) return undefined
           const credentialRequired = residentCredentialRequired(controlled)
           if (!residentCredentialShapeMatches(job.dispatch, settings.credentialEnvVar, credentialRequired))
@@ -2614,7 +2636,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         })
         const { rejectedDeliverable, deliverable } = yield* filterDeliverableOutcomes()
         const preparationGenerationPartition = () => {
-          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`
+          const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}\0settings:${job.settings.configuration.policy.digest}`
           return generationPartition
         }
         const planned = yield* Effect.forEach(
@@ -2845,6 +2867,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const makePreparedUnit = (): UnitJob => {
             return {
               kind: "unit",
+              settings: job.settings,
               canonicalRound: job.canonicalRound,
               ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
               ...(workUnitId === undefined ? {} : { workUnitId }),
@@ -3171,7 +3194,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "evaluation barrier" }))),
           signal
         )
-        const userConfigPath = residentOptionalUserConfig(job.dispatch)
         const controlled = decodeControlledOptions(job.dispatch.controlled)
         const offlineHttpClient = residentOfflineHttpClient
         const controlledRequestEffect = residentControlledRequestEffect
@@ -3183,25 +3205,24 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           Effect.gen(function* () {
             const resolveEvaluationCredentials = Effect.fn("ResidentRuntime.resolveEvaluationCredentials")(
               function* () {
-                const loadEvaluationSettings = Effect.fn("ResidentRuntime.loadEvaluationSettings")(function* () {
-                  const settings = yield* loadReviewSettings(
-                    job.observation.root,
-                    residentUserConfigOptions(userConfigPath)
-                  )
-                  job.analyticsEnabled = effectiveSessionAnalytics(settings.configuration.policy)
-                  if (job.dispatch.controlled !== null && controlled === undefined) return yield* denyReady()
-                  const credentialRequired = residentCredentialRequired(controlled)
-                  if (!residentCredentialShapeMatches(job.dispatch, settings.credentialEnvVar, credentialRequired))
-                    return yield* denyReady("credential")
-                  const dispatchCredential = job.dispatch.credential
+                const validateEvaluationSettings = Effect.fn("ResidentRuntime.validateEvaluationSettings")(
+                  function* () {
+                    const settings = job.settings
+                    job.analyticsEnabled = effectiveSessionAnalytics(settings.configuration.policy)
+                    if (job.dispatch.controlled !== null && controlled === undefined) return yield* denyReady()
+                    const credentialRequired = residentCredentialRequired(controlled)
+                    if (!residentCredentialShapeMatches(job.dispatch, settings.credentialEnvVar, credentialRequired))
+                      return yield* denyReady("credential")
+                    const dispatchCredential = job.dispatch.credential
 
-                  if (!(yield* verifyObservationRoot(job.observation))) return yield* denyReady()
-                  yield* residentDispatchControls
-                    .atBoundary("authorized")
-                    .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "authorization barrier" })))
-                  return { settings, credentialRequired, dispatchCredential }
-                })
-                const loaded = yield* loadEvaluationSettings()
+                    if (!(yield* verifyObservationRoot(job.observation))) return yield* denyReady()
+                    yield* residentDispatchControls
+                      .atBoundary("authorized")
+                      .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "authorization barrier" })))
+                    return { settings, credentialRequired, dispatchCredential }
+                  }
+                )
+                const loaded = yield* validateEvaluationSettings()
                 if ("status" in loaded) return loaded
                 const { settings, credentialRequired, dispatchCredential } = loaded
                 const resolveDispatchCredential = Effect.fn("ResidentRuntime.resolveDispatchCredential")(function* () {
@@ -3209,7 +3230,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                     ? undefined
                     : yield* resolveCredential({
                         envVar: dispatchCredential.name,
-                        environmentOnly: settings.backend === "cloudflare" || dispatchCredential.environmentOnly,
+                        environmentOnly: residentSettingsEnvironmentOnly(settings),
                         environmentValue: dispatchCredential.environmentValue,
                         expectedGeneration: dispatchCredential.generation,
                         statePath: dispatchCredential.statePath
@@ -3238,9 +3259,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             const resolved = yield* resolveEvaluationCredentials()
             if ("status" in resolved) return resolved
             const { settings, credentialRequired, dispatchCredential, credential } = resolved
-            // Prepared source can outlive its admission policy. Read authority again
-            // after credential waits, then apply the current file policy before the
-            // provider receives the prepared unit.
+            // Source and credential authority may change while waiting. Configuration
+            // and rules remain the edit-owned snapshot through dispatch and delivery.
             const credentialReady = () => !credentialRequired || credential?.status === "present"
             const credentialObservation = () => ({
               credentialStatus: credential?.status ?? ("not-required" as const),
@@ -3256,26 +3276,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             const dispatchAuthorityDecision = (admission: string, current: boolean): "allow" | "deny" =>
               admission === "admitReview" && current ? "allow" : "deny"
             const authorizePreparedUnit = Effect.fn("ResidentRuntime.authorizePreparedUnit")(function* () {
-              const dispatchConfiguration = yield* loadConfiguration(
-                job.observation.root,
-                residentUserConfigOptions(userConfigPath)
-              )
-              if (
-                credentialRequired &&
-                dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value
-              )
+              const editConfiguration = job.settings.configuration
+              if (credentialRequired && dispatchCredential?.name !== editConfiguration.policy.credentialEnvVar.value)
                 return yield* denyReady("credential")
-              const providerSelectionCurrent = () =>
-                canonicalValue(job.prepared.input.providerIdentity) === canonicalValue(settings.providerIdentity) &&
-                canonicalValue(settings.providerIdentity) ===
-                  canonicalValue(providerIdentity(effectiveReviewBackend(dispatchConfiguration.policy)))
-              if (!providerSelectionCurrent()) return yield* denyReady()
+              const providerSelectionMatches =
+                canonicalValue(job.prepared.input.providerIdentity) === canonicalValue(settings.providerIdentity)
+              if (!providerSelectionMatches) return yield* denyReady()
               const dispatchRootVerified = yield* verifyObservationRoot(job.observation)
               if (!dispatchRootVerified) {
                 yield* observeDispatchAuthority({
                   decision: "deny",
                   reason: "physical-root-mismatch",
-                  policyDigest: dispatchConfiguration.policy.digest,
+                  policyDigest: editConfiguration.policy.digest,
                   selected: null,
                   admission: "refuseRoot",
                   physicalRootVerified: false,
@@ -3285,7 +3297,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               }
               const selected = selectedByDirectFilePolicy(
                 job.prepared.input.path,
-                resolvedDirectFilePolicy(dispatchConfiguration.policy)
+                resolvedDirectFilePolicy(editConfiguration.policy)
               )
               const admission = admitReview({
                 rootValid: dispatchRootVerified,
@@ -3298,13 +3310,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 (yield* preparedUnitStillCurrent(job.observation, job.prepared, {
                   controlledWriter: true,
                   advicee: job.observation.advicee,
-                  settings: { ...settings, configuration: dispatchConfiguration },
-                  policy: resolvedDirectFilePolicy(dispatchConfiguration.policy)
+                  settings,
+                  policy: resolvedDirectFilePolicy(editConfiguration.policy)
                 }))
               yield* observeDispatchAuthority({
                 decision: dispatchAuthorityDecision(admission, unitCurrent),
                 reason: dispatchAuthorityReason(admission, unitCurrent),
-                policyDigest: dispatchConfiguration.policy.digest,
+                policyDigest: editConfiguration.policy.digest,
                 selected,
                 admission,
                 physicalRootVerified: true,
@@ -3742,6 +3754,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentRetireUnitWork = Effect.fn("ResidentRuntime.retireUnitWork")(function* (job: UnitJob) {
     if (job.round !== undefined) yield* residentRetireRoundUnit(job.round, job.workUnitId)
   })
+  const residentSettingsEnvironmentOnly = (settings: ReviewSettingsSnapshot): boolean =>
+    settings.backend === "cloudflare" || settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
   const residentRetainedCredentialRequired = (dispatch: ResidentDispatchContext): boolean =>
     dispatch.controlled === null || dispatch.controlled.requireCredential === true
   const residentRetainedCredentialFields = (job: UnitJob) => {
@@ -3758,7 +3772,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       credentialGeneration: credential.generation,
       credentialStatePath: credential.statePath,
       credentialRequired: required,
-      credentialEnvironmentOnly: credential.environmentOnly
+      credentialEnvironmentOnly: residentSettingsEnvironmentOnly(job.settings)
     }
   }
   const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
@@ -3793,6 +3807,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           canonicalOperationId: job.canonicalOperationId,
           canonicalRound: job.canonicalRound,
           observation: job.observation,
+          settings: job.settings,
           partition: job.partition,
           reservation: job.reservation,
           prepared: job.prepared,
@@ -3836,57 +3851,52 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }).pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "configure backend gate" })))
   })
 
-  const residentRevalidate = Effect.fn("ResidentRuntime.revalidate")(
-    (advice: Advice, dispatch: ResidentDispatchContext) =>
-      Effect.gen(function* () {
-        const _server = runtime
-        const candidate = advice.observation.candidates[0]
-        if (candidate === undefined) return { status: "unavailable" as const, findings: [] }
-        const capture = yield* residentLedger.adviceCaptures.start(
-          advice.reservation,
-          advice.revision,
-          captureWorkspaceBytes(candidate.path)
+  const residentRevalidate = Effect.fn("ResidentRuntime.revalidate")((advice: Advice) =>
+    Effect.gen(function* () {
+      const _server = runtime
+      const candidate = advice.observation.candidates[0]
+      if (candidate === undefined) return { status: "unavailable" as const, findings: [] }
+      const capture = yield* residentLedger.adviceCaptures.start(
+        advice.reservation,
+        advice.revision,
+        captureWorkspaceBytes(candidate.path)
+      )
+      if (capture === undefined) return { status: "unavailable" as const, findings: [] }
+      let capacityUnavailable = false
+      return yield* Effect.gen(function* () {
+        const content = yield* residentLedger.advice.current(advice)
+        yield* residentReviewControls
+          .afterRevalidationWorkspaceReserved(advice.id)
+          .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "revalidation barrier" })))
+        const current = yield* withinWork(
+          Effect.gen(function* () {
+            const settings = advice.settings
+            return yield* revalidateEvaluations(
+              advice.observation,
+              content.evaluations,
+              {
+                controlledWriter: true,
+                advicee: advice.observation.advicee,
+                settings,
+                beforeAnalyze: (path, sourceBytes, preflight) =>
+                  Effect.gen(function* () {
+                    const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules)
+                    const resized = yield* residentLedger.adviceCaptures.resize(capture, required)
+                    if (!resized) capacityUnavailable = true
+                    return resized
+                  })
+              },
+              { isCurrentWork: (prepared) => residentIsCurrentWork(advice.revision, prepared) }
+            )
+          }),
+          advice.round?.controller.signal ?? residentLifetimeController.signal
         )
-        if (capture === undefined) return { status: "unavailable" as const, findings: [] }
-        let capacityUnavailable = false
-        return yield* Effect.gen(function* () {
-          const content = yield* residentLedger.advice.current(advice)
-          yield* residentReviewControls
-            .afterRevalidationWorkspaceReserved(advice.id)
-            .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "revalidation barrier" })))
-          const userConfigPath = dispatch.userConfigPath ?? undefined
-          const current = yield* withinWork(
-            Effect.gen(function* () {
-              const settings = yield* loadReviewSettings(
-                advice.observation.root,
-                residentUserConfigOptions(userConfigPath)
-              )
-              return yield* revalidateEvaluations(
-                advice.observation,
-                content.evaluations,
-                {
-                  controlledWriter: true,
-                  advicee: advice.observation.advicee,
-                  settings,
-                  beforeAnalyze: (path, sourceBytes, preflight) =>
-                    Effect.gen(function* () {
-                      const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules)
-                      const resized = yield* residentLedger.adviceCaptures.resize(capture, required)
-                      if (!resized) capacityUnavailable = true
-                      return resized
-                    })
-                },
-                { isCurrentWork: (prepared) => residentIsCurrentWork(advice.revision, prepared) }
-              )
-            }),
-            advice.round?.controller.signal ?? residentLifetimeController.signal
-          )
-          return capacityUnavailable ? { status: "unavailable" as const, findings: [] } : current
-        }).pipe(
-          Effect.catch(() => Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] })),
-          Effect.ensuring(residentLedger.adviceCaptures.finish(capture))
-        )
-      })
+        return capacityUnavailable ? { status: "unavailable" as const, findings: [] } : current
+      }).pipe(
+        Effect.catch(() => Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] })),
+        Effect.ensuring(residentLedger.adviceCaptures.finish(capture))
+      )
+    })
   )
 
   const residentEditCollectionRequest = (request: EditRequest): EditCollectionRequest => ({
@@ -3900,18 +3910,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     mode: "ordinary"
   })
 
-  function residentResponseCredentialFields(dispatch: ResidentDispatchContext) {
+  function residentResponseCredentialFields(dispatch: ResidentDispatchContext, settings: ReviewSettingsSnapshot) {
     return {
       credentialGeneration: dispatch.credential?.generation ?? null,
       credentialStatePath: dispatch.credential?.statePath ?? null,
       credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
-      credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false
+      credentialEnvironmentOnly: residentSettingsEnvironmentOnly(settings)
     }
   }
   const residentAdmittedResponseAuthority = Effect.fn("ResidentRuntime.admittedResponseAuthority")(function* (
     request: EditRequest,
     group: string,
-    mode: ResponseAuthority["claudeFeedbackMode"],
+    settings: ReviewSettingsSnapshot,
     startedAt: number
   ): Effect.fn.Return<ResponseAuthority> {
     const { observation, dispatch } = request
@@ -3920,9 +3930,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       partition: group,
       root: observation.root,
       advicee: Object.freeze({ ...observation.advicee }),
-      userConfigPath: dispatch.userConfigPath,
-      claudeFeedbackMode: mode,
-      ...residentResponseCredentialFields(dispatch),
+      claudeFeedbackMode: settings.configuration.policy.claudeFeedbackMode.value,
+      ...residentResponseCredentialFields(dispatch, settings),
       expiresAt: startedAt + 600_000,
       round: yield* residentLedger.rounds.get(group)
     })
@@ -3934,14 +3943,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const { observation, dispatch } = request
     const startedAt = residentNow()
     const group = adviceePartition(observation.root, observation.advicee)
-    const mode = residentCurrentClaudeFeedbackMode(observation.root, dispatch.userConfigPath)
-    const admitted = yield* admit(observation, dispatch, true, true)
-    if (admitted.status !== "accepted")
+    const admission = yield* residentAdmit(observation, dispatch, true, true)
+    const admitted = admission.response
+    if (admitted.status !== "accepted" || admission.settings === undefined)
       return {
         requestRoute: "edit",
         status: admitted.status === "rejected-stale" ? "rejected-stale" : "rejected-capacity"
       }
-    const authority = yield* residentAdmittedResponseAuthority(request, group, mode, startedAt)
+    const authority = yield* residentAdmittedResponseAuthority(request, group, admission.settings, startedAt)
     yield* Ref.set(context, { authority })
     const pass = Effect.fn("ResidentRuntime.collectEditResponse")(function* () {
       const gate = yield* residentCollectorGate(authority, dispatch, residentNow())
@@ -4065,18 +4074,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentComposedDelivery.retireEdit(group, request.advicee.toolUseId)
       return residentResponse({ status: "advanced" })
     }
-    const capture = yield* loadConfiguration(
-      request.root,
-      request.userConfigPath === undefined ? {} : { userConfigPath: request.userConfigPath }
-    ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+    const capture =
+      (yield* residentComposedDelivery.registeredEditSettings(group, request.advicee.toolUseId)) ??
+      (yield* reviewSettings
+        .capture(settingsSource(request.root, request.userConfigPath))
+        .pipe(Effect.catch(() => Effect.succeed(undefined))))
     if (capture === undefined) return residentResponse({ status: "rejected-stale", reason: "InvalidConfiguration" })
     const decision = yield* residentComposedDelivery.registerEditDecision(
       group,
       request.advicee.toolUseId,
       request.startedAt,
       monotonicNow(),
-      effectiveEditPermitLimits(capture.policy),
-      effectiveVirtualRoundQuietMs(capture.policy)
+      effectiveEditPermitLimits(capture.configuration.policy),
+      effectiveVirtualRoundQuietMs(capture.configuration.policy),
+      capture
     )
     if (!decision.accepted) return residentResponse({ status: "rejected-stale", reason: decision.reason })
     return residentResponse({ status: "advanced" })
@@ -4333,11 +4344,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     return residentResponse({ status: "unsupported" })
   })
-
-  function residentCurrentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
-    const authority = readCurrentClaudeFeedbackAuthority(root, userConfigPath ?? undefined)
-    return authority.valid ? authority.mode : "advisory"
-  }
 
   const residentCollectorLifetimeCurrent = Effect.fn("ResidentRuntime.collectorLifetimeCurrent")(function* (
     authority: ResponseAuthority
@@ -4628,6 +4634,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* runtime.releaseDelivery(response.token)
       return { requestRoute: "edit", status: "unavailable", reason: "lost" }
     }
+    const capturedHandoffMode = Effect.fn("ResidentRuntime.capturedHandoffMode")(
+      function* (): Effect.fn.Return<ClaudeOutputMode> {
+        if (authority?.claudeFeedbackMode !== "block-current-findings") return "advisory"
+        for (const advice of handoff) {
+          if (advice.settings.configuration.policy.claudeFeedbackMode.value !== "block-current-findings") continue
+          const { delivery } = yield* residentLedger.advice.current(advice)
+          if (delivery?.token === response.token && delivery.findings.length > 0) return "block-current-findings"
+        }
+        return "advisory"
+      }
+    )
+    let handoffMode = yield* capturedHandoffMode()
     const fitHandoffFindings = Effect.fn("ResidentRuntime.fitHandoffFindings")(function* () {
       if (request.operation === "collect") {
         const composed = request.composed === true
@@ -4659,7 +4677,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const accepted = new Set(
           yield* selectFittingCurrentFindingIndices(
             offers,
-            residentHandoffSurface(request, authority),
+            authority === undefined ? residentHandoffSurface(request, authority) : handoffMode,
             undefined,
             residentCollectionFindingOffer
           )
@@ -4675,6 +4693,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     })
     yield* fitHandoffFindings()
+    const fittedMode = yield* capturedHandoffMode()
+    if (fittedMode !== handoffMode) {
+      handoffMode = fittedMode
+      yield* fitHandoffFindings()
+    }
     const findings = (yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice))).flatMap(
       (content) => content.delivery?.findings ?? []
     )
@@ -4720,18 +4743,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         )
         const gate = yield* checkCollectorAuthority()
         if (gate !== undefined) return gate
-        const admittedBlock = authority?.claudeFeedbackMode === "block-current-findings"
-        const currentBlock =
-          admittedBlock &&
-          authority !== undefined &&
-          residentCurrentClaudeFeedbackMode(authority.root, authority.userConfigPath) === "block-current-findings"
+        const admittedBlock = handoffMode === "block-current-findings"
+        const currentBlock = admittedBlock
         if (
           authority !== undefined &&
           residentEditCollectRequest(request) &&
           (yield* residentLedger.transition({ kind: "collectorFinalAuthorityCheck", admittedBlock, currentBlock }))
             .commands[0]?.kind !== "collectorFinalProceed"
         ) {
-          // A revoked opt-in cannot turn the old selection into an advisory lease.
+          // Only retained findings whose edit snapshot permits blocking can block.
           yield* runtime.releaseDelivery(response.token)
           return yield* residentEditCollectionStatus(
             authority,
@@ -4768,7 +4788,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               output: combinedClaudeOutput(
                 findings,
                 notices.map((notice) => notice.value),
-                authority.claudeFeedbackMode
+                handoffMode
               )
             }
     }

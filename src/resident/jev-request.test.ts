@@ -61,13 +61,15 @@ describe("canonical Jev request boundary", () => {
     })
     try {
       expect(
-        Effect.runSync(
-          server.admit(observation, {
-            statePath: join(root, "consent"),
-            userConfigPath: null,
-            credential: null,
-            controlled: { capturePath }
-          })
+        (
+          await Effect.runPromise(
+            server.admit(observation, {
+              statePath: join(root, "consent"),
+              userConfigPath: null,
+              credential: null,
+              controlled: { capturePath }
+            })
+          )
         ).status
       ).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
@@ -108,8 +110,15 @@ describe("canonical Jev request boundary", () => {
     try {
       expect(Buffer.byteLength(source, "utf8")).toBeGreaterThan(32 * 1024)
       expect(
-        Effect.runSync(
-          server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath } })
+        (
+          await Effect.runPromise(
+            server.admit(observation, {
+              statePath,
+              userConfigPath: null,
+              credential: null,
+              controlled: { capturePath }
+            })
+          )
         ).status
       ).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
@@ -151,8 +160,15 @@ describe("canonical Jev request boundary", () => {
     })
     try {
       expect(
-        Effect.runSync(
-          server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath } })
+        (
+          await Effect.runPromise(
+            server.admit(observation, {
+              statePath,
+              userConfigPath: null,
+              credential: null,
+              controlled: { capturePath }
+            })
+          )
         ).status
       ).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
@@ -188,7 +204,7 @@ describe("canonical Jev request boundary", () => {
     const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, { captureSource })
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(existsSync(capturePath)).toBe(true)
       expect(reads).toContain("c.ts")
@@ -200,7 +216,11 @@ describe("canonical Jev request boundary", () => {
     const gatedServer = await acquireResidentFixture(residentPaths(join(root, "gated-runtime")))
     try {
       expect(
-        Effect.runSync(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } })).status
+        (
+          await Effect.runPromise(
+            gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } })
+          )
+        ).status
       ).toBe("accepted")
       await Effect.runPromise(gatedServer.whenIdle())
       expect(existsSync(gatedCalls)).toBe(true)
@@ -217,8 +237,11 @@ describe("canonical Jev request boundary", () => {
     })
     try {
       expect(
-        Effect.runSync(excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } }))
-          .status
+        (
+          await Effect.runPromise(
+            excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } })
+          )
+        ).status
       ).toBe("accepted")
       await Effect.runPromise(excludedServer.whenIdle())
       expect(existsSync(excludedCalls)).toBe(false)
@@ -246,8 +269,11 @@ describe("canonical Jev request boundary", () => {
     })
     try {
       expect(
-        Effect.runSync(server.admit(await event(), { ...dispatch, demoBudgetPath: join(root, "missing-budget.json") }))
-          .status
+        (
+          await Effect.runPromise(
+            server.admit(await event(), { ...dispatch, demoBudgetPath: join(root, "missing-budget.json") })
+          )
+        ).status
       ).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(observations.map((item) => [item.stage, item.outcome])).toEqual([
@@ -267,7 +293,7 @@ describe("canonical Jev request boundary", () => {
       expect(existsSync(capturePath)).toBe(false)
       expect(Effect.runSync(server.stats()).retainedBytes).toBe(0)
 
-      expect(Effect.runSync(server.admit(await event(), dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await event(), dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(observations.slice(2).map((item) => item.stage)).toEqual(["issued", "started", "settled"])
       expect(new Set(observations.map((item) => item.round)).size).toBe(1)
@@ -282,7 +308,7 @@ describe("canonical Jev request boundary", () => {
       }
     })
     try {
-      expect(Effect.runSync(restarted.admit(await event(), dispatch, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(restarted.admit(await event(), dispatch, true))).status).toBe("accepted")
       await Effect.runPromise(restarted.whenIdle())
       expect(nextLifetime.map((item) => item.stage)).toEqual(["issued", "started", "settled"])
       expect(nextLifetime.every((item) => item.lifetime === restarted.lifetime)).toBe(true)
@@ -339,13 +365,15 @@ describe("canonical Jev request boundary", () => {
       }
     })
     try {
-      expect(Effect.runSync(server.admit(await observe(paths.slice(0, 8)), dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await observe(paths.slice(0, 8)), dispatch))).status).toBe(
+        "accepted"
+      )
       await eightEntered.promise
       expect(effectsEntered).toBe(8)
       expect(observations.filter((item) => item.stage === "issued")).toHaveLength(8)
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8)
 
-      expect(Effect.runSync(server.admit(await observe([paths[8]!]), dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await observe([paths[8]!]), dispatch))).status).toBe("accepted")
       await ninthUnavailable.promise
       expect(await Effect.runPromise(controls.preparationCount)).toBe(2)
       expect(effectsEntered).toBe(8)
@@ -356,7 +384,7 @@ describe("canonical Jev request boundary", () => {
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(8)
       expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(8)
 
-      expect(Effect.runSync(server.admit(await observe([paths[9]!]), dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await observe([paths[9]!]), dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(effectsEntered).toBe(9)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(9)
@@ -438,14 +466,14 @@ describe("canonical Jev request boundary", () => {
     try {
       const first = await observe(0)
       for (let index = 0; index < 8; index += 1) {
-        expect(Effect.runSync(server.admit(index === 0 ? first : await observe(index), dispatch, true)).status).toBe(
-          "accepted"
-        )
+        expect(
+          (await Effect.runPromise(server.admit(index === 0 ? first : await observe(index), dispatch, true))).status
+        ).toBe("accepted")
       }
       await eightStarted.promise
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0)
-      expect(Effect.runSync(server.admit(await observe(8), dispatch, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await observe(8), dispatch, true))).status).toBe("accepted")
       await saturatedUnavailable.promise
       expect(effectsEntered).toBe(8)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0)
@@ -482,7 +510,7 @@ describe("canonical Jev request boundary", () => {
       releases[0]!.resolve()
       // Wait for the original request's physical completion and canonical settlement.
       await physicallySettled.promise
-      expect(Effect.runSync(server.admit(await observe(9), dispatch, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await observe(9), dispatch, true))).status).toBe("accepted")
       await reusedStarted.promise
       const interruptionIndex = observations.findIndex((item) => item.stage === "interrupted")
       expect(interruptionIndex).toBeGreaterThanOrEqual(0)
@@ -497,7 +525,7 @@ describe("canonical Jev request boundary", () => {
       expect(observations[settlementIndex]?.outcome).toBe("interrupted")
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1)
 
-      expect(Effect.runSync(server.admit(await observe(10), dispatch, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await observe(10), dispatch, true))).status).toBe("accepted")
       await afterReuseUnavailable.promise
       expect(effectsEntered).toBe(9)
       expect(peakPhysicallyRunning).toBe(8)
@@ -557,17 +585,17 @@ describe("canonical Jev request boundary", () => {
     const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { delayMs: 16_000 } }
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] })
     try {
-      expect(Effect.runSync(server.admit(prepared[0]!, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(prepared[0]!, dispatch))).status).toBe("accepted")
       await firstStarted.promise
       await vi.advanceTimersByTimeAsync(5_000)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0)
 
       for (let index = 1; index < 8; index += 1) {
-        expect(Effect.runSync(server.admit(prepared[index]!, dispatch)).status).toBe("accepted")
+        expect((await Effect.runPromise(server.admit(prepared[index]!, dispatch))).status).toBe("accepted")
       }
       await eightStarted.promise
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8)
-      expect(Effect.runSync(server.admit(prepared[8]!, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(prepared[8]!, dispatch))).status).toBe("accepted")
       await firstUnavailable.promise
       expect(effectsEntered).toBe(8)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0)
@@ -578,12 +606,12 @@ describe("canonical Jev request boundary", () => {
       expect(timeoutIndex).toBeGreaterThanOrEqual(0)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1)
 
-      expect(Effect.runSync(server.admit(prepared[9]!, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(prepared[9]!, dispatch))).status).toBe("accepted")
       await reusedStarted.promise
       const startIndices = observations.flatMap((item, index) => (item.stage === "started" ? [index] : []))
       expect(startIndices[8]).toBeGreaterThan(timeoutIndex)
       expect(effectsEntered).toBe(9)
-      expect(Effect.runSync(server.admit(prepared[10]!, dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(prepared[10]!, dispatch))).status).toBe("accepted")
       await secondUnavailable.promise
       expect(effectsEntered).toBe(9)
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1)

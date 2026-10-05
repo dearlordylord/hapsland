@@ -93,18 +93,18 @@ describe("resident session analytics", () => {
     expect(context.sessionAnalytics).toBe(true)
   })
 
-  it("counts quiet clear reviews, cache reuse and skipped candidates separately", async () => {
+  it("counts clear reviews and keeps cached rules for newly admitted edits", async () => {
     const f = await setup()
     const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")))
     try {
       for (const id of ["first", "repeated"]) {
-        expect(Effect.runSync(server.admit(await f.observation(id), f.dispatch)).status).toBe("accepted")
+        expect((await Effect.runPromise(server.admit(await f.observation(id), f.dispatch))).status).toBe("accepted")
         await Effect.runPromise(server.whenIdle())
       }
       await put(f.root, "empty.ts", "const value = 1;\n")
-      expect(Effect.runSync(server.admit(await f.observation("skipped", "empty.ts"), f.dispatch)).status).toBe(
-        "accepted"
-      )
+      expect(
+        (await Effect.runPromise(server.admit(await f.observation("skipped", "empty.ts"), f.dispatch))).status
+      ).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       await put(
         f.root,
@@ -117,7 +117,9 @@ describe("resident session analytics", () => {
           }))
         })
       )
-      expect(Effect.runSync(server.admit(await f.observation("rules-disabled"), f.dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("rules-disabled"), f.dispatch))).status).toBe(
+        "accepted"
+      )
       await Effect.runPromise(server.whenIdle())
       expect(f.read()).toMatchObject({
         status: "recorded",
@@ -126,8 +128,8 @@ describe("resident session analytics", () => {
           requestsStarted: 1,
           requestsSucceeded: 1,
           clearReviews: 1,
-          cacheHits: 1,
-          skippedCandidates: 1,
+          cacheHits: 2,
+          skippedCandidates: 0,
           incompleteCandidates: 1
         }
       })
@@ -160,9 +162,9 @@ describe("resident session analytics", () => {
       )
     })
     try {
-      expect(Effect.runSync(server.admit(await f.observation("owner"), f.dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("owner"), f.dispatch))).status).toBe("accepted")
       await entered.promise
-      expect(Effect.runSync(server.admit(await f.observation("join"), f.dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("join"), f.dispatch))).status).toBe("accepted")
       await prepared.promise
       release.resolve()
       await Effect.runPromise(server.whenIdle())
@@ -194,7 +196,7 @@ describe("resident session analytics", () => {
     const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")))
     try {
       const observation = await f.observation("finding")
-      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(f.read().controlledTotals).toMatchObject({
         requestsStarted: 1,
@@ -230,7 +232,7 @@ describe("resident session analytics", () => {
     }
   })
 
-  it("does not record successful reviews after user recording is disabled", async () => {
+  it("keeps admission analytics settings when recording is disabled during review", async () => {
     const f = await setup()
     const entered = deferred()
     const release = deferred()
@@ -243,12 +245,14 @@ describe("resident session analytics", () => {
       })
     })
     try {
-      expect(Effect.runSync(server.admit(await f.observation("disabled"), f.dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("disabled"), f.dispatch))).status).toBe(
+        "accepted"
+      )
       await entered.promise
       await put(f.root, "user.jsonc", '{"version":1,"sessionAnalytics":false}')
       release.resolve()
       await Effect.runPromise(server.whenIdle())
-      expect(f.read()).toMatchObject({ status: "no-observation", controlledTotals: { requestsStarted: 0 } })
+      expect(f.read()).toMatchObject({ status: "recorded", controlledTotals: { requestsStarted: 1 } })
     } finally {
       release.resolve()
       await Effect.runPromise(server.close)
@@ -265,7 +269,7 @@ describe("resident session analytics", () => {
       credential: {
         name: "TYPESAFE_API_KEY",
         environmentValue: "ANALYTICS_SYNTHETIC_KEY",
-        environmentOnly: true,
+
         generation: readCredentialState(credentialStatePath).generation,
         statePath: credentialStatePath
       }
@@ -289,7 +293,7 @@ describe("resident session analytics", () => {
       })
     })
     try {
-      expect(Effect.runSync(server.admit(await f.observation("jev"), dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("jev"), dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       expect(requests).toBe(1)
       expect(f.read()).toMatchObject({
@@ -320,7 +324,9 @@ describe("resident session analytics", () => {
       }
     })
     try {
-      expect(Effect.runSync(server.admit(await f.observation("interrupted"), f.dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("interrupted"), f.dispatch))).status).toBe(
+        "accepted"
+      )
       await entered.promise
       expect(f.read().controlledTotals.requestsStarted).toBe(1)
       let closed = false
@@ -348,7 +354,7 @@ describe("resident session analytics", () => {
     const f = await setup()
     const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")))
     try {
-      expect(Effect.runSync(server.admit(await f.observation("status"), f.dispatch)).status).toBe("accepted")
+      expect((await Effect.runPromise(server.admit(await f.observation("status"), f.dispatch))).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
       const input = JSON.stringify({ version: 1, operation: "status", cwd: f.root, sessionId: "session" })
       const env = {
@@ -395,7 +401,7 @@ describe("resident session analytics", () => {
     try {
       const dispatch = { ...f.dispatch, controlled: { failure: "synthetic offline failure" } }
       for (const id of ["failure-1", "failure-2"]) {
-        expect(Effect.runSync(server.admit(await f.observation(id), dispatch)).status).toBe("accepted")
+        expect((await Effect.runPromise(server.admit(await f.observation(id), dispatch))).status).toBe("accepted")
         await Effect.runPromise(server.whenIdle())
       }
       expect(f.read().controlledTotals).toMatchObject({

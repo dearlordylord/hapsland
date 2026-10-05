@@ -13,7 +13,7 @@ import { residentPaths } from "./paths.ts"
 
 import type { ResidentDispatchContext } from "./protocol.ts"
 
-// Regresses dispatch authorization after a completed policy update. The
+// Regresses edit-owned configuration across waits. The
 // controlled provider writes one line per DecisionModel call.
 
 const directories: string[] = []
@@ -46,7 +46,7 @@ describe("queued exclusion authority", () => {
   it("has a provider-attempt positive control", async () => {
     const fixture = await setup(false)
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")))
-    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(fixture.observation, fixture.dispatch))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(calls(fixture.capturePath)).toBe(1)
   })
@@ -54,12 +54,12 @@ describe("queued exclusion authority", () => {
   it("does not call the provider for an initially excluded candidate", async () => {
     const fixture = await setup(true)
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")))
-    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(fixture.observation, fixture.dispatch))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(calls(fixture.capturePath)).toBe(0)
   })
 
-  it("rejects prepared work after a completed exclusion update", async () => {
+  it("keeps admitted file policy after an exclusion update", async () => {
     const fixture = await setup(false)
     const entered = deferred()
     const release = deferred()
@@ -74,17 +74,17 @@ describe("queued exclusion authority", () => {
           })
       })
     })
-    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(fixture.observation, fixture.dispatch))).status).toBe("accepted")
     await entered.promise
     expect(preparedSourceSeen).toBe(true)
     expect(calls(fixture.capturePath)).toBe(0)
     await put(fixture.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n')
     release.resolve()
     await Effect.runPromise(server.whenIdle())
-    expect(calls(fixture.capturePath)).toBe(0)
+    expect(calls(fixture.capturePath)).toBeGreaterThan(0)
   })
 
-  it("rechecks exclusion after the credential-to-dispatch wait", async () => {
+  it("keeps admitted file policy through the credential-to-dispatch wait", async () => {
     const fixture = await setup(false)
     let preparedSourceSeen = false
     const controls = await Effect.runPromise(makeDispatchControls())
@@ -98,17 +98,17 @@ describe("queued exclusion authority", () => {
       }),
       dispatchControls: controls.layer
     })
-    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(fixture.observation, fixture.dispatch))).status).toBe("accepted")
     expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved")
     expect(preparedSourceSeen).toBe(true)
     await put(fixture.root, ".hapsland.jsonc", '{"version":1,"excludes":["type.ts"]}\n')
     await Effect.runPromise(controls.release)
     await Effect.runPromise(server.whenIdle())
-    expect(calls(fixture.capturePath)).toBe(0)
+    expect(calls(fixture.capturePath)).toBeGreaterThan(0)
   })
 })
 
-it("reports a credential failure when the configured credential changes after resolution", async () => {
+it("keeps the admitted credential reference when configuration changes after resolution", async () => {
   const fixture = await setup(false)
   const credentialStatePath = join(fixture.root, "credential-state.json")
   await put(
@@ -126,17 +126,17 @@ it("reports a credential failure when the configured credential changes after re
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "synthetic-credential-marker",
-      environmentOnly: true,
+
       generation: 1,
       statePath: credentialStatePath
     },
     controlled: { capturePath: fixture.capturePath, requireCredential: true }
   }
-  expect(Effect.runSync(server.admit(fixture.observation, dispatch)).status).toBe("accepted")
+  expect((await Effect.runPromise(server.admit(fixture.observation, dispatch))).status).toBe("accepted")
   expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved")
   await put(fixture.root, ".hapsland.jsonc", '{"version":1,"credentialEnvVar":"ALTERNATE_API_KEY"}\n')
   await Effect.runPromise(controls.release)
   await Effect.runPromise(server.whenIdle())
-  expect(calls(fixture.capturePath)).toBe(0)
-  expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0)
+  expect(calls(fixture.capturePath)).toBeGreaterThan(0)
+  expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0)
 })

@@ -340,8 +340,26 @@ Hapsland dispatches only when the selected language/kind pair and required evide
 
 ## Runtime behavior
 
-The resident dispatches eligible semantic units after final source and policy
-currentness checks. The old whole-file JSON review command and its `settings`
+The resident loads configuration and rule documents together, validates them and
+compiles the rules into an immutable edit settings snapshot. A resident-owned
+Effect cache retains successful snapshots for five seconds after loading finishes;
+hits do not extend that interval, and concurrent requests for the same project and
+configuration paths share a load. The cache holds at most 128 sources. A failed
+load is not cached and does not silently reuse an expired snapshot.
+
+An edit captures its snapshot at pre-edit registration, or at observation admission
+when no registration exists. Duplicate pending registration preserves the original
+snapshot. Preparation, review, advice and delivery retain that same snapshot,
+including provider selection, file policy and Claude feedback mode. Later collect
+and Stop requests do not reload settings for existing advice. Saved changes apply
+to new edits when the cache next reloads; expiry does not change an active edit.
+Source freshness, credentials, round authority and expiry checks still run. The
+resident derives environment-only authentication from the snapshot; the hook
+passes the selected credential reference/value and generation, without a separate
+configuration-derived authentication flag.
+
+The resident dispatches eligible semantic units after final source currentness
+checks under the edit settings snapshot. The old whole-file JSON review command and its `settings`
 configuration were retired under issue #148. The configuration parser rejects
 `settings`; review request capacity and deadlines are resident policy, not JSONC controls.
 `editPermitLimits` controls only simultaneously pending pre-edit permits and belongs in

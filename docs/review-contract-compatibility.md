@@ -89,8 +89,12 @@ renderer, root, evidence tree, selected rule definitions, and effective
 policy. Source-file fingerprints support freshness checks but do not by
 themselves change semantic identity when an unrelated comment moves. Before
 dispatch, Hapsland requires the captured files to match exactly. Before
-advice, it rereads contributing files and rebuilds the unit; changed review
-input, rules, file selection, attribution, or working root retires the result.
+advice, it rereads contributing files and rebuilds the unit using the edit-owned
+configuration and compiled rules snapshot; changed source input, attribution, or
+working root retires the result. Saved configuration and rule changes apply only
+to subsequently captured edit snapshots, with the five-second cache behavior in
+[configuration](configuration.md#runtime-behavior). The snapshot stays with the
+edit through advice and delivery, including later collect or Stop requests.
 Only a still-current matching unit may reuse a successful review-backend result.
 The prepared identity includes the selected provider, model selector, and full
 destination; a change to any of these invalidates reuse. See the

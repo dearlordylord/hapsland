@@ -26,7 +26,7 @@ const fixture = async () => {
     credential: {
       name: "CLOUDFLARE_API_TOKEN",
       environmentValue: "fixture-token",
-      environmentOnly: true,
+
       generation: 0,
       statePath: join(root, "credential-state.json")
     }
@@ -61,13 +61,13 @@ describe("Cloudflare resident dispatch", () => {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       offlineHttpClient: transport((url) => urls.push(url))
     })
-    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(urls).toEqual([`https://api.cloudflare.com/client/v4/accounts/${"a".repeat(32)}/ai/run/@cf/cloudflare/clef`])
     expect((await Effect.runPromise(server.pendingAdviceMetadata())).length).toBeGreaterThan(0)
   })
 
-  it("refuses destination changes after credential resolution", async () => {
+  it("keeps the admitted destination after credential resolution", async () => {
     const { root, observation, dispatch } = await fixture()
     const controls = await Effect.runPromise(makeDispatchControls())
     await Effect.runPromise(controls.holdNext("credentialResolved"))
@@ -76,13 +76,14 @@ describe("Cloudflare resident dispatch", () => {
       offlineHttpClient: transport((url) => urls.push(url)),
       dispatchControls: controls.layer
     })
-    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted")
+    expect((await Effect.runPromise(server.admit(observation, dispatch, true))).status).toBe("accepted")
     await Effect.runPromise(controls.entered)
     await put(root, "user.jsonc", config("clef-flash"))
     await Effect.runPromise(controls.release)
     await Effect.runPromise(server.whenIdle())
-    expect(urls).toEqual([])
-    expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual([])
+    expect(urls).toHaveLength(1)
+    expect(urls[0]).toContain("clef")
+    expect(await Effect.runPromise(server.pendingAdviceMetadata())).not.toEqual([])
   })
 
   it("enforces environment-only Cloudflare credentials even if IPC asks for saved storage", async () => {
@@ -92,11 +93,8 @@ describe("Cloudflare resident dispatch", () => {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       offlineHttpClient: transport((url) => urls.push(url))
     })
-    const missing = {
-      ...dispatch,
-      credential: { ...dispatch.credential, environmentValue: null, environmentOnly: false }
-    }
-    expect(Effect.runSync(server.admit(observation, missing, true)).status).toBe("accepted")
+    const missing = { ...dispatch, credential: { ...dispatch.credential, environmentValue: null } }
+    expect((await Effect.runPromise(server.admit(observation, missing, true))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(urls).toEqual([])
     expect(await Effect.runPromise(server.pendingAdviceMetadata())).toEqual([])

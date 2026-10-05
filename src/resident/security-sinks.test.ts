@@ -182,7 +182,7 @@ describe("security sink prototype", () => {
       "await Effect.runPromise(Effect.scoped(Effect.gen(function*(){",
       "const preparationControls=Layer.succeed(ResidentPreparationControls,{...defaultPreparationControls,afterPrepare:Effect.fail(new PreparationControlError({phase:'prepared',cause:new Error(marker)}))});",
       "const server=yield* makeResidentRuntime(residentPaths(runtime),undefined,{preparationControls});",
-      "Effect.runSync(server.admit(observation,{statePath,userConfigPath:null,credential:null,controlled:{}}));",
+      "yield* server.admit(observation,{statePath,userConfigPath:null,credential:null,controlled:{}});",
       "for(let i=0;i<200;i++){const s=Effect.runSync(server.stats());if(s.running===0&&s.queued===0)break;yield* Effect.promise(()=>new Promise(r=>setTimeout(r,10)))}",
       "console.log('done');",
       "})));"

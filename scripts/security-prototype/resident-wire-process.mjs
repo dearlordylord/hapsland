@@ -85,7 +85,7 @@ try {
     credential: {
       name: "TYPESAFE_API_KEY",
       environmentValue: "WIRE_KEY_SENTINEL",
-      environmentOnly: true,
+
       generation: 0,
       statePath: join(root, "credential-state")
     },
@@ -175,10 +175,10 @@ try {
   for (const request of requests)
     events.push({ kind: "request", source: "production", repoId: "fixture-repo", path, ...request })
   events.push({ kind: "settled", source: "production", repoId: "fixture-repo", path })
-  const expectedCount = scenario === "allowed" ? 1 : 0
+  const expectedCount = scenario === "exclude-at-admission" ? 0 : 1
   const expectedAuthorityCount = scenario === "exclude-at-admission" ? 0 : 1
   const authority = authorityObservations[0]
-  const expectedSelection = scenario === "allowed"
+  const expectedSelection = scenario !== "exclude-at-admission"
   const authorityMatches =
     authorityObservations.length === expectedAuthorityCount &&
     (authority === undefined ||
@@ -193,12 +193,7 @@ try {
         /^[a-f0-9]{64}$/.test(authority.expectedRootIdentitySha256) &&
         authority.credentialStatus === "present" &&
         authority.credentialGeneration === 0))
-  const expectedOrder =
-    scenario === "allowed"
-      ? ["dispatchAuthority", "request"]
-      : scenario === "exclude-at-dispatch"
-        ? ["dispatchAuthority"]
-        : []
+  const expectedOrder = scenario !== "exclude-at-admission" ? ["dispatchAuthority", "request"] : []
   const orderMatches =
     JSON.stringify(authorityOrder.map((item) => item.kind)) === JSON.stringify(expectedOrder) &&
     authorityOrder.every((item) => item.path === path)

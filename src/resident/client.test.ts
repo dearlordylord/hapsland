@@ -456,7 +456,7 @@ describe("resident client trust boundary", () => {
               credential: {
                 name: "JEV_API_KEY",
                 environmentValue: "x".repeat(300_000),
-                environmentOnly: true,
+
                 generation: 0,
                 statePath: "/tmp/credential-state"
               },

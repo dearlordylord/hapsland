@@ -16,7 +16,7 @@ const processWitness = fileURLToPath(
 describe("launched resident wire witness", () => {
   for (const [scenario, expectedRequests, expectedPreparation] of [
     ["allowed", 1, true],
-    ["exclude-at-dispatch", 0, true],
+    ["exclude-at-dispatch", 1, true],
     ["exclude-at-admission", 0, false]
   ] as const) {
     for (const [profile, executable] of [
