@@ -1,12 +1,24 @@
 # Architecture teaching game: design context and next decisions
 
 **Purpose:** Preserve the owner's goals for the teaching game and balance laboratory without fixing the tower roster or abilities prematurely.
-**Status:** Active design proposal from the 2026-10-02 discussion; the owner selected Coordinator, Packager and Parallelizer for initial experiments; the owner confirmed the headless shared-engine testing seam on 2026-10-02; implementation waits for the required Bend Monkey Business capabilities.
+**Status:** Laboratory implementation is in progress in `spec/game-balance-lab`. The owner confirmed the shared-engine testing seam on 2026-10-02 and clarified the game's teaching purpose and process-display boundary on 2026-10-05. Replacement abilities remain proposals; the earlier Coordinator/Packager/Parallelizer selection is provisional.
 **Authority:** Owner-stated design intentions and proposed game decisions. Existing product contracts and shared-simulator issues own business behavior; this document neither changes them nor establishes learning outcomes.
 **Expected use:** Select a small initial set of teaching mechanisms, specify the laboratory, and evaluate replacements or wider gameplay changes against the same goals.
 **Lifecycle:** At completion of [laboratory implementation #203](https://github.com/dearlordylord/hapsland/issues/203), **consolidate** its selected decisions into the implementation issue and enduring optional-game guide; keep unresolved roster/ability decisions in that named design owner, update inbound links, and **delete** this temporary context document. Review before changing a teaching mechanism or replacing the shared simulator consumer.
 
 ## Owner goals and sequence
+
+### Owner clarification — 2026-10-05
+
+The game teaches Hapsland by organically displaying work performed by the shared simulator. A mob represents work originating with an agent edit, passing through source/preparation/review/advice stages and branching into child work. It is not a packet carrying the entire future lifecycle. An agent Stop is a separate input which can arrive while edit-derived work remains in progress.
+
+The player wants to release chosen quantities of edits at chosen times; manual bursts are compatible with continuous workload and do not imply restoring authored waves. Automatic arrivals may be disabled independently of processing existing work. Abilities that only regulate automatic arrivals may be ineffective in a manual-only context.
+
+Roads, buildings and queues should explain the observed process. Work awaiting a resource has no guaranteed start deadline; an issued simulated operation may have a captured completion time. Playback and geometry must not become an additional condition for accepting business transitions. A tower's process effect must be a supported simulator intervention; changing only a game motion counter does not establish accelerated business service.
+
+The owner is willing to replace acceleration abilities and treats towers as ways to influence mechanics rather than a requirement to preserve the seven existing abilities. Delivery improvements and restoration of source/credential availability are proposed initial studies. A future reuse ability is a separate proposal requiring an actual supported intervention. These candidates are not an accepted final roster or evidence of educational effectiveness.
+
+This clarification changes the direction of the remaining laboratory integration. Keep reproducible scenarios, budgets, paired comparisons, bounded search and replay; revise game mappings and process display together before balancing replacement abilities. The local integration must remove dependence on visual progression rather than qualifying a laboratory which measures that artificial gate. Interactive and headless execution must share the resulting action mapping. Wider visual redesign and final spatial gameplay choices remain separate decisions.
 
 The owner wants to learn how to find imbalance and eventually balance towers, workload difficulty and investment choices. Development-time automatic parameter search is the intended direction; adaptive difficulty during play is a separate feature and is not requested. The present task ranks teaching mechanisms and prepares specifications, not implementation or new balance trials. The owner clarified that Monkey Business is currently being rewritten in Bend: finish the specification now, and wait for its required public scenario/action capabilities before implementing the laboratory.
 

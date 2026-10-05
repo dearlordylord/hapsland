@@ -10,7 +10,8 @@ import ./DefenseConsumer.bend as Consumer
 import ../../packages/monkey-business-bend/NativeRun.bend as Run
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
 import ../../packages/monkey-business-bend/Workload.bend as Workload
-import ../../packages/monkey-business-bend/Numeric.bend as Numeric
+import ./DefenseMechanics.bend as Mechanics
+import ../../packages/monkey-business-bend/OutputScenario.bend as OutputScenario
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/Ledger.bend as Ledger
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
@@ -201,10 +202,22 @@ def refiner_fired(items: List<&2,M.Tower>) -> Bool:
     case Nil{}: False{}
     case M.Tower{_,_,kind,_,_,flash,_,_} <> rest:
       (U32.is_eq(kind,1) && U32.is_eq(flash,5)) || refiner_fired(rest)
-def refined_weights() -> List<&2,Numeric.Words>:
-  [Numeric.Words{0n,0n},Numeric.Words{1071644672n,0n},Numeric.Words{1072693248n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n},Numeric.Words{0n,0n}]
+def output_outcome(value: U32) -> OutputScenario.Outcome:
+  match value:
+    case 0: OutputScenario.Certain{}
+    case 1: OutputScenario.Uncertain{}
+    case _: OutputScenario.Failed{}
+def mapped_action(world: M.World, mapped: Mechanics.Action) -> M.World:
+  match mapped:
+    case Mechanics.Unsupported{}: world
+    case Mechanics.OutputTiming{outcome,delay,lease}:
+      action(world,T.OutputProfileControl{output_outcome(outcome),delay,lease})
+    case Mechanics.FutureReview{delay,weights}:
+      action(world,T.JevProfile{delay,weights})
+def mechanism(world: M.World, ability: Mechanics.Ability) -> M.World:
+  mapped_action(world,Mechanics.translate(ability))
 def refinement(+world: M.World) -> M.World:
-  pick_world(refiner_fired(M.towers(world)),action(world,T.JevProfile{3200n,refined_weights()}),world)
+  pick_world(refiner_fired(M.towers(world)),mechanism(world,Mechanics.Refinement{}),world)
 type TickObserved is Data:
   TickObserved{world: M.World, frames: List<&2,T.Frame>, physical: List<&2,T.PhysicalDelivery>}
 def tick_applied(world: M.World, advanced: T.Advanced) -> TickObserved:
