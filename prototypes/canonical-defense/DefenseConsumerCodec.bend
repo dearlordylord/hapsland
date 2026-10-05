@@ -2380,7 +2380,7 @@ def list_defensemodel_tower(values: List<&2,List<&2,DefenseModel.Tower>>, suffix
 
 def defensemodel_timer(values: List<&2,DefenseModel.Timer>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.Timer{v0,v1,v2,v3,v4,v5,v6} <> Nil{}: 0n <> v0 <> U32.to_nat(v1) <> U32.to_nat(v2) <> v3 <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> suffix
+    case DefenseModel.Timer{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> v0 <> U32.to_nat(v1) <> U32.to_nat(v2) <> v3 <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> U32.to_nat(v7) <> U32.to_nat(v8) <> suffix
     case _: 999999n <> suffix
 
 def list_defensemodel_timer_items(values: List<&2,List<&2,DefenseModel.Timer>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2410,9 +2410,25 @@ def list_defenseauto_state(values: List<&2,List<&2,DefenseAuto.State>>, suffix: 
     case +value <> Nil{}: List.length(&2,DefenseAuto.State,value) <> list_defenseauto_state_items([value],suffix)
     case _: 999999n <> suffix
 
+def defensemodel_cue(values: List<&2,DefenseModel.Cue>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case DefenseModel.Cue{v0,v1,v2,v3,v4,v5} <> Nil{}: 0n <> U32.to_nat(v0) <> v1 <> v2 <> U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> suffix
+    case _: 999999n <> suffix
+
+def list_defensemodel_cue_items(values: List<&2,List<&2,DefenseModel.Cue>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head,tail} <> Nil{}: defensemodel_cue([head],list_defensemodel_cue_items([tail],suffix))
+    case _: 999999n <> suffix
+
+def list_defensemodel_cue(values: List<&2,List<&2,DefenseModel.Cue>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2,DefenseModel.Cue,value) <> list_defensemodel_cue_items([value],suffix)
+    case _: 999999n <> suffix
+
 def defensemodel_control(values: List<&2,DefenseModel.Control>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.Control{v0,v1} <> Nil{}: 0n <> list_defenseauto_state([v0],U32.to_nat(v1) <> suffix)
+    case DefenseModel.Control{v0,v1,v2} <> Nil{}: 0n <> list_defenseauto_state([v0],U32.to_nat(v1) <> list_defensemodel_cue([v2],suffix))
     case _: 999999n <> suffix
 
 def list_defensemodel_control_items(values: List<&2,List<&2,DefenseModel.Control>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

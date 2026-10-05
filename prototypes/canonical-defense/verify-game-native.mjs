@@ -6,6 +6,7 @@ import { createNativePreflight, validateNativeFixture, cleanupNativePreflight } 
 const roots = [
   "DefenseConsumerTests.bend",
   "DefenseStartupTests.bend",
+  "DefenseDisplayTests.bend",
   "DefensePreviewTests.bend",
   "DefenseMapTests.bend",
   "DefenseDrawTests.bend",
@@ -25,4 +26,4 @@ for (const root of roots) {
     cleanupNativePreflight(preflight);
   }
 }
-console.log("Standalone game native suite: all six roots passed");
+console.log("Standalone game native suite: all seven roots passed");

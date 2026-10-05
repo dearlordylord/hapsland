@@ -10,11 +10,32 @@ type Tower is Data:
   Tower{x: U32, y: U32, kind: U32, level: U32, cooldown: U32, flash: U32, aim: Nat, charges: U32}
 # Synthetic workload metadata, not a product queue. Historical quality survives stage changes.
 type Timer is Data:
-  Timer{id: Nat, phase: U32, age: U32, family: Nat, risk: U32, seed: U32, boost: U32}
+  Timer{id: Nat, phase: U32, age: U32, family: Nat, risk: U32, seed: U32, boost: U32, queueGap: U32, serviceAge: U32}
 # Host controls stay boxed, including the shared scheduler, to preserve the native ABI.
+# Bounded presentation cues only: never work, targets, or scheduler inputs.
+type Cue is Data:
+  Cue{kind: U32, operation: Nat, family: Nat, x: U32, y: U32, ttl: U32}
+def cue_kind(cue: Cue) -> U32:
+  match cue:
+    case Cue{value,_,_,_,_,_}: value
+def cue_operation(cue: Cue) -> Nat:
+  match cue:
+    case Cue{_,value,_,_,_,_}: value
+def cue_family(cue: Cue) -> Nat:
+  match cue:
+    case Cue{_,_,value,_,_,_}: value
+def cue_x(cue: Cue) -> U32:
+  match cue:
+    case Cue{_,_,_,value,_,_}: value
+def cue_y(cue: Cue) -> U32:
+  match cue:
+    case Cue{_,_,_,_,value,_}: value
+def cue_ttl(cue: Cue) -> U32:
+  match cue:
+    case Cue{_,_,_,_,_,value}: value
 type Control is Data:
-  Control{schedule: List<&2,A.State>, pace: U32}
-def initial_control() -> Control: Control{[A.initial()],30000}
+  Control{schedule: List<&2,A.State>, pace: U32, cues: List<&2,Cue>}
+def initial_control() -> Control: Control{[A.initial()],30000,[]}
 def control_value(items: List<&2,Control>) -> Control:
   match items:
     case value <> _: value
@@ -25,16 +46,16 @@ def auto_value(items: List<&2,A.State>) -> A.State:
     case Nil{}: A.initial()
 def control_schedule(control: Control) -> A.State:
   match control:
-    case Control{items,_}: auto_value(items)
+    case Control{items,_,_}: auto_value(items)
 def control_with_schedule(control: Control,schedule: A.State) -> Control:
   match control:
-    case Control{_,pace}: Control{[schedule],pace}
+    case Control{_,pace,cues}: Control{[schedule],pace,cues}
 def control_pace(control: Control) -> U32:
   match control:
-    case Control{_,pace}: pace
+    case Control{_,pace,_}: pace
 def control_with_pace(control: Control,pace: U32) -> Control:
   match control:
-    case Control{schedule,_}: Control{schedule,pace}
+    case Control{schedule,_,cues}: Control{schedule,pace,cues}
 
 # Box the independent NativeRun state; geometry/combat never rewrite it.
 type World is Data:
@@ -168,31 +189,39 @@ def charges(tower: Tower) -> U32:
 
 def timer_id(timer: Timer) -> Nat:
   match timer:
-    case Timer{v, _, _, _, _, _, _}: v
+    case Timer{v, _, _, _, _, _, _, _, _}: v
 
 def timer_phase(timer: Timer) -> U32:
   match timer:
-    case Timer{_, v, _, _, _, _, _}: v
+    case Timer{_, v, _, _, _, _, _, _, _}: v
 
 def timer_age(timer: Timer) -> U32:
   match timer:
-    case Timer{_, _, v, _, _, _, _}: v
+    case Timer{_, _, v, _, _, _, _, _, _}: v
 
 def timer_family(timer: Timer) -> Nat:
   match timer:
-    case Timer{_, _, _, v, _, _, _}: v
+    case Timer{_, _, _, v, _, _, _, _, _}: v
 
 def timer_risk(timer: Timer) -> U32:
   match timer:
-    case Timer{_, _, _, _, v, _, _}: v
+    case Timer{_, _, _, _, v, _, _, _, _}: v
 
 def timer_seed(timer: Timer) -> U32:
   match timer:
-    case Timer{_, _, _, _, _, v, _}: v
+    case Timer{_, _, _, _, _, v, _, _, _}: v
 
 def timer_boost(timer: Timer) -> U32:
   match timer:
-    case Timer{_, _, _, _, _, _, v}: v
+    case Timer{_, _, _, _, _, _, v, _, _}: v
+
+# Fixed approach spacing and started-service time are game animation metadata.
+def timer_gap(timer: Timer) -> U32:
+  match timer:
+    case Timer{_,_,_,_,_,_,_,gap,_}: gap
+def timer_service_age(timer: Timer) -> U32:
+  match timer:
+    case Timer{_,_,_,_,_,_,_,_,age}: age
 
 def work(core: C.State) -> List<&2, C.Work>:
   match core:
@@ -245,3 +274,13 @@ def current_round(items: List<&2, C.Round>) -> Nat:
 def round(world: World) -> Nat: current_round(rounds(core(world)))
 def arrival_interval(world: World) -> U32:
   U32.max(20,control_pace(control(world)))
+
+def control_cues(control: Control) -> List<&2,Cue>:
+  match control:
+    case Control{_,_,cues}: cues
+def control_with_cues(control: Control,cues: List<&2,Cue>) -> Control:
+  match control:
+    case Control{schedule,pace,_}: Control{schedule,pace,cues}
+def cues(world: World) -> List<&2,Cue>: control_cues(control(world))
+def with_cues(+world: World,cues: List<&2,Cue>) -> World:
+  with_control(world,control_with_cues(control(world),cues))

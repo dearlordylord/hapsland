@@ -9,6 +9,8 @@ import ./DefenseMap.bend as D
 import ./DefensePreview.bend as Preview
 import ./DefenseOutput.bend as O
 import ./DefenseEffects.bend as E
+import ./DefenseCues.bend as Cues
+import ../../packages/agent-flow-bend/Canonical.bend as C
 
 def overlap(r: F.Rect, +x: U32, +y: U32, +size: U32) -> Bool:
   match r:
@@ -128,7 +130,7 @@ def palette(fuel: Nat,+kind: U32,+world: M.World,rest: List<&2,F.Rect>) -> List<
 
 def sidebar(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   box("BUILD ON MAP","1-7 CHOOSE / CLICK GROUND / U UPGRADE",800,80,216,240,65483,palette(7n,0,world,
-    box("ACTIVE WORK","TARGET FIRST / ACTUAL UNITS",800,330,216,104,16768133,rest)))
+    box("ACTIVE WORK","E FAMILY / U OPERATION / " ++ U32.show(U32.min(8,M.number(List.length(&2,P.Token,P.tokens(world))))) ++ "/" ++ U32.show(M.number(List.length(&2,P.Token,P.tokens(world)))),800,330,216,104,16768133,rest)))
 
 def road_dots(fuel: Nat, +a: D.Point, +b: D.Point, +step: U32, +width: U32, +color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match fuel:
@@ -472,20 +474,55 @@ def inspection(ts: List<&2,M.Tower>,+world: M.World,+index: U32,rest: List<&2,F.
 def ghost(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   ghost_visible(Bool.not(U32.is_eq(Preview.status(preview),0)) && (Preview.x(preview) < 792 : U32) && (Preview.y(preview) > 100 : U32) && (Preview.y(preview) < 656 : U32),world,preview,inspection(M.towers(world),world,1,rest))
 
-def unit_work_row(+token: P.Token,remaining: U32,risk: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("U" ++ U32.show(P.id(token)) ++ " E" ++ U32.show(P.family(token)) ++ Bool.pick(String,U32.is_eq(P.phase(token),5)," RETAINED"," REM " ++ U32.show(remaining)),812,y,1,phase_color(P.phase(token)),
-    F.text(Bool.pick(String,U32.is_eq(P.phase(token),5),"FINDING / RETAINED OWNERSHIP","SIMULATED RISK " ++ U32.show(risk) ++ "% BEFORE RESPONSE"),812,(y + 8 : U32),1,12439239,rest))
+# Family identity survives operation retirement/fan-out and small room sprites.
+def actor_label(+token: P.Token) -> String:
+  "E" ++ U32.show(P.family(token))
+def status_found(+world: M.World,found: Maybe<&2,C.Work>) -> String:
+  match found:
+    case None{}: ""
+    case Some{+work}:
+      Bool.pick(String,Cues.refused_id(M.cues(world),E.id(work)),"PREP REFUSED",
+        Bool.pick(String,E.review_waiting(world,work),"QUEUE",
+          Bool.pick(String,U32.is_eq(E.kind(work),4),
+            Bool.pick(String,E.started(E.id(work),E.requests(M.dispatch(M.core(world)))),
+              Bool.pick(String,U32.is_eq(E.remaining(world,work),0),"WAIT RESPONSE","WORKING"),"WAIT START"),"")))
+def actor_status_text(+world: M.World,+token: P.Token) -> String:
+  status_found(world,E.find_work(U32.to_nat(P.id(token)),M.work(M.core(world))))
+def actor_step(+world: M.World,+token: P.Token) -> U32:
+  Bool.pick(U32,M.paused(world) || U32.is_eq(H.remaining(world,token),0) || String.eq(actor_status_text(world,token),"QUEUE") || (U32.is_eq(P.phase(token),4) && Bool.not(E.started(U32.to_nat(P.id(token)),E.requests(M.dispatch(M.core(world)))))),0,((M.time(world) / 8 + P.id(token)) % 2 : U32))
+def status_badge(text: String) -> String:
+  match text:
+    case "WAIT RESPONSE": "W"
+    case "WAIT START": "Q"
+    case "WORKING": "R"
+    case "QUEUE": "Q"
+    case _: text
+def actor_status(+world: M.World,+token: P.Token,+point: D.Point,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +refused = Cues.refused_id(M.cues(world),U32.to_nat(P.id(token)))
+  +room = U32.is_eq(P.phase(token),4)
+  +color = Bool.pick(U32,refused,16733525,15758447)
+  F.text(status_badge(actor_status_text(world,token)),Bool.pick(U32,room,U32.sub(D.px(point),9),(D.px(point) + 6 : U32)),Bool.pick(U32,room,U32.sub(D.py(point),2),(D.py(point) + 8 : U32)),1,color,
+    F.text(Bool.pick(String,refused,"X",""),U32.sub(D.px(point),9),U32.sub(D.py(point),3),1,color,rest))
 
+def jev_mode(+world: M.World,+token: P.Token) -> U32:
+  Bool.pick(U32,U32.is_eq(P.phase(token),4),
+    Bool.pick(U32,E.started(U32.to_nat(P.id(token)),E.requests(M.dispatch(M.core(world)))),Bool.pick(U32,U32.is_eq(H.remaining(world,token),0),2,0),1),0)
+def jev_rank(items: List<&2,P.Token>,+world: M.World,+token: P.Token,+mode: U32) -> U32:
+  match items:
+    case Nil{}: 0
+    case +other <> tail: (Bool.to_u32((P.id(other) < P.id(token) : U32) && U32.is_eq(jev_mode(world,other),mode)) + jev_rank(tail,world,token,mode) : U32)
+def display_point(world: M.World,token: P.Token) -> D.Point:
+  H.unit_point(world,token)
+def unit_work_row(+token: P.Token,remaining: U32,+status: String,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  F.text("E" ++ U32.show(P.family(token)) ++ " U" ++ U32.show(P.id(token)) ++ " " ++ Bool.pick(String,String.eq(status,""),phase_name(P.phase(token)) ++ " REM " ++ U32.show(remaining),status),812,y,1,phase_color(P.phase(token)),rest)
 def work_row_if(on: Bool,+token: P.Token,+world: M.World,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: rest
-    case True{}: unit_work_row(token,H.remaining(world,token),H.risk(world,token),(375 + index * 20 : U32),rest)
-
+    case True{}: unit_work_row(token,H.remaining(world,token),actor_status_text(world,token),(370 + index * 8 : U32),rest)
 def work_rows(tokens: List<&2,P.Token>,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match tokens:
     case Nil{}: rest
-    case Con{+token,tail}:
-      work_row_if((index < 2 : U32),token,world,index,work_rows(tail,world,(index + 1 : U32),rest))
+    case +token <> tail: work_row_if((index < 8 : U32),token,world,index,work_rows(tail,world,(index + 1 : U32),rest))
 
 def waiting_at_end(+world: M.World,+token: P.Token) -> Bool:
   +point = H.unit_point(world,token)
@@ -577,28 +614,35 @@ def monster(+point: D.Point,small: Bool,color: U32,step: U32,rest: List<&2,F.Rec
 def wait_point(+world: M.World,+token: P.Token,ids: List<&2,U32>) -> D.Point:
   +rank = wait_rank(ids,P.id(token))
   +center = D.center(M.layout(world),5,0)
-  D.Point{(U32.sub(D.px(center),21) + rank % 4 * 14 : U32),(U32.sub(D.py(center),15) + rank / 4 * 10 : U32)}
+  D.Point{(U32.sub(D.px(center),21) + rank % 2 * 30 : U32),(U32.sub(D.py(center),15) + rank / 2 * 14 : U32)}
 def actor_point_at(on: Bool,world: M.World,token: P.Token,ids: List<&2,U32>) -> D.Point:
   match on:
     case True{}: wait_point(world,token,ids)
     case False{}: H.unit_point(world,token)
 def actor_point(+world: M.World,+token: P.Token,+ids: List<&2,U32>) -> D.Point:
   actor_point_at(is_waiting(ids,P.id(token)),world,token,ids)
-def wait_actor(world: M.World,token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  monster(wait_point(world,token,ids),True{},phase_color(5),0,rest)
+def wait_actor(+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +point = wait_point(world,token,ids)
+  F.text("E" ++ U32.show(P.family(token)),(D.px(point) + 5 : U32),U32.sub(D.py(point),4),1,15758447,
+    monster(point,True{},phase_color(5),0,rest))
 
 def actor_unit(+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +point = H.unit_point(world,token)
-  +small = H.in_building(world,token)
+  +point = display_point(world,token)
+  +small = H.in_building(world,token) || U32.is_eq(P.phase(token),4)
   +label_x = (D.px(point) + Bool.pick(U32,small,6,13) : U32)
   +label_y = U32.sub(D.py(point),Bool.pick(U32,small,2,13))
-  F.text("U" ++ U32.show(P.id(token)) ++ Bool.pick(String,small,""," E" ++ U32.show(P.family(token))),label_x,label_y,1,16777215,
-    monster(point,small,phase_color(P.phase(token)),((M.time(world) / 8 + P.id(token)) % 2 : U32),rest))
+  F.text(actor_label(token),label_x,label_y,1,16777215,
+    actor_status(world,token,point,
+      monster(point,small,phase_color(P.phase(token)),actor_step(world,token),rest)))
 
-def waiting_actor(on: Bool,+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def retained_actor(on: Bool,world: M.World,token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match on:
+    case False{}: rest
+    case True{}: wait_actor(world,token,ids,rest)
+def waiting_actor(on: Bool,+world: M.World,+token: P.Token,+ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: actor_unit(world,token,rest)
-    case True{}: wait_actor(world,token,ids,rest)
+    case True{}: retained_actor((wait_rank(ids,P.id(token)) < 6 : U32),world,token,ids,rest)
 
 def actor_role(file: Bool,+world: M.World,+token: P.Token,+ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match file:
@@ -608,8 +652,37 @@ def actor_role(file: Bool,+world: M.World,+token: P.Token,+ids: List<&2,U32>,res
       F.text("FILE U" ++ U32.show(P.id(token)) ++ " E" ++ U32.show(P.family(token)),(D.px(point) + 8 : U32),D.py(point),1,12439239,
         F.put(U32.sub(D.px(point),2),U32.sub(D.py(point),3),5,7,12439239,rest))
 
+# Only eight bodies per queue lane; excess owners remain counted and targetable.
+def queue_door_clear(items: List<&2,C.Work>,+world: M.World,+work: C.Work) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case +other <> tail:
+      Bool.not(U32.is_eq(E.kind(other),4) && D.in_range(E.point_work(world,work),E.point_work(world,other),13)) && queue_door_clear(tail,world,work)
+def queue_visible_found(+world: M.World,found: Maybe<&2,C.Work>) -> Bool:
+  match found:
+    case None{}: True{}
+    case Some{+work}: Bool.not(E.review_waiting(world,work)) || ((M.timer_gap(E.find_timer(E.id(work),M.timers(world))) < 256 : U32) && queue_door_clear(M.work(M.core(world)),world,work))
+def queue_visible(+world: M.World,+token: P.Token) -> Bool:
+  queue_visible_found(world,E.find_work(U32.to_nat(P.id(token)),M.work(M.core(world)))) && (U32.is_eq(jev_mode(world,token),0) || (jev_rank(P.tokens(world),world,token,jev_mode(world,token)) < Bool.pick(U32,U32.is_eq(jev_mode(world,token),1),3,6) : U32))
+def reply_count(items: List<&2,P.Token>,+world: M.World) -> U32:
+  match items:
+    case Nil{}: 0
+    case token <> tail: (Bool.to_u32(U32.is_eq(jev_mode(world,token),2)) + reply_count(tail,world) : U32)
+def reply_leader(+world: M.World,+token: P.Token) -> Bool:
+  Bool.not(U32.is_eq(jev_mode(world,token),2)) || U32.is_eq(jev_rank(P.tokens(world),world,token,2),0)
+def reply_label(+world: M.World,token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +point = H.unit_point(world,token)
+  F.text("W" ++ U32.show(reply_count(P.tokens(world),world)),U32.sub(D.px(point),12),(D.py(point) + 8 : U32),1,15758447,rest)
+def counted_actor(reply: Bool,+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match reply:
+    case False{}: actor_role(U32.is_eq(P.phase(token),1) && (P.parent_children(world,P.family(token)) > 0 : U32),world,token,ids,rest)
+    case True{}: actor_role(False{},world,token,ids,reply_label(world,token,rest))
+def actor_visible(on: Bool,+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match on:
+    case False{}: rest
+    case True{}: counted_actor(U32.is_eq(jev_mode(world,token),2),world,token,ids,rest)
 def actor(+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  actor_role(U32.is_eq(P.phase(token),1) && (P.parent_children(world,P.family(token)) > 0 : U32),world,token,ids,rest)
+  actor_visible(queue_visible(world,token) && reply_leader(world,token),world,token,ids,rest)
 
 def actors(tokens: List<&2,P.Token>, +world: M.World,+ids: List<&2,U32>, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match tokens:
@@ -618,18 +691,47 @@ def actors(tokens: List<&2,P.Token>, +world: M.World,+ids: List<&2,U32>, rest: L
 
 def wait_count(tokens: List<&2,P.Token>,world: M.World) -> U32:
   M.number(List.length(&2,U32,waiting_ids(tokens,world)))
-def wait_label(+world: M.World,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def wait_label(+world: M.World,+ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = D.center(M.layout(world),5,0)
-  F.text("WAIT SLOTS " ++ U32.show(M.number(List.length(&2,U32,ids))),U32.sub(D.px(point),32),(D.py(point) + 66 : U32),1,15758447,rest)
+  F.text("RETAINED " ++ U32.show(M.number(List.length(&2,U32,ids))) ++ Bool.pick(String,(M.number(List.length(&2,U32,ids)) > 6 : U32)," / +" ++ U32.show(M.sub(M.number(List.length(&2,U32,ids)),6)),""),U32.sub(D.px(point),32),(D.py(point) + 66 : U32),1,15758447,rest)
 
 def output_hud(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   F.text("SHARED ENGINE OUTPUT / READY " ++ U32.show(P.ready(world)) ++ " / WRITES " ++ U32.show(P.writes(world)),24,674,1,7449343,
     F.text("LEASED " ++ U32.show(P.leases(world)) ++ " / UNCERTAIN " ++ U32.show(P.uncertain(world)),24,690,1,12439239,
       F.text("SHARED LEDGER " ++ U32.show(P.ledger_items(world)) ++ "/" ++ U32.show(P.ledger_item_limit(world)) ++ " ITEMS " ++ U32.show(P.ledger_bytes(world)) ++ "/" ++ U32.show(P.ledger_byte_limit(world)) ++ " B",24,706,1,16768133,rest)))
 
+def cue_label(+cue: M.Cue) -> String:
+  Bool.pick(String,U32.is_eq(M.cue_kind(cue),2),"E" ++ Nat.show(M.cue_family(cue)) ++ " PREP REFUSED",
+    Bool.pick(String,U32.is_eq(M.cue_kind(cue),0),"BURST QUEUED","ADMITTED"))
+def cue_draw(+cue: M.Cue,row: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +color = Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),Bool.pick(U32,(M.cue_ttl(cue) > 30 : U32),16733525,9392692),65483)
+  F.text(cue_label(cue),(M.cue_x(cue) + 12 : U32),(U32.sub(M.cue_y(cue),28) + row * 12 : U32),1,color,
+    ring(24n,M.cue_x(cue),M.cue_y(cue),Bool.pick(U32,(M.cue_ttl(cue) > 30 : U32),12,8),color,rest))
+def cue_trails(items: List<&2,M.Cue>,+world: M.World,+row: U32,+rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match items:
+    case Nil{}: rest
+    case +cue <> +tail:
+      +draw = U32.is_eq(M.cue_kind(cue),2) && Nat.is_eq(E.id_found(M.cue_operation(cue),M.work(M.core(world))),0n)
+      Bool.pick(List<&2,F.Rect>,draw,cue_draw(cue,row,cue_trails(tail,world,(row + Bool.to_u32(draw) : U32),rest)),cue_trails(tail,world,row,rest))
+def cue_hud(items: List<&2,M.Cue>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match items:
+    case Nil{}: rest
+    case +cue <> _: F.text(cue_label(cue),24,130,1,Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),16733525,65483),rest)
+
+def overflow_count(items: List<&2,P.Token>,+world: M.World) -> U32:
+  match items:
+    case Nil{}: 0
+    case token <> tail: (Bool.to_u32(Bool.not(queue_visible(world,token))) + overflow_count(tail,world) : U32)
+def overflow_label(on: Bool,+world: M.World,count: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match on:
+    case False{}: rest
+    case True{}:
+      +point = D.center(M.layout(world),4,0)
+      F.text("+" ++ U32.show(count) ++ " WAITING",U32.sub(D.px(point),36),(D.py(point) + 78 : U32),1,15758447,rest)
 def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +ids = waiting_ids(tokens,world)
-  wait_label(world,ids,actors(tokens,world,ids,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,rest))))))
+  +overflow = overflow_count(tokens,world)
+  overflow_label((overflow > 0 : U32),world,overflow,wait_label(world,ids,actors(tokens,world,ids,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,rest)))))))
 
 def on_word(on: Bool) -> String:
   match on:
@@ -678,11 +780,11 @@ def scene(+world: M.World) -> List<&2,F.Rect>:
   +preview = Preview.calculate(world)
   +tokens = P.tokens(world)
   +target = T.focus(world,Preview.target(preview))
-  +base = dependency_kind(T.focus_kind(world,Preview.kind(preview)),world,target,ghost(world,preview,family_panel(world,target,F.text("SHOWING " ++ U32.show(U32.min(2,M.number(List.length(&2,P.Token,tokens)))) ++ " OF " ++ U32.show(M.number(List.length(&2,P.Token,tokens))) ++ " LIVE UNITS",812,420,1,12439239,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))))
-  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,base))
+  +base = dependency_kind(T.focus_kind(world,Preview.kind(preview)),world,target,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[])))))))
+  +header = frame(M.layout(world),F.text("1-7 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,base))))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(activity_line(world) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("TOWERS OWN COMBAT / SHARED ENGINE OWNS BUSINESS",24,111,1,12439239,header))))
+    F.text(activity_line(world) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: Q WAIT START / R WORKING / W WAIT RESPONSE",24,111,1,12439239,header))))
 
 def view(world: M.World) -> Image:
   paint(10n,0,0,1024,scene(world),False{})
