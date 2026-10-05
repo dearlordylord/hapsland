@@ -8,6 +8,7 @@ import * as Request from "effect/http/HttpServerRequest"
 import * as Response from "effect/http/HttpServerResponse"
 import type { InspectionRecord } from "./contract.ts"
 import { inspectionPage, inspectionPagePolicy } from "./page.ts"
+import { makeInspectionReplay } from "./replay.ts"
 import { makeInspectionRegistry } from "./registry.ts"
 import { resolveResidentPaths } from "../resident/paths.ts"
 
@@ -45,20 +46,26 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
   }
   const registry = makeInspectionRegistry()
   const standard = yield* resolveResidentPaths().pipe(Effect.catch(() => Effect.succeed(undefined)))
-  const snapshot = Effect.gen(function* () {
-    const records = yield* history.snapshot()
-    const discovery = yield* registry.discover(records, standard)
-    const retained: InspectionRecord[] = []
-    let bytes = Buffer.byteLength(JSON.stringify(discovery)) + 256
-    for (let index = records.length - 1; index >= 0; index--) {
-      const record = records[index]!
-      const size = Buffer.byteLength(JSON.stringify(record)) + 1
-      if (bytes + size > MAX_INSPECTION_HTTP_BYTES) break
-      retained.unshift(record)
-      bytes += size
-    }
-    return { version: 1, ...discovery, records: retained, truncated: retained.length < records.length }
-  }).pipe(Effect.catchCause(() => Effect.succeed({ version: 1, status: "unavailable" })))
+  const replay = makeInspectionReplay()
+  const snapshot = (cursor?: string) =>
+    Effect.gen(function* () {
+      const raw = yield* history.snapshot()
+      const unique = new Map(raw.map((record) => [`${record.source.id}:${record.sequence}`, record]))
+      const records = [...unique.values()]
+      const discovery = yield* registry.discover(records, standard)
+      const retained: InspectionRecord[] = []
+      const positions = replay.describe(records, cursor, false)
+      let bytes = Buffer.byteLength(JSON.stringify({ ...discovery, ...positions })) + 512
+      for (let index = records.length - 1; index >= 0; index--) {
+        const record = records[index]!
+        const size = Buffer.byteLength(JSON.stringify(record)) + 1
+        if (bytes + size > MAX_INSPECTION_HTTP_BYTES) break
+        retained.unshift(record)
+        bytes += size
+      }
+      const truncated = retained.length < records.length
+      return { version: 1, ...discovery, ...replay.describe(records, cursor, truncated), records: retained, truncated }
+    }).pipe(Effect.catchCause(() => Effect.succeed({ version: 1, status: "unavailable" })))
   yield* server.serve(
     Effect.gen(function* () {
       const request = yield* Request.HttpServerRequest
@@ -74,7 +81,13 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
           contentType: "text/html",
           headers: { ...headers, "content-security-policy": inspectionPagePolicy }
         })
-      if (request.url === `${base}snapshot`) return Response.jsonUnsafe(yield* snapshot, { headers })
+      const route = new URL(request.url, origin)
+      const replayRoute = route.pathname === `${base}snapshot` || route.pathname === `${base}events`
+      if (replayRoute && [...route.searchParams.keys()].some((key) => key !== "cursor"))
+        return Response.empty({ status: 404, headers })
+      const requestedCursor = request.headers["last-event-id"] ?? route.searchParams.get("cursor") ?? undefined
+      if (route.pathname === `${base}snapshot`)
+        return Response.jsonUnsafe(yield* snapshot(requestedCursor), { headers })
       if (request.url.startsWith(`${base}payload/`)) {
         const match = /^([a-f0-9]{64})\/([1-9][0-9]{0,15})$/.exec(request.url.slice(`${base}payload/`.length))
         if (match === null || !Number.isSafeInteger(Number(match[2]))) return Response.empty({ status: 404, headers })
@@ -98,9 +111,23 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
         )
         return Response.jsonUnsafe(value, { headers })
       }
-      if (request.url === `${base}events`) {
-        const stream = Stream.fromEffectSchedule(snapshot, Schedule.spaced("1 second")).pipe(
-          Stream.map((value) => new TextEncoder().encode(`event: snapshot\ndata: ${JSON.stringify(value)}\n\n`))
+      if (route.pathname === `${base}events`) {
+        let cursor = requestedCursor
+        const next = Effect.suspend(() =>
+          snapshot(cursor).pipe(
+            Effect.tap((value) =>
+              Effect.sync(() => {
+                if ("watermark" in value) cursor = value.watermark.cursor
+              })
+            )
+          )
+        )
+        const stream = Stream.fromEffectSchedule(next, Schedule.spaced("1 second")).pipe(
+          Stream.map((value) =>
+            new TextEncoder().encode(
+              `${"watermark" in value ? `id: ${value.watermark.cursor}\n` : ""}event: snapshot\ndata: ${JSON.stringify(value)}\n\n`
+            )
+          )
         )
         return Response.stream(stream, { contentType: "text/event-stream", headers })
       }

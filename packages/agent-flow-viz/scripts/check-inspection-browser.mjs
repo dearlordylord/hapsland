@@ -156,6 +156,16 @@ try {
   await page.locator("#status").filter({ hasText: "Paused" }).waitFor()
   assert.equal(await page.locator("#edits li").count(), 1)
   assert.equal(await page.locator("#detail").textContent(), selection)
+  const recovery = page.waitForRequest((request) => request.url().includes("/events?cursor="))
+  await page.getByRole("button", { name: "Reconnect", exact: true }).focus()
+  await page.keyboard.press("Enter")
+  const recoveryRequest = await recovery
+  assert.ok(new URL(recoveryRequest.url()).searchParams.get("cursor"))
+  await page.waitForFunction(() =>
+    document.querySelector("#history-status").textContent.includes("Recovered retained history")
+  )
+  assert.equal(await page.locator("#detail").textContent(), selection)
+  assert.equal(await page.locator("#edits li").count(), 1)
   await page.getByRole("button", { name: "Resume", exact: true }).click()
   await page.getByRole("button", { name: /<img onerror/ }).waitFor()
   assert.equal(await page.locator("#edits img").count(), 0)
@@ -408,11 +418,14 @@ try {
   })
   await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
   await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent.includes("not-retained"))
+  await page.waitForFunction(() =>
+    document.querySelector("#history-status").textContent.includes("Saved source position is no longer retained")
+  )
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), copiedBeforeExpiry)
   assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)
