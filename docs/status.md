@@ -103,6 +103,10 @@ Unreachable residents have unknown current recording state; paused displays keep
 the observation at their displayed snapshot. Enabled capture does not guarantee
 that every event was successfully retained.
 
+Resumed live feeds send retained increments after each source's saved position.
+The inspector merges these by immutable source/sequence identity and removes rows
+no longer present in the retained view. A reset supplies a fresh bounded snapshot.
+
 Known expiry and capacity eviction are shown through bounded source-free loss
 markers. Markers share the journal's quota and can themselves expire or be lost;
 an unclassified missing record remains unknown. Payload reads return an explicit

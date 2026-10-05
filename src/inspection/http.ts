@@ -61,10 +61,19 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
       let bytes = Buffer.byteLength(JSON.stringify({ ...discovery, ...positions })) + 512
       for (let index = records.length - 1; index >= 0; index--) {
         const record = records[index]!
-        const size = Buffer.byteLength(JSON.stringify(record)) + 1
+        const size = Buffer.byteLength(JSON.stringify(record)) + 128
         if (bytes + size > MAX_INSPECTION_HTTP_BYTES) break
         retained.unshift(record)
         bytes += size
+      }
+      const identities = new Map<string, number[]>()
+      for (const record of retained) {
+        let sequences = identities.get(record.source.id)
+        if (sequences === undefined) {
+          sequences = []
+          identities.set(record.source.id, sequences)
+        }
+        sequences.push(record.sequence)
       }
       const truncated = retained.length < records.length
       return {
@@ -72,6 +81,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
         ...discovery,
         ...replay.describe(records, cursor, truncated, journal.losses),
         records: retained,
+        retained: [...identities].map(([sourceId, sequences]) => ({ sourceId, sequences })),
         truncated
       }
     }).pipe(Effect.catchCause(() => Effect.succeed({ version: 1, status: "unavailable" })))
@@ -139,11 +149,22 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
           )
         )
         const stream = Stream.fromEffectSchedule(next, Schedule.spaced("1 second")).pipe(
-          Stream.map((value) =>
-            new TextEncoder().encode(
-              `${"watermark" in value ? `id: ${value.watermark.cursor}\n` : ""}event: snapshot\ndata: ${JSON.stringify(value)}\n\n`
+          Stream.map((value) => {
+            const incremental = "replay" in value && value.replay.state === "resumed"
+            const after = new Map(
+              "replay" in value ? value.replay.sources.map((source) => [source.sourceId, source.after]) : []
             )
-          )
+            const packet =
+              incremental && "records" in value
+                ? {
+                    ...value,
+                    records: value.records.filter((record) => record.sequence > (after.get(record.source.id) ?? 0))
+                  }
+                : value
+            return new TextEncoder().encode(
+              `${"watermark" in value ? `id: ${value.watermark.cursor}\n` : ""}event: ${incremental ? "increment" : "snapshot"}\ndata: ${JSON.stringify(packet)}\n\n`
+            )
+          })
         )
         return Response.stream(stream, {
           contentType: "text/event-stream",

@@ -146,8 +146,12 @@ checks do not establish replay cursors or complete recording coverage.
 
 The [public replay test](../src/inspection/replay.test.ts) records two real resident
 sources, takes a snapshot, records further edits, and resumes after each source's
-sequence position through HTTP and SSE `Last-Event-ID`. Repeated source/sequence
-records are idempotent. Cursors are signed per inspector launch, carry at most 128
+sequence position through HTTP and SSE `Last-Event-ID`. Resumed SSE frames carry
+only records after each saved source position, plus a bounded list of the current
+view's retained identities. An unchanged cursor sends no record payloads. The
+browser merges by source/sequence and removes identities no longer retained,
+including while paused. Fresh or reset frames replace the retained view. Repeated
+source/sequence records are idempotent. Cursors are signed per inspector launch, carry at most 128
 source positions, and fit the server's header bound. A missing retained anchor or
 invalid cursor produces explicit gaps and a fresh retained snapshot; source and
 view bounds remain visible. Browser checks reconnect by keyboard while paused,

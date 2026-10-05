@@ -284,7 +284,7 @@ pause.addEventListener('click', () => {
 filter.addEventListener('input', () => { if (current) render(current); });
 for (const item of identityFilters) item.element.addEventListener('change', () => { if (current) render(current); });
 document.querySelector('#clear-filters').addEventListener('click', () => { filter.value = ''; for (const item of identityFilters) item.element.value = ''; if (current) render(current); });
-let feed = null, latestCursor = null, gapNotice = '';
+let feed = null, latestCursor = null, gapNotice = '', received = null;
 const historyStatus = document.querySelector('#history-status');
 function connect() {
   feed?.close();
@@ -292,9 +292,18 @@ function connect() {
   if (latestCursor) url.searchParams.set('cursor', latestCursor);
   historyStatus.textContent = latestCursor ? 'Reconnecting from the last received position.' : 'Connecting to retained history.';
   const connection = new EventSource(url); feed = connection;
-  connection.addEventListener('snapshot', event => {
+  const receive = event => {
     if (feed !== connection) return;
-    const snapshot = JSON.parse(event.data);
+    let snapshot = JSON.parse(event.data);
+    if (snapshot.status !== 'unavailable') {
+      if (event.type === 'increment') {
+        const retained = new Set((snapshot.retained || []).flatMap(source => source.sequences.map(sequence => source.sourceId + ':' + sequence)));
+        const records = new Map((received?.records || []).map(record => [record.source.id + ':' + record.sequence, record]));
+        for (const record of snapshot.records || []) records.set(record.source.id + ':' + record.sequence, record);
+        snapshot = { ...snapshot, records: [...records].filter(([identity]) => retained.has(identity)).map(([, record]) => record).sort((left, right) => left.capturedAt - right.capturedAt || left.source.id.localeCompare(right.source.id) || left.sequence - right.sequence) };
+      }
+      received = snapshot;
+    }
     if (snapshot.watermark) latestCursor = snapshot.watermark.cursor;
     if (snapshot.status === 'unavailable') historyStatus.textContent = 'History unavailable; keeping the last received position. Coverage is limited to retained observations.';
     else {
@@ -313,7 +322,9 @@ function connect() {
       const newer = (snapshot.records || []).filter(record => record.sequence > (positions.get(record.source.id) || 0)).length;
       status.textContent = 'Paused · ' + newer + ' newer retained event(s) available on resume';
     } else render(snapshot);
-  });
+  };
+  connection.addEventListener('snapshot', receive);
+  connection.addEventListener('increment', receive);
   connection.onerror = () => { if (feed === connection) status.textContent = 'Disconnected; reconnecting from the last received position'; };
 }
 document.querySelector('#reconnect').addEventListener('click', connect);
