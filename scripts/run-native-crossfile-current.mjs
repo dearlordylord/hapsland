@@ -141,7 +141,7 @@ if (mode === "live-jev" && coexistence && coexistence !== "both")
 if (scenario !== "adoption" && mode === "live-jev")
   throw new Error("Fault scenarios use the controlled offline reviewer")
 const codexBinary = process.env.HAPSLAND_TEST_CODEX ?? "/tmp/hapsland-codex-01551/node_modules/.bin/codex"
-const claudeBinary = "/home/node/.local/share/claude/versions/2.1.218"
+const claudeBinary = process.env.HAPSLAND_TEST_CLAUDE ?? "/home/node/.local/share/claude/versions/2.1.218"
 const binary = host === "codex" ? codexBinary : claudeBinary
 const version = spawnSync(binary, ["--version"], { encoding: "utf8", timeout: 10_000 }).stdout?.trim()
 if (version !== (host === "codex" ? "codex-cli 0.155.1" : "2.1.218 (Claude Code)"))

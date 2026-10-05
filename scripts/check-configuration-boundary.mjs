@@ -38,7 +38,7 @@ for (const access of [
 }
 const credentialInput = read("src/credentials/input.ts")
 if (
-  !client.includes("resolveCredentialInput({ envVar: settings.credentialEnvVar, root })") ||
+  !client.includes("resolveCredentialInput({ envVar: capture.policy.credentialEnvVar.value, root })") ||
   !client.includes("Redacted.value(credentialInput.value)") ||
   !credentialInput.includes("readonly value?: Redacted.Redacted") ||
   !credentialInput.includes("Config.Redacted(options.envVar)") ||

@@ -48,7 +48,12 @@ const declaredEventKinds = schemaKinds(
 const encoder = between(adapter, "const eventEncoders:", "const encodeVariant =")
 const encodedEventKinds = matches(encoder, /^\s*"?([A-Za-z][A-Za-z0-9]*)"?:/gm)
 sameSet(encodedEventKinds, declaredEventKinds, "CanonicalEvent kind and encoder coverage")
-assert.match(adapter, /encodeVariant\(decodeEvent\(input\)\)/)
+assert.match(adapter, /encodeVariant\(readCanonicalEvent\(input\)\)/)
+const eventReader = read("src/canonical/event-reader.ts")
+assert.match(eventReader, /const decodeEvent = decoder\(CanonicalEventSchema\)/)
+assert.match(eventReader, /freezeCanonicalData\(decodeEvent\(value\)\)/)
+assert.match(eventReader, /canonicalEvents\.has\(value\)/)
+assert.match(eventReader, /canonicalEvents\.add\(event\)/)
 
 const bendCommands = bendConstructors("Command")
 const decodedCommands = matches(
@@ -119,7 +124,11 @@ assert.deepEqual(
     "bendCanonicalTotal"
   ].sort()
 )
-assert.match(scalarSchemas, /maximum: 2 \*\* 48 - 1/)
+assert.match(scalarSchemas, /const maxNat = 2 \*\* 48 - 1/)
+assert.match(scalarSchemas, /minimum: 0, maximum: maxNat/)
+assert.match(scalarSchemas, /readNat = naturalReader\(Nat, 0, maxNat\)/)
+assert.match(scalarSchemas, /const maxBytes = 2 \*\* 47 - 1/)
+assert.match(scalarSchemas, /readBytes = naturalReader\(ByteCount, 1, maxBytes\)/)
 assert.match(adapter, /^export const CANONICAL_MAX_BYTES = 2 \*\* 47 - 1;?$/m)
 assert.match(adapter, /^export const CANONICAL_MAX_UNITS = 1024;?$/m)
 assert.match(adapter, /default:\s*throw new TypeError\("unknown canonical step"\)/)

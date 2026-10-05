@@ -27,6 +27,13 @@ test("canonical authority accepts formatter layout and still rejects a changed c
     const invalid = run()
     assert.notEqual(invalid.status, 0)
     assert.match(invalid.stderr, /exact constructor fields/u)
+    writeFileSync(schemas, source)
+    const reader = join(root, "src/canonical/event-reader.ts")
+    const readerSource = readFileSync(reader, "utf8")
+    writeFileSync(reader, readerSource.replace("freezeCanonicalData(decodeEvent(value))", "freezeCanonicalData(value)"))
+    const undecoded = run()
+    assert.notEqual(undecoded.status, 0)
+    assert.match(undecoded.stderr, /decodeEvent/u)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
