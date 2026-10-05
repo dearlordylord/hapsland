@@ -43,7 +43,12 @@ try {
       ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect browser 日本語 cases" } }
     })
   )
-  const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+  let historyNow = Date.now()
+  const history = makeInspectionStorage(join(root, "inspection"), {
+    retentionMs: 86400000,
+    storageBytes: 1048576,
+    now: () => historyNow
+  })
   const dispatched = []
   let published = nativeDeferred()
   const retired = nativeDeferred()
@@ -133,6 +138,7 @@ try {
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#detail").textContent.includes("edit-admission"))
   await page.getByRole("button", { name: "Copy exact request", exact: true }).click()
+  await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[0]))
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
   assert.match(await page.locator("#files").textContent(), /Recorded physical preparation reads:[\s\S]*support\.ts/)
@@ -326,7 +332,11 @@ try {
   await page.waitForFunction(() =>
     document.querySelector("#handoff-summary").textContent.includes('"state": "uncertain"')
   )
+  await page.evaluate(() => {
+    document.querySelector("#handoff-copy-status").textContent = ""
+  })
   await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
+  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
   assert.ok(
     Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(interruptedBytes))
   )
@@ -339,7 +349,11 @@ try {
   const synchronousEvidence = JSON.parse(await page.locator("#handoff-summary").textContent())
   assert.ok(synchronousEvidence.events.some((event) => event.state === "uncertain"))
   assert.ok(!synchronousEvidence.events.some((event) => event.state === "written"))
+  await page.evaluate(() => {
+    document.querySelector("#handoff-copy-status").textContent = ""
+  })
   await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
+  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
   assert.ok(
     Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(synchronousBytes))
   )
@@ -354,7 +368,11 @@ try {
   assert.equal(membership.evaluations.length, 3)
   assert.equal(membership.recipient.toolUseId, advicee().toolUseId)
   assert.ok(!membership.events.some((event) => event.state === "acknowledged"))
+  await page.evaluate(() => {
+    document.querySelector("#handoff-copy-status").textContent = ""
+  })
   await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
+  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(nativeBytes)))
   assert.equal(await page.locator("#handoff-exact").textContent(), Buffer.concat(nativeBytes).toString("utf8"))
   assert.equal(await page.locator("#handoff-edits button").count(), 3)
@@ -381,9 +399,20 @@ try {
   assert.equal(await page.locator("#handoff-exact img").count(), 0)
   assert.equal(dispatched.length, 5)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  const frozen = await page.locator("#detail").textContent()
+  const copiedBeforeExpiry = await page.evaluate(() => navigator.clipboard.readText())
+  historyNow += 2 * 86400000
+  await page.evaluate(() => {
+    document.querySelector("#handoff-copy-status").textContent = ""
+  })
+  await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
+  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent.includes("not-retained"))
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), copiedBeforeExpiry)
+  assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability and narrow layout passed"
+    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)

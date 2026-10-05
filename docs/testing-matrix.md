@@ -17,7 +17,7 @@ Engine evidence. They remain subject to lint and TypeScript checks.
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Resident playback liveness | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play, pause/resume; finding/clear cache plus quiet-window settlement and replay | Observed progress beyond Jev result through genuine cache facts; not universal scheduler liveness or live Jev transport |
-| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; exact request and native output copy, refused/interrupted/synchronous/written attempts, three-edit batch links, keyboard selection, pause/resume, stable live reading, safe text, 375 px layout | Observed preparation/results/fates and historical writer evidence; written output without retained acknowledgement remains distinct from uncertainty. Pi and verified source discovery have separate checks below; replay gaps and full-feature acceptance remain pending; no agent visibility or repair claim |
+| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; exact request and native output copy, refused/interrupted/synchronous/written attempts, three-edit batch links, keyboard selection, pause/resume, stable live reading, typed payload loss while paused, safe text, 375 px layout | Observed preparation/results/fates and historical writer evidence; written output without retained acknowledgement remains distinct from uncertainty. Pi and verified source discovery have separate checks below; replay gaps and full-feature acceptance remain pending; no agent visibility or repair claim |
 | Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → production source command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, exact copy, oversized absence, lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch and recording disabled. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture uses the existing short deadline; no general latency, installed-package, platform-support or repair claim |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
@@ -133,6 +133,15 @@ counts. Inspection probes use read-only hello requests and do not start resident
 The Pi browser gate exercises distinct residents and roots with native selectors;
 its keyboard checks cover focus traversal and button activation, not native popup
 menu keystrokes. These checks do not establish replay or all runtime/child filters.
+
+Exact-payload reads use the capability-protected `payload/<source-id>/<sequence>`
+route. The [HTTP tests](../src/inspection/http.test.ts) retrieve real provider and
+native-writer bytes, then distinguish expired records (`not-retained`) from an
+inaccessible journal (`history-unavailable`) and facts without exact bytes
+(`no-exact-payload`). Browser copy actions retrieve that immutable identity again
+and check it against the captured payload. A missing result leaves the clipboard
+unchanged and labels the remaining preview as previously captured history. These
+checks do not establish replay cursors or complete recording coverage.
 
 ## Local inspection model
 

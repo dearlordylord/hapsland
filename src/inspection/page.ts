@@ -22,7 +22,7 @@ const status = document.querySelector('#status');
 const exact = document.querySelector('#exact');
 const copy = document.querySelector('#copy');
 const copyStatus = document.querySelector('#copy-status');
-let exactText = null;
+let exactText = null, exactRecord = null, exactOutputRecord = null;
 const recording = document.querySelector('#recording');
 const pause = document.querySelector('#pause');
 const filter = document.querySelector('#filter');
@@ -86,7 +86,7 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
   handoffs.scrollTop = position;
   const group = visible.get(selectedHandoff);
   handoffEdits.replaceChildren();
-  exactOutputText = null;
+  exactOutputText = null; exactOutputRecord = null;
   let outputText = 'Select a handoff to inspect its captured output.';
   let outputStatus = 'Writer observations do not establish model visibility, reading, agreement or repair.';
   if (group) {
@@ -105,6 +105,7 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
     if (!linked.size) handoffEdits.textContent = first.fact.noticeOnly ? 'Notice-only output has no captured finding membership.' : 'Original edit links are unavailable in retained history.';
     const output = group.findLast(record => record.fact.output.status === 'available');
     if (output) {
+      exactOutputRecord = output;
       try {
         exactOutputText = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(Uint8Array.from(atob(output.fact.output.encoded), character => character.charCodeAt(0)));
         outputText = exactOutputText; outputStatus = 'Exact output captured with ' + writerLabels[output.fact.state] + '.';
@@ -220,7 +221,8 @@ function render(snapshot) {
     '\\nObserved outcomes:', ...records.filter(record => record.fact.kind === 'evaluation-outcome').map(record => record.correlation.unitId + ' · ' + record.fact.outcome)
   ].join('\\n');
   preserveText(results, selected ? resultText : 'Select an edit to inspect results.');
-  const transport = rows.get(selected)?.find(record => record.fact.kind === 'transport-invoked')?.fact;
+  exactRecord = rows.get(selected)?.find(record => record.fact.kind === 'transport-invoked') || null;
+  const transport = exactRecord?.fact;
   exactText = null;
   let requestText = selected ? 'No retained transport invocation for this receipt' : 'Select an edit to inspect its exact request.';
   if (transport?.payload.status === 'available') {
@@ -235,15 +237,42 @@ function render(snapshot) {
   const detailText = selected ? (rows.has(selected) ? JSON.stringify(rows.get(selected), null, 2) : 'Selected receipt is no longer retained') : 'Select an edit to inspect its captured evidence.';
   if (detail.textContent !== detailText) { const position = detail.scrollTop; detail.textContent = detailText; detail.scrollTop = position; }
 }
+async function retrieveExact(record) {
+  const response = await fetch(new URL('payload/' + record.source.id + '/' + record.sequence, location.href));
+  if (!response.ok) throw new Error('history-unavailable');
+  const payload = await response.json();
+  if (payload.sourceId !== record.source.id || payload.sequence !== record.sequence) throw new Error('identity-mismatch');
+  if (payload.status !== 'available') throw new Error(payload.reason || 'history-unavailable');
+  const original = record.fact.kind === 'writer-evidence' ? record.fact.output : record.fact.payload;
+  if (original.status !== 'available' || payload.sha256 !== original.sha256 || payload.byteLength !== original.byteLength || payload.encoded !== original.encoded) throw new Error('identity-mismatch');
+  return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(Uint8Array.from(atob(payload.encoded), character => character.charCodeAt(0)));
+}
+function sameRecord(a, b) { return a && b && a.source.id === b.source.id && a.sequence === b.sequence; }
 copy.addEventListener('click', async () => {
-  if (exactText === null) return;
-  try { await navigator.clipboard.writeText(exactText); copyStatus.textContent = 'Exact request copied'; }
-  catch { copyStatus.textContent = 'Clipboard unavailable; select the request text to copy'; }
+  const record = exactRecord, selection = selected;
+  if (exactText === null || !record) return;
+  copyStatus.textContent = 'Retrieving selected request';
+  try {
+    const text = await retrieveExact(record);
+    if (selected !== selection || !sameRecord(record, exactRecord)) return;
+    await navigator.clipboard.writeText(text);
+    if (selected === selection && sameRecord(record, exactRecord)) copyStatus.textContent = 'Exact request copied';
+  } catch (error) {
+    if (selected === selection && sameRecord(record, exactRecord)) copyStatus.textContent = 'Selected request could not be copied: ' + error.message + '. The preview is previously captured history.';
+  }
 });
 handoffCopy.addEventListener('click', async () => {
-  if (exactOutputText === null) return;
-  try { await navigator.clipboard.writeText(exactOutputText); handoffCopyStatus.textContent = 'Exact output copied'; }
-  catch { handoffCopyStatus.textContent = 'Clipboard unavailable; select the output text to copy'; }
+  const record = exactOutputRecord, selection = selectedHandoff;
+  if (exactOutputText === null || !record) return;
+  handoffCopyStatus.textContent = 'Retrieving selected output';
+  try {
+    const text = await retrieveExact(record);
+    if (selectedHandoff !== selection || !sameRecord(record, exactOutputRecord)) return;
+    await navigator.clipboard.writeText(text);
+    if (selectedHandoff === selection && sameRecord(record, exactOutputRecord)) handoffCopyStatus.textContent = 'Exact output copied';
+  } catch (error) {
+    if (selectedHandoff === selection && sameRecord(record, exactOutputRecord)) handoffCopyStatus.textContent = 'Selected output could not be copied: ' + error.message + '. The preview is previously captured history.';
+  }
 });
 allHandoffs.addEventListener('click', () => { showAllHandoffs = !showAllHandoffs; allHandoffs.setAttribute('aria-pressed', String(showAllHandoffs)); if (current) render(current); });
 pause.addEventListener('click', () => {

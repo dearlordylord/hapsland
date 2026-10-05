@@ -75,6 +75,29 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
           headers: { ...headers, "content-security-policy": inspectionPagePolicy }
         })
       if (request.url === `${base}snapshot`) return Response.jsonUnsafe(yield* snapshot, { headers })
+      if (request.url.startsWith(`${base}payload/`)) {
+        const match = /^([a-f0-9]{64})\/([1-9][0-9]{0,15})$/.exec(request.url.slice(`${base}payload/`.length))
+        if (match === null || !Number.isSafeInteger(Number(match[2]))) return Response.empty({ status: 404, headers })
+        const sourceId = match[1]!
+        const sequence = Number(match[2])
+        const identity = { version: 1 as const, sourceId, sequence }
+        const value = yield* history.snapshot().pipe(
+          Effect.map((records) => {
+            const record = records.find((item) => item.source.id === sourceId && item.sequence === sequence)
+            if (record === undefined)
+              return { ...identity, status: "missing" as const, reason: "not-retained" as const }
+            const fact = record.fact
+            if (fact.kind === "transport-invoked" || fact.kind === "model-input")
+              return { ...identity, representation: fact.representation, ...fact.payload }
+            if (fact.kind === "writer-evidence") return { ...identity, ...fact.output }
+            return { ...identity, status: "missing" as const, reason: "no-exact-payload" as const }
+          }),
+          Effect.catchCause(() =>
+            Effect.succeed({ ...identity, status: "missing" as const, reason: "history-unavailable" as const })
+          )
+        )
+        return Response.jsonUnsafe(value, { headers })
+      }
       if (request.url === `${base}events`) {
         const stream = Stream.fromEffectSchedule(snapshot, Schedule.spaced("1 second")).pipe(
           Stream.map((value) => new TextEncoder().encode(`event: snapshot\ndata: ${JSON.stringify(value)}\n\n`))

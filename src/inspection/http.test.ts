@@ -14,7 +14,7 @@ import { request } from "node:http"
 import { Effect, Scope, Exit, ConfigProvider } from "effect"
 import { expect, it } from "vitest"
 import { join } from "node:path"
-import { writeFile, readFile } from "node:fs/promises"
+import { writeFile, readFile, chmod } from "node:fs/promises"
 import { makeInspectionHttpServer } from "./http.ts"
 import { makeInspectionStorage } from "./storage.ts"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
@@ -46,7 +46,12 @@ it("exposes exact retained bytes from a real resident's production provider tran
     })
   )
   const stored = nativeDeferred<void>()
-  const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+  let historyNow = Date.now()
+  const history = makeInspectionStorage(join(root, "inspection"), {
+    retentionMs: 86400000,
+    storageBytes: 1048576,
+    now: () => historyNow
+  })
   const dispatched: Buffer[] = []
   const stages: Array<{ kind: string; reason?: string }> = []
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -187,6 +192,56 @@ it("exposes exact retained bytes from a real resident's production provider tran
     expect(dispatched).toHaveLength(1)
     expect(Buffer.from(transport.payload.encoded, "base64").equals(dispatched[0]!)).toBe(true)
     expect(transport.payload.byteLength).toBe(dispatched[0]!.byteLength)
+    const transportRecord = records.find((record) => record.fact.kind === "transport-invoked")!
+    const payloadUrl = `${server.url}payload/${transportRecord.source.id}/${transportRecord.sequence}`
+    const exact = await (await fetch(payloadUrl)).json()
+    expect(exact).toEqual({
+      version: 1,
+      sourceId: transportRecord.source.id,
+      sequence: transportRecord.sequence,
+      representation: "http-body-base64",
+      ...transport.payload
+    })
+    expect(await (await fetch(`${server.url}payload/${transportRecord.source.id}/999999`)).json()).toMatchObject({
+      status: "missing",
+      reason: "not-retained"
+    })
+    expect((await fetch(payloadUrl, { headers: { origin: "https://evil.invalid" } })).status).toBe(403)
+    expect((await fetch(`${payloadUrl}?source=other`)).status).toBe(404)
+    const stateRecord = records.find((record) => record.fact.kind === "recording-state")!
+    expect(
+      await (await fetch(`${server.url}payload/${stateRecord.source.id}/${stateRecord.sequence}`)).json()
+    ).toMatchObject({ status: "missing", reason: "no-exact-payload" })
+    const inputRecord = records.find((record) => record.fact.kind === "model-input")!
+    expect(await (await fetch(`${server.url}payload/${inputRecord.source.id}/${inputRecord.sequence}`)).json()).toEqual(
+      {
+        version: 1,
+        sourceId: inputRecord.source.id,
+        sequence: inputRecord.sequence,
+        representation: "decision-model-json",
+        ...input.payload
+      }
+    )
+    await chmod(join(root, "inspection"), 0o777)
+    try {
+      expect(await (await fetch(payloadUrl)).json()).toEqual({
+        version: 1,
+        sourceId: transportRecord.source.id,
+        sequence: transportRecord.sequence,
+        status: "missing",
+        reason: "history-unavailable"
+      })
+    } finally {
+      await chmod(join(root, "inspection"), 0o700)
+    }
+    historyNow += 2 * 86400000
+    expect(await (await fetch(payloadUrl)).json()).toEqual({
+      version: 1,
+      sourceId: transportRecord.source.id,
+      sequence: transportRecord.sequence,
+      status: "missing",
+      reason: "not-retained"
+    })
     expect(dispatched[0]!.toString()).not.toContain("INSPECTION_OFFLINE_KEY")
     expect(JSON.stringify(records)).not.toContain("INSPECTION_OFFLINE_KEY")
   } finally {
@@ -406,6 +461,12 @@ it.each([true, false])(
       if (written?.fact.kind !== "writer-evidence" || written.fact.output.status !== "available")
         throw new Error("missing written output")
       expect(Buffer.from(written.fact.output.encoded, "base64").equals(Buffer.concat(bytes))).toBe(true)
+      expect(await (await fetch(`${server.url}payload/${written.source.id}/${written.sequence}`)).json()).toEqual({
+        version: 1,
+        sourceId: written.source.id,
+        sequence: written.sequence,
+        ...written.fact.output
+      })
       expect(written.correlation.batchId).toBe(response.token)
       expect(written.correlation.attemptId).toMatch(/^[a-f0-9-]{36}$/)
       expect(written.fact.recipient).toEqual({
