@@ -1,3 +1,7 @@
+import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
+import { makeInspectionStorage } from "../inspection/storage.ts"
+import { readInspectionSettings } from "../inspection/settings.ts"
+import { HAPSLAND_STATE_DIRECTORY } from "../runtime/user-paths.ts"
 import { toCodexDirectEventOutput, type Finding } from "../direct-event/output.ts"
 import { ResidentDispatchControls, dispatchControlsLayer } from "./dispatch-controls.ts"
 import { ResidentReviewControls, reviewControlsLayer } from "./review-controls.ts"
@@ -420,6 +424,9 @@ const decodeControlledOptions = (
 }
 
 export type ResidentRuntimeOptions = {
+  /** Local persistence failure seam; never supplied by IPC. Production uses the private per-user journal. */
+  readonly inspectionPersistence?: InspectionPersistence
+
   /** Scoped local review coordination; never supplied by resident IPC. */
   readonly reviewControls?: Layer.Layer<ResidentReviewControls>
   /** Fixture-only source effect; never supplied by resident IPC. */
@@ -547,6 +554,45 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   )
   const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
   const lifetime = residentLedger.residentLifetime
+  const inspectionLimits = new Map<string, { readonly retentionMs: number; readonly storageBytes: number }>()
+  const inspection = yield* makeInspectionRecorder(
+    { endpoint: paths.socket, lifetime },
+    options.inspectionPersistence ?? {
+      write: (record, encoded, allowed) =>
+        Effect.suspend(() => {
+          const limits = inspectionLimits.get(record.scope.root)
+          return limits === undefined
+            ? Effect.void
+            : makeInspectionStorage(join(HAPSLAND_STATE_DIRECTORY, "inspection"), limits).write(
+                record,
+                encoded,
+                allowed
+              )
+        })
+    }
+  )
+  const inspectionReceive = (observation: DirectObservation, dispatch: ResidentDispatchContext) => {
+    const settings = readInspectionSettings(observation.root, dispatch.userConfigPath ?? undefined)
+    if (settings && (inspectionLimits.has(observation.root) || inspectionLimits.size < 128))
+      inspectionLimits.set(observation.root, settings)
+    inspection.observeRecording(
+      observation.root,
+      inspectionLimits.has(observation.root) ? settings?.enabled : undefined
+    )
+    const scope = {
+      root: observation.root,
+      runtime: observation.advicee.host,
+      runtimeVersion: observation.advicee.hostVersion,
+      sessionId: observation.advicee.sessionId,
+      subagentId: observation.advicee.subagentId
+    }
+    const correlation = { receiptId: randomUUID() }
+    inspection.offer(scope, correlation, {
+      kind: "edit-received",
+      candidates: observation.candidates.map(({ operation, path }) => ({ operation, path }))
+    })
+    return { scope, correlation }
+  }
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
   const residentRuntimeScope = yield* Scope.Scope
   const residentIpcScope = yield* Scope.make()
@@ -808,7 +854,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentAdmissionStale = (composed: boolean, generation: number | undefined): boolean =>
     composed && generation === undefined
-  const admit = Effect.fn("ResidentRuntime.admit")(function* (
+  const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
     observation: DirectObservation,
     dispatch: ResidentDispatchContext,
     composed = false,
@@ -862,6 +908,24 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentRecordAdmissionDiagnostics(observation)
     recordResidentObservationActivity(observation, dispatch, "pending")
     return { status: "accepted" }
+  }, Effect.uninterruptible)
+
+  const admit = Effect.fn("ResidentRuntime.admit")(function* (
+    observation: DirectObservation,
+    dispatch: ResidentDispatchContext,
+    composed = false,
+    requirePermit = false
+  ) {
+    const receipt = inspectionReceive(observation, dispatch)
+    const response = yield* admitCore(observation, dispatch, composed, requirePermit)
+    if (
+      response.status === "accepted" ||
+      response.status === "rejected-capacity" ||
+      response.status === "rejected-stale"
+    ) {
+      inspection.offer(receipt.scope, receipt.correlation, { kind: "edit-admission", outcome: response.status })
+    }
+    return response
   }, Effect.uninterruptible)
 
   function residentCollectionElapsed(now: number, started: number, limit: number): number {

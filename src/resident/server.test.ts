@@ -109,9 +109,10 @@ const longNestedPath =
     ? `${Array.from({ length: 8 }, (_, index) => `segment-${index}-${"x".repeat(88)}`).join("/")}/types.ts`
     : `${Array.from({ length: 14 }, (_, index) => `segment-${index}-${"x".repeat(180)}`).join("/")}/types.ts`
 
-const mutuallyReferencingTypes = (count = 17) =>
+const mutuallyReferencingTypes = (count = 17, darwinNamePadding = 100) =>
   Array.from({ length: count }, (_, index) => {
-    const typeName = (target: number) => `Type${target}${process.platform === "darwin" ? "n".repeat(100) : ""}`
+    const typeName = (target: number) =>
+      `Type${target}${process.platform === "darwin" ? "n".repeat(darwinNamePadding) : ""}`
     const fields = Array.from({ length: 16 }, (_unused, offset) => {
       const target = (index + offset + 1) % count
       return `p${target}: ${typeName(target)}`
@@ -3407,7 +3408,7 @@ describe("resident delivery lease", () => {
 
   it("rejects adversarial long-ID expansion before recursive unit materialization", async () => {
     const root = await makeGitFixture()
-    const source = mutuallyReferencingTypes(64)
+    const source = mutuallyReferencingTypes(64, 120)
     await put(root, longNestedPath, source)
     const preflight = analyzerMaterializationPreflight(longNestedPath, source)
     expect(preflight?.declarations).toBe(64)

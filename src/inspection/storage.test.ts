@@ -1,0 +1,209 @@
+import { mkdtemp, readdir, lstat, writeFile, symlink, readFile, chmod, rm, statfs, realpath } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { Effect } from "effect"
+import { afterEach, describe, expect, it } from "vitest"
+import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
+import { makeInspectionStorage, inspectionAllocatedBytes } from "./storage.ts"
+import { nativeDeferred } from "../test-support/native-deferred.ts"
+import { spawn } from "node:child_process"
+import { once } from "node:events"
+
+const directories: string[] = []
+afterEach(async () => {
+  await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })))
+})
+const fixture = async () => {
+  const directory = await mkdtemp(join(tmpdir(), "hapsland-inspection-"))
+  directories.push(directory)
+  return realpath(directory)
+}
+const record = (sequence: number, capturedAt = 100, lifetime = "first"): InspectionRecord => ({
+  version: 1,
+  source: { id: inspectionSourceId("/private/resident.sock", lifetime), endpoint: "/private/resident.sock", lifetime },
+  sequence,
+  capturedAt,
+  consentEpoch: 1,
+  scope: { root: "/project", runtime: "codex-cli", runtimeVersion: "0.155.1", sessionId: "session", subagentId: null },
+  correlation: { receiptId: `receipt-${sequence}` },
+  fact: { kind: "edit-received", candidates: [{ operation: "update", path: "日本語.ts" }] }
+})
+const publish = (store: ReturnType<typeof makeInspectionStorage>, value: InspectionRecord, allowed = () => true) =>
+  Effect.runPromise(store.write(value, JSON.stringify(value), allowed))
+
+describe("private inspection journal", () => {
+  it("reads retained history after a real writer process exits during IO", async () => {
+    const directory = await fixture()
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
+    const first = record(1)
+    await publish(store, first)
+    const script = `
+      import { Effect } from "effect";
+      import { makeInspectionStorage } from ${JSON.stringify(new URL("./storage.ts", import.meta.url).href)};
+      const value = JSON.parse(process.argv[2]);
+      const store = makeInspectionStorage(process.argv[1], { retentionMs: 1000, storageBytes: 1048576, now: () => 100 }, {
+        beforePublication: async () => { process.stdin.resume(); process.stdout.write("ready\\n"); await new Promise(() => {}); }
+      });
+      await Effect.runPromise(store.write(value, JSON.stringify(value), () => true));
+    `
+    const child = spawn(
+      process.execPath,
+      ["--input-type=module", "--eval", script, directory, JSON.stringify(record(2))],
+      { stdio: ["pipe", "pipe", "pipe"] }
+    )
+    const exited = once(child, "exit")
+    try {
+      await once(child.stdout, "data")
+      await expect(Effect.runPromise(store.snapshot())).rejects.toThrow("inspection storage unavailable")
+      child.kill("SIGKILL")
+      await exited
+      expect(await Effect.runPromise(store.snapshot())).toEqual([first])
+      expect((await readdir(directory)).some((name) => name.startsWith("pending-"))).toBe(true)
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL")
+        await exited
+      }
+    }
+  })
+  it("revokes capture while real filesystem publication is pending", async () => {
+    const directory = await fixture()
+    const entered = nativeDeferred<void>()
+    const release = nativeDeferred<void>()
+    let allowed = true
+    const store = makeInspectionStorage(
+      directory,
+      { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 },
+      {
+        afterPublication: async () => {
+          entered.resolve()
+          await release.promise
+        }
+      }
+    )
+    const writing = publish(store, record(1), () => allowed)
+    await entered.promise
+    await expect(Effect.runPromise(store.snapshot())).rejects.toThrow("inspection storage unavailable")
+    allowed = false
+    release.resolve()
+    await writing
+    expect(await Effect.runPromise(store.snapshot())).toEqual([])
+    expect(await readdir(directory)).toEqual([])
+  })
+  it("aborts publication on interruption and observes eventual native IO cleanup", async () => {
+    const directory = await fixture()
+    const entered = nativeDeferred<void>()
+    const release = nativeDeferred<void>()
+    const settled = nativeDeferred<void>()
+    const store = makeInspectionStorage(
+      directory,
+      { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 },
+      {
+        beforePublication: async () => {
+          entered.resolve()
+          await release.promise
+        },
+        settled: () => settled.resolve()
+      }
+    )
+    const controller = new AbortController()
+    const value = record(1)
+    const writing = Effect.runPromiseExit(
+      store.write(value, JSON.stringify(value), () => true),
+      { signal: controller.signal }
+    )
+    await entered.promise
+    controller.abort()
+    await writing
+    // Node IO cannot be cancelled; the bounded in-flight operation cleans up after it settles.
+    release.resolve()
+    await settled.promise
+    expect(await Effect.runPromise(store.snapshot())).toEqual([])
+    expect(await readdir(directory)).toEqual([])
+  })
+  it("retains exact immutable records across producer lifetimes and refuses conflicting identities", async () => {
+    const directory = await fixture()
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
+    const first = record(1)
+    const second = record(1, 100, "second")
+    await publish(store, first)
+    await publish(store, second)
+    await publish(store, first)
+    expect(await Effect.runPromise(store.snapshot())).toEqual(expect.arrayContaining([first, second]))
+    await expect(publish(store, { ...first, correlation: { receiptId: "different" } })).rejects.toThrow(
+      "inspection storage unavailable"
+    )
+    for (const name of await readdir(directory)) {
+      const stat = await lstat(join(directory, name))
+      expect(stat.mode & 0o077).toBe(0)
+      expect(stat.uid).toBe(process.getuid!())
+    }
+  })
+  it("prunes by captured age at the exact boundary rather than write time", async () => {
+    const directory = await fixture()
+    let now = 100
+    const store = makeInspectionStorage(directory, { retentionMs: 50, storageBytes: 1024 * 1024, now: () => now })
+    await publish(store, record(1, 51))
+    await publish(store, record(2, 100))
+    now = 101
+    expect((await Effect.runPromise(store.snapshot())).map((entry) => entry.sequence)).toEqual([2])
+    await publish(store, record(3, 51))
+    expect((await Effect.runPromise(store.snapshot())).map((entry) => entry.sequence)).toEqual([2])
+  })
+  it("applies one allocated-storage cap across source lifetimes, evicting oldest records", async () => {
+    const directory = await fixture()
+    const block = (await statfs(directory)).bsize
+    const cap = inspectionAllocatedBytes(await lstat(directory)) + block * 4
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: cap, now: () => 110 })
+    for (let sequence = 1; sequence <= 8; sequence++)
+      await publish(store, record(sequence, 100 + sequence, sequence % 2 ? "first" : "second"))
+    const retained = await Effect.runPromise(store.snapshot())
+    expect(retained.length).toBeGreaterThan(0)
+    expect(retained.length).toBeLessThan(8)
+    expect(retained.at(-1)?.sequence).toBe(8)
+    let allocated = inspectionAllocatedBytes(await lstat(directory))
+    for (const name of await readdir(directory))
+      allocated += inspectionAllocatedBytes(await lstat(join(directory, name)))
+    expect(allocated).toBeLessThanOrEqual(cap)
+  })
+  it("does not publish when consent is withdrawn during the write", async () => {
+    const directory = await fixture()
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
+    let checks = 0
+    await publish(store, record(1), () => ++checks < 3)
+    expect(await Effect.runPromise(store.snapshot())).toEqual([])
+    expect(await readdir(directory)).toEqual([])
+  })
+  it("refuses another writer immediately and leaves its lock intact", async () => {
+    const directory = await fixture()
+    const lock = join(directory, "writer.lock")
+    await writeFile(lock, "other writer", { mode: 0o600 })
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
+    await expect(publish(store, record(1))).rejects.toThrow("inspection storage unavailable")
+    expect(await readFile(lock, "utf8")).toBe("other writer")
+  })
+  it("refuses symlinks and unrelated entries without reading or deleting their targets", async () => {
+    const directory = await fixture()
+    const external = await fixture()
+    const target = join(external, "private.txt")
+    await writeFile(target, "unrelated source", { mode: 0o600 })
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1024 * 1024, now: () => 100 })
+    await symlink(target, join(directory, "foreign"))
+    await expect(publish(store, record(1))).rejects.toThrow("inspection storage unavailable")
+    expect(await readFile(target, "utf8")).toBe("unrelated source")
+    expect(await readdir(directory)).toEqual(["foreign"])
+    const alias = join(external, "alias")
+    await symlink(directory, alias)
+    await expect(
+      publish(makeInspectionStorage(alias, { retentionMs: 1000, storageBytes: 1024 * 1024 }), record(1))
+    ).rejects.toThrow("inspection storage unavailable")
+  })
+  it("refuses public directories and caps smaller than the journal overhead", async () => {
+    const directory = await fixture()
+    const store = makeInspectionStorage(directory, { retentionMs: 1000, storageBytes: 1, now: () => 100 })
+    await expect(publish(store, record(1))).rejects.toThrow("inspection storage unavailable")
+    expect(await readdir(directory)).toEqual([])
+    await chmod(directory, 0o755)
+    await expect(Effect.runPromise(store.snapshot())).rejects.toThrow("inspection storage unavailable")
+  })
+})

@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest"
+import { Deferred, Effect } from "effect"
+import { makeInspectionRecorder } from "./recorder.ts"
+import type { InspectionRecord } from "./contract.ts"
+
+const scope = {
+  root: "/project",
+  runtime: "codex-cli" as const,
+  runtimeVersion: "0.155.1",
+  sessionId: "session",
+  subagentId: null
+}
+const source = { endpoint: "/private/resident.sock", lifetime: "lifetime" }
+const edit = { kind: "edit-received" as const, candidates: [{ operation: "update" as const, path: "a.ts" }] }
+
+describe("optional inspection recording", () => {
+  it("keeps offers bounded when persistence cannot settle and revokes unpublished source data on disable", async () => {
+    const saved: InspectionRecord[] = []
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const started = yield* Deferred.make<void>()
+          const release = yield* Deferred.make<void>()
+          const finished = yield* Deferred.make<void>()
+          const recorder = yield* makeInspectionRecorder(
+            source,
+            {
+              write: (record, _encoded, publishable) =>
+                Effect.gen(function* () {
+                  if (record.fact.kind === "edit-received") {
+                    yield* Deferred.succeed(started, undefined)
+                    yield* Deferred.await(release)
+                  }
+                  if (publishable()) saved.push(record)
+                  if (record.fact.kind === "recording-state" && record.fact.state === "disabled")
+                    yield* Deferred.succeed(finished, undefined)
+                })
+            },
+            { items: 2, bytes: 4096 }
+          )
+          expect(recorder.offer(scope, { receiptId: "before-consent" }, edit)).toBe("disabled")
+          recorder.observeRecording(scope.root, true)
+          expect(recorder.offer(scope, { receiptId: "first" }, edit)).toBe("queued")
+          yield* Deferred.await(started)
+          expect(recorder.offer(scope, { receiptId: "second" }, edit)).toBe("queued")
+          expect(recorder.offer(scope, { receiptId: "overflow" }, edit)).toBe("overflow")
+          recorder.observeRecording(scope.root, false)
+          expect(recorder.offer(scope, { receiptId: "after-disable" }, edit)).toBe("disabled")
+          yield* Deferred.succeed(release, undefined)
+          yield* Deferred.await(finished)
+          expect(saved.some((record) => record.fact.kind === "edit-received")).toBe(false)
+          expect(
+            saved.some((record) => record.fact.kind === "recording-state" && record.fact.state === "disabled")
+          ).toBe(true)
+        })
+      )
+    )
+  })
+  it("preserves captured data when the producer mutates its input and continues after a failed write", async () => {
+    const saved: InspectionRecord[] = []
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const entered = yield* Deferred.make<void>()
+          const release = yield* Deferred.make<void>()
+          const completed = yield* Deferred.make<void>()
+          const recorder = yield* makeInspectionRecorder(source, {
+            write: (record, encoded, publishable) =>
+              Effect.gen(function* () {
+                if (record.correlation.receiptId === "failure") return yield* Effect.fail("storage unavailable")
+                if (record.correlation.receiptId === "immutable") {
+                  yield* Deferred.succeed(entered, undefined)
+                  yield* Deferred.await(release)
+                  void encoded
+                }
+                if (publishable()) saved.push(record)
+                if (record.correlation.receiptId === "immutable") yield* Deferred.succeed(completed, undefined)
+              })
+          })
+          recorder.observeRecording(scope.root, true)
+          expect(recorder.offer(scope, { receiptId: "failure" }, edit)).toBe("queued")
+          const candidate = { operation: "update" as const, path: "original-日本語.ts" }
+          expect(
+            recorder.offer(scope, { receiptId: "immutable" }, { kind: "edit-received", candidates: [candidate] })
+          ).toBe("queued")
+          yield* Deferred.await(entered)
+          candidate.path = "changed.ts"
+          yield* Deferred.succeed(release, undefined)
+          yield* Deferred.await(completed)
+          const captured = saved.find((record) => record.correlation.receiptId === "immutable")
+          expect(captured?.fact).toEqual({
+            kind: "edit-received",
+            candidates: [{ operation: "update", path: "original-日本語.ts" }]
+          })
+          expect(saved.some((record) => record.correlation.receiptId === "failure")).toBe(false)
+        })
+      )
+    )
+  })
+
+  it("interrupts a permanently stalled writer on scope exit and distinguishes unavailable settings", async () => {
+    const saved: InspectionRecord[] = []
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const started = yield* Deferred.make<void>()
+          const recorder = yield* makeInspectionRecorder(source, {
+            write: (record) =>
+              Effect.gen(function* () {
+                saved.push(record)
+                if (record.fact.kind === "edit-received") {
+                  yield* Deferred.succeed(started, undefined)
+                  yield* Effect.never
+                }
+              })
+          })
+          recorder.observeRecording(scope.root, true)
+          recorder.observeRecording(scope.root, undefined)
+          recorder.observeRecording(scope.root, true)
+          expect(recorder.offer(scope, { receiptId: "stalled" }, edit)).toBe("queued")
+          yield* Deferred.await(started)
+          expect(recorder.offer(scope, { receiptId: "still-progressing" }, edit)).toBe("queued")
+        })
+      )
+    )
+    expect(saved.some((record) => record.fact.kind === "recording-state" && record.fact.state === "unavailable")).toBe(
+      true
+    )
+  })
+})
