@@ -1,6 +1,7 @@
 {
   "version": 1,
   "sessionAnalytics": true,
+  "sessionInspection": true,
   "rules": [
     "src/rules/defaults/r1_inferred_case.json",
     "src/rules/defaults/r2_meaningless_combinations.json",
