@@ -8,16 +8,6 @@
 
 The [development-time balance laboratory](lab/README.md) provides editable ability catalogues, finite comparisons and replay over the shared engine. Its current capability and gameplay limits are recorded in that guide; #203 remains in progress.
 
-## Teaching purpose and design boundary
-
-The owner's direction is to teach Hapsland through the shared simulator's actual work. An edit can fan out into source, preparation, review and advice operations; Stop is a separate input. Roads and queues explain observed progress. Issued operations retain captured deadlines, while work waiting for eligibility or a resource has no guaranteed start time. Visual travel never delays acceptance of a business event.
-
-Players can release arbitrary repeated edit bursts and suspend automatic arrivals independently. Towers retain placement, range, construction costs, upgrades and pressure-based health consequences. Their effects use supported simulator controls. The current experimental teaching roster is Jev Service for future request latency, Delivery Relay for future output latency, and Access Repair for source/credential availability. These choices remain replaceable; they do not establish a final roster or human learning outcomes.
-
-Game/process corrections are qualified on a branch from master and integrated into master first. The separate laboratory branch incorporates master and owns balance experiments, finite search and experiment replay. It must not become another business scheduler. The enduring laboratory contract is [#203](https://github.com/dearlordylord/hapsland/issues/203); its [usage guide](lab/README.md) distinguishes measured effects, dead investments, interactions and held-out countercases.
-
-The intended next design steps are reversible mechanism selection and replacement, wider context comparisons, and precise development-time tuning where evidence warrants it. Human prediction and explanation checks remain separate from measured difficulty, engagement and replay interest. No adaptive difficulty or automatic balance patch application is included.
-
 The completed performance investigation and its decisions are recorded below, with executable receipts retained in `performance-evidence/`. The temporary experiment journal has been consolidated here after the full consumer comparison passed.
 
 Run `./prototypes/canonical-defense/run.sh` with Bend, Node.js and native graphics prerequisites installed. **1–3** choose towers; click ground to build, click a tower to select, **U** upgrades. **Space/P** pauses virtual time. The game initially waits for construction. **N/Enter** starts arrivals from the entrance and submits a generic workload burst; subsequent presses add bursts. **B** selects 1, 5, 10 or 20 edits for the next release; **+ / =** and **−** adjust the exact batch size within 1–1024. Repeated releases remain available at any time. Before the first **N**, **F** selects an explicit source-and-credential outage scenario. A connected Access Repair restores both channels once; work already refused is not resurrected. **A** suspends or resumes future recurring arrivals, and **]** speeds up arrivals and **[** slows them down. **R** resets this game instance to construction before N/Enter; **Escape** closes the window. Tab changes an uninvested empty map.
