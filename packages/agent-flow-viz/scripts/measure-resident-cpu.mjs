@@ -25,13 +25,17 @@ try {
     await page.goto("http://127.0.0.1:4181/")
     await page.getByLabel("Advicee count", { exact: true }).fill(String(advicees))
     await page.getByRole("button", { name: "Start resident", exact: true }).click()
-    await page.waitForFunction(async () => {
-      const { simulationRun } = await import("/src/simulation.ts")
-      return simulationRun() !== undefined
-    })
+    await page.waitForFunction(() =>
+      document.querySelector(".simulation-status")?.textContent.includes("Seeded session started")
+    )
     const eventsBefore = await page.evaluate(async () => {
-      const { simulationRun } = await import("/src/simulation.ts")
+      const loaded = performance.getEntriesByType("resource").findLast((entry) =>
+        new URL(entry.name).pathname === "/src/simulation.ts"
+      )
+      if (!loaded) throw new Error("Active simulation module was not loaded")
+      const { simulationRun } = await import(loaded.name)
       window.metricRun = simulationRun()
+      if (!window.metricRun) throw new Error("Active resident was not created")
       return window.metricRun.eventCount
     })
     const cdp = await page.context().newCDPSession(page)
