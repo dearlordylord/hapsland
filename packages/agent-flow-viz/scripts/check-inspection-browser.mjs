@@ -23,8 +23,20 @@ const deadline = setTimeout(() => {
   process.exit(1)
 }, 45000)
 try {
-  await put(root, "type.ts", "type OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: number\r\n};\r\n")
-  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  await put(
+    root,
+    "type.ts",
+    'import type { Amount } from "./support";\r\ntype OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: Amount\r\n};\r\n'
+  )
+  await put(root, "support.ts", "export type Amount = number;\n")
+  await writeFile(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({
+      version: 1,
+      sessionInspection: true,
+      ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect browser 日本語 cases" } }
+    })
+  )
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const dispatched = []
   let published = nativeDeferred()
@@ -39,7 +51,12 @@ try {
             new Response(
               JSON.stringify({
                 model: "jev-latest",
-                answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { type: "noul", noul: 0 }])),
+                answers: Object.fromEntries(
+                  configuredRules.map((rule) => [
+                    rule.id,
+                    { type: "noul", noul: rule.id === "r1_inferred_case" ? 0.7 : 0 }
+                  ])
+                ),
                 usage: { input_tokens: 1, output_tokens: 1 }
               }),
               { status: 200, headers: { "content-type": "application/json" } }
@@ -101,6 +118,13 @@ try {
   await page.getByRole("button", { name: "Copy exact request", exact: true }).click()
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[0]))
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
+  assert.match(await page.locator("#files").textContent(), /Recorded physical preparation reads:[\s\S]*support\.ts/)
+  assert.match(await page.locator("#files").textContent(), /Source actually included[\s\S]*support\.ts · Amount/)
+  assert.match(await page.locator("#source").textContent(), /日本語/)
+  assert.match(await page.locator("#source").textContent(), /export type Amount = number;/)
+  assert.match(await page.locator("#results").textContent(), /Effective threshold: 0.6/)
+  assert.match(await page.locator("#results").textContent(), /Validated backend answers:[\s\S]*0.7/)
+  assert.match(await page.locator("#results").textContent(), /Interpreted findings:[\s\S]*Inspect browser 日本語 cases/)
   const selection = await page.locator("#detail").textContent()
   await page.getByRole("button", { name: "Pause", exact: true }).click()
   const hostile = "<img onerror=alert(1)>.ts"

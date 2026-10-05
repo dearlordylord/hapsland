@@ -21,7 +21,8 @@ import {
   revalidateEvaluations,
   reviewCodexDirectEvent,
   reviewObservation,
-  type DirectReviewContext
+  type DirectReviewContext,
+  type EvaluationEvidence
 } from "./pipeline.ts"
 import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboarding/demo-budget.ts"
 import { attemptCodexHostOutput } from "./writer.ts"
@@ -996,6 +997,50 @@ describe("direct-event vertical slice", () => {
         const result = yield* Fiber.join(fiber)
         expect(result).toEqual({ status: "unavailable", reason: "timeout", output: undefined })
         expect(calls).toBe(1)
+      })
+    )
+  )
+
+  it.effect("distinguishes canceled inspection requests from deadline expiry", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const root = yield* Effect.promise(makeGitFixture)
+        yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"))
+        const observation = yield* adaptCodexAdd(addEvent(root))
+        expect(observation).toBeDefined()
+        if (observation === undefined) return
+        const prepared = yield* prepareObservation(observation, {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings,
+          rules: configuredRules
+        })
+        const ready = prepared.outcomes.find((outcome) => outcome.status === "ready")
+        expect(ready?.status).toBe("ready")
+        if (ready?.status !== "ready") return
+        for (const cancellation of ["interrupt", "deadline"] as const) {
+          const entered = yield* Deferred.make<void>()
+          const evidence: Array<EvaluationEvidence> = []
+          const fiber = yield* evaluatePrepared(ready.prepared, Effect.void, (event) => evidence.push(event)).pipe(
+            Effect.provide(
+              controlledDecisionModelLayer({
+                answers: findingAnswers(),
+                delayMs: DIRECT_EVENT_DEADLINE_MS + 1,
+                onRequest: Deferred.succeed(entered, undefined)
+              })
+            ),
+            Effect.forkChild
+          )
+          yield* Deferred.await(entered)
+          if (cancellation === "interrupt") yield* Fiber.interrupt(fiber)
+          else {
+            yield* TestClock.adjust(`${DIRECT_EVENT_DEADLINE_MS} millis`)
+            expect(yield* Fiber.join(fiber)).toEqual({ status: "timeout" })
+          }
+          expect(evidence.filter((event) => event.kind !== "model-input")).toEqual([
+            { kind: "evaluation-outcome", outcome: cancellation === "interrupt" ? "interrupted" : "timeout" }
+          ])
+        }
       })
     )
   )

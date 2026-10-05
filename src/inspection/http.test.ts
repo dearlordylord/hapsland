@@ -18,17 +18,35 @@ import { decodeInspectionRecord } from "./contract.ts"
 
 it("exposes exact retained bytes from a real resident's production provider transport", async () => {
   const root = await makeGitFixture()
-  await put(root, "type.ts", "type OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: number\r\n};\r\n")
-  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+  await put(
+    root,
+    "type.ts",
+    'import type { Amount } from "./support";\r\ntype OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: Amount\r\n};\r\n'
+  )
+  await put(root, "support.ts", "export type Amount = number;\n")
+  await put(root, "unrelated.ts", "type Unrelated = string;\n")
+  await writeFile(
+    join(root, ".hapsland.jsonc"),
+    JSON.stringify({
+      version: 1,
+      sessionInspection: true,
+      ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect 日本語 cases\r\n\tprecisely" } }
+    })
+  )
   const stored = nativeDeferred<void>()
   const history = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
   const dispatched: Buffer[] = []
+  const stages: Array<{ kind: string; reason?: string }> = []
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
     inspectionPersistence: {
       write: (record, encoded, publication) =>
         history.write(record, encoded, publication).pipe(
           Effect.tap(() =>
             Effect.sync(() => {
+              stages.push({
+                kind: record.fact.kind,
+                ...(record.fact.kind === "preparation-omission" ? { reason: record.fact.reason } : {})
+              })
               if (record.fact.kind === "evaluation-outcome") stored.resolve()
             })
           )
@@ -43,7 +61,12 @@ it("exposes exact retained bytes from a real resident's production provider tran
           new Response(
             JSON.stringify({
               model: "jev-latest",
-              answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { type: "noul", noul: 0 }])),
+              answers: Object.fromEntries(
+                configuredRules.map((rule) => [
+                  rule.id,
+                  { type: "noul", noul: rule.id === "r1_inferred_case" ? 0.7 : 0 }
+                ])
+              ),
               usage: { input_tokens: 1, output_tokens: 1 }
             }),
             { status: 200, headers: { "content-type": "application/json" } }
@@ -71,6 +94,8 @@ it("exposes exact retained bytes from a real resident's production provider tran
       })
     ).status
   ).toBe("accepted")
+  await Effect.runPromise(resident.whenIdle())
+  expect(dispatched.length, JSON.stringify(stages)).toBe(1)
   await stored.promise
   await Effect.runPromise(resident.close)
   const scope = await Effect.runPromise(Scope.make())
@@ -86,6 +111,67 @@ it("exposes exact retained bytes from a real resident's production provider tran
     expect(transport?.kind).toBe("transport-invoked")
     if (transport?.kind !== "transport-invoked" || transport.payload.status !== "available")
       throw new Error("missing retained transport bytes")
+    const reads = records.filter((record) => record.fact.kind === "preparation-read").map((record) => record.fact)
+    expect(reads).toEqual(
+      expect.arrayContaining([
+        { kind: "preparation-read", path: "type.ts" },
+        { kind: "preparation-read", path: "support.ts" }
+      ])
+    )
+    expect(reads).not.toContainEqual({ kind: "preparation-read", path: "unrelated.ts" })
+    const input = records.find((record) => record.fact.kind === "model-input")?.fact
+    if (input?.kind !== "model-input" || input.payload.status !== "available") throw new Error("missing model input")
+    expect(JSON.parse(input.payload.encoded)).toMatchObject({
+      artifact: { domain: "type.ts", name: "OrderCount" },
+      evidence: {
+        nodes: expect.arrayContaining([
+          expect.objectContaining({ domain: "support.ts", name: "Amount", source: "export type Amount = number;" })
+        ])
+      }
+    })
+    const policy = records.find((record) => record.fact.kind === "unit-policy")?.fact
+    expect(policy).toMatchObject({
+      kind: "unit-policy",
+      activity: "live",
+      provider: "jev",
+      model: "jev-latest",
+      interpretation: "probability-strictly-greater-than-threshold",
+      payload: {
+        status: "available",
+        rules: expect.arrayContaining([
+          expect.objectContaining({
+            ruleId: "r1_inferred_case",
+            qualifiedId: "noul/r1_inferred_case",
+            threshold: 0.6,
+            message: "Inspect 日本語 cases\r\n\tprecisely",
+            question: configuredRules[0]!.decision.instructions,
+            criteria: configuredRules[0]!.decision.criteria
+          })
+        ])
+      }
+    })
+    const answers = records.find((record) => record.fact.kind === "validated-answers")?.fact
+    expect(answers).toMatchObject({
+      answers: expect.arrayContaining([{ ruleId: "r1_inferred_case", probability: 0.7 }])
+    })
+    const findings = records.find((record) => record.fact.kind === "interpreted-findings")?.fact
+    expect(findings).toMatchObject({
+      payload: {
+        status: "available",
+        findings: [
+          expect.objectContaining({
+            ruleId: "r1_inferred_case",
+            probability: 0.7,
+            message: "Inspect 日本語 cases\r\n\tprecisely",
+            path: "type.ts",
+            declaration: "OrderCount"
+          })
+        ]
+      }
+    })
+    expect(records.find((record) => record.fact.kind === "evaluation-outcome")?.fact).toMatchObject({
+      outcome: "findings"
+    })
     expect(dispatched).toHaveLength(1)
     expect(Buffer.from(transport.payload.encoded, "base64").equals(dispatched[0]!)).toBe(true)
     expect(transport.payload.byteLength).toBe(dispatched[0]!.byteLength)

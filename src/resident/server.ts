@@ -1,4 +1,5 @@
 import { InspectionTransportObservation } from "../inspection/transport.ts"
+import { captureInspectionPolicy, captureInspectionFindings } from "../inspection/capture.ts"
 import type { InspectionScope, InspectionCorrelation } from "../inspection/contract.ts"
 import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
@@ -2653,6 +2654,21 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               controlledWriter: true,
               advicee: pathObservation.advicee,
               settings,
+              ...(job.inspectionReceipt === undefined
+                ? {}
+                : {
+                    captureHooks: {
+                      sourceRead: (path: string) => {
+                        const receipt = job.inspectionReceipt
+                        if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
+                        try {
+                          inspection.offer(receipt.scope, receipt.correlation, { kind: "preparation-read", path })
+                        } catch {
+                          /* Optional observation cannot invalidate the actual source read. */
+                        }
+                      }
+                    }
+                  }),
               ...(residentCaptureSource === undefined ? {} : { captureSource: residentCaptureSource }),
               beforeAnalyze: (path, sourceBytes, preflight) =>
                 Effect.gen(function* () {
@@ -2668,6 +2684,27 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }),
           preparationSignal
         ).pipe(Effect.onError(() => residentLedger.release(workspace)))
+        if (job.inspectionReceipt !== undefined) {
+          const receipt = job.inspectionReceipt
+          for (const outcome of prepared.observation.outcomes) {
+            if (outcome.status === "incomplete") {
+              inspection.offer(receipt.scope, receipt.correlation, {
+                kind: "preparation-omission",
+                path: outcome.path,
+                reason: outcome.reason
+              })
+            } else if (outcome.analysis.status === "incomplete") {
+              for (const failure of outcome.analysis.failures) {
+                inspection.offer(receipt.scope, receipt.correlation, {
+                  kind: "preparation-omission",
+                  path: outcome.path,
+                  reason: failure.reason,
+                  ...(failure.root === undefined ? {} : { declaration: failure.root })
+                })
+              }
+            }
+          }
+        }
         if (!(yield* residentJobActive(job))) {
           yield* residentLedger.release(workspace)
           return false
@@ -2979,6 +3016,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 completeness: unit.prepared.input.completeness
               }
             )
+            if (inspection.isEnabled(unit.inspectionReceipt.scope.root)) {
+              inspection.offer(
+                unit.inspectionReceipt.scope,
+                {
+                  ...unit.inspectionReceipt.correlation,
+                  unitId: createHash("sha256").update(`${unit.partition}:${unit.canonicalOperationId}`).digest("hex")
+                },
+                captureInspectionPolicy(unit.prepared, unit.dispatch.controlled !== null)
+              )
+            }
           }
           if (item.kind === "cached") {
             const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function* () {
@@ -3530,7 +3577,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                               }
                       }
                     })()
-                  : evidence
+                  : evidence.kind === "interpreted-findings"
+                    ? captureInspectionFindings(evidence.findings)
+                    : evidence
               inspection.offer(
                 job.inspectionReceipt.scope,
                 {

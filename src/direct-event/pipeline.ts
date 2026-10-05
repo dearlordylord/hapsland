@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Result from "effect/Result"
 import * as Schema from "effect/Schema"
-import { Decision, DecisionModel } from "effect/ai"
+import { AiError, Decision, DecisionModel } from "effect/ai"
 import type { CompiledRule } from "../rules/compiler.ts"
 import { applicableRules, configuredRules } from "../policy/rules.ts"
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts"
@@ -1034,13 +1034,21 @@ const evaluateProbabilityAnswers = (prepared: PreparedUnit, answers: Probability
 
 export type EvaluationEvidence =
   | { readonly kind: "model-input"; readonly input: typeof Schema.Json.Type }
+  | { readonly kind: "interpreted-findings"; readonly findings: ReadonlyArray<Finding> }
   | {
       readonly kind: "validated-answers"
       readonly answers: ReadonlyArray<{ readonly ruleId: string; readonly probability: number }>
     }
   | {
       readonly kind: "evaluation-outcome"
-      readonly outcome: "clear" | "findings" | "input-limit" | "backend" | "invalid-response" | "timeout"
+      readonly outcome:
+        | "clear"
+        | "findings"
+        | "input-limit"
+        | "backend"
+        | "invalid-response"
+        | "timeout"
+        | "interrupted"
     }
 
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
@@ -1079,10 +1087,15 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
       })
     ),
     Effect.timeoutOption(`${DIRECT_EVENT_DEADLINE_MS} millis`),
-    Effect.result
+    Effect.result,
+    Effect.onInterrupt(() => Effect.sync(() => emit({ kind: "evaluation-outcome", outcome: "interrupted" })))
   )
   if (Result.isFailure(evaluated)) {
-    emit({ kind: "evaluation-outcome", outcome: "backend" })
+    const invalid =
+      AiError.isAiError(evaluated.failure) &&
+      (evaluated.failure.reason._tag === "InvalidOutputError" ||
+        evaluated.failure.reason._tag === "StructuredOutputError")
+    emit({ kind: "evaluation-outcome", outcome: invalid ? "invalid-response" : "backend" })
     return { status: "backend" } as const
   }
   if (Option.isNone(evaluated.success)) {
@@ -1099,6 +1112,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
     answers: Object.entries(answers).map(([ruleId, answer]) => ({ ruleId, probability: answer.probability }))
   })
   const result = evaluateProbabilityAnswers(prepared, answers)
+  if (result.status === "evaluated") emit({ kind: "interpreted-findings", findings: result.findings })
   emit({
     kind: "evaluation-outcome",
     outcome: result.status === "evaluated" ? (result.findings.length ? "findings" : "clear") : "invalid-response"

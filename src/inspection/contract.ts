@@ -10,6 +10,8 @@ const Id = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(256))
 const Path = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(8192))
 const Hash = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))
 const Count = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }))
+const Text = Schema.String.check(Schema.isMaxLength(65536))
+const Probability = Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 }))
 
 export const InspectionScope = Schema.Struct({
   root: Path,
@@ -51,6 +53,73 @@ export const InspectionWriterState = Schema.Literals([
   "uncertain"
 ])
 export const InspectionFact = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal("preparation-read"), path: Path }),
+  Schema.Struct({
+    kind: Schema.Literal("preparation-omission"),
+    path: Path,
+    declaration: Schema.optionalKey(Id),
+    reason: Schema.Literals([
+      "unsupported-operation",
+      "metadata-only",
+      "ineligible",
+      "capture-unavailable",
+      "extension",
+      "parse",
+      "import",
+      "declaration-limit",
+      "declaration-merge",
+      "no-declarations",
+      "missing-evidence",
+      "unsupported-reference",
+      "reference-limit",
+      "ambiguous-update"
+    ])
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("unit-policy"),
+    provider: Id,
+    model: Id,
+    activity: Schema.Literals(["controlled", "live"]),
+    interpretation: Schema.Literal("probability-strictly-greater-than-threshold"),
+    payload: Schema.Union([
+      Schema.Struct({
+        status: Schema.Literal("available"),
+        rules: Schema.Array(
+          Schema.Struct({
+            ruleId: Id,
+            qualifiedId: Text,
+            question: Text,
+            criteria: Schema.Struct({ false: Text, true: Text }),
+            threshold: Probability,
+            message: Text,
+            rank: Count,
+            packDigest: Hash,
+            definitionDigest: Hash
+          })
+        ).check(Schema.isMaxLength(128))
+      }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literal("oversized") })
+    ])
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("interpreted-findings"),
+    payload: Schema.Union([
+      Schema.Struct({
+        status: Schema.Literal("available"),
+        findings: Schema.Array(
+          Schema.Struct({
+            ruleId: Id,
+            probability: Probability,
+            message: Text,
+            path: Path,
+            declaration: Id,
+            semanticIdentity: Hash
+          })
+        ).check(Schema.isMaxLength(128))
+      }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literal("oversized") })
+    ])
+  }),
   Schema.Struct({
     kind: Schema.Literal("transport-invoked"),
     representation: Schema.Literal("http-body-base64"),
@@ -79,13 +148,19 @@ export const InspectionFact = Schema.Union([
   }),
   Schema.Struct({
     kind: Schema.Literal("validated-answers"),
-    answers: Schema.Array(
-      Schema.Struct({ ruleId: Id, probability: Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 })) })
-    ).check(Schema.isMaxLength(128))
+    answers: Schema.Array(Schema.Struct({ ruleId: Id, probability: Probability })).check(Schema.isMaxLength(128))
   }),
   Schema.Struct({
     kind: Schema.Literal("evaluation-outcome"),
-    outcome: Schema.Literals(["clear", "findings", "input-limit", "backend", "invalid-response", "timeout"])
+    outcome: Schema.Literals([
+      "clear",
+      "findings",
+      "input-limit",
+      "backend",
+      "invalid-response",
+      "timeout",
+      "interrupted"
+    ])
   }),
   Schema.Struct({
     kind: Schema.Literal("unit-prepared"),
