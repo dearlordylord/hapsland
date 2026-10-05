@@ -235,6 +235,7 @@ type ResponseContext = { readonly authority?: ResponseAuthority; readonly token?
 type InspectionReceipt = { readonly scope: InspectionScope; readonly correlation: InspectionCorrelation }
 
 type UnitJob = {
+  readonly inspectionEvaluationId?: string
   readonly inspectionReceipt?: InspectionReceipt
   readonly canonicalRound: number
   readonly round?: RoundWork
@@ -561,6 +562,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   )
   const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
   const lifetime = residentLedger.residentLifetime
+  // Optional provenance is bounded independently of review authority and contains no source.
+  const inspectionOrigins = new Map<string, string>()
   const inspectionLimits = new Map<string, { readonly retentionMs: number; readonly storageBytes: number }>()
   const inspection = yield* makeInspectionRecorder(
     { endpoint: paths.socket, lifetime },
@@ -2785,6 +2788,43 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
           })
         )
+        for (const item of planned) {
+          const receipt = job.inspectionReceipt
+          if (item.kind === "owner") inspectionOrigins.delete(item.evaluationKey)
+          if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) continue
+          if (item.kind === "owner") {
+            if (inspectionOrigins.size >= 512) {
+              const oldest = inspectionOrigins.keys().next().value
+              if (oldest !== undefined) inspectionOrigins.delete(oldest)
+            }
+            inspectionOrigins.set(item.evaluationKey, randomUUID())
+          }
+          const evaluationId = inspectionOrigins.get(item.evaluationKey)
+          inspection.offer(
+            receipt.scope,
+            { ...receipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
+            {
+              kind: "evaluation-route",
+              route:
+                item.kind === "owner"
+                  ? "fresh"
+                  : item.kind === "cached"
+                    ? "cached"
+                    : item.join === "advice"
+                      ? "existing-advice"
+                      : item.join === "pending"
+                        ? "joined-pending"
+                        : "joined-claimed",
+              semanticIdentity: item.outcome.prepared.identity,
+              path: item.outcome.path,
+              declaration: item.outcome.prepared.input.declaration.name,
+              original:
+                evaluationId === undefined
+                  ? { status: "missing", reason: "not-captured" }
+                  : { status: "linked", evaluationId }
+            }
+          )
+        }
         const recordReuseAnalytics = Effect.fn("ResidentRuntime.recordReuseAnalytics")(function* () {
           for (const item of planned) {
             if (item.kind === "cached")
@@ -2981,8 +3021,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             outcome.status === "observed" && outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : []
           )[0]
           const makePreparedUnit = (): UnitJob => {
+            const inspectionEvaluationId = inspectionOrigins.get(item.evaluationKey)
             return {
               kind: "unit",
+              ...(inspectionEvaluationId === undefined ? {} : { inspectionEvaluationId }),
               ...(job.inspectionReceipt === undefined ? {} : { inspectionReceipt: job.inspectionReceipt }),
               canonicalRound: job.canonicalRound,
               ...(job.round === undefined ? {} : { round: job.round, work: job.work }),
@@ -3006,6 +3048,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               unit.inspectionReceipt.scope,
               {
                 ...unit.inspectionReceipt.correlation,
+                ...(unit.inspectionEvaluationId === undefined ? {} : { evaluationId: unit.inspectionEvaluationId }),
                 unitId: createHash("sha256").update(`${unit.partition}:${unit.canonicalOperationId}`).digest("hex")
               },
               {
@@ -3021,6 +3064,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 unit.inspectionReceipt.scope,
                 {
                   ...unit.inspectionReceipt.correlation,
+                  ...(unit.inspectionEvaluationId === undefined ? {} : { evaluationId: unit.inspectionEvaluationId }),
                   unitId: createHash("sha256").update(`${unit.partition}:${unit.canonicalOperationId}`).digest("hex")
                 },
                 captureInspectionPolicy(unit.prepared, unit.dispatch.controlled !== null)
@@ -3584,6 +3628,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 job.inspectionReceipt.scope,
                 {
                   ...job.inspectionReceipt.correlation,
+                  ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
                   unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
                   requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
                 },
@@ -3610,6 +3655,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                     receipt.scope,
                     {
                       ...receipt.correlation,
+                      ...(job.inspectionEvaluationId === undefined ? {} : { evaluationId: job.inspectionEvaluationId }),
                       unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
                       requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
                     },

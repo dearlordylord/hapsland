@@ -26,6 +26,7 @@ export const InspectionCorrelation = Schema.Struct({
   receiptId: Schema.optionalKey(Id),
   unitId: Schema.optionalKey(Id),
   requestId: Schema.optionalKey(Id),
+  evaluationId: Schema.optionalKey(Id),
   originalRequestId: Schema.optionalKey(Id),
   batchId: Schema.optionalKey(Id),
   attemptId: Schema.optionalKey(Id)
@@ -53,6 +54,17 @@ export const InspectionWriterState = Schema.Literals([
   "uncertain"
 ])
 export const InspectionFact = Schema.Union([
+  Schema.Struct({
+    kind: Schema.Literal("evaluation-route"),
+    route: Schema.Literals(["fresh", "joined-pending", "joined-claimed", "existing-advice", "cached"]),
+    semanticIdentity: Hash,
+    path: Path,
+    declaration: Id,
+    original: Schema.Union([
+      Schema.Struct({ status: Schema.Literal("linked"), evaluationId: Id }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literal("not-captured") })
+    ])
+  }),
   Schema.Struct({ kind: Schema.Literal("preparation-read"), path: Path }),
   Schema.Struct({
     kind: Schema.Literal("preparation-omission"),

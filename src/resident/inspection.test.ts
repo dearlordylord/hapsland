@@ -12,6 +12,58 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it("links a cached clear review to its captured original without inventing a second request", async () => {
+    const root = await makeGitFixture()
+    await put(root, "type.ts", "type OrderCount = number\n")
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    const persisted = nativeDeferred<void>()
+    const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record, encoded, publication) =>
+          store.write(record, encoded, publication).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                if (record.fact.kind === "evaluation-route" && record.fact.route === "cached") persisted.resolve()
+              })
+            )
+          )
+      }
+    })
+    const dispatch: ResidentDispatchContext = {
+      statePath: join(root, "consent"),
+      userConfigPath: join(root, "absent-user.jsonc"),
+      credential: null,
+      controlled: {
+        answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }]))
+      }
+    }
+    for (const tool_use_id of ["first", "repeat"]) {
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id })))
+      if (!observation) throw new Error("missing observation")
+      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
+      await Effect.runPromise(server.whenIdle())
+    }
+    await persisted.promise
+    const records = await Effect.runPromise(store.snapshot())
+    const routes = records.filter((record) => record.fact.kind === "evaluation-route")
+    expect(routes.map((record) => (record.fact.kind === "evaluation-route" ? record.fact.route : null))).toEqual([
+      "fresh",
+      "cached"
+    ])
+    expect(routes[0]?.correlation.receiptId).not.toBe(routes[1]?.correlation.receiptId)
+    expect(routes[0]?.correlation.evaluationId).toBe(routes[1]?.correlation.evaluationId)
+    expect(routes[1]?.fact).toMatchObject({
+      original: { status: "linked", evaluationId: routes[0]?.correlation.evaluationId }
+    })
+    const invoked = records.filter((record) => record.fact.kind === "model-input")
+    expect(invoked).toHaveLength(1)
+    expect(invoked[0]?.correlation.evaluationId).toBe(routes[0]?.correlation.evaluationId)
+    expect(records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)).toEqual([
+      { kind: "evaluation-outcome", outcome: "clear" }
+    ])
+  })
+
   it("captures valid obsolete-lifetime ingress and its refusal without admitting review work", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")

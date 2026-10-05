@@ -7,6 +7,7 @@ const files = document.querySelector('#files');
 const input = document.querySelector('#input');
 const source = document.querySelector('#source');
 const results = document.querySelector('#results');
+const routes = document.querySelector('#routes');
 const status = document.querySelector('#status');
 const exact = document.querySelector('#exact');
 const copy = document.querySelector('#copy');
@@ -52,6 +53,25 @@ function render(snapshot) {
   }
   list.scrollTop = scroll;
   const records = rows.get(selected) || [];
+  const activeRoute = document.activeElement?.dataset.route;
+  routes.replaceChildren();
+  for (const record of records.filter(record => record.fact.kind === 'evaluation-route')) {
+    const fact = record.fact;
+    const original = fact.original.status === 'linked' ? snapshot.records.find(candidate => candidate.source.id === record.source.id && candidate.correlation.evaluationId === fact.original.evaluationId && candidate.fact.kind === 'model-input') : null;
+    const outcomes = original ? snapshot.records.filter(candidate => candidate.source.id === record.source.id && candidate.correlation.evaluationId === fact.original.evaluationId && candidate.fact.kind === 'evaluation-outcome').map(candidate => candidate.fact.outcome) : [];
+    const item = document.createElement('p');
+    item.textContent = fact.path + ' · ' + fact.declaration + ' · ' + fact.route + ' · ' + (outcomes.length ? 'Recorded evaluation: ' + outcomes.join(', ') : 'Evaluation outcome not retained or pending');
+    if (fact.route !== 'fresh') {
+      if (original?.correlation.receiptId) {
+        const link = document.createElement('button'); link.type = 'button'; link.textContent = 'Inspect original evaluation';
+        link.dataset.route = record.source.id + ':' + record.sequence;
+        link.addEventListener('click', () => { selected = key(original); render(current); }); item.append(document.createElement('br'), link);
+      } else item.append(document.createTextNode(' · Original evaluation unavailable; capture may be disabled, lost, expired or evicted.'));
+    }
+    routes.append(item);
+  }
+  if (!routes.childNodes.length) routes.textContent = 'No retained evaluation routes.';
+  if (activeRoute) Array.from(routes.querySelectorAll('button')).find(button => button.dataset.route === activeRoute)?.focus({ preventScroll: true });
   const inputs = records.filter(record => record.fact.kind === 'model-input' && record.fact.payload.status === 'available').map(record => ({ unitId: record.correlation.unitId, input: JSON.parse(record.fact.payload.encoded) }));
   const artifacts = inputs.flatMap(item => [item.input?.artifact, ...(Array.isArray(item.input?.evidence?.nodes) ? item.input.evidence.nodes : [])]).filter(item => item && typeof item.domain === 'string' && typeof item.source === 'string');
   const fileText = [
@@ -115,4 +135,4 @@ window.addEventListener('pagehide', () => feed.close());
 const style = `body{font:16px system-ui;margin:0;padding:1rem;color:#e6e9ef;background:#11151d}h1{font-size:1.5rem}button,input{font:inherit;padding:.6rem;color:inherit;background:#202837;border:1px solid #63718a;border-radius:.3rem}button:focus-visible,input:focus-visible{outline:3px solid #a9c6ff}main{display:grid;grid-template-columns:minmax(16rem,1fr) minmax(0,2fr);gap:1rem}ul{padding:0;list-style:none;max-height:70vh;overflow:auto}li{margin:.4rem 0}li button{width:100%;text-align:left;overflow-wrap:anywhere}[aria-pressed=true]{border-color:#a9c6ff}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:1rem;background:#1a2230;max-height:70vh;overflow:auto}label{display:block;margin:.7rem 0}input{max-width:90%}@media(max-width:650px){main{display:block}}`
 const hash = (value: string) => `'sha256-${createHash("sha256").update(value).digest("base64")}'`
 export const inspectionPagePolicy = `default-src 'none'; script-src ${hash(script)}; style-src ${hash(style)}; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'`
-export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><style>${style}</style><body><h1>Hapsland inspection</h1><p>Opening this view does not enable recording.</p><p id="status" role="status">Connecting to retained history</p><button id="pause" type="button" aria-pressed="false">Pause</button><label>Filter project, runtime or path <input id="filter" type="search"></label><section aria-label="Recording evidence"><h2>Recording state observations</h2><p>Historical observations; current resident recording state is not verified.</p><pre id="recording">No retained recording-state evidence</pre></section><main><section aria-label="Captured edits"><ul id="edits"></ul></section><section aria-label="Selected evidence"><h2>Files</h2><pre id="files">Select an edit to inspect file provenance.</pre><h2>Exact HTTP request body</h2><p>Captured at transport invocation; this does not establish remote receipt.</p><button id="copy" type="button" disabled>Copy exact request</button><span id="copy-status" role="status"></span><pre id="exact">Select an edit to inspect its exact request.</pre><h2>Captured model input (structured)</h2><pre id="input">No retained model input.</pre><h2>Included source from captured model input</h2><pre id="source">No retained included source.</pre><h2>Results</h2><pre id="results">Select an edit to inspect results.</pre><h2>Timeline and captured evidence</h2><pre id="detail">Select an edit to inspect its captured evidence.</pre></section></main><script>${script}</script></body></html>`
+export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><style>${style}</style><body><h1>Hapsland inspection</h1><p>Opening this view does not enable recording.</p><p id="status" role="status">Connecting to retained history</p><button id="pause" type="button" aria-pressed="false">Pause</button><label>Filter project, runtime or path <input id="filter" type="search"></label><section aria-label="Recording evidence"><h2>Recording state observations</h2><p>Historical observations; current resident recording state is not verified.</p><pre id="recording">No retained recording-state evidence</pre></section><main><section aria-label="Captured edits"><ul id="edits"></ul></section><section aria-label="Selected evidence"><h2>Files</h2><pre id="files">Select an edit to inspect file provenance.</pre><h2>Exact HTTP request body</h2><p>Captured at transport invocation; this does not establish remote receipt.</p><button id="copy" type="button" disabled>Copy exact request</button><span id="copy-status" role="status"></span><pre id="exact">Select an edit to inspect its exact request.</pre><h2>Captured model input (structured)</h2><pre id="input">No retained model input.</pre><h2>Included source from captured model input</h2><pre id="source">No retained included source.</pre><h2>Per-unit evaluation routes</h2><div id="routes">No retained evaluation routes.</div><h2>Results</h2><pre id="results">Select an edit to inspect results.</pre><h2>Timeline and captured evidence</h2><pre id="detail">Select an edit to inspect its captured evidence.</pre></section></main><script>${script}</script></body></html>`

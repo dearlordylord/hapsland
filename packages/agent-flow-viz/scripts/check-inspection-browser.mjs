@@ -69,7 +69,11 @@ try {
           history.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
-                if (record.fact.kind === "evaluation-outcome") published.resolve()
+                if (
+                  record.fact.kind === "evaluation-outcome" ||
+                  (record.fact.kind === "evaluation-route" && record.fact.route !== "fresh")
+                )
+                  published.resolve()
               })
             )
           )
@@ -96,6 +100,7 @@ try {
     published = nativeDeferred()
     assert.equal(Effect.runSync(resident.admit(observation, dispatch)).status, "accepted")
     await published.promise
+    await Effect.runPromise(resident.whenIdle())
   }
   await edit("type.ts", "before-dashboard")
   const server = await Effect.runPromise(
@@ -153,6 +158,19 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 3)
   assert.equal(await page.evaluate(() => getSelection().toString().length), 20)
   assert.equal(await page.locator("#detail").evaluate((element) => element.scrollTop), readingPosition)
+  assert.equal(dispatched.length, 3)
+  await edit("type.ts", "reuse-existing-advice")
+  await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
+  assert.equal(dispatched.length, 3, "existing advice must not create another classifier invocation")
+  const reused = page.getByRole("button", { name: /type\.ts/ }).last()
+  await reused.focus()
+  await page.keyboard.press("Enter")
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("existing-advice"))
+  const original = page.getByRole("button", { name: "Inspect original evaluation", exact: true })
+  await original.focus()
+  await page.keyboard.press("Enter")
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("fresh"))
+  assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   assert.deepEqual(errors, [])
   console.log(
