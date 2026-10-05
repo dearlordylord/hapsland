@@ -113,7 +113,13 @@ These source-checkout diagnostics do not amend the original comparison cell or
 establish a general delivery guarantee. The investigation made four physical Jev
 requests across its two live runs.
 
-The compact native terminal recovery fixture retains all 2050 requests and its full result vector. It uses the shared runner’s explicit 15-second execution allowance; ordinary fixtures retain the default five seconds. A retained binary completed in 4.06 seconds separately but twice exceeded five seconds during the focused suite. This allowance bounds offline stress execution and makes no product latency claim. The original minimal native trace fixture also uses the shared runner, with separate default 30-second C emission and clang allowances.
+Long-history recovery has one owner: `jev-targeted-controls.test.ts` exercises
+2050 terminal requests, then credential unavailability, restoration and rotation
+through the production emitted-JavaScript engine and public Run API. Small native
+recovery and credential fixtures own C/JavaScript/public/replay agreement; they do
+not repeat the 2050-request stress campaign. The original minimal native trace
+fixture uses the shared runner, with separate default 30-second C emission and
+clang allowances.
 
 ## Native compilation phase
 
@@ -146,7 +152,7 @@ and compiler-emitted vectors before its independent public and replay checks.
 
 The original advicee preparation-after-departure, disconnect, and remove comparisons use C90/clang120/native5
 with a 250-second aggregate watchdog; an authenticated preflight session keeps
-its own fixed compilation policy. The compact 2050-request public recovery uses a 100-second aggregate watchdog; the 2050-request credential-rotation stress test uses 300 seconds. Request counts and assertions are unchanged. Freshness source-change comparisons retain
+its own fixed compilation policy. The single 2050-request credential-rotation stress test uses a 300-second aggregate watchdog. Freshness source-change comparisons retain
 native/emitted-JS agreement under a 300-second watchdog (C90/clang120/native5,
 JS15+5). Their independent public milestones and replay also run as separate
 TypeScript tests. The concurrent-notice comparison uses the shared native runner

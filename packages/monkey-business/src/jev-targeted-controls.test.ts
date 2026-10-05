@@ -163,21 +163,36 @@ it("refuses issuance while credentials are unavailable and restores fresh admiss
   replayExact(run)
 })
 
-it("restores and rotates credentials after more than 2048 terminal requests on one resident", () => {
-  const run = createRun({ inputs: [], jevDelay: 1 })
-  for (let cycle = 0; cycle < 2050; cycle++) {
-    run.schedule({ ...edit, outcome: "clear", at: cycle * 10 })
-    run.advance({ untilTime: cycle * 10 + 9, maxEvents: 100 })
+it.each([2, 2050])(
+  "restores and rotates credentials after %i terminal requests on one resident",
+  (count) => {
+    const run = createRun({ inputs: [], jevDelay: 1 })
+    for (let cycle = 0; cycle < count; cycle++) {
+      run.schedule({ ...edit, outcome: "clear", at: cycle * 10 })
+      run.advance({ untilTime: cycle * 10 + 9, maxEvents: 100 })
+      expect(run.projection.dispatch.requests).toEqual([])
+      expect(run.projection.dispatch.running).toEqual([])
+      expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
+    }
+    run.applyControl({ kind: "credentials", action: "unavailable" })
+    run.applyControl({ kind: "credentials", action: "restore" })
+    run.applyControl({ kind: "credentials", action: "rotate" })
+    run.schedule({ ...edit, at: run.now + 1 })
+    run.advance({ untilTime: run.now + 20, maxEvents: 100 })
+    expect(run.interventions.map((report) => report.result)).toEqual(["applied", "applied", "applied"])
     expect(run.projection.dispatch.requests).toEqual([])
     expect(run.projection.dispatch.running).toEqual([])
-  }
-  run.applyControl({ kind: "credentials", action: "unavailable" })
-  run.applyControl({ kind: "credentials", action: "restore" })
-  run.applyControl({ kind: "credentials", action: "rotate" })
-  run.schedule({ ...edit, at: run.now + 1 })
-  run.advance({ untilTime: run.now + 20, maxEvents: 100 })
-  expect(run.interventions.map((report) => report.result)).toEqual(["applied", "applied", "applied"])
-  expect(run.projection.dispatch.requests).toEqual([])
-  expect(run.projection.dispatch.running).toEqual([])
-  expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
-}, 300000)
+    expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
+    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(count + 1)
+    expect(
+      run.observations.filter((frame) => frame.event.kind === "jevRequestSettled" && frame.event.outcome === "clear")
+    ).toHaveLength(count)
+    expect(
+      run.observations.filter((frame) => frame.event.kind === "jevRequestSettled" && frame.event.outcome === "finding")
+    ).toHaveLength(1)
+    expect(
+      run.observations.flatMap((frame) => frame.commands).filter((command) => command.kind === "submissionRecorded")
+    ).toHaveLength(1)
+  },
+  300000
+)
