@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process"
 import { execFileSync } from "../../scripts/test-harness/process.mjs"
-import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs"
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import assert from "node:assert/strict"
@@ -242,7 +242,40 @@ export const fixture = (
       (stats) =>
         stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0 && stats.pendingFindingBatches > 0
     )
-  return { root, capturePath, call, context, reload, prepareResident, waitForWork, waitForAdvice }
+  const offerOnLaterEdits = async (ctx = context) => {
+    // A healthy pending batch still requires current-source revalidation. The
+    // ordinary 250 ms callback polls only its first 100 ms, so a busy reply can
+    // truthfully defer the offer. Exercise at most two real later opportunities;
+    // never stretch the production callback deadline or fabricate an offer.
+    let output
+    let editCount = 0
+    for (const [index, path] of ["other.ts", "later.ts"].entries()) {
+      const next = {
+        ...before,
+        toolCallId: `native-edit-${index + 2}`,
+        input: { path, edits: [{ oldText: "type Before = string", newText: `type Later${index}Count = number` }] }
+      }
+      writeFileSync(join(root, path), "type Before = string\n")
+      await call("tool_call", next, ctx)
+      writeFileSync(join(root, path), `type Later${index}Count = number\n`)
+      output = await call(
+        "tool_result",
+        {
+          ...result,
+          ...next,
+          content: [{ type: "text", text: `Successfully replaced text in ${path}.` }],
+          details: {
+            patch: `--- ${path}\n+++ ${path}\n@@ -1 +1 @@\n-type Before = string\n+type Later${index}Count = number\n`
+          }
+        },
+        ctx
+      )
+      editCount += 1
+      if (output !== undefined) break
+    }
+    return { output, editCount }
+  }
+  return { root, capturePath, call, context, reload, prepareResident, waitForWork, waitForAdvice, offerOnLaterEdits }
 }
 
 export const input = {

@@ -63,25 +63,7 @@ describe("Pi native extension inspection through production command and public f
         writeFileSync(join(f.root, "backend.gate"), "release\n")
         await f.waitForAdvice()
         await unlink(join(f.root, "backend.gate"))
-        const next = {
-          ...before,
-          toolCallId: "native-edit-2",
-          input: { path: "other.ts", edits: [{ oldText: "type Before = string", newText: "type OtherCount = number" }] }
-        }
-        writeFileSync(join(f.root, "other.ts"), "type Before = string\n")
-        await f.call("tool_call", next, context)
-        writeFileSync(join(f.root, "other.ts"), "type OtherCount = number\n")
-        editOutput = await f.call(
-          "tool_result",
-          {
-            ...result,
-            ...next,
-            details: {
-              patch: "--- other.ts\n+++ other.ts\n@@ -1 +1 @@\n-type Before = string\n+type OtherCount = number\n"
-            }
-          },
-          context
-        )
+        editOutput = (await f.offerOnLaterEdits(context)).output
       }
       if (variant === "edit") {
         writeFileSync(join(f.root, "backend.gate"), "release\n")
