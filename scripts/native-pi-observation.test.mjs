@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { assessPiAdoption, piModelProfile } from "./native-pi-observation.mjs"
+import { assessPiAdoption, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
 const base = () => ({
   events: [
     { kind: "hapsland-response", status: "registered", at: 0 },
@@ -54,9 +54,19 @@ test("native evidence and semantic expansion are required independently", () => 
   assert.equal(c.semanticCrossFileReview, false)
 })
 test("ordinary selected model is validated without a fallback or overwrite", () => {
-  assert.deepEqual(piModelProfile({ defaultProvider: "openai-codex", defaultModel: "gpt-6-luna" }), {
-    provider: "openai-codex",
+  assert.deepEqual(piModelProfile({ defaultProvider: "openai", defaultModel: "gpt-6-luna" }), {
+    provider: "openai",
     model: "gpt-6-luna"
   })
   assert.throws(() => piModelProfile({ defaultProvider: "openai", defaultModel: "other" }))
+})
+
+test("the native stream must confirm the selected provider and model on every assistant message", () => {
+  const profile = { provider: "openai", model: "gpt-6-luna" }
+  const observed = { kind: "native-message", role: "assistant", ...profile }
+  assert.equal(piModelObserved([observed], profile), true)
+  assert.equal(piModelObserved([], profile), false)
+  for (const wrong of [{ provider: "other" }, { model: "other" }, { provider: undefined }]) {
+    assert.equal(piModelObserved([observed, { ...observed, ...wrong }], profile), false)
+  }
 })

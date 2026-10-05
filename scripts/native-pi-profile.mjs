@@ -14,7 +14,7 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { assessPiAdoption, piModelProfile } from "./native-pi-observation.mjs"
+import { assessPiAdoption, piModelProfile, piModelObserved } from "./native-pi-observation.mjs"
 
 const hash = (value) => createHash("sha256").update(value).digest("hex")
 const lines = (path) => {
@@ -285,6 +285,10 @@ syncBuiltinESMExports();
         "--mode",
         "json",
         "--no-session",
+        "--provider",
+        model.provider,
+        "--model",
+        model.model,
         "--offline",
         "--no-context-files",
         "--no-skills",
@@ -304,6 +308,9 @@ syncBuiltinESMExports();
           {
             kind: "native-message",
             role: item.message?.role,
+            ...(item.message?.role === "assistant"
+              ? { provider: item.message.provider, model: item.message.model }
+              : {}),
             finding: Object.values(messages).some((message) => text.includes(message))
           }
         ]
@@ -372,6 +379,7 @@ syncBuiltinESMExports();
           }
     checks.noJevRequestAttempt = !events.some((e) => e.kind === "jev-blocked-attempt")
     checks.nativeAgentResponseObserved = events.some((e) => e.kind === "native-message" && e.role === "assistant")
+    checks.agentModelMatchesProfile = piModelObserved(events, model)
     record = {
       schemaVersion: 1,
       recordedAt: new Date().toISOString(),

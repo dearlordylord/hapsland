@@ -1,8 +1,16 @@
 // Source-free assertions shared by the native cross-file runner's Pi profile.
 export const piModelProfile = (settings) => {
-  if (settings.defaultProvider !== "openai-codex" || settings.defaultModel !== "gpt-6-luna")
-    throw new Error("Pi native milestone requires the existing openai-codex/gpt-6-luna profile")
+  if (settings.defaultProvider !== "openai" || settings.defaultModel !== "gpt-6-luna")
+    throw new Error("Pi native milestone requires the existing openai/gpt-6-luna profile")
   return { provider: settings.defaultProvider, model: settings.defaultModel }
+}
+
+export const piModelObserved = (events, profile) => {
+  const messages = events.filter((event) => event.kind === "native-message" && event.role === "assistant")
+  return (
+    messages.length > 0 &&
+    messages.every((message) => message.provider === profile.provider && message.model === profile.model)
+  )
 }
 
 export const assessPiAdoption = ({
