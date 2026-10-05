@@ -3860,7 +3860,9 @@ describe("resident delivery lease", () => {
 
   // Four 16-item partitions attempt 64 real repository parses; the shared
   // global limit is 512 and is covered by the capacity ledger tests. The finite
-  // 20-second fixture budget includes parsing and revalidation under coverage.
+  // 30-second fixture budget includes parsing and revalidation under coverage:
+  // measured completion was 13–17s in focused and exact-order runs, while a
+  // full covered run exceeded 20s. This does not change production deadlines.
   it("revalidates and finalizes across four saturated partitions", async () => {
     const root = await makeGitFixture()
     const statePath = join(root, "consent")
@@ -3905,7 +3907,7 @@ describe("resident delivery lease", () => {
       saturated.retainedBytes -
         beforeItems.slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0)
     )
-  }, 20_000)
+  }, 30_000)
 
   it("scans past unavailable advice to independently current advice once per collection", async () => {
     const root = await makeGitFixture()
