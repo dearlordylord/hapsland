@@ -1,5 +1,9 @@
 # Every accepted frame contributes to the path, including intermediate stages.
 import Base
+import ../../packages/agent-flow-bend/CollectionState.bend as Collection
+import ../../packages/agent-flow-bend/DeliveryState.bend as Delivery
+import ../../packages/agent-flow-bend/SubmissionState.bend as Submission
+import ./DefensePresentation.bend as Display
 import ../../packages/agent-flow-bend/Ledger.bend as Ledger
 import ./DefenseMotionTypes.bend as V
 import ./DefenseMap.bend as Map
@@ -90,8 +94,7 @@ def end_route(+layout: U32,cause: U32) -> List<&2,Map.Point>:
     case 3: Map.delivery_route(layout)
     case _: []
 def outcome(actor: V.Actor) -> U32:
-  match actor:
-    case V.Actor{_,_,_,_,_,_,_,_,_,_,_,cause,released}: cause
+  Display.outcome(actor)
 def with_outcome(actor: V.Actor,cause: U32) -> V.Actor:
   match actor:
     case V.Actor{k,f,l,x,y,p,seen,steps,t,parent,shown,_,released}:
@@ -121,6 +124,11 @@ def request_outcome(value: C.RequestOutcome) -> U32:
 def finish_matches(k: V.WorkIdentity,group: Nat,round: Nat,selected: List<&2,Nat>) -> Bool:
   match k:
     case V.WorkIdentity{p,_,r,o}: Nat.is_eq(p,group) && Nat.is_eq(r,round) && member(o,selected)
+def submission_recorded(items: List<&2,C.Command>) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case C.SubmissionRecorded{} <> _: True{}
+    case _ <> rest: submission_recorded(rest)
 def witnessed(event: C.CanonicalEvent,commands: List<&2,C.Command>,+actor: V.Actor) -> V.Actor:
   match event:
     case C.JevRequestSettled{p,l,r,o,_,result,_}:
@@ -129,14 +137,31 @@ def witnessed(event: C.CanonicalEvent,commands: List<&2,C.Command>,+actor: V.Act
       Bool.pick(V.Actor,same(actor_key(actor),V.WorkIdentity{p,l,r,o}),with_outcome(actor,Bool.pick(U32,refused(commands),5,6)),actor)
     case C.PreparationCompleted{p,l,r,o,_}:
       Bool.pick(V.Actor,same(actor_key(actor),V.WorkIdentity{p,l,r,o}),with_outcome(actor,6),actor)
+    case C.RetireReview{p,l,r,o}:
+      Bool.pick(V.Actor,same(actor_key(actor),V.WorkIdentity{p,l,r,o}),with_outcome(actor,Display.retirement_outcome(outcome(actor))),actor)
     case C.FinishTerminal{group,round,_,_,selected,C.Acknowledged{}}:
       Bool.pick(V.Actor,acknowledged(commands) && finish_matches(actor_key(actor),group,round,selected),with_outcome(actor,3),actor)
     case _: actor
-def witnessed_all(+event: C.CanonicalEvent,+commands: List<&2,C.Command>,actors: List<&2,V.Actor>,+before: List<&2,C.Work>) -> List<&2,V.Actor>:
+def batches(states: List<&2,C.State>) -> List<&2,Submission.Batch>:
+  match states:
+    case C.State{_,_,_,_,_,_,_,Collection.State{_,_,_,Delivery.State{_,_,Submission.State{_,items}},_,_,_},_} <> _: items
+    case _: []
+def submission_matches(k: V.WorkIdentity,+advice: Nat,+token: Nat,items: List<&2,Submission.Batch>) -> Bool:
+  match k items:
+    case +key Con{Submission.Batch{+a,p,r,+t,_,_,_,_},rest}:
+      (Nat.is_eq(a,advice) && Nat.is_eq(t,token) && finish_matches(key,p,r,[a])) || submission_matches(key,advice,token,rest)
+    case _ _: False{}
+def witnessed_submission(event: C.CanonicalEvent,+commands: List<&2,C.Command>,+actor: V.Actor,before: List<&2,C.State>) -> V.Actor:
+  match event:
+    case C.SubmissionTerminal{advice,token,certain}:
+      Bool.pick(V.Actor,submission_recorded(commands) && submission_matches(actor_key(actor),advice,token,batches(before)),
+        with_outcome(actor,Bool.pick(U32,certain,10,11)),actor)
+    case _: witnessed(event,commands,actor)
+def witnessed_all(+event: C.CanonicalEvent,+commands: List<&2,C.Command>,actors: List<&2,V.Actor>,+before: List<&2,C.Work>,+states: List<&2,C.State>) -> List<&2,V.Actor>:
   match actors:
     case Nil{}: []
     case +actor <> rest:
-      Bool.pick(V.Actor,present(actor_key(actor),before),witnessed(event,commands,actor),actor) <> witnessed_all(event,commands,rest,before)
+      Bool.pick(V.Actor,present(actor_key(actor),before),witnessed_submission(event,commands,actor,states),actor) <> witnessed_all(event,commands,rest,before,states)
 def retire(actor: V.Actor,layout: U32,at: Nat) -> V.Actor:
   match actor:
     case V.Actor{k,f,l,x,y,p,seen,steps,+t,parent,shown,+cause,released}:
@@ -188,9 +213,9 @@ def births(items: List<&2,C.Work>,+actors: List<&2,V.Actor>,+layout: U32,+at: Na
         birth_actor(item,layout,at,unit_lane(item,states),predecessor(event,item)) <> actors),layout,at,states,event)
 def frame(frame: T.Frame,actors: List<&2,V.Actor>,+layout: U32) -> List<&2,V.Actor>:
   match frame:
-    case T.ProductFrame{_,+at,+event,before,+after,commands,None{},_}:
+    case T.ProductFrame{_,+at,+event,+before,+after,commands,None{},_}:
       +items = work(after)
-      births(items,update(items,witnessed_all(event,commands,actors,work(before)),layout,at),layout,at,after,event)
+      births(items,update(items,witnessed_all(event,commands,actors,work(before),before),layout,at),layout,at,after,event)
     case _: actors
 def ingest(frames: List<&2,T.Frame>,actors: List<&2,V.Actor>,+layout: U32) -> List<&2,V.Actor>:
   match frames:
@@ -213,23 +238,29 @@ def travel(+start: Map.Point,+target: Map.Point) -> Map.Point:
   Bool.pick(Map.Point,U32.is_eq(Map.px(start),Map.px(target)),
     Map.Point{Map.px(start),Map.travel_coordinate(Map.py(start),Map.py(target),4)},
     Map.Point{Map.travel_coordinate(Map.px(start),Map.px(target),4),Map.py(start)})
+def shown_time(actor: V.Actor) -> Nat:
+  match actor:
+    case V.Actor{_,_,_,_,_,_,_,_,_,_,shown,_,_}: shown
 def move_to(actor: V.Actor,target: V.Waypoint,+rest: List<&2,V.Waypoint>) -> V.Actor:
   match actor target:
-    case V.Actor{k,f,l,+x,+y,_,seen,_,t,_,shown,cause,released} V.Waypoint{+tx,+ty,+p,+at}:
+    case +value V.Waypoint{+tx,+ty,+p,+at}:
+      +start = point(value)
+      +x = Map.px(start)
+      +y = Map.py(start)
       +next = travel(Map.Point{x,y},Map.Point{tx,ty})
       +done = Map.same(next,Map.Point{tx,ty})
-      V.Actor{k,f,l,Map.px(next),Map.py(next),p,seen,Bool.pick(List<&2,V.Waypoint>,done,rest,V.Waypoint{tx,ty,p,at} <> rest),t,[],Bool.pick(Nat,done,at,shown),cause,True{}}
+      Display.repose(value,Map.px(next),Map.py(next),p,Bool.pick(List<&2,V.Waypoint>,done,rest,V.Waypoint{tx,ty,p,at} <> rest),Bool.pick(Nat,done,at,shown_time(value)))
 def advance(actor: V.Actor,steps: List<&2,V.Waypoint>) -> V.Actor:
   match actor steps:
     case V.Actor{k,f,l,x,y,p,seen,_,+t,parent,shown,cause,released} Nil{}:
       V.Actor{k,f,l,x,y,p,seen,[],Bool.pick(U32,U32.is_eq(t,0),0,U32.sub(t,1)),parent,shown,cause,released}
     case value Con{next,rest}: move_to(value,next,rest)
 def waiting(actor: V.Actor) -> List<&2,V.WorkIdentity>:
-  match actor:
-    case V.Actor{_,_,_,_,_,_,_,_,_,parent,_,_,released}: parent
+  Display.pending_parent(actor)
 def alive(actor: V.Actor) -> Bool:
   match actor:
-    case V.Actor{_,_,_,_,_,_,_,steps,t,_,_,_,released}: Bool.not(U32.is_eq(t,1)) || Bool.not(empty(steps))
+    case V.Actor{_,_,_,_,_,_,_,steps,+t,_,_,cause,_}:
+      Display.keep(Bool.not(empty(steps)),U32.is_eq(cause,6) && (t > 0 : U32),Bool.not(U32.is_eq(t,1)))
 def before(a: V.WorkIdentity,b: V.WorkIdentity) -> Bool:
   match a b:
     case V.WorkIdentity{+ap,+al,+ar,ao} V.WorkIdentity{+bp,+bl,+br,bo}:
@@ -255,6 +286,17 @@ def branch_clear(+actor: V.Actor,others: List<&2,V.Actor>) -> Bool:
       Bool.not(shared_room(actor,other) && before(actor_key(other),actor_key(actor)) && (Map.segment_length(point(actor),point(other)) < 28 : U32)) && branch_clear(actor,rest)
 def can_play(+actor: V.Actor,+all: List<&2,V.Actor>) -> Bool:
   ready(waiting(actor),all) && branch_clear(actor,all) && (Bool.not(entrance(actor)) || entrance_clear(actor,all))
+def spatial_blocker(+actor: V.Actor,others: List<&2,V.Actor>) -> List<&2,V.WorkIdentity>:
+  match others:
+    case Nil{}: []
+    case +other <> rest:
+      Bool.pick(List<&2,V.WorkIdentity>,before(actor_key(other),actor_key(actor)) &&
+        ((shared_room(actor,other) && (Map.segment_length(point(actor),point(other)) < 28 : U32)) ||
+         (entrance(actor) && entrance(other) && (Map.segment_length(point(actor),point(other)) < 24 : U32))),
+        [actor_key(other)],spatial_blocker(actor,rest))
+def wait_kind(+actor: V.Actor,+all: List<&2,V.Actor>) -> U32:
+  Display.wait_kind(ready(waiting(actor),all),branch_clear(actor,all) && (Bool.not(entrance(actor)) || entrance_clear(actor,all)),
+    Bool.not(empty(path(actor))),U32.is_eq(observed_phase(actor),5) && U32.is_eq(terminal(actor),0))
 def released(actor: V.Actor) -> Bool:
   match actor:
     case V.Actor{_,_,_,_,_,_,_,_,_,_,_,_,value}: value

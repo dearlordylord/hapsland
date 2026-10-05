@@ -1,5 +1,7 @@
 # Native layouts are read-only projections of the canonical reducer.
 import Base
+import ./DefenseHistory.bend as History
+import ./DefensePresentation.bend as Display
 import ./DefenseMechanics.bend as Mechanics
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as NativeTypes
 import ./DefenseMotion.bend as Motion
@@ -105,15 +107,6 @@ def phase_name(phase: U32) -> String:
     case 5: "PENDING FINDING"
     case _: "EXIT HISTORY"
 
-def phase_color(phase: U32) -> U32:
-  match phase:
-    case 0: 15124059
-    case 1: 65483
-    case 2: 7449343
-    case 3: 9756671
-    case 4: 16754253
-    case _: 15758447
-
 def kind_color(kind: U32) -> U32:
   match kind:
     case 0: 65483
@@ -175,7 +168,7 @@ def exits(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
       road(D.clear_route(layout),8,9170322,road(D.delivery_route(layout),8,65483,rest))))
 
 def network(+layout: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  asphalt(D.source_route(layout),asphalt(D.preparation_route(layout),asphalt(D.review_route(layout,0),asphalt(D.review_route(layout,1),asphalt(D.retained_route(layout),road(D.review_route(layout,0),28,phase_color(3),road(D.review_route(layout,1),28,phase_color(3),exits(world,rest))))))))
+  asphalt(D.source_route(layout),asphalt(D.preparation_route(layout),asphalt(D.review_route(layout,0),asphalt(D.review_route(layout,1),asphalt(D.retained_route(layout),road(D.review_route(layout,0),28,History.phase_color(3),road(D.review_route(layout,1),28,History.phase_color(3),exits(world,rest))))))))
 
 def door_open(+layout: U32,+phase: U32,+edge: U32) -> Bool:
   U32.is_eq(edge,D.entry_side(layout,phase,0)) || U32.is_eq(edge,D.entry_side(layout,phase,1)) ||
@@ -248,8 +241,8 @@ def queue_details(phase: U32,+world: M.World,+side: U32,x: U32,y: U32,rest: List
       +caption = queue_caption(M.layout(world),side)
       +cx = D.px(caption)
       +cy = D.py(caption)
-      F.text("REVIEW QUEUE / SHARED LEDGER",cx,M.sub(cy,24),1,phase_color(3),
-        F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,phase_color(3),
+      F.text("REVIEW QUEUE / SHARED LEDGER",cx,M.sub(cy,24),1,History.phase_color(3),
+        F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,History.phase_color(3),
       F.text("REVIEW READY " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,False{})) ++ " / WAIT START " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,True{})),cx,cy,1,65483,
         F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
           F.text("WORK BEFORE REQUEST / SHARED PERMITS",cx,(cy + 24 : U32),1,12439239,rest)))))
@@ -262,7 +255,7 @@ def processing_building(+world: M.World, +phase: U32, +side: U32, rest: List<&2,
   +enclosed = Bool.not(U32.is_eq(phase,0))
   +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SHARED LEDGER",phase_name(phase))
   +count = P.count(world,phase)
-  F.text(title,x,U32.sub(y,13),1,phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,phase_color(phase)),rest))))
+  F.text(title,x,U32.sub(y,13),1,History.phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,History.phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,History.phase_color(phase)),rest))))
 
 def building(+world: M.World,+phase: U32,+side: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match phase:
@@ -410,7 +403,7 @@ def status_found(+world: M.World,found: Maybe<&2,C.Work>) -> String:
 def actor_status_text(+world: M.World,+token: P.Token) -> String:
   status_found(world,E.find_work(U32.to_nat(P.id(token)),M.work(M.core(world))))
 def unit_work_row(+token: P.Token,remaining: U32,+status: String,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("E" ++ U32.show(P.family(token)) ++ " U" ++ U32.show(P.id(token)) ++ " " ++ Bool.pick(String,String.eq(status,""),phase_name(P.phase(token)),status),812,y,1,phase_color(P.phase(token)),rest)
+  F.text("E" ++ U32.show(P.family(token)) ++ " U" ++ U32.show(P.id(token)) ++ " " ++ Bool.pick(String,String.eq(status,""),phase_name(P.phase(token)),status),812,y,1,History.phase_color(P.phase(token)),rest)
 def work_row_if(on: Bool,+token: P.Token,+world: M.World,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: rest
@@ -533,37 +526,12 @@ def cue_hud(items: List<&2,M.Cue>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
     case Nil{}: rest
     case +cue <> _: F.text(cue_label(cue),24,130,1,Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),16733525,65483),rest)
 
-def terminal_name(cause: U32) -> String:
-  match cause:
-    case 2: "CLEAR"
-    case 3: "DELIVERED"
-    case 4: "UNAVAILABLE"
-    case 5: "PREP REFUSED"
-    case 6: "HANDED OFF"
-    case 7: "TIMEOUT"
-    case 8: "INTERRUPTED"
-    case 9: "NOT SENT"
-    case _: "RETIRED"
-def identity_text(identity: V.WorkIdentity) -> String:
-  match identity:
-    case V.WorkIdentity{p,l,r,o}: Nat.show(p) ++ "/" ++ Nat.show(l) ++ "/" ++ Nat.show(r) ++ "/" ++ Nat.show(o)
-def terminal_short(cause: U32) -> String:
-  match cause:
-    case 2: "CL"
-    case 3: "DL"
-    case 4: "UN"
-    case 5: "PR"
-    case 6: "HO"
-    case 7: "TO"
-    case 8: "IN"
-    case 9: "NS"
-    case _: "RT"
 def history_actor(+actor: V.Actor,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = Motion.point(actor)
   +p = Motion.visible_phase(actor)
-  +done = (Motion.terminal(actor) > 0 : U32)
-  +color = Bool.pick(U32,done,10066329,phase_color(p))
-  +status = Bool.pick(String,done,terminal_short(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PB"))
+  +done = Display.terminal_display(actor)
+  +color = History.body_color(actor)
+  +status = Bool.pick(String,done,History.terminal_short(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(Motion.wait_kind(actor,M.actors(world)),0),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PB"),History.body_wait(Motion.wait_kind(actor,M.actors(world)))))
   +x = U32.sub(D.px(point),8)
   F.text("U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))),x,U32.sub(D.py(point),22),1,color,
     F.text("E" ++ Nat.show(Motion.actor_family(actor)),x,U32.sub(D.py(point),14),1,color,
@@ -580,20 +548,18 @@ def hover_family(found: Maybe<&2,V.Actor>) -> Nat:
   match found:
     case None{}: 0n
     case Some{actor}: Motion.actor_family(actor)
-def predecessor_text(items: List<&2,V.WorkIdentity>) -> String:
-  match items:
-    case Nil{}: "NONE"
-    case first <> _: identity_text(first)
-def hover_panel(found: Maybe<&2,V.Actor>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def hover_panel(found: Maybe<&2,V.Actor>,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match found:
     case None{}: rest
     case Some{+actor}:
       box("MOB HISTORY","P / LIFETIME / ROUND / OPERATION",800,330,216,104,16768133,
-        F.text(identity_text(Motion.actor_key(actor)) ++ " / EDIT E" ++ Nat.show(Motion.actor_family(actor)),812,374,1,16777215,
-          F.text("SHOWING " ++ phase_name(Motion.visible_phase(actor)),812,386,1,12439239,
-            F.text("LAST " ++ phase_name(Motion.observed_phase(actor)),812,398,1,12439239,
-              F.text(Bool.pick(String,(Motion.terminal(actor) > 0 : U32),"RESULT " ++ terminal_name(Motion.outcome(actor)),"BODY HISTORY / ENGINE ABOVE"),812,410,1,15124059,
-                F.text("PREDECESSOR " ++ predecessor_text(Motion.waiting(actor)),812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))
+        F.text(History.identity_text(Motion.actor_key(actor)) ++ " / EDIT E" ++ Nat.show(Motion.actor_family(actor)),812,374,1,16777215,
+          F.text("SHOWING " ++ phase_name(Motion.visible_phase(actor)),812,382,1,12439239,
+            F.text("LAST " ++ phase_name(Motion.observed_phase(actor)),812,390,1,12439239,
+              F.text(History.result_text(actor),812,398,1,15124059,
+                F.text("PREDECESSOR " ++ History.predecessor_text(Display.parent(actor)),812,406,1,12439239,
+                  F.text(History.wait_text(Motion.wait_kind(actor,M.actors(world)),actor,M.actors(world)),812,414,1,15124059,
+                    F.text(History.fork_text_for(actor,M.actors(world)),812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))))
 def history_visible(on: Bool,actor: V.Actor,world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case True{}: history_actor(actor,world,rest)
@@ -644,8 +610,8 @@ def scene(+world: M.World) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
   +hovered = hover_actor(M.actors(world),world)
   +target: Nat = hover_family(hovered)
-  +base = hover_panel(hovered,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[])))))))
-  +legend = F.text("U OPERATION / E EDIT ORIGIN / PB PLAYBACK / HOVER A MOB FOR ITS PATH AND OUTCOME",24,722,1,12439239,base)
+  +base = hover_panel(hovered,world,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[])))))))
+  +legend = F.text("U OPERATION / E EDIT ORIGIN / PB PLAYBACK / Q VISUAL QUEUE / STORED RETAINED ADVICE / HOVER FOR REASON",24,722,1,12439239,base)
   +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,legend))))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
@@ -665,7 +631,7 @@ def trace_if(on: Bool,+actor: V.Actor,+world: M.World,+prefix: String,rest: Stri
     case False{}: rest
     case True{}:
       +point = Motion.point(actor)
-      prefix ++ "ID=" ++ identity_text(Motion.actor_key(actor)) ++ " " ++ prefix ++ "X=" ++ U32.show(D.px(point)) ++ " " ++ prefix ++ "Y=" ++ U32.show(D.py(point)) ++ " " ++ prefix ++ "OBSERVED=" ++ U32.show(Motion.observed_phase(actor)) ++ " " ++ prefix ++ "OUTCOME=" ++ U32.show(Motion.outcome(actor))
+      prefix ++ "ID=" ++ History.identity_text(Motion.actor_key(actor)) ++ " " ++ prefix ++ "X=" ++ U32.show(D.px(point)) ++ " " ++ prefix ++ "Y=" ++ U32.show(D.py(point)) ++ " " ++ prefix ++ "OBSERVED=" ++ U32.show(Motion.observed_phase(actor)) ++ " " ++ prefix ++ "OUTCOME=" ++ U32.show(Motion.outcome(actor))
 def first_trace(items: List<&2,V.Actor>,+world: M.World,+phase: U32,+prefix: String) -> String:
   match items:
     case Nil{}: prefix ++ "ID=0"

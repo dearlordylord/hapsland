@@ -76,6 +76,8 @@ def main() -> IO(Unit):
     require(Bool.not(Motion.same(V.WorkIdentity{1n,1n,1n,7n},V.WorkIdentity{2n,1n,1n,7n})),"equal operation numbers in different partitions remain distinct actors")
     require(U32.is_eq(Motion.outcome(settlement(C.RequestClear{})),2),"clear exit requires an explicit clear settlement")
     require(Bool.not(U32.is_eq(Motion.outcome(settlement(C.RequestBackendFailure{})),2)),"backend failure cannot become a clear exit")
+    require(U32.is_eq(Motion.outcome(Motion.witnessed(C.RetireReview{1n,1n,1n,7n},[],Motion.with_outcome(settlement(C.RequestFinding{}),3))),3),"retiring an acknowledged review preserves its witnessed delivery exit")
+    require(U32.is_eq(Motion.outcome(Motion.witnessed(C.RetireReview{1n,1n,1n,7n},[],Motion.with_outcome(settlement(C.RequestFinding{}),10))),0),"retiring an individually submitted record cannot fabricate a finish acknowledgement")
     require(neutral_retirement(),"finding retirement without acknowledgement adds no delivery route")
     require(preparation_predecessor(),"review children follow preparation rather than source family identity")
     require(siblings(0) && siblings(1) && siblings(2),"two units of one edit remain separately visible after preparation on every map")
