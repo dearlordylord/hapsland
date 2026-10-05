@@ -50,7 +50,7 @@ const displayScopes = (model: ResidentModel) => {
   return (partitions.length ? partitions : [1]).map((partition) => ({
     agent: `agent-${partition}`,
     partition,
-    seed: run?.exportReplay().config.seed ?? Number(model.seed)
+    seed: run?.appliedSettings.config.seed ?? Number(model.seed)
   }))
 }
 const reconcile = (model: SimulationModel, resident: ResidentModel): SimulationModel => ({
@@ -116,8 +116,10 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
       : {})
   }
 }
-export const tickSimulation = (model: SimulationModel, deltaMs: number): SimulationModel =>
-  reconcile(model, tickResident(model.resident, deltaMs))
+export const tickSimulation = (model: SimulationModel, deltaMs: number): SimulationModel => {
+  const resident = tickResident(model.resident, deltaMs)
+  return resident === model.resident ? model : reconcile(model, resident)
+}
 
 const colors = AGENT_COLORS
 const bounded = (raw: string, low: number, high: number, fallback: number) =>
@@ -368,7 +370,7 @@ export const simulationView = <Message>(
                   current?.sequence ?? -1,
                   current?.time ?? run?.now ?? 0,
                   projection,
-                  run?.exportReplay().config.limits !== undefined
+                  run?.appliedSettings.config.limits !== undefined
                 )
               ]
             : []),

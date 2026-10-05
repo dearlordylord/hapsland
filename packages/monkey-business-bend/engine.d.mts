@@ -1,156 +1,325 @@
-export declare const PREPARATION_SOURCE_IDENTITY: string;
-export declare const SOURCE_IDENTITY: string;
-export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown; opening: unknown; retiring: unknown; lifecycles: unknown; preparations: unknown; activity_scopes: unknown }
-export interface Transition { $: "Transition"; state: EngineState; result: unknown }
-export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
-export interface ResponseTransition { $: "ResponseTransition"; state: EngineState; result: unknown; actions: unknown }
+export declare const PREPARATION_SOURCE_IDENTITY: string
+export declare const SOURCE_IDENTITY: string
+export interface EngineState {
+  $: "Types.State"
+  canonical: unknown
+  graphs: unknown
+  scheduler: unknown
+  workloads: unknown
+  random: unknown
+  advicees: unknown
+  credentials: unknown
+  opening: unknown
+  retiring: unknown
+  lifecycles: unknown
+  preparations: unknown
+  activity_scopes: unknown
+}
+export interface Transition {
+  $: "Transition"
+  state: EngineState
+  result: unknown
+}
+export type GraphTransition =
+  | { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown }
+  | { $: "Types.GraphRejected"; state: EngineState }
+export interface ResponseTransition {
+  $: "ResponseTransition"
+  state: EngineState
+  result: unknown
+  actions: unknown
+}
 declare const Engine: {
- quiet_command(state: EngineState,command: unknown,event: unknown,partition: bigint,now: bigint): unknown;
- quiet_event(state: EngineState,event: unknown,nativeIdle: boolean,stopAbsent: boolean): unknown;
- quiet_after(state: EngineState,event: unknown,partition: bigint,now: bigint,window: bigint,nativeIdle: boolean,stopAbsent: boolean): unknown;
- writer_unissued_release_delivery(state:EngineState,pending:unknown,now:bigint):unknown;
- writer_capture(state:EngineState,target:unknown):unknown;
- writer_departures(before:EngineState,state:EngineState,event:unknown):unknown;
- writer_release_delivery(state:EngineState,capture:unknown,event:unknown,now:bigint):unknown;
- writer_attempt(state:EngineState,target:unknown,now:bigint,block:boolean):{ $:"WriterAttempt"; changed:ResponseTransition; target:unknown };
- writer_prepare(state:EngineState,fact:unknown):{ $:"WriterPrepared";state:EngineState;pending:unknown;actions:unknown };
- writer_claim_event(state:EngineState,pending:unknown,now:bigint):unknown;
- writer_feedback(state:EngineState,pending:unknown,event:unknown,commands:unknown,now:bigint):ResponseTransition;
- writer_release(state:EngineState,target:unknown):unknown;
- writer_expire(state:EngineState,target:unknown,now:bigint):unknown;
- stop_command(state:EngineState,event:unknown,command:unknown,context:unknown,facts:unknown):{state:EngineState;handled:unknown;ended:unknown;fit_attempt:unknown;output:unknown};
- stop_register(state:EngineState,input:unknown):{state:EngineState;finish:unknown;created:boolean};
- stop_find(state:EngineState,partition:bigint):unknown;
- stop_entries(state:EngineState):unknown;
- stop_active(state:EngineState,partition:bigint):boolean;
- stop_progress(state:EngineState,partition:bigint,attempt:bigint,change:unknown):EngineState;
- stop_close(state:EngineState,partition:bigint):EngineState;
- collection_response_delivery_valid(state:EngineState,target:unknown,now:bigint,event:unknown):unknown;
- collection_response_open(state:EngineState,response:unknown):ResponseTransition;
- collection_response_close(state:EngineState,id:bigint,p:bigint,l:bigint,r:bigint):ResponseTransition;
- collection_response_attempt(state:EngineState,id:bigint,p:bigint,l:bigint,r:bigint,now:bigint,block:boolean):ResponseTransition;
- collection_response_after(state:EngineState,target:unknown,event:unknown,commands:unknown):ResponseTransition;
- collection_response_valid(state:EngineState,target:unknown,now:bigint):unknown;
- collection_response_handle(state:EngineState,event:unknown,command:unknown,context:unknown,target:unknown):unknown;
- collection_response_expire(state:EngineState,now:bigint):ResponseTransition;
- collection_responses(state:EngineState):unknown;
- cache_begin(before: EngineState,state: EngineState,event: unknown,commands: unknown): {state:EngineState;facts:unknown;releases:unknown};
- cache_apply(state: EngineState,fact: unknown): {state:EngineState;event:unknown;result:unknown;facts:unknown;releases:unknown;valid:unknown};
- cache_removed(before: EngineState,commands: unknown): unknown;
- configure_cache(state:EngineState,enabled:boolean,entries:bigint,bytes:bigint):EngineState;
- notice_collection_prune(state: EngineState,partition: bigint,group: bigint,now: bigint): unknown;
- notice_after(before: EngineState,state: EngineState,scope: unknown,event: unknown,commands: unknown,now: bigint,profile: unknown): {state: EngineState; events: unknown};
- notice_exercise(scope: unknown): unknown;
- notice_failure(state: EngineState,scope: unknown,now: bigint,key: bigint,sequence: bigint): unknown;
- notice_lease(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
- notice_acknowledge(state: EngineState,partition: bigint,group: bigint,key: bigint): unknown;
- sharing_after(before: EngineState,after: EngineState,event: unknown,commands: unknown): unknown;
- sharing_admitted(state: EngineState,scope: unknown,source: unknown,command: unknown): {state: EngineState; source: unknown; actions: unknown};
- sharing_preprocess(state: EngineState,event: unknown,order: bigint,horizon: unknown): {state: EngineState; frame: unknown; events: unknown};
- sharing_leave_all(state: EngineState,partition: bigint,lifetime: bigint): {state: EngineState; events: unknown; valid: unknown};
- sharing_leave(state: EngineState,scope: unknown): {state: EngineState; events: unknown; valid: unknown};
- sharing_prepare(state: EngineState,scope: unknown,keys: unknown,sizes: unknown): {state: EngineState; routes: unknown; valid: unknown};
- sharing_route(state: EngineState,route: unknown): unknown;
- sharing_routed(state: EngineState,route: unknown,commands: unknown): {state: EngineState; events: unknown};
- sharing_completion(state: EngineState,event: unknown): unknown;
- sharing_binding(state: EngineState,scope: unknown): unknown;
- sharing_result(state: EngineState,evaluation: bigint): unknown;
- freshness_admitted(state: EngineState,scope: unknown,source: unknown,command: unknown): {state: EngineState; source: unknown; actions: unknown};
- freshness_current(state: EngineState,scope: unknown): unknown;
- freshness_checks(state: EngineState,scope: unknown): unknown;
- callback_replaced(state: EngineState,orders: unknown): EngineState;
- callback_owner(state: EngineState, event: unknown): unknown;
- callback_issue(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown): {state:EngineState;receipt:unknown};
- callback_issue_output(state: EngineState, owner: unknown, order: bigint, at: bigint, action: unknown, capture: unknown): {state:EngineState;receipt:unknown};
- output_intervene(state: EngineState,target:unknown,outcome:unknown,receipt:unknown): {state:EngineState;result:unknown;cancel:unknown;schedule:unknown;receipt:unknown};
- output_deliver(receipt:unknown,now:bigint):unknown;
- stop_reserve(capture:unknown,selected:unknown,now:number):unknown;
- stop_continued(capture:unknown):unknown;
- stop_reserved(capture:unknown,selected:unknown,failed:boolean,delay:number):unknown;
- stop_budget(state:EngineState,capture:unknown):unknown;
- stop_candidates(state:EngineState,capture:unknown):unknown;
- stop_end(state:EngineState,capture:unknown,continuation:boolean):unknown;
- stop_validation(capture:unknown,advice:number,current:boolean,credential:boolean,generation:boolean,readable:boolean):unknown;
- collector_configure(state:EngineState,profile:unknown):EngineState;
- collector_configured(state:EngineState):boolean;
- collector_command(state:EngineState,event:unknown,command:unknown,context:unknown):{state:EngineState;handled:unknown};
- collector_after(state:EngineState,event:unknown):{state:EngineState;handled:unknown};
- stop_initial(capture:unknown):unknown;
- stop_wake(capture:unknown,now:number):unknown;
- output_initial(capture:unknown,terminalOnly:boolean):unknown;
- callback_delivered(state: EngineState, order: bigint): EngineState;
- callback_originals(state: EngineState): unknown;
- callback_action(state: EngineState, target: unknown, control: unknown, receipt: unknown, at: bigint, order: bigint): {state: EngineState; result: unknown; cancel: unknown; schedule: unknown};
- activity_event_valid(state: EngineState, event: unknown, partition: bigint, incarnation: bigint): boolean;
- lifecycle_entries(state: EngineState): unknown;
- lifecycle_entry(state: EngineState, partition: bigint): unknown;
- lifecycle_action(state: EngineState, partition: bigint, action: unknown): { state: EngineState; changed: unknown; cleanup: unknown; events: unknown };
- activity_scope(state: EngineState, partition: bigint): unknown;
- activity_valid(state: EngineState, partition: bigint, incarnation: bigint): boolean;
- activity_lifetime(state: EngineState, partition: bigint): number;
- activity_edit(state: EngineState, partition: bigint, incarnation: bigint): { state: EngineState; plan: unknown };
- permit_issue_action(capture: unknown, started: bigint, now: bigint): unknown;
- permit_issued(capture: unknown, token: bigint): unknown;
- permit_consumed(state: EngineState, command: unknown, partition: bigint, lifetime: bigint): unknown;
+  quiet_command(state: EngineState, command: unknown, event: unknown, partition: bigint, now: bigint): unknown
+  quiet_event(state: EngineState, event: unknown, nativeIdle: boolean, stopAbsent: boolean): unknown
+  quiet_after(
+    state: EngineState,
+    event: unknown,
+    partition: bigint,
+    now: bigint,
+    window: bigint,
+    nativeIdle: boolean,
+    stopAbsent: boolean
+  ): unknown
+  writer_unissued_release_delivery(state: EngineState, pending: unknown, now: bigint): unknown
+  writer_capture(state: EngineState, target: unknown): unknown
+  writer_departures(before: EngineState, state: EngineState, event: unknown): unknown
+  writer_release_delivery(state: EngineState, capture: unknown, event: unknown, now: bigint): unknown
+  writer_attempt(
+    state: EngineState,
+    target: unknown,
+    now: bigint,
+    block: boolean
+  ): { $: "WriterAttempt"; changed: ResponseTransition; target: unknown }
+  writer_prepare(
+    state: EngineState,
+    fact: unknown
+  ): { $: "WriterPrepared"; state: EngineState; pending: unknown; actions: unknown }
+  writer_claim_event(state: EngineState, pending: unknown, now: bigint): unknown
+  writer_feedback(
+    state: EngineState,
+    pending: unknown,
+    event: unknown,
+    commands: unknown,
+    now: bigint
+  ): ResponseTransition
+  writer_release(state: EngineState, target: unknown): unknown
+  writer_expire(state: EngineState, target: unknown, now: bigint): unknown
+  stop_command(
+    state: EngineState,
+    event: unknown,
+    command: unknown,
+    context: unknown,
+    facts: unknown
+  ): { state: EngineState; handled: unknown; ended: unknown; fit_attempt: unknown; output: unknown }
+  stop_register(state: EngineState, input: unknown): { state: EngineState; finish: unknown; created: boolean }
+  stop_find(state: EngineState, partition: bigint): unknown
+  stop_entries(state: EngineState): unknown
+  stop_active(state: EngineState, partition: bigint): boolean
+  stop_progress(state: EngineState, partition: bigint, attempt: bigint, change: unknown): EngineState
+  stop_close(state: EngineState, partition: bigint): EngineState
+  collection_response_delivery_valid(state: EngineState, target: unknown, now: bigint, event: unknown): unknown
+  collection_response_open(state: EngineState, response: unknown): ResponseTransition
+  collection_response_close(state: EngineState, id: bigint, p: bigint, l: bigint, r: bigint): ResponseTransition
+  collection_response_attempt(
+    state: EngineState,
+    id: bigint,
+    p: bigint,
+    l: bigint,
+    r: bigint,
+    now: bigint,
+    block: boolean
+  ): ResponseTransition
+  collection_response_after(state: EngineState, target: unknown, event: unknown, commands: unknown): ResponseTransition
+  collection_response_valid(state: EngineState, target: unknown, now: bigint): unknown
+  collection_response_handle(
+    state: EngineState,
+    event: unknown,
+    command: unknown,
+    context: unknown,
+    target: unknown
+  ): unknown
+  collection_response_expire(state: EngineState, now: bigint): ResponseTransition
+  collection_responses(state: EngineState): unknown
+  cache_begin(
+    before: EngineState,
+    state: EngineState,
+    event: unknown,
+    commands: unknown
+  ): { state: EngineState; facts: unknown; releases: unknown }
+  cache_apply(
+    state: EngineState,
+    fact: unknown
+  ): { state: EngineState; event: unknown; result: unknown; facts: unknown; releases: unknown; valid: unknown }
+  cache_removed(before: EngineState, commands: unknown): unknown
+  configure_cache(state: EngineState, enabled: boolean, entries: bigint, bytes: bigint): EngineState
+  notice_collection_prune(state: EngineState, partition: bigint, group: bigint, now: bigint): unknown
+  notice_after(
+    before: EngineState,
+    state: EngineState,
+    scope: unknown,
+    event: unknown,
+    commands: unknown,
+    now: bigint,
+    profile: unknown
+  ): { state: EngineState; events: unknown }
+  notice_exercise(scope: unknown): unknown
+  notice_failure(state: EngineState, scope: unknown, now: bigint, key: bigint, sequence: bigint): unknown
+  notice_lease(state: EngineState, partition: bigint, group: bigint, key: bigint): unknown
+  notice_acknowledge(state: EngineState, partition: bigint, group: bigint, key: bigint): unknown
+  sharing_after(before: EngineState, after: EngineState, event: unknown, commands: unknown): unknown
+  sharing_admitted(
+    state: EngineState,
+    scope: unknown,
+    source: unknown,
+    command: unknown
+  ): { state: EngineState; source: unknown; actions: unknown }
+  sharing_preprocess(
+    state: EngineState,
+    event: unknown,
+    order: bigint,
+    horizon: unknown
+  ): { state: EngineState; frame: unknown; events: unknown }
+  sharing_leave_all(
+    state: EngineState,
+    partition: bigint,
+    lifetime: bigint
+  ): { state: EngineState; events: unknown; valid: unknown }
+  sharing_leave(state: EngineState, scope: unknown): { state: EngineState; events: unknown; valid: unknown }
+  sharing_prepare(
+    state: EngineState,
+    scope: unknown,
+    keys: unknown,
+    sizes: unknown
+  ): { state: EngineState; routes: unknown; valid: unknown }
+  sharing_route(state: EngineState, route: unknown): unknown
+  sharing_routed(state: EngineState, route: unknown, commands: unknown): { state: EngineState; events: unknown }
+  sharing_completion(state: EngineState, event: unknown): unknown
+  sharing_binding(state: EngineState, scope: unknown): unknown
+  sharing_result(state: EngineState, evaluation: bigint): unknown
+  freshness_admitted(
+    state: EngineState,
+    scope: unknown,
+    source: unknown,
+    command: unknown
+  ): { state: EngineState; source: unknown; actions: unknown }
+  freshness_current(state: EngineState, scope: unknown): unknown
+  freshness_checks(state: EngineState, scope: unknown): unknown
+  callback_replaced(state: EngineState, orders: unknown): EngineState
+  callback_owner(state: EngineState, event: unknown): unknown
+  callback_issue(
+    state: EngineState,
+    owner: unknown,
+    order: bigint,
+    at: bigint,
+    action: unknown
+  ): { state: EngineState; receipt: unknown }
+  callback_issue_output(
+    state: EngineState,
+    owner: unknown,
+    order: bigint,
+    at: bigint,
+    action: unknown,
+    capture: unknown
+  ): { state: EngineState; receipt: unknown }
+  output_intervene(
+    state: EngineState,
+    target: unknown,
+    outcome: unknown,
+    receipt: unknown
+  ): { state: EngineState; result: unknown; cancel: unknown; schedule: unknown; receipt: unknown }
+  output_deliver(receipt: unknown, now: bigint): unknown
+  stop_reserve(capture: unknown, selected: unknown, now: number): unknown
+  stop_continued(capture: unknown): unknown
+  stop_reserved(capture: unknown, selected: unknown, failed: boolean, delay: number): unknown
+  stop_budget(state: EngineState, capture: unknown): unknown
+  stop_candidates(state: EngineState, capture: unknown): unknown
+  stop_end(state: EngineState, capture: unknown, continuation: boolean): unknown
+  stop_validation(
+    capture: unknown,
+    advice: number,
+    current: boolean,
+    credential: boolean,
+    generation: boolean,
+    readable: boolean
+  ): unknown
+  collector_configure(state: EngineState, profile: unknown): EngineState
+  collector_configured(state: EngineState): boolean
+  collector_command(
+    state: EngineState,
+    event: unknown,
+    command: unknown,
+    context: unknown
+  ): { state: EngineState; handled: unknown }
+  collector_after(state: EngineState, event: unknown): { state: EngineState; handled: unknown }
+  stop_initial(capture: unknown): unknown
+  stop_wake(capture: unknown, now: number): unknown
+  output_initial(capture: unknown, terminalOnly: boolean): unknown
+  callback_delivered(state: EngineState, order: bigint): EngineState
+  callback_originals(state: EngineState): unknown
+  callback_action(
+    state: EngineState,
+    target: unknown,
+    control: unknown,
+    receipt: unknown,
+    at: bigint,
+    order: bigint
+  ): { state: EngineState; result: unknown; cancel: unknown; schedule: unknown }
+  activity_event_valid(state: EngineState, event: unknown, partition: bigint, incarnation: bigint): boolean
+  lifecycle_entries(state: EngineState): unknown
+  lifecycle_entry(state: EngineState, partition: bigint): unknown
+  lifecycle_action(
+    state: EngineState,
+    partition: bigint,
+    action: unknown
+  ): { state: EngineState; changed: unknown; cleanup: unknown; events: unknown }
+  activity_scope(state: EngineState, partition: bigint): unknown
+  activity_valid(state: EngineState, partition: bigint, incarnation: bigint): boolean
+  activity_lifetime(state: EngineState, partition: bigint): number
+  activity_edit(state: EngineState, partition: bigint, incarnation: bigint): { state: EngineState; plan: unknown }
+  permit_issue_action(capture: unknown, started: bigint, now: bigint): unknown
+  permit_issued(capture: unknown, token: bigint): unknown
+  permit_consumed(state: EngineState, command: unknown, partition: bigint, lifetime: bigint): unknown
 
- preparation_active(state: EngineState, partition: bigint, lifetime: bigint, round: bigint, operation: bigint): boolean;
- context_credentials(state: EngineState, event: unknown, context: unknown): unknown;
- credential_captured(state: EngineState, operation: bigint): unknown;
- credential_matches(state: EngineState, operation: bigint): boolean;
- callback_matches(event: unknown, target: unknown): boolean;
- issue_actions(state: EngineState, actions: unknown): { state: EngineState; actions: unknown };
- edit_attempt(state: EngineState, partition: bigint, lifetime: bigint): { state: EngineState; plan: unknown };
- scope_event(before: EngineState, after: EngineState, event: unknown, provided: unknown): unknown;
- scope_command(before: EngineState, after: EngineState, command: unknown, provided: unknown): unknown;
- scope_select(bindings: unknown, partition: bigint): unknown;
- intervene_request(state: EngineState, target: unknown, outcome: unknown, delay: bigint): unknown;
- declare_advicee(state: EngineState, identity: bigint, seed: number): { state: EngineState; scope: unknown; valid: boolean };
- advicee_identity(state: EngineState, identity: bigint): unknown;
- advicee_partition(state: EngineState, partition: bigint): unknown;
- advicee_targets(state: EngineState, identity: unknown): unknown;
- credentials(state: EngineState): unknown;
- configure_credentials(state: EngineState, available: boolean, generation: bigint): EngineState;
- credential_action(state: EngineState, available: boolean, rotation: boolean): EngineState;
- generate_tree(seed: bigint, operation: bigint, unit: bigint, profile: unknown, limits: unknown): unknown;
- session_delay(settings: unknown, random: number): number;
- clock(state: EngineState): number;
- configure_seed(state: EngineState, seed: bigint): EngineState;
- configure_workload(state: EngineState, partition: bigint, profile: unknown): EngineState;
- workload_action(state: EngineState, partition: bigint, action: unknown): { state: EngineState; events: unknown; valid: boolean };
- workload_valid(state: EngineState, partition: bigint, generation: bigint, recurring: boolean): boolean;
- workload_duration(state: EngineState, partition: bigint, fallback: bigint): number;
- pre_timing(state: EngineState, partition: bigint, provided: unknown, fallback: bigint, lifetime: bigint): unknown;
- /** Positive sampler-domain binary64: finite sum <=600; no overflow/NaN. */
- numeric_add(a: unknown, b: unknown): unknown;
- /** Positive total, operands <=600 and ratio <=1 (subnormals included). */
- numeric_divide(a: unknown, b: unknown): unknown;
- random_initial(seed: bigint): number;
- random_sample(random: number, weights: unknown): { random: number; outcome: number };
- session_initial(settings: unknown, seed: number, codes: unknown, bytes: bigint, units: unknown): unknown;
- session_next(settings: unknown, stream: unknown): unknown;
- session_generation(stream: unknown): number;
- session_sizes(stream: unknown, bytes: bigint, units: unknown): unknown;
- session_burst(count: bigint, stream: unknown): unknown;
- session_interval(settings: unknown, interval: number): unknown;
- session_rewind(settings: unknown, stream: unknown): unknown;
- session_suspend(settings: unknown, stream: unknown, suspended: boolean): unknown;
- session_finish(stream: unknown, continuation: boolean): unknown;
- session_advice(settings: unknown, stream: unknown): unknown;
- enqueue(state: EngineState, at: bigint, order: bigint): EngineState;
- take(state: EngineState): { state: EngineState; entry: unknown };
- queued(state: EngineState): unknown;
- cancel(state: EngineState, order: bigint): EngineState;
- initial(limits: unknown): EngineState;
- canonical(state: EngineState): unknown;
- step(state: EngineState, event: unknown): Transition;
- graph_step(state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown): GraphTransition;
- revalidate(state: EngineState, context: unknown): unknown;
- fence(state: EngineState, event: unknown, generated: boolean, context: unknown): unknown;
- after(before: EngineState, state: EngineState, event: unknown): unknown;
- edit(state: EngineState, partition: bigint, lifetime: bigint): unknown;
- preparation_fact_time(delay: bigint, index: bigint, count: bigint): bigint;
- preparation_completed(partition: bigint, lifetime: bigint, round: bigint, operation: bigint, units: unknown, delay: bigint): unknown;
- prepare_command_context(state: EngineState, command: unknown, source_job: unknown, environment: unknown, context: unknown): { state: EngineState; context: unknown; receipt: unknown };
- handle(state: EngineState, event: unknown, command: unknown, context: unknown): unknown;
-};
-export default Engine;
+  preparation_active(state: EngineState, partition: bigint, lifetime: bigint, round: bigint, operation: bigint): boolean
+  context_credentials(state: EngineState, event: unknown, context: unknown): unknown
+  credential_captured(state: EngineState, operation: bigint): unknown
+  credential_matches(state: EngineState, operation: bigint): boolean
+  callback_matches(event: unknown, target: unknown): boolean
+  issue_actions(state: EngineState, actions: unknown): { state: EngineState; actions: unknown }
+  edit_attempt(state: EngineState, partition: bigint, lifetime: bigint): { state: EngineState; plan: unknown }
+  scope_event(before: EngineState, after: EngineState, event: unknown, provided: unknown): unknown
+  scope_command(before: EngineState, after: EngineState, command: unknown, provided: unknown): unknown
+  scope_select(bindings: unknown, partition: bigint): unknown
+  intervene_request(state: EngineState, target: unknown, outcome: unknown, delay: bigint): unknown
+  declare_advicee(
+    state: EngineState,
+    identity: bigint,
+    seed: number
+  ): { state: EngineState; scope: unknown; valid: boolean }
+  advicee_identity(state: EngineState, identity: bigint): unknown
+  advicee_partition(state: EngineState, partition: bigint): unknown
+  advicee_targets(state: EngineState, identity: unknown): unknown
+  credentials(state: EngineState): unknown
+  configure_credentials(state: EngineState, available: boolean, generation: bigint): EngineState
+  credential_action(state: EngineState, available: boolean, rotation: boolean): EngineState
+  generate_tree(seed: bigint, operation: bigint, unit: bigint, profile: unknown, limits: unknown): unknown
+  session_delay(settings: unknown, random: number): number
+  clock(state: EngineState): number
+  configure_seed(state: EngineState, seed: bigint): EngineState
+  configure_workload(state: EngineState, partition: bigint, profile: unknown): EngineState
+  workload_action(
+    state: EngineState,
+    partition: bigint,
+    action: unknown
+  ): { state: EngineState; events: unknown; valid: boolean }
+  workload_valid(state: EngineState, partition: bigint, generation: bigint, recurring: boolean): boolean
+  workload_duration(state: EngineState, partition: bigint, fallback: bigint): number
+  pre_timing(state: EngineState, partition: bigint, provided: unknown, fallback: bigint, lifetime: bigint): unknown
+  /** Positive sampler-domain binary64: finite sum <=600; no overflow/NaN. */
+  numeric_add(a: unknown, b: unknown): unknown
+  /** Positive total, operands <=600 and ratio <=1 (subnormals included). */
+  numeric_divide(a: unknown, b: unknown): unknown
+  random_initial(seed: bigint): number
+  random_sample(random: number, weights: unknown): { random: number; outcome: number }
+  session_initial(settings: unknown, seed: number, codes: unknown, bytes: bigint, units: unknown): unknown
+  session_next(settings: unknown, stream: unknown): unknown
+  session_generation(stream: unknown): number
+  session_sizes(stream: unknown, bytes: bigint, units: unknown): unknown
+  session_burst(count: bigint, stream: unknown): unknown
+  session_interval(settings: unknown, interval: number): unknown
+  session_rewind(settings: unknown, stream: unknown): unknown
+  session_suspend(settings: unknown, stream: unknown, suspended: boolean): unknown
+  session_finish(stream: unknown, continuation: boolean): unknown
+  session_advice(settings: unknown, stream: unknown): unknown
+  enqueue(state: EngineState, at: bigint, order: bigint): EngineState
+  take(state: EngineState): { state: EngineState; entry: unknown }
+  queued(state: EngineState): unknown
+  cancel(state: EngineState, order: bigint): EngineState
+  initial(limits: unknown): EngineState
+  canonical(state: EngineState): unknown
+  step(state: EngineState, event: unknown): Transition
+  graph_step(state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown): GraphTransition
+  revalidate(state: EngineState, context: unknown): unknown
+  fence(state: EngineState, event: unknown, generated: boolean, context: unknown): unknown
+  after(before: EngineState, state: EngineState, event: unknown): unknown
+  edit(state: EngineState, partition: bigint, lifetime: bigint): unknown
+  preparation_fact_time(delay: bigint, index: bigint, count: bigint): bigint
+  preparation_completed(
+    partition: bigint,
+    lifetime: bigint,
+    round: bigint,
+    operation: bigint,
+    units: unknown,
+    delay: bigint
+  ): unknown
+  prepare_command_context(
+    state: EngineState,
+    command: unknown,
+    source_job: unknown,
+    environment: unknown,
+    context: unknown
+  ): { state: EngineState; context: unknown; receipt: unknown }
+  handle(state: EngineState, event: unknown, command: unknown, context: unknown): unknown
+}
+export default Engine

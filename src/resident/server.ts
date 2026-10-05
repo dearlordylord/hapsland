@@ -1,3 +1,4 @@
+import { findingCollectionOutcome, collectionOrdering, finalCollectionFits } from "./collection-decisions.ts"
 import { toCodexDirectEventOutput, type Finding } from "../direct-event/output.ts"
 import { ResidentDispatchControls, dispatchControlsLayer } from "./dispatch-controls.ts"
 import { ResidentReviewControls, reviewControlsLayer } from "./review-controls.ts"
@@ -606,18 +607,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         prospectiveBytes: input.prospectiveBytes
       })
       if (result.rejection !== undefined) throw new Error("canonical finding fit refused")
-      switch (result.commands[0]?.kind) {
-        case "collectionFindingSelected":
-          return "selected"
-        case "collectionFindingRetained":
-          return "retained"
-        case "collectionFindingLimited":
-          return "limited"
-        case "collectionFindingExpired":
-          return "expired"
-        default:
-          throw new Error("invalid canonical finding fit")
-      }
+      return findingCollectionOutcome(result.commands[0]?.kind)
     }
   )
 
@@ -904,16 +894,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       rightSequence: right.sequence
     })
     if (result.rejection !== undefined) throw new Error("canonical collection order refused")
-    switch (result.commands[0]?.kind) {
-      case "collectionBefore":
-        return -1
-      case "collectionEqual":
-        return 0
-      case "collectionAfter":
-        return 1
-      default:
-        throw new Error("invalid canonical collection order")
-    }
+    return collectionOrdering(result.commands[0]?.kind)
   })
 
   const residentReserveAdviceLease = Effect.fn("ResidentRuntime.reserveAdviceLease")((advice: Advice, token: string) =>
@@ -4710,15 +4691,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             notices.map((notice) => notice.value)
           )
         })
-        if (fit.rejection !== undefined || fit.commands.length !== 1) {
-          throw new Error("canonical final response fit refused")
-        }
-        if (fit.commands[0]?.kind === "collectionLimited") {
+        if (!finalCollectionFits(fit)) {
           yield* runtime.releaseDelivery(response.token)
           return { status: "empty" }
-        }
-        if (fit.commands[0]?.kind !== "collectionFits") {
-          throw new Error("invalid canonical final response fit")
         }
       }
 

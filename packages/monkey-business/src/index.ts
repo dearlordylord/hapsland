@@ -536,6 +536,7 @@ export class Run {
   private listeners = new Set<(o: Observation) => void>()
   private structuralListeners = new Set<(frame: RunStructuralFrame) => void>()
   private controls: ControlRecord[] = []
+  private settingsSnapshot: Pick<Replay, "config" | "controls"> | undefined
   private interventionReports: JevInterventionReport[] = []
   get interventions(): readonly JevInterventionReport[] {
     return copy(this.interventionReports)
@@ -1790,7 +1791,9 @@ export class Run {
       }
       return this.step(untilTime)
     }
-    let event = item.input.event
+    // Cache transitions consume the issued capsule; its event also owns the
+    // quiet/collector followups. The queued input is a detached display copy.
+    let event = item.cacheFact?.event ?? item.input.event
     if (item.generated && ["jevRequestSettled", "jevRequestReady", "finalCandidateCheck"].includes(event.kind)) {
       const context = this.driverContext(event, item, undefined)
       event = decodeDriverEvent(this.core.fence(event, true, context))
@@ -2282,8 +2285,7 @@ export class Run {
       }
     }
     emissionSourceJob = afterSourceJob
-    for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      emitDriver(action, item.job, afterSourceJob)
+    for (const action of result.afterActions) emitDriver(action, item.job, afterSourceJob)
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find((w) => w.operation === event.operation)?.parent
       if (parent) this.jobs.delete(parent)
@@ -2388,12 +2390,12 @@ export class Run {
     return this.record(observation)
   }
   private enqueueResponseActions(
-    actions: unknown,
+    actions: readonly DriverAction[],
     origin: Scheduled["responseOrigin"],
     fallback: number,
     writer: Scheduled["writerOrigin"] = undefined
   ): void {
-    for (const action of decodeDriver({ handled: true, actions }).actions) {
+    for (const action of actions) {
       const owner = action.candidate?.partition ?? this.core.eventScope(action.event, fallback) ?? fallback
       this.event(owner, action.event, action.delay, undefined, action.expiryAdvice)
       const item = this.scheduled.get(this.order - 1)
@@ -2593,6 +2595,12 @@ export class Run {
       if (before[0] === this.count && before[1] === this.takes && before[2] === this.clock)
         throw new Error("unreconstructable replay endpoint")
     }
+  }
+  /** Immutable applied inputs for inspection, without copying the execution timeline. */
+  get appliedSettings(): Pick<Replay, "config" | "controls"> {
+    if (this.settingsSnapshot?.controls.length !== this.controls.length)
+      this.settingsSnapshot = freezeCanonicalData(copy({ config: this.config, controls: this.controls }))
+    return this.settingsSnapshot
   }
   exportReplay(): Replay {
     return copy({

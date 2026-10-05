@@ -30,6 +30,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   put("scripts/cli-import-boundary.test.mts", "const finiteImportClosure = true;")
   put("src/resident/capacity.test.ts", "const boundedMetadata = true;")
   put("packages/monkey-business/src/outcomes.test.ts", "const seededReplay = true;")
+  put("packages/monkey-business/src/cache-scenarios.test.ts", "const seededCacheReplay = true;")
   put("src/resident/server.test.ts", "const boundedSaturation = true;")
   const entries = Object.fromEntries(inventoryTestHarness(root).map((entry) => [entry.path, entry]))
   expect(entries["src/unit.test.ts"].kind).toBe("unit")
@@ -46,10 +47,14 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   for (const path of [
     "scripts/cli-import-boundary.test.mts",
     "src/resident/capacity.test.ts",
-    "packages/monkey-business/src/outcomes.test.ts"
+    "packages/monkey-business/src/outcomes.test.ts",
+    "packages/monkey-business/src/cache-scenarios.test.ts"
   ]) {
     expect(entries[path]).toMatchObject({ kind: "bounded-scenario", timeoutMs: 60_000 })
   }
+  expect(entries["packages/monkey-business/src/cache-scenarios.test.ts"].scenario).toBe(
+    "bounded seeded cache-pressure simulation and replay"
+  )
   expect(timeoutForKind("unit")).toBe(5_000)
 })
 

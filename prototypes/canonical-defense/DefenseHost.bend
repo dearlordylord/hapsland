@@ -21,7 +21,7 @@ type Protected is Data:
 type Shielded is Data:
   Shielded{towers: List<&2, M.Tower>, protected: U32}
 def initial() -> M.World:
-  M.World{[Consumer.initial()],0,False{},0,0,160,100,[],[],True{},0,0,0,0,[M.initial_control()],0,0,0,0,0}
+  M.World{[Consumer.initial()],0,False{},0,0,160,100,[],[],False{},0,0,0,0,[M.initial_control()],0,0,0,0,0}
 def tower_cost(kind: U32) -> U32:
   E.cost(kind)
 def tower_name(kind: U32) -> String:
@@ -157,7 +157,7 @@ def drained(+world: M.World) -> Bool:
     U32.is_eq(P.requests(world),0) && U32.is_eq(P.writes(world),0) && U32.is_eq(P.leases(world),0)
 def run_status(+world: M.World) -> U32:
   Bool.pick(U32,U32.is_eq(M.hp(world),0),3,Bool.pick(U32,M.auto(world),1,0))
-def clock_active(+world: M.World) -> Bool: Bool.not(M.paused(world)) && (M.hp(world) > 0 : U32)
+def clock_active(+world: M.World) -> Bool: M.active(world) && Bool.not(M.paused(world)) && (M.hp(world) > 0 : U32)
 def controlled(world: M.World, result: T.Controlled) -> M.World:
   match result:
     case T.Controlled{state,_}: M.with_engine(world,state)
@@ -167,8 +167,12 @@ def pick_world(selected: Bool, yes: M.World, no: M.World) -> M.World:
   match selected:
     case True{}: yes
     case False{}: no
+def started(world: M.World) -> M.World:
+  match world:
+    case M.World{core,t,p,l,c,g,h,ts,ms,_,o,r,cl,d,auto,x,y,selected,work,flash}:
+      M.World{core,t,p,l,c,g,h,ts,ms,True{},o,r,cl,d,auto,x,y,selected,work,flash}
 def start(world: M.World) -> M.World:
-  action(world,T.WorkloadControl{Some{1n},Workload.Burst{1n}})
+  action(started(world),T.WorkloadControl{Some{1n},Workload.Burst{1n}})
 def frame_counts(commands: List<&2,C.Command>, +kind: U32) -> U32:
   match commands:
     case Nil{}: 0
@@ -207,14 +211,25 @@ def tick_applied(world: M.World, advanced: T.Advanced) -> TickObserved:
   match advanced:
     case T.Advanced{state,+frames,+physical}:
       TickObserved{damage(refinement(E.shoot_world(consumed(world,T.Advanced{state,frames,physical})))),frames,physical}
+# Consume one actual engine input at a time. A pure candidate which moves or
+# retires owned work waits until its current road/service animation completes.
+# Discarding a candidate has no IO effect and never reports phantom frames.
+def presented_advance(ready: Bool,world: M.World,advanced: T.Advanced) -> T.Advanced:
+  match ready:
+    case True{}: advanced
+    case False{}: T.Advanced{M.engine(world),Nil{},Nil{}}
+def advancing_observed(+world: M.World,+advanced: T.Advanced) -> TickObserved:
+  match advanced:
+    case T.Advanced{+state,frames,physical}:
+      tick_applied(world,presented_advance(E.transition_ready(world,M.canonical(Run.observe(state))),world,T.Advanced{state,frames,physical}))
 def ticking_observed(+world: M.World) -> TickObserved:
-  tick_applied(world,Run.advance(M.engine(world),256n,(U32.to_nat(M.time(world)) * 20n + 20n : Nat)))
+  advancing_observed(world,Run.advance(M.engine(world),1n,(U32.to_nat(M.time(world)) * 20n + 20n : Nat)))
 def tick_when(active: Bool,world: M.World) -> TickObserved:
   match active:
     case True{}: ticking_observed(world)
     case False{}: TickObserved{world,Nil{},Nil{}}
 def tick_observed(+world: M.World) -> TickObserved:
-  tick_when(Bool.not(M.paused(world)),world)
+  tick_when(clock_active(world),world)
 def tick_world(observed: TickObserved) -> M.World:
   match observed:
     case TickObserved{world,_,_}: world

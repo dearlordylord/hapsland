@@ -1,3 +1,7 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { afterEach } from "vitest"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
@@ -67,5 +71,80 @@ describe("source-sensitive native stale-result control", () => {
       expect(initial.answers.r2_meaningless_combinations.probability).toBe(0.91)
       expect(repaired.answers.r2_meaningless_combinations.probability).toBe(0)
     }).pipe(Effect.provide(controlledDecisionModelLayer({ findingOnSourceIncludes: "interface PaymentState" })))
+  )
+})
+
+const summaryDirectories: string[] = []
+afterEach(() => {
+  for (const directory of summaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true })
+})
+
+describe("controlled request summaries", () => {
+  it.effect("records graph counts and source matching without retaining source", () =>
+    Effect.gen(function* () {
+      const directory = mkdtempSync(join(tmpdir(), "haps-request-summary-"))
+      summaryDirectories.push(directory)
+      const requestSummaryPath = join(directory, "summary.jsonl")
+      const layer = controlledDecisionModelLayer({ requestSummaryPath, findingOnSourceIncludes: "private source" })
+      for (const input of [
+        null,
+        {},
+        {
+          artifact: { kind: "datatype", source: "private source" },
+          evidence: {
+            nodes: [{}, {}],
+            edges: [{ kind: "expanded" }, { kind: "included" }, { kind: "omitted" }, { kind: "other" }]
+          }
+        }
+      ]) {
+        yield* Effect.gen(function* () {
+          const model = yield* DecisionModel.DecisionModel
+          yield* model.decide(definition, { input })
+        }).pipe(Effect.provide(layer))
+      }
+      const text = readFileSync(requestSummaryPath, "utf8")
+      const empty = {
+        rootKind: "unknown",
+        conditionalFindingSourceMatched: false,
+        evidenceNodes: 0,
+        expandedEdges: 0,
+        includedEdges: 0,
+        omittedEdges: 0
+      }
+      expect(
+        text
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line))
+      ).toEqual([
+        empty,
+        empty,
+        {
+          rootKind: "datatype",
+          conditionalFindingSourceMatched: true,
+          evidenceNodes: 2,
+          expandedEdges: 1,
+          includedEdges: 1,
+          omittedEdges: 1
+        }
+      ])
+      expect(text).not.toContain("private source")
+    })
+  )
+
+  it.effect("keeps the controlled decision available when summary storage fails", () =>
+    Effect.gen(function* () {
+      const directory = mkdtempSync(join(tmpdir(), "haps-request-summary-failure-"))
+      summaryDirectories.push(directory)
+      const result = yield* Effect.gen(function* () {
+        const model = yield* DecisionModel.DecisionModel
+        return yield* model.decide(definition, { input: {} })
+      }).pipe(
+        Effect.provide(
+          controlledDecisionModelLayer({ requestSummaryPath: join(directory, "missing", "summary.jsonl") })
+        )
+      )
+      expect(result.answers.r6_bare_domain_value.probability).toBe(0)
+    })
   )
 })

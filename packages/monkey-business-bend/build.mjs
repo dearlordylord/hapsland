@@ -1,35 +1,228 @@
-import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, dirname, resolve, relative } from "node:path";
-import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
-const root = dirname(fileURLToPath(import.meta.url));
-const compilationTimeoutMs = Number(process.env.BEND_COMPILATION_TIMEOUT_MS ?? 15000);
+import { createHash } from "node:crypto"
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join, dirname, resolve, relative } from "node:path"
+import { fileURLToPath } from "node:url"
+import { spawnSync } from "node:child_process"
+const root = dirname(fileURLToPath(import.meta.url))
+const compilationTimeoutMs = Number(process.env.BEND_COMPILATION_TIMEOUT_MS ?? 15000)
 if (!Number.isSafeInteger(compilationTimeoutMs) || compilationTimeoutMs <= 0) {
-  throw new RangeError("BEND_COMPILATION_TIMEOUT_MS must be a positive finite integer");
+  throw new RangeError("BEND_COMPILATION_TIMEOUT_MS must be a positive finite integer")
 }
-const hash = value => createHash("sha256").update(value).digest("hex");
-const consumed = new Map();
-const collect = path => {
-  if (consumed.has(path)) return;
-  const source = readFileSync(path, "utf8");
-  consumed.set(path, source);
-  for (const match of source.matchAll(/^import\s+(\.[^\s]+\.bend)(?:\s|$)/gm)) collect(resolve(dirname(path), match[1]));
-};
-collect(join(root, "Engine.bend"));
-const sourceHash = hash([...consumed].sort(([a], [b]) => a.localeCompare(b)).map(([path, source]) => `${relative(root, path)}\0${source}\0`).join(""));
-const declarationHash = hash(readFileSync(join(root, "engine.d.mts")));
-const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)));
-const hostPaths = ["index.ts", "shared-core.ts", "driver-codec.ts", "controls.ts", "outcomes.ts", "file-trees.ts", "preparation.ts", "session.ts", "lifecycle-profile.ts", "resource-scenarios.ts", "sizes.ts", "numeric-codec.ts", "jev-interventions.ts", "advicee-lifecycle.ts", "permit-controls.ts", "callback-controls.ts", "notice-controls.ts", "freshness-codec.ts", "sharing-controls.ts", "cache-controls.ts", "collection-scenario.ts", "stop-codec.ts", "writer-controls.ts", "collector-codec.ts", "expiry-controls.ts"].map(name => `../monkey-business/src/${name}`).concat(["../../src/canonical/simulation-adapter.ts", "../../src/canonical/simulation-codec.ts", "../../src/canonical/canonical-boundary.ts", "../../src/canonical/graph-adapter.ts"]);
-const hostHash = hash(hostPaths.map(path => `${path}\0${readFileSync(join(root, path))}\0`).join(""));
-const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`);
-const preparationHash = hash(["../../src/canonical/import-graph.generated.js", "../monkey-business/src/preparation.ts", "../monkey-business/src/file-trees.ts"].map(path => readFileSync(join(root, path))).join(""));
-const entryNames = ["prepare_command_context", "quiet_command", "quiet_event", "quiet_after", "writer_unissued_release_delivery", "writer_capture", "writer_departures", "writer_release_delivery", "writer_attempt", "writer_prepare", "writer_claim_event", "writer_feedback", "writer_release", "writer_expire", "collection_response_delivery_valid", "collection_response_open", "collection_response_close", "collection_response_attempt", "collection_response_after", "collection_response_valid", "collection_response_handle", "collection_response_expire", "collection_responses", "cache_begin", "cache_apply", "cache_removed", "configure_cache", "sharing_leave_all", "sharing_after", "sharing_admitted", "sharing_preprocess", "sharing_leave", "sharing_prepare", "sharing_route", "sharing_routed", "sharing_completion", "sharing_binding", "sharing_result", "freshness_admitted", "freshness_current", "freshness_checks", "callback_replaced", "notice_after", "notice_collection_prune", "notice_exercise", "notice_failure", "notice_lease", "notice_acknowledge", "callback_owner", "callback_issue", "callback_issue_output", "output_intervene", "output_deliver", "output_initial", "stop_initial", "stop_wake", "callback_delivered", "callback_originals", "callback_action", "activity_event_valid", "lifecycle_entries", "lifecycle_entry", "lifecycle_action", "activity_scope", "activity_valid", "activity_lifetime", "activity_edit", "permit_issue_action", "permit_issued", "permit_consumed", "preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "session_delay", "stop_command", "stop_register", "stop_find", "stop_entries", "stop_active", "stop_progress", "stop_close", "stop_reserve", "stop_continued", "stop_reserved", "stop_budget", "stop_candidates", "stop_end", "stop_validation", "collector_configure", "collector_configured", "collector_command", "collector_after"];
+const hash = (value) => createHash("sha256").update(value).digest("hex")
+const consumed = new Map()
+const collect = (path) => {
+  if (consumed.has(path)) return
+  const source = readFileSync(path, "utf8")
+  consumed.set(path, source)
+  for (const match of source.matchAll(/^import\s+(\.[^\s]+\.bend)(?:\s|$)/gm)) collect(resolve(dirname(path), match[1]))
+}
+collect(join(root, "Engine.bend"))
+const sourceHash = hash(
+  [...consumed]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([path, source]) => `${relative(root, path)}\0${source}\0`)
+    .join("")
+)
+const declarationHash = hash(readFileSync(join(root, "engine.d.mts")))
+const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)))
+const hostPaths = [
+  "index.ts",
+  "shared-core.ts",
+  "driver-codec.ts",
+  "controls.ts",
+  "outcomes.ts",
+  "file-trees.ts",
+  "preparation.ts",
+  "session.ts",
+  "lifecycle-profile.ts",
+  "resource-scenarios.ts",
+  "sizes.ts",
+  "numeric-codec.ts",
+  "jev-interventions.ts",
+  "advicee-lifecycle.ts",
+  "permit-controls.ts",
+  "callback-controls.ts",
+  "notice-controls.ts",
+  "freshness-codec.ts",
+  "sharing-controls.ts",
+  "cache-controls.ts",
+  "collection-scenario.ts",
+  "stop-codec.ts",
+  "writer-controls.ts",
+  "collector-codec.ts",
+  "expiry-controls.ts"
+]
+  .map((name) => `../monkey-business/src/${name}`)
+  .concat([
+    "../../src/canonical/simulation-adapter.ts",
+    "../../src/canonical/simulation-codec.ts",
+    "../../src/canonical/canonical-boundary.ts",
+    "../../src/canonical/graph-adapter.ts"
+  ])
+const hostHash = hash(hostPaths.map((path) => `${path}\0${readFileSync(join(root, path))}\0`).join(""))
+const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`)
+const preparationHash = hash(
+  [
+    "../../src/canonical/import-graph.generated.js",
+    "../monkey-business/src/preparation.ts",
+    "../monkey-business/src/file-trees.ts"
+  ]
+    .map((path) => readFileSync(join(root, path)))
+    .join("")
+)
+const entryNames = [
+  "prepare_command_context",
+  "quiet_command",
+  "quiet_event",
+  "quiet_after",
+  "writer_unissued_release_delivery",
+  "writer_capture",
+  "writer_departures",
+  "writer_release_delivery",
+  "writer_attempt",
+  "writer_prepare",
+  "writer_claim_event",
+  "writer_feedback",
+  "writer_release",
+  "writer_expire",
+  "collection_response_delivery_valid",
+  "collection_response_open",
+  "collection_response_close",
+  "collection_response_attempt",
+  "collection_response_after",
+  "collection_response_valid",
+  "collection_response_handle",
+  "collection_response_expire",
+  "collection_responses",
+  "cache_begin",
+  "cache_apply",
+  "cache_removed",
+  "configure_cache",
+  "sharing_leave_all",
+  "sharing_after",
+  "sharing_admitted",
+  "sharing_preprocess",
+  "sharing_leave",
+  "sharing_prepare",
+  "sharing_route",
+  "sharing_routed",
+  "sharing_completion",
+  "sharing_binding",
+  "sharing_result",
+  "freshness_admitted",
+  "freshness_current",
+  "freshness_checks",
+  "callback_replaced",
+  "notice_after",
+  "notice_collection_prune",
+  "notice_exercise",
+  "notice_failure",
+  "notice_lease",
+  "notice_acknowledge",
+  "callback_owner",
+  "callback_issue",
+  "callback_issue_output",
+  "output_intervene",
+  "output_deliver",
+  "output_initial",
+  "stop_initial",
+  "stop_wake",
+  "callback_delivered",
+  "callback_originals",
+  "callback_action",
+  "activity_event_valid",
+  "lifecycle_entries",
+  "lifecycle_entry",
+  "lifecycle_action",
+  "activity_scope",
+  "activity_valid",
+  "activity_lifetime",
+  "activity_edit",
+  "permit_issue_action",
+  "permit_issued",
+  "permit_consumed",
+  "preparation_active",
+  "context_credentials",
+  "credential_captured",
+  "credential_matches",
+  "callback_matches",
+  "issue_actions",
+  "edit_attempt",
+  "scope_event",
+  "scope_command",
+  "scope_select",
+  "intervene_request",
+  "declare_advicee",
+  "advicee_identity",
+  "advicee_partition",
+  "advicee_targets",
+  "credentials",
+  "configure_credentials",
+  "credential_action",
+  "generate_tree",
+  "initial",
+  "step",
+  "canonical",
+  "graph_step",
+  "handle",
+  "edit",
+  "preparation_completed",
+  "after",
+  "enqueue",
+  "take",
+  "queued",
+  "cancel",
+  "fence",
+  "preparation_fact_time",
+  "revalidate",
+  "clock",
+  "configure_seed",
+  "configure_workload",
+  "workload_action",
+  "workload_valid",
+  "workload_duration",
+  "pre_timing",
+  "numeric_add",
+  "numeric_divide",
+  "random_initial",
+  "random_sample",
+  "session_initial",
+  "session_next",
+  "session_generation",
+  "session_sizes",
+  "session_burst",
+  "session_interval",
+  "session_rewind",
+  "session_suspend",
+  "session_finish",
+  "session_advice",
+  "session_delay",
+  "stop_command",
+  "stop_register",
+  "stop_find",
+  "stop_entries",
+  "stop_active",
+  "stop_progress",
+  "stop_close",
+  "stop_reserve",
+  "stop_continued",
+  "stop_reserved",
+  "stop_budget",
+  "stop_candidates",
+  "stop_end",
+  "stop_validation",
+  "collector_configure",
+  "collector_configured",
+  "collector_command",
+  "collector_after"
+]
 
 // Both fresh emission and explicit verified reuse use this one wrapper producer.
 function renderModule(emitted, identityHash, preparationHash) {
-  return emitted + `
+  return (
+    emitted +
+    `
 export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:${identityHash}";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:${preparationHash}";
 
@@ -191,76 +384,126 @@ export default {
  session_advice: (settings, stream) => run_loop($session_advice$(facts(settings), stream)),
  preparation_fact_time: (delay, index, count) => BigInt(run_loop($preparation_fact_time$(facts(delay), facts(index), facts(count)))),
 };
-`;
-
+`
+  )
 }
 function writeArtifact(module, reuse) {
-  writeFileSync(join(root, "engine.mjs"), module);
-  writeFileSync(join(root, "generated.json"), JSON.stringify({ sourceHash, hostHash, identityHash,
-    preparationHash, buildHash, declarationHash, moduleHash: hash(module),
-    ...(reuse === undefined ? {} : { reuse }) }, null, 2) + "\n");
+  writeFileSync(join(root, "engine.mjs"), module)
+  writeFileSync(
+    join(root, "generated.json"),
+    JSON.stringify(
+      {
+        sourceHash,
+        hostHash,
+        identityHash,
+        preparationHash,
+        buildHash,
+        declarationHash,
+        moduleHash: hash(module),
+        ...(reuse === undefined ? {} : { reuse })
+      },
+      null,
+      2
+    ) + "\n"
+  )
 }
 function reusedModule() {
-  const previous = JSON.parse(readFileSync(join(root, "generated.json"), "utf8"));
-  const original = readFileSync(join(root, "engine.mjs"), "utf8");
-  if (hash(original) !== previous.moduleHash) throw new Error("Cannot reuse corrupt shared Engine module");
-  if (previous.sourceHash !== sourceHash || previous.declarationHash !== declarationHash || previous.preparationHash !== preparationHash)
-    throw new Error("Cannot reuse changed Engine source, declaration, or preparation ABI");
-  const marker = '\nexport const SOURCE_IDENTITY = ';
-  const offset = original.indexOf(marker);
+  const previous = JSON.parse(readFileSync(join(root, "generated.json"), "utf8"))
+  const original = readFileSync(join(root, "engine.mjs"), "utf8")
+  if (hash(original) !== previous.moduleHash) throw new Error("Cannot reuse corrupt shared Engine module")
+  if (
+    previous.sourceHash !== sourceHash ||
+    previous.declarationHash !== declarationHash ||
+    previous.preparationHash !== preparationHash
+  )
+    throw new Error("Cannot reuse changed Engine source, declaration, or preparation ABI")
+  const marker = "\nexport const SOURCE_IDENTITY = "
+  const offset = original.indexOf(marker)
   if (offset < 0 || original.indexOf(marker, offset + marker.length) >= 0)
-    throw new Error("Cannot reuse unknown shared Engine module layout");
-  const emitted = original.slice(0, offset);
-  if (entryNames.some(name => !emitted.includes(`function $${name}$(`)))
-    throw new Error("Cannot reuse missing shared Engine entry function");
+    throw new Error("Cannot reuse unknown shared Engine module layout")
+  const emitted = original.slice(0, offset)
+  if (entryNames.some((name) => !emitted.includes(`function $${name}$(`)))
+    throw new Error("Cannot reuse missing shared Engine entry function")
   // Reproducing the entire prior module verifies its embedded identities and
   // every current wrapper/export/marshalling byte, even when build scheduling
   // changed. Source or wrapper differences require an actual fresh build.
   if (renderModule(emitted, previous.identityHash, previous.preparationHash) !== original)
-    throw new Error("Cannot reuse changed shared Engine wrapper or embedded identity");
-  if (previous.identityHash !== hash(`${previous.sourceHash}\0${previous.hostHash}\0${previous.buildHash}\0${previous.declarationHash}`))
-    throw new Error("Cannot reuse inconsistent shared Engine identity");
-  return { module: renderModule(emitted, identityHash, preparationHash), evidence: {
-    kind: "verifiedCompiledPolicyReuse", previousBuildHash: previous.buildHash,
-    previousModuleHash: previous.moduleHash, compiledPolicyHash: hash(emitted),
-    compiledPolicyBytes: Buffer.byteLength(emitted),
-    provenance: "verified existing module; no fresh compiler invocation"
-  } };
+    throw new Error("Cannot reuse changed shared Engine wrapper or embedded identity")
+  if (
+    previous.identityHash !==
+    hash(`${previous.sourceHash}\0${previous.hostHash}\0${previous.buildHash}\0${previous.declarationHash}`)
+  )
+    throw new Error("Cannot reuse inconsistent shared Engine identity")
+  return {
+    module: renderModule(emitted, identityHash, preparationHash),
+    evidence: {
+      kind: "verifiedCompiledPolicyReuse",
+      previousBuildHash: previous.buildHash,
+      previousModuleHash: previous.moduleHash,
+      compiledPolicyHash: hash(emitted),
+      compiledPolicyBytes: Buffer.byteLength(emitted),
+      provenance: "verified existing module; no fresh compiler invocation"
+    }
+  }
 }
 
 if (process.argv.includes("--check")) {
-  const manifest = JSON.parse(readFileSync(join(root, "generated.json"), "utf8"));
-  if (manifest.identityHash !== identityHash || manifest.hostHash !== hostHash || manifest.preparationHash !== preparationHash || manifest.declarationHash !== declarationHash || manifest.sourceHash !== sourceHash || manifest.buildHash !== buildHash || manifest.moduleHash !== hash(readFileSync(join(root, "engine.mjs")))) throw new Error("Stale shared Monkey Business artifact; run node packages/monkey-business-bend/build.mjs");
+  const manifest = JSON.parse(readFileSync(join(root, "generated.json"), "utf8"))
+  if (
+    manifest.identityHash !== identityHash ||
+    manifest.hostHash !== hostHash ||
+    manifest.preparationHash !== preparationHash ||
+    manifest.declarationHash !== declarationHash ||
+    manifest.sourceHash !== sourceHash ||
+    manifest.buildHash !== buildHash ||
+    manifest.moduleHash !== hash(readFileSync(join(root, "engine.mjs")))
+  )
+    throw new Error("Stale shared Monkey Business artifact; run node packages/monkey-business-bend/build.mjs")
   if (manifest.reuse !== undefined) {
-    const module = readFileSync(join(root, "engine.mjs"), "utf8");
-    const offset = module.indexOf('\nexport const SOURCE_IDENTITY = ');
-    const policy = module.slice(0, offset), evidence = manifest.reuse;
-    if (offset < 0 || evidence.kind !== "verifiedCompiledPolicyReuse"
-      || evidence.provenance !== "verified existing module; no fresh compiler invocation"
-      || !/^[0-9a-f]{64}$/.test(evidence.previousBuildHash) || !/^[0-9a-f]{64}$/.test(evidence.previousModuleHash)
-      || evidence.compiledPolicyHash !== hash(policy) || evidence.compiledPolicyBytes !== Buffer.byteLength(policy)
-      || renderModule(policy, identityHash, preparationHash) !== module)
-      throw new Error("Invalid shared Engine compiled policy reuse evidence");
+    const module = readFileSync(join(root, "engine.mjs"), "utf8")
+    const offset = module.indexOf("\nexport const SOURCE_IDENTITY = ")
+    const policy = module.slice(0, offset),
+      evidence = manifest.reuse
+    if (
+      offset < 0 ||
+      evidence.kind !== "verifiedCompiledPolicyReuse" ||
+      evidence.provenance !== "verified existing module; no fresh compiler invocation" ||
+      !/^[0-9a-f]{64}$/.test(evidence.previousBuildHash) ||
+      !/^[0-9a-f]{64}$/.test(evidence.previousModuleHash) ||
+      evidence.compiledPolicyHash !== hash(policy) ||
+      evidence.compiledPolicyBytes !== Buffer.byteLength(policy) ||
+      renderModule(policy, identityHash, preparationHash) !== module
+    )
+      throw new Error("Invalid shared Engine compiled policy reuse evidence")
   }
 } else if (process.argv.includes("--reuse-compiled-policy")) {
-  const reused = reusedModule();
-  writeArtifact(reused.module, reused.evidence);
+  const reused = reusedModule()
+  writeArtifact(reused.module, reused.evidence)
 } else {
-  const temp = mkdtempSync(join(tmpdir(), "hapsland-monkey-business-"));
+  const temp = mkdtempSync(join(tmpdir(), "hapsland-monkey-business-"))
   try {
-    const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], { encoding: "utf8", timeout: compilationTimeoutMs });
-    if (run.error || run.status !== 0) throw run.error ?? new Error(run.stdout + run.stderr);
-    const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
-    const marker = "export default {";
-    const offset = compiled.lastIndexOf(marker);
-    if (offset < 0 || entryNames.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
+    const run = spawnSync("bend", [join(root, "Engine.bend"), "-o", join(temp, "engine.mjs")], {
+      encoding: "utf8",
+      timeout: compilationTimeoutMs
+    })
+    if (run.error || run.status !== 0) throw run.error ?? new Error(run.stdout + run.stderr)
+    const compiled = readFileSync(join(temp, "engine.mjs"), "utf8")
+    const marker = "export default {"
+    const offset = compiled.lastIndexOf(marker)
+    if (offset < 0 || entryNames.some((name) => !compiled.includes(`function $${name}$(`)))
+      throw new Error("Bend shared engine JavaScript layout changed")
     // Same immediate-Nat ABI convention as agent-flow-bend's checked builds.
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
-    const marshaling = compiled.indexOf("function $0m0(");
-    if (marshaling < 0 || marshaling >= offset) throw new Error("Bend shared engine marshalling layout changed");
-    const emitted = compiled.slice(0, marshaling).replaceAll("../agent-flow-bend/", "").replaceAll("./Session.", "Session.");
-    const module = renderModule(emitted, identityHash, preparationHash);
+    const marshaling = compiled.indexOf("function $0m0(")
+    if (marshaling < 0 || marshaling >= offset) throw new Error("Bend shared engine marshalling layout changed")
+    const emitted = compiled
+      .slice(0, marshaling)
+      .replaceAll("../agent-flow-bend/", "")
+      .replaceAll("./Session.", "Session.")
+    const module = renderModule(emitted, identityHash, preparationHash)
 
-    writeArtifact(module);
-  } finally { rmSync(temp, { recursive: true, force: true }); }
+    writeArtifact(module)
+  } finally {
+    rmSync(temp, { recursive: true, force: true })
+  }
 }

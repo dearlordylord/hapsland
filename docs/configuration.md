@@ -186,6 +186,35 @@ reports a local error; setup never silently restores deleted connected defaults.
 Repeated setup preserves authored files. An unreferenced JSON file is inactive,
 including a custom pack placed in the defaults directory.
 
+### Author JSON first; use the CLI for scaffolding and connection
+
+The recommended authoring workflow is to write or edit a JSON pack directly,
+using the example and schema below. Save project packs under
+`<Git root>/.hapsland/rules/custom/PACK.json`, or personal packs under
+`~/.config/hapsland/rules/custom/PACK.json` (respecting `XDG_CONFIG_HOME`).
+Then connect the file with `hapsland rules connect --path PATH --scope project`
+or `--scope personal`. Saving a file alone does not activate it.
+
+Alternatively, `hapsland rules create --id PACK --scope project` creates a minimal
+JSON starting point and connects it. Edit that JSON to author the actual rules;
+the CLI does not replace JSON authoring with an interactive rule editor.
+
+Connection is recorded in the configuration's `packs` list. For example, a
+project `.hapsland.jsonc` can connect a hand-authored pack with:
+
+```json
+{
+  "version": 1,
+  "packs": [".hapsland/rules/custom/my-rules.json"]
+}
+```
+
+Connected packs are enabled by default. Use `packs[].enabled` to disable a whole
+pack, or `ruleOverrides` / the enable and disable commands to control individual
+rules. Rule selection additionally depends on `reviewTargets` (artifact and
+required evidence), `minimumRung` (minimum evidence rung), and `applicability`
+(rule-specific file patterns), alongside global file selection.
+
 Use `hapsland rules list` to inspect the complete effective inventory, including
 disabled rules, qualified identities, configuration scopes and source paths.
 `hapsland rules show --id PACK/RULE` exposes question, criteria, feedback,

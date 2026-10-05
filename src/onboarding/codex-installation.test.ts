@@ -1085,6 +1085,19 @@ responses_websockets_v2 = true`)
     expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("review-tool-1.0.0/dist/cli.js")
     expect(readFileSync(join(home, "hooks.json"), "utf8")).not.toContain("review-tool-1.1.0/dist/cli.js")
 
+    const hooksBeforePreview = readFileSync(join(home, "hooks.json"), "utf8")
+    const journalBeforePreview = readFileSync(join(home, ".hapsland", "journal-v1.json"), "utf8")
+    expect(
+      await invoke({ operation: "update-preview", codexHome: home, codexExecutable: bin }, targetEnvironment)
+    ).toMatchObject({
+      status: "partial",
+      recovery: { required: true, proposalDigest: digest, completedFiles: 1, totalFiles: 2 },
+      completed: ["record the target packaged runtime"],
+      pending: ["resume the journaled update with its original proposal digest"]
+    })
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toBe(hooksBeforePreview)
+    expect(readFileSync(join(home, ".hapsland", "journal-v1.json"), "utf8")).toBe(journalBeforePreview)
+
     const resumed = await invoke(
       { operation: "update", codexHome: home, codexExecutable: bin, proposalDigest: digest },
       targetEnvironment
