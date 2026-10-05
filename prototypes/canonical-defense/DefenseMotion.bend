@@ -60,13 +60,20 @@ def waypoints(points: List<&2,Map.Point>,+p: U32,+at: Nat) -> List<&2,V.Waypoint
   match points:
     case Nil{}: []
     case Map.Point{x,y} <> rest: V.Waypoint{x,y,p,at} <> waypoints(rest,p,at)
+def rule_snake(+point: Map.Point) -> List<&2,Map.Point>:
+  [Map.Point{(Map.px(point) - 8 : U32),(Map.py(point) - 8 : U32)},
+    Map.Point{(Map.px(point) + 8 : U32),(Map.py(point) - 8 : U32)},
+    Map.Point{(Map.px(point) + 8 : U32),Map.py(point)},
+    Map.Point{(Map.px(point) - 8 : U32),Map.py(point)},
+    Map.Point{(Map.px(point) - 8 : U32),(Map.py(point) + 8 : U32)},
+    Map.Point{(Map.px(point) + 8 : U32),(Map.py(point) + 8 : U32)}]
 def route(+layout: U32,p: U32,+lane: U32) -> List<&2,Map.Point>:
   match p:
     case 0: Map.source_route(layout)
     case 1: Map.room_route(layout,1,lane)
     case 2: List.append(&2,Map.Point,Map.preparation_route(layout),Map.room_route(layout,2,lane))
     case 3: Map.review_route(layout,lane)
-    case 4: List.append(&2,Map.Point,Map.entry_channel(Map.center(layout,4,lane),Map.entry_side(layout,4,lane)),Map.snake(Map.center(layout,4,lane)))
+    case 4: List.append(&2,Map.Point,Map.entry_channel(Map.center(layout,4,lane),Map.entry_side(layout,4,lane)),rule_snake(Map.center(layout,4,lane)))
     case _: List.append(&2,Map.Point,Map.retained_route(layout),Map.room_route(layout,5,lane))
 def present(+id: V.WorkIdentity,items: List<&2,C.Work>) -> Bool:
   match items:

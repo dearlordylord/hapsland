@@ -20,13 +20,6 @@ def actor_value(found: Maybe<&2,V.Actor>) -> V.Actor:
     case _: Tests.single([])
 def actor(world: M.World,id: Nat) -> V.Actor:
   actor_value(Tests.find(V.WorkIdentity{1n,1n,1n,id},M.actors(world)))
-def finding_environment(env: T.Environment) -> T.Environment:
-  match env:
-    case T.Environment{a,_,c,d,e,f,g,h,i,j,k,l,m,n}:
-      T.Environment{a,Some{C.RequestFinding{}},c,d,e,f,g,h,i,j,k,l,m,n}
-def finding_config(config: T.Config) -> T.Config:
-  match config:
-    case T.Config{a,b,env,d}: T.Config{a,b,finding_environment(env),d}
 def no_ghost(+world: M.World,parent: Nat,+child: Nat) -> Bool:
   Bool.not(Motion.contains(V.WorkIdentity{1n,1n,1n,parent},M.actors(world))) &&
     Motion.released(actor(world,child)) &&
@@ -47,8 +40,8 @@ def checks(+early: M.World,+source_handoff: M.World,+prep_handoff: M.World,+clea
     Tests.require(String.eq(R.fork_text_for(actor(source_handoff,2n),M.actors(source_handoff)),"PREP UNITS IN PLAYBACK 2"),"case 5 preparation inspection counts its own admitted units rather than its source parent")
     Tests.require(no_ghost(source_handoff,1n,2n),"case 2 source predecessor vanishes at handoff while its child retains causal identity")
     Tests.require(no_ghost(prep_handoff,2n,3n),"case 2 preparation predecessor vanishes without a lingering duplicate body")
-    Tests.require(U32.is_eq(Motion.outcome(actor(clear,3n)),2) && U32.is_eq(Motion.outcome(actor(clear,4n)),2) && Nat.is_eq(List.length(&2,C.Work,M.work(M.core(clear))),0n),"case 3 real default Clear produces two clear histories and no invented advice")
-    Tests.require(submitted_pair(sent),"case 4 accepted actual submission is recorded before retained-room visual travel finishes")
+    Tests.require(U32.is_eq(Motion.outcome(actor(clear,3n)),2) && U32.is_eq(Motion.outcome(actor(clear,4n)),2) && Nat.is_eq(List.length(&2,C.Work,M.work(M.core(clear))),0n),"case 3 explicitly forced Clear produces two clear histories and no invented advice")
+    Tests.require(submitted_pair(sent),"case 4 default Finding reaches accepted actual submission is recorded before retained-room visual travel finishes")
     Tests.require(long_wait_explained(stored),"case 4 storage and a queue behind its full-identity leader have different explicit reasons")
     Tests.require(Nat.is_eq(List.length(&2,V.Actor,M.actors(prep_handoff)),2n) && Motion.same(Motion.actor_key(actor(prep_handoff,3n)),V.WorkIdentity{1n,1n,1n,3n}) && Motion.same(Motion.actor_key(actor(prep_handoff,4n)),V.WorkIdentity{1n,1n,1n,4n}),"case 5 only the two actually admitted review units survive preparation")
     Tests.require(String.eq(R.fork_text_for(actor(prep_handoff,3n),M.actors(prep_handoff)),"PREP UNITS IN PLAYBACK 2"),"case 5 inspection counts actual admitted child histories rather than assuming a fixed fork")
@@ -60,10 +53,10 @@ def world_value(worlds: List<&2,M.World>) -> M.World:
     case world <> _: world
     case _: H.initial()
 def main() -> IO(Unit):
-  +early: List<&2,M.World> = Tests.run_boxed(40n,[H.start(H.initial())])
+  +early: List<&2,M.World> = Tests.run_boxed(40n,[H.start(H.initial_config(Tests.forced_config(Consumer.config()),152n))])
   +source: List<&2,M.World> = Tests.run_boxed(113n,early)
   +clear: List<&2,M.World> = Tests.run_boxed(47n,source)
   +prep: List<&2,M.World> = Tests.run_boxed(85n,clear)
-  +sent: List<&2,M.World> = Tests.run_boxed(240n,[H.start(H.initial_config(finding_config(Consumer.config()),152n))])
+  +sent: List<&2,M.World> = Tests.run_boxed(240n,[H.start(H.initial_config(Consumer.config(),152n))])
   +stored: List<&2,M.World> = Tests.run_boxed(760n,sent)
   checks(world_value(early),world_value(source),world_value(prep),world_value(clear),world_value(sent),world_value(stored))

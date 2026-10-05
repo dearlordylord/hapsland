@@ -3,6 +3,8 @@ import Base
 import ./DefenseMotionTypes.bend as V
 import ./DefenseMechanics.bend as Mechanics
 import ./DefenseMotion.bend as Motion
+import ./DefenseRules.bend as Rules
+import ./DefenseRulePolicy.bend as RulePolicy
 import ./DefenseAuto.bend as A
 import ./DefenseCues.bend as Cues
 import ./DefenseModel.bend as M
@@ -133,16 +135,25 @@ def consumed(+world: M.World, advanced: T.Advanced) -> M.World:
 type TickObserved is Data:
   TickObserved{world: M.World, frames: List<&2,T.Frame>, physical: List<&2,T.PhysicalDelivery>}
 def presented(+before: M.World,after: M.World,frames: List<&2,T.Frame>) -> M.World:
-  M.with_actors(after,Motion.step(Motion.ingest(frames,M.actors(before),M.layout(before))))
+  +ingested = M.with_actors(after,Motion.ingest(frames,M.actors(before),M.layout(before)))
+  +ruled = Rules.tick(ingested)
+  Rules.step_actors(ruled)
 def tick_applied(+world: M.World, advanced: T.Advanced) -> TickObserved:
   match advanced:
     case T.Advanced{state,+frames,+physical}:
       TickObserved{damage(presented(world,consumed(world,T.Advanced{state,frames,physical}),frames)),frames,physical}
+def rules_advanced(+world: M.World,+advanced: T.Advanced) -> TickObserved:
+  match advanced:
+    case T.Advanced{_,frames,_}:
+      +captured = Rules.ingest(frames,M.rules(world))
+      tick_applied(M.with_rules(world,captured),Rules.apply_counts(advanced,captured))
 def ticking_observed(+world: M.World) -> TickObserved:
-  tick_applied(world,Run.advance(M.engine(world),256n,(U32.to_nat(M.time(world)) * 20n + 20n : Nat)))
+  rules_advanced(world,Run.advance(M.engine(world),256n,(U32.to_nat(M.time(world)) * 20n + 20n : Nat)))
 def playback_when(active: Bool,+world: M.World) -> M.World:
   match active:
-    case True{}: M.with_actors(world,Motion.step(M.actors(world)))
+    case True{}:
+      +ruled = Rules.tick(world)
+      Rules.step_actors(ruled)
     case False{}: world
 def tick_when(active: Bool,+world: M.World) -> TickObserved:
   match active:
@@ -195,6 +206,15 @@ def reset_layout(layout: U32) -> M.World:
 def pacing(+world: M.World,faster: Bool) -> M.World:
   +pace = Bool.pick(U32,faster,U32.max(20,M.sub(M.arrival_interval(world),100)),U32.min(60000,(M.arrival_interval(world) + 100 : U32)))
   action(M.with_control(world,M.control_with_pace(M.control(world),pace)),T.WorkloadControl{Some{1n},Workload.Pace{pace}})
+# Future issuance captures the selected profile; started requests keep theirs.
+def configure_rules(world: M.World,checks: U32,percent: U32) -> M.World:
+  Mechanics.profiles(Rules.configured(world,RulePolicy.profile(checks,percent)))
+def change_rule_count(+world: M.World,increase: Bool) -> M.World:
+  +value = Rules.profile(M.rules(world))
+  configure_rules(world,Bool.pick(U32,increase,(RulePolicy.checks(value) + 1 : U32),M.sub(RulePolicy.checks(value),1)),RulePolicy.percent(value))
+def change_rule_chance(+world: M.World,increase: Bool) -> M.World:
+  +value = Rules.profile(M.rules(world))
+  configure_rules(world,RulePolicy.checks(value),Bool.pick(U32,increase,(RulePolicy.percent(value) + 10 : U32),M.sub(RulePolicy.percent(value),10)))
 def key_result(world: M.World, code: U32) -> M.World:
   match code:
     case 114: reset_layout(M.layout(world))
@@ -204,6 +224,10 @@ def key_result(world: M.World, code: U32) -> M.World:
     case 61: adjust_burst(world,True{})
     case 45: adjust_burst(world,False{})
     case 102: outage(world)
+    case 106: change_rule_chance(world,False{})
+    case 107: change_rule_chance(world,True{})
+    case 44: change_rule_count(world,False{})
+    case 46: change_rule_count(world,True{})
     case 91: pacing(world,False{})
     case 93: pacing(world,True{})
     case 110: start(world)

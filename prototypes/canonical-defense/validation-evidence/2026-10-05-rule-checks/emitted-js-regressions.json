@@ -1,0 +1,74 @@
+[
+  {
+    "fixture": "DefenseMotionTests",
+    "stage": "emit",
+    "limitSeconds": 30,
+    "durationSeconds": 4.6328212739899755,
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefenseMotionTests",
+    "stage": "execute",
+    "limitSeconds": 5,
+    "durationSeconds": 0.060023700818419456,
+    "exit": 0,
+    "stdout": "PASS rapid stage changes append history without replacing the current pose\nPASS all maps preserve bounded continuous movement through queued stages\nPASS equal operation numbers in different partitions remain distinct actors\nPASS clear exit requires an explicit clear settlement\nPASS backend failure cannot become a clear exit\nPASS retiring an acknowledged review preserves its witnessed delivery exit\nPASS retiring an individually submitted record cannot fabricate a finish acknowledgement\nPASS finding retirement without acknowledgement adds no delivery route\nPASS review children follow preparation rather than source family identity\nPASS two units of one edit remain separately visible after preparation on every map\nPASS Jev service path stays inside until a finding or clear chooses its exit\nPASS an already visible child remains drawn while a sibling blocks movement\nPASS actual Host accepted frames produce visible presentation actors\nPASS retained findings from different edits queue visibly instead of stacking at the room exit\nPASS units from different edits remain distinct on shared road segments on every map\n",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefensePresentationTests",
+    "stage": "emit",
+    "limitSeconds": 30,
+    "durationSeconds": 4.268008487997577,
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefensePresentationTests",
+    "stage": "execute",
+    "limitSeconds": 5,
+    "durationSeconds": 0.19060156494379044,
+    "exit": 0,
+    "stdout": "PASS case 1 actual completed business keeps visible-stage colour during first-road playback\nPASS case 5 preparation inspection counts its own admitted units rather than its source parent\nPASS case 2 source predecessor vanishes at handoff while its child retains causal identity\nPASS case 2 preparation predecessor vanishes without a lingering duplicate body\nPASS case 3 explicitly forced Clear produces two clear histories and no invented advice\nPASS case 4 default Finding reaches accepted actual submission is recorded before retained-room visual travel finishes\nPASS case 4 storage and a queue behind its full-identity leader have different explicit reasons\nPASS case 5 only the two actually admitted review units survive preparation\nPASS case 5 inspection counts actual admitted child histories rather than assuming a fixed fork\nPASS case 5 both moving children preserve their complete preparation identity\nPASS submission evidence respects its actual partition and round rather than operation number alone\n",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefenseDisplayTests",
+    "stage": "emit",
+    "limitSeconds": 30,
+    "durationSeconds": 6.070308863883838,
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefenseDisplayTests",
+    "stage": "execute",
+    "limitSeconds": 5,
+    "durationSeconds": 0.4843464340083301,
+    "exit": 0,
+    "stdout": "PASS defeat stops business time while accepted visual paths keep moving\nPASS manual release confirms queued edits before actual admission\nPASS actual admission has a separate observable cue\nPASS business completion retains unfinished visual paths\nPASS completed work disappears only after its path and terminal cue finish\nPASS six-edit fan-out preserves continuous surviving actor positions\nPASS rapid release feedback remains bounded to two notifications\n",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefenseInspectionTests",
+    "stage": "emit",
+    "limitSeconds": 30,
+    "durationSeconds": 4.8384037560317665,
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "fixture": "DefenseInspectionTests",
+    "stage": "execute",
+    "limitSeconds": 5,
+    "durationSeconds": 0.05974959000013769,
+    "exit": 0,
+    "stdout": "PASS actual rendered body pixel keeps visible phase colour despite completed business\nPASS hover skips hidden bodies and preserves full identity of retired playback\nPASS hover focuses the originating edit without confusing equal operation numbers\nPASS moving off a body restores the unfiltered business overview\n",
+    "stderr": ""
+  }
+]

@@ -4,6 +4,8 @@ import { createNativePreflight, validateNativeFixture, cleanupNativePreflight } 
 // Finite standalone game consumer, geometry, drawing and raster assertions.
 // Window/input-device integration remains a separate interactive gate.
 const roots = [
+  "DefenseRulePolicyTests.bend",
+  "DefenseRulesTests.bend",
   "DefenseConsumerTests.bend",
   "DefenseProcessTests.bend",
   "DefenseMotionTests.bend",

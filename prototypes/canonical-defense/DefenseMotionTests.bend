@@ -58,7 +58,9 @@ def separated_pair(+items: List<&2,V.Actor>) -> Bool:
 def siblings(+layout: U32) -> Bool:
   separated_pair(steps(30n,[Motion.birth_actor(C.Work{1n,1n,1n,7n,7n,C.Reviewing{},1n},layout,0n,0,[]),Motion.birth_actor(C.Work{1n,1n,1n,8n,8n,C.Reviewing{},1n},layout,0n,1,[])]))
 def service_stays_inside(+layout: U32) -> Bool:
-  Map.same(Map.last(Motion.route(layout,4,0)),Map.last(Map.snake(Map.center(layout,4,0))))
+  Map.inside_points(Motion.route(layout,4,0),Map.center(layout,4,0)) &&
+    Bool.not(Map.same(Map.last(Motion.route(layout,4,0)),Map.port(Map.center(layout,4,0),Map.exit_side(layout,4)))) &&
+    Bool.not(Map.same(Map.last(Motion.route(layout,4,0)),Map.port(Map.center(layout,4,0),Map.clear_side(layout))))
 def blocked_stays_visible() -> Bool:
   +actor = single(Motion.step([Motion.birth_actor(C.Work{1n,1n,1n,7n,7n,C.Reviewing{},1n},0,0n,0,[])]))
   +leader = Motion.birth_actor(C.Work{1n,1n,1n,6n,6n,C.Reviewing{},1n},0,0n,0,[])

@@ -1,6 +1,8 @@
 import Base
 import ./DefenseMotionTypes.bend as V
 import ./DefenseAuto.bend as A
+import ./DefenseRuleTypes.bend as Rules
+import ./DefenseRulePolicy.bend as RulePolicy
 import ./DefenseConsumer.bend as Consumer
 import ../../packages/monkey-business-bend/NativeRun.bend as Run
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
@@ -40,8 +42,8 @@ def config_settings(config: T.Config) -> Settings:
   match config:
     case T.Config{_,_,env,_}: settings_from_environment(env)
 type Control is Data:
-  Control{schedule: List<&2,A.State>, pace: U32, cues: List<&2,Cue>, actors: List<&2,V.Actor>, settings: List<&2,Settings>}
-def initial_control() -> Control: Control{[A.initial()],30000,[],[],[config_settings(Consumer.config())]}
+  Control{schedule: List<&2,A.State>, pace: U32, cues: List<&2,Cue>, actors: List<&2,V.Actor>, settings: List<&2,Settings>, rules: List<&2,Rules.State>}
+def initial_control() -> Control: Control{[A.initial()],30000,[],[],[config_settings(Consumer.config())],[RulePolicy.initial()]}
 def control_value(items: List<&2,Control>) -> Control:
   match items:
     case value <> _: value
@@ -52,16 +54,16 @@ def auto_value(items: List<&2,A.State>) -> A.State:
     case Nil{}: A.initial()
 def control_schedule(control: Control) -> A.State:
   match control:
-    case Control{items,_,_,_,_}: auto_value(items)
+    case Control{items,_,_,_,_,_}: auto_value(items)
 def control_with_schedule(control: Control,schedule: A.State) -> Control:
   match control:
-    case Control{_,pace,cues,actors,settings}: Control{[schedule],pace,cues,actors,settings}
+    case Control{_,pace,cues,actors,settings,rules}: Control{[schedule],pace,cues,actors,settings,rules}
 def control_pace(control: Control) -> U32:
   match control:
-    case Control{_,pace,_,_,_}: pace
+    case Control{_,pace,_,_,_,_}: pace
 def control_with_pace(control: Control,pace: U32) -> Control:
   match control:
-    case Control{schedule,_,cues,actors,settings}: Control{schedule,pace,cues,actors,settings}
+    case Control{schedule,_,cues,actors,settings,rules}: Control{schedule,pace,cues,actors,settings,rules}
 
 # Box the independent NativeRun state; geometry/combat never rewrite it.
 type World is Data:
@@ -228,20 +230,20 @@ def arrival_interval(world: World) -> U32:
 
 def control_cues(control: Control) -> List<&2,Cue>:
   match control:
-    case Control{_,_,cues,_,_}: cues
+    case Control{_,_,cues,_,_,_}: cues
 def control_with_cues(control: Control,cues: List<&2,Cue>) -> Control:
   match control:
-    case Control{schedule,pace,_,actors,settings}: Control{schedule,pace,cues,actors,settings}
+    case Control{schedule,pace,_,actors,settings,rules}: Control{schedule,pace,cues,actors,settings,rules}
 def cues(world: World) -> List<&2,Cue>: control_cues(control(world))
 def with_cues(+world: World,cues: List<&2,Cue>) -> World:
   with_control(world,control_with_cues(control(world),cues))
 
 def control_actors(control: Control) -> List<&2,V.Actor>:
   match control:
-    case Control{_,_,_,actors,_}: actors
+    case Control{_,_,_,actors,_,_}: actors
 def control_with_actors(control: Control,actors: List<&2,V.Actor>) -> Control:
   match control:
-    case Control{schedule,pace,cues,_,settings}: Control{schedule,pace,cues,actors,settings}
+    case Control{schedule,pace,cues,_,settings,rules}: Control{schedule,pace,cues,actors,settings,rules}
 def actors(world: World) -> List<&2,V.Actor>: control_actors(control(world))
 def with_actors(+world: World,actors: List<&2,V.Actor>) -> World:
   with_control(world,control_with_actors(control(world),actors))
@@ -252,11 +254,11 @@ def settings_value(items: List<&2,Settings>) -> Settings:
     case _: config_settings(Consumer.config())
 def settings_control(control: Control) -> Settings:
   match control:
-    case Control{_,_,_,_,settings}: settings_value(settings)
+    case Control{_,_,_,_,settings,_}: settings_value(settings)
 def settings(world: World) -> Settings: settings_control(control(world))
 def with_settings(control: Control,settings: Settings) -> Control:
   match control:
-    case Control{schedule,pace,cues,actors,_}: Control{schedule,pace,cues,actors,[settings]}
+    case Control{schedule,pace,cues,actors,_,rules}: Control{schedule,pace,cues,actors,[settings],rules}
 def base_jev(settings: Settings) -> Nat:
   match settings:
     case Settings{jev,_,_}: jev
@@ -276,3 +278,17 @@ def power(tower: Tower) -> U32:
 def radius(tower: Tower) -> U32:
   match tower:
     case Tower{_,_,_,_,_,value}: value
+
+def rules_value(items: List<&2,Rules.State>) -> Rules.State:
+  match items:
+    case value <> _: value
+    case _: RulePolicy.initial()
+def rules_control(control: Control) -> Rules.State:
+  match control:
+    case Control{_,_,_,_,_,rules}: rules_value(rules)
+def rules(world: World) -> Rules.State: rules_control(control(world))
+def control_with_rules(control: Control,rules: Rules.State) -> Control:
+  match control:
+    case Control{schedule,pace,cues,actors,settings,_}: Control{schedule,pace,cues,actors,settings,[rules]}
+def with_rules(+world: World,rules: Rules.State) -> World:
+  with_control(world,control_with_rules(control(world),rules))

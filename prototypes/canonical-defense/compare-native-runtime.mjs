@@ -156,6 +156,18 @@ function comparePayload(value, publicItem, field, order, core) {
         compareStopPayload(value,publicItem,core,field,order);
         return;
       }
+      if (publicItem.driverAction === undefined && publicItem.input.kind === "canonical" &&
+          publicItem.input.event.kind === "findingCountUpdated") {
+        // Game-owned multiplicity is an external fact, not a generated callback.
+        assert.equal(input.$, "NativeRunTypes.Event", `${field} external count input family`);
+        assert.equal(publicItem.input.at, publicItem.at, `${field} external count time`);
+        const action = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
+        assert.deepEqual(action, { event: publicItem.input.event, delay: 0, job: false }, `${field} complete external count fact ${order}`);
+        for (const name of ["job", "context", "source_job"]) assert.equal(option(input[name]), undefined, `${field} external count has no ${name}`);
+        for (const name of ["generated", "partition", "candidate", "expiryAdvice", "callbackReceipt", "driverContext", "driverSourceJob"])
+          assert.equal(publicItem[name], undefined, `${field} external count has no ${name}`);
+        return;
+      }
       assert.ok(publicItem.driverAction,`${field} actual action ${order}`);
       const actualAction = decodeDriver({ handled: true, actions: { $: "Con", head: input.action, tail: { $: "Nil" } } }).actions[0];
       assert.deepEqual(actualAction,publicItem.driverAction,`${field} complete action ${order}`);
@@ -301,6 +313,20 @@ export function compareNativeRuntime(value, original, field) {
   }
 }
 
+// The public Run resolves an ownerless acknowledgement with its event owner.
+// NativeRun transports its raw optional scope. Only this external count ack
+// has that difference; explicit scopes and every other command stay exact.
+export function resolvedGameCommandScopes(values, event, commands) {
+  const scopes = list(values), items = list(commands);
+  return scopes.map((value, index) => {
+    const scope = option(value);
+    if (scope !== undefined) return scope;
+    if (event.$ === "Canonical.FindingCountUpdated" && items[index]?.$ === "Canonical.FindingCountRecorded")
+      return readNat(event.partition);
+    return null;
+  });
+}
+
 export function compareNativeFrames(values, publicFrames, field) {
   const frames = list(values).map(readRecord);
   const observed = publicFrames.filter(frame => frame.kind !== "callbackDelivery");
@@ -347,7 +373,7 @@ export function compareNativeFrames(values, publicFrames, field) {
       assert.deepEqual(frame.event,actual.scheduled.input.kind === "canonical" ? encodeCanonicalEvent(actual.observation.event) : undefined,`${field} actual source event`);
       assert.deepEqual(list(frame.commands),result.$ === "Canonical.Advanced" ? list(result.commands) : [],`${field} entire original commands`);
       assert.deepEqual(option(frame.rejection),result.$ === "Canonical.Rejected" ? result.reason : undefined,`${field} exact rejection`);
-      assert.deepEqual(list(details.command_scopes).map(value => option(value) ?? null),actual.observation.commandScopes,`${field} actual command scopes`);
+      assert.deepEqual(resolvedGameCommandScopes(details.command_scopes,frame.event,frame.commands),actual.observation.commandScopes,`${field} actual command scopes`);
     } else if (frame.$ === "NativeRunTypes.GraphFrame") {
       assert.equal(actual.kind,"preparation",`${field} original graph observation family`);
       const event = actual.observation.event, key = readRecord(frame.key), result = readRecord(transition.result);
