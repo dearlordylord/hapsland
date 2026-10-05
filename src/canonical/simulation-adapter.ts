@@ -49,7 +49,7 @@ import {
   decodeTrustedCanonicalStep,
   projectTrustedCanonical
 } from "./canonical-boundary.ts"
-import { encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
+import { encodeEngineValue as encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
 import { projectImportGraph, decodeImportGraphStep } from "./graph-adapter.ts"
 const graphKey = decoder(
   Schema.Struct({
@@ -122,8 +122,10 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   const transition = SharedEngine.step(state, encodedEvent)
   const result = decodeTrustedCanonicalStep(transition.result)
   const projection = projectCanonical(result.state)
-  const afterActions = decodeSharedValue(SharedEngine.after(state, transition.state, encodedEvent))
-  decodeDriver({ handled: true, actions: afterActions })
+  const afterActions = decodeDriver({
+    handled: true,
+    actions: decodeSharedValue(SharedEngine.after(state, transition.state, encodedEvent))
+  }).actions
   const departureFacts = readList(SharedEngine.writer_departures(state, transition.state, encodedEvent), (value) => {
     const raw = readPhysicalRelease(decodeSharedValue(value))
     return { capture: decodeWriterIssuedCapture(raw.capture), event: decodeDriverEvent(raw.event) }
@@ -1038,9 +1040,12 @@ export const stepSharedCache = (state: EngineState, capsule: SharedCacheFact) =>
   const raw = readRecord(transition.result)
   const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, (value) => value) : []
   const projection = projectCanonical(result.state)
-  const afterActions = decodeSharedValue(
-    SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(capsule.event)))
-  )
+  const afterActions = decodeDriver({
+    handled: true,
+    actions: decodeSharedValue(
+      SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(capsule.event)))
+    )
+  }).actions
   const cacheReleases = [
     ...readList(transition.releases, (value) => decodeDriverEvent(decodeSharedValue(value))),
     ...readList(SharedEngine.cache_removed(state, originalCommandList(commands)), (value) =>
@@ -1121,9 +1126,8 @@ const responseTransition = (
           round: raw.issued.value.round
         })
       : undefined
-  const actions = decodeSharedValue(transition.actions)
   // Decode every action before publishing state or its newly issued capability.
-  decodeDriver({ handled: true, actions })
+  const actions = decodeDriver({ handled: true, actions: decodeSharedValue(transition.actions) }).actions
   return { state: retain(before, transition.state), result: responseResults[raw.result.$], issued, actions }
 }
 export const controlSharedResponse = (state: EngineState, control: CollectionResponseControl, now: number) => {
@@ -1330,8 +1334,7 @@ export const prepareSharedWriter = (state: EngineState, capture: WriterCapture) 
   )
   const option = writerPendingOption(decodeSharedValue(transition.pending))
   const raw = option.$ === "Some" ? decodeWriterPending(option.value) : undefined
-  const actions = decodeSharedValue(transition.actions)
-  decodeDriver({ handled: true, actions })
+  const actions = decodeDriver({ handled: true, actions: decodeSharedValue(transition.actions) }).actions
   // Entire capsule/action envelope must decode before retaining either state
   // or its once-issued source provenance, including malformed late actions.
   const next = retain(state, transition.state as EngineState)

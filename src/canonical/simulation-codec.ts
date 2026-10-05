@@ -118,3 +118,6 @@ const convert = (value: unknown, encode: boolean, word = false): unknown => {
 }
 export const encodeSharedValue = (value: unknown): unknown => convert(value, true)
 export const decodeSharedValue = (value: unknown): unknown => convert(value, false)
+
+/** Validate directly into the Number/plain-tag representation accepted by the emitted Engine wrapper. */
+export const encodeEngineValue = (value: unknown): unknown => convert(value, false)

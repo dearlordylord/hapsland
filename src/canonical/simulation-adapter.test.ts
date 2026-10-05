@@ -15,7 +15,9 @@ import {
   routedSharedSharing,
   afterSharedNotice
 } from "./simulation-adapter.ts"
-import { encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
+import SharedEngine from "../../packages/monkey-business-bend/engine.mjs"
+import { encodeCanonicalEvent } from "./canonical-boundary.ts"
+import { encodeEngineValue, encodeSharedValue, decodeSharedValue } from "./simulation-codec.ts"
 
 const limits = { globalItems: 32, globalBytes: 4096, partitionItems: 16, partitionBytes: 2048 }
 describe("trusted simulation composition boundary", () => {
@@ -205,4 +207,23 @@ describe("trusted simulation composition boundary", () => {
     expect(encodeSharedValue(words)).toEqual({ ...words, $: "../agent-flow-bend/RulePolicy.Words" })
     expect(() => encodeSharedValue({ ...words, low: 0x100000000 })).toThrow()
   })
+})
+
+it("preserves emitted Engine transitions with direct Number and plain-tag inputs", () => {
+  const boundaryLimits = {
+    $: "Ledger.Limits",
+    global_items: 32,
+    global_bytes: 4096,
+    partition_items: 16,
+    partition_bytes: 2048
+  }
+  const legacy = SharedEngine.initial(encodeSharedValue(boundaryLimits))
+  const direct = SharedEngine.initial(encodeEngineValue(boundaryLimits))
+  expect(direct).toEqual(legacy)
+  const event = encodeCanonicalEvent({ kind: "openRound", partition: 1, lifetime: 1 })
+  expect(SharedEngine.step(direct, encodeEngineValue(event))).toEqual(
+    SharedEngine.step(legacy, encodeSharedValue(event))
+  )
+  for (const invalid of [-1, 0.5, 2 ** 48, Number.NaN])
+    expect(() => encodeEngineValue({ $: "Some", value: invalid })).toThrow()
 })
