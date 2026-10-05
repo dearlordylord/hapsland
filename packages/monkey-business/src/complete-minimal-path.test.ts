@@ -5,6 +5,10 @@ import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { expect, it } from "vitest"
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type RunConfig } from "./index.ts"
+import {
+  NATIVE_C_EMISSION_TIMEOUT_MS,
+  NATIVE_CLANG_TIMEOUT_MS
+} from "../../monkey-business-bend/conformance/native-preflight.mjs"
 
 // The public scenario seam is agreed in #176. Expected observations below come
 // from the advice/handoff contract, not another invocation of Canonical.
@@ -226,19 +230,16 @@ it("runs original source-free minimal scenarios through the native shared driver
         "-o",
         source
       ],
-      { encoding: "utf8", timeout: 10000 }
+      { encoding: "utf8", timeout: NATIVE_C_EMISSION_TIMEOUT_MS }
     )
     expect(emit.error).toBeUndefined()
     expect(emit.status, emit.stdout + emit.stderr).toBe(0)
-    // Bend checking/emission has a ten-second bound: isolated Linux arm64 runs
-    // took 4.5–5.2s and exceeded the former five-second bound. Native execution
-    // retains its five-second bound.
-    // External C compilation has a separate fifteen-second bound: it took 4.1s
-    // without load and exceeded 5s during concurrent checks. This compile budget
-    // changes no proof or simulated-time deadline; optimization is irrelevant to traces.
+    // Use the shared owner-authorized emission and C compilation allowances.
+    // Contended Linux arm64 runs exceeded this fixture's former 10s/15s bounds.
+    // Native execution retains its independent five-second bound.
     const compile = spawnSync("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], {
       encoding: "utf8",
-      timeout: 15000
+      timeout: NATIVE_CLANG_TIMEOUT_MS
     })
     expect(compile.error).toBeUndefined()
     expect(compile.status, compile.stdout + compile.stderr).toBe(0)
