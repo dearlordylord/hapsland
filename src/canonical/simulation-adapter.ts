@@ -58,15 +58,17 @@ export const projectSharedCanonical = (state: EngineState): CanonicalProjection 
   sharedCheck(state);
   return projectionOf(state);
 };
+const readPhysicalRelease = decoder(Schema.Struct({$:Schema.Literal("WriterScenario.PhysicalRelease"),capture:Schema.Unknown,event:Schema.Unknown}));
 export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) => {
   sharedCheck(state);
-  const transition = SharedEngine.step(state, encodeSharedValue(encodeCanonicalEvent(event)));
+  const encodedEvent = encodeSharedValue(encodeCanonicalEvent(event));
+  const transition = SharedEngine.step(state, encodedEvent);
   const result = decodeTrustedCanonicalStep(transition.result);
   const projection = projectCanonical(result.state);
-  const afterActions = decodeSharedValue(SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(event))));
+  const afterActions = decodeSharedValue(SharedEngine.after(state, transition.state, encodedEvent));
   decodeDriver({handled:true,actions:afterActions});
-  const departureFacts = readList(SharedEngine.writer_departures(state,transition.state,encodeSharedValue(encodeCanonicalEvent(event))),value=>{
-    const raw=decoder(Schema.Struct({$:Schema.Literal("WriterScenario.PhysicalRelease"),capture:Schema.Unknown,event:Schema.Unknown}))(decodeSharedValue(value));
+  const departureFacts = readList(SharedEngine.writer_departures(state,transition.state,encodedEvent),value=>{
+    const raw=readPhysicalRelease(decodeSharedValue(value));
     return {capture:decodeWriterIssuedCapture(raw.capture),event:decodeDriverEvent(raw.event)};
   });
   const raw = readRecord(transition.result);
@@ -356,9 +358,10 @@ const callbackReceiptResidents = new WeakMap<object, object>();
 export const issueSharedCallback = (state: EngineState, event: CanonicalEvent, order: number, at: number, action: DriverAction, capture?: unknown) => {
   sharedCheck(state);
   const encodedAction = encodeDriverAction(action);
-  if (JSON.stringify(encodeCanonicalEvent(event)) !== JSON.stringify(readRecord(encodedAction).event)) throw new TypeError("callback action event mismatch");
+  const canonicalEvent = encodeCanonicalEvent(event);
+  if (JSON.stringify(canonicalEvent) !== JSON.stringify(readRecord(encodedAction).event)) throw new TypeError("callback action event mismatch");
   const checkedCapture = capture === undefined ? undefined : validateOutputCapture(capture);
-  const encoded = encodeSharedValue(encodeCanonicalEvent(event));
+  const encoded = encodeSharedValue(canonicalEvent);
   const owner = SharedEngine.callback_owner(state, encoded);
   if (readRecord(owner).$ === "None") return { state, receipt: undefined };
   const issued = checkedCapture === undefined
