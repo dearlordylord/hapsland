@@ -24,6 +24,40 @@ const attempt = (batchId: string) => ({
   noticeOnly: false
 })
 
+it("revokes replaced batch observers before recording final membership", async () => {
+  const saved: Array<InspectionRecord> = []
+  await Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const finished = yield* Deferred.make<void>()
+        const recorder = yield* makeInspectionRecorder(source, {
+          write: (record, _encoded, publication) =>
+            Effect.sync(() => {
+              if (publication.commit()) saved.push(record)
+              if (record.fact.kind === "writer-evidence" && record.fact.state === "written")
+                Deferred.doneUnsafe(finished, Effect.void)
+            })
+        })
+        recorder.observeRecording(batch.root, true)
+        const reporting = makeInspectionSubmissionRecorder(recorder, source)
+        reporting.register("same-batch", batch)
+        const old = reporting.observation.forAttempt(attempt("same-batch"))
+        if (!old) throw new Error("missing original observer")
+        reporting.register("same-batch", { ...batch, findingIds: ["c".repeat(64)] })
+        old.observe({ state: "write-started", encoded: "obsolete membership" })
+        const current = reporting.observation.forAttempt(attempt("same-batch"))
+        if (!current) throw new Error("missing replacement observer")
+        current.observe({ state: "written", encoded: "final membership" })
+        yield* Deferred.await(finished)
+        const evidence = saved.filter((record) => record.fact.kind === "writer-evidence")
+        expect(evidence).toHaveLength(1)
+        expect(evidence[0]?.fact).toMatchObject({ state: "written", findingIds: ["c".repeat(64)] })
+        expect(JSON.stringify(saved)).not.toContain(Buffer.from("obsolete membership").toString("base64"))
+      })
+    )
+  )
+})
+
 it("revokes old writer capabilities across opt-out and re-enable, preserving explicit oversized absence", async () => {
   const saved: Array<InspectionRecord> = []
   await Effect.runPromise(

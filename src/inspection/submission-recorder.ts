@@ -99,6 +99,7 @@ export const makeInspectionSubmissionRecorder = (
         observe: (event) => {
           if (
             !isWriterState(event.state) ||
+            tickets.get(correlation.batchId) !== ticket ||
             ticket.expires <= now() ||
             recorder.consentEpoch(root) !== ticket.epoch ||
             seen.has(event.state)
