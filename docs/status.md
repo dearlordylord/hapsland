@@ -95,6 +95,15 @@ prints its launch URL. It does not enable recording or start a resident. Enable
 recording continues independently of the dashboard process. Source-bearing
 inspection history is separate from the source-free status and analytics below.
 
+The **To agent** view renders the general Hapsland message saved by the resident
+before the final socket handoff, with its intended recipient and original
+finding/evaluation membership. Hooks and native extensions do not serialize
+inspection output or send inspection writer reports. Capture-aged consent,
+retention, and quota limits still apply; messages exceeding 16 KiB UTF-8 are
+explicitly marked oversized. This records preparation, not native output,
+agent receipt, model visibility, or repair. **Finding state changes** hides
+repeated observations of the same finding state.
+
 The inspector shows **current recording observations** from live residents
 separately from **retained recording state observations**. A lost history write
 can leave the last retained event as enabled even when the resident now reports

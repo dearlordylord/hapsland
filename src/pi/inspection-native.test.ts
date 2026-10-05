@@ -27,7 +27,7 @@ describe("Pi native extension inspection through production command and public f
   })
 
   it.each(["edit", "finish", "oversized", "unavailable", "lost-ack", "session-switch", "opt-out"] as const)(
-    "retains truthful %s native offer evidence",
+    "retains the resident message for %s native delivery",
     async (variant) => {
       const isolatedState = realpathSync(mkdtempSync(join(stateHome, "case-")))
       const ackGate = join(isolatedState, "ack-reply")
@@ -113,50 +113,24 @@ describe("Pi native extension inspection through production command and public f
                     const snapshot = (await response.json()) as { records?: InspectionRecord[] }
                     records = snapshot.records ?? []
                     if (variant === "opt-out") return snapshot.records === undefined ? -1 : records.length
-                    return records.filter(
-                      (r) =>
-                        r.fact.kind === "writer-evidence" && r.fact.state === (lostAck ? "uncertain" : "acknowledged")
-                    ).length
+                    return records.filter((r) => r.fact.kind === "agent-message").length
                   },
                   { timeout: 5000, interval: 200 }
                 )
                 .toBe(variant === "opt-out" ? 0 : 1)
               if (variant === "opt-out") return
-              const writers = records.filter((r) => r.fact.kind === "writer-evidence")
-              expect(writers.map((r) => (r.fact.kind === "writer-evidence" ? r.fact.state : ""))).toEqual([
-                "ready",
-                "authorized",
-                "write-started",
-                "uncertain",
-                ...(lostAck ? [] : ["acknowledged"])
-              ])
-              expect(
-                writers.every((r) => r.scope.runtime === "pi" && r.scope.sessionId === "pi-boundary-session")
-              ).toBe(true)
-              expect(new Set(writers.map((r) => r.correlation.attemptId)).size).toBe(1)
-              for (const record of writers) {
-                if (record.fact.kind !== "writer-evidence") continue
-                expect(record.fact.findingIds.length).toBeGreaterThan(0)
-                expect(record.fact.evaluations.length).toBeGreaterThan(0)
-                expect(record.fact.output).toBeDefined()
-              }
-              const exact = writers.find((r) => r.fact.kind === "writer-evidence" && r.fact.state === "uncertain")!
-              expect(exact.fact.kind).toBe("writer-evidence")
-              if (exact.fact.kind !== "writer-evidence") throw new Error("missing writer evidence")
-              if (variant === "oversized") expect(exact.fact.output).toEqual({ status: "missing", reason: "oversized" })
-              else if (variant === "unavailable") {
-                expect(exact.fact.output).toEqual({ status: "missing", reason: "unavailable" })
-                expect(output.entries[0].content).toBeInstanceOf(Date)
-              } else {
-                expect(exact.fact.output.status).toBe("available")
-                if (exact.fact.output.status !== "available") throw new Error("missing native output")
-                if (variant !== "session-switch")
-                  expect(Buffer.from(exact.fact.output.encoded, "base64").toString("utf8")).toBe(JSON.stringify(output))
-                else
-                  expect(
-                    JSON.parse(Buffer.from(exact.fact.output.encoded, "base64").toString("utf8")).entries[0].customType
-                  ).toBe("hapsland")
-              }
+              const messages = records.filter((r) => r.fact.kind === "agent-message")
+              expect(messages).toHaveLength(1)
+              const message = messages[0]!
+              if (message.fact.kind !== "agent-message") throw new Error("missing resident message")
+              expect(message.scope.runtime).toBe("pi")
+              expect(message.scope.sessionId).toBe("pi-boundary-session")
+              expect(message.fact.findingIds.length).toBeGreaterThan(0)
+              expect(message.fact.evaluations.length).toBeGreaterThan(0)
+              expect(message.fact.message).toMatchObject({ status: "available" })
+              if (message.fact.message.status === "available") expect(message.fact.message.text).toContain("Hapsland")
+              // Native output variants do not affect resident-owned message capture.
+              if (variant === "unavailable") expect(output.entries[0].content).toBeInstanceOf(Date)
             })
           })
         )

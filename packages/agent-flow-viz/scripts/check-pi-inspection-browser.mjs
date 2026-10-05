@@ -213,40 +213,22 @@ try {
     assert.ok(metadata.findingIds.length > 0)
     assert.ok(metadata.evaluations.length > 0)
     assert.ok(metadata.batchId)
-    assert.ok(metadata.attemptId)
-    assert.equal(
-      metadata.events.some((event) => event.state === "written"),
-      false
-    )
-    assert.equal(
-      metadata.events.some((event) => event.state === "uncertain"),
-      true
-    )
-    assert.equal(
-      metadata.events.some((event) => event.state === "acknowledged"),
-      output.variant !== "lost-ack"
-    )
     assert.ok((await page.locator("#handoff-edits button").count()) >= 1)
-    if (output.variant === "oversized" || output.variant === "unavailable") {
-      assert.equal(await page.locator("#handoff-copy").isDisabled(), true)
-      assert.equal(await page.locator("#handoff-exact").textContent(), `Exact output unavailable: ${output.variant}.`)
-    } else {
-      assert.equal(await page.locator("#handoff-copy").isEnabled(), true)
-      await page.locator("#handoff-copy").focus()
-      await page.keyboard.press("Enter")
-      await page.waitForFunction(
-        () => document.querySelector("#handoff-copy-status").textContent === "Exact output copied"
-      )
-      assert.equal(await page.evaluate(() => navigator.clipboard.readText()), output.encoded)
-      assert.equal(await page.locator("#handoff-exact").textContent(), output.encoded)
-    }
+    assert.equal(await page.locator("#handoff-copy").isEnabled(), true)
+    const text = await page.locator("#handoff-message").textContent()
+    assert.match(text, /Hapsland/)
+    await page.locator("#handoff-copy").focus()
+    await page.keyboard.press("Enter")
+    await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Message copied")
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), text)
+    output.message = text
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   }
   const edit = page.locator("#handoff-edits button")
   await edit.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("type.ts"))
-  assert.equal(await page.locator("#handoff-exact").textContent(), outputs.at(-1).encoded)
+  assert.equal(await page.locator("#handoff-message").textContent(), outputs.at(-1).message)
   await cleanupPiFixtures()
   await page.waitForFunction(
     (roots) => {
@@ -259,13 +241,13 @@ try {
     outputs.map((output) => output.root)
   )
   assert.equal(await page.locator("#edits button").count(), expectedEdits)
-  assert.equal(await page.locator("#handoff-exact").textContent(), outputs.at(-1).encoded)
+  assert.equal(await page.locator("#handoff-message").textContent(), outputs.at(-1).message)
   assert.deepEqual(errors, [])
   const disconnectedRecording = JSON.parse(await page.locator("#current-recording").textContent())
   assert.equal(disconnectedRecording.sources.filter((entry) => entry.status === "disconnected").length, 4)
   assert.ok(disconnectedRecording.sources.every((entry) => entry.roots.length === 0))
   console.log(
-    "Pi inspection browser: native fixtures, exact offer copy, oversized and unavailable absence, lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
+    "Pi inspection browser: native fixtures, resident message copy independent of native output and lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
   )
 } finally {
   clearTimeout(deadline)

@@ -11,13 +11,12 @@ const routes = document.querySelector('#routes');
 const handoffs = document.querySelector('#handoffs');
 const handoffSummary = document.querySelector('#handoff-summary');
 const handoffEdits = document.querySelector('#handoff-edits');
-const handoffExact = document.querySelector('#handoff-exact');
 const handoffOutputStatus = document.querySelector('#handoff-output-status');
 const handoffCopy = document.querySelector('#handoff-copy');
 const handoffCopyStatus = document.querySelector('#handoff-copy-status');
 const allHandoffs = document.querySelector('#all-handoffs');
 let selectedHandoff = null, showAllHandoffs = false, exactOutputText = null;
-const writerLabels = { ready: 'Advice ready', authorized: 'Authorized', 'write-started': 'Write started', written: 'Output written', acknowledged: 'Resident acknowledged', 'failed-before-write': 'Failed before write', uncertain: 'Uncertain output' };
+
 const status = document.querySelector('#status');
 const exact = document.querySelector('#exact');
 const copy = document.querySelector('#copy');
@@ -55,20 +54,6 @@ const key = record => record.source.id + ':' + record.correlation.receiptId;
 function preserveText(element, text) {
   if (element.textContent === text) return;
   const position = element.scrollTop; element.textContent = text; element.scrollTop = position;
-}
-function renderWriterObservations(group) {
-  const recipient = document.querySelector('#handoff-recipient');
-  const events = document.querySelector('#writer-events'); events.replaceChildren();
-  document.querySelector('#writer-observations').hidden = !group;
-  recipient.hidden = !group;
-  if (!group) { recipient.replaceChildren(); return; }
-  const first = group[0];
-  preserveText(recipient, (first.scope.runtime || 'Runtime unavailable') + ' · ' + (first.fact.recipient.turnId ? 'Turn ' + first.fact.recipient.turnId : 'Turn unavailable') + ' · ' + (first.fact.recipient.toolUseId ? 'Tool ' + first.fact.recipient.toolUseId : 'Tool unavailable'));
-  for (const record of group) {
-    const item = requestElement('li');
-    item.append(requestElement('time', new Date(record.capturedAt).toLocaleTimeString()), requestElement('span', writerLabels[record.fact.state]));
-    events.append(item);
-  }
 }
 const fateReasons = {
   'pending-advice': 'Awaiting advice collection',
@@ -112,78 +97,42 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
   for (const record of records) if (record.fact.kind === 'evaluation-route' && record.fact.original.status === 'linked') origins.add(record.fact.original.evaluationId);
   const sources = new Set(records.map(record => record.source.id));
   const findings = new Set(fates.flatMap(record => record.fact.payload.status === 'available' ? record.fact.payload.findingIds : []));
-  const groups = new Map();
-  for (const record of snapshot.records) {
-    if (record.fact.kind !== 'writer-evidence') continue;
-    const id = record.source.id + ':' + (record.correlation.batchId || 'unbound-' + record.sequence) + ':' + (record.correlation.attemptId || 'unbound-' + record.sequence);
-    if (!groups.has(id)) groups.set(id, []);
-    groups.get(id).push(record);
-  }
-  const visible = new Map(Array.from(groups).filter(([, group]) => matchesIdentity(group[0]) && (showAllHandoffs || !selected || group.some(record => sources.has(record.source.id) && (record.fact.evaluations.some(item => item.evaluationId && origins.has(item.evaluationId)) || record.fact.findingIds.some(id => findings.has(id)))))));
-  const active = document.activeElement?.dataset.handoff;
-  const activeEdit = document.activeElement?.dataset.handoffEdit;
+  const messages = snapshot.records.filter(record => record.fact.kind === 'agent-message' && matchesIdentity(record) && (showAllHandoffs || !selected || (sources.has(record.source.id) && (record.fact.evaluations.some(item => item.evaluationId && origins.has(item.evaluationId)) || record.fact.findingIds.some(id => findings.has(id))))));
+  const identity = record => record.source.id + ':' + record.sequence;
+  if (!messages.some(record => identity(record) === selectedHandoff)) selectedHandoff = messages.length ? identity(messages[0]) : null;
   const position = handoffs.scrollTop;
+  const focused = document.activeElement?.dataset.handoff;
   handoffs.replaceChildren();
-  let index = 0;
-  for (const [id, group] of visible) {
-    const button = document.createElement('button'); button.type = 'button'; button.dataset.handoff = id;
-    button.textContent = 'Handoff ' + (++index) + ' · ' + (group[0].fact.noticeOnly ? 'Notice-only' : group[0].fact.findingIds.length + ' finding(s)') + ' · ' + writerLabels[group[group.length - 1].fact.state];
-    button.setAttribute('aria-pressed', String(id === selectedHandoff));
-    button.addEventListener('click', () => { selectedHandoff = id; render(current); });
-    const item = document.createElement('li'); item.append(button); handoffs.append(item);
-    if (id === active) button.focus({ preventScroll: true });
+  for (const [index, record] of messages.entries()) {
+    const button = requestElement('button', 'Message ' + (index + 1) + ' · ' + new Date(record.capturedAt).toLocaleTimeString() + ' · ' + record.fact.findingIds.length + ' finding(s)');
+    button.type = 'button'; button.dataset.handoff = identity(record);
+    button.setAttribute('aria-pressed', String(identity(record) === selectedHandoff));
+    button.addEventListener('click', () => { selectedHandoff = identity(record); render(current); });
+    const item = requestElement('li'); item.append(button); handoffs.append(item);
+    if (focused === identity(record)) button.focus({ preventScroll: true });
   }
-  if (!visible.size) handoffs.textContent = 'Agent output was not captured for this edit. Review findings alone do not establish what was sent.';
-  document.querySelector('#handoff-panel-summary').textContent = 'To agent · ' + (visible.size || 'not captured');
   handoffs.scrollTop = position;
-  if (!visible.has(selectedHandoff) && selectedHandoff === null && visible.size) { selectedHandoff = visible.keys().next().value; handoffs.querySelector('button')?.setAttribute('aria-pressed', 'true'); }
-  const group = visible.get(selectedHandoff);
-  renderWriterObservations(group);
+  if (!messages.length) handoffs.textContent = 'No retained resident message for this edit.';
+  document.querySelector('#handoff-panel-summary').textContent = 'To agent · ' + (messages.length || 'not captured');
+  const record = messages.find(item => identity(item) === selectedHandoff);
+  if (!sameRecord(exactOutputRecord, record)) handoffCopyStatus.textContent = '';
+  exactOutputRecord = record || null;
+  exactOutputText = record?.fact.message.status === 'available' ? record.fact.message.text : null;
+  const recipient = document.querySelector('#handoff-recipient'); recipient.hidden = !record;
+  preserveText(recipient, record ? (record.scope.runtime || 'Runtime unavailable') + ' · ' + (record.fact.recipient.turnId || 'Turn unavailable') : '');
+  preserveText(handoffSummary, record ? JSON.stringify({ source: record.source, scope: record.scope, batchId: record.correlation.batchId, recipient: record.fact.recipient, evaluations: record.fact.evaluations, findingIds: record.fact.findingIds }, null, 2) : '');
   handoffEdits.replaceChildren();
-  exactOutputText = null; exactOutputRecord = null;
-  let outputText = 'Select a handoff to inspect its captured output.';
-  let outputStatus = '';
-  if (group) {
-    const first = group[0];
-    preserveText(handoffSummary, JSON.stringify({ source: first.source, batchId: first.correlation.batchId || null, attemptId: first.correlation.attemptId || null, scope: first.scope, recipient: first.fact.recipient, noticeOnly: first.fact.noticeOnly, findingIds: first.fact.findingIds, evaluations: first.fact.evaluations, events: group.map(record => ({ capturedAt: record.capturedAt, state: record.fact.state })) }, null, 2));
-    const linked = new Set();
-    for (const item of first.fact.evaluations) {
-      const original = item.evaluationId ? snapshot.records.find(record => record.source.id === first.source.id && record.correlation.evaluationId === item.evaluationId && record.correlation.receiptId && (record.fact.kind === 'unit-prepared' || record.fact.kind === 'model-input')) : null;
-      if (!original) continue;
-      const identity = key(original); if (linked.has(identity)) continue; linked.add(identity);
-      const button = document.createElement('button'); button.type = 'button'; button.dataset.handoffEdit = identity;
-      button.textContent = 'Inspect batch edit · ' + (original.fact.kind === 'unit-prepared' ? original.fact.path : 'Original evaluation');
-      button.addEventListener('click', () => { selected = identity; render(current); }); handoffEdits.append(button);
-      if (identity === activeEdit) button.focus({ preventScroll: true });
-    }
-    if (!linked.size) handoffEdits.textContent = first.fact.noticeOnly ? 'Notice-only output has no captured finding membership.' : 'Original edit links are unavailable in retained history.';
-    const output = group.findLast(record => record.fact.output.status === 'available');
-    if (output) {
-      exactOutputRecord = output;
-      try {
-        exactOutputText = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(Uint8Array.from(atob(output.fact.output.encoded), character => character.charCodeAt(0)));
-        outputText = exactOutputText; outputStatus = 'Exact output captured with ' + writerLabels[output.fact.state] + '.';
-      } catch { outputText = 'Retained output is not valid UTF-8; text copy is unavailable.'; }
-    } else {
-      const missing = group.findLast(record => record.fact.output.reason === 'oversized') || group[group.length - 1];
-      outputText = 'Exact output unavailable: ' + missing.fact.output.reason + '.';
-    }
-    if (group.some(record => record.fact.state === 'written') && !group.some(record => record.fact.state === 'acknowledged')) outputStatus += ' Resident acknowledgement unavailable.';
-  } else preserveText(handoffSummary, selectedHandoff ? 'Selected handoff is unavailable in this view.' : 'Select a handoff to inspect its recipient, batch and attempt.');
-  let agentMessage = '';
-  if (exactOutputText !== null) {
-    try {
-      const value = JSON.parse(exactOutputText);
-      const message = value?.hookSpecificOutput?.additionalContext ?? value?.reason ?? value?.systemMessage;
-      if (typeof message === 'string') agentMessage = message;
-    } catch { agentMessage = exactOutputText; }
+  for (const evaluation of record?.fact.evaluations || []) {
+    const original = snapshot.records.find(item => item.source.id === record.source.id && item.fact.kind === 'unit-prepared' && item.correlation.evaluationId === evaluation.evaluationId);
+    if (!original) continue;
+    const button = requestElement('button', 'Inspect batch edit · ' + original.fact.path); button.type = 'button';
+    button.addEventListener('click', () => { selected = key(original); render(current); }); handoffEdits.append(button);
   }
-  const messageView = document.querySelector('#handoff-message');
-  messageView.hidden = !agentMessage;
-  preserveText(messageView, agentMessage);
+  const message = document.querySelector('#handoff-message');
+  preserveText(message, exactOutputText ?? (record ? 'Message unavailable: ' + record.fact.message.reason : ''));
+  message.hidden = !record;
+  preserveText(handoffOutputStatus, record ? 'Prepared by the resident for the agent. Native output and agent receipt are not captured.' : '');
   handoffCopy.disabled = exactOutputText === null;
-  if (handoffExact.textContent !== outputText) handoffCopyStatus.textContent = '';
-  preserveText(handoffExact, outputText); preserveText(handoffOutputStatus, outputStatus);
 }
 function renderRequestTotals(snapshot, visibleReceipts) {
   const unique = new Map(snapshot.records.map(record => [record.source.id + ':' + record.sequence, record]));
@@ -572,7 +521,11 @@ async function retrieveExact(record) {
   const payload = await response.json();
   if (payload.sourceId !== record.source.id || payload.sequence !== record.sequence) throw new Error('identity-mismatch');
   if (payload.status !== 'available') throw new Error(payload.reason || 'history-unavailable');
-  const original = record.fact.kind === 'writer-evidence' ? record.fact.output : record.fact.payload;
+  if (record.fact.kind === 'agent-message') {
+    if (payload.status !== 'available' || payload.text !== record.fact.message.text) throw new Error('identity-mismatch');
+    return payload.text;
+  }
+  const original = record.fact.payload;
   if (original.status !== 'available' || payload.sha256 !== original.sha256 || payload.byteLength !== original.byteLength || payload.encoded !== original.encoded) throw new Error('identity-mismatch');
   return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(Uint8Array.from(atob(payload.encoded), character => character.charCodeAt(0)));
 }
@@ -593,17 +546,17 @@ copy.addEventListener('click', async () => {
 handoffCopy.addEventListener('click', async () => {
   const record = exactOutputRecord, selection = selectedHandoff;
   if (exactOutputText === null || !record) return;
-  handoffCopyStatus.textContent = 'Retrieving selected output';
+  handoffCopyStatus.textContent = 'Retrieving message';
   try {
     const text = await retrieveExact(record);
     if (selectedHandoff !== selection || !sameRecord(record, exactOutputRecord)) return;
     await navigator.clipboard.writeText(text);
-    if (selectedHandoff === selection && sameRecord(record, exactOutputRecord)) handoffCopyStatus.textContent = 'Exact output copied';
+    if (selectedHandoff === selection && sameRecord(record, exactOutputRecord)) handoffCopyStatus.textContent = 'Message copied';
   } catch (error) {
-    if (selectedHandoff === selection && sameRecord(record, exactOutputRecord)) handoffCopyStatus.textContent = 'Selected output could not be copied: ' + error.message + '. The preview is previously captured history.';
+    if (selectedHandoff === selection && sameRecord(record, exactOutputRecord)) handoffCopyStatus.textContent = 'Message could not be copied: ' + error.message + '. The preview is previously captured history.';
   }
 });
-allHandoffs.addEventListener('click', () => { showAllHandoffs = !showAllHandoffs; allHandoffs.setAttribute('aria-pressed', String(showAllHandoffs)); allHandoffs.textContent = showAllHandoffs ? 'Show linked handoffs' : 'Show all handoffs'; if (current) render(current); });
+allHandoffs.addEventListener('click', () => { showAllHandoffs = !showAllHandoffs; allHandoffs.setAttribute('aria-pressed', String(showAllHandoffs)); allHandoffs.textContent = showAllHandoffs ? 'Show linked messages' : 'Show all messages'; if (current) render(current); });
 pause.addEventListener('click', () => {
   paused = !paused; pause.textContent = paused ? 'Resume updates' : 'Pause updates'; pause.setAttribute('aria-pressed', String(paused));
   if (current) renderRecording(current);
@@ -679,6 +632,6 @@ export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf
 <main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><ul id="edits"></ul></section><section id="selected-evidence" aria-label="Selected evidence"><p id="selection-status" role="status"></p><p id="edit-empty" class="empty">Select an edit</p><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><section id="review"><h3>Review</h3><div id="routes"></div><div id="finding-summary"></div><details id="finding-history-panel" hidden><summary id="finding-history-title">Finding history</summary><p class="muted">Recorded finding states; separate from writer observations.</p><ol id="finding-history" class="observation-list"></ol></details></section>
 <details id="panel-request"><summary id="request-panel-summary">Request</summary><p class="muted">Captured HTTP attempts do not confirm remote receipt.</p><ul id="requests"></ul><button id="copy" type="button" disabled>Copy exact request</button><span id="copy-status" role="status"></span><div id="request-view"></div><details id="request-raw"><summary>Exact JSON</summary><pre id="exact"></pre></details><details><summary>Request metadata</summary><pre id="request-metadata"></pre></details><details><summary>Model input</summary><pre id="input"></pre></details></details>
 <details id="panel-files"><summary>Files</summary><div id="files"></div><details><summary>Included source</summary><pre id="source"></pre></details></details>
-<details id="panel-handoffs" open><summary id="handoff-panel-summary">To agent</summary><p class="muted">Linked to this edit. Written output does not confirm the agent read or acted on it.</p><button id="all-handoffs" type="button" aria-pressed="false">Show all handoffs</button><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><details id="writer-observations" hidden><summary>Writer observations</summary><ol id="writer-events" class="observation-list"></ol></details><div id="handoff-edits"></div><p id="handoff-output-status"></p><button id="handoff-copy" type="button" disabled>Copy exact output</button><span id="handoff-copy-status" role="status"></span><pre id="handoff-message" hidden></pre><details><summary>Exact native output</summary><pre id="handoff-exact"></pre></details><details><summary>Handoff metadata</summary><pre id="handoff-summary"></pre></details></details>
+<details id="panel-handoffs" open><summary id="handoff-panel-summary">To agent</summary><p class="muted">The resident message before runtime formatting. Preparation does not confirm agent receipt.</p><button id="all-handoffs" type="button" aria-pressed="false">Show all messages</button><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><div id="handoff-edits"></div><p id="handoff-output-status"></p><button id="handoff-copy" type="button" disabled>Copy message</button><span id="handoff-copy-status" role="status"></span><pre id="handoff-message" hidden></pre><details><summary>Message metadata</summary><pre id="handoff-summary"></pre></details></details>
 <details id="panel-evidence"><summary>Evidence</summary><details><summary>Answers &amp; rules</summary><pre id="results"></pre></details><details><summary>Captured event records</summary><pre id="detail"></pre></details></details></div></section></main>
 <section class="history"><div class="history-heading"><span class="muted">Captured history only</span></div><details id="history-panel"><summary>Recording &amp; history</summary><p id="history-status" role="status"></p><p class="muted">Only retained observations are shown; missing records do not prove inactivity. This view does not change recording.</p><h3>Current recording observations</h3><p id="recording-roots"></p><p class="muted">Configuration changes apply on the next edit. Pausing preserves the displayed observation; unreachable sources are unknown.</p><p class="muted">Call counts follow the edit filters. Model invocations and HTTP attempts are counted separately; missing capture can undercount both.</p><details><summary>Recording history</summary><p class="muted">Observed transitions do not establish continuous capture or current recording state.</p><pre id="recording"></pre><details><summary>Observed periods</summary><pre id="recording-periods"></pre></details></details><details><summary>Sources &amp; history gaps</summary><p class="muted">Only known endpoints are probed. Timestamps order the view, not events across sources. Loss markers can also expire.</p><pre id="sources"></pre><pre id="losses"></pre></details><details><summary>Recording &amp; call metadata</summary><pre id="current-recording"></pre><pre id="request-totals"></pre></details></details></section><script>${script}</script></body></html>`

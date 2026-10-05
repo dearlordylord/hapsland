@@ -1,4 +1,3 @@
-import { InspectionWriterObservation, observeInspectionWriter } from "../inspection/writer.ts"
 import { hookMonotonicMillis } from "./hook-clock.ts"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -27,26 +26,21 @@ export class HookOutput extends Context.Service<
 
 export const makeHookOutput = (port: HookOutputPort) => {
   const writeEncoded = Effect.fn("HookOutput.writeEncoded")(function* (encoded: string, deadlineAt: number) {
-    const inspection = Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation)
     const remaining = deadlineAt - (yield* hookMonotonicMillis)
     if (remaining <= 0) {
-      observeInspectionWriter(inspection, "failed-before-write", encoded)
       return "timed-out" as const
     }
     return yield* Effect.acquireUseRelease(
-      Effect.sync(() => ({ settled: false, started: false, removeErrorListener: () => {} })),
+      Effect.sync(() => ({ settled: false, removeErrorListener: () => {} })),
       (observer) =>
         Effect.callback<EncodedWriteOutcome>((resume) => {
           const finish = (outcome: EncodedWriteOutcome) => {
             if (observer.settled) return
             observer.settled = true
-            observeInspectionWriter(inspection, outcome === "written" ? "written" : "uncertain", encoded)
             resume(Effect.succeed(outcome))
           }
           observer.removeErrorListener = port.onError(() => finish("error"))
           try {
-            observer.started = true
-            observeInspectionWriter(inspection, "write-started", encoded)
             port.write(encoded, (error) => finish(error == null ? "written" : "error"))
           } catch {
             finish("error")
@@ -57,15 +51,12 @@ export const makeHookOutput = (port: HookOutputPort) => {
             orElse: () =>
               Effect.sync(() => {
                 observer.settled = true
-                observeInspectionWriter(inspection, "uncertain", encoded)
                 return "timed-out" as const
               })
           })
         ),
       (observer) =>
         Effect.gen(function* () {
-          if (!observer.settled)
-            observeInspectionWriter(inspection, observer.started ? "uncertain" : "failed-before-write", encoded)
           observer.settled = true
           yield* port.settleErrors()
           observer.removeErrorListener()
@@ -75,17 +66,14 @@ export const makeHookOutput = (port: HookOutputPort) => {
   return HookOutput.of({
     writeEncoded,
     write: Effect.fn("HookOutput.write")(function* (value: unknown, deadlineAt: number) {
-      const inspection = Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation)
       const writeDeadline = deadlineAt - 50
       if (writeDeadline <= (yield* hookMonotonicMillis) || !port.writable()) {
-        observeInspectionWriter(inspection, "failed-before-write")
         return "failed" as const
       }
       let encoded: string
       try {
         encoded = `${JSON.stringify(value)}\n`
       } catch {
-        observeInspectionWriter(inspection, "failed-before-write")
         return "uncertain" as const
       }
       const outcome = yield* writeEncoded(encoded, writeDeadline)

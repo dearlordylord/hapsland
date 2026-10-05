@@ -1,4 +1,3 @@
-import { InspectionWriterReports } from "./inspection-writer-reports.ts"
 import { writeFileSync, rmSync } from "node:fs"
 import { runClient } from "../test-support/client-runtime.ts"
 import { makeReviewGitFixture as makeGitFixture, advicee as fixtureAdvicee } from "../direct-event/test-fixtures.ts"
@@ -11,7 +10,6 @@ import { createServer, type Server, type Socket } from "node:net"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
-  acknowledgeAdviceEffect,
   ResidentIpcError,
   releaseComposedBackgroundEffect,
   admitAndCollectEffect,
@@ -39,65 +37,6 @@ afterEach(async () => {
 })
 
 describe("resident client trust boundary", () => {
-  it.each(["throws", "malformed"])("preserves acknowledgement when optional writer reporting %s", async (mode) => {
-    const directory = await mkdtemp(join(tmpdir(), "haps-ipc-"))
-    directories.push(directory)
-    await chmod(directory, 0o700)
-    const paths = residentPaths(directory)
-    const received: string[] = []
-    const server = createServer((socket) => {
-      sockets.push(socket)
-      let frame = ""
-      socket.on("data", (chunk) => {
-        frame += chunk.toString("utf8")
-        if (!frame.includes("\n")) return
-        const request = JSON.parse(frame)
-        expect(request).not.toHaveProperty("writerReports")
-        received.push(request.operation)
-        socket.end(
-          `${JSON.stringify({ version: 1, status: request.operation === "acknowledge" ? "acknowledged" : "finalized" })}\n`
-        )
-      })
-    })
-    servers.push(server)
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject)
-      server.listen(paths.socket, resolve)
-    })
-    await chmod(paths.socket, 0o600)
-    const recipient = fixtureAdvicee()
-    const invalid = {
-      root: directory,
-      advicee: recipient,
-      attemptId: "11111111-1111-4111-8111-111111111111",
-      findingCount: 1,
-      noticeOnly: false,
-      state: "written" as const,
-      credentials: "forbidden"
-    }
-    const result = await Effect.runPromise(
-      acknowledgeAdviceEffect({
-        output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "finding" } },
-        token: "batch",
-        lifetime: "owner",
-        paths,
-        root: directory,
-        advicee: recipient,
-        activityPath: undefined,
-        findingCount: 1
-      }).pipe(
-        Effect.provideService(InspectionWriterReports, {
-          forBatch: () => {
-            if (mode === "throws") throw new Error("optional reporter unavailable")
-            return [invalid]
-          }
-        })
-      )
-    )
-    expect(result).toBe(true)
-    expect(received).toEqual(["acknowledge", "finalize"])
-  })
-
   it("does not launch a resident just to release a background claim", async () => {
     const directory = await mkdtemp(join(tmpdir(), "haps-background-missing-"))
     directories.push(directory)

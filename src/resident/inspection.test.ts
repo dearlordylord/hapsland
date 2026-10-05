@@ -1,5 +1,4 @@
 import { configuredRules, connectDefaultRuleFixture } from "../test-support/default-rules.ts"
-import { randomUUID } from "node:crypto"
 import { residentRequestEffect } from "./client.ts"
 import { reviewControlsLayer } from "../test-support/review-controls.ts"
 import { Effect } from "effect"
@@ -73,7 +72,7 @@ describe("resident inspection capture", () => {
     }
   })
 
-  it("binds writer evidence to the surviving batch at the final socket handoff", async () => {
+  it("captures the surviving resident message before any hook runs", async () => {
     const root = await makeGitFixture()
     await put(root, "first.ts", "type FirstCount = number;\n")
     await put(root, "second.ts", "type SecondCount = number;\n")
@@ -97,7 +96,7 @@ describe("resident inspection capture", () => {
           store.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
-                if (record.fact.kind === "writer-evidence" && record.fact.state === "written") written.resolve()
+                if (record.fact.kind === "agent-message") written.resolve()
               })
             )
           )
@@ -133,40 +132,22 @@ describe("resident inspection capture", () => {
     expect(response.status).toBe("advice")
     if (response.status !== "advice") throw new Error("missing final response")
     expect(response.findingCount).toBe(1)
-    const report = {
-      requestRoute: "shared" as const,
-      operation: "inspection-writer" as const,
-      token: response.token,
-      attemptId: randomUUID(),
-      lifetime: server.lifetime,
-      root,
-      advicee: observation.advicee,
-      findingCount: 1,
-      noticeOnly: false,
-      state: "written" as const,
-      encoded: JSON.stringify(response.output) + "\n"
-    }
-    expect(
-      await Effect.runPromise(
-        residentRequestEffect(server.paths, {
-          ...report,
-          advicee: { ...observation.advicee, toolUseId: "foreign-edit" }
-        })
-      )
-    ).toEqual({ status: "empty" })
-    expect(await Effect.runPromise(residentRequestEffect(server.paths, report))).toEqual({ status: "empty" })
     await written.promise
     // Read after the final report write settles, before teardown can enqueue retirement facts.
     const { records: snapshot } = await Effect.runPromise(store.snapshot())
-    const evidence = snapshot.find((record) => record.fact.kind === "writer-evidence")?.fact
-    if (evidence?.kind !== "writer-evidence") throw new Error("missing writer evidence")
+    const evidence = snapshot.find((record) => record.fact.kind === "agent-message")?.fact
+    if (evidence?.kind !== "agent-message") throw new Error("missing writer evidence")
     expect(evidence.findingIds).toHaveLength(1)
     expect(evidence.evaluations).toHaveLength(1)
-    expect(evidence.output).toMatchObject({
+    expect(evidence.message).toEqual({
       status: "available",
-      encoded: Buffer.from(report.encoded).toString("base64")
+      text:
+        "hookSpecificOutput" in response.output
+          ? response.output.hookSpecificOutput.additionalContext
+          : response.output.reason
     })
-    expect(snapshot.filter((record) => record.fact.kind === "writer-evidence")).toHaveLength(1)
+    expect(evidence.recipient).toEqual({ turnId: observation.advicee.turnId, toolUseId: observation.advicee.toolUseId })
+    expect(snapshot.filter((record) => record.fact.kind === "agent-message")).toHaveLength(1)
     const surviving = snapshot.find(
       (record) => record.fact.kind === "unit-prepared" && record.fact.path === "second.ts"
     )
@@ -305,7 +286,7 @@ describe("resident inspection capture", () => {
       { fate: "expired", reason: "retention-expired" }
     ])
     expect(fates[0]?.correlation.evaluationId).toBe(fates[1]?.correlation.evaluationId)
-    expect(records.filter((record) => record.fact.kind === "writer-evidence")).toHaveLength(0)
+    expect(records.filter((record) => record.fact.kind === "agent-message")).toHaveLength(0)
     expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
   })
 

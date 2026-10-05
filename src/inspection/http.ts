@@ -149,7 +149,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
             const fact = record.fact
             if (fact.kind === "transport-invoked" || fact.kind === "model-input")
               return { ...identity, representation: fact.representation, ...fact.payload }
-            if (fact.kind === "writer-evidence") return { ...identity, ...fact.output }
+            if (fact.kind === "agent-message") return { ...identity, ...fact.message }
             return { ...identity, status: "missing" as const, reason: "no-exact-payload" as const }
           }),
           Effect.catchCause(() =>

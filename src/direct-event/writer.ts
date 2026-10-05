@@ -1,5 +1,4 @@
 import type { CodexDirectEventOutput } from "./output.ts"
-import { observeInspectionWriter, type InspectionWriterObservation } from "../inspection/writer.ts"
 
 export const encodedCodexHostOutputBytes = (output: CodexDirectEventOutput): number =>
   Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")
@@ -15,16 +14,9 @@ export type HostOutputAttempt = { readonly status: "attempted-unacknowledged"; r
  */
 export const attemptCodexHostOutput = (
   output: CodexDirectEventOutput,
-  write: (encoded: string) => void,
-  inspection?: InspectionWriterObservation["Service"]
+  write: (encoded: string) => void
 ): HostOutputAttempt => {
   const encoded = `${JSON.stringify(output)}\n`
-  observeInspectionWriter(inspection, "write-started", encoded)
-  try {
-    write(encoded)
-  } finally {
-    // This synchronous port has no completion callback, including on a thrown write.
-    observeInspectionWriter(inspection, "uncertain", encoded)
-  }
+  write(encoded)
   return { status: "attempted-unacknowledged", encodedBytes: encodedCodexHostOutputBytes(output) }
 }

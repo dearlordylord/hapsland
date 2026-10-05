@@ -7,11 +7,6 @@ import * as Schedule from "effect/Schedule"
 import * as Context from "effect/Context"
 import * as Layer from "effect/Layer"
 import { HookOutput } from "./hook-output.ts"
-import {
-  InspectionSubmissionObservation,
-  InspectionWriterObservation,
-  observeInspectionWriter
-} from "../inspection/writer.ts"
 import { recordActivity } from "../activity/status.ts"
 import { adaptComposedHookIdentity } from "../direct-event/adapter.ts"
 import type { CodexHostVersion } from "../direct-event/model.ts"
@@ -343,53 +338,24 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
     const submitAdvice = Effect.fn("ComposedHook.submitAdvice")(function* (
       advice: Extract<AdviceeCollectionOutcome, { status: "advice" }>["advice"]
     ) {
-      const factory = Context.getOrUndefined(yield* Effect.context(), InspectionSubmissionObservation)
-      let observer: InspectionWriterObservation["Service"] | undefined
-      try {
-        observer = factory?.forAttempt({
-          batchId: advice.token,
-          findingCount: advice.findingCount,
-          noticeOnly: advice.findingCount === 0,
-          attemptId: randomUUID(),
-          endpoint: advice.paths.socket,
-          lifetime: advice.lifetime,
-          root: advice.root,
-          advicee: { ...advice.advicee },
-          ...(advice.inspectionReporting === true ? { recording: true } : {})
-        })
-      } catch {
-        /* Optional inspection cannot change delivery. */
-      }
-      observeInspectionWriter(observer, "ready")
       if (advice.findingCount > 0) {
         const begun = yield* beginComposedSubmissionEffect(advice, collectorKind).pipe(
           Effect.catch(() => Effect.succeed(false))
         )
         if (!begun) {
-          observeInspectionWriter(observer, "failed-before-write")
           closeReason = "unavailable"
           yield* quiet()
           return true
         }
-        observeInspectionWriter(observer, "authorized")
       }
       const output = submissionOutput(advice, input.host, collectorKind)
       yield* prepareStopOutput(advice)
-      const deliver = Effect.gen(function* () {
-        const written = yield* writeJson(output, deadlineAt)
-        if (written === "failed") {
-          continued = false
-          closeReason = "output-failed"
-        }
-        yield* recordSubmission(advice, written)
-        return written
-      })
-      const written = yield* observer === undefined
-        ? deliver
-        : deliver.pipe(Effect.provideService(InspectionWriterObservation, observer))
+      const written = yield* writeJson(output, deadlineAt)
       if (written === "failed") {
-        observeInspectionWriter(observer, "failed-before-write")
+        continued = false
+        closeReason = "output-failed"
       }
+      yield* recordSubmission(advice, written)
       return true
     })
     const collectOutcome = Effect.fn("ComposedHook.collectOutcome")(function* () {
