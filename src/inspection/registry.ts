@@ -2,9 +2,10 @@ import { constants, type Stats } from "node:fs"
 import { lstat, open, realpath } from "node:fs/promises"
 import { dirname, isAbsolute } from "node:path"
 import { Effect } from "effect"
+import type { ResidentResponse } from "../resident/protocol.ts"
 import { residentRequestEffect } from "../resident/client.ts"
 import { residentPaths, validateEndpointMetadata, type ResidentPaths } from "../resident/paths.ts"
-import { inspectionSourceId, type InspectionRecord } from "./contract.ts"
+import { inspectionSourceId, MAX_INSPECTION_RECORDING_BYTES, type InspectionRecord } from "./contract.ts"
 
 export const MAX_INSPECTION_SOURCES = 128
 export const MAX_INSPECTION_DISCOVERY_BYTES = 65536
@@ -71,11 +72,24 @@ const endpointIdentity = async (endpoint: string) => {
     await handle.close()
   }
 }
-type Probe = { readonly health: InspectionSourceHealth; readonly lifetime?: string }
+type Recording = Extract<ResidentResponse, { status: "inspection-status" }>
+type Probe = { readonly health: InspectionSourceHealth; readonly lifetime?: string; readonly recording?: Recording }
 const probe = (endpoint: string): Effect.Effect<Probe> =>
   Effect.gen(function* () {
     const before = yield* Effect.tryPromise({ try: () => endpointIdentity(endpoint), catch: (error) => error })
     const response = yield* residentRequestEffect(before.paths, { requestRoute: "shared", operation: "hello" }, 150)
+    const state =
+      response.status === "ready" && response.pid === before.pid && response.lifetime === before.lifetime
+        ? yield* residentRequestEffect(
+            before.paths,
+            { requestRoute: "shared", operation: "inspection-status", lifetime: before.lifetime },
+            75
+          ).pipe(
+            Effect.timeoutOption(75),
+            Effect.map((value) => (value._tag === "Some" ? value.value : undefined)),
+            Effect.catch(() => Effect.succeed(undefined))
+          )
+        : undefined
     const after = yield* Effect.tryPromise({ try: () => endpointIdentity(endpoint), catch: (error) => error })
     if (
       response.status !== "ready" ||
@@ -88,9 +102,15 @@ const probe = (endpoint: string): Effect.Effect<Probe> =>
       !same(before.socket, after.socket)
     )
       return { health: "unavailable" as const }
-    return { health: "connected" as const, lifetime: response.lifetime }
+    return {
+      health: "connected" as const,
+      lifetime: response.lifetime,
+      ...(state?.status === "inspection-status" && state.sourceId === inspectionSourceId(endpoint, response.lifetime)
+        ? { recording: state }
+        : {})
+    }
   }).pipe(
-    Effect.timeoutOption(200),
+    Effect.timeoutOption(300),
     Effect.map((result) => (result._tag === "Some" ? result.value : { health: "unavailable" as const })),
     Effect.catch((error) =>
       Effect.succeed<Probe>({
@@ -208,9 +228,33 @@ export const makeInspectionRegistry = () => {
               sources.push(current)
           }
         }
+        const recording: Array<{
+          sourceId: string
+          status: string
+          observedAt: number | null
+          roots: Recording["roots"]
+          omittedRoots: number
+        }> = []
+        let recordingBytes = 1024
+        for (const entry of sources) {
+          const reply = replies.get(entry.source.endpoint)
+          const state = reply?.lifetime === entry.source.lifetime ? reply.recording : undefined
+          const value = {
+            sourceId: entry.source.id,
+            status: state ? "observed" : entry.health === "connected" ? "unavailable" : entry.health,
+            observedAt: state?.observedAt ?? null,
+            roots: state?.roots ?? [],
+            omittedRoots: state?.omittedRoots ?? 0
+          }
+          const bytes = Buffer.byteLength(JSON.stringify(value)) + 1
+          if (recordingBytes + bytes > MAX_INSPECTION_RECORDING_BYTES) continue
+          recording.push(value)
+          recordingBytes += bytes
+        }
         const actualKnown = known + additionalKnown
         return {
           sources,
+          recording: { sources: recording, omittedSources: actualKnown - recording.length },
           discovery: {
             mode: "registered-local-sources" as const,
             known: actualKnown,

@@ -7,6 +7,8 @@ import {
   MAX_INSPECTION_QUEUE_ITEMS,
   MAX_INSPECTION_RECORD_BYTES,
   MAX_INSPECTION_ROOTS,
+  MAX_INSPECTION_RECORDING_BYTES,
+  type InspectionRecordingRoot,
   type InspectionCorrelation,
   type InspectionFact,
   type InspectionRecord,
@@ -182,6 +184,18 @@ export const makeInspectionRecorder = Effect.fn("InspectionRecorder.make")(funct
   return {
     offer,
     observeRecording,
+    currentRecording: () => {
+      const entries: InspectionRecordingRoot[] = []
+      let bytes = 1024
+      for (const [root, recording] of roots) {
+        const entry = { root, state: recording.state, epoch: recording.epoch }
+        const size = Buffer.byteLength(JSON.stringify(entry)) + 1
+        if (bytes + size > MAX_INSPECTION_RECORDING_BYTES) continue
+        entries.push(entry)
+        bytes += size
+      }
+      return { roots: entries, omittedRoots: roots.size - entries.length }
+    },
     isEnabled: (root: string) => !closed && roots.get(root)?.state === "enabled",
     consentEpoch: (root: string) =>
       !closed && roots.get(root)?.state === "enabled" ? roots.get(root)?.epoch : undefined

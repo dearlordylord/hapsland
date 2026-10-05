@@ -152,8 +152,7 @@ invalid cursor produces explicit gaps and a fresh retained snapshot; source and
 view bounds remain visible. Browser checks reconnect by keyboard while paused,
 keep selection frozen, and display loss after actual journal expiry. Coverage is
 always limited to retained observations; this does not prove that silent capture
-failures are known, current recording state is verified, or expiry and capacity
-loss are yet individually classified. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
+failures are known or expiry and capacity loss are yet individually classified. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
 reader against a bounded saturated feed. A real resident review and private
 journal publication continue, the stalled response closes, and a new connection
 retrieves that review with the saved cursor. Five seconds of continuous socket
@@ -161,6 +160,18 @@ backpressure trigger closure, checked every 100 ms; draining resets the deadline
 The HTTP adapter waits for drain before pulling another bounded event, so a slow
 feed retains one response frame rather than an unbounded event queue. This is an
 observed local transport case, not a general network latency guarantee.
+
+The [current recording test](../src/inspection/recording-current.test.ts) drops a
+real resident's disabled-state history write and verifies that the public API
+still reports the resident's disabled capture state separately from its last
+retained enabled observation. The lifetime-bound `inspection-status` operation
+reads only in-memory recorder state: it neither starts a resident nor changes
+recording, review, cleanup or submission state. Known roots and metadata are
+bounded, with omitted counts. The Pi browser checks enabled observations from
+three live sources and unknown current root states after their disconnection.
+Configuration changes apply at the next edit admission; this observation does
+not reread project files or guarantee successful persistence. Paused displays
+retain their explicitly timed observation.
 
 ## Local inspection model
 

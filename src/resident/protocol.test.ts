@@ -17,6 +17,28 @@ import {
 } from "./protocol.ts"
 
 describe("resident protocol bounds", () => {
+  it("validates lifetime-bound read-only inspection state without caller-selected roots", () => {
+    const request = { requestRoute: "shared", operation: "inspection-status", lifetime: "owner" } as const
+    expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(request))).toEqual(request)
+    expect(decodeResidentRequest(JSON.stringify({ ...request, root: "/untrusted" }))).toBeUndefined()
+    const response = {
+      status: "inspection-status",
+      sourceId: "0".repeat(64),
+      observedAt: 1,
+      roots: [{ root: "/project", state: "disabled", epoch: 1 }],
+      omittedRoots: 0
+    } as const
+    expect(decodeCurrentResidentResponse(JSON.parse(encodeCurrentResidentResponse(response)), request)).toEqual(
+      response
+    )
+    for (const roots of [
+      Array.from({ length: 129 }, () => response.roots[0]),
+      [{ ...response.roots[0], epoch: -1 }],
+      [{ ...response.roots[0], state: "recorded" }]
+    ])
+      expect(decodeResidentResponse({ ...response, roots })).toBeUndefined()
+    expect(decodeResidentResponse({ ...response, observedAt: -1 })).toBeUndefined()
+  })
   it("bounds optional writer reports by UTF-8 bytes and rejects invented writer states", () => {
     const report = {
       requestRoute: "shared",

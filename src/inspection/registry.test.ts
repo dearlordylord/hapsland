@@ -183,6 +183,7 @@ it("bounds registry metadata and reports omitted sources without accepting brows
           expect(body.discovery.known).toBe(130)
           expect(body.discovery.omitted).toBe(130 - body.sources.length)
           expect(body.discovery.connected).toBe(0)
+          expect(Buffer.byteLength(JSON.stringify(body.recording))).toBeLessThanOrEqual(32768)
           expect(body.sources.length).toBeLessThan(128)
           expect(body.truncated).toBe(true)
           expect(body.watermark.sources).toHaveLength(128)

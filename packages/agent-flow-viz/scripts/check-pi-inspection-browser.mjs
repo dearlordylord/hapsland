@@ -143,6 +143,13 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 3)
   const expectedEdits = outputs.reduce((sum, output) => sum + output.editCount, 0)
   await page.waitForFunction((count) => document.querySelectorAll("#edits button").length === count, expectedEdits)
+  assert.equal(await page.locator("#current-recording").count(), 1)
+  const recording = JSON.parse(await page.locator("#current-recording").textContent())
+  for (const output of outputs) {
+    const state = recording.sources.find((entry) => entry.roots.some((root) => root.root === output.root))
+    assert.equal(state?.status, "observed")
+    assert.ok(state.roots.some((root) => root.root === output.root && root.state === "enabled"))
+  }
   const sources = JSON.parse(await page.locator("#sources").textContent())
   for (const output of outputs) {
     const entry = sources.find((entry) => entry.source.endpoint === output.root + "/runtime/resident.sock")
@@ -249,6 +256,9 @@ try {
   assert.equal(await page.locator("#edits button").count(), expectedEdits)
   assert.equal(await page.locator("#handoff-exact").textContent(), outputs[2].encoded)
   assert.deepEqual(errors, [])
+  const disconnectedRecording = JSON.parse(await page.locator("#current-recording").textContent())
+  assert.equal(disconnectedRecording.sources.filter((entry) => entry.status === "disconnected").length, 3)
+  assert.ok(disconnectedRecording.sources.every((entry) => entry.roots.length === 0))
   console.log(
     "Pi inspection browser: native fixtures, exact offer copy, oversized absence, lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
   )

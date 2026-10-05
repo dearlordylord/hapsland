@@ -2,7 +2,7 @@ import { makeInspectionSubmissionRecorder } from "../inspection/submission-recor
 import type { InspectionSubmissionObservation } from "../inspection/writer.ts"
 import { InspectionTransportObservation } from "../inspection/transport.ts"
 import { captureInspectionPolicy, captureInspectionFindings, captureInspectionFate } from "../inspection/capture.ts"
-import type { InspectionScope, InspectionCorrelation } from "../inspection/contract.ts"
+import { inspectionSourceId, type InspectionScope, type InspectionCorrelation } from "../inspection/contract.ts"
 import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
 import { readInspectionSettings } from "../inspection/settings.ts"
@@ -4766,6 +4766,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return residentResponse({ status: "empty" })
     if (request.operation === "acknowledge") return residentResponse(yield* runtime.acknowledge(request.token))
     if (request.operation === "finalize") return residentResponse(yield* runtime.finalize(request.token))
+    if (request.operation === "inspection-status")
+      return residentResponse({
+        status: "inspection-status",
+        sourceId: inspectionSourceId(paths.socket, lifetime),
+        observedAt: Date.now(),
+        ...inspection.currentRecording()
+      })
     if (request.operation === "stats") return residentResponse(yield* runtime.operations.stats())
     if (request.operation === "cleanup") return yield* residentHandleCleanup(request)
     return undefined

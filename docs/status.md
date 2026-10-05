@@ -1,10 +1,10 @@
 # Readiness doctor and session activity
 
-**Purpose:** Explain offline readiness, session activity, and optional analytics.
+**Purpose:** Explain offline readiness, session activity, optional analytics, and local inspection observations.
 **Status:** Active user guidance.
 **Authority:** Maintained guidance describing implementation; accepted review contracts remain in their specification owners.
 **Expected use:** Diagnose readiness and inspect recorded session work.
-**Lifecycle:** Update with status, analytics, configuration, or retention changes; review when runtime instrumentation or storage behavior changes.
+**Lifecycle:** Update with status, analytics, inspection, configuration, or retention changes; review when runtime instrumentation or storage behavior changes.
 
 ## Supported source languages
 
@@ -86,6 +86,22 @@ authority differ. Operational notices remain distinct from rule findings.
 For actual feedback, inspect the agent runtime's session transcript. Status
 intentionally does not retain advice text. Submission records cannot prove
 that the agent read, acknowledged, or applied a finding.
+
+## Opt-in local inspection
+
+`hapsland dashboard` runs the private loopback inspector in the foreground and
+prints its launch URL. It does not enable recording or start a resident. Enable
+`sessionInspection` through [configuration](configuration.md) to record new work;
+recording continues independently of the dashboard process. Source-bearing
+inspection history is separate from the source-free status and analytics below.
+
+The inspector shows **current recording observations** from live residents
+separately from **retained recording state observations**. A lost history write
+can leave the last retained event as enabled even when the resident now reports
+disabled. Configuration changes apply when that resident next receives an edit.
+Unreachable residents have unknown current recording state; paused displays keep
+the observation at their displayed snapshot. Enabled capture does not guarantee
+that every event was successfully retained.
 
 ## Session status
 

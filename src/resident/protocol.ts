@@ -1,5 +1,5 @@
 import type { CodexDirectEventOutput } from "../direct-event/output.ts"
-import { InspectionWriterState } from "../inspection/contract.ts"
+import { InspectionWriterState, InspectionRecordingRoot } from "../inspection/contract.ts"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts"
 import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts"
 
@@ -163,7 +163,7 @@ export type ResidentRequest =
       readonly lifetime: string
       readonly token: string
     })
-  | { readonly requestRoute: "shared"; readonly operation: "stats"; readonly lifetime: string }
+  | { readonly requestRoute: "shared"; readonly operation: "stats" | "inspection-status"; readonly lifetime: string }
   | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string }
 
 export type ResidentResponse =
@@ -182,6 +182,13 @@ export type ResidentResponse =
       readonly inspectionReporting?: true
     }
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
+  | {
+      readonly status: "inspection-status"
+      readonly sourceId: string
+      readonly observedAt: number
+      readonly roots: ReadonlyArray<typeof InspectionRecordingRoot.Type>
+      readonly omittedRoots: number
+    }
   | {
       readonly status:
         | "accepted"
@@ -420,7 +427,7 @@ const ResidentRequestSchema = Schema.Union([
     mode: Schema.Literal("turn-end"),
     finish: Schema.Struct({ token: BoundedString, deadlineReached: Schema.Boolean })
   }),
-  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup"]) })
+  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup", "inspection-status"]) })
 ])
 const decodeRequest = Schema.decodeUnknownOption(ResidentRequestSchema, { onExcessProperty: "error" })
 
@@ -476,6 +483,13 @@ const ResidentResponseSchema = Schema.Union([
     output: ClaudeBlockHostOutput
   }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
+  Schema.Struct({
+    status: Schema.Literal("inspection-status"),
+    sourceId: Digest,
+    observedAt: SafeNatural,
+    roots: Schema.Array(InspectionRecordingRoot).check(Schema.isMaxLength(128)),
+    omittedRoots: SafeNatural
+  }),
   Schema.Struct({
     status: Schema.Literals([
       "accepted",

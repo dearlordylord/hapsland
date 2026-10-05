@@ -21,6 +21,13 @@ export const InspectionScope = Schema.Struct({
   subagentId: Schema.NullOr(Id)
 })
 export type InspectionScope = typeof InspectionScope.Type
+export const MAX_INSPECTION_RECORDING_BYTES = 32768
+export const InspectionRecordingRoot = Schema.Struct({
+  root: Path,
+  state: Schema.Literals(["enabled", "disabled", "unavailable"]),
+  epoch: Count
+})
+export type InspectionRecordingRoot = typeof InspectionRecordingRoot.Type
 
 export const InspectionCorrelation = Schema.Struct({
   receiptId: Schema.optionalKey(Id),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { Deferred, Effect } from "effect"
 import { makeInspectionRecorder } from "./recorder.ts"
-import type { InspectionRecord } from "./contract.ts"
+import { MAX_INSPECTION_RECORDING_BYTES, type InspectionRecord } from "./contract.ts"
 
 const scope = {
   root: "/project",
@@ -14,6 +14,27 @@ const source = { endpoint: "/private/resident.sock", lifetime: "lifetime" }
 const edit = { kind: "edit-received" as const, candidates: [{ operation: "update" as const, path: "a.ts" }] }
 
 describe("optional inspection recording", () => {
+  it("bounds source-free current root states independently of retained history", async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const recorder = yield* makeInspectionRecorder(source, { write: () => Effect.void })
+          const roots = Array.from({ length: 128 }, (_, index) => "/" + "日".repeat(2700) + index)
+          for (const root of roots) recorder.observeRecording(root, true)
+          recorder.observeRecording("/outside-root-bound", true)
+          const snapshot = recorder.currentRecording()
+          expect(Buffer.byteLength(JSON.stringify(snapshot))).toBeLessThanOrEqual(MAX_INSPECTION_RECORDING_BYTES)
+          expect(snapshot.roots.length + snapshot.omittedRoots).toBe(128)
+          expect(snapshot.omittedRoots).toBeGreaterThan(0)
+          const first = snapshot.roots[0]!
+          expect(first).toEqual({ root: roots[0], state: "enabled", epoch: 1 })
+          recorder.observeRecording(first.root, undefined)
+          expect(recorder.currentRecording().roots[0]).toEqual({ ...first, state: "unavailable" })
+          expect(recorder.isEnabled(first.root)).toBe(false)
+        })
+      )
+    )
+  })
   it("keeps offers bounded when persistence cannot settle and revokes unpublished source data on disable", async () => {
     const saved: InspectionRecord[] = []
     await Effect.runPromise(
