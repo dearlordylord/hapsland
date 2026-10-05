@@ -102,7 +102,8 @@ def phase_name(phase: U32) -> String:
     case 2: "PREPARING"
     case 3: "REVIEWING"
     case 4: "AT JEV"
-    case _: "PENDING FINDING"
+    case 5: "PENDING FINDING"
+    case _: "EXIT HISTORY"
 
 def phase_color(phase: U32) -> U32:
   match phase:
@@ -225,7 +226,7 @@ def building_permits(phase: U32,+world: M.World,+x: U32,+y: U32,rest: List<&2,F.
     case 1: preparation_pool(world,x,y,rest)
     case 2: preparation_pool(world,x,y,rest)
     case 4: F.text("JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),x,(y + 80 : U32),1,65483,
-      F.text("LEDGER SHARED / OWNED UNTIL ACK",x,(y + 91 : U32),1,12439239,rest))
+      F.text("LEDGER SHARED / RELEASE BY OUTCOME",x,(y + 91 : U32),1,12439239,rest))
     case _: F.text("WRITER OWNERS " ++ U32.show(P.writes(world)),x,(y + 80 : U32),1,65483,rest)
 
 def health_bar(on: Bool,+world: M.World,+phase: U32,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
@@ -543,15 +544,56 @@ def terminal_name(cause: U32) -> String:
     case 8: "INTERRUPTED"
     case 9: "NOT SENT"
     case _: "RETIRED"
+def identity_text(identity: V.WorkIdentity) -> String:
+  match identity:
+    case V.WorkIdentity{p,l,r,o}: Nat.show(p) ++ "/" ++ Nat.show(l) ++ "/" ++ Nat.show(r) ++ "/" ++ Nat.show(o)
+def terminal_short(cause: U32) -> String:
+  match cause:
+    case 2: "CL"
+    case 3: "DL"
+    case 4: "UN"
+    case 5: "PR"
+    case 6: "HO"
+    case 7: "TO"
+    case 8: "IN"
+    case 9: "NS"
+    case _: "RT"
 def history_actor(+actor: V.Actor,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = Motion.point(actor)
   +p = Motion.visible_phase(actor)
   +done = (Motion.terminal(actor) > 0 : U32)
   +color = Bool.pick(U32,done,10066329,phase_color(p))
-  +status = Bool.pick(String,done,terminal_name(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PLAYBACK"))
-  F.text("U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))) ++ " E" ++ Nat.show(Motion.actor_family(actor)),(D.px(point) + 9 : U32),U32.sub(D.py(point),12),1,color,
-    F.text(status,(D.px(point) + 9 : U32),D.py(point),1,color,
-      monster(point,(p > 0 : U32),color,(M.time(world) / 8 : U32),rest)))
+  +status = Bool.pick(String,done,terminal_short(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PB"))
+  +x = U32.sub(D.px(point),8)
+  F.text("U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))),x,U32.sub(D.py(point),22),1,color,
+    F.text("E" ++ Nat.show(Motion.actor_family(actor)),x,U32.sub(D.py(point),14),1,color,
+      F.text(status,(D.px(point) + 9 : U32),D.py(point),1,color,
+        monster(point,(p > 0 : U32),color,(M.time(world) / 8 : U32),rest))))
+# Hover inspection reads released presentation bodies, including retired history.
+# It has no simulator action and never changes placement or owned work.
+def hover_actor(items: List<&2,V.Actor>,+world: M.World) -> Maybe<&2,V.Actor>:
+  match items:
+    case Nil{}: None{}
+    case +actor <> rest:
+      Bool.pick(Maybe<&2,V.Actor>,Motion.released(actor) && D.in_range(Motion.point(actor),D.Point{M.mouse_x(world),M.mouse_y(world)},12),Some{actor},hover_actor(rest,world))
+def hover_family(found: Maybe<&2,V.Actor>) -> Nat:
+  match found:
+    case None{}: 0n
+    case Some{actor}: Motion.actor_family(actor)
+def predecessor_text(items: List<&2,V.WorkIdentity>) -> String:
+  match items:
+    case Nil{}: "NONE"
+    case first <> _: identity_text(first)
+def hover_panel(found: Maybe<&2,V.Actor>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match found:
+    case None{}: rest
+    case Some{+actor}:
+      box("MOB HISTORY","P / LIFETIME / ROUND / OPERATION",800,330,216,104,16768133,
+        F.text(identity_text(Motion.actor_key(actor)) ++ " / EDIT E" ++ Nat.show(Motion.actor_family(actor)),812,374,1,16777215,
+          F.text("SHOWING " ++ phase_name(Motion.visible_phase(actor)),812,386,1,12439239,
+            F.text("LAST " ++ phase_name(Motion.observed_phase(actor)),812,398,1,12439239,
+              F.text(Bool.pick(String,(Motion.terminal(actor) > 0 : U32),"RESULT " ++ terminal_name(Motion.outcome(actor)),"BODY HISTORY / ENGINE ABOVE"),812,410,1,15124059,
+                F.text("PREDECESSOR " ++ predecessor_text(Motion.waiting(actor)),812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))
 def history_visible(on: Bool,actor: V.Actor,world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case True{}: history_actor(actor,world,rest)
@@ -600,9 +642,11 @@ def family_panel(+world: M.World,target: Nat,rest: List<&2,F.Rect>) -> List<&2,F
 def scene(+world: M.World) -> List<&2,F.Rect>:
   +preview = Preview.calculate(world)
   +tokens = P.tokens(world)
-  +target: Nat = 0n
-  +base = ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))
-  +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,base))))
+  +hovered = hover_actor(M.actors(world),world)
+  +target: Nat = hover_family(hovered)
+  +base = hover_panel(hovered,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[])))))))
+  +legend = F.text("U OPERATION / E EDIT ORIGIN / PB PLAYBACK / HOVER A MOB FOR ITS PATH AND OUTCOME",24,722,1,12439239,base)
+  +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,legend))))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
     F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: WAIT START / REQUEST ACTIVE",24,111,1,12439239,F.text(access_line(Mechanics.current_environment(M.engine(world))),24,124,1,12439239,header)))))
@@ -616,9 +660,6 @@ def selected_level(items: List<&2,M.Tower>,index: U32) -> U32:
     case tower <> _ 1: M.level(tower)
     case _ <> rest _: selected_level(rest,M.sub(index,1))
 
-def identity_text(identity: V.WorkIdentity) -> String:
-  match identity:
-    case V.WorkIdentity{p,l,r,o}: Nat.show(p) ++ "/" ++ Nat.show(l) ++ "/" ++ Nat.show(r) ++ "/" ++ Nat.show(o)
 def trace_if(on: Bool,+actor: V.Actor,+world: M.World,+prefix: String,rest: String) -> String:
   match on:
     case False{}: rest

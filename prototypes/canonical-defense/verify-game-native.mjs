@@ -10,6 +10,7 @@ const roots = [
   "DefenseTowerTests.bend",
   "DefenseStartupTests.bend",
   "DefenseDisplayTests.bend",
+  "DefenseInspectionTests.bend",
   "DefenseCueTests.bend",
   "DefenseCommandScopeTests.bend",
   "DefensePreviewTests.bend",
