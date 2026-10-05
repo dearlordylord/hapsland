@@ -5490,6 +5490,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }),
       (port) => port.close
     ).pipe(
+      Effect.timeoutOption(300),
+      Effect.asVoid,
       Effect.ensuring(
         Effect.sync(() => {
           inspectionConnections -= 1

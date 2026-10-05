@@ -256,3 +256,32 @@ it("isolates saturated read-only discovery sockets from hook-control capacity", 
     await Effect.runPromise(resident.close)
   }
 })
+
+it("closes incomplete inspection frames despite continuous input", async () => {
+  const root = await makeGitFixture()
+  const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")))
+  const socket = new Socket()
+  let trickle: ReturnType<typeof setInterval> | undefined
+  let deadline: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Effect.runPromise(resident.listen())
+    socket.connect(join(resident.paths.directory, "inspection.sock"))
+    await once(socket, "connect")
+    const closed = once(socket, "close")
+    trickle = setInterval(() => socket.write(" "), 50)
+    await Promise.race([
+      closed,
+      new Promise((_, reject) => {
+        deadline = setTimeout(() => reject(new Error("trickled inspection connection exceeded finite deadline")), 1000)
+      })
+    ])
+    expect(
+      await Effect.runPromise(residentRequestEffect(resident.paths, { requestRoute: "shared", operation: "hello" }))
+    ).toMatchObject({ status: "ready" })
+  } finally {
+    clearInterval(trickle)
+    clearTimeout(deadline)
+    socket.destroy()
+    await Effect.runPromise(resident.close)
+  }
+})
