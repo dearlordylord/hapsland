@@ -1,3 +1,4 @@
+import { InspectionTransportObservation, inspectHttpTransport } from "./inspection/transport.ts"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -66,6 +67,7 @@ describe("Jev Decision adapter", () => {
 
   it.effect("asserts the actual TypeSafe HTTP contract at a fake transport", () =>
     Effect.gen(function* () {
+      const captured: Uint8Array[] = []
       const requests: Array<{
         readonly url: string
         readonly authorization: string | undefined
@@ -91,10 +93,10 @@ describe("Jev Decision adapter", () => {
       const client = TypeSafeClient.layer({
         apiUrl: "https://fake.review.invalid/v1",
         apiKey: Redacted.make("SECRET-SENTINEL")
-      }).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, fakeHttp)))
+      }).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, inspectHttpTransport(fakeHttp))))
       const model = TypeSafeDecisionModel.layer({ model: "jev-latest" }).pipe(Layer.provide(client))
       const result = yield* decide({
-        state: { artifact: { domain: "src/example.ts", source: "SOURCE-SENTINEL" } },
+        state: { artifact: { domain: "src/example.ts", source: 'SOURCE-SENTINEL 日本語\r\n\t"quoted"\n' } },
         decisions: {
           rule: probability(
             { question: "QUESTION-SENTINEL", focus: "FOCUS-SENTINEL" },
@@ -104,7 +106,14 @@ describe("Jev Decision adapter", () => {
             }
           )
         }
-      }).pipe(Effect.provide(model))
+      }).pipe(
+        Effect.provide(model),
+        Effect.provideService(InspectionTransportObservation, {
+          observe: (body) => {
+            if (body !== undefined) captured.push(Uint8Array.from(body))
+          }
+        })
+      )
 
       expect(result.answers.rule).toEqual({ probability: 0.75 })
       expect(requests).toHaveLength(1)
@@ -112,10 +121,14 @@ describe("Jev Decision adapter", () => {
       if (request === undefined) throw new Error("expected one fake HTTP request")
       expect(request.url).toBe("https://fake.review.invalid/v1/systemone")
       expect(request.authorization).toBe("Bearer SECRET-SENTINEL")
+      expect(captured).toHaveLength(1)
+      expect(Buffer.from(captured[0]!).equals(Buffer.from(request.body))).toBe(true)
       const payload = JSON.parse(request.body) as Record<string, unknown>
       expect(Object.keys(payload).sort()).toEqual(["model", "questions", "state"])
       expect(payload.model).toBe("jev-latest")
-      expect(payload.state).toEqual({ artifact: { domain: "src/example.ts", source: "SOURCE-SENTINEL" } })
+      expect(payload.state).toEqual({
+        artifact: { domain: "src/example.ts", source: 'SOURCE-SENTINEL 日本語\r\n\t"quoted"\n' }
+      })
       expect(payload.questions).toEqual({
         rule: {
           type: "noul",

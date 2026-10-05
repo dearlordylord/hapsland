@@ -52,6 +52,19 @@ export const InspectionWriterState = Schema.Literals([
 ])
 export const InspectionFact = Schema.Union([
   Schema.Struct({
+    kind: Schema.Literal("transport-invoked"),
+    representation: Schema.Literal("http-body-base64"),
+    payload: Schema.Union([
+      Schema.Struct({
+        status: Schema.Literal("available"),
+        encoded: Schema.String.check(Schema.isMaxLength(21848)),
+        byteLength: Count,
+        sha256: Hash
+      }),
+      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literals(["oversized", "unavailable"]) })
+    ])
+  }),
+  Schema.Struct({
     kind: Schema.Literal("model-input"),
     representation: Schema.Literal("decision-model-json"),
     payload: Schema.Union([
@@ -144,6 +157,17 @@ export const decodeInspectionRecord = (value: unknown): InspectionRecord => {
     )
       throw new Error("inspection payload identity mismatch")
     Schema.decodeUnknownSync(Schema.Json)(JSON.parse(payload.encoded))
+  }
+  if (record.fact.kind === "transport-invoked" && record.fact.payload.status === "available") {
+    const payload = record.fact.payload
+    const bytes = Buffer.from(payload.encoded, "base64")
+    if (
+      bytes.byteLength !== payload.byteLength ||
+      bytes.byteLength > 16384 ||
+      bytes.toString("base64") !== payload.encoded ||
+      createHash("sha256").update(bytes).digest("hex") !== payload.sha256
+    )
+      throw new Error("inspection payload identity mismatch")
   }
   return record
 }

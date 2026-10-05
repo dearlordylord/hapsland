@@ -1,3 +1,4 @@
+import { InspectionTransportObservation } from "../inspection/transport.ts"
 import type { InspectionScope, InspectionCorrelation } from "../inspection/contract.ts"
 import { makeInspectionRecorder, type InspectionPersistence } from "../inspection/recorder.ts"
 import { makeInspectionStorage } from "../inspection/storage.ts"
@@ -3539,7 +3540,35 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 },
                 fact
               )
-            }).pipe(Effect.provide(decisionModel))
+            }).pipe(
+              Effect.provide(decisionModel),
+              Effect.provideService(InspectionTransportObservation, {
+                observe: (body) => {
+                  const receipt = job.inspectionReceipt
+                  if (receipt === undefined || !inspection.isEnabled(receipt.scope.root)) return
+                  const payload =
+                    body === undefined
+                      ? { status: "missing" as const, reason: "unavailable" as const }
+                      : body.byteLength > 16384
+                        ? { status: "missing" as const, reason: "oversized" as const }
+                        : {
+                            status: "available" as const,
+                            encoded: Buffer.from(body).toString("base64"),
+                            byteLength: body.byteLength,
+                            sha256: createHash("sha256").update(body).digest("hex")
+                          }
+                  inspection.offer(
+                    receipt.scope,
+                    {
+                      ...receipt.correlation,
+                      unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
+                      requestId: createHash("sha256").update(`${job.partition}:${ready.request}`).digest("hex")
+                    },
+                    { kind: "transport-invoked", representation: "http-body-base64", payload }
+                  )
+                }
+              })
+            )
             return yield* credentialProvider === undefined
               ? evaluation
               : evaluation.pipe(Effect.provide(credentialProvider))

@@ -1,3 +1,4 @@
+import { inspectHttpTransport } from "../inspection/transport.ts"
 import { assertReviewEngineBoundary } from "../runtime/review-engine-boundary.ts"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
@@ -131,7 +132,9 @@ export const liveLayer = (options: {
   ).pipe(
     Layer.provide(
       options.httpClient === undefined
-        ? FetchHttpClient.layer
-        : Layer.succeed(HttpClient.HttpClient, options.httpClient)
+        ? Layer.effect(HttpClient.HttpClient, Effect.map(HttpClient.HttpClient, inspectHttpTransport)).pipe(
+            Layer.provide(FetchHttpClient.layer)
+          )
+        : Layer.succeed(HttpClient.HttpClient, inspectHttpTransport(options.httpClient))
     )
   )
