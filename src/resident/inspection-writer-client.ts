@@ -89,8 +89,8 @@ export const makeInspectionWriterClient = Effect.fn("InspectionWriterClient.make
             findingCount: binding.findingCount,
             noticeOnly: binding.noticeOnly,
             state: event.state,
-            ...(oversized || event.outputMissing === "oversized"
-              ? { outputMissing: "oversized" as const }
+            ...(oversized || event.outputMissing !== undefined
+              ? { outputMissing: oversized ? ("oversized" as const) : event.outputMissing! }
               : event.encoded === undefined
                 ? {}
                 : { encoded: event.encoded })

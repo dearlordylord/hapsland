@@ -47,11 +47,17 @@ it("revokes replaced batch observers before recording final membership", async (
         old.observe({ state: "write-started", encoded: "obsolete membership" })
         const current = reporting.observation.forAttempt(attempt("same-batch"))
         if (!current) throw new Error("missing replacement observer")
+        current.observe({ state: "uncertain", outputMissing: "unavailable" })
         current.observe({ state: "written", encoded: "final membership" })
         yield* Deferred.await(finished)
         const evidence = saved.filter((record) => record.fact.kind === "writer-evidence")
-        expect(evidence).toHaveLength(1)
-        expect(evidence[0]?.fact).toMatchObject({ state: "written", findingIds: ["c".repeat(64)] })
+        expect(evidence).toHaveLength(2)
+        expect(evidence[0]?.fact).toMatchObject({
+          state: "uncertain",
+          findingIds: ["c".repeat(64)],
+          output: { status: "missing", reason: "unavailable" }
+        })
+        expect(evidence[1]?.fact).toMatchObject({ state: "written", findingIds: ["c".repeat(64)] })
         expect(JSON.stringify(saved)).not.toContain(Buffer.from("obsolete membership").toString("base64"))
       })
     )

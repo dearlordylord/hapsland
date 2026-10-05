@@ -26,7 +26,7 @@ describe("Pi native extension inspection through production command and public f
     rmSync(stateHome, { recursive: true, force: true })
   })
 
-  it.each(["edit", "finish", "oversized", "lost-ack", "session-switch", "opt-out"] as const)(
+  it.each(["edit", "finish", "oversized", "unavailable", "lost-ack", "session-switch", "opt-out"] as const)(
     "retains truthful %s native offer evidence",
     async (variant) => {
       const isolatedState = realpathSync(mkdtempSync(join(stateHome, "case-")))
@@ -100,7 +100,9 @@ describe("Pi native extension inspection through production command and public f
             entries:
               variant === "oversized"
                 ? [{ type: "custom_message", customType: "original", content: "λ".repeat(9000), display: false }]
-                : [],
+                : variant === "unavailable"
+                  ? [{ type: "custom_message", customType: "original", content: new Date(0), display: false }]
+                  : [],
             continue: false,
             context: { canContinue: true },
             outcome: "completed"
@@ -165,7 +167,10 @@ describe("Pi native extension inspection through production command and public f
               expect(exact.fact.kind).toBe("writer-evidence")
               if (exact.fact.kind !== "writer-evidence") throw new Error("missing writer evidence")
               if (variant === "oversized") expect(exact.fact.output).toEqual({ status: "missing", reason: "oversized" })
-              else {
+              else if (variant === "unavailable") {
+                expect(exact.fact.output).toEqual({ status: "missing", reason: "unavailable" })
+                expect(output.entries[0].content).toBeInstanceOf(Date)
+              } else {
                 expect(exact.fact.output.status).toBe("available")
                 if (exact.fact.output.status !== "available") throw new Error("missing native output")
                 if (variant !== "session-switch")

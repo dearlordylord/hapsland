@@ -56,7 +56,7 @@ export type ResidentWriterEvidence = {
   readonly noticeOnly: boolean
   readonly state: typeof InspectionWriterState.Type
   readonly encoded?: string
-  readonly outputMissing?: "oversized"
+  readonly outputMissing?: "oversized" | "unavailable"
 }
 
 export type ResidentRequest =
@@ -342,7 +342,7 @@ const writerEvidenceFields = {
   findingCount: SafeNatural.check(Schema.isLessThanOrEqualTo(128)),
   noticeOnly: Schema.Boolean,
   state: InspectionWriterState,
-  outputMissing: Schema.optionalKey(Schema.Literal("oversized")),
+  outputMissing: Schema.optionalKey(Schema.Literals(["oversized", "unavailable"])),
   encoded: Schema.optionalKey(
     Schema.String.check(Schema.makeFilter((value) => Buffer.byteLength(value, "utf8") <= 16384))
   )

@@ -9,7 +9,7 @@ export class InspectionWriterObservation extends Context.Service<
     readonly observe: (event: {
       readonly state: Extract<InspectionFact, { kind: "writer-evidence" }>["state"]
       readonly encoded?: string
-      readonly outputMissing?: "oversized"
+      readonly outputMissing?: "oversized" | "unavailable"
     }) => void
   }
 >()("@hapsland/InspectionWriterObservation") {}

@@ -41,7 +41,7 @@ const deadline = setTimeout(() => {
 try {
   await setupInstalledPi("source")
   const outputs = []
-  for (const variant of ["edit", "oversized", "lost-ack"]) {
+  for (const variant of ["edit", "unavailable", "oversized", "lost-ack"]) {
     if (expired) throw new Error("Pi inspection browser deadline expired")
     const ackGate = join(stateHome, "ack-reply")
     if (variant === "lost-ack") writeFileSync(`${ackGate}.enabled`, "enabled\n")
@@ -129,7 +129,9 @@ try {
           entries:
             variant === "oversized"
               ? [{ type: "custom_message", customType: "original", content: "λ".repeat(9000), display: false }]
-              : [],
+              : variant === "unavailable"
+                ? [{ type: "custom_message", customType: "original", content: new Date(0), display: false }]
+                : [],
           continue: false,
           context: { canContinue: true },
           outcome: "completed"
@@ -158,7 +160,7 @@ try {
   page.setDefaultTimeout(5000)
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.url)
-  await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 3)
+  await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 4)
   const expectedEdits = outputs.reduce((sum, output) => sum + output.editCount, 0)
   await page.waitForFunction((count) => document.querySelectorAll("#edits button").length === count, expectedEdits)
   assert.equal(await page.locator("#current-recording").count(), 1)
@@ -240,9 +242,9 @@ try {
       output.variant !== "lost-ack"
     )
     assert.ok((await page.locator("#handoff-edits button").count()) >= 1)
-    if (output.variant === "oversized") {
+    if (output.variant === "oversized" || output.variant === "unavailable") {
       assert.equal(await page.locator("#handoff-copy").isDisabled(), true)
-      assert.equal(await page.locator("#handoff-exact").textContent(), "Exact output unavailable: oversized.")
+      assert.equal(await page.locator("#handoff-exact").textContent(), `Exact output unavailable: ${output.variant}.`)
     } else {
       assert.equal(await page.locator("#handoff-copy").isEnabled(), true)
       await page.locator("#handoff-copy").focus()
@@ -259,7 +261,7 @@ try {
   await edit.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("type.ts"))
-  assert.equal(await page.locator("#handoff-exact").textContent(), outputs[2].encoded)
+  assert.equal(await page.locator("#handoff-exact").textContent(), outputs.at(-1).encoded)
   await cleanupPiFixtures()
   await page.waitForFunction(
     (roots) => {
@@ -272,13 +274,13 @@ try {
     outputs.map((output) => output.root)
   )
   assert.equal(await page.locator("#edits button").count(), expectedEdits)
-  assert.equal(await page.locator("#handoff-exact").textContent(), outputs[2].encoded)
+  assert.equal(await page.locator("#handoff-exact").textContent(), outputs.at(-1).encoded)
   assert.deepEqual(errors, [])
   const disconnectedRecording = JSON.parse(await page.locator("#current-recording").textContent())
-  assert.equal(disconnectedRecording.sources.filter((entry) => entry.status === "disconnected").length, 3)
+  assert.equal(disconnectedRecording.sources.filter((entry) => entry.status === "disconnected").length, 4)
   assert.ok(disconnectedRecording.sources.every((entry) => entry.roots.length === 0))
   console.log(
-    "Pi inspection browser: native fixtures, exact offer copy, oversized absence, lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
+    "Pi inspection browser: native fixtures, exact offer copy, oversized and unavailable absence, lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
   )
 } finally {
   clearTimeout(deadline)

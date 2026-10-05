@@ -246,7 +246,10 @@ export const InspectionFact = Schema.Union([
         byteLength: Count,
         sha256: Hash
       }),
-      Schema.Struct({ status: Schema.Literal("missing"), reason: Schema.Literals(["not-captured", "oversized"]) })
+      Schema.Struct({
+        status: Schema.Literal("missing"),
+        reason: Schema.Literals(["not-captured", "oversized", "unavailable"])
+      })
     ])
   })
 ])
