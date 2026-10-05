@@ -1,16 +1,14 @@
 {
-  "head": "a495fd904acfdecc281ebb7b4d6aed8dd8207f17",
-  "scope": "Current dashboard build while optional game directory is physically absent",
+  "purpose": "Offline final dashboard dependency validation; not a platform support claim",
+  "source_commit": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
+  "game_directory_physically_absent": true,
+  "game_directory_restored": true,
+  "exit_code": 0,
+  "elapsed_s": 14.722,
   "command": [
     "npm",
-    "--prefix",
-    "packages/agent-flow-viz",
     "run",
     "build"
   ],
-  "limit_s": 180,
-  "exit_code": 0,
-  "timed_out": false,
-  "game_restored": true,
-  "elapsed_s": 9.260060400003567
+  "cwd": "packages/agent-flow-viz"
 }

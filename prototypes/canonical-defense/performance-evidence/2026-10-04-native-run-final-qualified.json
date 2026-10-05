@@ -1,16 +1,16 @@
 {
   "purpose": "Offline qualification evidence, not product contract",
-  "source_owner_commit": "6cdea592",
-  "run_id": "20261004235156892-2012019-c70aa9",
+  "source_owner_commit": "11ac3f03",
+  "run_id": "20261005002207757-2119570-b85cbe",
   "exit_code": 0,
   "selected_tests_passed": 7,
-  "elapsed_s": 37.724,
-  "scope": "Seven original NativeRun native/emitted/public/replay scenarios with final Stop-owned binding",
+  "elapsed_s": 44.593,
+  "scope": "Seven original NativeRun native/emitted/public/replay scenarios after current-master integration and actual Engine regeneration",
   "complete_decoded_native_emitted_vectors_equal": true,
   "retained_bytes_hashes_verified": true,
   "receipts": [
     {
-      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/fresh-native-2012091-QJ72gL/receipt.json",
+      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002207757-2119570-b85cbe/workload-outputs/fresh-native-2119667-VaXAyV/receipt.json",
       "receipt": {
         "lane": "fresh-native",
         "identity": {
@@ -83,7 +83,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_size.js",
-                "sha256": "41ec19c5777788144cc089bf78451d0918bdbf0c4afab9e35495cdd24a279051"
+                "sha256": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_write.c",
@@ -147,7 +147,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/random_u32.js",
-                "sha256": "c9a588139fb4afddc69b1b498374a014a12c639dbb88a9bb39d3b0ad7c671260"
+                "sha256": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/sleep.c",
@@ -614,14 +614,14 @@
                 "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
               }
             ],
-            "sha256": "8980807eaba1b164ad67bf6e5a743aeb75d75a4257524f47c1639628fa1a175f"
+            "sha256": "ec1d45c894daecbf72b430e662b3bc789e53643aa49b2e6a14c2f1c55ff5007e"
           },
           "inputs": {
             "tools": {
               "bend": {
                 "path": "/home/node/.bend/bin/bend",
-                "sha256": "d4821d04932218216c9dc906223ed0e23dd86726d4357a567fb76ee6c976db4e",
-                "version": "bend 2.0.34"
+                "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+                "version": "bend 2.0.35"
               },
               "clang": {
                 "path": "/home/node/.local/bin/clang",
@@ -657,14 +657,14 @@
           "clang": 120000,
           "execution": 15000
         },
-        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/fresh-native-2012091-QJ72gL/output.json.gz",
+        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002207757-2119570-b85cbe/workload-outputs/fresh-native-2119667-VaXAyV/output.json.gz",
         "outputBytes": 14531,
         "outputSha256": "b016616a3d89d2aa65d1b35d24119ac9365235e3fb361d46ed1fdda7e95ea2a7",
         "purpose": "Offline execution output for diagnosis; no automatic reuse or acceptance verdict"
       }
     },
     {
-      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/emitted-js-2012091-rm6Xdt/receipt.json",
+      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002207757-2119570-b85cbe/workload-outputs/emitted-js-2119667-vK1yJw/receipt.json",
       "receipt": {
         "lane": "emitted-js",
         "identity": {
@@ -737,7 +737,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_size.js",
-                "sha256": "41ec19c5777788144cc089bf78451d0918bdbf0c4afab9e35495cdd24a279051"
+                "sha256": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_write.c",
@@ -801,7 +801,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/random_u32.js",
-                "sha256": "c9a588139fb4afddc69b1b498374a014a12c639dbb88a9bb39d3b0ad7c671260"
+                "sha256": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/sleep.c",
@@ -1268,14 +1268,14 @@
                 "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
               }
             ],
-            "sha256": "8980807eaba1b164ad67bf6e5a743aeb75d75a4257524f47c1639628fa1a175f"
+            "sha256": "ec1d45c894daecbf72b430e662b3bc789e53643aa49b2e6a14c2f1c55ff5007e"
           },
           "inputs": {
             "tools": {
               "bend": {
                 "path": "/home/node/.bend/bin/bend",
-                "sha256": "d4821d04932218216c9dc906223ed0e23dd86726d4357a567fb76ee6c976db4e",
-                "version": "bend 2.0.34"
+                "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+                "version": "bend 2.0.35"
               },
               "clang": {
                 "path": "/home/node/.local/bin/clang",
@@ -1310,11 +1310,12 @@
           "emission": 30000,
           "execution": 5000
         },
-        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235156892-2012019-c70aa9/workload-outputs/emitted-js-2012091-rm6Xdt/output.json.gz",
+        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002207757-2119570-b85cbe/workload-outputs/emitted-js-2119667-vK1yJw/output.json.gz",
         "outputBytes": 14531,
         "outputSha256": "b016616a3d89d2aa65d1b35d24119ac9365235e3fb361d46ed1fdda7e95ea2a7",
         "purpose": "Offline execution output for diagnosis; no automatic reuse or acceptance verdict"
       }
     }
-  ]
+  ],
+  "toolchain": "Bend 2.0.35"
 }

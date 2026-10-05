@@ -1,17 +1,24 @@
 {
-  "source_commit": "6cdea592",
-  "run_id": "20261004234018581-1985305-ef813d",
+  "source_commit": "e823083a",
+  "run_id": "20261005002505744-2134577-de8a96",
   "command": [
     "node",
     "scripts/run-game-consumer.mjs"
   ],
-  "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004234018581-1985305-ef813d/workload-outputs/game-output-1985334-YbrgbV/receipt.json",
+  "receipt": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002505744-2134577-de8a96/workload-outputs/game-output-2134630-5Q6Sn8/receipt.json",
   "origin": {
     "native": "fresh compiler",
     "emitted": "fresh JS emission",
-    "cHash": "2cfb724df2227a4612d5a20e28b3b684ede0a001916a69ded196929d82f30e0f",
-    "binaryHash": "1c157e4a82973f32994084c6eb20677f341a0c9cc2dd66484b38b9bcebd02c0e",
-    "jsHash": "a785a79625482aa3412cfe6d435be6639a63ec13ad33e87c5d12a7475ea09bb3"
+    "tools": [
+      {
+        "file": "/home/node/.bend/bin/bend",
+        "expected": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a"
+      },
+      {
+        "file": "/home/node/.local/bin/clang",
+        "expected": "9b6a91b70b9a7a144c636e4bcfb31f279bac1c186d5db2d38780a5053bb4325f"
+      }
+    ]
   },
   "batches_per_lane": 145,
   "bytes": {
@@ -22,7 +29,7 @@
   "all_native_js_pairs_byte_equal": true,
   "terminal": "passed",
   "exit_code": 0,
-  "elapsed_s": 207.606,
+  "elapsed_s": 138.673,
   "scope": "Original four campaigns, all 3222 Host ticks, native/emitted-JS/public histories, independently expected midpoints and ordinary replay",
   "limits_s": {
     "overall": 380,
@@ -304,7 +311,7 @@
     },
     {
       "file": "/home/node/.bend/bend2/effs/random_u32.js",
-      "expected": "c9a588139fb4afddc69b1b498374a014a12c639dbb88a9bb39d3b0ad7c671260"
+      "expected": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
     },
     {
       "file": "/home/node/.bend/bend2/effs/spawn.c",
@@ -368,7 +375,7 @@
     },
     {
       "file": "/home/node/.bend/bend2/effs/file_size.js",
-      "expected": "41ec19c5777788144cc089bf78451d0918bdbf0c4afab9e35495cdd24a279051"
+      "expected": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
     },
     {
       "file": "/home/node/.bend/bend2/effs/file_write.c",
@@ -640,11 +647,12 @@
     },
     {
       "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseNumericOutput.c",
-      "expected": "a009d07942ec5cbb7a03c66318cff6d1d6da9796ff4bc23e9738892778f128c6"
+      "expected": "e717c4ef44db176b2ceaf71cb8d599ac91763c1c4b8d56e237958e05b0a2f493"
     },
     {
       "file": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/prototypes/canonical-defense/DefenseNumericOutput.js",
-      "expected": "fdf6d3bc43a520264e6e77d1fe5bb1892f1ea36eaf9420111b2e26cb4d528b2a"
+      "expected": "9987b4e217c49a4c832e22b5dfda6281a63b08a5385ea8fbe2308f4632ab0b8a"
     }
-  ]
+  ],
+  "toolchain": "Bend 2.0.35"
 }

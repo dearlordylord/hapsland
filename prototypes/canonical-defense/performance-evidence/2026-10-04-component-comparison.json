@@ -1,0 +1,136 @@
+{
+  "purpose": "Bounded diagnostic component comparison; not a stable performance benchmark",
+  "execution_cap_seconds": 10,
+  "typescript_full_run": {
+    "ticks": 3222,
+    "active_ticks": 3206,
+    "elapsed_ms": 4503.330786,
+    "core_excluding_structural_hooks_ms": 1271.4893889999935,
+    "structural_observability_ms": 3221.8338059999924,
+    "creation_ms": 8.344405999999822,
+    "frames": 1336
+  },
+  "native_before_encoding": {
+    "limit_s": 8,
+    "elapsed_s": 3.8092,
+    "marks": [
+      {
+        "boundary": "simulation_start",
+        "elapsed_s": 0.0048
+      },
+      {
+        "boundary": "simulation_and_snapshots_done",
+        "elapsed_s": 3.7641
+      },
+      {
+        "boundary": "first_encoding_start",
+        "elapsed_s": 3.7717
+      },
+      {
+        "boundary": "first_text_ready",
+        "elapsed_s": 3.8065
+      }
+    ],
+    "purpose": "First-call boundary timestamps; unchanged saved native executable, output discarded, no full-campaign correctness claim"
+  },
+  "native_short_sample": {
+    "limit_s": 6,
+    "elapsed_s": 6.037,
+    "samples": 177,
+    "threads": 1,
+    "stdout_bytes": 4096,
+    "complete_batches": 0,
+    "top_functions": [
+      [
+        "WL_FID_STRING_APPEND",
+        11
+      ],
+      [
+        "WL_FID_STRING_APPEND_K6065",
+        11
+      ],
+      [
+        "WL_FID_LIST_LENGTH",
+        7
+      ],
+      [
+        "span_fade",
+        6
+      ],
+      [
+        "WL_FID_NAT_SHOW_FIN",
+        6
+      ],
+      [
+        "term_triv",
+        5
+      ],
+      [
+        "ctr_take",
+        5
+      ],
+      [
+        "WL_FID_DEFENSECONSUMERCODEC_NUMBER_PREFIX_K6043",
+        5
+      ],
+      [
+        "WL_FID_DEFENSEEFFECTS_FIND_TIMER_K4478",
+        4
+      ],
+      [
+        "WL_FID_DEFENSEEFFECTS_FIND_TIMER",
+        4
+      ],
+      [
+        "term_tag",
+        4
+      ],
+      [
+        "WL_FID_NAT_SHOW",
+        4
+      ],
+      [
+        "term_drop",
+        3
+      ],
+      [
+        "term_rfc",
+        3
+      ],
+      [
+        "WL_FID_LIST_LENGTH_K6038",
+        3
+      ]
+    ],
+    "sample_categories": {
+      "engine/game simulation": 103,
+      "output/IO": 14,
+      "snapshot/batch construction": 1,
+      "text formatting": 49,
+      "numeric trace encoding": 10
+    },
+    "unattributed_top": [],
+    "errors": [],
+    "purpose": "10-second function sampling; diagnostic only, not phase wall-clock or correctness evidence"
+  },
+  "pure_native_fixture_preparation": {
+    "source_sha256": "ff25b9514e5bdcbdde09c618f9874093992fe05c59eb7819c872462245c9a945",
+    "phases": [
+      {
+        "phase": "C emission",
+        "limit_s": 90,
+        "elapsed_s": 90.1077,
+        "exit_code": -9,
+        "timed_out": true,
+        "stderr_tail": ""
+      }
+    ]
+  },
+  "limits": [
+    "TS elapsed is inside workload, native boundaries include process startup",
+    "Native pre-encoding includes game and snapshot retention; pure native engine not separately timed",
+    "Short sampled percentages are not whole-run wall-clock percentages",
+    "Runtime shared helper cost attributed to nearest identified caller",
+    "Pure native benchmark C emission hit90s; no native execution result for that fixture"
+  ]
+}

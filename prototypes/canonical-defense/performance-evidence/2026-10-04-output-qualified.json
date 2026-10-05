@@ -1,16 +1,16 @@
 {
   "purpose": "Offline qualification evidence, not product contract",
-  "source_commit": "20787242",
-  "run_id": "20261004235655112-2033989-4232c2",
+  "source_commit": "e823083a",
+  "run_id": "20261005002958506-2152819-25e89a",
   "exit_code": 0,
   "selected_tests_passed": 1,
-  "elapsed_s": 64.283,
+  "elapsed_s": 58.576,
   "scope": "Five original certain/uncertain/failed output profiles including delay before/equal/after lease, complete native/emitted equality, independent public intermediate/literal facts and replay",
   "complete_decoded_native_emitted_vectors_equal": true,
   "retained_bytes_hashes_verified": true,
   "receipts": [
     {
-      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/fresh-native-2034142-UKOK4v/receipt.json",
+      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002958506-2152819-25e89a/workload-outputs/fresh-native-2152912-wZyjLp/receipt.json",
       "receipt": {
         "lane": "fresh-native",
         "identity": {
@@ -83,7 +83,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_size.js",
-                "sha256": "41ec19c5777788144cc089bf78451d0918bdbf0c4afab9e35495cdd24a279051"
+                "sha256": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_write.c",
@@ -147,7 +147,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/random_u32.js",
-                "sha256": "c9a588139fb4afddc69b1b498374a014a12c639dbb88a9bb39d3b0ad7c671260"
+                "sha256": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/sleep.c",
@@ -682,14 +682,14 @@
                 "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
               }
             ],
-            "sha256": "3318db1137cfbb41cd183a8eb0ee57335fbc5a470aa081c030f1b99a5178f265"
+            "sha256": "7e3ec485b8818ce463740056b5172af3290adfcd53490e7840c8760e45b9d324"
           },
           "inputs": {
             "tools": {
               "bend": {
                 "path": "/home/node/.bend/bin/bend",
-                "sha256": "d4821d04932218216c9dc906223ed0e23dd86726d4357a567fb76ee6c976db4e",
-                "version": "bend 2.0.34"
+                "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+                "version": "bend 2.0.35"
               },
               "clang": {
                 "path": "/home/node/.local/bin/clang",
@@ -725,14 +725,14 @@
           "clang": 120000,
           "execution": 5000
         },
-        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/fresh-native-2034142-UKOK4v/output.json.gz",
+        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002958506-2152819-25e89a/workload-outputs/fresh-native-2152912-wZyjLp/output.json.gz",
         "outputBytes": 358625,
         "outputSha256": "2e577150e29bbb226c2430c90d6f4487f1279eb0669376b3d3221e9ee80c362f",
         "purpose": "Offline execution output for diagnosis; no automatic reuse or acceptance verdict"
       }
     },
     {
-      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/emitted-js-2034142-Zo5sDz/receipt.json",
+      "path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002958506-2152819-25e89a/workload-outputs/emitted-js-2152912-kgX3UG/receipt.json",
       "receipt": {
         "lane": "emitted-js",
         "identity": {
@@ -805,7 +805,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_size.js",
-                "sha256": "41ec19c5777788144cc089bf78451d0918bdbf0c4afab9e35495cdd24a279051"
+                "sha256": "508a931334016f725f0446d9c63f91d7e9de79b9fb347d0e148777dba834ef0b"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/file_write.c",
@@ -869,7 +869,7 @@
               },
               {
                 "path": "/home/node/.bend/bend2/effs/random_u32.js",
-                "sha256": "c9a588139fb4afddc69b1b498374a014a12c639dbb88a9bb39d3b0ad7c671260"
+                "sha256": "ab0b37cb6055ad08573d1263aa380c339c3fe7417530cfa63264629dce7744c2"
               },
               {
                 "path": "/home/node/.bend/bend2/effs/sleep.c",
@@ -1404,14 +1404,14 @@
                 "sha256": "8d9dec3f04ee9cdad8248e93d03b72da4853e81a2d693e1faeee46ae06f2eabe"
               }
             ],
-            "sha256": "3318db1137cfbb41cd183a8eb0ee57335fbc5a470aa081c030f1b99a5178f265"
+            "sha256": "7e3ec485b8818ce463740056b5172af3290adfcd53490e7840c8760e45b9d324"
           },
           "inputs": {
             "tools": {
               "bend": {
                 "path": "/home/node/.bend/bin/bend",
-                "sha256": "d4821d04932218216c9dc906223ed0e23dd86726d4357a567fb76ee6c976db4e",
-                "version": "bend 2.0.34"
+                "sha256": "f77417474ded314ad5d1a68fa3ebbe214c2124bf04d56a59b05bc17be6b0327a",
+                "version": "bend 2.0.35"
               },
               "clang": {
                 "path": "/home/node/.local/bin/clang",
@@ -1446,11 +1446,12 @@
           "emission": 30000,
           "execution": 5000
         },
-        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004235655112-2033989-4232c2/workload-outputs/emitted-js-2034142-Zo5sDz/output.json.gz",
+        "outputPath": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261005002958506-2152819-25e89a/workload-outputs/emitted-js-2152912-kgX3UG/output.json.gz",
         "outputBytes": 358624,
         "outputSha256": "fc69443ba70f17d1dd3630f5e8b97e2eae81c9e0b9dd3339cc495dea689ab97a",
         "purpose": "Offline execution output for diagnosis; no automatic reuse or acceptance verdict"
       }
     }
-  ]
+  ],
+  "toolchain": "Bend 2.0.35"
 }

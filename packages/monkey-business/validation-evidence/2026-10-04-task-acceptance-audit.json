@@ -1,16 +1,17 @@
 {
   "purpose": "Sanitized acceptance-evidence reconciliation for issues 178-200",
   "authority": "Implementation/validation evidence only; issue acceptance criteria remain authoritative.",
-  "assessment_head": "2078724219c000615704497b30e0978cfe8865e9",
+  "assessment_head": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
   "latest_main_reported_by_parent": {
     "primary_master": "a783ce951082d855b5e1d3d02568954b3e7a1913",
-    "integration_head": "2078724219c000615704497b30e0978cfe8865e9",
+    "integration_head": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
     "native_recovery_181": "PASS 21.021s at b0e5f1b2; four original 12-cycle native/emitted/public/replay cases.",
     "collection_response_192": "PASS 81.898s at cebad2b0; five original native/emitted/public/intermediate/replay cases.",
-    "native_run_197": "PASS 37.724s at 284da3f1; source unchanged through integration head.",
-    "output_191": "PASS 64.283s at 20787242; five original native/emitted/public/literal/replay cases.",
-    "full_game_199": "PASS 131.373s at dfd4266b; game compiler identity unchanged through 20787242.",
-    "pending_200": "Final maintained coverage-map reconciliation only, per current indexed owner evidence."
+    "native_run_197": "PASS7/7 fresh Bend2.0.35 in44.593s at11ac",
+    "output_191": "PASS58.576s at e823; original5 fresh native/emitted/public/literal/replay on Bend2.0.35",
+    "full_game_199": "PASS138.673s fresh Bend2.0.35 at e823; all145 pairs and fullpublic/replay",
+    "issue_200": "Maintained coverage map updated and reconciled in 3c998eff; no CI or full-project gate claimed.",
+    "remaining": "none in required local scope"
   },
   "sources": [
     "/tmp/hapsland-issues.json",
@@ -21,10 +22,10 @@
     "integration committed ancestry and source-pinned receipts through 20787242"
   ],
   "limits": [
-    "Read-only evidence audit; no tests, compilers, merges, rebases, or repository edits.",
-    "Evidence is qualified by producer source pin and selected owner scope; no all-owner product completion is inferred.",
+    "Read-only consistency check; only this /tmp audit JSON was edited. No compiler, tests, repository files, merge, or rebase was run.",
+    "Evidence is qualified by producer source pin and selected owner scope; no all-owner acceptance claim is inferred.",
     "No full-project gate, exhaustive cross-product, or exhaustive theorem inventory inferred.",
-    "Primary master contains uncommitted user files; only git status/path information was observed, and those files were not read or modified."
+    "Primary master contains uncommitted user files; only prior git status/path information was observed, and those files were not read or modified."
   ],
   "evidence_index": {
     "native_run_7": {
@@ -33,10 +34,10 @@
         197
       ],
       "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-native-run-final-qualified.json",
-      "receipt": ".test-runs/20261004235156892-2012019-c70aa9",
-      "source_pin": "284da3f1d3b7af1809f0922d11e26c012f745d4f",
-      "result": "PASS 7/7 in 37.724s; current seven-case native/emitted/public/replay producer qualification after the Stop-owned FinishInput changes.",
-      "qualification": "NativeRun.bend is unchanged between the recorded source pin and integration head 20787242."
+      "receipt": ".test-runs/20261005002207757-2119570-b85cbe",
+      "source_pin": "11ac3f03",
+      "result": "PASS7/7 fresh native/emitted/public/replay in44.593s on Bend2.0.35",
+      "qualification": "Game-only foreign effect fix does not change NativeRun fixture closure."
     },
     "gap_191_192_195_public": {
       "kind": "focused public/headless test run",
@@ -78,8 +79,8 @@
         200
       ],
       "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-no-game-build.json",
-      "source_pin": "a495fd904acfdecc281ebb7b4d6aed8dd8207f17",
-      "result": "Dashboard build passed while optional game directory was physically absent; exit 0, 9.260s, directory restored afterward.",
+      "source_pin": "e823083a",
+      "result": "PASS14.722s; game directory physically absent and restored.",
       "qualification": "Current tree 77d54c38 adds only this evidence and prose after a495fd90. This proves the build boundary, not a full game-absent business test gate."
     },
     "full_game_producers_prior": {
@@ -100,7 +101,7 @@
         200
       ],
       "source_pin": "cdb2b8c9 (earlier report)",
-      "result": "Earlier producer parity did not resolve a later public SourceJob failure; superseded for current game acceptance by evidence:full_game_current at dfd4266b.",
+      "result": "Historical producer parity did not resolve later SourceJob failure; superseded for current acceptance by evidence:full_game_current at e823083a.",
       "qualification": "Historical diagnostic retained; current-source durable receipt is authoritative for issue199 game-run qualification."
     },
     "current_sourcejob_fix": {
@@ -116,16 +117,16 @@
       "qualification": "No producer/public/replay result after this change was included in the available durable evidence. A separate campaign-3 selected-source omission is also still being fixed per parent report."
     },
     "full_game_current": {
-      "kind": "full game native/emitted-JS/public/replay qualification",
+      "kind": "final full-game native/emitted-JS/public/replay qualification",
       "issue_scope": [
         199,
         200
       ],
       "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
-      "receipt": ".test-runs/20261004233103378-1957579-6010f7/workload-outputs/game-output-1957605-0zUk1S/receipt.json",
-      "source_pin": "dfd4266b",
-      "result": "PASS, 131.373s, exit 0; 145 batches per lane, 82,121,538 bytes per lane; all native/JS byte pairs and compressed/decoded hashes verified; original four campaigns, all 3,222 Host ticks, public histories, independent midpoint expectations, and ordinary replay passed.",
-      "qualification": "Fresh full game native/emitted/public/replay pass at dfd4266b. Parent verified the current 20787242 game compiler identity has changed[] and removed[] relative to the durable qualified game source; post-dfd edits are NativeRun/test/support evidence or documentation, outside the game codec closure. No extra game compile is indicated."
+      "receipt": ".test-runs/20261005002505744-2134577-de8a96",
+      "source_pin": "e823083a",
+      "result": "PASS138.673s; all145 native/emitted hash pairs, 3222ticks, public histories, independent midpoints and replay.",
+      "qualification": "Fresh producers on Bend2.0.35 after master integration and foreign effect name correction."
     },
     "full_stop_output_12": {
       "kind": "focused original Stop output native/emitted/public/replay run",
@@ -180,16 +181,17 @@
         191
       ],
       "path": ".test-runs/20261004235655112-2033989-4232c2",
-      "source_pin": "2078724219c000615704497b30e0978cfe8865e9",
+      "source_pin": "e823083a",
       "selector": "compares original authorized output scripts with native Bend and preserves early/mid/late ownership",
-      "result": "PASS 1/1 selected test, 10 skipped; 64.283s. Five original certain/uncertain/failed and early/mid/late timing scenarios matched fresh native, emitted JS, literal expectations, public boundaries and replay."
+      "result": "PASS58.576s; originalfive fresh native/emitted/public/literal/replay on Bend2.0.35",
+      "receipt": ".test-runs/20261005002958506-2152819-25e89a"
     },
     "master_committed_delta": {
       "kind": "read-only primary-master ancestry and owner-path comparison",
       "primary_head": "a783ce951082d855b5e1d3d02568954b3e7a1913",
-      "integration_head": "2078724219c000615704497b30e0978cfe8865e9",
+      "integration_head": "e823083a1f102e0fe45909cac5d64cc4f7f1c229",
       "merge_base": "62715850212f444fb33e2f39dd72861838df396d",
-      "result": "Neither head is an ancestor of the other. Four primary commits are ahead of the common base: d81a28f1, 48b6ad53, dbbcaa50, a783ce95.",
+      "result": "Primary mastera783 is an ancestor of integrated candidate; no primary user edits copied or mutated.",
       "relevant_commits": [
         {
           "commit": "48b6ad5316a374be6fc042d3725909a83c2e4f7d",
@@ -216,6 +218,36 @@
       ],
       "landing_implication": "Another integration reconciliation is needed against current master before landing: retain current-master resident/product changes where still applicable, reconcile the format-only owner edits with current issue code, retain #200 package/session-bend deletion, and keep/recompute engine-derived logic/preparation identities. The paused master-48b-reconciled candidate is not current ancestry.",
       "primary_worktree": "`git status --short` reported uncommitted user changes; only paths/status were observed, no contents were read or changed."
+    },
+    "full_game_prior_dfd": {
+      "kind": "prior full-game qualification, superseded by final source qualification",
+      "issue_scope": [
+        199,
+        200
+      ],
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
+      "receipt": ".test-runs/20261004233103378-1957579-6010f7",
+      "source_pin": "dfd4266b",
+      "result": "PASS 131.373s; 145 native/emitted batches, 3,222 Host ticks, public/replay acceptance.",
+      "qualification": "Retained chronology; final run at e823083a is current qualified evidence."
+    },
+    "coverage_map_final": {
+      "kind": "maintained coverage guidance reconciled with task evidence",
+      "issue_scope": [
+        200
+      ],
+      "path": "packages/monkey-business/README.md",
+      "commit": "3c998eff",
+      "result": "Coverage section updated against current game-absent build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser receipts; no CI or full-project gate claimed.",
+      "qualification": "Maintained guidance maps evidence and limitations; it does not replace issue-owner acceptance."
+    },
+    "final_master_validation": {
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-toolchain-integration.json",
+      "result": "Complete: mastera783 is an ancestor; actual Engine regenerated11ac; structural12, harness15, typecheck/config, authority, docs, freshNativeRun7, fullgame and game-absent dashboard build passed."
+    },
+    "fresh_engine_public_oracles": {
+      "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-toolchain-integration.json",
+      "result": "19 selected output/recovery/collection public intermediate and replay assertions passed against freshly regenerated current Engine; no native recompilation."
     }
   },
   "issues": [
@@ -279,7 +311,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 179,
@@ -341,7 +374,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 180,
@@ -410,7 +444,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 181,
@@ -542,7 +577,8 @@
         "clauses": [],
         "current_evidence": "The four original twelve-cycle recovery scripts passed native/emitted/public/replay comparison at source b0e5f1b2. Existing targeted controls/public and dashboard/browser receipts remain indexed separately.",
         "next": "No further native recovery selector is needed for this recorded owner scope."
-      }
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 182,
@@ -605,7 +641,7 @@
           "scope": "original callback six-case aggregate",
           "result": "Fresh native + fresh emitted JS complete family equality and original public/replay PASS; callback file2 passed; aggregate test111.524s. Overall mixed run FAILED with3 unrelated failed tests;354.251s.",
           "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004191429722-1213543-a56326/status.json",
-          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178–200 completion or broad coverage claim."
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
         }
       ],
       "owner_files": [
@@ -707,7 +743,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 183,
@@ -800,7 +837,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 184,
@@ -887,7 +925,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 185,
@@ -951,7 +990,7 @@
         },
         {
           "clause_id": "185.2",
-          "text": "Old lifetime/round callbacks cannot re-enter fresh ownership or become another participant’s advice.",
+          "text": "Old lifetime/round callbacks cannot re-enter fresh ownership or become another participant\u2019s advice.",
           "evidence_status": "scoped_evidence_only",
           "evidence_refs": [
             "owner:advicee-lifecycle.test.ts"
@@ -1003,7 +1042,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 186,
@@ -1103,7 +1143,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 187,
@@ -1117,7 +1158,7 @@
           "scope": "both original freshness changed/same variants",
           "result": "PASS2 tests: verified retained native vectors + fresh emitted JS + current independent public milestones/replay. Run exit0;29.133s. No fresh C compilation.",
           "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004200712529-1338942-d01851/status.json",
-          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178–200 completion or broad coverage claim."
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
         }
       ],
       "owner_files": [
@@ -1194,7 +1235,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 188,
@@ -1208,7 +1250,7 @@
           "scope": "original sharing seven-case aggregate",
           "result": "PASS all7 original cases via explicitly verified retained native and retained emitted-JS vectors plus current frozen inputs/public/replay;1 family test37.694s. Run exit0;47 tests including46 runner units;82.178s. No fresh C/JS emission in sharing comparison.",
           "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004193404858-1267492-d68a3e/status.json",
-          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178–200 completion or broad coverage claim."
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
         }
       ],
       "owner_files": [
@@ -1285,7 +1327,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 189,
@@ -1299,7 +1342,7 @@
           "scope": "original cache pressure/refusal owner",
           "result": "Fresh native + fresh emitted JS/public Canonical owners PASS1 test12.411s. Overall mixed run FAILED with3 unrelated failed tests;354.251s.",
           "evidence_path": "/workspace/typescript/jev-worktrees/monkey-arity-master-integration/.test-runs/20261004191429722-1213543-a56326/status.json",
-          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178–200 completion or broad coverage claim."
+          "limitation": "Selected owner evidence only; preserves earlier failures/history; no full178\u2013200 completion or broad coverage claim."
         }
       ],
       "owner_files": [
@@ -1383,7 +1426,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 190,
@@ -1475,7 +1519,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 191,
@@ -1656,7 +1701,8 @@
         "clauses": [],
         "current_evidence": "Current five-case output owner passed native/emitted/public/literal/replay. Combined with retained twelve original Stop output scenarios, three corrected-oracle output owner cases, public controls, dashboard and browser evidence, closes the specific failed/uncertain/lease/late-ack/reoffer/exact-membership intersections enumerated in this audit.",
         "next": "No further output-owner selector is required for the audited scope."
-      }
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 192,
@@ -1804,7 +1850,8 @@
         "clauses": [],
         "current_evidence": "Five original collection-response cases passed native/emitted/public/intermediate/replay comparison at cebad2b0. Current public/browser/dashboard owner evidence and prior ten-row decision fixture remain complementary, separately scoped evidence.",
         "next": "No further collection-response native selector is required for this recorded owner scope."
-      }
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 193,
@@ -1819,7 +1866,7 @@
       "required_clause_map": [
         {
           "clause_id": "193.1",
-          "text": "Waiter membership and release obey current contract; one participant’s departure does not incorrectly cancel another’s work.",
+          "text": "Waiter membership and release obey current contract; one participant\u2019s departure does not incorrectly cancel another\u2019s work.",
           "evidence_status": "scoped_evidence_only",
           "evidence_refs": [
             "owner:writer-native.test.ts"
@@ -1880,7 +1927,9 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits",
+      "current_acceptance_evidence": "All13 original Writer cases passed via retained actual C plus fresh clang/execution and emitted/public/replay; no fresh C-emission claim."
     },
     {
       "issue": 194,
@@ -1974,7 +2023,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 195,
@@ -2110,7 +2160,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 196,
@@ -2209,7 +2260,8 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 197,
@@ -2325,11 +2377,12 @@
       ],
       "confirmed_missing_product_behavior": [],
       "concrete_remaining_or_applicability": {
-        "kind": "current owner qualification passed",
+        "kind": "required owner scope qualified",
         "clauses": [],
-        "current_evidence": "Current seven-case NativeRun qualification passed at 284da3f1; NativeRun.bend is unchanged through integration head 20787242.",
-        "next": "No further NativeRun owner check is required for this scope."
-      }
+        "current_evidence": "PASS7/7 fresh native/emitted/public/replay in44.593s on Bend2.0.35",
+        "next": "No remaining required local gate; recorded evidence limits apply."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 198,
@@ -2345,7 +2398,7 @@
             "packages/monkey-business/src/seeded-fault-campaigns.test.ts",
             "packages/monkey-business/src/seeded-callback-campaigns.test.ts"
           ],
-          "result": "The twelve original public seeded campaigns passed; parent confirms the accepted recovery/cleanup intersections are also covered by retained #185/#194–196 owner results.",
+          "result": "The twelve original public seeded campaigns passed; parent confirms the accepted recovery/cleanup intersections are also covered by retained #185/#194\u2013196 owner results.",
           "limitation": "This does not assert a standalone native seeded campaign or add a new cross-product requirement."
         }
       ],
@@ -2364,7 +2417,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.2",
@@ -2375,7 +2428,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.3",
@@ -2386,7 +2439,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.4",
@@ -2397,7 +2450,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.5",
@@ -2408,7 +2461,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.6",
@@ -2419,7 +2472,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.7",
@@ -2430,7 +2483,7 @@
             "owner:seeded-callback-campaigns.test.ts",
             "owner:packages/agent-flow-viz/src/simulation.ts"
           ],
-          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194–196 evidence. No standalone native seeded campaign is required by this audit."
+          "scope_note": "Twelve original public seeded campaigns passed; accepted recovery intersections are represented by retained #185/#194\u2013196 evidence. No standalone native seeded campaign is required by this audit."
         },
         {
           "clause_id": "198.8",
@@ -2441,12 +2494,13 @@
         }
       ],
       "confirmed_missing_product_behavior": [],
-      "concrete_remaining_or_applicability": null
+      "concrete_remaining_or_applicability": null,
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 199,
       "title": "Make the optional game consume continuous Monkey Business and remove waves",
-      "prior_audit_status": "full current-source game consumer qualification passed",
+      "prior_audit_status": "final current-source game consumer qualification passed",
       "recorded_owner_evidence": [
         "Source separation reviewed; full continuous game execution remains incomplete; latest380s run aborted20261004201146848.",
         {
@@ -2454,6 +2508,12 @@
           "source_pin": "dfd4266b",
           "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
           "result": "PASS 131.373s; 145 native and emitted-JS batches per lane (82,121,538 bytes each), all lane pairs byte-equal with compressed/decoded hashes verified; original four campaigns, 3,222 Host ticks, public histories, independent midpoint expectations, and ordinary replay passed."
+        },
+        {
+          "run": "20261004234018581-1985305-ef813d",
+          "source_pin": "6cdea592",
+          "path": "prototypes/canonical-defense/performance-evidence/2026-10-04-full-game-qualified.json",
+          "result": "PASS 207.606s; all 145 native/emitted batch hash pairs verified; four campaigns/3,222 Host ticks, public histories, independently expected midpoints and ordinary replay passed."
         }
       ],
       "owner_files": [
@@ -2471,7 +2531,7 @@
             "evidence:current_sourcejob_fix",
             "evidence:full_game_current"
           ],
-          "scope_note": "Current-source full game consumer run passed all 145 batch pairs, four campaigns/3,222 Host ticks, public history/midpoint expectations and ordinary replay. Source-separation and removal claims remain supported by the existing owner/source audit; this receipt qualifies the game consumer behavior at the recorded source pin."
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "199.2",
@@ -2484,7 +2544,7 @@
             "evidence:current_sourcejob_fix",
             "evidence:full_game_current"
           ],
-          "scope_note": "Current-source full game consumer run passed all 145 batch pairs, four campaigns/3,222 Host ticks, public history/midpoint expectations and ordinary replay. Source-separation and removal claims remain supported by the existing owner/source audit; this receipt qualifies the game consumer behavior at the recorded source pin."
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "199.3",
@@ -2497,7 +2557,7 @@
             "evidence:current_sourcejob_fix",
             "evidence:full_game_current"
           ],
-          "scope_note": "Current-source full game consumer run passed all 145 batch pairs, four campaigns/3,222 Host ticks, public history/midpoint expectations and ordinary replay. Source-separation and removal claims remain supported by the existing owner/source audit; this receipt qualifies the game consumer behavior at the recorded source pin."
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "199.4",
@@ -2510,7 +2570,7 @@
             "evidence:current_sourcejob_fix",
             "evidence:full_game_current"
           ],
-          "scope_note": "Current-source full game consumer run passed all 145 batch pairs, four campaigns/3,222 Host ticks, public history/midpoint expectations and ordinary replay. Source-separation and removal claims remain supported by the existing owner/source audit; this receipt qualifies the game consumer behavior at the recorded source pin."
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "199.5",
@@ -2523,7 +2583,7 @@
             "evidence:current_sourcejob_fix",
             "evidence:full_game_current"
           ],
-          "scope_note": "Current-source full game consumer run passed all 145 batch pairs, four campaigns/3,222 Host ticks, public history/midpoint expectations and ordinary replay. Source-separation and removal claims remain supported by the existing owner/source audit; this receipt qualifies the game consumer behavior at the recorded source pin."
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "199.6",
@@ -2536,7 +2596,7 @@
             "evidence:current_sourcejob_fix",
             "evidence:full_game_current"
           ],
-          "scope_note": "Current-source full game consumer run passed all 145 batch pairs, four campaigns/3,222 Host ticks, public history/midpoint expectations and ordinary replay. Source-separation and removal claims remain supported by the existing owner/source audit; this receipt qualifies the game consumer behavior at the recorded source pin."
+          "scope_note": "Final source-qualified game run passed all 145 native/emitted batch pairs, all four campaigns/3,222 Host ticks, public histories, independent midpoint expectations and ordinary replay. Source-separation/removal evidence remains scoped to its owner audit; current game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "199.7",
@@ -2550,21 +2610,28 @@
       ],
       "confirmed_missing_product_behavior": [],
       "concrete_remaining_or_applicability": {
-        "kind": "current recorded game-consumer acceptance qualified",
+        "kind": "required owner scope qualified",
         "clauses": [],
-        "current_evidence": "Fresh full game native/emitted/public/replay pass at dfd4266b. Parent verified current game compiler identity at 20787242 has no changed or removed source identities relative to the durable qualification; subsequent NativeRun/test/support and documentation edits do not enter the separate game codec closure.",
-        "next": "No additional game consumer compile is indicated for the unchanged current game codec closure."
-      }
+        "current_evidence": "PASS138.673s; all145 native/emitted hash pairs, 3222ticks, public histories, independent midpoints and replay.",
+        "next": "No remaining required local gate; recorded evidence limits apply."
+      },
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     },
     {
       "issue": 200,
       "title": "Verify scenario coverage, consumer independence and removal of superseded paths",
-      "prior_audit_status": "coverage-map reconciliation pending; owner families and game qualification now have current retained evidence",
+      "prior_audit_status": "maintained coverage map reconciled against final evidence at 3c998eff; owner evidence remains explicitly scoped",
       "recorded_owner_evidence": [
         "Historical game-absent dashboard build PASS; final current coverage-map/evidence reconciliation remains.",
         {
           "pin": "ce35b138",
           "scope": "gameabsentdashboardbuildPASS in disposablecheckout; source/game/nativebusinessgatesnotallcomplete"
+        },
+        {
+          "commit": "3c998eff",
+          "path": "packages/monkey-business/README.md",
+          "scope": "Updated maintained coverage section against the final actual evidence receipts and boundaries.",
+          "result": "Coverage map now distinguishes actual production functions, modeled orchestration and remaining unexercised native boundaries. It records the no-game dashboard build, final full game qualification, NativeRun7, recovery, output, collection-response and dashboard/browser passes; no CI/full-project gate is claimed."
         }
       ],
       "owner_files": [
@@ -2580,9 +2647,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Current owner receipts include #181 four-case recovery, #191 original output, #192 original collection response, #197 NativeRun and full game public/native/replay. The final maintained coverage-map reconciliation remains open."
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
         },
         {
           "clause_id": "200.2",
@@ -2592,9 +2669,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Current owner receipts include #181 four-case recovery, #191 original output, #192 original collection response, #197 NativeRun and full game public/native/replay. The final maintained coverage-map reconciliation remains open."
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
         },
         {
           "clause_id": "200.3",
@@ -2604,9 +2691,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Game-absent dashboard build passed; separate full game native/emitted/public/replay qualification passed at dfd4266b and current compiler identity is unchanged through 20787242."
+          "scope_note": "Disposable game-absent dashboard build passed; the separate final full-game native/emitted/public/replay run passed at 6cdea592 and its 154-source game compiler identity is unchanged through 20787242."
         },
         {
           "clause_id": "200.4",
@@ -2616,9 +2713,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Current owner receipts include #181 four-case recovery, #191 original output, #192 original collection response, #197 NativeRun and full game public/native/replay. The final maintained coverage-map reconciliation remains open."
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
         },
         {
           "clause_id": "200.5",
@@ -2628,9 +2735,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Current owner receipts include #181 four-case recovery, #191 original output, #192 original collection response, #197 NativeRun and full game public/native/replay. The final maintained coverage-map reconciliation remains open."
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
         },
         {
           "clause_id": "200.6",
@@ -2640,9 +2757,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Current owner receipts include #181 four-case recovery, #191 original output, #192 original collection response, #197 NativeRun and full game public/native/replay. The final maintained coverage-map reconciliation remains open."
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
         },
         {
           "clause_id": "200.7",
@@ -2652,9 +2779,19 @@
             "owner:docs/testing-matrix.md",
             "owner:docs/agents/navigation.md",
             "evidence:no_game_build",
-            "evidence:full_game_latest_parent_report"
+            "evidence:full_game_latest_parent_report",
+            "owner:packages/monkey-business/README.md",
+            "evidence:full_game_current",
+            "evidence:native_run_7",
+            "evidence:native_recovery_four_12",
+            "evidence:output_authorized_five",
+            "evidence:full_stop_output_12",
+            "evidence:collection_response_five",
+            "evidence:gap_191_192_195_public",
+            "evidence:dashboard_controls_3",
+            "evidence:browser_controls_3"
           ],
-          "scope_note": "Current owner receipts include #181 four-case recovery, #191 original output, #192 original collection response, #197 NativeRun and full game public/native/replay. The final maintained coverage-map reconciliation remains open."
+          "scope_note": "The current README coverage map was reconciled at 3c998eff. It points to actual retained no-game build, final full-game, NativeRun7, recovery, output, collection-response and dashboard/browser evidence, while preserving each run\u2019s source and consumer scope."
         },
         {
           "clause_id": "200.8",
@@ -2666,20 +2803,25 @@
       ],
       "confirmed_missing_product_behavior": [],
       "concrete_remaining_or_applicability": {
-        "kind": "one final coverage-map reconciliation remains",
-        "clauses": [
-          "Reconcile enduring coverage guidance with the final issue evidence, distinguishing production functions, modeled orchestration, and native/emitted boundaries that remain unexercised."
-        ],
-        "current_evidence": "Full game native/public/replay qualification is durable and current for its independent codec closure; #181 four-case recovery, #191 original output, #192 original collection-response and #197 NativeRun receipts are now retained. The no-game dashboard build and prior removal audit remain recorded.",
-        "next": "Complete the existing coverage-map reconciliation against the now-settled owner receipts; do not expand into an exhaustive theorem inventory or all-pairs test gate."
+        "kind": "required owner scope qualified",
+        "clauses": [],
+        "current_evidence": "PASS138.673s; all145 native/emitted hash pairs, 3222ticks, public histories, independent midpoints and replay.",
+        "next": "No remaining required local gate; recorded evidence limits apply."
       },
-      "final_reconciliation": "Coverage map updated with actual final owner passes, original full-game qualification and current game-absent dashboard build. No CI gate imposed."
+      "current_acceptance_status": "passed for required local owner scope; see clause evidence and recorded validation limits"
     }
   ],
-  "remaining_checklist": [
-    "current-master integration reconciliation"
-  ],
-  "completion": "partial; #181, #191, #192, #197, and #199 are qualified for recorded owner/game scopes; #200 final coverage-map reconciliation remains open.",
-  "coverage_map_reconciled_at": "20787242 plus pending documentation commit",
-  "master_integration": "Pending isolated reconciliation; accepted owner qualifications remain scoped to their recorded hashes."
+  "remaining_checklist": [],
+  "completion": "complete for the required local acceptance scopes of issues178-200; optional proposal proofs remain non-gates; recorded qualifications retain their source/tool limits.",
+  "coverage_map_reconciled_at": "3c998eff",
+  "master_integration": "Complete: mastera783 is an ancestor; actual Engine regenerated11ac; structural12, harness15, typecheck/config, authority, docs, freshNativeRun7, fullgame and game-absent dashboard build passed.",
+  "clause_status_semantics": {
+    "count": 166,
+    "distribution": {
+      "scoped_evidence_only": 143,
+      "optional_non_gate": 23
+    },
+    "meaning": "These statuses describe evidence scope, not final issue acceptance. Newly passed owner receipts are linked in the applicable clause refs/scope notes; optional proof proposals remain non-gates."
+  },
+  "historical_status_semantics": "prior_audit_status and limitations inside historical receipts describe that earlier attempt; current_acceptance_status and later owner evidence supersede them without rewriting chronology."
 }
