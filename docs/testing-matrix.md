@@ -17,7 +17,7 @@ Engine evidence. They remain subject to lint and TypeScript checks.
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
 | Resident playback liveness | `npm --prefix packages/agent-flow-viz run test:resident-liveness-browser`; `packages/monkey-business/src/cache-quiet-liveness.test.ts` | Default one/six-advicee Play, pause/resume; finding/clear cache plus quiet-window settlement and replay | Observed progress beyond Jev result through genuine cache facts; not universal scheduler liveness or live Jev transport |
-| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; exact request and native output copy, refused/interrupted/synchronous/written attempts, three-edit batch links, keyboard selection, pause/resume, keyboard reconnect with a retained cursor, recovery gaps, stable live reading, typed payload loss while paused, safe text, 375 px layout | Observed preparation/results/fates and historical writer evidence; written output without retained acknowledgement remains distinct from uncertainty. Pi and verified source discovery have separate checks below; replay gaps and full-feature acceptance remain pending; no agent visibility or repair claim |
+| Inspection dashboard browser | `npm --prefix packages/agent-flow-viz run test:inspection-browser` | Real resident/offline provider → private journal → production HTTP/SSE → Chromium; exact request and native output copy, refused/interrupted/synchronous/written attempts, three-edit batch links, keyboard selection, pause/resume, keyboard reconnect with a retained cursor, recovery gaps, stable live reading, typed payload loss while paused, repeated observed recording periods, safe text, 375 px layout | Observed preparation/results/fates and historical writer evidence; written output without retained acknowledgement remains distinct from uncertainty. Pi and verified source discovery have separate checks below; replay gaps and full-feature acceptance remain pending; no agent visibility or repair claim |
 | Pi inspector handoffs | `npm --prefix packages/agent-flow-viz run test:pi-inspection-browser`; [native fixture matrix](../src/pi/inspection-native.test.ts) | Existing native extension fixtures → production source command/resident → private journal → public HTTP/SSE → Chromium; actual edit and finish offers, exact copy, oversized absence, lost acknowledgement, original edit links, verified multi-source health, retained history after resident exit, identity filters, keyboard focus/button activation and 375 px layout. Native matrix additionally covers session switch, recording disabled, and unavailable serialization with the original native value preserved. | Native handler proposed output and resident replies remain distinct from completed writes or model visibility. One-rule edit fixture uses the existing short deadline; no general latency, installed-package, platform-support or repair claim |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Code lint and formatting | `npm run lint:code`; `npm run lint:changed`; `npm run format` | Oxlint correctness and shared code rules; dprint/OXC formatting of authored code | Full or changed-file checks; Git pre-commit fixes staged formatting and rejects lint failures. Generated, vendor, fixture and evidence assets remain outside this selection. |
@@ -177,7 +177,15 @@ bounded, with omitted counts. The Pi browser checks enabled observations from
 three live sources and unknown current root states after their disconnection.
 Configuration changes apply at the next edit admission; this observation does
 not reread project files or guarantee successful persistence. Paused displays
-retain their explicitly timed observation.
+retain their explicitly timed observation. The real-resident browser gate toggles
+only inspection consent through two disabled periods, preserving its original
+review policy. It verifies five retained state periods and three consent epochs,
+links each period to its next retained transition, and excludes disabled edits
+from source-bearing history. An open historical period does not claim current
+state or continuous coverage. Its configured 4 MiB fixture quota preserves the
+full bounded marker window for the selected older handoff's expiry check; the
+shared 128 MiB milestone check remains pending; bounded marker retention and
+marker loss have separate journal checks.
 
 Loss markers are source-free, private, immutable version-one journal objects
 naming an exact removed source/sequence identity and the observed reason. They

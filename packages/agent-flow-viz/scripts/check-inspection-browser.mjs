@@ -35,19 +35,19 @@ try {
     'import type { Amount } from "./support";\r\ntype OrderCount = {\r\n\t/** 日本語 */\r\n\tvalue: Amount\r\n};\r\n'
   )
   await put(root, "support.ts", "export type Amount = number;\n")
-  await writeFile(
-    join(root, ".hapsland.jsonc"),
-    JSON.stringify({
-      version: 1,
-      sessionInspection: true,
-      ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect browser 日本語 cases" } }
-    })
-  )
+  const inspectionConfig = {
+    version: 1,
+    sessionInspection: true,
+    ruleOverrides: { r1_inferred_case: { threshold: 0.6, message: "Inspect browser 日本語 cases" } }
+  }
+  await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify(inspectionConfig))
   let historyNow = Date.now()
-  const historyLimits = { retentionMs: 86400000, storageBytes: 1048576, now: () => historyNow }
+  // Keep the full bounded loss-marker window for the selected older handoff after recording-cycle fixtures.
+  const historyLimits = { retentionMs: 86400000, storageBytes: 4 * 1048576, now: () => historyNow }
   const history = makeInspectionStorage(join(root, "inspection"), historyLimits)
   const dispatched = []
   let published = nativeDeferred()
+  let recordingPublished = nativeDeferred()
   const retired = nativeDeferred()
   const writerPublished = new Map(
     ["failed-before-write", "uncertain", "written"].map((state) => [state, nativeDeferred()])
@@ -81,6 +81,7 @@ try {
           history.write(record, encoded, publication).pipe(
             Effect.tap(() =>
               Effect.sync(() => {
+                if (record.fact.kind === "recording-state") recordingPublished.resolve()
                 if (record.fact.kind === "finding-fate" && record.fact.fate === "stale") retired.resolve()
                 if (record.fact.kind === "writer-evidence") writerPublished.get(record.fact.state)?.resolve()
                 if (
@@ -106,14 +107,14 @@ try {
     },
     controlled: null
   }
-  const edit = async (path, toolUseId) => {
+  const edit = async (path, toolUseId, waitForCapture = true) => {
     const observation = await Effect.runPromise(
       adaptCodexDirectEvent(addEvent(root, Array.isArray(path) ? path : [path], { tool_use_id: toolUseId }))
     )
     assert.ok(observation)
     published = nativeDeferred()
     assert.equal(Effect.runSync(resident.admit(observation, dispatch)).status, "accepted")
-    await published.promise
+    if (waitForCapture) await published.promise
     await Effect.runPromise(resident.whenIdle())
   }
   await edit("type.ts", "before-dashboard")
@@ -405,6 +406,43 @@ try {
   assert.equal(await page.locator("#handoff-exact").evaluate((element) => element.scrollTop), outputPosition)
   assert.equal(await page.locator("#handoff-exact img").count(), 0)
   assert.equal(dispatched.length, 5)
+  for (const cycle of [1, 2]) {
+    recordingPublished = nativeDeferred()
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ ...inspectionConfig, sessionInspection: false }))
+    await put(root, `disabled-${cycle}.ts`, `type Disabled${cycle}Count = number;\n`)
+    await edit(`disabled-${cycle}.ts`, `disabled-${cycle}`, false)
+    await recordingPublished.promise
+    recordingPublished = nativeDeferred()
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify(inspectionConfig))
+    await put(root, `enabled-${cycle}.ts`, `type Enabled${cycle}Count = number;\n`)
+    await edit(`enabled-${cycle}.ts`, `enabled-${cycle}`)
+    await recordingPublished.promise
+  }
+  await page.locator("#recording-periods").waitFor({ timeout: 2000 })
+  await page.waitForFunction(() => JSON.parse(document.querySelector("#recording-periods").textContent).length === 5)
+  const periods = JSON.parse(await page.locator("#recording-periods").textContent())
+  assert.deepEqual(
+    periods.map((period) => period.state),
+    ["enabled", "disabled", "enabled", "disabled", "enabled"]
+  )
+  assert.deepEqual(
+    periods.map((period) => period.consentEpoch),
+    [1, 1, 2, 2, 3]
+  )
+  assert.deepEqual(
+    periods.map((period) => period.nextObservedTransition?.state ?? null),
+    ["disabled", "enabled", "disabled", "enabled", null]
+  )
+  assert.ok(periods.every((period) => period.root === root && period.sourceId === periods[0].sourceId))
+  assert.ok(
+    periods.slice(0, -1).every((period) => period.nextObservedTransition.sequence > period.observedStart.sequence)
+  )
+  const retainedPeriods = await (await fetch(`${server.url}snapshot`)).json()
+  assert.equal(retainedPeriods.records.filter((record) => record.fact.kind === "recording-state").length, 5)
+  assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-1.ts"))
+  assert.ok(!JSON.stringify(retainedPeriods.records).includes("disabled-2.ts"))
+  await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 8)
+  assert.equal(dispatched.length, 9)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   await page.getByRole("button", { name: "Pause", exact: true }).click()
   const frozen = await page.locator("#detail").textContent()
@@ -430,13 +468,18 @@ try {
     document.querySelector("#history-status").textContent.includes("Known capacity eviction")
   )
   assert.equal(await page.locator("#detail").textContent(), frozen)
-  historyLimits.storageBytes = 1048576
+  historyLimits.storageBytes = 4 * 1048576
   historyNow += 2 * 86400000
   await page.evaluate(() => {
     document.querySelector("#handoff-copy-status").textContent = ""
   })
   await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent.includes("expired"))
+  await page.waitForFunction(
+    () =>
+      document.querySelector("#handoff-copy-status").textContent.length > 0 &&
+      document.querySelector("#handoff-copy-status").textContent !== "Retrieving selected output"
+  )
+  assert.match(await page.locator("#handoff-copy-status").textContent(), /expired/)
   await page.waitForFunction(() =>
     document.querySelector("#history-status").textContent.includes("Retained records expired")
   )
@@ -444,7 +487,7 @@ try {
   assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, known capacity eviction, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, observed recording periods, known capacity eviction, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)

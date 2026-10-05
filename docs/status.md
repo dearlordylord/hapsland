@@ -103,6 +103,12 @@ Unreachable residents have unknown current recording state; paused displays keep
 the observation at their displayed snapshot. Enabled capture does not guarantee
 that every event was successfully retained.
 
+Retained recording transitions are grouped into observed periods for each resident
+lifetime and working root. Each period names its retained start and next retained
+transition, with separate consent epochs after re-enabling. A missing next
+transition does not establish current state, and missing observations can hide
+other periods; these summaries do not establish continuous capture.
+
 Resumed live feeds send retained increments after each source's saved position.
 The inspector merges these by immutable source/sequence identity and removes rows
 no longer present in the retained view. A reset supplies a fresh bounded snapshot.
