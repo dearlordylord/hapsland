@@ -1,4 +1,5 @@
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import { unlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { Effect } from "effect"
@@ -51,14 +52,17 @@ describe("Pi native extension inspection through production command and public f
           ruleOverrides: Object.fromEntries(configuredRules.map((rule, index) => [rule.id, { enabled: index === 0 }]))
         })
       )
-      if (!finish) writeFileSync(join(f.root, "backend.gate"), "release\n")
+      if (variant === "opt-out") writeFileSync(join(f.root, "backend.gate"), "release\n")
       if (lostAck) writeFileSync(`${ackGate}.enabled`, "enabled\n")
       await f.prepareResident()
       await f.call("tool_call", before, context)
       writeFileSync(join(f.root, "type.ts"), "type OrderCount = number\n")
       let editOutput = await f.call("tool_result", result, context)
       if (variant === "edit" && editOutput === undefined) {
-        await f.waitForWork(0)
+        await f.waitForWork(1)
+        writeFileSync(join(f.root, "backend.gate"), "release\n")
+        await f.waitForAdvice()
+        await unlink(join(f.root, "backend.gate"))
         const next = {
           ...before,
           toolCallId: "native-edit-2",
@@ -79,7 +83,10 @@ describe("Pi native extension inspection through production command and public f
           context
         )
       }
-      if (variant === "edit") expect(editOutput?.content).toBeDefined()
+      if (variant === "edit") {
+        writeFileSync(join(f.root, "backend.gate"), "release\n")
+        expect(editOutput?.content).toBeDefined()
+      }
       let finishOutput
       if (finish || editOutput === undefined) {
         if (finish) {

@@ -27,6 +27,30 @@ const recording = document.querySelector('#recording');
 const pause = document.querySelector('#pause');
 const filter = document.querySelector('#filter');
 let paused = false, current = null, pending = null, selected = null;
+const identityFilters = [
+  { element: document.querySelector('#resident-filter'), field: record => record.source.id, label: record => record.source.endpoint + ' · ' + record.source.lifetime },
+  { element: document.querySelector('#root-filter'), field: record => record.scope.root, label: record => record.scope.root },
+  { element: document.querySelector('#runtime-filter'), field: record => record.scope.runtime, label: record => record.scope.runtime || 'Runtime unavailable' },
+  { element: document.querySelector('#session-filter'), field: record => record.scope.sessionId, label: record => record.scope.sessionId || 'Session unavailable' },
+  { element: document.querySelector('#child-filter'), field: record => record.scope.subagentId, label: record => record.scope.subagentId || 'Main session (no child scope)' }
+];
+function matchesIdentity(record) { return identityFilters.every(item => !item.element.value || item.element.value === JSON.stringify(item.field(record))); }
+function updateFilters(snapshot) {
+  for (const [index, item] of identityFilters.entries()) {
+    const choices = new Map();
+    for (const record of snapshot.records) if (record.correlation.receiptId) choices.set(JSON.stringify(item.field(record)), item.label(record));
+    if (index === 0) for (const entry of snapshot.sources || []) choices.set(JSON.stringify(entry.source.id), entry.source.endpoint + ' · ' + entry.source.lifetime);
+    const selectedValue = item.element.value;
+    if (selectedValue && !choices.has(selectedValue)) choices.set(selectedValue, 'Selected identity unavailable · ' + selectedValue);
+    const options = Array.from(choices).sort((a,b) => a[1].localeCompare(b[1]));
+    const signature = JSON.stringify(options);
+    if (item.element.dataset.options === signature) continue;
+    item.element.dataset.options = signature;
+    const all = document.createElement('option'); all.value = ''; all.textContent = 'All'; item.element.replaceChildren(all);
+    for (const [value, label] of options) { const option = document.createElement('option'); option.value = value; option.textContent = label; item.element.append(option); }
+    item.element.value = selectedValue;
+  }
+}
 const key = record => record.source.id + ':' + record.correlation.receiptId;
 function preserveText(element, text) {
   if (element.textContent === text) return;
@@ -44,7 +68,7 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
     if (!groups.has(id)) groups.set(id, []);
     groups.get(id).push(record);
   }
-  const visible = new Map(Array.from(groups).filter(([, group]) => showAllHandoffs || !selected || group.some(record => sources.has(record.source.id) && (record.fact.evaluations.some(item => item.evaluationId && origins.has(item.evaluationId)) || record.fact.findingIds.some(id => findings.has(id))))));
+  const visible = new Map(Array.from(groups).filter(([, group]) => matchesIdentity(group[0]) && (showAllHandoffs || !selected || group.some(record => sources.has(record.source.id) && (record.fact.evaluations.some(item => item.evaluationId && origins.has(item.evaluationId)) || record.fact.findingIds.some(id => findings.has(id)))))));
   const active = document.activeElement?.dataset.handoff;
   const activeEdit = document.activeElement?.dataset.handoffEdit;
   const position = handoffs.scrollTop;
@@ -98,7 +122,9 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
 function render(snapshot) {
   if (snapshot.status === 'unavailable') { status.textContent = 'History temporarily unavailable'; return; }
   current = snapshot;
-  status.textContent = 'Standard endpoint only · ' + (snapshot.truncated ? 'Older rows omitted by the view limit' : 'Retained history');
+  updateFilters(snapshot);
+  status.textContent = snapshot.discovery ? snapshot.discovery.connected + ' connected / ' + snapshot.discovery.known + ' known source(s) · ' + snapshot.discovery.omitted + ' source(s) omitted by the discovery bound · ' + (snapshot.truncated ? 'Older rows omitted by the view limit' : 'Retained history') : 'Source discovery unavailable';
+  preserveText(document.querySelector('#sources'), JSON.stringify(snapshot.sources || [], null, 2));
   const states = snapshot.records.filter(record => record.fact.kind === 'recording-state');
   const recordingText = states.length ? states.map(record => new Date(record.capturedAt).toISOString() + ' · ' + record.scope.root + ' · ' + record.source.lifetime + ' · ' + record.fact.state).join('\\n') : 'No retained recording-state evidence';
   if (recording.textContent !== recordingText) recording.textContent = recordingText;
@@ -116,7 +142,8 @@ function render(snapshot) {
     const received = records.find(record => record.fact.kind === 'edit-received');
     const first = received || records[0];
     const label = first.scope.root + ' · ' + (first.scope.runtime || 'runtime unavailable') + ' · ' + (received ? received.fact.candidates.map(item => item.path).join(', ') : 'Receipt data unavailable');
-    if (!label.toLowerCase().includes(filter.value.toLowerCase())) continue;
+    const searchable = label + ' · ' + first.source.endpoint + ' · ' + first.source.lifetime + ' · ' + (first.scope.sessionId || '') + ' · ' + (first.scope.subagentId || '');
+    if (!matchesIdentity(first) || !searchable.toLowerCase().includes(filter.value.toLowerCase())) continue;
     const button = document.createElement('button');
     button.type = 'button'; button.dataset.key = identity; button.textContent = label;
     button.setAttribute('aria-pressed', String(identity === selected));
@@ -125,6 +152,10 @@ function render(snapshot) {
     if (identity === active) button.focus({ preventScroll: true });
   }
   list.scrollTop = scroll;
+  const visibleRows = list.querySelectorAll('button');
+  document.querySelector('#visible-count').textContent = visibleRows.length + ' visible edit(s) / ' + rows.size + ' retained edit(s)';
+  document.querySelector('#selection-status').textContent = selected && !Array.from(visibleRows).some(button => button.dataset.key === selected) ? rows.has(selected) ? 'Selected edit is outside current filters; its retained evidence remains open.' : 'Selected edit is no longer retained.' : '';
+  if (!visibleRows.length) list.textContent = 'No retained edits match these filters.';
   const records = rows.get(selected) || [];
   const activeRoute = document.activeElement?.dataset.route;
   routes.replaceChildren();
@@ -220,6 +251,8 @@ pause.addEventListener('click', () => {
   if (!paused && pending) { render(pending); pending = null; }
 });
 filter.addEventListener('input', () => { if (current) render(current); });
+for (const item of identityFilters) item.element.addEventListener('change', () => { if (current) render(current); });
+document.querySelector('#clear-filters').addEventListener('click', () => { filter.value = ''; for (const item of identityFilters) item.element.value = ''; if (current) render(current); });
 const feed = new EventSource(new URL('events', location.href));
 feed.addEventListener('snapshot', event => {
   const snapshot = JSON.parse(event.data);
@@ -228,7 +261,7 @@ feed.addEventListener('snapshot', event => {
 feed.onerror = () => { status.textContent = 'Disconnected; reconnecting to retained history'; };
 window.addEventListener('pagehide', () => feed.close());
 `
-const style = `body{font:16px system-ui;margin:0;padding:1rem;color:#e6e9ef;background:#11151d}h1{font-size:1.5rem}button{max-width:100%;white-space:normal;overflow-wrap:anywhere}button,input{font:inherit;padding:.6rem;color:inherit;background:#202837;border:1px solid #63718a;border-radius:.3rem}button:focus-visible,input:focus-visible{outline:3px solid #a9c6ff}main{display:grid;grid-template-columns:minmax(16rem,1fr) minmax(0,2fr);gap:1rem}ul{padding:0;list-style:none;max-height:70vh;overflow:auto}li{margin:.4rem 0}li button{width:100%;text-align:left;overflow-wrap:anywhere}[aria-pressed=true]{border-color:#a9c6ff}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:1rem;background:#1a2230;max-height:70vh;overflow:auto}label{display:block;margin:.7rem 0}input{max-width:90%}@media(max-width:650px){main{display:block}}`
+const style = `body{font:16px system-ui;margin:0;padding:1rem;color:#e6e9ef;background:#11151d}h1{font-size:1.5rem}button{max-width:100%;white-space:normal;overflow-wrap:anywhere}button,input,select{font:inherit;padding:.6rem;color:inherit;background:#202837;border:1px solid #63718a;border-radius:.3rem}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a9c6ff}.identity-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.5rem}label{display:block}select{display:block;width:100%;min-width:0;max-width:100%}main{display:grid;grid-template-columns:minmax(16rem,1fr) minmax(0,2fr);gap:1rem}ul{padding:0;list-style:none;max-height:70vh;overflow:auto}li{margin:.4rem 0}li button{width:100%;text-align:left;overflow-wrap:anywhere}[aria-pressed=true]{border-color:#a9c6ff}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:1rem;background:#1a2230;max-height:70vh;overflow:auto}label{display:block;margin:.7rem 0}input{max-width:90%}@media(max-width:650px){main{display:block}}`
 const hash = (value: string) => `'sha256-${createHash("sha256").update(value).digest("base64")}'`
 export const inspectionPagePolicy = `default-src 'none'; script-src ${hash(script)}; style-src ${hash(style)}; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'`
-export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><style>${style}</style><body><h1>Hapsland inspection</h1><p>Opening this view does not enable recording.</p><p id="status" role="status">Connecting to retained history</p><button id="pause" type="button" aria-pressed="false">Pause</button><label>Filter project, runtime or path <input id="filter" type="search"></label><section aria-label="Recording evidence"><h2>Recording state observations</h2><p>Historical observations; current resident recording state is not verified.</p><pre id="recording">No retained recording-state evidence</pre></section><main><section aria-label="Captured edits"><ul id="edits"></ul></section><section aria-label="Selected evidence"><h2>Files</h2><pre id="files">Select an edit to inspect file provenance.</pre><h2>Exact HTTP request body</h2><p>Captured at transport invocation; this does not establish remote receipt.</p><button id="copy" type="button" disabled>Copy exact request</button><span id="copy-status" role="status"></span><pre id="exact">Select an edit to inspect its exact request.</pre><h2>Captured model input (structured)</h2><pre id="input">No retained model input.</pre><h2>Included source from captured model input</h2><pre id="source">No retained included source.</pre><h2>Per-unit evaluation routes</h2><div id="routes">No retained evaluation routes.</div><h2>Results</h2><pre id="results">Select an edit to inspect results.</pre><h2>Recorded handoffs</h2><p>Writer observations do not establish model visibility, reading, agreement or repair. Handoffs are linked to the selected edit unless all handoffs are shown.</p><button id="all-handoffs" type="button" aria-pressed="false">Show all handoffs</button><ul id="handoffs"></ul><pre id="handoff-summary">Select a handoff to inspect its recipient, batch and attempt.</pre><div id="handoff-edits"></div><p id="handoff-output-status"></p><button id="handoff-copy" type="button" disabled>Copy exact output</button><span id="handoff-copy-status" role="status"></span><pre id="handoff-exact">Select a handoff to inspect its captured output.</pre><h2>Timeline and captured evidence</h2><pre id="detail">Select an edit to inspect its captured evidence.</pre></section></main><script>${script}</script></body></html>`
+export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hapsland inspection</title><style>${style}</style><body><h1>Hapsland inspection</h1><p>Opening this view does not enable recording.</p><p id="status" role="status">Connecting to retained history</p><button id="pause" type="button" aria-pressed="false">Pause</button><label>Filter project, runtime or path <input id="filter" type="search"></label><fieldset class="identity-filters"><legend>Filter retained history</legend><label>Resident <select id="resident-filter"><option value="">All</option></select></label><label>Working root / project <select id="root-filter"><option value="">All</option></select></label><label>Agent runtime <select id="runtime-filter"><option value="">All</option></select></label><label>Session <select id="session-filter"><option value="">All</option></select></label><label>Child scope <select id="child-filter"><option value="">All</option></select></label><button id="clear-filters" type="button">Clear filters</button></fieldset><section aria-label="Recording evidence"><h2>Recording state observations</h2><p>Historical observations; current resident recording state is not verified.</p><pre id="recording">No retained recording-state evidence</pre></section><section aria-label="Source health"><h2>Discovered sources</h2><p>Only the standard endpoint and retained authorized registrations are probed; unknown endpoints are outside this view. Connection health is an observation, not terminal review evidence. Across sources, timestamps provide presentation order only.</p><pre id="sources">Source discovery pending</pre></section><main><section aria-label="Captured edits"><p id="visible-count" role="status"></p><ul id="edits"></ul></section><section aria-label="Selected evidence"><p id="selection-status" role="status"></p><h2>Files</h2><pre id="files">Select an edit to inspect file provenance.</pre><h2>Exact HTTP request body</h2><p>Captured at transport invocation; this does not establish remote receipt.</p><button id="copy" type="button" disabled>Copy exact request</button><span id="copy-status" role="status"></span><pre id="exact">Select an edit to inspect its exact request.</pre><h2>Captured model input (structured)</h2><pre id="input">No retained model input.</pre><h2>Included source from captured model input</h2><pre id="source">No retained included source.</pre><h2>Per-unit evaluation routes</h2><div id="routes">No retained evaluation routes.</div><h2>Results</h2><pre id="results">Select an edit to inspect results.</pre><h2>Recorded handoffs</h2><p>Writer observations do not establish model visibility, reading, agreement or repair. Handoffs are linked to the selected edit unless all handoffs are shown.</p><button id="all-handoffs" type="button" aria-pressed="false">Show all handoffs</button><ul id="handoffs"></ul><pre id="handoff-summary">Select a handoff to inspect its recipient, batch and attempt.</pre><div id="handoff-edits"></div><p id="handoff-output-status"></p><button id="handoff-copy" type="button" disabled>Copy exact output</button><span id="handoff-copy-status" role="status"></span><pre id="handoff-exact">Select a handoff to inspect its captured output.</pre><h2>Timeline and captured evidence</h2><pre id="detail">Select an edit to inspect its captured evidence.</pre></section></main><script>${script}</script></body></html>`

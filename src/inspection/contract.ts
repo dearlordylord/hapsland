@@ -44,6 +44,7 @@ export const InspectionWriterState = Schema.Literals([
   "uncertain"
 ])
 export const InspectionFact = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal("source-registration") }),
   Schema.Struct({
     kind: Schema.Literal("finding-fate"),
     fate: Schema.Literals(["retained", "current", "stale", "expired", "discarded", "suppressed"]),

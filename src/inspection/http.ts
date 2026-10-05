@@ -8,6 +8,8 @@ import * as Request from "effect/http/HttpServerRequest"
 import * as Response from "effect/http/HttpServerResponse"
 import type { InspectionRecord } from "./contract.ts"
 import { inspectionPage, inspectionPagePolicy } from "./page.ts"
+import { makeInspectionRegistry } from "./registry.ts"
+import { resolveResidentPaths } from "../resident/paths.ts"
 
 export const MAX_INSPECTION_HTTP_BYTES = 1024 * 1024
 export const MAX_INSPECTION_VIEWERS = 8
@@ -41,10 +43,13 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
     "x-content-type-options": "nosniff",
     "content-security-policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
   }
+  const registry = makeInspectionRegistry()
+  const standard = yield* resolveResidentPaths().pipe(Effect.catch(() => Effect.succeed(undefined)))
   const snapshot = Effect.gen(function* () {
     const records = yield* history.snapshot()
+    const discovery = yield* registry.discover(records, standard)
     const retained: InspectionRecord[] = []
-    let bytes = 256
+    let bytes = Buffer.byteLength(JSON.stringify(discovery)) + 256
     for (let index = records.length - 1; index >= 0; index--) {
       const record = records[index]!
       const size = Buffer.byteLength(JSON.stringify(record)) + 1
@@ -52,12 +57,7 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
       retained.unshift(record)
       bytes += size
     }
-    return {
-      version: 1,
-      discovery: "standard-endpoint-only",
-      records: retained,
-      truncated: retained.length < records.length
-    }
+    return { version: 1, ...discovery, records: retained, truncated: retained.length < records.length }
   }).pipe(Effect.catchCause(() => Effect.succeed({ version: 1, status: "unavailable" })))
   yield* server.serve(
     Effect.gen(function* () {

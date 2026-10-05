@@ -172,7 +172,7 @@ export const fixture = (
   control: Record<string, unknown> = {},
   options: { commandFactory?: (cli: string, root: string) => readonly string[]; env?: NodeJS.ProcessEnv } = {}
 ) => {
-  const root = mkdtempSync(join(tmpdir(), "hapsland-pi-boundary-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "haps-pi-")))
   roots.push(root)
   residentMains.set(
     root,
@@ -236,7 +236,13 @@ export const fixture = (
     await waitForResidentStats(root, () => true)
   }
   const waitForWork = (count: number) => waitForResidentStats(root, (stats) => stats.queued + stats.running === count)
-  return { root, capturePath, call, context, reload, prepareResident, waitForWork }
+  const waitForAdvice = () =>
+    waitForResidentStats(
+      root,
+      (stats) =>
+        stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0 && stats.pendingFindingBatches > 0
+    )
+  return { root, capturePath, call, context, reload, prepareResident, waitForWork, waitForAdvice }
 }
 
 export const input = {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import { unlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -63,13 +64,17 @@ try {
         ruleOverrides: Object.fromEntries(configuredRules.map((rule, index) => [rule.id, { enabled: index === 0 }]))
       })
     )
-    if (variant === "edit") writeFileSync(join(f.root, "backend.gate"), "release\n")
     await f.prepareResident()
     await f.call("tool_call", before, context)
     writeFileSync(join(f.root, "type.ts"), "type OrderCount = number\n")
+    let editCount = 1
     let output = await f.call("tool_result", result, context)
     if (variant === "edit" && output === undefined) {
-      await f.waitForWork(0)
+      await f.waitForWork(1)
+      writeFileSync(join(f.root, "backend.gate"), "release\n")
+      await f.waitForAdvice()
+      await unlink(join(f.root, "backend.gate"))
+      editCount += 1
       const next = {
         ...before,
         toolCallId: "native-edit-2",
@@ -90,7 +95,10 @@ try {
         context
       )
     }
-    if (variant === "edit") assert.ok(output?.content, "native edit offer")
+    if (variant === "edit") {
+      writeFileSync(join(f.root, "backend.gate"), "release\n")
+      assert.ok(output?.content, "native edit offer")
+    }
     if (variant !== "edit") {
       if (variant !== "edit") {
         assert.equal(output, undefined)
@@ -113,7 +121,7 @@ try {
     }
     assert.ok(output, variant)
     if (variant === "lost-ack") assert.equal(existsSync(`${ackGate}.entered`), true)
-    outputs.push({ root: context.cwd, encoded: JSON.stringify(output), variant })
+    outputs.push({ root: context.cwd, encoded: JSON.stringify(output), variant, editCount })
   }
   const history = makeInspectionStorage(join(stateHome, "hapsland", "inspection"), {
     retentionMs: 86400000,
@@ -133,6 +141,55 @@ try {
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.url)
   await page.waitForFunction(() => document.querySelectorAll("#handoffs button").length === 3)
+  const expectedEdits = outputs.reduce((sum, output) => sum + output.editCount, 0)
+  await page.waitForFunction((count) => document.querySelectorAll("#edits button").length === count, expectedEdits)
+  const sources = JSON.parse(await page.locator("#sources").textContent())
+  for (const output of outputs) {
+    const entry = sources.find((entry) => entry.source.endpoint === output.root + "/runtime/resident.sock")
+    assert.ok(entry)
+    assert.equal(entry.registered, true)
+    assert.equal(entry.health, "connected")
+    assert.ok(entry.lastObservation)
+  }
+  const clear = async () => {
+    await page.locator("#clear-filters").focus()
+    await page.keyboard.press("Enter")
+    assert.equal(await page.locator("#edits button").count(), expectedEdits)
+  }
+  await page.locator("#filter").focus()
+  for (const id of [
+    "resident-filter",
+    "root-filter",
+    "runtime-filter",
+    "session-filter",
+    "child-filter",
+    "clear-filters"
+  ]) {
+    await page.keyboard.press("Tab")
+    assert.equal(await page.evaluate(() => document.activeElement.id), id)
+    assert.equal(await page.locator("#" + id).isEnabled(), true)
+  }
+  const rootFilter = page.getByRole("combobox", { name: "Working root / project" })
+  await rootFilter.selectOption({ index: 1 })
+  const filteredRoot = JSON.parse(await rootFilter.inputValue())
+  assert.equal(
+    await page.locator("#edits button").count(),
+    outputs.find((output) => output.root === filteredRoot).editCount
+  )
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+  await clear()
+  const residentFilter = page.getByRole("combobox", { name: "Resident", exact: true })
+  await residentFilter.selectOption({ index: 1 })
+  const filteredSource = JSON.parse(await residentFilter.inputValue())
+  const endpoint = sources.find((entry) => entry.source.id === filteredSource).source.endpoint
+  const owned = outputs.find((output) => endpoint === output.root + "/runtime/resident.sock")
+  assert.equal(await page.locator("#edits button").count(), owned ? owned.editCount : 0)
+  await clear()
+  for (const id of ["runtime-filter", "session-filter", "child-filter"]) {
+    await page.locator("#" + id).selectOption({ index: 1 })
+    assert.equal(await page.locator("#edits button").count(), expectedEdits)
+    await clear()
+  }
   for (const [index, output] of outputs.entries()) {
     const button = page.locator("#handoffs button").nth(index)
     await button.focus()
@@ -178,9 +235,22 @@ try {
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#files").textContent.includes("type.ts"))
   assert.equal(await page.locator("#handoff-exact").textContent(), outputs[2].encoded)
+  await cleanupPiFixtures()
+  await page.waitForFunction(
+    (roots) => {
+      const entries = JSON.parse(document.querySelector("#sources").textContent)
+      return roots.every(
+        (root) =>
+          entries.find((entry) => entry.source.endpoint === root + "/runtime/resident.sock")?.health === "disconnected"
+      )
+    },
+    outputs.map((output) => output.root)
+  )
+  assert.equal(await page.locator("#edits button").count(), expectedEdits)
+  assert.equal(await page.locator("#handoff-exact").textContent(), outputs[2].encoded)
   assert.deepEqual(errors, [])
   console.log(
-    "Pi inspection browser: native fixtures, exact offer copy, oversized absence, lost ACK, original edit links, keyboard controls and 375px layout passed"
+    "Pi inspection browser: native fixtures, exact offer copy, oversized absence, lost ACK, original edit links, verified multi-source health and exit history, identity filters, keyboard controls and 375px layout passed"
   )
 } finally {
   clearTimeout(deadline)

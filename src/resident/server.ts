@@ -568,6 +568,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const lifetime = residentLedger.residentLifetime
   // Optional provenance is bounded independently of review authority and contains no source.
   const inspectionOrigins = new Map<string, string>()
+  const inspectionRegistrations = new Map<string, { epoch: number; at: number }>()
   const inspectionLimits = new Map<string, { readonly retentionMs: number; readonly storageBytes: number }>()
   const inspection = yield* makeInspectionRecorder(
     { endpoint: paths.socket, lifetime },
@@ -622,6 +623,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       subagentId: observation.advicee.subagentId
     }
     const correlation = { receiptId: randomUUID() }
+    const epoch = inspection.consentEpoch(observation.root)
+    const registered = inspectionRegistrations.get(observation.root)
+    const registrationTime = monotonicNow()
+    if (
+      epoch !== undefined &&
+      (registered === undefined || registered.epoch !== epoch || registrationTime - registered.at >= 60000)
+    ) {
+      if (inspection.offer(scope, {}, { kind: "source-registration" }) === "queued")
+        inspectionRegistrations.set(observation.root, { epoch, at: registrationTime })
+    }
     inspection.offer(scope, correlation, {
       kind: "edit-received",
       candidates: observation.candidates.map(({ operation, path }) => ({ operation, path }))
