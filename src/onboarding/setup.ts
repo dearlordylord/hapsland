@@ -95,7 +95,7 @@ const reportRepositorySettings = (
       summary: excludedAll ? "user file settings exclude all files" : "review disablement requires a user exclusion",
       observed: {
         configurationDigest: settings.configuration.policy.digest,
-        rulePackDigests: [...new Set(settings.rules?.map((rule) => `${rule.packId}:${rule.packDigest}`) ?? [])],
+        rulePackDigests: settings.rulePackDigests ?? [],
         canonicalRoot: root,
         effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value)
       }
@@ -116,7 +116,7 @@ const reportRepositorySettings = (
       summary: "effective file settings loaded",
       observed: {
         configurationDigest: settings.configuration.policy.digest,
-        rulePackDigests: [...new Set(settings.rules?.map((rule) => `${rule.packId}:${rule.packDigest}`) ?? [])],
+        rulePackDigests: settings.rulePackDigests ?? [],
         canonicalRoot: root,
         effectiveIncludes: settings.configuration.policy.includes.map((entry) => entry.value),
         effectiveExcludes: settings.configuration.policy.excludes.map((entry) => entry.value)

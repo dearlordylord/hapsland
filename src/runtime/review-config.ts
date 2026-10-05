@@ -32,6 +32,7 @@ export interface ReviewSettings {
   /** Captured once for the event and shared by explanation and runtime selection. */
   readonly configuration: ConfigurationCapture
   /** Fully validated, captured rule set. Callers may supply rules separately. */
+  readonly rulePackDigests?: ReadonlyArray<string>
   readonly rules?: ReadonlyArray<CompiledRule>
 }
 
@@ -81,7 +82,7 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
         reason: compilationErrorField(error, "reason", "rule-pack compilation failed")
       })
   })
-  return settingsFrom(capture, rules)
+  return { ...settingsFrom(capture, rules), rulePackDigests: packs.map((pack) => `${pack.id}:${pack.contentDigest}`) }
 })
 
 export const defaultReviewSettings = (root = "."): ReviewSettings => {
