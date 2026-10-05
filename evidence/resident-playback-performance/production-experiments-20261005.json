@@ -2683,5 +2683,3922 @@
     "remainingConstraint": "Requested 10x virtual playback can saturate CPU when work exceeds available capacity; cooperative yielding improves interaction but does not remove computation.",
     "futureWorkerProposal": "One worker owns resident Run; epoch/sequence commands and ordered acknowledgements; append-only display deltas with bounded publication and stable main-thread history mirror.",
     "workerDecisionTrigger": "Representative input-to-paint latency including pre-dispatch delay remains unacceptable because of computation; validate clone cost and command/replay equivalence first."
+  },
+  "trustedInputToPaintDiagnostic": {
+    "data": {
+      "browserVersion": "153.0.8010.12",
+      "cases": [
+        {
+          "baseline": true,
+          "advicees": 1,
+          "url": "http://127.0.0.1:4184/index.html",
+          "bundle": "http://127.0.0.1:4184/assets/dashboard-B9ccJG11.js",
+          "eventTimingSupported": true,
+          "eventTimingThresholdMs": 16,
+          "playingAtGestureStart": true,
+          "playingAfterInput": false,
+          "eventTypesObserved": [
+            "pointerout",
+            "pointerleave",
+            "pointerover",
+            "pointerenter",
+            "mouseout",
+            "mouseover",
+            "pointerdown",
+            "mousedown",
+            "gotpointercapture",
+            "pointerup",
+            "mouseup",
+            "lostpointercapture",
+            "click",
+            "keydown",
+            "keyup"
+          ],
+          "inputToPaintEntries": [
+            {
+              "name": "pointerout",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 1641.5999999046326,
+              "processingStart": 1641.7000000476837,
+              "processingEnd": 1641.7000000476837,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerover",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "mouseover",
+              "startTime": 1892.5,
+              "processingStart": 1935.7999999523163,
+              "processingEnd": 1935.7999999523163,
+              "processingDelayMs": 43.299999952316284,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 1936.7999999523163,
+              "processingStart": 1945.7000000476837,
+              "processingEnd": 1945.9000000953674,
+              "processingDelayMs": 8.900000095367432,
+              "handlerMs": 0.20000004768371582,
+              "duration": 32,
+              "interactionId": 6406,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 1936.7999999523163,
+              "processingStart": 1945.9000000953674,
+              "processingEnd": 1945.9000000953674,
+              "processingDelayMs": 9.100000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 1946.0999999046326,
+              "processingStart": 1946.0999999046326,
+              "processingEnd": 1946.0999999046326,
+              "processingDelayMs": 0,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1998.5999999046326,
+              "processingEnd": 1998.7000000476837,
+              "processingDelayMs": 8.799999952316284,
+              "handlerMs": 0.10000014305114746,
+              "duration": 24,
+              "interactionId": 6406,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1998.7000000476837,
+              "processingEnd": 1998.7000000476837,
+              "processingDelayMs": 8.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1998.9000000953674,
+              "processingEnd": 1998.9000000953674,
+              "processingDelayMs": 9.100000143051147,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1998.9000000953674,
+              "processingEnd": 1998.9000000953674,
+              "processingDelayMs": 9.100000143051147,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 6406,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1998.9000000953674,
+              "processingEnd": 1999,
+              "processingDelayMs": 9.100000143051147,
+              "handlerMs": 0.09999990463256836,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1999,
+              "processingEnd": 1999,
+              "processingDelayMs": 9.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1999,
+              "processingEnd": 1999,
+              "processingDelayMs": 9.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1999,
+              "processingEnd": 1999,
+              "processingDelayMs": 9.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 1989.7999999523163,
+              "processingStart": 1999,
+              "processingEnd": 1999,
+              "processingDelayMs": 9.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerout",
+              "startTime": 2048.2999999523163,
+              "processingStart": 2062.7999999523163,
+              "processingEnd": 2062.9000000953674,
+              "processingDelayMs": 14.5,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 2048.2999999523163,
+              "processingStart": 2062.9000000953674,
+              "processingEnd": 2062.9000000953674,
+              "processingDelayMs": 14.600000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2048.2999999523163,
+              "processingStart": 2062.9000000953674,
+              "processingEnd": 2062.9000000953674,
+              "processingDelayMs": 14.600000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 2048.2999999523163,
+              "processingStart": 2062.9000000953674,
+              "processingEnd": 2062.9000000953674,
+              "processingDelayMs": 14.600000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 2048.2999999523163,
+              "processingStart": 2062.9000000953674,
+              "processingEnd": 2062.9000000953674,
+              "processingDelayMs": 14.600000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 2066.7999999523163,
+              "processingStart": 2067,
+              "processingEnd": 2067.0999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 6413,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 2066.7999999523163,
+              "processingStart": 2067.0999999046326,
+              "processingEnd": 2067.0999999046326,
+              "processingDelayMs": 0.2999999523162842,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 2083.9000000953674,
+              "processingStart": 2097.5,
+              "processingEnd": 2097.5,
+              "processingDelayMs": 13.599999904632568,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 2099,
+              "processingStart": 2104.5999999046326,
+              "processingEnd": 2104.5999999046326,
+              "processingDelayMs": 5.599999904632568,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 6413,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 2099,
+              "processingStart": 2104.5999999046326,
+              "processingEnd": 2104.5999999046326,
+              "processingDelayMs": 5.599999904632568,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 2099,
+              "processingStart": 2104.9000000953674,
+              "processingEnd": 2104.9000000953674,
+              "processingDelayMs": 5.900000095367432,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 2099,
+              "processingStart": 2104.9000000953674,
+              "processingEnd": 2104.9000000953674,
+              "processingDelayMs": 5.900000095367432,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 6413,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 2146.5999999046326,
+              "processingStart": 2146.7999999523163,
+              "processingEnd": 2146.9000000953674,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 6420,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 2146.5999999046326,
+              "processingStart": 2146.9000000953674,
+              "processingEnd": 2146.9000000953674,
+              "processingDelayMs": 0.3000001907348633,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 2147.2999999523163,
+              "processingStart": 2165.5999999046326,
+              "processingEnd": 2165.5999999046326,
+              "processingDelayMs": 18.299999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 2167.2000000476837,
+              "processingStart": 2173,
+              "processingEnd": 2173,
+              "processingDelayMs": 5.799999952316284,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 6420,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 2167.2000000476837,
+              "processingStart": 2173,
+              "processingEnd": 2173.0999999046326,
+              "processingDelayMs": 5.799999952316284,
+              "handlerMs": 0.09999990463256836,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 2167.2000000476837,
+              "processingStart": 2173.2999999523163,
+              "processingEnd": 2173.2999999523163,
+              "processingDelayMs": 6.099999904632568,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 2167.2000000476837,
+              "processingStart": 2173.2999999523163,
+              "processingEnd": 2173.4000000953674,
+              "processingDelayMs": 6.099999904632568,
+              "handlerMs": 0.10000014305114746,
+              "duration": 16,
+              "interactionId": 6420,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 2214,
+              "processingStart": 2214.2999999523163,
+              "processingEnd": 2214.2999999523163,
+              "processingDelayMs": 0.2999999523162842,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 6427,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 2214,
+              "processingStart": 2214.2999999523163,
+              "processingEnd": 2214.2999999523163,
+              "processingDelayMs": 0.2999999523162842,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 2215.2000000476837,
+              "processingStart": 2232.4000000953674,
+              "processingEnd": 2232.5,
+              "processingDelayMs": 17.200000047683716,
+              "handlerMs": 0.09999990463256836,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 2233.7999999523163,
+              "processingStart": 2239.5,
+              "processingEnd": 2239.5,
+              "processingDelayMs": 5.700000047683716,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 6427,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 2233.7999999523163,
+              "processingStart": 2239.5,
+              "processingEnd": 2239.5,
+              "processingDelayMs": 5.700000047683716,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 2233.7999999523163,
+              "processingStart": 2239.7000000476837,
+              "processingEnd": 2239.7000000476837,
+              "processingDelayMs": 5.900000095367432,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 2233.7999999523163,
+              "processingStart": 2239.7000000476837,
+              "processingEnd": 2239.7999999523163,
+              "processingDelayMs": 5.900000095367432,
+              "handlerMs": 0.09999990463256836,
+              "duration": 16,
+              "interactionId": 6427,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "startTime": 2268.2000000476837,
+              "processingStart": 2268.4000000953674,
+              "processingEnd": 2268.9000000953674,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0.5,
+              "duration": 24,
+              "interactionId": 6434,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "startTime": 2271.2000000476837,
+              "processingStart": 2271.5999999046326,
+              "processingEnd": 2271.5999999046326,
+              "processingDelayMs": 0.39999985694885254,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 6434,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineInputEvents": [
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 1936.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 1988.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 1989.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 1998.7000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 1989.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 2066.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 2097.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 2099,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 2104.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 2099,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 2146.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 2165.7000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 2167.2000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 2173.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 2167.2000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 2214,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 2232.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 2233.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 2239.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 2233.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "isTrusted": true,
+              "timeStamp": 2268.2000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 2268.7000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 2268.7000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "isTrusted": true,
+              "timeStamp": 2271.2000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineGestureEventCount": 10,
+          "paintRafFollowups": [
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 1945.9000000953674,
+              "firstRafMs": 0.2999999523162842,
+              "secondRafMs": 43.39999985694885
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 1998.7000000476837,
+              "firstRafMs": 0.39999985694885254,
+              "secondRafMs": 38.200000047683716
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 2067.0999999046326,
+              "firstRafMs": 14.100000143051147,
+              "secondRafMs": 31.300000190734863
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 2104.5999999046326,
+              "firstRafMs": 8.200000047683716,
+              "secondRafMs": 26.100000143051147
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 2146.9000000953674,
+              "firstRafMs": 19.59999990463257,
+              "secondRafMs": 34.89999985694885
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 2173,
+              "firstRafMs": 8.799999952316284,
+              "secondRafMs": 23.200000047683716
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 2214.2999999523163,
+              "firstRafMs": 19,
+              "secondRafMs": 34.40000009536743
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 2239.5,
+              "firstRafMs": 9.200000047683716,
+              "secondRafMs": 23.700000047683716
+            },
+            {
+              "name": "keydown",
+              "trusted": true,
+              "eventAt": 2268.4000000953674,
+              "firstRafMs": 13,
+              "secondRafMs": 29.699999809265137
+            },
+            {
+              "name": "keyup",
+              "trusted": true,
+              "eventAt": 2271.5999999046326,
+              "firstRafMs": 13.5,
+              "secondRafMs": 26.5
+            }
+          ],
+          "interactions": [
+            {
+              "kind": "timeline drag",
+              "fraction": 0.72,
+              "startRatio": 1,
+              "fromValue": 2599,
+              "sliderMax": 2599,
+              "wasPlaying": true,
+              "protocolRoundTripMs": 107.21362299999964
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.46,
+              "startRatio": 0.5375375375375375,
+              "fromValue": 2519,
+              "sliderMax": 2981,
+              "wasPlaying": true,
+              "protocolRoundTripMs": 57.259129999999914
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.81,
+              "startRatio": 0.4594594594594595,
+              "fromValue": 2441,
+              "sliderMax": 2981,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 39.66170899999997
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.58,
+              "startRatio": 0.8098098098098098,
+              "fromValue": 2791,
+              "sliderMax": 2981,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 38.16574000000037
+            },
+            {
+              "kind": "timeline keyboard",
+              "key": "ArrowLeft",
+              "wasPlaying": false,
+              "protocolRoundTripMs": 3.8271530000001803
+            }
+          ],
+          "timeline": {
+            "beforePlay": 0,
+            "after1200": 2473,
+            "afterInput": 2981,
+            "afterPaint": 2981,
+            "selectedAfterInput": "2560"
+          },
+          "elapsedMs": 2400.661608,
+          "errors": [],
+          "inputToPaintSummary": {
+            "countAtOrAbove16ms": 10,
+            "types": [
+              "pointerdown",
+              "pointerup",
+              "keydown",
+              "keyup"
+            ],
+            "maxProcessingDelayMs": 8.900000095367432,
+            "maxHandlerMs": 0.5,
+            "maxEventToNextPaintMs": 32,
+            "maxEventToSecondRafMs": 43.39999985694885
+          }
+        },
+        {
+          "baseline": false,
+          "advicees": 1,
+          "url": "http://127.0.0.1:4180/index.html",
+          "bundle": "http://127.0.0.1:4180/assets/dashboard-BwdmmjrV.js",
+          "eventTimingSupported": true,
+          "eventTimingThresholdMs": 16,
+          "playingAtGestureStart": true,
+          "playingAfterInput": false,
+          "eventTypesObserved": [
+            "pointerout",
+            "pointerleave",
+            "pointerover",
+            "pointerenter",
+            "mouseout",
+            "mouseover",
+            "pointerdown",
+            "mousedown",
+            "gotpointercapture",
+            "pointerup",
+            "mouseup",
+            "lostpointercapture",
+            "click",
+            "keydown",
+            "keyup"
+          ],
+          "inputToPaintEntries": [
+            {
+              "name": "pointerout",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.7999999523163,
+              "processingEnd": 1193.7999999523163,
+              "processingDelayMs": 0.09999990463256836,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 1193.7000000476837,
+              "processingStart": 1193.8999998569489,
+              "processingEnd": 1193.8999998569489,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.5999999046326,
+              "processingEnd": 1318.5999999046326,
+              "processingDelayMs": 7.799999952316284,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerover",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.5999999046326,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.799999952316284,
+              "handlerMs": 0.10000014305114746,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "mouseover",
+              "startTime": 1310.7999999523163,
+              "processingStart": 1318.7000000476837,
+              "processingEnd": 1318.7000000476837,
+              "processingDelayMs": 7.900000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 1319.2999999523163,
+              "processingStart": 1325.5,
+              "processingEnd": 1325.7000000476837,
+              "processingDelayMs": 6.200000047683716,
+              "handlerMs": 0.20000004768371582,
+              "duration": 40,
+              "interactionId": 8257,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 1319.2999999523163,
+              "processingStart": 1325.7000000476837,
+              "processingEnd": 1325.7000000476837,
+              "processingDelayMs": 6.400000095367432,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 1326.2999999523163,
+              "processingStart": 1334.7999999523163,
+              "processingEnd": 1334.7999999523163,
+              "processingDelayMs": 8.5,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 1337.2999999523163,
+              "processingStart": 1344,
+              "processingEnd": 1344.0999999046326,
+              "processingDelayMs": 6.700000047683716,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 8257,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 1337.2999999523163,
+              "processingStart": 1344.0999999046326,
+              "processingEnd": 1344.0999999046326,
+              "processingDelayMs": 6.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 1337.2999999523163,
+              "processingStart": 1344.2999999523163,
+              "processingEnd": 1344.3999998569489,
+              "processingDelayMs": 7,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 1337.2999999523163,
+              "processingStart": 1344.3999998569489,
+              "processingEnd": 1344.3999998569489,
+              "processingDelayMs": 7.099999904632568,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 8257,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 1387,
+              "processingStart": 1387.2000000476837,
+              "processingEnd": 1387.2000000476837,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 8264,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 1387,
+              "processingStart": 1387.2000000476837,
+              "processingEnd": 1387.2000000476837,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 1388.2999999523163,
+              "processingStart": 1400.7999999523163,
+              "processingEnd": 1400.8999998569489,
+              "processingDelayMs": 12.5,
+              "handlerMs": 0.09999990463256836,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 1402.0999999046326,
+              "processingStart": 1408.7999999523163,
+              "processingEnd": 1408.8999998569489,
+              "processingDelayMs": 6.700000047683716,
+              "handlerMs": 0.09999990463256836,
+              "duration": 16,
+              "interactionId": 8264,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 1402.0999999046326,
+              "processingStart": 1408.8999998569489,
+              "processingEnd": 1408.8999998569489,
+              "processingDelayMs": 6.799999952316284,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 1402.0999999046326,
+              "processingStart": 1409.2999999523163,
+              "processingEnd": 1409.2999999523163,
+              "processingDelayMs": 7.200000047683716,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 1402.0999999046326,
+              "processingStart": 1409.2999999523163,
+              "processingEnd": 1409.2999999523163,
+              "processingDelayMs": 7.200000047683716,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 8264,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 1451.8999998569489,
+              "processingStart": 1452.2999999523163,
+              "processingEnd": 1452.2999999523163,
+              "processingDelayMs": 0.40000009536743164,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 8271,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 1451.8999998569489,
+              "processingStart": 1452.2999999523163,
+              "processingEnd": 1452.3999998569489,
+              "processingDelayMs": 0.40000009536743164,
+              "handlerMs": 0.09999990463256836,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 1455,
+              "processingStart": 1468.5999999046326,
+              "processingEnd": 1468.5999999046326,
+              "processingDelayMs": 13.599999904632568,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 1472.3999998569489,
+              "processingStart": 1475.8999998569489,
+              "processingEnd": 1475.8999998569489,
+              "processingDelayMs": 3.5,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 8271,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 1472.3999998569489,
+              "processingStart": 1475.8999998569489,
+              "processingEnd": 1476,
+              "processingDelayMs": 3.5,
+              "handlerMs": 0.10000014305114746,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 1472.3999998569489,
+              "processingStart": 1476.2000000476837,
+              "processingEnd": 1476.2000000476837,
+              "processingDelayMs": 3.8000001907348633,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 1472.3999998569489,
+              "processingStart": 1476.2000000476837,
+              "processingEnd": 1476.2000000476837,
+              "processingDelayMs": 3.8000001907348633,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 8271,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 1518.3999998569489,
+              "processingStart": 1518.5999999046326,
+              "processingEnd": 1518.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 8278,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 1518.3999998569489,
+              "processingStart": 1518.5999999046326,
+              "processingEnd": 1518.7000000476837,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 1519.0999999046326,
+              "processingStart": 1537,
+              "processingEnd": 1537,
+              "processingDelayMs": 17.90000009536743,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 1538.3999998569489,
+              "processingStart": 1545.2999999523163,
+              "processingEnd": 1545.3999998569489,
+              "processingDelayMs": 6.900000095367432,
+              "handlerMs": 0.09999990463256836,
+              "duration": 16,
+              "interactionId": 8278,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 1538.3999998569489,
+              "processingStart": 1545.3999998569489,
+              "processingEnd": 1545.3999998569489,
+              "processingDelayMs": 7,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 1538.3999998569489,
+              "processingStart": 1545.7000000476837,
+              "processingEnd": 1545.7000000476837,
+              "processingDelayMs": 7.300000190734863,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 1538.3999998569489,
+              "processingStart": 1545.7000000476837,
+              "processingEnd": 1545.7000000476837,
+              "processingDelayMs": 7.300000190734863,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 8278,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "startTime": 1576.7000000476837,
+              "processingStart": 1576.7999999523163,
+              "processingEnd": 1577.3999998569489,
+              "processingDelayMs": 0.09999990463256836,
+              "handlerMs": 0.5999999046325684,
+              "duration": 16,
+              "interactionId": 8285,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "startTime": 1577.7999999523163,
+              "processingStart": 1578.0999999046326,
+              "processingEnd": 1578.0999999046326,
+              "processingDelayMs": 0.2999999523162842,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 8285,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineInputEvents": [
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 1319.2999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 1334.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 1337.2999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 1344.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 1337.2999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 1387,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 1401,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 1402.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 1408.8999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 1402.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 1451.8999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 1468.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 1472.3999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 1476,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 1472.3999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 1518.3999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 1537.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 1538.3999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 1545.3999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 1538.3999998569489,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "isTrusted": true,
+              "timeStamp": 1576.7000000476837,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 1577.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 1577.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "isTrusted": true,
+              "timeStamp": 1577.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineGestureEventCount": 10,
+          "paintRafFollowups": [
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 1325.7000000476837,
+              "firstRafMs": 10.599999904632568,
+              "secondRafMs": 26.199999809265137
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 1344.0999999046326,
+              "firstRafMs": 7.799999952316284,
+              "secondRafMs": 24.799999952316284
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 1387.2000000476837,
+              "firstRafMs": 14.399999856948853,
+              "secondRafMs": 31.09999990463257
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 1408.8999998569489,
+              "firstRafMs": 9.400000095367432,
+              "secondRafMs": 24.90000009536743
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 1452.2999999523163,
+              "firstRafMs": 17,
+              "secondRafMs": 31.700000047683716
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 1475.8999998569489,
+              "firstRafMs": 8.100000143051147,
+              "secondRafMs": 26.700000047683716
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 1518.5999999046326,
+              "firstRafMs": 19.40000009536743,
+              "secondRafMs": 34.60000014305115
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 1545.3999998569489,
+              "firstRafMs": 7.900000095367432,
+              "secondRafMs": 24.200000047683716
+            },
+            {
+              "name": "keydown",
+              "trusted": true,
+              "eventAt": 1576.8999998569489,
+              "firstRafMs": 7.900000095367432,
+              "secondRafMs": 25.300000190734863
+            },
+            {
+              "name": "keyup",
+              "trusted": true,
+              "eventAt": 1578.0999999046326,
+              "firstRafMs": 10.5,
+              "secondRafMs": 24.100000143051147
+            }
+          ],
+          "interactions": [
+            {
+              "kind": "timeline drag",
+              "fraction": 0.72,
+              "startRatio": 1,
+              "fromValue": 1814,
+              "sliderMax": 1814,
+              "wasPlaying": true,
+              "protocolRoundTripMs": 34.23612800000001
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.46,
+              "startRatio": 0.6996996996996997,
+              "fromValue": 1577,
+              "sliderMax": 1877,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 38.64507599999979
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.81,
+              "startRatio": 0.4594594594594595,
+              "fromValue": 1337,
+              "sliderMax": 1877,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 35.61796999999933
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.58,
+              "startRatio": 0.8098098098098098,
+              "fromValue": 1687,
+              "sliderMax": 1877,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 44.79074599999967
+            },
+            {
+              "kind": "timeline keyboard",
+              "key": "ArrowLeft",
+              "wasPlaying": false,
+              "protocolRoundTripMs": 1.7796379999999772
+            }
+          ],
+          "timeline": {
+            "beforePlay": 0,
+            "after1200": 1666,
+            "afterInput": 1877,
+            "afterPaint": 1877,
+            "selectedAfterInput": "1456"
+          },
+          "elapsedMs": 1666.566573,
+          "errors": [],
+          "inputToPaintSummary": {
+            "countAtOrAbove16ms": 10,
+            "types": [
+              "pointerdown",
+              "pointerup",
+              "keydown",
+              "keyup"
+            ],
+            "maxProcessingDelayMs": 6.900000095367432,
+            "maxHandlerMs": 0.5999999046325684,
+            "maxEventToNextPaintMs": 40,
+            "maxEventToSecondRafMs": 34.60000014305115
+          }
+        },
+        {
+          "baseline": false,
+          "advicees": 6,
+          "url": "http://127.0.0.1:4180/index.html",
+          "bundle": "http://127.0.0.1:4180/assets/dashboard-BwdmmjrV.js",
+          "eventTimingSupported": true,
+          "eventTimingThresholdMs": 16,
+          "playingAtGestureStart": true,
+          "playingAfterInput": false,
+          "eventTypesObserved": [
+            "pointerout",
+            "pointerleave",
+            "pointerover",
+            "pointerenter",
+            "mouseout",
+            "mouseover",
+            "pointerdown",
+            "mousedown",
+            "pointerup",
+            "mouseup",
+            "lostpointercapture",
+            "click",
+            "gotpointercapture",
+            "keydown",
+            "keyup"
+          ],
+          "inputToPaintEntries": [
+            {
+              "name": "pointerout",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 2469.0999999046326,
+              "processingStart": 2469.2999999523163,
+              "processingEnd": 2469.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerover",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "mouseover",
+              "startTime": 2830.7999999523163,
+              "processingStart": 2888.2999999523163,
+              "processingEnd": 2888.2999999523163,
+              "processingDelayMs": 57.5,
+              "handlerMs": 0,
+              "duration": 96,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 2889.0999999046326,
+              "processingStart": 2918.199999809265,
+              "processingEnd": 2918.2999999523163,
+              "processingDelayMs": 29.09999990463257,
+              "handlerMs": 0.10000014305114746,
+              "duration": 40,
+              "interactionId": 3025,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 2889.0999999046326,
+              "processingStart": 2918.2999999523163,
+              "processingEnd": 2918.2999999523163,
+              "processingDelayMs": 29.200000047683716,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.399999856949,
+              "processingEnd": 2971.399999856949,
+              "processingDelayMs": 23.299999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3025,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.399999856949,
+              "processingEnd": 2971.5,
+              "processingDelayMs": 23.299999952316284,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.7999999523163,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.700000047683716,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.899999856949,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3025,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.899999856949,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.899999856949,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.899999856949,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.899999856949,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 2948.0999999046326,
+              "processingStart": 2971.899999856949,
+              "processingEnd": 2971.899999856949,
+              "processingDelayMs": 23.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 3004.0999999046326,
+              "processingStart": 3004.5999999046326,
+              "processingEnd": 3004.5999999046326,
+              "processingDelayMs": 0.5,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3032,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 3004.0999999046326,
+              "processingStart": 3004.699999809265,
+              "processingEnd": 3004.699999809265,
+              "processingDelayMs": 0.5999999046325684,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 3005.199999809265,
+              "processingStart": 3010.5999999046326,
+              "processingEnd": 3010.5999999046326,
+              "processingDelayMs": 5.400000095367432,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3011.7999999523163,
+              "processingStart": 3029.0999999046326,
+              "processingEnd": 3029.199999809265,
+              "processingDelayMs": 17.299999952316284,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 3032,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3011.7999999523163,
+              "processingStart": 3029.199999809265,
+              "processingEnd": 3029.199999809265,
+              "processingDelayMs": 17.399999856948853,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3011.7999999523163,
+              "processingStart": 3029.699999809265,
+              "processingEnd": 3029.7999999523163,
+              "processingDelayMs": 17.899999856948853,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3011.7999999523163,
+              "processingStart": 3029.7999999523163,
+              "processingEnd": 3029.7999999523163,
+              "processingDelayMs": 18,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3032,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 3060.5,
+              "processingStart": 3060.699999809265,
+              "processingEnd": 3060.7999999523163,
+              "processingDelayMs": 0.19999980926513672,
+              "handlerMs": 0.10000014305114746,
+              "duration": 40,
+              "interactionId": 3039,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 3060.5,
+              "processingStart": 3060.7999999523163,
+              "processingEnd": 3060.7999999523163,
+              "processingDelayMs": 0.2999999523162842,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 3061.0999999046326,
+              "processingStart": 3076.899999856949,
+              "processingEnd": 3076.899999856949,
+              "processingDelayMs": 15.799999952316284,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3078.0999999046326,
+              "processingStart": 3094.899999856949,
+              "processingEnd": 3095,
+              "processingDelayMs": 16.799999952316284,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 3039,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3078.0999999046326,
+              "processingStart": 3095,
+              "processingEnd": 3095,
+              "processingDelayMs": 16.90000009536743,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3078.0999999046326,
+              "processingStart": 3095.399999856949,
+              "processingEnd": 3095.399999856949,
+              "processingDelayMs": 17.299999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3078.0999999046326,
+              "processingStart": 3095.399999856949,
+              "processingEnd": 3095.399999856949,
+              "processingDelayMs": 17.299999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3039,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 3127.699999809265,
+              "processingStart": 3127.899999856949,
+              "processingEnd": 3128,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0.10000014305114746,
+              "duration": 40,
+              "interactionId": 3046,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 3127.699999809265,
+              "processingStart": 3128,
+              "processingEnd": 3128,
+              "processingDelayMs": 0.3000001907348633,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 3128.2999999523163,
+              "processingStart": 3143.5999999046326,
+              "processingEnd": 3143.5999999046326,
+              "processingDelayMs": 15.299999952316284,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3147.0999999046326,
+              "processingStart": 3163.7999999523163,
+              "processingEnd": 3163.7999999523163,
+              "processingDelayMs": 16.700000047683716,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3046,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3147.0999999046326,
+              "processingStart": 3163.7999999523163,
+              "processingEnd": 3163.899999856949,
+              "processingDelayMs": 16.700000047683716,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3147.0999999046326,
+              "processingStart": 3164.2999999523163,
+              "processingEnd": 3164.2999999523163,
+              "processingDelayMs": 17.200000047683716,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3147.0999999046326,
+              "processingStart": 3164.2999999523163,
+              "processingEnd": 3164.2999999523163,
+              "processingDelayMs": 17.200000047683716,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 3046,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "startTime": 3193.7999999523163,
+              "processingStart": 3193.899999856949,
+              "processingEnd": 3194.5,
+              "processingDelayMs": 0.09999990463256836,
+              "handlerMs": 0.6000001430511475,
+              "duration": 32,
+              "interactionId": 3053,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "startTime": 3200,
+              "processingStart": 3200.2999999523163,
+              "processingEnd": 3200.2999999523163,
+              "processingDelayMs": 0.2999999523162842,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 3053,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineInputEvents": [
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 2889.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 2946,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 2948.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 2971.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 2948.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 3004.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3010.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3011.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3029.199999809265,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3011.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 3060.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3076.899999856949,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3078.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3095,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3078.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 3127.699999809265,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3143.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3147.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3163.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3147.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "isTrusted": true,
+              "timeStamp": 3193.7999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3194.2999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3194.2999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "isTrusted": true,
+              "timeStamp": 3200,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineGestureEventCount": 10,
+          "paintRafFollowups": [
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 2918.2999999523163,
+              "firstRafMs": 0.5,
+              "secondRafMs": 28.899999856948853
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 2971.399999856949,
+              "firstRafMs": 0.9000000953674316,
+              "secondRafMs": 6
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 3004.5999999046326,
+              "firstRafMs": 6.599999904632568,
+              "secondRafMs": 25.40000009536743
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3029.199999809265,
+              "firstRafMs": 0.8000001907348633,
+              "secondRafMs": 13.600000143051147
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 3060.7999999523163,
+              "firstRafMs": 16.799999952316284,
+              "secondRafMs": 34.700000047683716
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3094.899999856949,
+              "firstRafMs": 0.6000001430511475,
+              "secondRafMs": 14.799999952316284
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 3127.899999856949,
+              "firstRafMs": 16.40000009536743,
+              "secondRafMs": 36.60000014305115
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3163.7999999523163,
+              "firstRafMs": 0.7000000476837158,
+              "secondRafMs": 13.700000047683716
+            },
+            {
+              "name": "keydown",
+              "trusted": true,
+              "eventAt": 3194.0999999046326,
+              "firstRafMs": 7.299999952316284,
+              "secondRafMs": 25.40000009536743
+            },
+            {
+              "name": "keyup",
+              "trusted": true,
+              "eventAt": 3200.2999999523163,
+              "firstRafMs": 13.799999952316284,
+              "secondRafMs": 19.200000047683716
+            }
+          ],
+          "interactions": [
+            {
+              "kind": "timeline drag",
+              "fraction": 0.72,
+              "startRatio": 1,
+              "fromValue": 2699,
+              "sliderMax": 2699,
+              "wasPlaying": true,
+              "protocolRoundTripMs": 142.23159000000032
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.46,
+              "startRatio": 0.6196196196196196,
+              "fromValue": 2619,
+              "sliderMax": 2999,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 28.718795000000682
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.81,
+              "startRatio": 0.4594594594594595,
+              "fromValue": 2459,
+              "sliderMax": 2999,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 36.46226800000022
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.58,
+              "startRatio": 0.8098098098098098,
+              "fromValue": 2809,
+              "sliderMax": 2999,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 38.44128399999954
+            },
+            {
+              "kind": "timeline keyboard",
+              "key": "ArrowLeft",
+              "wasPlaying": false,
+              "protocolRoundTripMs": 6.952925999999934
+            }
+          ],
+          "timeline": {
+            "beforePlay": 0,
+            "after1200": 2499,
+            "afterInput": 2999,
+            "afterPaint": 2999,
+            "selectedAfterInput": "2578"
+          },
+          "elapsedMs": 3342.3577560000003,
+          "errors": [],
+          "inputToPaintSummary": {
+            "countAtOrAbove16ms": 10,
+            "types": [
+              "pointerdown",
+              "pointerup",
+              "keydown",
+              "keyup"
+            ],
+            "maxProcessingDelayMs": 29.09999990463257,
+            "maxHandlerMs": 0.6000001430511475,
+            "maxEventToNextPaintMs": 40,
+            "maxEventToSecondRafMs": 36.60000014305115
+          }
+        },
+        {
+          "baseline": true,
+          "advicees": 6,
+          "url": "http://127.0.0.1:4184/index.html",
+          "bundle": "http://127.0.0.1:4184/assets/dashboard-B9ccJG11.js",
+          "eventTimingSupported": true,
+          "eventTimingThresholdMs": 16,
+          "playingAtGestureStart": true,
+          "playingAfterInput": false,
+          "eventTypesObserved": [
+            "pointerout",
+            "pointerleave",
+            "pointerover",
+            "pointerenter",
+            "mouseout",
+            "mouseover",
+            "pointerdown",
+            "mousedown",
+            "gotpointercapture",
+            "pointerup",
+            "mouseup",
+            "lostpointercapture",
+            "click",
+            "keydown",
+            "keyup"
+          ],
+          "inputToPaintEntries": [
+            {
+              "name": "pointerout",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "BUTTON",
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 2407.399999856949,
+              "processingStart": 2407.5999999046326,
+              "processingEnd": 2407.5999999046326,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "pointerover",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": "SECTION",
+              "targetAria": "Resident simulation controls"
+            },
+            {
+              "name": "mouseover",
+              "startTime": 2857.699999809265,
+              "processingStart": 2918.399999856949,
+              "processingEnd": 2918.399999856949,
+              "processingDelayMs": 60.700000047683716,
+              "handlerMs": 0,
+              "duration": 136,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 2950.399999856949,
+              "processingStart": 2986.699999809265,
+              "processingEnd": 2988.199999809265,
+              "processingDelayMs": 36.299999952316284,
+              "handlerMs": 1.5,
+              "duration": 56,
+              "interactionId": 5839,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 2950.399999856949,
+              "processingStart": 2988.2999999523163,
+              "processingEnd": 2988.2999999523163,
+              "processingDelayMs": 37.90000009536743,
+              "handlerMs": 0,
+              "duration": 56,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 2989.399999856949,
+              "processingStart": 2989.5,
+              "processingEnd": 2989.5,
+              "processingDelayMs": 0.10000014305114746,
+              "handlerMs": 0,
+              "duration": 16,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3095.899999856949,
+              "processingStart": 3120.899999856949,
+              "processingEnd": 3121,
+              "processingDelayMs": 25,
+              "handlerMs": 0.10000014305114746,
+              "duration": 40,
+              "interactionId": 5839,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121,
+              "processingEnd": 3121,
+              "processingDelayMs": 25.100000143051147,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.399999856949,
+              "processingEnd": 3121.399999856949,
+              "processingDelayMs": 25.5,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.399999856949,
+              "processingEnd": 3121.5,
+              "processingDelayMs": 25.5,
+              "handlerMs": 0.10000014305114746,
+              "duration": 40,
+              "interactionId": 5839,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerout",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.5,
+              "processingEnd": 3121.5,
+              "processingDelayMs": 25.600000143051147,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerleave",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.5,
+              "processingEnd": 3121.5,
+              "processingDelayMs": 25.600000143051147,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.5,
+              "processingEnd": 3121.5,
+              "processingDelayMs": 25.600000143051147,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.5,
+              "processingEnd": 3121.5,
+              "processingDelayMs": 25.600000143051147,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 3095.899999856949,
+              "processingStart": 3121.5,
+              "processingEnd": 3121.5,
+              "processingDelayMs": 25.600000143051147,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerout",
+              "startTime": 3233.899999856949,
+              "processingStart": 3255,
+              "processingEnd": 3255.0999999046326,
+              "processingDelayMs": 21.100000143051147,
+              "handlerMs": 0.09999990463256836,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerover",
+              "startTime": 3233.899999856949,
+              "processingStart": 3255.0999999046326,
+              "processingEnd": 3255.0999999046326,
+              "processingDelayMs": 21.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerenter",
+              "startTime": 3233.899999856949,
+              "processingStart": 3255.0999999046326,
+              "processingEnd": 3255.0999999046326,
+              "processingDelayMs": 21.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseout",
+              "startTime": 3233.899999856949,
+              "processingStart": 3255.0999999046326,
+              "processingEnd": 3255.0999999046326,
+              "processingDelayMs": 21.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "mouseover",
+              "startTime": 3233.899999856949,
+              "processingStart": 3255.0999999046326,
+              "processingEnd": 3255.0999999046326,
+              "processingDelayMs": 21.200000047683716,
+              "handlerMs": 0,
+              "duration": 24,
+              "interactionId": 0,
+              "targetTag": null,
+              "targetAria": null
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 3256.5,
+              "processingStart": 3261.0999999046326,
+              "processingEnd": 3261.199999809265,
+              "processingDelayMs": 4.599999904632568,
+              "handlerMs": 0.09999990463256836,
+              "duration": 48,
+              "interactionId": 5846,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 3256.5,
+              "processingStart": 3261.199999809265,
+              "processingEnd": 3261.199999809265,
+              "processingDelayMs": 4.699999809265137,
+              "handlerMs": 0,
+              "duration": 48,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 3261.7999999523163,
+              "processingStart": 3274.399999856949,
+              "processingEnd": 3274.5,
+              "processingDelayMs": 12.599999904632568,
+              "handlerMs": 0.10000014305114746,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3276.0999999046326,
+              "processingStart": 3295.0999999046326,
+              "processingEnd": 3295.199999809265,
+              "processingDelayMs": 19,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 5846,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3276.0999999046326,
+              "processingStart": 3295.2999999523163,
+              "processingEnd": 3295.2999999523163,
+              "processingDelayMs": 19.200000047683716,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3276.0999999046326,
+              "processingStart": 3295.699999809265,
+              "processingEnd": 3295.699999809265,
+              "processingDelayMs": 19.59999990463257,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3276.0999999046326,
+              "processingStart": 3295.699999809265,
+              "processingEnd": 3295.7999999523163,
+              "processingDelayMs": 19.59999990463257,
+              "handlerMs": 0.10000014305114746,
+              "duration": 32,
+              "interactionId": 5846,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 3329.199999809265,
+              "processingStart": 3329.5,
+              "processingEnd": 3329.5999999046326,
+              "processingDelayMs": 0.3000001907348633,
+              "handlerMs": 0.09999990463256836,
+              "duration": 40,
+              "interactionId": 5853,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 3329.199999809265,
+              "processingStart": 3329.5999999046326,
+              "processingEnd": 3329.5999999046326,
+              "processingDelayMs": 0.40000009536743164,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 3330.199999809265,
+              "processingStart": 3338.899999856949,
+              "processingEnd": 3338.899999856949,
+              "processingDelayMs": 8.700000047683716,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3340.5,
+              "processingStart": 3361.5,
+              "processingEnd": 3361.5,
+              "processingDelayMs": 21,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 5853,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3340.5,
+              "processingStart": 3361.5,
+              "processingEnd": 3361.5999999046326,
+              "processingDelayMs": 21,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3340.5,
+              "processingStart": 3361.899999856949,
+              "processingEnd": 3361.899999856949,
+              "processingDelayMs": 21.399999856948853,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3340.5,
+              "processingStart": 3361.899999856949,
+              "processingEnd": 3361.899999856949,
+              "processingDelayMs": 21.399999856948853,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 5853,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "startTime": 3393.0999999046326,
+              "processingStart": 3393.2999999523163,
+              "processingEnd": 3393.2999999523163,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0,
+              "duration": 40,
+              "interactionId": 5860,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mousedown",
+              "startTime": 3393.0999999046326,
+              "processingStart": 3393.2999999523163,
+              "processingEnd": 3393.399999856949,
+              "processingDelayMs": 0.20000004768371582,
+              "handlerMs": 0.09999990463256836,
+              "duration": 40,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "gotpointercapture",
+              "startTime": 3393.699999809265,
+              "processingStart": 3406,
+              "processingEnd": 3406,
+              "processingDelayMs": 12.300000190734863,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "startTime": 3407.399999856949,
+              "processingStart": 3425.5,
+              "processingEnd": 3425.5999999046326,
+              "processingDelayMs": 18.100000143051147,
+              "handlerMs": 0.09999990463256836,
+              "duration": 32,
+              "interactionId": 5860,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "mouseup",
+              "startTime": 3407.399999856949,
+              "processingStart": 3425.5999999046326,
+              "processingEnd": 3425.5999999046326,
+              "processingDelayMs": 18.200000047683716,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "lostpointercapture",
+              "startTime": 3407.399999856949,
+              "processingStart": 3426,
+              "processingEnd": 3426,
+              "processingDelayMs": 18.600000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 0,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "startTime": 3407.399999856949,
+              "processingStart": 3426,
+              "processingEnd": 3426,
+              "processingDelayMs": 18.600000143051147,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 5860,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "startTime": 3458,
+              "processingStart": 3458.399999856949,
+              "processingEnd": 3458.7999999523163,
+              "processingDelayMs": 0.39999985694885254,
+              "handlerMs": 0.40000009536743164,
+              "duration": 32,
+              "interactionId": 5867,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "startTime": 3459.5999999046326,
+              "processingStart": 3480.399999856949,
+              "processingEnd": 3480.399999856949,
+              "processingDelayMs": 20.799999952316284,
+              "handlerMs": 0,
+              "duration": 32,
+              "interactionId": 5867,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineInputEvents": [
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 2950.399999856949,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3094.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3095.899999856949,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3121,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3095.899999856949,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 3256.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3274.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3276.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3295.2999999523163,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3276.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 3329.199999809265,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3339,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3340.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3361.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3340.5,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerdown",
+              "isTrusted": true,
+              "timeStamp": 3393.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3406.0999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "pointerup",
+              "isTrusted": true,
+              "timeStamp": 3407.399999856949,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3425.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "click",
+              "isTrusted": true,
+              "timeStamp": 3407.399999856949,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keydown",
+              "isTrusted": true,
+              "timeStamp": 3458,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "input",
+              "isTrusted": true,
+              "timeStamp": 3458.699999809265,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "change",
+              "isTrusted": true,
+              "timeStamp": 3458.699999809265,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            },
+            {
+              "name": "keyup",
+              "isTrusted": true,
+              "timeStamp": 3459.5999999046326,
+              "targetTag": "INPUT",
+              "targetAria": "Retained event timeline"
+            }
+          ],
+          "trustedTimelineGestureEventCount": 10,
+          "paintRafFollowups": [
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 2988.0999999046326,
+              "firstRafMs": 1.9000000953674316,
+              "secondRafMs": 106.90000009536743
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3120.899999856949,
+              "firstRafMs": 0.7999999523162842,
+              "secondRafMs": 49.5
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 3261.0999999046326,
+              "firstRafMs": 14.299999952316284,
+              "secondRafMs": 35
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3295.199999809265,
+              "firstRafMs": 0.9000000953674316,
+              "secondRafMs": 10.900000095367432
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 3329.5999999046326,
+              "firstRafMs": 10.099999904632568,
+              "secondRafMs": 32.40000009536743
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3361.5,
+              "firstRafMs": 0.5,
+              "secondRafMs": 11.599999904632568
+            },
+            {
+              "name": "pointerdown",
+              "trusted": true,
+              "eventAt": 3393.2999999523163,
+              "firstRafMs": 13.599999904632568,
+              "secondRafMs": 32.89999985694885
+            },
+            {
+              "name": "pointerup",
+              "trusted": true,
+              "eventAt": 3425.5999999046326,
+              "firstRafMs": 0.5999999046325684,
+              "secondRafMs": 15.599999904632568
+            },
+            {
+              "name": "keydown",
+              "trusted": true,
+              "eventAt": 3458.399999856949,
+              "firstRafMs": 1.2000000476837158,
+              "secondRafMs": 22.200000047683716
+            },
+            {
+              "name": "keyup",
+              "trusted": true,
+              "eventAt": 3480.399999856949,
+              "firstRafMs": 0.20000004768371582,
+              "secondRafMs": 8.900000095367432
+            }
+          ],
+          "interactions": [
+            {
+              "kind": "timeline drag",
+              "fraction": 0.72,
+              "startRatio": 1,
+              "fromValue": 2299,
+              "sliderMax": 2299,
+              "wasPlaying": true,
+              "protocolRoundTripMs": 267.0414259999998
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.46,
+              "startRatio": 0.5195195195195195,
+              "fromValue": 2119,
+              "sliderMax": 2599,
+              "wasPlaying": true,
+              "protocolRoundTripMs": 64.91572900000028
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.81,
+              "startRatio": 0.4594594594594595,
+              "fromValue": 2059,
+              "sliderMax": 2599,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 36.244017000000895
+            },
+            {
+              "kind": "timeline drag",
+              "fraction": 0.58,
+              "startRatio": 0.8098098098098098,
+              "fromValue": 2409,
+              "sliderMax": 2599,
+              "wasPlaying": false,
+              "protocolRoundTripMs": 34.37666999999965
+            },
+            {
+              "kind": "timeline keyboard",
+              "key": "ArrowLeft",
+              "wasPlaying": false,
+              "protocolRoundTripMs": 27.985498000000007
+            }
+          ],
+          "timeline": {
+            "beforePlay": 0,
+            "after1200": 2099,
+            "afterInput": 2599,
+            "afterPaint": 2599,
+            "selectedAfterInput": "2178"
+          },
+          "elapsedMs": 3610.4449399999994,
+          "errors": [],
+          "inputToPaintSummary": {
+            "countAtOrAbove16ms": 10,
+            "types": [
+              "pointerdown",
+              "pointerup",
+              "keydown",
+              "keyup"
+            ],
+            "maxProcessingDelayMs": 36.299999952316284,
+            "maxHandlerMs": 1.5,
+            "maxEventToNextPaintMs": 56,
+            "maxEventToSecondRafMs": 106.90000009536743
+          }
+        }
+      ],
+      "note": "CDP input is browser-trusted but synthetic; EventTiming duration is next-paint timing with the browser 8ms quantization, not physical-device latency."
+    },
+    "limitations": [
+      "One run per advicee count and variant, ten trusted gesture events per case; not a stable latency distribution.",
+      "Only one current gesture per case began while Play was active; subsequent timeline interactions were observed while paused. Loaded-playing evidence is limited.",
+      "CDP inputs are browser-trusted synthetic events; physical-device and network latency are excluded.",
+      "EventTiming input-to-next-paint durations are quantized, and entries below the configured 16ms threshold are censored. rAF followups are supplementary."
+    ],
+    "interpretation": "Observed current event-to-next-paint maxima were 40ms for one and six advicees; baseline maxima were 32ms and 56ms. No page errors. These small samples do not establish a universal input-latency guarantee or an additional architecture blocker."
+  },
+  "completedAtUtc": "2026-10-05 07:52 UTC",
+  "budget": {
+    "startedAtUtc": "2026-10-05 03:50:15 UTC",
+    "deadlineUtc": "2026-10-05 08:50:15 UTC",
+    "decision": "Finish the bounded measured optimization cycle before the maximum budget after validated delivery and responsiveness diagnostics; defer worker architecture."
   }
 }
