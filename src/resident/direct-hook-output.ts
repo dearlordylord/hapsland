@@ -1,3 +1,9 @@
+import { randomUUID } from "node:crypto"
+import {
+  InspectionSubmissionObservation,
+  InspectionWriterObservation,
+  observeInspectionWriter
+} from "../inspection/writer.ts"
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -95,10 +101,19 @@ const recordHookOutput = Effect.fn("DirectHook.recordOutput")(function* (
 ) {
   if (directCodexOutputRequired(output, options, composedSubmission)) {
     handoff.handedOff = true
+    const observer = Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation)
+    observeInspectionWriter(observer, "write-started")
     yield* submission.writeCodex(output.value)
+    // This older synchronous port has no native completion callback.
+    observeInspectionWriter(observer, "uncertain")
   }
   yield* submission.record(output.collected, output.value)
-  yield* submission.acknowledge(output.collected)
+  const acknowledged = yield* submission.acknowledge(output.collected)
+  if (acknowledged)
+    observeInspectionWriter(
+      Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation),
+      "acknowledged"
+    )
 })
 
 export const submitDirectHookOutput = Effect.fn("DirectHook.submitOutput")(function* (
@@ -108,6 +123,25 @@ export const submitDirectHookOutput = Effect.fn("DirectHook.submitOutput")(funct
   const submission = yield* DirectHookSubmission
   const hostOutput = yield* HookOutput
   const composedSubmission = options.composed && output.collected.findingCount > 0
+  const context = yield* Effect.context()
+  const factory = Context.getOrUndefined(context, InspectionSubmissionObservation)
+  let observer = Context.getOrUndefined(context, InspectionWriterObservation)
+  if (factory !== undefined) {
+    try {
+      observer = factory.forAttempt({
+        batchId: output.collected.token,
+        findingCount: output.collected.findingCount,
+        noticeOnly: output.collected.findingCount === 0,
+        attemptId: randomUUID(),
+        endpoint: output.collected.paths.socket,
+        lifetime: output.collected.lifetime,
+        root: output.collected.root,
+        advicee: Object.freeze({ ...output.collected.advicee })
+      })
+    } catch {
+      observer = undefined
+    }
+  }
   const handoff: DirectHookHandoff = { handedOff: false }
   let released = false
   const release = Effect.fn("DirectHook.releaseUnwrittenOutput")(function* () {
@@ -115,17 +149,30 @@ export const submitDirectHookOutput = Effect.fn("DirectHook.submitOutput")(funct
     released = true
     yield* submission.release(output.collected).pipe(Effect.catch(() => Effect.succeed(false)))
   })
-  return yield* Effect.gen(function* (): Effect.fn.Return<EncodedWriteOutcome, Error> {
+  const attempt = Effect.gen(function* (): Effect.fn.Return<EncodedWriteOutcome, Error> {
+    observeInspectionWriter(observer, "ready")
     const submissionReady =
       !composedSubmission ||
       (yield* submission.begin(output.collected, "edit").pipe(Effect.catch(() => Effect.succeed(false))))
     if (!submissionReady) {
+      observeInspectionWriter(observer, "failed-before-write")
       yield* release()
       return "error"
     }
+    if (composedSubmission) observeInspectionWriter(observer, "authorized")
     const result = yield* writeInitialHookOutput(output, options, composedSubmission, hostOutput, handoff)
     if (result === "written") yield* recordHookOutput(output, options, composedSubmission, submission, handoff)
     else if (result === "error") yield* release()
     return result
-  }).pipe(Effect.ensuring(Effect.suspend(() => (!handoff.handedOff ? release() : Effect.void))))
+  }).pipe(
+    Effect.onInterrupt(() =>
+      Effect.sync(() => {
+        if (!handoff.handedOff) observeInspectionWriter(observer, "failed-before-write")
+      })
+    ),
+    Effect.ensuring(Effect.suspend(() => (!handoff.handedOff ? release() : Effect.void)))
+  )
+  return yield* factory === undefined && observer === undefined
+    ? attempt
+    : attempt.pipe(Effect.provideService(InspectionWriterObservation, observer ?? { observe: () => {} }))
 })

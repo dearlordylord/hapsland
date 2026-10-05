@@ -1,4 +1,5 @@
 import { Context } from "effect"
+import type { DirectAdvicee } from "../direct-event/model.ts"
 import type { InspectionFact } from "./contract.ts"
 
 /** Common observation port for hook and native writers; reporters must offer without awaiting I/O. */
@@ -23,3 +24,20 @@ export const observeInspectionWriter = (
     /* Optional inspection cannot change output behavior. */
   }
 }
+
+/** A reporter binds one attempt to its original resident and exact intended recipient. */
+export class InspectionSubmissionObservation extends Context.Service<
+  InspectionSubmissionObservation,
+  {
+    readonly forAttempt: (attempt: {
+      readonly batchId: string
+      readonly findingCount: number
+      readonly noticeOnly: boolean
+      readonly attemptId: string
+      readonly endpoint: string
+      readonly lifetime: string
+      readonly root: string
+      readonly advicee: DirectAdvicee
+    }) => InspectionWriterObservation["Service"] | undefined
+  }
+>()("@hapsland/InspectionSubmissionObservation") {}
