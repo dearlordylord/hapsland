@@ -3859,7 +3859,8 @@ describe("resident delivery lease", () => {
   })
 
   // Four 16-item partitions attempt 64 real repository parses; the shared
-  // global limit is 512 and is covered by the capacity ledger tests.
+  // global limit is 512 and is covered by the capacity ledger tests. The finite
+  // 20-second fixture budget includes parsing and revalidation under coverage.
   it("revalidates and finalizes across four saturated partitions", async () => {
     const root = await makeGitFixture()
     const statePath = join(root, "consent")
@@ -3880,6 +3881,8 @@ describe("resident delivery lease", () => {
       if (observation === undefined) return
       expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted")
       await Effect.runPromise(server.whenIdle())
+      const progress = Effect.runSync(server.stats())
+      expect(progress.pendingAdvice + progress.rejectedCapacity).toBe((partition + 1) * 16)
     }
     const saturated = Effect.runSync(server.stats())
     expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(64)
@@ -3902,7 +3905,7 @@ describe("resident delivery lease", () => {
       saturated.retainedBytes -
         beforeItems.slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0)
     )
-  }, 10_000)
+  }, 20_000)
 
   it("scans past unavailable advice to independently current advice once per collection", async () => {
     const root = await makeGitFixture()
