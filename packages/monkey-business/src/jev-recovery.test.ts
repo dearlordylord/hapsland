@@ -265,6 +265,8 @@ describe("compact native terminal recovery", () => {
   }, WORKLOAD_CONFORMANCE_TIMEOUT_MS)
 
   it("agrees on compact native recovery after 2050 terminal requests without growing issuance history", () => {
+    // The fixed 2050-cycle comparison plus full replay took 105s under coverage
+    // on Linux arm64. Its finite 150s fixture budget changes no native or product deadline.
     // Fixed original script: 2050 clear edits at cycle*10, PRE2/Jev1, then
     // unavailable/restore/rotate and a finding edit one millisecond later.
     expect(native).toEqual([2051, 2050, 1, 1, 0, 12306, 38978, 20497, 1, 5, 0, 0, 0, 2, 1])
@@ -325,7 +327,7 @@ describe("compact native terminal recovery", () => {
     ]).toEqual(native.slice(0, 13))
     expect(run.interventions.map((report) => report.result)).toEqual(["applied", "applied", "applied"])
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
-  }, 30000)
+  }, 150000)
 })
 
 it(
