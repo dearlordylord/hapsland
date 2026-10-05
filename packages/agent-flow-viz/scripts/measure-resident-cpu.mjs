@@ -25,6 +25,10 @@ try {
     await page.goto("http://127.0.0.1:4181/")
     await page.getByLabel("Advicee count", { exact: true }).fill(String(advicees))
     await page.getByRole("button", { name: "Start resident", exact: true }).click()
+    await page.waitForFunction(async () => {
+      const { simulationRun } = await import("/src/simulation.ts")
+      return simulationRun() !== undefined
+    })
     const eventsBefore = await page.evaluate(async () => {
       const { simulationRun } = await import("/src/simulation.ts")
       window.metricRun = simulationRun()
