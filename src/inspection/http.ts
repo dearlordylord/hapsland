@@ -8,7 +8,7 @@ import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"
 import * as HttpServer from "effect/http/HttpServer"
 import * as Request from "effect/http/HttpServerRequest"
 import * as Response from "effect/http/HttpServerResponse"
-import type { InspectionRecord } from "./contract.ts"
+import type { InspectionRecord, InspectionJournalSnapshot } from "./contract.ts"
 import { inspectionPage, inspectionPagePolicy } from "./page.ts"
 import { makeInspectionReplay } from "./replay.ts"
 import { makeInspectionRegistry } from "./registry.ts"
@@ -17,7 +17,7 @@ import { resolveResidentPaths } from "../resident/paths.ts"
 export const MAX_INSPECTION_HTTP_BYTES = 1024 * 1024
 export const MAX_INSPECTION_VIEWERS = 8
 export interface InspectionHistoryReader {
-  readonly snapshot: () => Effect.Effect<ReadonlyArray<InspectionRecord>, unknown>
+  readonly snapshot: () => Effect.Effect<InspectionJournalSnapshot, unknown>
 }
 
 /** Foreground, scoped HTTP access. A random per-launch capability keeps local TCP access private. */
@@ -51,12 +51,13 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
   const replay = makeInspectionReplay()
   const snapshot = (cursor?: string) =>
     Effect.gen(function* () {
-      const raw = yield* history.snapshot()
+      const journal = yield* history.snapshot()
+      const raw = journal.records
       const unique = new Map(raw.map((record) => [`${record.source.id}:${record.sequence}`, record]))
       const records = [...unique.values()]
       const discovery = yield* registry.discover(records, standard)
       const retained: InspectionRecord[] = []
-      const positions = replay.describe(records, cursor, false)
+      const positions = replay.describe(records, cursor, false, journal.losses)
       let bytes = Buffer.byteLength(JSON.stringify({ ...discovery, ...positions })) + 512
       for (let index = records.length - 1; index >= 0; index--) {
         const record = records[index]!
@@ -66,7 +67,13 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
         bytes += size
       }
       const truncated = retained.length < records.length
-      return { version: 1, ...discovery, ...replay.describe(records, cursor, truncated), records: retained, truncated }
+      return {
+        version: 1,
+        ...discovery,
+        ...replay.describe(records, cursor, truncated, journal.losses),
+        records: retained,
+        truncated
+      }
     }).pipe(Effect.catchCause(() => Effect.succeed({ version: 1, status: "unavailable" })))
   yield* server.serve(
     Effect.gen(function* () {
@@ -97,10 +104,16 @@ export const makeInspectionHttpServer = Effect.fn("InspectionHttpServer.make")(f
         const sequence = Number(match[2])
         const identity = { version: 1 as const, sourceId, sequence }
         const value = yield* history.snapshot().pipe(
-          Effect.map((records) => {
-            const record = records.find((item) => item.source.id === sourceId && item.sequence === sequence)
+          Effect.map((journal) => {
+            const record = journal.records.find((item) => item.source.id === sourceId && item.sequence === sequence)
             if (record === undefined)
-              return { ...identity, status: "missing" as const, reason: "not-retained" as const }
+              return {
+                ...identity,
+                status: "missing" as const,
+                reason:
+                  journal.losses.find((loss) => loss.sourceId === sourceId && loss.sequence === sequence)?.reason ??
+                  ("not-retained" as const)
+              }
             const fact = record.fact
             if (fact.kind === "transport-invoked" || fact.kind === "model-input")
               return { ...identity, representation: fact.representation, ...fact.payload }

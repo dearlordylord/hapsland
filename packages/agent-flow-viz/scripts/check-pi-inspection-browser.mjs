@@ -97,7 +97,25 @@ try {
     }
     if (variant === "edit") {
       writeFileSync(join(f.root, "backend.gate"), "release\n")
-      assert.ok(output?.content, "native edit offer")
+      if (output?.content === undefined) {
+        const journal = makeInspectionStorage(join(stateHome, "hapsland", "inspection"), {
+          retentionMs: 86400000,
+          storageBytes: 134217728
+        })
+        const retained = await Effect.runPromise(journal.snapshot())
+        const observations = retained.records
+          .slice(-64)
+          .map(({ capturedAt, fact }) => ({
+            capturedAt,
+            kind: fact.kind,
+            ...(typeof fact.status === "string" ? { status: fact.status } : {}),
+            ...(typeof fact.outcome === "string" ? { outcome: fact.outcome } : {}),
+            ...(typeof fact.reason === "string" ? { reason: fact.reason } : {})
+          }))
+        assert.fail(
+          `native edit offer missing; last 64 retained lifecycle observations: ${JSON.stringify(observations)}`
+        )
+      }
     }
     if (variant !== "edit") {
       if (variant !== "edit") {

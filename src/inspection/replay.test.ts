@@ -72,7 +72,10 @@ it("replays real per-source increments after a snapshot and resets honestly when
     await publish[1]!("first.ts")
     const server = await Effect.runPromise(
       makeInspectionHttpServer({
-        snapshot: () => history.snapshot().pipe(Effect.map((records) => [...records, ...records]))
+        snapshot: () =>
+          history
+            .snapshot()
+            .pipe(Effect.map((journal) => ({ ...journal, records: [...journal.records, ...journal.records] })))
       }).pipe(Effect.provideService(Scope.Scope, scope))
     )
     const initial = (await (await fetch(`${server.url}snapshot`)).json()) as ReplaySnapshot
@@ -121,9 +124,7 @@ it("replays real per-source increments after a snapshot and resets honestly when
     expect(expired.records).toEqual([])
     expect(expired.replay.state).toBe("reset")
     expect(expired.replay.gaps).toHaveLength(2)
-    expect(expired.replay.gaps.every((gap: { reason: string }) => gap.reason === "cursor-anchor-not-retained")).toBe(
-      true
-    )
+    expect(expired.replay.gaps.every((gap: { reason: string }) => gap.reason === "expired")).toBe(true)
   } finally {
     await Promise.all(residents.map((resident) => Effect.runPromise(resident.close)))
     await Effect.runPromise(Scope.close(scope, Exit.void))

@@ -3,12 +3,21 @@ import { constants, type Stats } from "node:fs"
 import { lstat, mkdir, open, readdir, realpath, statfs, unlink, link } from "node:fs/promises"
 import { isAbsolute, join, resolve } from "node:path"
 import { Effect } from "effect"
-import { decodeInspectionRecordText, MAX_INSPECTION_RECORD_BYTES, type InspectionRecord } from "./contract.ts"
+import {
+  decodeInspectionRecordText,
+  MAX_INSPECTION_RECORD_BYTES,
+  decodeInspectionLossText,
+  type InspectionLoss,
+  type InspectionJournalSnapshot,
+  type InspectionRecord
+} from "./contract.ts"
 import { lockInspectionDirectory } from "./native-lock.ts"
 import type { InspectionPersistence } from "./recorder.ts"
 
 const RECORD_NAME = /^([a-f0-9]{64})-([0-9]{16})\.json$/
+const LOSS_NAME = /^([a-f0-9]{64})-([0-9]{16})\.loss$/
 const MAX_FILES = 8192
+const MAX_LOSSES = 128
 export const inspectionAllocatedBytes = (stat: Stats): number => Math.max(stat.size, stat.blocks * 512)
 const privateOwned = (stat: Stats): boolean =>
   typeof process.getuid === "function" &&
@@ -18,6 +27,7 @@ const privateOwned = (stat: Stats): boolean =>
 const sameFile = (a: Stats, b: Stats): boolean => a.dev === b.dev && a.ino === b.ino
 const recordName = (record: InspectionRecord): string =>
   `${record.source.id}-${String(record.sequence).padStart(16, "0")}.json`
+const lossName = (loss: InspectionLoss): string => `${loss.sourceId}-${String(loss.sequence).padStart(16, "0")}.loss`
 const unavailable = (): Error => new Error("inspection storage unavailable")
 const missing = (error: unknown): boolean =>
   typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT"
@@ -27,6 +37,9 @@ type Stored = {
   readonly encoded: string
   readonly bytes: number
 }
+
+type StoredLoss = { readonly name: string; readonly loss: InspectionLoss; readonly bytes: number }
+type Inventory = { readonly records: Stored[]; readonly losses: StoredLoss[] }
 
 /** A private journal shared by all producers. Lock contention loses optional capture; it never waits. */
 export const makeInspectionStorage = (
@@ -38,9 +51,11 @@ export const makeInspectionStorage = (
     readonly afterPublication?: () => Promise<void>
     readonly beforeCommit?: () => Promise<void>
     readonly afterCommit?: () => Promise<void>
+    readonly beforeLossPublication?: () => Promise<void>
+    readonly afterLossPublication?: () => Promise<void>
     readonly settled?: () => void
   } = {}
-): InspectionPersistence & { readonly snapshot: () => Effect.Effect<ReadonlyArray<InspectionRecord>, unknown> } => {
+): InspectionPersistence & { readonly snapshot: () => Effect.Effect<InspectionJournalSnapshot, unknown> } => {
   if (
     !isAbsolute(directory) ||
     !Number.isSafeInteger(limits.retentionMs) ||
@@ -61,7 +76,7 @@ export const makeInspectionStorage = (
   const read = async (root: string, name: string): Promise<Stored> => {
     const match = RECORD_NAME.exec(name)
     if (!match) throw unavailable()
-    const file = await open(join(root, name), constants.O_RDONLY | constants.O_NOFOLLOW)
+    const file = await open(join(root, name), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
     try {
       const stat = await file.stat()
       if (!privateOwned(stat) || !stat.isFile() || stat.nlink !== 1 || stat.size > MAX_INSPECTION_RECORD_BYTES)
@@ -70,6 +85,20 @@ export const makeInspectionStorage = (
       const record = decodeInspectionRecordText(encoded)
       if (record.source.id !== match[1] || String(record.sequence).padStart(16, "0") !== match[2]) throw unavailable()
       return { name, record, encoded, bytes: inspectionAllocatedBytes(stat) }
+    } finally {
+      await file.close()
+    }
+  }
+  const readLoss = async (root: string, name: string): Promise<StoredLoss> => {
+    const match = LOSS_NAME.exec(name)
+    if (!match) throw unavailable()
+    const file = await open(join(root, name), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
+    try {
+      const stat = await file.stat()
+      if (!privateOwned(stat) || !stat.isFile() || stat.nlink !== 1 || stat.size > 512) throw unavailable()
+      const loss = decodeInspectionLossText(await file.readFile({ encoding: "utf8" }))
+      if (loss.sourceId !== match[1] || String(loss.sequence).padStart(16, "0") !== match[2]) throw unavailable()
+      return { name, loss, bytes: inspectionAllocatedBytes(stat) }
     } finally {
       await file.close()
     }
@@ -85,20 +114,29 @@ export const makeInspectionStorage = (
       if (!privateOwned(current) || !sameFile(current, opened)) throw unavailable()
       // Exclusive descriptor ownership survives async IO and is released by close or process exit.
       const names = await readdir(canonical)
-      if (names.length > MAX_FILES) throw unavailable()
+      if (names.length > MAX_FILES + 2) throw unavailable()
       for (const name of names) {
-        if (!/^pending-[a-f0-9-]{36}$/.test(name)) continue
+        const lossPending = /^pending-loss-[a-f0-9-]{36}$/.test(name)
+        if (!lossPending && !/^pending-[a-f0-9-]{36}$/.test(name)) continue
         const entry = await lstat(join(canonical, name))
         if (!privateOwned(entry) || !entry.isFile() || entry.nlink > 2 || entry.size > MAX_INSPECTION_RECORD_BYTES)
           throw unavailable()
         if (entry.nlink === 2) {
           // A surviving temporary link means publication never finished. Discard both
           // links conservatively, including a writer killed before its consent recheck.
-          const pending = await open(join(canonical, name), constants.O_RDONLY | constants.O_NOFOLLOW)
+          const pending = await open(
+            join(canonical, name),
+            constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
+          )
           try {
             if (!sameFile(entry, await pending.stat())) throw unavailable()
-            const record = decodeInspectionRecordText(await pending.readFile({ encoding: "utf8" }))
-            const published = join(canonical, recordName(record))
+            const encoded = await pending.readFile({ encoding: "utf8" })
+            const published = join(
+              canonical,
+              lossPending
+                ? lossName(decodeInspectionLossText(encoded))
+                : recordName(decodeInspectionRecordText(encoded))
+            )
             const linked = await lstat(published)
             if (!privateOwned(linked) || !sameFile(entry, linked)) throw unavailable()
             await unlink(published)
@@ -113,33 +151,102 @@ export const makeInspectionStorage = (
       await directoryHandle.close()
     }
   }
-  const inventory = async (root: string): Promise<Stored[]> => {
+  const inventory = async (root: string): Promise<Inventory> => {
     const entries = await readdir(root)
     if (entries.length > MAX_FILES) throw unavailable()
-    const records: Stored[] = []
+    const records: Stored[] = [],
+      losses: StoredLoss[] = []
     for (const name of entries) {
-      // Unknown files are not deleted or interpreted as records, and prevent an unaccounted quota claim.
-      records.push(await read(root, name))
+      // Unknown entries are never interpreted or deleted to recover quota.
+      if (LOSS_NAME.test(name)) losses.push(await readLoss(root, name))
+      else records.push(await read(root, name))
     }
-    return records.sort((a, b) => a.record.capturedAt - b.record.capturedAt || a.name.localeCompare(b.name))
+    return {
+      records: records.sort((a, b) => a.record.capturedAt - b.record.capturedAt || a.name.localeCompare(b.name)),
+      losses: losses.sort((a, b) => a.loss.removedAt - b.loss.removedAt || a.name.localeCompare(b.name))
+    }
   }
-  const prune = async (root: string, records: Stored[], reserved: number, rootStat: Stats) => {
-    let bytes = inspectionAllocatedBytes(rootStat) + records.reduce((sum, record) => sum + record.bytes, 0)
-    const retained: Stored[] = []
-    const now = clock()
-    for (const record of records) {
-      if (now - record.record.capturedAt >= limits.retentionMs) {
-        await unlink(join(root, record.name))
-        bytes -= record.bytes
-      } else retained.push(record)
+  const publishLoss = async (
+    root: string,
+    loss: InspectionLoss,
+    total: number,
+    reserved: number,
+    block: number
+  ): Promise<StoredLoss | undefined> => {
+    const temporary = join(root, `pending-loss-${randomUUID()}`)
+    const file = await open(
+      temporary,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW,
+      0o600
+    )
+    try {
+      await file.writeFile(JSON.stringify(loss), "utf8")
+      const bytes = inspectionAllocatedBytes(await file.stat())
+      if (total + bytes + reserved + block > limits.storageBytes) return undefined
+      await controls.beforeLossPublication?.()
+      await link(temporary, join(root, lossName(loss)))
+      await controls.afterLossPublication?.()
+      return { name: lossName(loss), loss, bytes }
+    } finally {
+      await file.close()
+      await unlink(temporary)
     }
-    while (bytes + reserved > limits.storageBytes && retained.length) {
-      const record = retained.shift()!
+  }
+  const prune = async (root: string, current: Inventory, reserved: number, rootStat: Stats) => {
+    const block = (await statfs(root)).bsize
+    if (!Number.isSafeInteger(block) || block < 1) throw unavailable()
+    const maxLosses = Math.min(MAX_LOSSES, Math.floor(limits.storageBytes / block / 8))
+    const losses = [...current.losses]
+    let rootBytes = inspectionAllocatedBytes(rootStat)
+    let bytes = rootBytes + [...current.records, ...losses].reduce((sum, record) => sum + record.bytes, 0)
+    const now = clock(),
+      removed: InspectionLoss[] = [],
+      retained: Stored[] = []
+    const removeLoss = async () => {
+      const oldest = losses.shift()!
+      await unlink(join(root, oldest.name))
+      bytes -= oldest.bytes
+    }
+    while (losses.length && (now - losses[0]!.loss.removedAt >= limits.retentionMs || losses.length > maxLosses))
+      await removeLoss()
+    const removeRecord = async (record: Stored, reason: InspectionLoss["reason"]) => {
       await unlink(join(root, record.name))
       bytes -= record.bytes
+      removed.push({
+        version: 1,
+        sourceId: record.record.source.id,
+        sequence: record.record.sequence,
+        capturedAt: record.record.capturedAt,
+        removedAt: now,
+        reason
+      })
     }
+    for (const record of current.records) {
+      if (now - record.record.capturedAt >= limits.retentionMs) await removeRecord(record, "expired")
+      else retained.push(record)
+    }
+    const lossReservation = () => (removed.length && maxLosses ? block * 2 : 0)
+    while (losses.length && bytes + reserved + lossReservation() > limits.storageBytes) await removeLoss()
+    while (bytes + reserved + lossReservation() > limits.storageBytes && retained.length)
+      await removeRecord(retained.shift()!, "capacity-evicted")
     if (bytes + reserved > limits.storageBytes) throw unavailable()
-    return retained
+    // Markers follow successful unlink. A crash or refused marker loses knowledge, never invents a deletion.
+    const chosen = removed.slice(-maxLosses)
+    for (const loss of maxLosses ? chosen : []) {
+      while (losses.length && (losses.length >= maxLosses || bytes + reserved + block * 2 > limits.storageBytes))
+        await removeLoss()
+      if (bytes + reserved + block * 2 > limits.storageBytes) continue
+      const currentRoot = await lstat(root)
+      if (!privateOwned(currentRoot) || !sameFile(currentRoot, rootStat)) throw unavailable()
+      bytes += inspectionAllocatedBytes(currentRoot) - rootBytes
+      rootBytes = inspectionAllocatedBytes(currentRoot)
+      const published = await publishLoss(root, loss, bytes, reserved, block)
+      if (published) {
+        losses.push(published)
+        bytes += published.bytes
+      }
+    }
+    return { records: retained, losses }
   }
   const write: InspectionPersistence["write"] = (record, encoded, publication) =>
     Effect.tryPromise({
@@ -152,7 +259,13 @@ export const makeInspectionStorage = (
           if (clock() - captured.capturedAt >= limits.retentionMs) return
           const name = recordName(captured)
           const records = await inventory(root)
-          const existing = records.find((entry) => entry.name === name)
+          if (
+            records.losses.some(
+              (entry) => entry.loss.sourceId === captured.source.id && entry.loss.sequence === captured.sequence
+            )
+          )
+            throw unavailable()
+          const existing = records.records.find((entry) => entry.name === name)
           if (existing) {
             if (existing.encoded !== encoded) throw unavailable()
             return
@@ -161,7 +274,8 @@ export const makeInspectionStorage = (
           if (!Number.isSafeInteger(block) || block < 1) throw unavailable()
           // Reserve the payload and a conservative directory growth block before creating anything.
           const reserved = Math.ceil(Buffer.byteLength(encoded) / block) * block + block
-          await prune(root, records, reserved, rootStat)
+          const retained = await prune(root, records, reserved, rootStat)
+          if (retained.records.length + retained.losses.length + 2 > MAX_FILES) throw unavailable()
           if (signal.aborted || !publication.allowed()) return
           const temporary = join(root, `pending-${randomUUID()}`)
           const file = await open(
@@ -178,7 +292,10 @@ export const makeInspectionStorage = (
             const currentRoot = await lstat(root)
             const total =
               inspectionAllocatedBytes(currentRoot) +
-              (await inventoryWithoutPending(root, temporary, read)).reduce((sum, entry) => sum + entry.bytes, 0) +
+              (await inventoryWithoutPending(root, temporary, read, readLoss)).reduce(
+                (sum, entry) => sum + entry.bytes,
+                0
+              ) +
               inspectionAllocatedBytes(actual)
             await controls.beforePublication?.()
             if (total + block > limits.storageBytes || signal.aborted || !publication.allowed()) return
@@ -213,10 +330,14 @@ export const makeInspectionStorage = (
             if (missing(error)) return undefined
             throw error
           })
-          if (!exists) return []
-          return locked(async (root, rootStat) =>
-            (await prune(root, await inventory(root), 0, rootStat)).map((entry) => entry.record)
-          )
+          if (!exists) return { records: [], losses: [] }
+          return locked(async (root, rootStat) => {
+            const retained = await prune(root, await inventory(root), 0, rootStat)
+            return {
+              records: retained.records.map((entry) => entry.record),
+              losses: retained.losses.map((entry) => entry.loss)
+            }
+          })
         },
         catch: () => unavailable()
       })
@@ -226,14 +347,15 @@ export const makeInspectionStorage = (
 const inventoryWithoutPending = async (
   root: string,
   pending: string,
-  read: (root: string, name: string) => Promise<Stored>
-): Promise<Stored[]> => {
+  read: (root: string, name: string) => Promise<Stored>,
+  readLoss: (root: string, name: string) => Promise<StoredLoss>
+): Promise<Array<Stored | StoredLoss>> => {
   const names = await readdir(root)
   if (names.length > MAX_FILES) throw unavailable()
-  const records: Stored[] = []
+  const records: Array<Stored | StoredLoss> = []
   for (const name of names) {
     if (join(root, name) === pending) continue
-    records.push(await read(root, name))
+    records.push(LOSS_NAME.test(name) ? await readLoss(root, name) : await read(root, name))
   }
   return records
 }

@@ -1,12 +1,17 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
-import type { InspectionRecord } from "./contract.ts"
+import type { InspectionRecord, InspectionLoss } from "./contract.ts"
 
 const MAX_SOURCES = 128
 const ENTRY_BYTES = 40
 const MAX_CURSOR_BYTES = 3 + MAX_SOURCES * ENTRY_BYTES + 32
 export type InspectionReplayGap = {
   readonly sourceId?: string
-  readonly reason: "invalid-cursor" | "cursor-anchor-not-retained" | "source-limit" | "view-limit"
+  readonly reason:
+    | "invalid-cursor"
+    | "cursor-anchor-not-retained"
+    | "source-limit"
+    | "view-limit"
+    | InspectionLoss["reason"]
 }
 type Position = { readonly sourceId: string; readonly sequence: number }
 
@@ -45,7 +50,12 @@ export const makeInspectionReplay = () => {
     return positions
   }
   return {
-    describe: (records: ReadonlyArray<InspectionRecord>, cursor: string | undefined, truncated: boolean) => {
+    describe: (
+      records: ReadonlyArray<InspectionRecord>,
+      cursor: string | undefined,
+      truncated: boolean,
+      losses: ReadonlyArray<InspectionLoss>
+    ) => {
       const sources = new Map<string, Set<number>>()
       for (const record of records) {
         let sequences = sources.get(record.source.id)
@@ -63,13 +73,19 @@ export const makeInspectionReplay = () => {
       else
         for (const position of previous) {
           if (!sources.get(position.sourceId)?.has(position.sequence))
-            gaps.push({ sourceId: position.sourceId, reason: "cursor-anchor-not-retained" })
+            gaps.push({
+              sourceId: position.sourceId,
+              reason:
+                losses.find((loss) => loss.sourceId === position.sourceId && loss.sequence === position.sequence)
+                  ?.reason ?? "cursor-anchor-not-retained"
+            })
         }
       if (sources.size > MAX_SOURCES) gaps.push({ reason: "source-limit" })
       if (truncated) gaps.push({ reason: "view-limit" })
       const prior = new Map((previous ?? []).map((position) => [position.sourceId, position.sequence]))
       return {
         watermark: { cursor: encode(positions), sources: positions, omittedSources: sources.size - positions.length },
+        losses,
         replay: {
           state: gaps.length ? ("reset" as const) : cursor === undefined ? ("fresh" as const) : ("resumed" as const),
           coverage: "retained-observations-only" as const,

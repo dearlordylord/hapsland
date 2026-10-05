@@ -97,7 +97,7 @@ describe("resident inspection capture", () => {
     expect(await Effect.runPromise(residentRequestEffect(server.paths, report))).toEqual({ status: "empty" })
     await written.promise
     // Read after the final report write settles, before teardown can enqueue retirement facts.
-    const snapshot = await Effect.runPromise(store.snapshot())
+    const { records: snapshot } = await Effect.runPromise(store.snapshot())
     const evidence = snapshot.find((record) => record.fact.kind === "writer-evidence")?.fact
     if (evidence?.kind !== "writer-evidence") throw new Error("missing writer evidence")
     expect(evidence.findingIds).toHaveLength(1)
@@ -182,7 +182,7 @@ describe("resident inspection capture", () => {
       expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized")
       expect((await collect()).status).toBe("empty")
       await expect.poll(() => (composed ? suppressionStored : finalizationStored), { timeout: 3000 }).toBe(true)
-      const records = await Effect.runPromise(store.snapshot())
+      const { records } = await Effect.runPromise(store.snapshot())
       const fate = records.find(
         (record) => record.fact.kind === "finding-fate" && record.fact.fate === (composed ? "suppressed" : "discarded")
       )
@@ -232,7 +232,7 @@ describe("resident inspection capture", () => {
     clock += PENDING_ADVICE_EXPIRY_MS
     expect((await Effect.runPromise(server.collect(root, advicee(), dispatch))).status).toBe("empty")
     await expired.promise
-    const records = await Effect.runPromise(store.snapshot())
+    const { records } = await Effect.runPromise(store.snapshot())
     const fates = records.filter((record) => record.fact.kind === "finding-fate")
     expect(fates.map((record) => record.fact)).toMatchObject([
       { fate: "retained", reason: "pending-advice" },
@@ -284,7 +284,7 @@ describe("resident inspection capture", () => {
     ).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     await stored.promise
-    const records = await Effect.runPromise(store.snapshot())
+    const { records } = await Effect.runPromise(store.snapshot())
     expect(
       records.filter((record) => record.fact.kind === "evaluation-route").map((record) => record.fact)
     ).toMatchObject([{ route: "fresh", path: "good.ts", declaration: "GoodCount" }])
@@ -333,7 +333,7 @@ describe("resident inspection capture", () => {
       await Effect.runPromise(server.whenIdle())
     }
     await persisted.promise
-    const records = await Effect.runPromise(store.snapshot())
+    const { records } = await Effect.runPromise(store.snapshot())
     const routes = records.filter((record) => record.fact.kind === "evaluation-route")
     expect(routes.map((record) => (record.fact.kind === "evaluation-route" ? record.fact.route : null))).toEqual([
       "fresh",
@@ -390,9 +390,10 @@ describe("resident inspection capture", () => {
     )
     expect(response.status).toBe("obsolete-lifetime")
     await stored.promise
-    const records = await Effect.runPromise(history.snapshot())
+    const { records } = await Effect.runPromise(history.snapshot())
     expect(records.map((record) => record.fact)).toEqual([
       { kind: "recording-state", state: "enabled" },
+      { kind: "source-registration" },
       { kind: "edit-received", candidates: [{ operation: "add", path: "type.ts" }] },
       { kind: "edit-admission", outcome: "obsolete-lifetime" }
     ])
@@ -434,7 +435,7 @@ describe("resident inspection capture", () => {
     await Effect.runPromise(server.close)
     release.resolve()
     await settled.promise
-    expect(await Effect.runPromise(store.snapshot())).toEqual([])
+    expect((await Effect.runPromise(store.snapshot())).records).toEqual([])
   })
   it("records actual admitted edit metadata without patch source or credentials and refreshes opt-out", async () => {
     const root = await makeGitFixture()
@@ -481,7 +482,7 @@ describe("resident inspection capture", () => {
     await prepared.promise
     await evaluated.promise
     await Effect.runPromise(server.whenIdle())
-    const records = await Effect.runPromise(store.snapshot())
+    const { records } = await Effect.runPromise(store.snapshot())
     expect(
       records
         .filter((record) => ["recording-state", "edit-received", "edit-admission"].includes(record.fact.kind))
@@ -494,7 +495,7 @@ describe("resident inspection capture", () => {
     expect(JSON.stringify(received)).not.toContain("OrderCount")
     expect(records.find((record) => record.fact.kind === "edit-admission")?.correlation).toEqual(received.correlation)
     await Effect.runPromise(server.whenIdle())
-    const preparedRecords = await Effect.runPromise(store.snapshot())
+    const { records: preparedRecords } = await Effect.runPromise(store.snapshot())
     const unit = preparedRecords.find((record) => record.fact.kind === "unit-prepared")
     expect(unit?.correlation.receiptId).toBe(received.correlation.receiptId)
     expect(unit?.correlation.unitId).toMatch(/^[a-f0-9]{64}$/)
@@ -523,7 +524,7 @@ describe("resident inspection capture", () => {
     await Effect.runPromise(server.collect(root, advicee(), dispatch))
     await retired.promise
     expect(await Effect.runPromise(server.pendingAdviceMetadata())).toHaveLength(0)
-    const retiredRecords = await Effect.runPromise(store.snapshot())
+    const { records: retiredRecords } = await Effect.runPromise(store.snapshot())
     const stale = retiredRecords.find((record) => record.fact.kind === "finding-fate" && record.fact.fate === "stale")
     expect(stale?.fact).toMatchObject({ fate: "stale", reason: "resident-stale" })
     if (stale?.fact.kind !== "finding-fate" || retained?.fact.kind !== "finding-fate")
@@ -536,7 +537,7 @@ describe("resident inspection capture", () => {
     Effect.runSync(server.admit(observation, dispatch))
     await Effect.runPromise(server.whenIdle())
     await Effect.runPromise(server.close)
-    const history = await Effect.runPromise(store.snapshot())
+    const { records: history } = await Effect.runPromise(store.snapshot())
     expect(history.filter((record) => record.fact.kind === "edit-received")).toHaveLength(1)
   })
 })

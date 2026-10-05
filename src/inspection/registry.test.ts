@@ -169,7 +169,9 @@ it("bounds registry metadata and reports omitted sources without accepting brows
   await Effect.runPromise(
     Effect.scoped(
       Effect.gen(function* () {
-        const server = yield* makeInspectionHttpServer({ snapshot: () => Effect.succeed(records) }).pipe(
+        const server = yield* makeInspectionHttpServer({
+          snapshot: () => Effect.succeed({ records, losses: [] })
+        }).pipe(
           Effect.provide(
             ConfigProvider.layer(ConfigProvider.fromUnknown({ REVIEW_RESIDENT_DIR: join(root, "missing") }))
           )

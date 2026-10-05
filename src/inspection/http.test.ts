@@ -240,7 +240,7 @@ it("exposes exact retained bytes from a real resident's production provider tran
       sourceId: transportRecord.source.id,
       sequence: transportRecord.sequence,
       status: "missing",
-      reason: "not-retained"
+      reason: "expired"
     })
     expect(dispatched[0]!.toString()).not.toContain("INSPECTION_OFFLINE_KEY")
     expect(JSON.stringify(records)).not.toContain("INSPECTION_OFFLINE_KEY")

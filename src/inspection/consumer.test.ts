@@ -53,7 +53,8 @@ it("disconnects a stalled public feed while real resident reviews and persistenc
   try {
     const server = await Effect.runPromise(
       makeInspectionHttpServer({
-        snapshot: () => history.snapshot().pipe(Effect.map((records) => [...fill, ...records]))
+        snapshot: () =>
+          history.snapshot().pipe(Effect.map((journal) => ({ ...journal, records: [...fill, ...journal.records] })))
       }).pipe(Effect.provideService(Scope.Scope, scope))
     )
     const initial = (await (await fetch(`${server.url}snapshot`)).json()) as { watermark: { cursor: string } }

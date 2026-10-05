@@ -136,7 +136,8 @@ menu keystrokes. These checks do not establish replay or all runtime/child filte
 
 Exact-payload reads use the capability-protected `payload/<source-id>/<sequence>`
 route. The [HTTP tests](../src/inspection/http.test.ts) retrieve real provider and
-native-writer bytes, then distinguish expired records (`not-retained`) from an
+native-writer bytes, then distinguish known expiry (`expired`), known capacity
+eviction (`capacity-evicted`), and missing unclassified records (`not-retained`) from an
 inaccessible journal (`history-unavailable`) and facts without exact bytes
 (`no-exact-payload`). Browser copy actions retrieve that immutable identity again
 and check it against the captured payload. A missing result leaves the clipboard
@@ -152,7 +153,8 @@ invalid cursor produces explicit gaps and a fresh retained snapshot; source and
 view bounds remain visible. Browser checks reconnect by keyboard while paused,
 keep selection frozen, and display loss after actual journal expiry. Coverage is
 always limited to retained observations; this does not prove that silent capture
-failures are known or expiry and capacity loss are yet individually classified. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
+failures are known. Exact loss markers distinguish known expiry and capacity eviction;
+missing markers keep the reason unknown. The [slow-consumer test](../src/inspection/consumer.test.ts) pauses a real TCP
 reader against a bounded saturated feed. A real resident review and private
 journal publication continue, the stalled response closes, and a new connection
 retrieves that review with the saved cursor. Five seconds of continuous socket
@@ -172,6 +174,20 @@ three live sources and unknown current root states after their disconnection.
 Configuration changes apply at the next edit admission; this observation does
 not reread project files or guarantee successful persistence. Paused displays
 retain their explicitly timed observation.
+
+Loss markers are source-free, private, immutable version-one journal objects
+naming an exact removed source/sequence identity and the observed reason. They
+are published after successful unlink, under the journal lock, and count toward
+the same allocated cap with their temporary files. At most 128 markers are kept,
+further bounded by the configured quota; diagnostic retention ages from removal.
+Older markers can be lost, so absence is not evidence of complete coverage.
+The journal samples records and markers together for HTTP, replay and payload
+reads. [Journal tests](../src/inspection/storage.test.ts) cover capacity markers
+across fresh readers, refusal to republish marked identities, physical publication
+peaks, marker expiry, and producer death before/after marker linking. Private
+record and marker FIFOs fail promptly without being deleted. The real-resident
+browser gate reduces the allocated cap while paused, observes known eviction,
+then expires retained data without changing selection or copying missing bytes.
 
 ## Local inspection model
 

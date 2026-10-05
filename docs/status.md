@@ -103,6 +103,13 @@ Unreachable residents have unknown current recording state; paused displays keep
 the observation at their displayed snapshot. Enabled capture does not guarantee
 that every event was successfully retained.
 
+Known expiry and capacity eviction are shown through bounded source-free loss
+markers. Markers share the journal's quota and can themselves expire or be lost;
+an unclassified missing record remains unknown. Payload reads return an explicit
+missing result, and copy actions preserve the clipboard when selected bytes are
+no longer available. Pausing keeps the selected preview while recording and
+known-loss notifications continue.
+
 ## Session status
 
 Use an explicit session ID with the status operation:

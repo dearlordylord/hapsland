@@ -263,6 +263,23 @@ export const InspectionRecord = Schema.Struct({
   fact: InspectionFact
 })
 export type InspectionRecord = typeof InspectionRecord.Type
+export const InspectionLoss = Schema.Struct({
+  version: Schema.Literal(INSPECTION_VERSION),
+  sourceId: Hash,
+  sequence: Count.check(Schema.isGreaterThan(0)),
+  capturedAt: Count.check(Schema.isBetween({ minimum: 0, maximum: 8_640_000_000_000_000 })),
+  removedAt: Count.check(Schema.isBetween({ minimum: 0, maximum: 8_640_000_000_000_000 })),
+  reason: Schema.Literals(["expired", "capacity-evicted"])
+})
+export type InspectionLoss = typeof InspectionLoss.Type
+export type InspectionJournalSnapshot = {
+  readonly records: ReadonlyArray<InspectionRecord>
+  readonly losses: ReadonlyArray<InspectionLoss>
+}
+export const decodeInspectionLossText = (encoded: string): InspectionLoss => {
+  if (Buffer.byteLength(encoded) > 512) throw new Error("inspection loss marker exceeds its bound")
+  return Schema.decodeUnknownSync(InspectionLoss, { onExcessProperty: "error" })(JSON.parse(encoded))
+}
 
 export const inspectionSourceId = (endpoint: string, lifetime: string): string =>
   createHash("sha256")

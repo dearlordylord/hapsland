@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { writeFile, rm } from "node:fs/promises"
+import { writeFile, rm, lstat, readdir, statfs } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium } from "playwright"
 import { Effect, Scope, Exit, Fiber } from "effect"
@@ -44,11 +44,8 @@ try {
     })
   )
   let historyNow = Date.now()
-  const history = makeInspectionStorage(join(root, "inspection"), {
-    retentionMs: 86400000,
-    storageBytes: 1048576,
-    now: () => historyNow
-  })
+  const historyLimits = { retentionMs: 86400000, storageBytes: 1048576, now: () => historyNow }
+  const history = makeInspectionStorage(join(root, "inspection"), historyLimits)
   const dispatched = []
   let published = nativeDeferred()
   const retired = nativeDeferred()
@@ -412,20 +409,42 @@ try {
   await page.getByRole("button", { name: "Pause", exact: true }).click()
   const frozen = await page.locator("#detail").textContent()
   const copiedBeforeExpiry = await page.evaluate(() => navigator.clipboard.readText())
+  const journal = join(root, "inspection")
+  const allocation = (value) => Math.max(value.size, value.blocks * 512)
+  let allocated = allocation(await lstat(journal))
+  for (const name of await readdir(journal)) allocated += allocation(await lstat(join(journal, name)))
+  const block = (await statfs(journal)).bsize
+  historyLimits.storageBytes = Math.max(block * 16, allocated - block * 4)
+  const evicted = await (await fetch(`${server.url}snapshot`)).json()
+  assert.ok(evicted.losses.some((loss) => loss.reason === "capacity-evicted"))
+  assert.ok(
+    evicted.records.some(
+      (record) =>
+        record.fact.kind === "writer-evidence" &&
+        record.fact.state === "written" &&
+        record.fact.output.status === "available" &&
+        record.fact.output.encoded === Buffer.concat(nativeBytes).toString("base64")
+    )
+  )
+  await page.waitForFunction(() =>
+    document.querySelector("#history-status").textContent.includes("Known capacity eviction")
+  )
+  assert.equal(await page.locator("#detail").textContent(), frozen)
+  historyLimits.storageBytes = 1048576
   historyNow += 2 * 86400000
   await page.evaluate(() => {
     document.querySelector("#handoff-copy-status").textContent = ""
   })
   await page.getByRole("button", { name: "Copy exact output", exact: true }).click()
-  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent.includes("not-retained"))
+  await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent.includes("expired"))
   await page.waitForFunction(() =>
-    document.querySelector("#history-status").textContent.includes("Saved source position is no longer retained")
+    document.querySelector("#history-status").textContent.includes("Retained records expired")
   )
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), copiedBeforeExpiry)
   assert.equal(await page.locator("#detail").textContent(), frozen)
   assert.deepEqual(errors, [])
   console.log(
-    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, paused payload expiry and narrow layout passed"
+    "inspection browser: real review history, native writer attempts and exact copy, batch edit links, keyboard controls, live reading stability, paused reconnect and recovery gaps, known capacity eviction, paused payload expiry and narrow layout passed"
   )
 } finally {
   clearTimeout(deadline)
