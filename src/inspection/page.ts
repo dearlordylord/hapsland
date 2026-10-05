@@ -85,10 +85,19 @@ const fateReasons = {
   'retention-failed': 'Retention failed'
 };
 function renderFindingHistory(fates, records) {
-  document.querySelector('#finding-history-panel').hidden = !fates.length;
-  document.querySelector('#finding-history-title').textContent = 'Finding history · ' + fates.length;
+  const states = new Map();
+  const changes = fates.filter(record => {
+    const fact = record.fact;
+    const members = fact.payload.status === 'available' ? [...fact.payload.findingIds].sort() : [fact.payload.reason];
+    const identity = JSON.stringify([record.source.id, record.correlation.evaluationId || fact.adviceId, members]);
+    const state = fact.fate + ':' + fact.reason;
+    if (states.get(identity) === state) return false;
+    states.set(identity, state); return true;
+  });
+  document.querySelector('#finding-history-panel').hidden = !changes.length;
+  document.querySelector('#finding-history-title').textContent = 'Finding state changes · ' + changes.length;
   const history = document.querySelector('#finding-history'); history.replaceChildren();
-  for (const record of fates) {
+  for (const record of changes) {
     const unit = records.find(item => item.source.id === record.source.id && item.fact.kind === 'unit-prepared' && item.correlation.evaluationId && item.correlation.evaluationId === record.correlation.evaluationId);
     const item = requestElement('li');
     const fact = record.fact;
@@ -124,8 +133,8 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
     const item = document.createElement('li'); item.append(button); handoffs.append(item);
     if (id === active) button.focus({ preventScroll: true });
   }
-  if (!visible.size) handoffs.textContent = 'No captured handoffs in this view.';
-  document.querySelector('#handoff-panel-summary').textContent = 'Handoffs · ' + visible.size;
+  if (!visible.size) handoffs.textContent = 'Agent output was not captured for this edit. Review findings alone do not establish what was sent.';
+  document.querySelector('#handoff-panel-summary').textContent = 'To agent · ' + (visible.size || 'not captured');
   handoffs.scrollTop = position;
   if (!visible.has(selectedHandoff) && selectedHandoff === null && visible.size) { selectedHandoff = visible.keys().next().value; handoffs.querySelector('button')?.setAttribute('aria-pressed', 'true'); }
   const group = visible.get(selectedHandoff);
@@ -161,6 +170,17 @@ function renderHandoffs(snapshot, records, evaluationIds, fates) {
     }
     if (group.some(record => record.fact.state === 'written') && !group.some(record => record.fact.state === 'acknowledged')) outputStatus += ' Resident acknowledgement unavailable.';
   } else preserveText(handoffSummary, selectedHandoff ? 'Selected handoff is unavailable in this view.' : 'Select a handoff to inspect its recipient, batch and attempt.');
+  let agentMessage = '';
+  if (exactOutputText !== null) {
+    try {
+      const value = JSON.parse(exactOutputText);
+      const message = value?.hookSpecificOutput?.additionalContext ?? value?.reason ?? value?.systemMessage;
+      if (typeof message === 'string') agentMessage = message;
+    } catch { agentMessage = exactOutputText; }
+  }
+  const messageView = document.querySelector('#handoff-message');
+  messageView.hidden = !agentMessage;
+  preserveText(messageView, agentMessage);
   handoffCopy.disabled = exactOutputText === null;
   if (handoffExact.textContent !== outputText) handoffCopyStatus.textContent = '';
   preserveText(handoffExact, outputText); preserveText(handoffOutputStatus, outputStatus);
@@ -283,15 +303,29 @@ function renderFiles(records, inputs, artifacts) {
     ['Edited:', records.filter(record => record.fact.kind === 'edit-received').flatMap(record => record.fact.candidates.map(item => [item.path, item.operation]))],
     ['Prepared declarations:', records.filter(record => record.fact.kind === 'unit-prepared').map(record => [record.fact.path, record.fact.declaration + ' · ' + record.fact.completeness])],
     ['Physically read:', records.filter(record => record.fact.kind === 'preparation-read').map(record => [record.fact.path, ''])],
-    ['Included in model input:', artifacts.map(item => [item.domain, typeof item.name === 'string' ? item.name : ''])],
     ['Skipped:', records.filter(record => record.fact.kind === 'preparation-skipped').map(record => [record.fact.path, ''])],
     ['Omitted:', [...records.filter(record => record.fact.kind === 'preparation-omission').map(record => [record.fact.path, (record.fact.declaration ? record.fact.declaration + ' · ' : '') + omissionLabel(record.fact.reason) + (omissionLabel(record.fact.reason) === record.fact.reason ? '' : ' (' + record.fact.reason + ')')]), ...omittedReferences]],
     ['Unavailable:', records.filter(record => record.fact.kind === 'model-input' && record.fact.payload.status !== 'available').map(record => ['Model input', record.fact.payload.reason])]
   ];
-  const signature = JSON.stringify([selected, groups]);
+  const signature = JSON.stringify([selected, groups, artifacts]);
   if (renderedFiles === signature) return;
   renderedFiles = signature;
   files.replaceChildren();
+  if (artifacts.length) {
+    const section = requestElement('section', undefined, 'file-group');
+    section.append(requestElement('h3', 'Included in model input:'));
+    const list = requestElement('ul');
+    const seen = new Set();
+    for (const artifact of artifacts) {
+      const identity = JSON.stringify([artifact.domain, artifact.name, artifact.source]);
+      if (seen.has(identity)) continue; seen.add(identity);
+      const row = requestElement('li');
+      row.append(requestElement('span', artifact.domain), requestElement('small', artifact.name), requestElement('pre', artifact.source));
+      list.append(row);
+    }
+    section.append(list);
+    files.append(section);
+  }
   for (const [label, entries] of groups) {
     if (!entries.length) continue;
     const section = requestElement('section', undefined, 'file-group');
@@ -490,7 +524,7 @@ function render(snapshot) {
   preserveText(results, selected ? resultText : 'Select an edit to inspect results.');
   if (requestReceipt !== selected) { requestReceipt = selected; selectedRequest = null; }
   const invocations = records.filter(record => record.fact.kind === 'transport-invoked');
-  document.querySelector('#request-panel-summary').textContent = 'Request · ' + invocations.length;
+  document.querySelector('#request-panel-summary').textContent = 'To Jev · ' + invocations.length + ' request(s)';
   const requestKey = record => record.source.id + ':' + record.sequence;
   if (selectedRequest === null && invocations.length) selectedRequest = requestKey(invocations[0]);
   const requestList = document.querySelector('#requests');
@@ -645,6 +679,6 @@ export const inspectionPage = `<!doctype html><html lang="en"><meta charset="utf
 <main><section class="edit-list" aria-label="Captured edits"><p id="visible-count" class="muted" role="status"></p><p id="call-summary" class="muted"></p><ul id="edits"></ul></section><section id="selected-evidence" aria-label="Selected evidence"><p id="selection-status" role="status"></p><p id="edit-empty" class="empty">Select an edit</p><div id="edit-content" hidden><h2 id="edit-title"></h2><p id="edit-context" class="muted"></p><section id="review"><h3>Review</h3><div id="routes"></div><div id="finding-summary"></div><details id="finding-history-panel" hidden><summary id="finding-history-title">Finding history</summary><p class="muted">Recorded finding states; separate from writer observations.</p><ol id="finding-history" class="observation-list"></ol></details></section>
 <details id="panel-request"><summary id="request-panel-summary">Request</summary><p class="muted">Captured HTTP attempts do not confirm remote receipt.</p><ul id="requests"></ul><button id="copy" type="button" disabled>Copy exact request</button><span id="copy-status" role="status"></span><div id="request-view"></div><details id="request-raw"><summary>Exact JSON</summary><pre id="exact"></pre></details><details><summary>Request metadata</summary><pre id="request-metadata"></pre></details><details><summary>Model input</summary><pre id="input"></pre></details></details>
 <details id="panel-files"><summary>Files</summary><div id="files"></div><details><summary>Included source</summary><pre id="source"></pre></details></details>
-<details id="panel-handoffs"><summary id="handoff-panel-summary">Handoffs</summary><p class="muted">Linked to this edit. Written output does not confirm the agent read or acted on it.</p><button id="all-handoffs" type="button" aria-pressed="false">Show all handoffs</button><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><details id="writer-observations" hidden><summary>Writer observations</summary><ol id="writer-events" class="observation-list"></ol></details><div id="handoff-edits"></div><p id="handoff-output-status"></p><button id="handoff-copy" type="button" disabled>Copy exact output</button><span id="handoff-copy-status" role="status"></span><pre id="handoff-exact"></pre><details><summary>Handoff metadata</summary><pre id="handoff-summary"></pre></details></details>
+<details id="panel-handoffs" open><summary id="handoff-panel-summary">To agent</summary><p class="muted">Linked to this edit. Written output does not confirm the agent read or acted on it.</p><button id="all-handoffs" type="button" aria-pressed="false">Show all handoffs</button><ul id="handoffs"></ul><p id="handoff-recipient" class="muted" hidden></p><details id="writer-observations" hidden><summary>Writer observations</summary><ol id="writer-events" class="observation-list"></ol></details><div id="handoff-edits"></div><p id="handoff-output-status"></p><button id="handoff-copy" type="button" disabled>Copy exact output</button><span id="handoff-copy-status" role="status"></span><pre id="handoff-message" hidden></pre><details><summary>Exact native output</summary><pre id="handoff-exact"></pre></details><details><summary>Handoff metadata</summary><pre id="handoff-summary"></pre></details></details>
 <details id="panel-evidence"><summary>Evidence</summary><details><summary>Answers &amp; rules</summary><pre id="results"></pre></details><details><summary>Captured event records</summary><pre id="detail"></pre></details></details></div></section></main>
 <section class="history"><div class="history-heading"><span class="muted">Captured history only</span></div><details id="history-panel"><summary>Recording &amp; history</summary><p id="history-status" role="status"></p><p class="muted">Only retained observations are shown; missing records do not prove inactivity. This view does not change recording.</p><h3>Current recording observations</h3><p id="recording-roots"></p><p class="muted">Configuration changes apply on the next edit. Pausing preserves the displayed observation; unreachable sources are unknown.</p><p class="muted">Call counts follow the edit filters. Model invocations and HTTP attempts are counted separately; missing capture can undercount both.</p><details><summary>Recording history</summary><p class="muted">Observed transitions do not establish continuous capture or current recording state.</p><pre id="recording"></pre><details><summary>Observed periods</summary><pre id="recording-periods"></pre></details></details><details><summary>Sources &amp; history gaps</summary><p class="muted">Only known endpoints are probed. Timestamps order the view, not events across sources. Loss markers can also expire.</p><pre id="sources"></pre><pre id="losses"></pre></details><details><summary>Recording &amp; call metadata</summary><pre id="current-recording"></pre><pre id="request-totals"></pre></details></details></section><script>${script}</script></body></html>`

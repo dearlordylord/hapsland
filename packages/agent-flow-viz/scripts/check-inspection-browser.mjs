@@ -199,10 +199,12 @@ try {
     )
     return Array.from(section?.querySelectorAll("li") || []).map((item) => ({
       path: item.querySelector("span")?.textContent,
-      declaration: item.querySelector("small")?.textContent
+      declaration: item.querySelector("small")?.textContent,
+      source: item.querySelector("pre")?.textContent
     }))
   })
   assert.ok(includedFiles.some((item) => item.path === "support.ts" && item.declaration === "Amount"))
+  assert.ok(includedFiles.some((item) => item.path === "support.ts" && item.source === "export type Amount = number;"))
   assert.match(await page.locator("#source").textContent(), /日本語/)
   assert.match(await page.locator("#source").textContent(), /export type Amount = number;/)
   assert.match(await page.locator("#results").textContent(), /Effective threshold: 0.6/)
@@ -511,6 +513,9 @@ try {
   await page.waitForFunction(() => document.querySelector("#handoff-copy-status").textContent === "Exact output copied")
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(Buffer.concat(nativeBytes)))
   assert.equal(await page.locator("#handoff-exact").textContent(), Buffer.concat(nativeBytes).toString("utf8"))
+  const nativeOutput = JSON.parse(Buffer.concat(nativeBytes).toString("utf8"))
+  assert.equal(await page.locator("#handoff-message").textContent(), nativeOutput.hookSpecificOutput.additionalContext)
+  await revealInspection(page, "#handoff-exact")
   assert.equal(await page.locator("#handoff-edits button").count(), 3)
   const batchEdit = page.getByRole("button", { name: /Inspect batch edit · mixed\.ts/ })
   await batchEdit.focus()

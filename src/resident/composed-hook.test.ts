@@ -1,6 +1,11 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
-import { Deferred, Effect, Fiber } from "effect"
+import { Context, Deferred, Effect, Fiber } from "effect"
+import {
+  InspectionSubmissionObservation,
+  InspectionWriterObservation,
+  observeInspectionWriter
+} from "../inspection/writer.ts"
 import { ComposedHookRuntime, runComposedHookEffect } from "./composed-hook.ts"
 import { HookOutput } from "./hook-output.ts"
 import type { DirectAdvicee } from "../direct-event/model.ts"
@@ -174,6 +179,7 @@ it.effect("collects accepted Bash advice without registering edits or starting r
       (path) => Effect.sync(() => rmSync(path, { recursive: true, force: true }))
     )
     const calls: string[] = []
+    const observations: Array<{ state: string; encoded?: string }> = []
     const advicee = {
       host: "codex-cli",
       hostVersion: "0.155.1",
@@ -182,7 +188,10 @@ it.effect("collects accepted Bash advice without registering edits or starting r
       toolUseId: "bash",
       subagentId: null
     } as const
-    const accepted: AdviceeCollectionOutcome = { status: "advice", advice: { ...finding.advice, advicee } }
+    const accepted: AdviceeCollectionOutcome = {
+      status: "advice",
+      advice: { ...finding.advice, advicee, inspectionReporting: true }
+    }
     const service = runtime(
       {
         claimComposedBackgroundEffect: () =>
@@ -222,13 +231,23 @@ it.effect("collects accepted Bash advice without registering edits or starting r
       activityPath: join(directory, "activity")
     }).pipe(
       Effect.provideService(ComposedHookRuntime, service),
+      Effect.provideService(InspectionSubmissionObservation, {
+        forAttempt: (attempt) => {
+          expect(attempt.recording).toBe(true)
+          expect(attempt.advicee).toEqual(advicee)
+          expect(attempt.batchId).toBe(accepted.advice.token)
+          return { observe: (event) => observations.push(event) }
+        }
+      }),
       Effect.provideService(
         HookOutput,
         HookOutput.of({
           writeEncoded: unused,
           write: (value) =>
-            Effect.sync(() => {
+            Effect.gen(function* () {
               expect(value).toEqual(accepted.advice.output)
+              const observer = Context.getOrUndefined(yield* Effect.context(), InspectionWriterObservation)
+              observeInspectionWriter(observer, "written", JSON.stringify(value) + "\n")
               calls.push("write")
               return "written" as const
             })
@@ -237,6 +256,11 @@ it.effect("collects accepted Bash advice without registering edits or starting r
     )
     // All admission/prompt/Stop ports remain the failing `unused` implementations.
     expect(calls).toEqual(["claim", "collect", "submit", "write", "acknowledge", "release"])
+    expect(observations).toEqual([
+      { state: "ready" },
+      { state: "authorized" },
+      { state: "written", encoded: JSON.stringify(accepted.advice.output) + "\n" }
+    ])
   }).pipe(Effect.scoped)
 )
 
