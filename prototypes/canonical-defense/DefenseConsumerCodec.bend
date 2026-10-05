@@ -2461,7 +2461,7 @@ def list_defensemotiontypes_workidentity(values: List<&2,List<&2,DefenseMotionTy
 
 def defensemotiontypes_actor(values: List<&2,DefenseMotionTypes.Actor>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseMotionTypes.Actor{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10} <> Nil{}: 0n <> defensemotiontypes_workidentity([v0],v1 <> U32.to_nat(v2) <> U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> list_defensemotiontypes_waypoint([v7],U32.to_nat(v8) <> list_defensemotiontypes_workidentity([v9],v10 <> suffix)))
+    case DefenseMotionTypes.Actor{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12} <> Nil{}: 0n <> defensemotiontypes_workidentity([v0],v1 <> U32.to_nat(v2) <> U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> list_defensemotiontypes_waypoint([v7],U32.to_nat(v8) <> list_defensemotiontypes_workidentity([v9],v10 <> U32.to_nat(v11) <> boolean(v12,suffix))))
     case _: 999999n <> suffix
 
 def list_defensemotiontypes_actor_items(values: List<&2,List<&2,DefenseMotionTypes.Actor>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

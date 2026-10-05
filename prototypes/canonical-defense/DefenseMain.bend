@@ -44,7 +44,7 @@ def clock_enabled(+now: Nat, world: M.World, +carry: U32, elapsed: U32, active: 
 def clock_step(+now: Nat, frame: FrameState) -> FrameState:
   match frame:
     case Frame{+world,last,carry,_}:
-      clock_enabled(now,world_value(world),carry,U32.from_nat(Nat.sub(now,last)),H.clock_active(world_value(world)))
+      clock_enabled(now,world_value(world),carry,U32.from_nat(Nat.sub(now,last)),M.active(world_value(world)) && Bool.not(M.paused(world_value(world))))
 
 def finish(+frame: FrameState) -> IO(Maybe<FrameState>):
   match frame:

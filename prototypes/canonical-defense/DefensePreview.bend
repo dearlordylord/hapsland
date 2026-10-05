@@ -63,6 +63,7 @@ def legal(+preview: Preview) -> Bool:
 def reason(preview: Preview) -> String:
   match preview:
     case Preview{0, _, _, _, _, _, _, _, _, _, _, _}: "TOWER SELECTED / INSPECT OR UPGRADE"
+    case Preview{1, 2, _, _, _, _, _, _, _, _, _, _}: "RESTORE ACCESS NOW / ONE-TIME EFFECT"
     case Preview{1, _, _, _, _, _, _, _, _, _, _, _}: "FUTURE PROFILE / ISSUED WORK UNCHANGED"
     case Preview{2, _, _, _, _, _, _, _, _, _, _, _}: "CANNOT BUILD / ROAD BUILDING OR OCCUPIED GROUND"
     case Preview{3, _, _, _, _, _, _, _, _, _, _, _}: "CANNOT BUILD / NOT ENOUGH GOLD"

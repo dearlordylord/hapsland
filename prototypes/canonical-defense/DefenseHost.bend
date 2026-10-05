@@ -1,5 +1,6 @@
 # Native continuous consumer. All business transitions are owned by shared NativeRun.
 import Base
+import ./DefenseMotionTypes.bend as V
 import ./DefenseMechanics.bend as Mechanics
 import ./DefenseMotion.bend as Motion
 import ./DefenseAuto.bend as A
@@ -172,10 +173,14 @@ def tick_applied(+world: M.World, advanced: T.Advanced) -> TickObserved:
       TickObserved{damage(presented(world,consumed(world,T.Advanced{state,frames,physical}),frames)),frames,physical}
 def ticking_observed(+world: M.World) -> TickObserved:
   tick_applied(world,Run.advance(M.engine(world),256n,(U32.to_nat(M.time(world)) * 20n + 20n : Nat)))
-def tick_when(active: Bool,world: M.World) -> TickObserved:
+def playback_when(active: Bool,+world: M.World) -> M.World:
+  match active:
+    case True{}: M.with_actors(world,Motion.step(M.actors(world)))
+    case False{}: world
+def tick_when(active: Bool,+world: M.World) -> TickObserved:
   match active:
     case True{}: ticking_observed(world)
-    case False{}: TickObserved{world,Nil{},Nil{}}
+    case False{}: TickObserved{playback_when(M.active(world) && Bool.not(M.paused(world)),world),Nil{},Nil{}}
 def tick_observed(+world: M.World) -> TickObserved:
   tick_when(clock_active(world),world)
 def tick_world(observed: TickObserved) -> M.World:
@@ -190,7 +195,7 @@ def move(world: M.World, x: U32, y: U32) -> M.World:
     case M.World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, auto, _, _, selected, work, flash}:
       M.World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, auto, x, y, selected, work, flash}
 def map_free(+world: M.World) -> Bool:
-  Bool.and(Nat.is_eq(List.length(&2,M.Tower,M.towers(world)),0n), Bool.and(Nat.is_eq(List.length(&2, C.Work, M.work(M.core(world))), 0n), U32.is_eq(P.writes(world), 0)))
+  Bool.and(Nat.is_eq(List.length(&2,V.Actor,M.actors(world)),0n),Bool.and(Nat.is_eq(List.length(&2,M.Tower,M.towers(world)),0n), Bool.and(Nat.is_eq(List.length(&2, C.Work, M.work(M.core(world))), 0n), U32.is_eq(P.writes(world), 0))))
 def selected_tower(items: List<&2, M.Tower>, index: U32) -> Maybe<&2, M.Tower>:
   match items index:
     case Nil{} _: None{}
@@ -205,7 +210,7 @@ def upgrade_items(items: List<&2, M.Tower>, index: U32) -> List<&2, M.Tower>:
 def upgrade_found(+world: M.World, found: Maybe<&2, M.Tower>) -> M.World:
   match world found:
     case M.World{core, t, p, l, c, +g, h, +ts, ms, a, o, r, cl, d, auto, x, y, +selected, work, flash} Some{+tower}:
-      pick_world(Bool.and((M.level(tower) < 3 : U32), (g >= upgrade_cost(M.level(tower)) : U32)),
+      pick_world(Bool.and((M.level(tower) < Mechanics.max_level(M.tkind(tower)) : U32), (g >= upgrade_cost(M.level(tower)) : U32)),
         Mechanics.profiles(M.World{core, t, p, l, c, M.sub(g, upgrade_cost(M.level(tower))), h, upgrade_items(ts, selected), ms, a, o, r, cl, d, auto, x, y, selected, work, flash}), world)
     case _ _: world
 def upgrade(+world: M.World) -> M.World:
@@ -278,8 +283,8 @@ def build(+world: M.World, +x: U32, +y: U32, +kind: U32) -> M.World:
   match world:
     case M.World{core, t, p, l, c, +g, +h, ts, ms, a, o, r, cl, d, auto, mx, my, _, work, flash}:
       pick_world(Bool.and(placement_valid(world, x, y), Bool.and((g >= tower_cost(kind) : U32), Bool.and((kind < 3 : U32), (h > 0 : U32)))),
-        Mechanics.profiles(M.World{core, t, p, l, c, M.sub(g, tower_cost(kind)), h, M.Tower{snap(x), snap(y), kind, 1, 0, 0, 0n, 240} <> ts,
-          ms, a, o, r, cl, d, auto, mx, my, 0, work, flash}), world)
+        Mechanics.purchased(M.World{core, t, p, l, c, M.sub(g, tower_cost(kind)), h, M.Tower{snap(x), snap(y), kind, 1, 0, 0, 0n, 240} <> ts,
+          ms, a, o, r, cl, d, auto, mx, my, 0, work, flash},kind), world)
 def click(+world: M.World, +x: U32, +y: U32) -> M.World:
   +index = tower_hit(M.towers(world), x, y, 1)
   pick_world((index > 0 : U32), select(move(world, x, y), index), build(move(world, x, y), x, y, M.choice(world)))
@@ -290,17 +295,17 @@ def target_remaining(world: M.World,found: Maybe<&2,C.Work>) -> U32:
   match found:
     case Some{work}: E.remaining(world,work)
     case None{}: 0
-def profile_delay(+world: M.World,kind: U32) -> U32:
-  M.number(Mechanics.current_delay(Mechanics.current_environment(M.engine(world)),kind))
+def profile_delay(+world: M.World,+kind: U32) -> U32:
+  Bool.pick(U32,U32.is_eq(kind,2),Mechanics.missing_access(Mechanics.current_environment(M.engine(world))),M.number(Mechanics.current_delay(Mechanics.current_environment(M.engine(world)),kind)))
 def preview_before(+world: M.World,x: U32,y: U32,+kind: U32) -> U32:
-  Bool.pick(U32,(kind < 2 : U32),profile_delay(world,kind),0)
+  profile_delay(world,kind)
 def hypothetical(+world: M.World,x: U32,y: U32,kind: U32) -> M.World:
   M.with_effects(world,M.Tower{snap(x),snap(y),kind,1,0,0,0n,0} <> M.towers(world),M.timers(world))
 def preview_gain(+world: M.World,+x: U32,+y: U32,+kind: U32) -> U32:
   +next = hypothetical(world,x,y,kind)
   +base = Bool.pick(Nat,U32.is_eq(kind,0),M.base_jev(M.settings(world)),M.base_output(M.settings(world)))
-  Bool.pick(U32,U32.is_eq(preview_site(world,x,y,kind),255) || (kind >= 2 : U32),0,
-    M.sub(profile_delay(world,kind),M.number(Mechanics.delay(base,Mechanics.strength(next,kind)))))
+  Bool.pick(U32,U32.is_eq(preview_site(world,x,y,kind),255),0,
+    Bool.pick(U32,U32.is_eq(kind,2),profile_delay(world,kind),M.sub(profile_delay(world,kind),M.number(Mechanics.delay(base,Mechanics.strength(next,kind))))))
 def preview_secondary_before(world: M.World,x: U32,y: U32,kind: U32) -> U32: 0
 def preview_secondary_delta(world: M.World,x: U32,y: U32,kind: U32) -> U32: 0
 

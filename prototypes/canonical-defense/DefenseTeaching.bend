@@ -151,4 +151,4 @@ def review_count(items: List<&2,C.Work>,+world: M.World,+side: U32,+waiting: Boo
     case Nil{}: 0
     case +work <> rest:
       +branch = Bool.not(U32.is_eq(M.layout(world),1)) || U32.is_eq(E.lane(world,work),side)
-      (Bool.to_u32(U32.is_eq(E.kind(work),3) && branch && same_bool(E.review_waiting(world,work),waiting)) + review_count(rest,world,side,waiting) : U32)
+      (Bool.to_u32(branch && Bool.pick(Bool,waiting,U32.is_eq(E.kind(work),4) && Bool.not(E.started(E.id(work),E.requests(M.dispatch(M.core(world))))),U32.is_eq(E.kind(work),3))) + review_count(rest,world,side,waiting) : U32)

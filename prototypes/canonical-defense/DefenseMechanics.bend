@@ -63,4 +63,18 @@ def profiles(+world: M.World) -> M.World:
   +settings = M.settings(world)
   +first = jev(M.engine(world),delay(M.base_jev(settings),strength(world,0)))
   +second = output(first,env,delay(M.base_output(settings),strength(world,1)))
-  M.with_engine(world,access(second,env,(strength(world,2) > 0 : U32)))
+  M.with_engine(world,second)
+def purchased_connected(items: List<&2,M.Tower>,world: M.World) -> Bool:
+  match items:
+    case tower <> _: connected(world,tower)
+    case _: False{}
+def purchased(+world: M.World,kind: U32) -> M.World:
+  +next = profiles(world)
+  M.with_engine(next,access(M.engine(next),[current_environment(M.engine(next))],U32.is_eq(kind,2) && purchased_connected(M.towers(next),next)))
+def max_level(kind: U32) -> U32:
+  Bool.pick(U32,U32.is_eq(kind,2),1,3)
+
+def missing_access(env: T.Environment) -> U32:
+  match env:
+    case T.Environment{_,_,_,_,_,_,_,_,_,ready,_,readable,_,_}:
+      (Bool.to_u32(Bool.not(ready)) + Bool.to_u32(Bool.not(readable)) : U32)
