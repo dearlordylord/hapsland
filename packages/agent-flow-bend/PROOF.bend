@@ -1,6 +1,7 @@
 import Base
 import ./LAWS.bend as Laws
 import ./ImportGraph.bend as ImportGraph
+import ./Canonical.bend as Canonical
 
 def Laws.completed_edit_history_starts_empty():
   {==}

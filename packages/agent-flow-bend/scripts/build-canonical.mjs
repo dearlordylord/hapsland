@@ -4,6 +4,12 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { createHash } from "node:crypto"
 
+// Generated bindings depend on this compiler's JavaScript ABI.
+const compilerVersion = execFileSync("bend", ["version"], { encoding: "utf8", timeout: 5_000 }).trim()
+if (compilerVersion !== "bend 2.0.35") {
+  throw new Error(`Bend artifact generation requires exact Bend 2.0.35; observed ${compilerVersion}`)
+}
+
 const root = resolve(import.meta.dirname, "..")
 const productRoot = resolve(root, "../..")
 const digest = createHash("sha256")
@@ -48,11 +54,11 @@ try {
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
   if (
     !footer.test(source) ||
-    !source.includes("function $Canonical$step$(") ||
-    !source.includes("function $Canonical$initial$(") ||
-    !source.includes("function $Ledger$total$(") ||
-    !source.includes("function $Ledger$partition_usage$(") ||
-    !source.includes("function $Ledger$inventory$(")
+    !source.includes("function $Canonical$058step$(") ||
+    !source.includes("function $Canonical$058initial$(") ||
+    !source.includes("function $Ledger$058total$(") ||
+    !source.includes("function $Ledger$058partition_usage$(") ||
+    !source.includes("function $Ledger$058inventory$(")
   ) {
     throw new Error("Bend canonical JavaScript layout changed")
   }
@@ -75,19 +81,19 @@ const normalize = (value) => {
   return value;
 };
 export const bendCanonicalInitial = (limits) =>
-  run_loop($Canonical$initial$(normalize(limits)));
+  run_loop($Canonical$058initial$(normalize(limits)));
 export const bendCanonicalStep = (state, event) =>
-  run_loop($Canonical$step$(state, normalize(event)));
+  run_loop($Canonical$058step$(state, normalize(event)));
 export const bendCanonicalTotal = (state) =>
-  run_loop($Ledger$total$(state.ledger.charges));
+  run_loop($Ledger$058total$(state.ledger.charges));
 export const bendCanonicalPartitionUsage = (state, partition) =>
-  run_loop($Ledger$partition_usage$(state.ledger.charges, nat(partition)));
+  run_loop($Ledger$058partition_usage$(state.ledger.charges, nat(partition)));
 export const bendCanonicalInventory = (state) =>
-  run_loop($Ledger$inventory$(state.ledger.limits));
+  run_loop($Ledger$058inventory$(state.ledger.limits));
 export const bendPreparationLimit = () =>
-  run_loop($Dispatch$max_running$());
+  run_loop($Dispatch$058max_running$());
 export const bendJevRequestLimit = () =>
-  run_loop($Dispatch$max_requests$());
+  run_loop($Dispatch$058max_requests$());
 `
   )
   writeFileSync(
