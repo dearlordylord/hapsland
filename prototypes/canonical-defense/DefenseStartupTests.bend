@@ -1,6 +1,7 @@
 # Startup and continuous playback at the actual game Host boundary.
 import Base
 import ./DefenseHost.bend as H
+import ./DefenseMechanics.bend as Mechanics
 import ./DefenseModel.bend as M
 import ./DefenseMotion.bend as Motion
 import ./DefenseMotionTypes.bend as V
@@ -81,3 +82,9 @@ def main() -> IO(Unit):
     require((M.offered(world_value(queued)) >= 6 : U32) && (Motion.queued(M.actors(world_value(queued)),M.actors(world_value(queued))) >= 5 : U32),"manual burst is accepted immediately while its visual bodies queue separately")
     require(burst_check(140n,world_value(six)),"six simultaneous edits preserve24 pixel entrance spacing without delaying business admission")
     require(U32.is_eq(M.burst_size(M.settings(H.key(H.key(world_value(origin),98),98))),10),"B selects a batch of10 edits for the next manual release")
+
+    require(U32.is_eq(M.burst_size(M.settings(H.key(H.key(H.key(H.key(H.key(H.key(world_value(origin),43),43),43),43),43),43))),7),"exact manual release size7 is selectable without starting work")
+    require(U32.is_eq(M.burst_size(M.settings(H.key(world_value(origin),45))),1),"manual release size cannot fall below1")
+    require(U32.is_eq(Mechanics.missing_access(Mechanics.current_environment(M.engine(H.key(world_value(origin),102)))),2),"F before N creates an explicit two-channel outage")
+    require(U32.is_eq(Mechanics.missing_access(Mechanics.current_environment(M.engine(H.build(H.key(world_value(origin),102),424,232,2)))),0),"connected repair restores the selectable outage scenario")
+    require(U32.is_eq(M.offered(H.tick(H.burst(world_value(origin),7))),7) && U32.is_eq(M.rejected(H.tick(H.burst(world_value(origin),7))),3),"large manual release exposes three real capacity refusals instead of silently losing edits")

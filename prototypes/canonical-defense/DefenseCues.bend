@@ -11,11 +11,15 @@ def take(items: List<&2,M.Cue>,fuel: Nat) -> List<&2,M.Cue>:
     case _ 0n: []
     case Nil{} _: []
     case cue <> tail 1n+n: cue <> take(tail,n)
+def keep(on: Bool,cue: M.Cue,rest: List<&2,M.Cue>) -> List<&2,M.Cue>:
+  match on:
+    case True{}: cue <> rest
+    case False{}: rest
 def select(items: List<&2,M.Cue>,+refusals: Bool) -> List<&2,M.Cue>:
   match items:
     case Nil{}: []
     case +cue <> +tail:
-      Bool.pick(List<&2,M.Cue>,Bool.pick(Bool,refusals,U32.is_eq(M.cue_kind(cue),2),Bool.not(U32.is_eq(M.cue_kind(cue),2))),cue <> select(tail,refusals),select(tail,refusals))
+      keep(Bool.pick(Bool,refusals,U32.is_eq(M.cue_kind(cue),2),Bool.not(U32.is_eq(M.cue_kind(cue),2))),cue,select(tail,refusals))
 def add(+world: M.World,cue: M.Cue) -> M.World:
   +items: List<&2,M.Cue> = cue <> M.cues(world)
   # Keep the32 most recent refusal facts separately from two short notifications.
@@ -24,7 +28,7 @@ def positioned(cue: M.Cue,found: Maybe<&2,C.Work>,world: M.World,ttl: U32) -> M.
   match cue found:
     case M.Cue{kind,id,family,x,y,_} None{}: M.Cue{kind,id,family,x,y,ttl}
     case M.Cue{kind,id,family,_,_,_} Some{work}:
-      +point = E.point_work(world,work)
+      +point = Map.center(M.layout(world),1,0)
       M.Cue{kind,id,family,Map.px(point),Map.py(point),ttl}
 def expire(items: List<&2,M.Cue>,+before: M.World,+world: M.World) -> List<&2,M.Cue>:
   match items:
@@ -32,7 +36,7 @@ def expire(items: List<&2,M.Cue>,+before: M.World,+world: M.World) -> List<&2,M.
     case M.Cue{+kind,+id,family,x,y,+ttl} <> +rest:
       +live = U32.is_eq(kind,2) && Bool.not(Nat.is_eq(E.id_found(id,M.work(M.core(world))),0n))
       +next = Bool.pick(U32,live,60,M.sub(ttl,1))
-      Bool.pick(List<&2,M.Cue>,(next > 0 : U32),positioned(M.Cue{kind,id,family,x,y,next},E.find_work(id,M.work(M.core(before))),before,next) <> expire(rest,before,world),expire(rest,before,world))
+      keep((next > 0 : U32),positioned(M.Cue{kind,id,family,x,y,next},E.find_work(id,M.work(M.core(before))),before,next),expire(rest,before,world))
 def denied(commands: List<&2,C.Command>) -> Bool:
   match commands:
     case Nil{}: False{}
@@ -42,7 +46,7 @@ def refusal(+world: M.World,id: Nat,found: Maybe<&2,C.Work>) -> M.World:
   match found:
     case None{}: world
     case Some{+work}:
-      +point = E.point_work(world,work)
+      +point = Map.center(M.layout(world),1,0)
       add(world,M.Cue{2,id,E.family(work),Map.px(point),Map.py(point),60})
 def refused(on: Bool,+world: M.World,+id: Nat) -> M.World:
   match on:
@@ -61,7 +65,7 @@ def frames(items: List<&2,T.Frame>,world: M.World) -> M.World:
     case Nil{}: world
     case value <> rest: frames(rest,frame(world,value))
 def tick(+before: M.World,+after: M.World,items: List<&2,T.Frame>) -> M.World:
-  # Preserve before-position for refusals, including their retirement trail.
+  # Refusal markers identify the source service; actor history carries the moving body.
   M.with_cues(after,M.cues(frames(items,M.with_cues(before,expire(M.cues(before),before,after)))))
 def burst(+world: M.World) -> M.World:
   +point = Map.path_position(Map.source_route(M.layout(world)),0)

@@ -244,11 +244,15 @@ def entrance_clear(+actor: V.Actor,others: List<&2,V.Actor>) -> Bool:
     case +other <> rest:
       Bool.not(before(actor_key(other),actor_key(actor)) && entrance(other) &&
         (Map.segment_length(point(actor),point(other)) < 24 : U32)) && entrance_clear(actor,rest)
+# Shared room paths need physical spacing even while Canonical has advanced ahead.
+def shared_room(+actor: V.Actor,+other: V.Actor) -> Bool:
+  +phase = visible_phase(actor)
+  U32.is_eq(phase,visible_phase(other)) && (U32.is_eq(phase,1) || U32.is_eq(phase,2) || U32.is_eq(phase,4) || U32.is_eq(phase,5) || U32.is_eq(phase,3) || U32.is_eq(phase,6))
 def branch_clear(+actor: V.Actor,others: List<&2,V.Actor>) -> Bool:
   match others:
     case Nil{}: True{}
     case +other <> rest:
-      Bool.not(U32.is_eq(visible_phase(actor),3) && U32.is_eq(visible_phase(other),3) && Nat.is_eq(actor_family(actor),actor_family(other)) && before(actor_key(other),actor_key(actor)) && (Map.segment_length(point(actor),point(other)) < 24 : U32)) && branch_clear(actor,rest)
+      Bool.not(shared_room(actor,other) && before(actor_key(other),actor_key(actor)) && (Map.segment_length(point(actor),point(other)) < 28 : U32)) && branch_clear(actor,rest)
 def can_play(+actor: V.Actor,+all: List<&2,V.Actor>) -> Bool:
   ready(waiting(actor),all) && branch_clear(actor,all) && (Bool.not(entrance(actor)) || entrance_clear(actor,all))
 def released(actor: V.Actor) -> Bool:

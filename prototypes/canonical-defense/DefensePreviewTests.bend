@@ -8,8 +8,8 @@ import ../../packages/monkey-business-bend/NativeRun.bend as Run
 
 def hovered(world: M.World,x: U32,y: U32,kind: U32) -> M.World:
   match world:
-    case M.World{core,t,p,l,_,g,h,ts,ms,a,o,r,cl,d,auto,_,_,_,damage,flash}:
-      M.World{core,t,p,l,kind,g,h,ts,ms,a,o,r,cl,d,auto,x,y,0,damage,flash}
+    case M.World{core,t,p,l,_,g,h,ts,a,o,r,cl,d,auto,_,_,_,damage,flash}:
+      M.World{core,t,p,l,kind,g,h,ts,a,o,r,cl,d,auto,x,y,0,damage,flash}
 def world_value(items: List<&2,M.World>) -> M.World:
   match items:
     case world <> _: world

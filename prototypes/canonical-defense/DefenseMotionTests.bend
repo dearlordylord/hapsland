@@ -63,6 +63,12 @@ def blocked_stays_visible() -> Bool:
   +actor = single(Motion.step([Motion.birth_actor(C.Work{1n,1n,1n,7n,7n,C.Reviewing{},1n},0,0n,0,[])]))
   +leader = Motion.birth_actor(C.Work{1n,1n,1n,6n,6n,C.Reviewing{},1n},0,0n,0,[])
   Bool.not(Motion.can_play(actor,[leader,actor])) && Motion.drawable(actor,[leader,actor])
+def edit_roads(+layout: U32) -> Bool:
+  separated_pair(steps(30n,[Motion.birth_actor(C.Work{1n,1n,1n,7n,7n,C.Reviewing{},1n},layout,0n,0,[]),Motion.birth_actor(C.Work{1n,1n,1n,8n,8n,C.Reviewing{},2n},layout,0n,1,[])]))
+def retained_queue() -> Bool:
+  +leader: V.Actor = V.Actor{V.WorkIdentity{1n,1n,1n,7n},1n,0,116,476,5,5,[],0,[],0n,0,True{}}
+  +follower: V.Actor = V.Actor{V.WorkIdentity{1n,1n,1n,8n},2n,0,116,504,5,5,[V.Waypoint{116,476,5,0n}],0,[],0n,0,True{}}
+  separated_pair(steps(30n,[leader,follower]))
 def main() -> IO(Unit):
   do IO<Unit>:
     require(retained_at_same_pose(0) && retained_at_same_pose(1) && retained_at_same_pose(2),"rapid stage changes append history without replacing the current pose")
@@ -76,3 +82,5 @@ def main() -> IO(Unit):
     require(service_stays_inside(0) && service_stays_inside(1) && service_stays_inside(2),"Jev service path stays inside until a finding or clear chooses its exit")
     require(blocked_stays_visible(),"an already visible child remains drawn while a sibling blocks movement")
     require(visible_after_first_tick(),"actual Host accepted frames produce visible presentation actors")
+    require(retained_queue(),"retained findings from different edits queue visibly instead of stacking at the room exit")
+    require(edit_roads(0) && edit_roads(1) && edit_roads(2),"units from different edits remain distinct on shared road segments on every map")

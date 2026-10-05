@@ -1,6 +1,7 @@
 # Native layouts are read-only projections of the canonical reducer.
 import Base
 import ./DefenseMechanics.bend as Mechanics
+import ../../packages/monkey-business-bend/NativeRunTypes.bend as NativeTypes
 import ./DefenseMotion.bend as Motion
 import ./DefenseMotionTypes.bend as V
 import ./Font.bend as F
@@ -246,7 +247,7 @@ def queue_details(phase: U32,+world: M.World,+side: U32,x: U32,y: U32,rest: List
       +caption = queue_caption(M.layout(world),side)
       +cx = D.px(caption)
       +cy = D.py(caption)
-      F.text("REVIEW QUEUE / SAFE",cx,M.sub(cy,24),1,phase_color(3),
+      F.text("REVIEW QUEUE / SHARED LEDGER",cx,M.sub(cy,24),1,phase_color(3),
         F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,phase_color(3),
       F.text("REVIEW READY " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,False{})) ++ " / WAIT START " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,True{})),cx,cy,1,65483,
         F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
@@ -258,7 +259,7 @@ def processing_building(+world: M.World, +phase: U32, +side: U32, rest: List<&2,
   +x = U32.sub(D.px(point),32)
   +y = U32.sub(D.py(point),24)
   +enclosed = Bool.not(U32.is_eq(phase,0))
-  +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SAFE",phase_name(phase))
+  +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SHARED LEDGER",phase_name(phase))
   +count = P.count(world,phase)
   F.text(title,x,U32.sub(y,13),1,phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,phase_color(phase)),rest))))
 
@@ -336,11 +337,8 @@ def actionable_stats(on: Bool,preview: Preview.Preview,x: U32,y: U32,rest: List<
     case True{}: stat_delta(preview,x,y,rest)
     case False{}: F.text("BUILD UNAVAILABLE",x,y,1,15758447,rest)
 
-def placement_point(+world: M.World,preview: Preview.Preview,operation: Nat) -> D.Point:
-  match operation:
-    case 0n: D.center(M.layout(world),Preview.site(preview),0)
-    case operation: H.point_found(world,E.find_work(operation,M.work(M.core(world))))
-
+def placement_point(world: M.World,preview: Preview.Preview,operation: Nat) -> D.Point:
+  D.center(M.layout(world),Preview.site(preview),0)
 def placement_link(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: rest
@@ -519,12 +517,16 @@ def cue_draw(+cue: M.Cue,row: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +color = Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),Bool.pick(U32,(M.cue_ttl(cue) > 30 : U32),16733525,9392692),65483)
   F.text(cue_label(cue),(M.cue_x(cue) + 12 : U32),(U32.sub(M.cue_y(cue),28) + row * 12 : U32),1,color,
     ring(24n,M.cue_x(cue),M.cue_y(cue),Bool.pick(U32,(M.cue_ttl(cue) > 30 : U32),12,8),color,rest))
+def cue_visible(on: Bool,cue: M.Cue,row: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match on:
+    case True{}: cue_draw(cue,row,rest)
+    case False{}: rest
 def cue_trails(items: List<&2,M.Cue>,+world: M.World,+row: U32,+rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match items:
     case Nil{}: rest
     case +cue <> +tail:
       +draw = U32.is_eq(M.cue_kind(cue),2) && Nat.is_eq(E.id_found(M.cue_operation(cue),M.work(M.core(world))),0n)
-      Bool.pick(List<&2,F.Rect>,draw,cue_draw(cue,row,cue_trails(tail,world,(row + Bool.to_u32(draw) : U32),rest)),cue_trails(tail,world,row,rest))
+      cue_visible(draw,cue,row,cue_trails(tail,world,(row + Bool.to_u32(draw) : U32),rest))
 def cue_hud(items: List<&2,M.Cue>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match items:
     case Nil{}: rest
@@ -561,7 +563,7 @@ def history_actors(items: List<&2,V.Actor>,+world: M.World,rest: List<&2,F.Rect>
 def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +ids = waiting_ids(tokens,world)
   +queued = Motion.queued(M.actors(world),M.actors(world))
-  +base = F.text("VISUAL QUEUE " ++ U32.show(queued) ++ " / COUNTERS = ENGINE NOW",24,146,1,15758447,rest)
+  +base = F.text("VISUAL RELEASE WAIT " ++ U32.show(queued) ++ " / COUNTERS = ENGINE NOW",24,146,1,15758447,rest)
   wait_label(world,ids,history_actors(M.actors(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,base))))))
 
 def on_word(on: Bool) -> String:
@@ -571,6 +573,11 @@ def on_word(on: Bool) -> String:
 
 def activity_line(+world: M.World) -> String:
   Bool.pick(String,M.active(world),Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED"),"BUILD FIRST - N/ENTER START")
+
+def access_line(env: NativeTypes.Environment) -> String:
+  match env:
+    case NativeTypes.Environment{_,_,_,_,_,_,_,_,_,ready,_,readable,_,_}:
+      "SOURCE " ++ Bool.pick(String,readable,"AVAILABLE","UNAVAILABLE") ++ " / CREDENTIAL " ++ Bool.pick(String,ready,"AVAILABLE","UNAVAILABLE")
 
 def family_row(+world: M.World,+family: Nat,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +tokens = P.tokens(world)
@@ -588,17 +595,17 @@ def family_rows(ids: List<&2,Nat>,+world: M.World,index: U32,rest: List<&2,F.Rec
     case _ 2: rest
     case id <> tail +n: family_row(world,id,n,family_rows(tail,world,(n + 1 : U32),rest))
 def family_panel(+world: M.World,target: Nat,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("EDIT FAMILIES","TARGET THEN BLOCKED / ACTUAL OWNERSHIP",800,440,216,94,15758447,
+  box("EDIT FAMILIES","EDIT ORIGIN / ACTUAL OWNERSHIP",800,440,216,94,15758447,
     family_rows(T.families_focused(world,target),world,0,rest))
 def scene(+world: M.World) -> List<&2,F.Rect>:
   +preview = Preview.calculate(world)
   +tokens = P.tokens(world)
-  +target = T.focus(world,Preview.target(preview))
+  +target: Nat = 0n
   +base = ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))
-  +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B SIZE / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,base))))
-  F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
+  +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,base))))
+  F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: WAIT START / REQUEST ACTIVE",24,111,1,12439239,header))))
+    F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV: WAIT START / REQUEST ACTIVE",24,111,1,12439239,F.text(access_line(Mechanics.current_environment(M.engine(world))),24,124,1,12439239,header)))))
 
 def view(world: M.World) -> Image:
   paint(10n,0,0,1024,scene(world),False{})
@@ -625,4 +632,4 @@ def first_trace(items: List<&2,V.Actor>,+world: M.World,+phase: U32,+prefix: Str
 
 def diagnostics(+world: M.World) -> String:
   +preview = Preview.calculate(world)
-  "PACE=" ++ U32.show(M.arrival_interval(world)) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.run_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " " ++ first_trace(M.actors(world),world,0,"ROAD") ++ " " ++ first_trace(M.actors(world),world,1,"SERVICE") ++ " " ++ first_trace(M.actors(world),world,3,"FANOUT")
+  "PACE=" ++ U32.show(M.arrival_interval(world)) ++ " BURST=" ++ U32.show(M.burst_size(M.settings(world))) ++ " " ++ access_line(Mechanics.current_environment(M.engine(world))) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.run_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " " ++ first_trace(M.actors(world),world,0,"ROAD") ++ " " ++ first_trace(M.actors(world),world,1,"SERVICE") ++ " " ++ first_trace(M.actors(world),world,3,"FANOUT")

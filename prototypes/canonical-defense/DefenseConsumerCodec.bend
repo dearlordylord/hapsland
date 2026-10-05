@@ -2365,7 +2365,7 @@ def list_nativeruntypes_state(values: List<&2,List<&2,NativeRunTypes.State>>, su
 
 def defensemodel_tower(values: List<&2,DefenseModel.Tower>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.Tower{v0,v1,v2,v3,v4,v5,v6,v7} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> U32.to_nat(v2) <> U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> v6 <> U32.to_nat(v7) <> suffix
+    case DefenseModel.Tower{v0,v1,v2,v3} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> U32.to_nat(v2) <> U32.to_nat(v3) <> suffix
     case _: 999999n <> suffix
 
 def list_defensemodel_tower_items(values: List<&2,List<&2,DefenseModel.Tower>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2377,22 +2377,6 @@ def list_defensemodel_tower_items(values: List<&2,List<&2,DefenseModel.Tower>>, 
 def list_defensemodel_tower(values: List<&2,List<&2,DefenseModel.Tower>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
     case +value <> Nil{}: List.length(&2,DefenseModel.Tower,value) <> list_defensemodel_tower_items([value],suffix)
-    case _: 999999n <> suffix
-
-def defensemodel_timer(values: List<&2,DefenseModel.Timer>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case DefenseModel.Timer{v0,v1,v2,v3,v4,v5,v6,v7,v8} <> Nil{}: 0n <> v0 <> U32.to_nat(v1) <> U32.to_nat(v2) <> v3 <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> U32.to_nat(v7) <> U32.to_nat(v8) <> suffix
-    case _: 999999n <> suffix
-
-def list_defensemodel_timer_items(values: List<&2,List<&2,DefenseModel.Timer>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case Nil{} <> Nil{}: suffix
-    case Con{head,tail} <> Nil{}: defensemodel_timer([head],list_defensemodel_timer_items([tail],suffix))
-    case _: 999999n <> suffix
-
-def list_defensemodel_timer(values: List<&2,List<&2,DefenseModel.Timer>>, suffix: List<&2,Nat>) -> List<&2,Nat>:
-  match values:
-    case +value <> Nil{}: List.length(&2,DefenseModel.Timer,value) <> list_defensemodel_timer_items([value],suffix)
     case _: 999999n <> suffix
 
 def defenseauto_state(values: List<&2,DefenseAuto.State>, suffix: List<&2,Nat>) -> List<&2,Nat>:
@@ -2509,7 +2493,7 @@ def list_defensemodel_control(values: List<&2,List<&2,DefenseModel.Control>>, su
 
 def defensemodel_world(values: List<&2,DefenseModel.World>, suffix: List<&2,Nat>) -> List<&2,Nat>:
   match values:
-    case DefenseModel.World{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,v19} <> Nil{}: 0n <> list_nativeruntypes_state([v0],U32.to_nat(v1) <> boolean(v2,U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> list_defensemodel_tower([v7],list_defensemodel_timer([v8],boolean(v9,U32.to_nat(v10) <> U32.to_nat(v11) <> U32.to_nat(v12) <> U32.to_nat(v13) <> list_defensemodel_control([v14],U32.to_nat(v15) <> U32.to_nat(v16) <> U32.to_nat(v17) <> U32.to_nat(v18) <> U32.to_nat(v19) <> suffix))))))
+    case DefenseModel.World{v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18} <> Nil{}: 0n <> list_nativeruntypes_state([v0],U32.to_nat(v1) <> boolean(v2,U32.to_nat(v3) <> U32.to_nat(v4) <> U32.to_nat(v5) <> U32.to_nat(v6) <> list_defensemodel_tower([v7],boolean(v8,U32.to_nat(v9) <> U32.to_nat(v10) <> U32.to_nat(v11) <> U32.to_nat(v12) <> list_defensemodel_control([v13],U32.to_nat(v14) <> U32.to_nat(v15) <> U32.to_nat(v16) <> U32.to_nat(v17) <> U32.to_nat(v18) <> suffix)))))
     case _: 999999n <> suffix
 
 def list_defensemodel_world_items(values: List<&2,List<&2,DefenseModel.World>>, suffix: List<&2,Nat>) -> List<&2,Nat>:

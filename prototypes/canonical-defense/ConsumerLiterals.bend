@@ -13,7 +13,7 @@ def environment(config: T.Config) -> T.Environment:
 def state() -> T.State:
   T.State{[Engine.initial(Ledger.Limits{2n,100n,2n,100n})],[],9n,7n,0n,environment(Consumer.config()),[],True{},[],[],T.HostFacts{[],[],[]}}
 def world() -> M.World:
-  M.World{[state()],4,False{},0,0,160,100,[],[],True{},0,0,0,0,[M.initial_control()],0,0,0,0,0}
+  M.World{[state()],4,False{},0,0,160,100,[],True{},0,0,0,0,[M.initial_control()],0,0,0,0,0}
 law retained_damage: {M.engine(H.damage(world())) == state() : T.State}
 law retained_pointer: {M.engine(H.move(world(),100,200)) == state() : T.State}
 def retained_damage(): {==}

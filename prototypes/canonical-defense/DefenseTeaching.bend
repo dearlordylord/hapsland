@@ -106,20 +106,6 @@ def target_tokens(items: List<&2,P.Token>,+target: Nat,+matching: Bool) -> List<
       Bool.pick(List<&2,P.Token>,same_bool(Nat.is_eq(U32.to_nat(P.id(token)),target),matching),token <> tail,tail)
 def tokens_focused(+items: List<&2,P.Token>,+target: Nat) -> List<&2,P.Token>:
   List.append(&2,P.Token,target_tokens(items,target,True{}),target_tokens(items,target,False{}))
-def focus_found(world: M.World,fallback: Nat,found: Maybe<&2,M.Tower>) -> Nat:
-  match found:
-    case None{}: fallback
-    case Some{tower}: E.target(world,tower)
-def focus(+world: M.World,fallback: Nat) -> Nat:
-  focus_found(world,fallback,H.selected_tower(M.towers(world),M.selected(world)))
-def final_blocker_found(+world: M.World,target: Nat,power: U32,found: Maybe<&2,C.Work>) -> Bool:
-  match found:
-    case None{}: False{}
-    case Some{+work}:
-      U32.is_eq(E.kind(work),4) && E.pending_sibling(E.family(work),M.work(M.core(world))) &&
-        U32.is_eq(count_family(P.tokens(world),E.family(work),0),1) && (E.remaining(world,work) <= power : U32)
-def final_blocker(+world: M.World,+target: Nat,power: U32) -> Bool:
-  final_blocker_found(world,target,power,E.find_work(target,M.work(M.core(world))))
 def preparation_used(world: M.World) -> U32:
   M.number(Dispatch.preparation_count(E.running(M.dispatch(M.core(world)))))
 def partition_limits_value(ledger: Ledger.Ledger) -> Ledger.Limits:
