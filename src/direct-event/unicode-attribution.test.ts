@@ -1,3 +1,4 @@
+import { configuredRules } from "../test-support/default-rules.ts"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { rm } from "node:fs/promises"
@@ -5,7 +6,7 @@ import { join } from "node:path"
 import { adaptClaudeDirectEvent, adaptCodexDirectEvent } from "./adapter.ts"
 import { adaptOpenCodeDirectEvent } from "../hosts/opencode/adapter.ts"
 import { prepareObservation } from "./pipeline.ts"
-import { addEvent, updateEvent, makeGitFixture, put } from "./test-fixtures.ts"
+import { addEvent, updateEvent, makeReviewGitFixture as makeGitFixture, put } from "./test-fixtures.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT } from "../rules/targets.ts"
 
@@ -112,7 +113,8 @@ describe("Unicode attribution across supported runtime adapters", () => {
                   controlledWriter: true,
                   advicee: observation.advicee,
                   inputContract: sample.contract,
-                  settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+                  settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+                  rules: configuredRules
                 })
               )
               const names = prepared.outcomes.flatMap((outcome) =>

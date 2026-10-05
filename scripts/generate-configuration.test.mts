@@ -73,7 +73,7 @@ describe("configuration documentation generator", () => {
     expect(generated.documentation).toContain("Declared on the Effect Schema for this test.")
   })
 
-  it("updates the four artifacts deterministically and preserves authored guide text", () => {
+  it("updates the five artifacts deterministically and preserves authored guide text", () => {
     withFixture((root) => {
       const first = runGenerator(root, "--update")
       expect(first.status, first.stderr).toBe(0)
@@ -112,8 +112,8 @@ describe("configuration documentation generator", () => {
         inputContract: TYPE_INPUT_CONTRACT
       })
 
-      const configurationSchema = JSON.parse(readFileSync(files[2]!, "utf8")) as Record<string, unknown>
-      const rulePackSchema = JSON.parse(readFileSync(files[3]!, "utf8")) as Record<string, unknown>
+      const configurationSchema = JSON.parse(readFileSync(files[3]!, "utf8")) as Record<string, unknown>
+      const rulePackSchema = JSON.parse(readFileSync(files[4]!, "utf8")) as Record<string, unknown>
       const configurationValidator = fromJSONSchema(configurationSchema)
       const rulePackValidator = fromJSONSchema(rulePackSchema)
       expect(configurationSchema).toMatchObject({
@@ -302,7 +302,7 @@ describe("configuration documentation generator", () => {
           ]
         }).success
       ).toBe(false)
-      expect(readFileSync(files[2]!, "utf8")).toContain('"$defs"')
+      expect(readFileSync(files[3]!, "utf8")).toContain('"$defs"')
 
       const second = runGenerator(root, "--update")
       expect(second.status, second.stderr).toBe(0)

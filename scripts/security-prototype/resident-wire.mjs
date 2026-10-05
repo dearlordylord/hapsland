@@ -80,7 +80,7 @@ try {
       ]
     })
   )
-  const config = { version: 1, packs: [{ id: "noul", enabled: false }, "rules.jsonc"] }
+  const config = { version: 1, packs: ["rules.jsonc"] }
   if (scenario === "exclude-at-admission") config.excludes = [path]
   await put(root, ".hapsland.jsonc", JSON.stringify(config))
   const statePath = join(root, "consent")

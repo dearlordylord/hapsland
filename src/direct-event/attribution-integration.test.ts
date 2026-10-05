@@ -1,8 +1,9 @@
+import { configuredRules } from "../test-support/default-rules.ts"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { adaptCodexDirectEvent } from "./adapter.ts"
 import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } from "./pipeline.ts"
-import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
+import { addEvent, makeReviewGitFixture as makeGitFixture, put, updateEvent } from "./test-fixtures.ts"
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts"
 import { compileRulePack } from "../rules/compiler.ts"
@@ -103,7 +104,8 @@ describe("Codex root attribution", () => {
         controlledWriter: true,
         advicee: observation.advicee,
         inputContract: TYPE_INPUT_CONTRACT,
-        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: configuredRules
       })
       expect(prepared.observation.outcomes[0]?.status).toBe("observed")
       if (prepared.observation.outcomes[0]?.status !== "observed") return
@@ -124,7 +126,8 @@ describe("Codex root attribution", () => {
         controlledWriter: true,
         advicee: observation.advicee,
         inputContract: TYPE_INPUT_CONTRACT,
-        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: configuredRules
       })
       expect(prepared.observation.status).toBe("incomplete")
       if (prepared.observation.status === "incomplete") expect(prepared.observation.units).toEqual([])
@@ -143,7 +146,8 @@ describe("Codex root attribution", () => {
         controlledWriter: true,
         advicee: observation.advicee,
         inputContract: TYPE_INPUT_CONTRACT,
-        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: configuredRules
       })
       expect(prepared.observation.status).toBe("incomplete")
       if (prepared.observation.status === "incomplete") expect(prepared.observation.units).toEqual([])
@@ -173,7 +177,8 @@ describe("Codex root attribution", () => {
         controlledWriter: true,
         advicee: observation.advicee,
         inputContract: TYPE_INPUT_CONTRACT,
-        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+        rules: configuredRules
       })
       expect(prepared.observation.status).toBe("complete")
       expect(prepared.outcomes.filter((item) => item.status === "ready")).toHaveLength(1)
