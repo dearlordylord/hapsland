@@ -14,7 +14,7 @@ type Timer is Data:
 # Host controls stay boxed, including the shared scheduler, to preserve the native ABI.
 type Control is Data:
   Control{schedule: List<&2,A.State>, pace: U32}
-def initial_control() -> Control: Control{[A.initial()],1200}
+def initial_control() -> Control: Control{[A.initial()],30000}
 def control_value(items: List<&2,Control>) -> Control:
   match items:
     case value <> _: value

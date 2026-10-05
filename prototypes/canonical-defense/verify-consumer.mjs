@@ -38,7 +38,7 @@ function nextBatch() {
 const config = {
   seed: 152, retention: 10000,
   limits: { globalItems: 32, globalBytes: 480, partitionItems: 16, partitionBytes: 480 },
-  session: { agent: "agent-1", seed: 152, editIntervalMs: 1200, variationMs: 200,
+  session: { agent: "agent-1", seed: 152, editIntervalMs: 30000, variationMs: 200,
     editsPerTask: 4, taskPauseMs: 3000, adviceResponse: "ignore", repairDelayMs: 300,
     bytes: 100, unitBytes: [10, 20] },
   preparationDelay: 800, jevDelay: 3200, adviceLifetime: 20000,
@@ -84,7 +84,7 @@ for (const seed of [0,3,17,41]) {
   // Delivered originals leave the native core; frame facts are the actual
   // retained history used to reconstruct the public target boundary.
   const nativeReceipts = [];
-  let ticks = 0, paused = false, suspended = false, pace = 1200;
+  let ticks = 0, paused = false, suspended = false, pace = 30000;
   let pendingBatch=envelope;
   assert.equal(run.now, 0);
   assert.equal(run.observations.length, 0, "configuration queues arrivals without performing work");

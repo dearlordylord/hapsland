@@ -41,6 +41,16 @@ def route_check(fuel: Nat,+world: M.World) -> Bool:
     case 1n+n:
       +next = H.tick(world)
       E.transition_ready(world,M.core(next)) && continuous(P.tokens(world),world,next) && route_check(n,next)
+def jev_age(items: List<&2,P.Token>,+world: M.World) -> U32:
+  match items:
+    case Nil{}: 0
+    case +token <> rest:
+      U32.max(Bool.pick(U32,U32.is_eq(P.phase(token),4),E.age(U32.to_nat(P.id(token)),4,M.timers(world)),0),jev_age(rest,world))
+def peak_jev_age(fuel: Nat,+world: M.World,+oldest: U32) -> U32:
+  match fuel:
+    case 0n: oldest
+    case 1n+n:
+      peak_jev_age(n,ConsumerTests.run(100n,world),U32.max(oldest,jev_age(P.tokens(world),world)))
 def main() -> IO(Unit):
   +origin = H.initial()
   +idle = ConsumerTests.run(100n,origin)
@@ -55,4 +65,5 @@ def main() -> IO(Unit):
     require(route_check(1600n,H.key(origin,110)),"stage changes and child spawns wait for exits; surviving mobs move at most16 pixels per tick")
     require((M.time(ConsumerTests.run(1600n,H.key(origin,110))) >= 1600 : U32),"route check advances the game instead of freezing")
     require((P.count(ConsumerTests.run(1600n,H.key(origin,110)),4) > 0 : U32),"mobs reach Jev through earlier stages instead of remaining at the entrance")
+    require((peak_jev_age(120n,H.key(origin,110),0) < 1000 : U32),"recurring workload cannot strand mobs in AtJev for1000 ticks over12000 ticks")
     IO.print("GAME STARTUP regression checks complete")
