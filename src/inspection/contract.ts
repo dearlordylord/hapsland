@@ -66,11 +66,13 @@ export const InspectionFact = Schema.Union([
     ])
   }),
   Schema.Struct({ kind: Schema.Literal("preparation-read"), path: Path }),
+  Schema.Struct({ kind: Schema.Literal("preparation-skipped"), path: Path }),
   Schema.Struct({
     kind: Schema.Literal("preparation-omission"),
     path: Path,
     declaration: Schema.optionalKey(Id),
     reason: Schema.Literals([
+      "no-applicable-rule",
       "unsupported-operation",
       "metadata-only",
       "ineligible",

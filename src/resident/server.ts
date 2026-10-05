@@ -2657,6 +2657,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               controlledWriter: true,
               advicee: pathObservation.advicee,
               settings,
+              observePreparationOmission: (path, declaration, reason) => {
+                const receipt = job.inspectionReceipt
+                if (receipt !== undefined && inspection.isEnabled(receipt.scope.root))
+                  inspection.offer(receipt.scope, receipt.correlation, {
+                    kind: "preparation-omission",
+                    path,
+                    declaration,
+                    reason
+                  })
+              },
               ...(job.inspectionReceipt === undefined
                 ? {}
                 : {
@@ -2689,6 +2699,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         ).pipe(Effect.onError(() => residentLedger.release(workspace)))
         if (job.inspectionReceipt !== undefined) {
           const receipt = job.inspectionReceipt
+          for (const outcome of prepared.outcomes) {
+            if (outcome.status === "skipped")
+              inspection.offer(receipt.scope, receipt.correlation, { kind: "preparation-skipped", path: outcome.path })
+          }
           for (const outcome of prepared.observation.outcomes) {
             if (outcome.status === "incomplete") {
               inspection.offer(receipt.scope, receipt.correlation, {

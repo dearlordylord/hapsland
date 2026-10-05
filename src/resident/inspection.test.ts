@@ -12,6 +12,63 @@ import { nativeDeferred } from "../test-support/native-deferred.ts"
 import type { ResidentDispatchContext } from "./protocol.ts"
 
 describe("resident inspection capture", () => {
+  it("retains incomplete preparation beside a clear independent unit without a request for the failed path", async () => {
+    const root = await makeGitFixture()
+    await put(root, "good.ts", "type GoodCount = number\n")
+    await put(root, "bad.ts", 'import { Amount } from "./support";\ntype BadCount = Amount;\n')
+    await put(root, "support.ts", "export type Amount = number;\n")
+    await writeFile(join(root, ".hapsland.jsonc"), JSON.stringify({ version: 1, sessionInspection: true }))
+    const stored = nativeDeferred<void>()
+    const seen = new Set<string>()
+    const store = makeInspectionStorage(join(root, "inspection"), { retentionMs: 86400000, storageBytes: 1048576 })
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record, encoded, publication) =>
+          store.write(record, encoded, publication).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                if (record.fact.kind === "evaluation-outcome" || record.fact.kind === "preparation-skipped")
+                  seen.add(record.fact.kind)
+                if (seen.size === 2) stored.resolve()
+              })
+            )
+          )
+      }
+    })
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["good.ts", "bad.ts"])))
+    if (!observation) throw new Error("missing observation")
+    expect(
+      Effect.runSync(
+        server.admit(observation, {
+          statePath: join(root, "consent"),
+          userConfigPath: join(root, "absent-user"),
+          credential: null,
+          controlled: {
+            answers: Object.fromEntries(
+              configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])
+            )
+          }
+        })
+      ).status
+    ).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    await stored.promise
+    const records = await Effect.runPromise(store.snapshot())
+    expect(
+      records.filter((record) => record.fact.kind === "evaluation-route").map((record) => record.fact)
+    ).toMatchObject([{ route: "fresh", path: "good.ts", declaration: "GoodCount" }])
+    expect(records.filter((record) => record.fact.kind === "preparation-skipped").map((record) => record.fact)).toEqual(
+      [{ kind: "preparation-skipped", path: "bad.ts" }]
+    )
+    expect(
+      records.filter((record) => record.fact.kind === "preparation-omission").map((record) => record.fact)
+    ).toMatchObject([{ path: "bad.ts", reason: "import" }])
+    expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
+    expect(records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)).toEqual([
+      { kind: "evaluation-outcome", outcome: "clear" }
+    ])
+  })
+
   it("links a cached clear review to its captured original without inventing a second request", async () => {
     const root = await makeGitFixture()
     await put(root, "type.ts", "type OrderCount = number\n")
@@ -185,6 +242,7 @@ describe("resident inspection capture", () => {
     await stored.promise
     await prepared.promise
     await evaluated.promise
+    await Effect.runPromise(server.whenIdle())
     const records = await Effect.runPromise(store.snapshot())
     expect(
       records

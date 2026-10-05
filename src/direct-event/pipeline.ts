@@ -73,6 +73,12 @@ export type DirectReviewContext = {
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>)
   readonly inputContract?: string | (() => string)
   readonly captureHooks?: CaptureHooks
+  /** Optional observation of the actual preparation refusal; never participates in review authority. */
+  readonly observePreparationOmission?: (
+    path: string,
+    declaration: string,
+    reason: "missing-evidence" | "no-applicable-rule"
+  ) => void
   /** Fixture-only source effect; production uses the stable native capture. */
   readonly captureSource?: typeof captureStable
   /** Fixture-only graph clock for deterministic deadline checks. */
@@ -322,10 +328,18 @@ const prepareResolvedUnit = (
   frame: PreparationFrame
 ): PrepareOutcome | undefined => {
   const declaration = unit.root.artifact
+  const omitted = (reason: "missing-evidence" | "no-applicable-rule") => {
+    try {
+      frame.context.observePreparationOmission?.(path, declaration.name, reason)
+    } catch {
+      /* Optional evidence cannot refuse review. */
+    }
+    return undefined
+  }
   const rootLocation = candidateRootLocation(frame.contract, declaration, candidateDeclarations)
-  if (isGraphInputContract(frame.contract) && rootLocation === undefined) return undefined
+  if (isGraphInputContract(frame.contract) && rootLocation === undefined) return omitted("missing-evidence")
   const sourceFingerprints = unitSourceFingerprints(unit, frame.supportingCaptures)
-  if (sourceFingerprints === undefined) return undefined
+  if (sourceFingerprints === undefined) return omitted("missing-evidence")
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
   const partial = unitHasOmissions(unit)
   const capabilities = preparationCapabilities(frame.contract, partial)
@@ -335,7 +349,7 @@ const prepareResolvedUnit = (
     complete: true,
     ...(capabilities === undefined ? {} : { capabilities })
   })
-  if (rules.length === 0) return undefined
+  if (rules.length === 0) return omitted("no-applicable-rule")
   const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial)
   return {
     status: "ready",

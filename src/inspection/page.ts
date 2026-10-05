@@ -55,6 +55,16 @@ function render(snapshot) {
   const records = rows.get(selected) || [];
   const activeRoute = document.activeElement?.dataset.route;
   routes.replaceChildren();
+
+  const routeRecords = records.filter(record => record.fact.kind === 'evaluation-route');
+  const skippedRecords = records.filter(record => record.fact.kind === 'preparation-skipped');
+  const omissionRecords = records.filter(record => record.fact.kind === 'preparation-omission');
+  if (routeRecords.length && (skippedRecords.length || omissionRecords.length)) {
+    const summary = document.createElement('p');
+    summary.textContent = 'Mixed recorded outcomes: ' + routeRecords.length + ' evaluation route(s), ' + skippedRecords.length + ' skipped path(s), ' + omissionRecords.length + ' preparation omission(s). Inspect each unit and path below.';
+    routes.append(summary);
+  }
+
   for (const record of records.filter(record => record.fact.kind === 'evaluation-route')) {
     const fact = record.fact;
     const original = fact.original.status === 'linked' ? snapshot.records.find(candidate => candidate.source.id === record.source.id && candidate.correlation.evaluationId === fact.original.evaluationId && candidate.fact.kind === 'model-input') : null;
@@ -79,6 +89,7 @@ function render(snapshot) {
     '\\nSelected root declarations:', ...records.filter(record => record.fact.kind === 'unit-prepared').map(record => record.fact.path + ' · ' + record.fact.declaration + ' · ' + record.fact.completeness),
     '\\nRecorded physical preparation reads:', ...records.filter(record => record.fact.kind === 'preparation-read').map(record => record.fact.path),
     '\\nSource actually included in captured model input:', ...artifacts.map(item => item.domain + ' · ' + item.name),
+    '\\nRecorded skipped preparation paths:', ...records.filter(record => record.fact.kind === 'preparation-skipped').map(record => record.fact.path),
     '\\nRecorded omissions:', ...records.filter(record => record.fact.kind === 'preparation-omission').map(record => record.fact.path + ' · ' + (record.fact.declaration || 'root unavailable') + ' · ' + record.fact.reason),
     ...inputs.flatMap(item => (Array.isArray(item.input?.evidence?.edges) ? item.input.evidence.edges : []).filter(edge => edge.kind === 'omitted').map(edge => edge.symbol + ' · ' + edge.reason))
   ].join('\\n');

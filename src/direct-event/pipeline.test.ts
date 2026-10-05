@@ -767,6 +767,32 @@ describe("direct-event vertical slice", () => {
     })
   )
 
+  it.effect("observes no-applicable-rule preparation without letting the observer change review behavior", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number;\n"))
+      const observation = yield* adaptCodexAdd(addEvent(root))
+      if (observation === undefined) throw new Error("missing observation")
+      for (const throws of [false, true]) {
+        const omissions: Array<unknown> = []
+        const prepared = yield* prepareObservation(observation, {
+          controlledWriter: true,
+          advicee: observation.advicee,
+          settings,
+          rules: [],
+          inputContract: TYPE_INPUT_CONTRACT,
+          observePreparationOmission: (path, declaration, reason) => {
+            omissions.push({ path, declaration, reason })
+            if (throws) throw new Error("optional observer failure")
+          }
+        })
+        expect(omissions).toEqual([{ path: "type.ts", declaration: "OrderCount", reason: "no-applicable-rule" }])
+        expect(prepared.observation.status).toBe("complete")
+        expect(prepared.outcomes).toEqual([])
+      }
+    })
+  )
+
   it.effect("keeps file selection distinct from analyzer applicability", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)

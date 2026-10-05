@@ -94,7 +94,7 @@ try {
   }
   const edit = async (path, toolUseId) => {
     const observation = await Effect.runPromise(
-      adaptCodexDirectEvent(addEvent(root, [path], { tool_use_id: toolUseId }))
+      adaptCodexDirectEvent(addEvent(root, Array.isArray(path) ? path : [path], { tool_use_id: toolUseId }))
     )
     assert.ok(observation)
     published = nativeDeferred()
@@ -171,6 +171,15 @@ try {
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("fresh"))
   assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
+  await put(root, "mixed.ts", "type MixedCount = number;\n")
+  await put(root, "bad.ts", 'import { Amount } from "./support";\ntype BadCount = Amount;\n')
+  await edit(["mixed.ts", "bad.ts"], "mixed-preparation")
+  await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 5)
+  await page.getByRole("button", { name: /mixed\.ts, bad\.ts/ }).click()
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed recorded outcomes"))
+  assert.match(await page.locator("#files").textContent(), /Recorded skipped preparation paths:[\s\S]*bad\.ts/)
+  assert.match(await page.locator("#files").textContent(), /Recorded omissions:[\s\S]*bad\.ts[\s\S]*import/)
+  assert.equal(dispatched.length, 4, "failed preparation must not create a classifier request")
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   assert.deepEqual(errors, [])
   console.log(
