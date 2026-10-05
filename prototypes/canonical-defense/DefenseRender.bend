@@ -326,13 +326,12 @@ def text_width(value: String) -> U32:
 
 def stat_delta(+preview: Preview.Preview,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +current = U32.show(Preview.before(preview))
-  +sign = Bool.pick(String,Preview.reduction(Preview.kind(preview))," - "," + ")
-  F.text(current,x,y,2,16777215,F.text(sign ++ U32.show(Preview.delta(preview)),(x + text_width(current) : U32),y,2,cue_color(Preview.status(preview)),rest))
+  F.text(current,x,y,2,16777215,F.text(" TO " ++ U32.show(Preview.after(preview)),(x + text_width(current) : U32),y,2,cue_color(Preview.status(preview)),rest))
 
 def actionable_stats(on: Bool,preview: Preview.Preview,x: U32,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case True{}: stat_delta(preview,x,y,rest)
-    case False{}: F.text("BUILD UNAVAILABLE",x,y,1,15758447,rest)
+    case False{}: F.text("NO TARGET IN RANGE",x,y,1,15758447,rest)
 
 def placement_point(world: M.World,preview: Preview.Preview,operation: Nat) -> D.Point:
   D.center(M.layout(world),Preview.site(preview),0)
@@ -348,13 +347,20 @@ def placement_link(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List
           F.text(stat_label(Preview.kind(preview)),U32.max(24,M.sub(D.px(point),64)),label_y,1,12439239,
             stat_delta(preview,U32.max(24,M.sub(D.px(point),32)),(label_y + 12 : U32),rest))))
 
+def preview_scope(kind: U32) -> String:
+  match kind:
+    case 0: "AFFECTS ALL FUTURE JEV REQUESTS"
+    case 1: "AFFECTS FUTURE OUTPUT SUBMISSIONS"
+    case _: "AFFECTS SOURCE AND CREDENTIAL ACCESS"
 def generic_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("PLACEMENT SNAPSHOT",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text(stat_label(Preview.kind(preview)),812,584,1,12439239,
-      actionable_stats(Preview.legal(preview),preview,812,604,
-        F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
-          F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ Bool.pick(String,U32.is_eq(Preview.kind(preview),2)," / ONE-TIME REPAIR"," / FUTURE TIMING"),812,684,1,12439239,
-            F.text(Bool.pick(String,U32.is_eq(Preview.kind(preview),2),"NO CONTINUING PROTECTION","ISSUED DEADLINES STAY FIXED"),812,702,1,12439239,rest))))))
+  box("BEFORE BUILDING",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
+    F.text(preview_scope(Preview.kind(preview)),812,584,1,16768133,
+      F.text(stat_label(Preview.kind(preview)),812,604,1,12439239,
+        actionable_stats(Bool.not(U32.is_eq(Preview.site(preview),255)),preview,812,624,
+          F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
+            F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ Bool.pick(String,U32.is_eq(Preview.kind(preview),2)," / ONE-TIME REPAIR"," / FUTURE TIMING"),812,684,1,12439239,
+              F.text(Bool.pick(String,U32.is_eq(Preview.kind(preview),2),"RESTORES BOTH ACCESS CHANNELS","ISSUED DEADLINES STAY FIXED"),812,702,1,12439239,rest)))))))
+
 def preview_panel(kind: U32,legal: Bool,world: M.World,preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   generic_panel(world,preview,rest)
 def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
@@ -365,7 +371,7 @@ def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<
       +x = Preview.x(preview)
       +y = Preview.y(preview)
       ring(48n,x,y,Preview.range(preview),color,processor_icon(x,y,Preview.kind(preview),1,color,
-        placement_link(Preview.legal(preview) && Bool.not(U32.is_eq(Preview.site(preview),255)),world,preview,
+        placement_link(Bool.not(U32.is_eq(Preview.site(preview),255)),world,preview,
           preview_panel(Preview.kind(preview),Preview.legal(preview),world,preview,rest))))
 
 def selected_note(tower: M.Tower) -> String:
