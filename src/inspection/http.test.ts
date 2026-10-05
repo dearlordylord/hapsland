@@ -307,8 +307,14 @@ it("exposes exceptional provider failure without a clear result, duplicate outco
         const server = yield* makeInspectionHttpServer(history)
         yield* Effect.promise(async () => {
           const snapshot = await (await fetch(`${server.url}snapshot`)).json()
-          const records: ReadonlyArray<ReturnType<typeof decodeInspectionRecord>> =
-            snapshot.records.map(decodeInspectionRecord)
+          if (
+            typeof snapshot !== "object" ||
+            snapshot === null ||
+            !("records" in snapshot) ||
+            !Array.isArray(snapshot.records)
+          )
+            throw new Error("missing public snapshot records")
+          const records = snapshot.records.map(decodeInspectionRecord)
           expect(
             records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)
           ).toEqual([{ kind: "evaluation-outcome", outcome: "backend" }])
@@ -320,7 +326,18 @@ it("exposes exceptional provider failure without a clear result, duplicate outco
           const payload = await (
             await fetch(`${server.url}payload/${transport.source.id}/${transport.sequence}`)
           ).json()
-          expect(payload.status).toBe("available")
+          expect(payload).toMatchObject({
+            status: "available",
+            sourceId: transport.source.id,
+            sequence: transport.sequence
+          })
+          if (
+            typeof payload !== "object" ||
+            payload === null ||
+            !("encoded" in payload) ||
+            typeof payload.encoded !== "string"
+          )
+            throw new Error("missing public exact payload")
           expect(Buffer.from(payload.encoded, "base64").equals(dispatched[0]!)).toBe(true)
           expect(JSON.stringify(snapshot)).not.toContain(privateBody)
           expect(JSON.stringify(snapshot)).not.toContain("PRIVATE_OFFLINE_CREDENTIAL")
