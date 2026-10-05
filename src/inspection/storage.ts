@@ -11,7 +11,7 @@ import {
   type InspectionJournalSnapshot,
   type InspectionRecord
 } from "./contract.ts"
-import { lockInspectionDirectory } from "./native-lock.ts"
+import { lockInspectionDirectory, InspectionStorageBusy } from "./native-lock.ts"
 import type { InspectionPersistence } from "./recorder.ts"
 
 const RECORD_NAME = /^([a-f0-9]{64})-([0-9]{16})\.json$/
@@ -51,7 +51,7 @@ type StoredLoss = {
 }
 type Inventory = { readonly records: Stored[]; readonly losses: StoredLoss[] }
 
-/** A private journal shared by all producers. Lock contention loses optional capture; it never waits. */
+/** A private journal: writers own maintenance, readers never change the filesystem. */
 export const makeInspectionStorage = (
   directory: string,
   limits: { readonly retentionMs: number; readonly storageBytes: number; readonly now?: () => number },
@@ -65,6 +65,7 @@ export const makeInspectionStorage = (
     readonly beforeLossPublication?: () => Promise<void>
     readonly afterLossPublication?: () => Promise<void>
     readonly settled?: () => void
+    readonly payloadRead?: () => void
   } = {}
 ): InspectionPersistence & { readonly snapshot: () => Effect.Effect<InspectionJournalSnapshot, unknown> } => {
   if (
@@ -76,8 +77,10 @@ export const makeInspectionStorage = (
   )
     throw unavailable()
   const clock = limits.now ?? Date.now
-  const prepare = async () => {
-    await mkdir(directory, { recursive: true, mode: 0o700 })
+  const cached = new Map<string, Stored | StoredLoss>()
+  let cachedDirectory: string | undefined
+  const prepare = async (shared: boolean) => {
+    if (!shared) await mkdir(directory, { recursive: true, mode: 0o700 })
     const stat = await lstat(directory)
     if (!privateOwned(stat) || !stat.isDirectory()) throw unavailable()
     const canonical = await realpath(directory)
@@ -93,6 +96,7 @@ export const makeInspectionStorage = (
       if (!privateOwned(stat) || !stat.isFile() || stat.nlink !== 1 || stat.size > MAX_INSPECTION_RECORD_BYTES)
         throw unavailable()
       const encoded = await file.readFile({ encoding: "utf8" })
+      controls.payloadRead?.()
       const record = decodeInspectionRecordText(encoded)
       if (record.source.id !== match[1] || String(record.sequence).padStart(16, "0") !== match[2]) throw unavailable()
       return { name, record, encoded, bytes: inspectionAllocatedBytes(stat), metadata: fileMetadata(stat) }
@@ -114,15 +118,20 @@ export const makeInspectionStorage = (
       await file.close()
     }
   }
-  const locked = async <A>(body: (root: string, rootStat: Stats) => Promise<A>): Promise<A> => {
-    const { canonical, stat } = await prepare()
+  const locked = async <A>(body: (root: string, rootStat: Stats) => Promise<A>, shared = false): Promise<A> => {
+    const { canonical, stat } = await prepare(shared)
     const directoryHandle = await open(canonical, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW)
     try {
       const opened = await directoryHandle.stat()
       if (!privateOwned(opened) || !opened.isDirectory() || !sameFile(opened, stat)) throw unavailable()
-      if (!lockInspectionDirectory(directoryHandle.fd)) throw unavailable()
+      if (!lockInspectionDirectory(directoryHandle.fd, shared)) throw new InspectionStorageBusy()
       const current = await lstat(directory)
       if (!privateOwned(current) || !sameFile(current, opened)) throw unavailable()
+      const identity = `${opened.dev}:${opened.ino}`
+      if (cachedDirectory !== identity) {
+        cached.clear()
+        cachedDirectory = identity
+      }
       // Exclusive descriptor ownership survives async IO and is released by close or process exit.
       const names = await readdir(canonical)
       if (names.length > MAX_FILES + 2) throw unavailable()
@@ -132,6 +141,7 @@ export const makeInspectionStorage = (
         const entry = await lstat(join(canonical, name))
         if (!privateOwned(entry) || !entry.isFile() || entry.nlink > 2 || entry.size > MAX_INSPECTION_RECORD_BYTES)
           throw unavailable()
+        if (shared) continue
         if (entry.nlink === 2) {
           // A surviving temporary link means publication never finished. Discard both
           // links conservatively, including a writer killed before its consent recheck.
@@ -162,15 +172,36 @@ export const makeInspectionStorage = (
       await directoryHandle.close()
     }
   }
-  const inventory = async (root: string): Promise<Inventory> => {
+  const inventory = async (root: string, shared = false): Promise<Inventory> => {
     const entries = await readdir(root)
     if (entries.length > MAX_FILES) throw unavailable()
     const records: Stored[] = [],
       losses: StoredLoss[] = []
+    const present = new Set(entries)
+    for (const name of cached.keys()) if (!present.has(name)) cached.delete(name)
     for (const name of entries) {
+      if (shared && /^pending-(?:loss-)?[a-f0-9-]{36}$/.test(name)) continue
       // Unknown entries are never interpreted or deleted to recover quota.
-      if (LOSS_NAME.test(name)) losses.push(await readLoss(root, name))
-      else records.push(await read(root, name))
+      if (!LOSS_NAME.test(name) && !RECORD_NAME.test(name)) throw unavailable()
+      const stat = await lstat(join(root, name))
+      if (
+        !privateOwned(stat) ||
+        !stat.isFile() ||
+        stat.nlink < 1 ||
+        stat.nlink > 2 ||
+        stat.size > (LOSS_NAME.test(name) ? 512 : MAX_INSPECTION_RECORD_BYTES)
+      )
+        throw unavailable()
+      // A temporary hard link may precede the synchronous consent commit. Readers
+      // leave recovery to a writer and never expose these unfinished publications.
+      if (shared && stat.nlink === 2) continue
+      let entry = cached.get(name)
+      if (!entry || !unchangedPrivateFile(stat, entry.metadata)) {
+        entry = LOSS_NAME.test(name) ? await readLoss(root, name) : await read(root, name)
+        cached.set(name, entry)
+      }
+      if ("loss" in entry) losses.push(entry)
+      else records.push(entry)
     }
     return {
       records: records.sort((a, b) => a.record.capturedAt - b.record.capturedAt || a.name.localeCompare(b.name)),
@@ -326,13 +357,24 @@ export const makeInspectionStorage = (
             if (linked && !committed) await unlink(join(root, name))
             await unlink(temporary)
           }
+          if (committed) {
+            const final = await lstat(join(root, name))
+            if (!privateOwned(final) || !final.isFile() || final.nlink !== 1) throw unavailable()
+            cached.set(name, {
+              name,
+              record: captured,
+              encoded,
+              bytes: inspectionAllocatedBytes(final),
+              metadata: fileMetadata(final)
+            })
+          }
         }).finally(() => controls.settled?.()),
-      catch: () => unavailable()
+      catch: (error) => (error instanceof InspectionStorageBusy ? error : unavailable())
     })
 
   return {
     write,
-    // A history read owns maintenance, independently of any resident lifetime.
+    // Read-only history: expiry is filtered; physical cleanup belongs to writers.
     snapshot: () =>
       Effect.tryPromise({
         try: async () => {
@@ -341,15 +383,24 @@ export const makeInspectionStorage = (
             throw error
           })
           if (!exists) return { records: [], losses: [] }
-          return locked(async (root, rootStat) => {
-            const retained = await prune(root, await inventory(root), 0, rootStat)
+          return locked(async (root) => {
+            const retained = await inventory(root, true)
+            const now = clock()
+            const expired = retained.records
+              .filter((entry) => now - entry.record.capturedAt >= limits.retentionMs)
+              .map((entry) => ({ sourceId: entry.record.source.id, sequence: entry.record.sequence }))
             return {
-              records: retained.records.map((entry) => entry.record),
-              losses: retained.losses.map((entry) => entry.loss)
+              ...(expired.length ? { expired } : {}),
+              records: retained.records
+                .filter((entry) => now - entry.record.capturedAt < limits.retentionMs)
+                .map((entry) => structuredClone(entry.record)),
+              losses: retained.losses
+                .filter((entry) => now - entry.loss.removedAt < limits.retentionMs)
+                .map((entry) => structuredClone(entry.loss))
             }
-          })
+          }, true)
         },
-        catch: () => unavailable()
+        catch: (error) => (error instanceof InspectionStorageBusy ? error : unavailable())
       })
   }
 }

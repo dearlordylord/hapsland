@@ -119,8 +119,12 @@ try {
   await Effect.runPromise(resident.whenIdle())
   assert.equal(dispatched.length, 1, "Controlled DecisionModel work does not invoke live HTTP transport")
   phase = "browser"
+  let historyUnavailable = false
   const server = await Effect.runPromise(
-    makeInspectionHttpServer(history).pipe(Effect.provideService(Scope.Scope, scope))
+    makeInspectionHttpServer({
+      snapshot: () =>
+        historyUnavailable ? Effect.fail(new Error("history temporarily unavailable")) : history.snapshot()
+    }).pipe(Effect.provideService(Scope.Scope, scope))
   )
   const snapshot = await (await fetch(`${server.url}snapshot`)).json()
   assert.deepEqual(
@@ -139,14 +143,23 @@ try {
   page.on("pageerror", (error) => errors.push(error.message))
   await page.goto(server.url)
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
+  historyUnavailable = true
+  await page.waitForFunction(() =>
+    document.querySelector("#history-status").textContent.includes("temporarily unavailable")
+  )
+  assert.equal(await page.locator("#edits li").count(), 4, "Temporary read failure preserves pre-existing edits")
+  historyUnavailable = false
+  await page.waitForFunction(
+    () => !document.querySelector("#history-status").textContent.includes("temporarily unavailable")
+  )
   const totals = {
     modelInvocations: { live: 1, controlled: 1, unknown: 0 },
     httpAttempts: { live: 1, controlled: 0, unknown: 0 }
   }
   assert.deepEqual(JSON.parse(await page.locator("#request-totals").textContent()), totals)
   for (const [index, route] of [
-    [1, "joined-pending"],
-    [2, "cached"]
+    [2, "joined-pending"],
+    [1, "cached"]
   ]) {
     await page.locator("#edits button").nth(index).focus()
     await page.keyboard.press("Enter")
@@ -156,6 +169,29 @@ try {
     await page.getByRole("button", { name: "Inspect original evaluation", exact: true }).focus()
     await page.keyboard.press("Enter")
     assert.equal(await page.locator("#exact").textContent(), dispatched[0].toString("utf8"))
+    const wire = JSON.parse(dispatched[0].toString("utf8"))
+    assert.equal(await page.locator("#request-view").isVisible(), true)
+    assert.equal(await page.locator("#exact").isVisible(), false, "Raw JSON remains secondary")
+    assert.equal(await page.locator("#request-artifact code").textContent(), wire.state.artifact.source)
+    assert.ok((await page.locator("#request-view").textContent()).includes(wire.model))
+    const questionText = await page.locator("#request-questions").textContent()
+    for (const [id, question] of Object.entries(wire.questions)) {
+      assert.ok(questionText.includes(id), "Captured rule identity is preserved")
+      assert.ok(questionText.includes(question.instructions), "Question comes from captured HTTP bytes")
+      if (question.criteria) {
+        assert.ok(questionText.includes(question.criteria.false))
+        assert.ok(questionText.includes(question.criteria.true))
+      }
+    }
+    assert.equal(await page.locator("#request-view script, #request-view img").count(), 0)
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    if (process.env.HAPSLAND_UX_SCREENSHOTS === "1" && route === "cached") {
+      await page.screenshot({ path: "/tmp/hapsland-request-ux-mobile.png", fullPage: true })
+      await page.setViewportSize({ width: 1440, height: 1000 })
+      await page.screenshot({ path: "/tmp/hapsland-request-ux-desktop.png", fullPage: true })
+      await page.setViewportSize({ width: 375, height: 812 })
+    }
+
     assert.deepEqual(JSON.parse(await page.locator("#request-totals").textContent()), totals)
   }
   await page.locator("#filter").fill("controlled.ts")

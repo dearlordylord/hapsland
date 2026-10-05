@@ -136,7 +136,10 @@ host's packaged dashboard lifecycle, not additional platform support.
 
 The [journal tests](../src/inspection/storage.test.ts) exercise actual asynchronous
 filesystem publication, shared allocated-byte accounting, exact capture-aged
-expiry, independent writer contention, and killed producers. A physical near-full
+expiry, read-only snapshots, immutable payload reuse, independent writer contention,
+and killed producers. Snapshots filter expired records without creating, deleting,
+or recovering files; physical retention and crash cleanup run on publication.
+A physical near-full
 128 MiB journal uses the actual default settings and measured filesystem
 allocation, then exercises two project/source writers and contending maintenance.
 It checks publication allocation, non-waiting contention, oldest-first record
@@ -148,7 +151,8 @@ so this is optional history rather than a durable audit guarantee.
 
 The [native lock tests](../src/inspection/native-lock.test.ts) establish private
 directory descriptor validation and loading from a compiled Bun package layout.
-The non-waiting kernel lock releases on descriptor close or process exit and
+Shared locks permit simultaneous readers; exclusive locks protect publication
+and maintenance. The non-waiting kernel lock releases on descriptor close or process exit and
 allocates no journal recovery files. The native build/release checks require the
 binding in both existing arm64 profiles. These focused checks do not establish
 production archive installation or full-feature acceptance; affected installed

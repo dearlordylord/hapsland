@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import * as Effect from "effect/Effect"
 import { captureStable, MAX_SOURCE_BYTES } from "./capture.ts"
-import { eligibleNamedPath } from "./selection.ts"
+import { eligibleNamedPath, inspectNamedPath } from "./selection.ts"
 import { adaptCodexAdd } from "./adapter.ts"
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts"
 
@@ -15,6 +15,37 @@ const required = <A>(value: A | undefined): A => {
 }
 
 describe("direct-event named-path selection", () => {
+  it("reports the actual policy, ignore and filesystem refusal instead of generic ineligibility", async () => {
+    const root = await makeGitFixture()
+    await put(root, ".scratch/example.ts", "export type Example = { title: string }")
+    await put(root, "ignored.ts", "export type Ignored = { title: string }")
+    await put(root, ".gitignore", "ignored.ts\n")
+    expect(await Effect.runPromise(inspectNamedPath(root, ".scratch/example.ts"))).toEqual({
+      status: "denied",
+      reason: "not-included"
+    })
+    expect(
+      await Effect.runPromise(
+        inspectNamedPath(root, ".scratch/example.ts", { includes: ["**/*", ".scratch/**"], excludes: [] })
+      )
+    ).toMatchObject({ status: "selected", path: { relativePath: ".scratch/example.ts" } })
+    expect(await Effect.runPromise(inspectNamedPath(root, "ignored.ts"))).toEqual({
+      status: "denied",
+      reason: "git-ignored"
+    })
+    expect(
+      await Effect.runPromise(inspectNamedPath(root, "ignored.ts", { includes: ["**/*"], excludes: ["ignored.ts"] }))
+    ).toEqual({ status: "denied", reason: "excluded" })
+    expect(await Effect.runPromise(inspectNamedPath(root, "missing.ts"))).toEqual({
+      status: "denied",
+      reason: "path-observation-unavailable"
+    })
+    expect(await Effect.runPromise(inspectNamedPath(root, "../outside.ts"))).toEqual({
+      status: "denied",
+      reason: "repository-boundary"
+    })
+  })
+
   it("honors nested .gitignore for untracked files and tracked semantics", async () => {
     const root = await makeGitFixture()
     await put(root, ".gitignore", "ignored.ts\nsub/*.ts\n!sub/keep.ts\n")

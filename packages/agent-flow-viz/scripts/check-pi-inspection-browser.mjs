@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { revealInspection } from "./inspection-browser-controls.mjs"
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { unlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -163,20 +164,21 @@ try {
     await page.keyboard.press("Enter")
     assert.equal(await page.locator("#edits button").count(), expectedEdits)
   }
-  await page.locator("#filter").focus()
+  await revealInspection(page, "#root-filter")
+  await page.locator("#root-filter").focus()
   for (const id of [
-    "resident-filter",
     "root-filter",
     "runtime-filter",
     "session-filter",
     "child-filter",
+    "resident-filter",
     "clear-filters"
   ]) {
-    await page.keyboard.press("Tab")
+    if (id !== "root-filter") await page.keyboard.press("Tab")
     assert.equal(await page.evaluate(() => document.activeElement.id), id)
     assert.equal(await page.locator("#" + id).isEnabled(), true)
   }
-  const rootFilter = page.getByRole("combobox", { name: "Working root / project" })
+  const rootFilter = page.getByRole("combobox", { name: "Project", exact: true })
   await rootFilter.selectOption({ index: 1 })
   const filteredRoot = JSON.parse(await rootFilter.inputValue())
   assert.equal(
@@ -197,6 +199,9 @@ try {
     assert.equal(await page.locator("#edits button").count(), expectedEdits)
     await clear()
   }
+  await page.locator("#edits button").first().click()
+  await revealInspection(page, "#handoffs")
+  await page.locator("#all-handoffs").click()
   for (const [index, output] of outputs.entries()) {
     const button = page.locator("#handoffs button").nth(index)
     await button.focus()

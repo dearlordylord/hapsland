@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { revealInspection } from "./inspection-browser-controls.mjs"
 import { writeFile, rm, lstat, readdir, statfs } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium } from "playwright"
@@ -136,9 +137,25 @@ try {
   await page.goto(server.url)
   const row = page.getByRole("button", { name: /type\.ts/ })
   await row.waitFor()
+  const originalKey = await row.getAttribute("data-key")
+  const originalRow = page.locator(`#edits button[data-key="${originalKey}"]`)
+  assert.ok((await row.boundingBox()).y < 812, "Edits appear on the first narrow screen")
+  assert.equal(await page.locator("#sources").isVisible(), false)
+  assert.equal(await page.locator("#current-recording").isVisible(), false)
+  assert.equal(await page.locator("#root-filter").isVisible(), false)
   await row.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#detail").textContent.includes("edit-admission"))
+  assert.equal(await page.locator("#review").isVisible(), true)
+  assert.equal(await page.locator("#results").isVisible(), false)
+  assert.equal(await page.locator("#exact").isVisible(), false)
+  if (process.env.HAPSLAND_UX_SCREENSHOTS === "1") {
+    await page.screenshot({ path: "/tmp/hapsland-inspection-ux-mobile.png", fullPage: true })
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.screenshot({ path: "/tmp/hapsland-inspection-ux-desktop.png", fullPage: true })
+    await page.setViewportSize({ width: 375, height: 812 })
+  }
+  await revealInspection(page, "#copy")
   await page.getByRole("button", { name: "Copy exact request", exact: true }).click()
   await page.waitForFunction(() => document.querySelector("#copy-status").textContent === "Exact request copied")
   assert.ok(Buffer.from(await page.evaluate(() => navigator.clipboard.readText())).equals(dispatched[0]))
@@ -175,15 +192,24 @@ try {
   assert.equal(new Set(copiedRequests).size, 2)
   await page.locator("#requests button").first().focus()
   await page.keyboard.press("Enter")
-  assert.match(await page.locator("#files").textContent(), /Recorded physical preparation reads:[\s\S]*support\.ts/)
-  assert.match(await page.locator("#files").textContent(), /Source actually included[\s\S]*support\.ts · Amount/)
+  assert.match(await page.locator("#files").textContent(), /Physically read:[\s\S]*support\.ts/)
+  const includedFiles = await page.locator("#files").evaluate((element) => {
+    const section = Array.from(element.querySelectorAll("section")).find(
+      (group) => group.querySelector("h3")?.textContent === "Included in model input:"
+    )
+    return Array.from(section?.querySelectorAll("li") || []).map((item) => ({
+      path: item.querySelector("span")?.textContent,
+      declaration: item.querySelector("small")?.textContent
+    }))
+  })
+  assert.ok(includedFiles.some((item) => item.path === "support.ts" && item.declaration === "Amount"))
   assert.match(await page.locator("#source").textContent(), /日本語/)
   assert.match(await page.locator("#source").textContent(), /export type Amount = number;/)
   assert.match(await page.locator("#results").textContent(), /Effective threshold: 0.6/)
   assert.match(await page.locator("#results").textContent(), /Validated backend answers:[\s\S]*0.7/)
   assert.match(await page.locator("#results").textContent(), /Interpreted findings:[\s\S]*Inspect browser 日本語 cases/)
   const selection = await page.locator("#detail").textContent()
-  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("button", { name: "Pause updates", exact: true }).click()
   const hostile = "<img onerror=alert(1)>.ts"
   await put(root, hostile, "type OtherCount = number\n")
   await edit(hostile, "while-paused")
@@ -200,11 +226,12 @@ try {
   )
   assert.equal(await page.locator("#detail").textContent(), selection)
   assert.equal(await page.locator("#edits li").count(), 1)
-  await page.getByRole("button", { name: "Resume", exact: true }).click()
+  await page.getByRole("button", { name: "Resume updates", exact: true }).click()
   await page.getByRole("button", { name: /<img onerror/ }).waitFor()
   assert.equal(await page.locator("#edits img").count(), 0)
   assert.equal(await page.locator("#detail").textContent(), selection)
   await page.waitForFunction(() => document.querySelector("#recording").textContent.includes("enabled"))
+  await revealInspection(page, "#detail")
   await page.evaluate(() => {
     const detail = document.querySelector("#detail")
     const range = document.createRange()
@@ -236,16 +263,16 @@ try {
   for (const record of originalInputs) {
     await rm(join(root, "inspection", `${record.source.id}-${String(record.sequence).padStart(16, "0")}.json`))
   }
-  await page
-    .getByRole("button", { name: /type\.ts/ })
-    .first()
-    .click()
+  await originalRow.click()
   await page.waitForFunction(() => document.querySelector("#input").textContent.includes("No retained model input"))
   assert.equal(await page.locator("#requests button").count(), 2, "Transport evidence survives model-input loss")
   await edit("type.ts", "reuse-existing-advice")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 4)
   assert.equal(dispatched.length, 4, "existing advice must not create another classifier invocation")
-  const reused = page.getByRole("button", { name: /type\.ts/ }).last()
+  const reused = page
+    .locator("#edits")
+    .getByRole("button", { name: /type\.ts/ })
+    .first()
   await reused.focus()
   await page.keyboard.press("Enter")
   await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("existing-advice"))
@@ -305,17 +332,14 @@ try {
   await edit(["mixed.ts", "bad.ts"], "mixed-preparation")
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 5)
   await page.getByRole("button", { name: /mixed\.ts, bad\.ts/ }).click()
-  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed recorded outcomes"))
-  assert.match(await page.locator("#files").textContent(), /Recorded skipped preparation paths:[\s\S]*bad\.ts/)
-  assert.match(await page.locator("#files").textContent(), /Recorded omissions:[\s\S]*bad\.ts[\s\S]*import/)
+  await page.waitForFunction(() => document.querySelector("#routes").textContent.includes("Mixed outcomes"))
+  assert.match(await page.locator("#files").textContent(), /Skipped:[\s\S]*bad\.ts/)
+  assert.match(await page.locator("#files").textContent(), /Omitted:[\s\S]*bad\.ts[\s\S]*import/)
   assert.equal(dispatched.length, 5, "failed preparation must not create a classifier request")
   await put(root, "type.ts", "type OrderCount = string;\n")
   const response = await Effect.runPromise(resident.collect(root, advicee(), dispatch))
   await retired.promise
-  await page
-    .getByRole("button", { name: /type\.ts/ })
-    .first()
-    .click()
+  await originalRow.click()
   await page.waitForFunction(() => document.querySelector("#results").textContent.includes('"fate": "stale"'))
   assert.match(await page.locator("#results").textContent(), /Observed finding fates \(independent of submission\)/)
   assert.match(await page.locator("#results").textContent(), /"fate": "retained"/)
@@ -426,6 +450,7 @@ try {
   synchronous.end()
   await synchronousPublished.promise
   assert.equal(await page.locator("#handoffs").count(), 1)
+  await revealInspection(page, "#all-handoffs")
   const allHandoffs = page.getByRole("button", { name: "Show all handoffs", exact: true })
   await allHandoffs.focus()
   await page.keyboard.press("Enter")
@@ -551,7 +576,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#edits li").length === 8)
   assert.equal(dispatched.length, 10)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
-  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("button", { name: "Pause updates", exact: true }).click()
   const frozen = await page.locator("#detail").textContent()
   const copiedBeforeExpiry = await page.evaluate(() => navigator.clipboard.readText())
   phase = "capacity eviction and payload expiry"

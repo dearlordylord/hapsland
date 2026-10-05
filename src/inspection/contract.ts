@@ -100,6 +100,18 @@ export const InspectionFact = Schema.Union([
       "unsupported-operation",
       "metadata-only",
       "ineligible",
+      "repository-boundary",
+      "sensitive",
+      "generated-or-vendor",
+      "file-extension",
+      "excluded",
+      "empty-includes",
+      "not-included",
+      "language-not-enabled",
+      "git-administrative-path",
+      "unsafe-file-kind",
+      "git-ignored",
+      "path-observation-unavailable",
       "capture-unavailable",
       "extension",
       "parse",
@@ -277,6 +289,8 @@ export type InspectionLoss = typeof InspectionLoss.Type
 export type InspectionJournalSnapshot = {
   readonly records: ReadonlyArray<InspectionRecord>
   readonly losses: ReadonlyArray<InspectionLoss>
+  /** Known expiry in this read, without claiming physical deletion or persisting a loss marker. */
+  readonly expired?: ReadonlyArray<{ readonly sourceId: string; readonly sequence: number }>
 }
 export const decodeInspectionLossText = (encoded: string): InspectionLoss => {
   if (Buffer.byteLength(encoded) > 512) throw new Error("inspection loss marker exceeds its bound")
