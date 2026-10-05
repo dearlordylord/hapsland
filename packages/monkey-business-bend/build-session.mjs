@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { readFileSync, writeFileSync } from "node:fs"
 import { join, dirname } from "node:path"
@@ -8,7 +9,10 @@ const sourceHash = hash(readFileSync(join(root, "Session.bend")))
 const declarationHash = hash(readFileSync(join(root, "session.d.mts")))
 const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)))
 // This projection delegates to the single shared engine and source owner.
-const module = `import Engine from "./engine.mjs";
+const module = execFileSync(join(root, "../../node_modules/.bin/dprint"), ["fmt", "--stdin", "session.mjs"], {
+  cwd: join(root, "../.."),
+  encoding: "utf8",
+  input: `import Engine from "./engine.mjs";
 export default {
  initial: Engine.session_initial, next: Engine.session_next, sample_delay: Engine.session_delay,
  finish_state: Engine.session_finish,
@@ -21,6 +25,7 @@ export default {
  sizes: Engine.session_sizes, suspend: Engine.session_suspend, burst: Engine.session_burst,
 };
 `
+})
 const manifest = { sourceHash, declarationHash, buildHash, moduleHash: hash(module) }
 if (process.argv.includes("--check")) {
   if (

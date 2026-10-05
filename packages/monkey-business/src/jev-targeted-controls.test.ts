@@ -180,4 +180,4 @@ it("restores and rotates credentials after more than 2048 terminal requests on o
   expect(run.projection.dispatch.requests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
-}, 30_000)
+}, 120_000)

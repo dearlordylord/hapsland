@@ -54,11 +54,16 @@ it("loads the physical binding from a compiled Bun package and releases descript
       console.log("packaged inspection lock passed");
     `
     )
-    const bun = resolve(
-      "node_modules/@oven",
-      `bun-${process.platform}-${process.arch === "arm64" ? "aarch64" : process.arch}`,
-      "bin/bun"
-    )
+    const bun =
+      process.env.HAPSLAND_BUILD_BUN ??
+      resolve(
+        "node_modules/@oven",
+        `bun-${process.platform}-${process.arch === "arm64" ? "aarch64" : process.arch}`,
+        "bin/bun"
+      )
+    const version = spawnSync(bun, ["--version"], { encoding: "utf8", timeout: 5000 })
+    expect(version.status, version.error?.message ?? version.stderr).toBe(0)
+    expect(version.stdout.trim()).toBe("1.3.14")
     const compile = spawnSync(bun, ["build", "--compile", entry, "--outfile", binary], {
       encoding: "utf8",
       timeout: 20000
